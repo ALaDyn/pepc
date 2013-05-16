@@ -30,38 +30,18 @@ module module_htable
     implicit none
     private
 
-    integer(kind_key), public, parameter :: HTABLE_KEY_INVALID = -1_kind_key
-    integer(kind_key), public, parameter :: HTABLE_KEY_EMPTY   =  0_kind_key
-    integer(kind_node), parameter :: HTABLE_FREE_LO = 1024_kind_node !< min address allowed for resolving collisions (from 4th level up)
-    integer(kind_node), parameter :: HTABLE_LINK_NONE = -1_kind_node
-    
-    type :: t_htable_bucket
-      integer(kind_key)          :: key = HTABLE_KEY_EMPTY  !< the entry key
-      integer(kind_node)         :: link = HTABLE_LINK_NONE !< link for collision resolution
-      integer(kind_node)         :: val                     !< the entry index
-    end type t_htable_bucket
-    type (t_htable_bucket), parameter :: HTABLE_EMPTY_BUCKET = t_htable_bucket(HTABLE_KEY_EMPTY, HTABLE_LINK_NONE, NODE_INVALID) !< constant for empty hashentry
-
     type, public :: t_htable
-      private
-      integer(kind_key)                  :: hashconst     !< bitmask for hashfunction
       integer(kind_node)                 :: maxentries    !< max number of entries
       integer(kind_node)                 :: nentries      !< number of entries present
-      integer(kind_node)                 :: sum_unused    !< number of free addresses
-      type(t_htable_bucket), allocatable :: buckets(:)    !< hashtable buckets
-      integer(kind_node), allocatable    :: free_addr(:)  !< list of free hash table addresses
-      integer(kind_node), allocatable    :: point_free(:) !< pointer to free address index
       type(t_tree_node), public, pointer :: values(:)     !< array of entry values
     end type t_htable
 
     public htable_create
     public htable_allocated
-    public htable_entries
     public htable_maxentries
     public htable_add
     public htable_clear
     public htable_destroy
-    public htable_dump
 
     contains
 
@@ -81,29 +61,11 @@ module module_htable
 
       t%maxentries = max(n, 2_kind_node**15)
       t%nentries   = 0_kind_node
-      t%hashconst  = 2_kind_node**int(log(1. * t%maxentries) / log(2.)) - 1_kind_node
 
-      allocate( &
-        t%buckets(0:t%maxentries - 1), &
-        t%free_addr(0:t%maxentries - 1), &
-        t%point_free(0:t%maxentries - 1), &
-        t%values(0:t%maxentries - 1) &
-      )
+      allocate( t%values(1:t%maxentries) )
 
       call htable_clear(t)
     end subroutine htable_create
-
-
-    !>
-    !> checks whether the given htable-entry is valid and not empty
-    !>
-    elemental function htable_entry_is_valid(e)
-      implicit none
-      type(t_htable_bucket), intent(in) :: e
-      logical:: htable_entry_is_valid
-
-      htable_entry_is_valid = (e%key .ne. HTABLE_KEY_EMPTY) .and. (e%key .ne. HTABLE_KEY_INVALID)
-    end function
 
 
     !>
@@ -115,10 +77,8 @@ module module_htable
       type(t_htable), intent(inout) :: t
 
       t%nentries = 0_kind_node
-      t%buckets  = HTABLE_EMPTY_BUCKET
 
       DEBUG_ASSERT(htable_allocated(t))
-      call htable_prepare_address_list(t)
     end subroutine
 
 
@@ -131,21 +91,8 @@ module module_htable
 
       logical :: htable_allocated
 
-      htable_allocated = allocated(t%buckets)
+      htable_allocated = associated(t%values)
     end function htable_allocated
-
-
-    !>
-    !> returns the number of entries contained in `t`
-    !>
-    pure function htable_entries(t)
-      implicit none
-      type(t_htable), intent(in) :: t
-
-      integer(kind_node) :: htable_entries
-
-      htable_entries = t%nentries
-    end function htable_entries
 
 
     !>
@@ -171,36 +118,10 @@ module module_htable
 
       DEBUG_ASSERT(htable_allocated(t))
 
-      deallocate(t%buckets, t%free_addr, t%point_free, t%values)
+      deallocate(t%values)
       t%maxentries = 0_kind_node
       t%nentries   = 0_kind_node
-      t%hashconst  = 0_kind_key
     end subroutine htable_destroy
-
-
-    !>
-    !> prepares the collision resolution list by traversing the full
-    !> hash table
-    !>
-    subroutine htable_prepare_address_list(t)
-      use module_debug
-      implicit none
-      type(t_htable), intent(inout) :: t
-      integer(kind_node) :: i
-
-      ! build list of free addresses for faster collision resolution on insertion into htable
-      DEBUG_ASSERT(htable_allocated(t))
-      t%sum_unused = 0_kind_node
-      do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-        if (t%buckets(i)%key == HTABLE_KEY_EMPTY .and. i >= HTABLE_FREE_LO) then
-          t%free_addr(t%sum_unused) = i                ! Free address list for resolving collisions
-          t%point_free(i)           = t%sum_unused     ! Index
-          t%sum_unused              = t%sum_unused + 1_kind_node
-        else
-          t%point_free(i)           = -1_kind_node
-        end if
-      end do
-    end subroutine htable_prepare_address_list
 
 
     !>
@@ -230,200 +151,13 @@ module module_htable
         DEBUG_ERROR('("Tree arrays full. # Entries: ", I0,"/",I0)', t%nentries, t%maxentries)
       end if
 
+      t%nentries = t%nentries + 1_kind_node
+      t%values(t%nentries) = v
+      htable_add = .true.
+
       if (present(entry_pointer)) then
         entry_pointer = t%nentries
       end if
-
-      t%values(t%nentries) = v
-      t%nentries = t%nentries + 1_kind_node
-      htable_add = .true.
-
     end function htable_add
 
-    
-    function htable_hash_function(t, key)
-      implicit none
-
-      type(t_htable), intent(in) :: t
-      integer(kind_key), intent(in) :: key
-      integer(kind_node) :: htable_hash_function
-      
-      htable_hash_function = int(iand( key, t%hashconst), kind_node) ! cell address hash function
-      
-    end function
-
-
-    !>
-    !> Calculates inverse mapping from the hash-key to the hash-address.
-    !>
-    !> @param[in] t hash table
-    !> @param[in] keyin inverse mapping candidate.
-    !> @return `.true.` if the key has been found, `.false.` otherwise
-    !> @param[out] addr address if candidate exists, address of last entry in linked list otherwise, -1 if already the first lookup failed
-    !>
-    function testaddr(t, keyin, addr)
-      use treevars
-      implicit none
-
-      type(t_htable), intent(in) :: t
-      integer(kind_key), intent(in)  :: keyin
-      integer(kind_node), intent(out), optional :: addr
-      logical :: testaddr
-
-      integer(kind_node) :: ires
-      integer(kind_node) :: nextaddr, lastaddr
-
-      nextaddr = htable_hash_function(t, keyin)
-
-      if (t%buckets( nextaddr )%key == HTABLE_KEY_EMPTY) then ! already the first entry is empty
-        testaddr                = .false.  ! key does not exist in htable
-        if (present(addr)) addr = -1_8     ! we return -1
-        return
-      end if
-
-      ires     =  1 ! counter for number of htable lookups
-
-      do while ( t%buckets( nextaddr )%key .ne. keyin )
-        lastaddr = nextaddr
-        nextaddr = t%buckets( nextaddr )%link    ! look at next linked entry
-        ires     = ires + 1
-
-        if (   (nextaddr == -1_kind_node) & ! reached end of linked list without finding the key --> node is not in htable or htable is corrupt
-          .or. (ires >= t%maxentries) ) & ! we probed at as many positions as the htable has entries --> circular linked list or htable corrupt
-          then
-            testaddr                = .false.  ! key does not exist in htable
-            if (present(addr)) addr = lastaddr ! we return last entry in the linked list
-            return
-        end if
-
-      end do
-
-      testaddr                = .true.   ! key has been found in htable
-      if (present(addr)) addr = nextaddr ! we return its address
-
-    end function testaddr
-
-
-    !>
-    !> Print tree structure from hash table to ipefile
-    !>
-    subroutine htable_dump(t, particles)
-        use treevars
-        use module_pepc_types
-        use module_spacefilling
-        use module_utils
-        use module_debug
-        use module_tree_node
-        implicit none
-
-        type(t_htable), intent(in) :: t
-        type(t_particle), optional, intent(in) :: particles(:)
-
-        character(1) :: collision
-        integer(kind_node) :: i
-
-        call pepc_status('DIAGNOSE')
-        DEBUG_ASSERT(htable_allocated(t))
-        call debug_ipefile_open()
-
-        ! output hash table
-        write(debug_ipefile,'(/a)') 'Hash table'
-
-        write(debug_ipefile,'(1178x,a48)') &
-                    "       REQUEST_SENT                    ", &
-                    "       |     HAS_REMOTE_CONTRIBUTIONS  ", &
-                    "       |     |HAS_LOCAL_CONTRIBUTIONS  ", &
-                    "       |     || CHILDREN_AVAILABLE     ", &
-                    "       |     || |       IS_FILL_NODE   ", &
-                    "       |     || |       |IS_BRANCH_NODE", &
-                    "flags  |     || |       ||             "
-
-        write(debug_ipefile,'(5(x,a10),3(x,a22),3(x,a10),x,a14,x,a10,4x,3(a8,x),a8,/,187("-"),a35)') &
-                     'entry_10', &
-                     'entry_8', &
-                     'node', &
-                     'owner', &
-                     'level', &
-                     'key_8', &
-                     'key_10', &
-                     'parent_8', &
-                     'parent_node', &
-                     'first_child', &
-                     'next_sibling', &
-                     'collision link', &
-                     'leaves', &
-                     'l2     |', &
-                     'l1  ||||', &
-                     'g     ||', &
-                     'childcod', &
-                     '-------V-----VVVV-------VV-76543210'
-
-        ! write(debug_ipefile,'(154x,a)') " 3      .   2    .     1  .        "
-        ! write(debug_ipefile,'(154x,a)') "10987654.32109876.54321098.76543210"
-
-        do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i))) then
-            ! flag  collisions
-            if (t%buckets(i)%link /= -1_8 ) then
-              collision="C"
-            else
-              collision=" "
-            end if
-
-            write (debug_ipefile,'(x,i10,x,o10,3(x,i10),x,o22,x,i22,x,o22,3(x,i10),x,a1,x,i12,x,i10,4x,3(b8.8,"."),b8.8)') &
-                    i, &
-                    i, &
-                    t%buckets(i)%val, &
-                    t%values(t%buckets(i)%val)%owner, &
-                    level_from_key(t%buckets(i)%key), &
-                    t%buckets(i)%key, &
-                    t%buckets(i)%key, &
-                    parent_key_from_key(t%buckets(i)%key), &
-                    t%values(t%buckets(i)%val)%parent, &
-                    t%values(t%buckets(i)%val)%first_child, &
-                    t%values(t%buckets(i)%val)%next_sibling, &
-                    collision, &
-                    t%buckets(i)%link, &
-                    t%values(t%buckets(i)%val)%leaves, &
-                    t%values(t%buckets(i)%val)%request_sent, &
-                    t%values(t%buckets(i)%val)%flags_local, &
-                    t%values(t%buckets(i)%val)%flags_global, &
-                    t%values(t%buckets(i)%val)%childcode
-          end if
-        end do
-
-        write (debug_ipefile,'(///a)') 'Tree structure'
-
-        write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
-
-        do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i))) then
-            if (.not. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
-              write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
-            end if
-          end if
-        end do
-
-        write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
-
-        do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i))) then
-            if (tree_node_is_leaf(t%values(t%buckets(i)%val))) then
-              write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
-            endif
-          end if
-        end do
-
-        if (present(particles)) then
-          ! local particles
-          write(debug_ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_module_pepc_types::t_particle for meaning of the columns)'
-
-          do i = 1_8, ubound(particles, 1)
-            write(debug_ipefile,'(x,i10,x)',advance='no') i
-            write(debug_ipefile,*) particles(i)
-          end do
-        end if
-
-        call debug_ipefile_close()
-    end subroutine htable_dump
 end module module_htable

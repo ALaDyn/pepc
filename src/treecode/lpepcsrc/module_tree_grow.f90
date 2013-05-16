@@ -37,10 +37,8 @@ module module_tree_grow
   !>
   subroutine tree_grow(t, p)
     use module_pepc_types, only: t_particle, t_tree_node, kind_node
-    use module_htable, only: htable_dump
     use module_timings
-    use module_tree, only: t_tree, tree_create, tree_check
-    use module_htable, only: htable_dump
+    use module_tree, only: t_tree, tree_create, tree_check, tree_dump
     use module_domains, only: domain_decompose
     use module_debug
     use module_comm_env, only: t_comm_env, comm_env_dup
@@ -98,19 +96,19 @@ module module_tree_grow
     root => t%nodes(t%node_root)
 
     if (root%leaves .ne. nl) then
-      call htable_dump(t%node_storage, p)
+      call tree_dump(t, p)
       DEBUG_ERROR(*, 'did not find all its particles inside the tree after local tree buildup: root_node%leaves =', root%leaves, ' but size(particles) =', nl)
     end if
 
     if (root%descendants+1 .ne. t%nleaf+t%ntwig) then
-      call htable_dump(t%node_storage, p)
+      call tree_dump(t, p)
       DEBUG_ERROR(*, '(root%descendants+1 .ne. t%nleaf+t%ntwig) after local tree buildup - some nodes got lost: root_node%descendants =', root%descendants, ' nleaf =', t%nleaf, ' ntwig =', t%ntwig)
     end if
 
     call timer_stop(t_local)
 
     if (.not. tree_check(t, "tree_grow: before exchange")) then
-      call htable_dump(t%node_storage, p)
+      call tree_dump(t, p)
     end if
 
     ! Should now have multipole information up to root list level(s) (only up to branch level, the information is correct)
@@ -128,11 +126,11 @@ module module_tree_grow
     deallocate(branch_nodes)
 
     if (.not. tree_check(t, "tree_grow: after exchange")) then
-      call htable_dump(t%node_storage, p)
+      call tree_dump(t, p)
     end if
 
     if (root%leaves .ne. t%npart) then
-      call htable_dump(t%node_storage, p)
+      call tree_dump(t, p)
       DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root%leaves, ' but npart_total =', t%npart)
     endif
 

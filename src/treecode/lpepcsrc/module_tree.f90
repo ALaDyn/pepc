@@ -514,21 +514,107 @@ module module_tree
     !> Print tree structure from hash table to ipefile
     !>
     subroutine tree_dump(t, particles)
+      use treevars
       use module_pepc_types
-      use module_htable
+      use module_spacefilling
+      use module_utils
+      use module_debug
+      use module_tree_node
       implicit none
+
       type(t_tree), intent(in) :: t
       type(t_particle), optional, intent(in) :: particles(:)
-      
-      call htable_dump(t%node_storage, particles)
 
+      integer(kind_node) :: i
+
+      call pepc_status('DIAGNOSE')
+      DEBUG_ASSERT(associated(t%nodes))
+      call debug_ipefile_open()
+
+      ! output node storage
+      write(debug_ipefile,'(/a)') 'Node Storage'
+
+      write(debug_ipefile,'(141x,a48)') &
+                  '       REQUEST_SENT                    ', &
+                  '       |     HAS_REMOTE_CONTRIBUTIONS  ', &
+                  '       |     |HAS_LOCAL_CONTRIBUTIONS  ', &
+                  '       |     || CHILDREN_AVAILABLE     ', &
+                  '       |     || |       IS_FILL_NODE   ', &
+                  '       |     || |       |IS_BRANCH_NODE', &
+                  '       |     || |       ||             '
+
+      write(debug_ipefile,'(3(x,a10),3(x,a22),3(x,a10),x,a10,4x,3(a8,x),a8,/,150("-"),a35)') &
+                   'node', &
+                   'owner', &
+                   'level', &
+                   'key_8', &
+                   'key_10', &
+                   'parent_8', &
+                   'parent_node', &
+                   'first_child', &
+                   'next_sibling', &
+                   'leaves', &
+                   'flags  |', &
+                   'l1  ||||', &
+                   'g     ||', &
+                   'childcod', &
+                   '-------V-----VVVV-------VV-76543210'
+
+      ! loop over valid enries in node storage
+      do i = 1,t%node_storage%nentries
+        write (debug_ipefile,'(3(x,i10),x,o22,x,i22,x,o22,3(x,i10),x,i10,4x,l8.8,".",2(b8.8,"."),b8.8)') &
+                i, &
+                t%nodes(i)%owner, &
+                level_from_key(t%nodes(i)%key), &
+                t%nodes(i)%key, &
+                t%nodes(i)%key, &
+                parent_key_from_key(t%nodes(i)%key), &
+                t%nodes(i)%parent, &
+                t%nodes(i)%first_child, &
+                t%nodes(i)%next_sibling, &
+                t%nodes(i)%leaves, &
+                t%nodes(i)%request_sent, &
+                t%nodes(i)%flags_local, &
+                t%nodes(i)%flags_global, &
+                t%nodes(i)%childcode
+      end do
+
+      write (debug_ipefile,'(///a)') 'Tree structure'
+
+      write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
+
+      do i = 1,t%node_storage%nentries
+        if (.not. tree_node_is_leaf(t%nodes(i))) then
+          write(debug_ipefile,*) t%nodes(i)%interaction_data
+        endif
+      end do
+
+      write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
+
+      do i = 1,t%node_storage%nentries
+        if (tree_node_is_leaf(t%nodes(i))) then
+          write(debug_ipefile,*) t%nodes(i)%interaction_data
+        endif
+      end do
+
+      if (present(particles)) then
+        ! local particles
+        write(debug_ipefile,'(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_module_pepc_types::t_particle for meaning of the columns)'
+
+        do i = lbound(particles, dim=1), ubound(particles, dim=1)
+          write(debug_ipefile,'(x,i10,x)',advance='no') i
+          write(debug_ipefile,*) particles(i)
+        end do
+      end if
+
+      call debug_ipefile_close()
     end subroutine
 
     !>
     !> gather statistics on the tree structure and dump them to a file
     !>
     subroutine tree_stats(t, u)
-      use module_htable, only: htable_entries, htable_maxentries
+      use module_htable, only: htable_maxentries
       use treevars, only: np_mult
       use module_debug
       implicit none
@@ -567,7 +653,7 @@ module module_tree
       call MPI_REDUCE(t%nbranch_me, min_nbranch,           1, MPI_KIND_NODE, MPI_MIN,    0, t%comm_env%comm, ierr )
       call MPI_REDUCE(t%nbranch_me, nbranch,               1, MPI_KIND_NODE, MPI_SUM,    0, t%comm_env%comm, ierr)
       call MPI_REDUCE(t%nbranch_max_me, branch_max_global, 1, MPI_KIND_NODE, MPI_MAX,    0, t%comm_env%comm, ierr)
-      nhashentries = htable_entries(t%node_storage)
+      nhashentries = t%node_storage%nentries
       call MPI_REDUCE(nhashentries, gmax_keys,             1, MPI_KIND_NODE, MPI_MAX,    0, t%comm_env%comm, ierr )
 
       part_imbal_max = MAXVAL(nparticles)
