@@ -164,11 +164,11 @@ module module_tree_communicator
     tp = c_loc(t)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
     tree_comm_thread_counter = tree_comm_thread_counter + 1
-    DEBUG_ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp, thread_type = THREAD_TYPE_COMMUNICATOR, counter = tree_comm_thread_counter))
+    ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp, thread_type = THREAD_TYPE_COMMUNICATOR, counter = tree_comm_thread_counter))
     
     ! we have to wait here until the communicator has really started to find out its processor id
     do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STARTED)
-      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+      ERROR_ON_FAIL(pthreads_sched_yield())
     end do
   end subroutine tree_communicator_start
 
@@ -201,7 +201,7 @@ module module_tree_communicator
       t%comm_env%comm, ierr)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_WAITING)
 
-    DEBUG_ERROR_ON_FAIL(pthreads_jointhread(t%communicator%comm_thread))
+    ERROR_ON_FAIL(pthreads_jointhread(t%communicator%comm_thread))
     tree_comm_thread_counter = tree_comm_thread_counter - 1
 
     call timer_add(t_comm_total,    t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP))
@@ -679,7 +679,7 @@ module module_tree_communicator
       call run_communication_loop_inner(t, comm_finished)
 
       ! currently, there is no further communication request --> other threads may do something interesting
-      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+      ERROR_ON_FAIL(pthreads_sched_yield())
 
     end do ! while (.not. t%communicator%comm_thread_stopping)
 
@@ -688,7 +688,7 @@ module module_tree_communicator
     t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP) = MPI_WTIME() - t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP)
 
     run_communication_loop = c_null_ptr
-    DEBUG_ERROR_ON_FAIL(pthreads_exitthread())
+    ERROR_ON_FAIL(pthreads_exitthread())
   end function run_communication_loop
 
 

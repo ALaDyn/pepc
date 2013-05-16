@@ -54,14 +54,14 @@
 
 #define DEBUG_STRINGIFY(s) DEBUG_STRINGIFY_HELPER(s)
 
-#define DEBUG_ERROR_ON_FAIL_HELPER(ret, sep, msg) \
+#define ERROR_ON_FAIL_HELPER(ret, sep, msg) \
         if (0 /= ret) then; \
-          DEBUG_ERROR('("DEBUG_ERROR_ON_FAIL: ",a," = ",I0,a,a)', DEBUG_STRINGIFY(ret), ret, sep, msg); \
+          DEBUG_ERROR('("ERROR_ON_FAIL: ",a," = ",I0,a,a)', DEBUG_STRINGIFY(ret), ret, sep, msg); \
         end if;
 
-#define DEBUG_ERROR_ON_FAIL(ret) DEBUG_ERROR_ON_FAIL_HELPER(ret, "", "")
+#define ERROR_ON_FAIL(ret) ERROR_ON_FAIL_HELPER(ret, "", "")
 
-#define DEBUG_ERROR_ON_FAIL_MSG(ret, msg) DEBUG_ERROR_ON_FAIL_HELPER(ret, ": ", msg)
+#define ERROR_ON_FAIL_MSG(ret, msg) ERROR_ON_FAIL_HELPER(ret, ": ", msg)
 
 #ifdef NDEBUG
 

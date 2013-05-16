@@ -173,7 +173,7 @@ module module_walk
 3     if (.not. tree_node_children_available(t%nodes(n))) then
         call tree_node_fetch_children(t, t%nodes(n))
         do
-          DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+          ERROR_ON_FAIL(pthreads_sched_yield())
           if (tree_node_children_available(t%nodes(n))) then
             call atomic_read_barrier()
             exit
