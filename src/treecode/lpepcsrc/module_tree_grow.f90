@@ -148,7 +148,7 @@ module module_tree_grow
   !> Outputs keys of new (and own) tree nodes in `branch_keys`.
   !>
   subroutine tree_exchange(t, num_local_branch_nodes, local_branch_nodes, branch_nodes)
-    use module_tree, only: t_tree, tree_lookup_node_critical, tree_insert_node
+    use module_tree, only: t_tree, tree_insert_node
     use module_tree_node, only: tree_node_pack, tree_node_unpack, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE
     use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, kind_node
     use module_debug, only : pepc_status
@@ -241,7 +241,7 @@ module module_tree_grow
   !> @todo Combining this routine with `tree_exchange()` would be more efficient.
   !>
   subroutine tree_exchange_branches(t, p, bp, bn)
-    use module_tree, only: t_tree, tree_lookup_node_critical
+    use module_tree, only: t_tree
     use module_pepc_types, only: t_particle, kind_node
     use module_debug, only: pepc_status
     use module_tree_node
@@ -418,7 +418,7 @@ module module_tree_grow
   !>  - already existing nodes are updated
   !>
   subroutine tree_build_upwards(t, nodes)
-    use module_tree, only: t_tree, tree_insert_or_update_node, tree_lookup_node_critical, &
+    use module_tree, only: t_tree, tree_insert_or_update_node, &
       tree_node_connect_children
     use module_debug, only: pepc_status, DBG_TREE, dbg
     use module_timings

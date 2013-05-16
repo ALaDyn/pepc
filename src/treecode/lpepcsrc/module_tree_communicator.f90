@@ -379,7 +379,7 @@ module module_tree_communicator
   !> Simply collect node and all its siblings
   !>
   subroutine answer_request_simple(t, node, ipe_sender)
-    use module_tree, only: t_tree, tree_lookup_node
+    use module_tree, only: t_tree
     use module_pepc_types, only : t_tree_node, t_tree_node_package, kind_node
     use module_tree_node
     use module_debug
@@ -423,7 +423,7 @@ module module_tree_communicator
   !> same for `node`s siblings
   !>
   subroutine answer_request_eager(t, request, ipe_sender)
-    use module_tree, only: t_tree, tree_lookup_node
+    use module_tree, only: t_tree
     use module_pepc_types, only : t_tree_node, &
       t_tree_node_package, t_request_eager, kind_node
     use module_tree_node
