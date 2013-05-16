@@ -253,7 +253,6 @@ module module_treediags
           use module_tree, only: tree_lookup_node_critical
           use module_pepc_types
           use treevars
-          use module_interaction_specific
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           integer, intent(in) :: label
