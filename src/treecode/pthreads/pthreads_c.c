@@ -26,6 +26,13 @@
 >
 *************************************************************************/
 
+#if defined(__TOS_BGQ__)
+#define _GNU_SOURCE
+#include <stdint.h>
+#include <spi/include/kernel/location.h>
+#include <spi/include/kernel/thread.h>
+#endif
+
 #include <pthread.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -37,10 +44,19 @@
 
 pthread_rwlock_t *my_rwlocks;
 pthread_attr_t thread_attr;
-int maxnumthreads  = 0;
-int maxnumlocks    = 0;
 
-int RWLOCKS_BUSY = EBUSY;
+const int THREAD_TYPE_DEFAULT = 0;
+const int THREAD_TYPE_COMMUNICATOR = 1;
+const int THREAD_TYPE_WORKER = 2;
+
+typedef struct {
+  pthread_t* thread;
+  void* (*start_routine)(void*);
+  void* arg;
+  int thread_type;
+  int counter;
+} pthread_with_type_t;
+
 
 #define CHECKRES do {if (iret != 0) return iret;} while(0);
 
@@ -74,30 +90,85 @@ int pthreads_uninit()
     return 0;
 }
 
-
-pthread_t* pthreads_alloc_thread()
+#if defined(__TOS_BGQ__)
+void* thread_helper(pthread_with_type_t* thread)
 {
-    return (pthread_t*)malloc(sizeof(pthread_t));
+    const int reserved = 4;
+    pthread_t tid = pthread_self();
+    cpu_set_t cpumask;
+    // accessible is a 64-bit mask identifying all hardware threads
+    // allocated to this process. Most significant bit corresponds
+    // to hardware thread 0.
+    uint64_t accessible = Kernel_ThreadMask(Kernel_MyTcoord());
+    unsigned int first;
+    int count, selected = -1;
+
+    if (thread->thread_type == THREAD_TYPE_COMMUNICATOR) {
+      first = __cntlz8(accessible); // identify first accessible hardware thread
+
+      if (thread->counter == 1) {
+        // first communicator goes on the free hardware thread of the first core
+        selected = first + 2;
+      } else if (thread->counter == 2) {
+        // second communicator shares a hardware thread with the main thread
+        selected = first;
+      } else {
+        printf("WARNING: No placement policy for communicator thread no. %d implemented!\n", thread->counter);
+      }
+    } else if (thread->thread_type == THREAD_TYPE_WORKER) {
+      first = __cntlz8(accessible); // identify first accessible hardware thread
+      count = __popcnt8(accessible) - reserved; // number of accessible threads minus reserved first core
+
+      if (count > 0) {
+        selected = first + reserved  // skip first core
+          // put the first count / 2 workers on even numbered hardware threads
+          // (these are not shared with MPI threads)
+          + ((2 * (thread->counter - 1)) % count)
+          // put additional threads on odd numbered hardware threads
+          + (((2 * (thread->counter - 1)) / count) % 2);
+          // strictly speaking, this will (intentionally) wrap around to even
+          // numbered hardware threads again after placing count workers.
+
+      } else {
+        // only one core is available, put workers on odd numbered hardware threads,
+        // away from main and communicator threads on the even numbered cores
+        selected = first + 1 + 2 * ((thread->counter - 1) % 2);
+      }
+    }
+
+    if (selected > -1) {
+      // settle down on a hardware thread according to policy
+      CPU_ZERO(&cpumask);
+      CPU_SET(selected, &cpumask);
+      pthread_setaffinity_np(tid, sizeof(cpumask), &cpumask);
+    }
+
+    return (thread->start_routine)(thread->arg);
+}
+#else
+void* thread_helper(pthread_with_type_t* thread)
+{
+    return (thread->start_routine)(thread->arg);
+}
+#endif
+
+
+int pthreads_createthread_c(pthread_with_type_t* thread)
+{
+    thread->thread = (pthread_t*) malloc(sizeof (pthread_t));
+
+    return pthread_create(thread->thread, &thread_attr, (void* (*)(void*)) thread_helper, thread);
 }
 
 
-void pthreads_free_thread(pthread_t *storage)
-{
-    free(storage);
-}
-
-
-int pthreads_createthread(pthread_t *thread, void *(*start_routine) (void *), void *arg)
-{
-    // prepare a copy of the argument pointer to prevent it from being inaccessible when the thread actually starts
-    return pthread_create(thread, &thread_attr, start_routine, arg);
-}
-
-
-int pthreads_jointhread(pthread_t *thread)
+int pthreads_jointhread(pthread_with_type_t thread)
 {
     void *retval; // for convenience we do not pass it to fortran
-    return pthread_join(*thread, &retval);
+    int ret;
+
+    ret = pthread_join(*(thread.thread), &retval);
+    free(thread.thread);
+    return ret;
 }
 
 
@@ -113,72 +184,6 @@ int pthreads_sched_yield()
     return sched_yield();
 }
 
-///////////////// RWLocks //////////////////////
-
-int rwlocks_init(int numlocks)
-{
-    int iret = 0;
-    int i = 0;
-
-    maxnumlocks = numlocks;
-    my_rwlocks    = (pthread_rwlock_t*)malloc(((unsigned int)maxnumlocks)*sizeof(pthread_rwlock_t));
-
-    for (i=0;i<maxnumlocks;i++)
-    {
-      iret = pthread_rwlock_init(&my_rwlocks[i], NULL);
-      CHECKRES;
-    }
-
-    return 0;
-}
-
-
-int rwlocks_uninit()
-{
-    int iret = 0;
-    int i = 0;
-
-    for (i=0;i<maxnumlocks;i++)
-    {
-      iret = pthread_rwlock_destroy(&my_rwlocks[i]);
-      CHECKRES;
-    }
-
-    free(my_rwlocks);
-
-    return 0;
-}
-
-
-int rwlocks_rdlock(int id)
-{
-    return pthread_rwlock_rdlock(&my_rwlocks[id-1]);
-}
-
-
-int rwlocks_tryrdlock(int id)
-{
-    return pthread_rwlock_tryrdlock(&my_rwlocks[id-1]);
-}
-
-
-int rwlocks_wrlock(int id)
-{
-    return pthread_rwlock_wrlock(&my_rwlocks[id-1]);
-}
-
-
-int rwlocks_trywrlock(int id)
-{
-    return pthread_rwlock_trywrlock(&my_rwlocks[id-1]);
-}
-
-
-int rwlocks_unlock(int id)
-{
-    return pthread_rwlock_unlock(&my_rwlocks[id-1]);
-}
-
 ///////////////// Utils //////////////////////
 
 int get_my_tid()
@@ -190,5 +195,3 @@ int get_my_pid()
 {
     return (int)getpid();
 }
-
-

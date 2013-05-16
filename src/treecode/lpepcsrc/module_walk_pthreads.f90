@@ -95,6 +95,7 @@ module module_walk
   use module_tree, only: t_tree
   use module_pepc_types
   use module_atomic_ops, only: t_atomic_int
+  use pthreads_stuff, only: t_pthread_with_type
   implicit none
   private
   
@@ -124,7 +125,7 @@ module module_walk
     integer(kind_node) :: counters(NUM_THREAD_COUNTERS)
   end type t_threaddata
 
-  type(c_ptr), allocatable :: thread_handles(:)
+  type(t_pthread_with_type), target, allocatable :: thread_handles(:)
   type(t_threaddata), allocatable, target :: threaddata(:)
   integer :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
   real :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
@@ -357,7 +358,7 @@ module module_walk
 
 
   subroutine walk_hybrid()
-    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread
+    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread, THREAD_TYPE_WORKER
     use module_debug
     use module_atomic_ops, only: atomic_store_int
     use, intrinsic :: iso_c_binding
@@ -378,14 +379,14 @@ module module_walk
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
-      DEBUG_ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
+      ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith)), thread_type = THREAD_TYPE_WORKER, counter = ith), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
     
     call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
-      DEBUG_ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
+      ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
 
       if (dbg(DBG_WALKSUMMARY)) then
         DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
@@ -445,12 +446,9 @@ module module_walk
 
   subroutine init_walk_data()
     use, intrinsic :: iso_c_binding
-    use pthreads_stuff, only: pthreads_alloc_thread
     use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
     use module_debug
     implicit none
-
-    integer :: i
 
     ! initialize atomic variables
     call atomic_allocate_int(next_unassigned_particle)
@@ -467,13 +465,6 @@ module module_walk
     max_particles_per_thread = max(min(num_particles/num_walk_threads, max_particles_per_thread),1)
     ! allocate storage for thread handles
     allocate(thread_handles(num_walk_threads))
-    thread_handles = c_null_ptr
-    do i = 1, num_walk_threads
-      thread_handles(i) = pthreads_alloc_thread()
-      if (.not. c_associated(thread_handles(i))) then
-        DEBUG_ERROR(*, "pthreads_alloc_thread() failed!")
-      end if
-    end do
 
     ! we will only want to reject the root node and the particle itself if we are in the central box
     in_central_box = (dot_product(vbox,vbox) == 0)
@@ -482,17 +473,11 @@ module module_walk
 
   subroutine uninit_walk_data()
     use module_atomic_ops, only: atomic_deallocate_int
-    use pthreads_stuff, only: pthreads_free_thread
     implicit none
-
-    integer :: i
 
     call atomic_deallocate_int(next_unassigned_particle)
     call atomic_deallocate_int(thread_startup_complete)
 
-    do i = 1, num_walk_threads
-      call pthreads_free_thread(thread_handles(i))
-    end do
     deallocate(thread_handles)
   end subroutine uninit_walk_data
 
@@ -538,11 +523,6 @@ module module_walk
 
     if ((shared_core) .and. (num_walk_threads > 1)) then
           my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
-#if defined(__TOS_BGQ__)
-          if (get_num_threads_on_my_hwthread() > 1) then
-            my_max_particles_per_thread = 0
-          endif
-#endif
     else
           my_max_particles_per_thread = max_particles_per_thread
     end if
@@ -584,7 +564,7 @@ module module_walk
 
         ! after processing a number of particles: handle control to other (possibly comm) thread
         if (shared_core) then
-          DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+          ERROR_ON_FAIL(pthreads_sched_yield())
         end if
 
         do i=1,my_max_particles_per_thread
@@ -654,7 +634,7 @@ module module_walk
 
     ! we have to wait here until all threads have started before some of them die again :-)
     do while (atomic_load_int(thread_startup_complete) /= 1)
-      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+      ERROR_ON_FAIL(pthreads_sched_yield())
     end do
 
     if (walk_profile) then
@@ -666,7 +646,7 @@ module module_walk
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr
-    DEBUG_ERROR_ON_FAIL(pthreads_exitthread())
+    ERROR_ON_FAIL(pthreads_exitthread())
 
     contains
   

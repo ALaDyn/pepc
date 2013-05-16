@@ -258,7 +258,7 @@ module module_pepc
 
       integer(kind_dim), optional, intent(in) :: idim
 
-      DEBUG_ERROR_ON_FAIL(pthreads_init())
+      ERROR_ON_FAIL(pthreads_init())
       call treevars_prepare(idim)
       call calc_neighbour_boxes() ! initialize mirror boxes
       call calc_force_prepare() ! prepare interaction-specific routines

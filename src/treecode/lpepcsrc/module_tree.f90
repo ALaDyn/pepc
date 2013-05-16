@@ -26,6 +26,7 @@ module module_tree
     use module_box, only: t_box
     use module_comm_env, only: t_comm_env
     use module_domains, only: t_decomposition
+    use pthreads_stuff, only: t_pthread_with_type
     use module_atomic_ops, only: t_atomic_int, t_critical_section
     use module_pepc_types
     use, intrinsic :: iso_c_binding
@@ -51,7 +52,7 @@ module module_tree
       integer(kind_node) :: sum_fetches !< total number of node fetches
 
       ! thread data
-      type(c_ptr) :: comm_thread
+      type(t_pthread_with_type) :: comm_thread
       type(t_atomic_int), pointer :: thread_status
       type(t_critical_section), pointer :: cs_request
       integer :: processor_id
@@ -276,7 +277,6 @@ module module_tree
     !>
     subroutine tree_communicator_create(c)
       use, intrinsic :: iso_c_binding
-      use pthreads_stuff, only: pthreads_alloc_thread
       use module_atomic_ops, only: atomic_allocate_int, atomic_store_int, critical_section_allocate
       use module_debug
       implicit none
@@ -295,12 +295,6 @@ module module_tree
 
       c%sum_ships = 0
       c%sum_fetches = 0
-
-      c%comm_thread = c_null_ptr
-      c%comm_thread = pthreads_alloc_thread()
-      if (.not. c_associated(c%comm_thread)) then
-        DEBUG_ERROR(*, "pthreads_alloc_thread() failed!")
-      end if
     end subroutine tree_communicator_create
 
 
@@ -310,7 +304,6 @@ module module_tree
     subroutine tree_communicator_destroy(c)
       use, intrinsic :: iso_c_binding
       use module_atomic_ops, only: critical_section_deallocate, atomic_deallocate_int
-      use pthreads_stuff, only: pthreads_free_thread
       use module_atomic_ops, only: atomic_load_int
       use module_debug
       implicit none
@@ -323,8 +316,6 @@ module module_tree
         DEBUG_ERROR(*, "tree_communicator_destroy() called with comm thread still running!")
       end if
 
-      call pthreads_free_thread(c%comm_thread)
-      c%comm_thread = c_null_ptr
       call atomic_deallocate_int(c%thread_status)
       call critical_section_deallocate(c%cs_request)
     end subroutine tree_communicator_destroy
@@ -340,7 +331,7 @@ module module_tree
       logical :: tree_communicator_allocated
       type(t_tree_communicator), intent(in) :: c
 
-      tree_communicator_allocated = c_associated(c%comm_thread)
+      tree_communicator_allocated = associated(c%thread_status) .or. associated(c%cs_request)
     end function tree_communicator_allocated
 
 

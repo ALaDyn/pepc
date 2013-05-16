@@ -53,6 +53,7 @@ module module_tree_communicator
   logical, public, parameter :: tree_comm_debug = .false.
 
   integer, private :: tree_comm_dummy = 123456 !< dummy variable for sending "empty" messages (those, where we are only interested in the tag)
+  integer, private, save :: tree_comm_thread_counter = 0
 
   ! tags to be used in communication
   integer, private, parameter :: TREE_COMM_TAG_REQUEST_KEY         = 1257 !< message requesting child data for a certain key
@@ -143,7 +144,7 @@ module module_tree_communicator
   subroutine tree_communicator_start(t)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_createthread, pthreads_sched_yield
+    use pthreads_stuff, only: pthreads_createthread, pthreads_sched_yield, THREAD_TYPE_COMMUNICATOR
     use module_atomic_ops, only: atomic_load_int, atomic_store_int
     use module_debug
     use module_timings
@@ -162,11 +163,12 @@ module module_tree_communicator
     
     tp = c_loc(t)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
-    DEBUG_ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp))
+    tree_comm_thread_counter = tree_comm_thread_counter + 1
+    ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp, thread_type = THREAD_TYPE_COMMUNICATOR, counter = tree_comm_thread_counter))
     
     ! we have to wait here until the communicator has really started to find out its processor id
     do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STARTED)
-      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+      ERROR_ON_FAIL(pthreads_sched_yield())
     end do
   end subroutine tree_communicator_start
 
@@ -199,7 +201,8 @@ module module_tree_communicator
       t%comm_env%comm, ierr)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_WAITING)
 
-    DEBUG_ERROR_ON_FAIL(pthreads_jointhread(t%communicator%comm_thread))
+    ERROR_ON_FAIL(pthreads_jointhread(t%communicator%comm_thread))
+    tree_comm_thread_counter = tree_comm_thread_counter - 1
 
     call timer_add(t_comm_total,    t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP))
     call timer_add(t_comm_recv,     t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE))
@@ -632,7 +635,7 @@ module module_tree_communicator
   function run_communication_loop(arg) bind(c)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread, i_want_to_break_free
+    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread
     use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_write_barrier
     use module_debug
     implicit none
@@ -651,10 +654,6 @@ module module_tree_communicator
     call c_f_pointer(arg, t)
     DEBUG_ASSERT(associated(t))
     
-    if (.not. i_want_to_break_free()) then
-      DEBUG_WARNING_ALL(*, "Could not place communicator on a suitable hardware thread.")
-    end if
-
     ! store ID of comm-thread processor
     t%communicator%processor_id = get_my_core()
     call atomic_write_barrier()
@@ -674,7 +673,7 @@ module module_tree_communicator
       call run_communication_loop_inner(t, comm_finished)
 
       ! currently, there is no further communication request --> other threads may do something interesting
-      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+      ERROR_ON_FAIL(pthreads_sched_yield())
 
     end do ! while (.not. t%communicator%comm_thread_stopping)
 
@@ -683,7 +682,7 @@ module module_tree_communicator
     t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP) = MPI_WTIME() - t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP)
 
     run_communication_loop = c_null_ptr
-    DEBUG_ERROR_ON_FAIL(pthreads_exitthread())
+    ERROR_ON_FAIL(pthreads_exitthread())
   end function run_communication_loop
 
 
