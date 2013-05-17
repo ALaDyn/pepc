@@ -136,7 +136,7 @@ contains
 
         call timer_start(t_all)
 
-        call directforce(particles, [(i,i=1,nforceparticles)], nforceparticles, directresults, my_rank, n_cpu, MPI_COMM_PEPC)
+        call directforce(particles, [(i,i=1,nforceparticles)], nforceparticles, directresults, MPI_COMM_PEPC)
         particles(1:nforceparticles)%results = directresults(1:nforceparticles)
 
         deallocate(directresults)
@@ -644,7 +644,7 @@ contains
 
         if (my_rank ==0) write(*,'("-- DIRECT VERIFICATION --")')
 
-        call directforce(particles, testidx, ntest, res, my_rank, n_cpu, comm)
+        call directforce(particles, testidx, ntest, res, comm)
 
         deviation     = 0.
         deviation_max = 0.

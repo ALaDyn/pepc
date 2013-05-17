@@ -31,7 +31,7 @@ module module_directsum
         !> direct computation of coulomb force onto a selection of local particles
         !> due to contributions of all (also remote) other particles
         !>
-        subroutine directforce(particles, testidx, ntest, directresults, my_rank, n_cpu, comm)
+        subroutine directforce(particles, testidx, ntest, directresults, comm)
           use module_pepc_types
           use module_interaction_specific_types
           use module_interaction_specific
@@ -46,15 +46,14 @@ module module_directsum
           integer(kind_particle), dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
           integer(kind_particle), intent(in) :: ntest !< number of particles in testidx
           type(t_particle_results), dimension(:), allocatable, intent(out) :: directresults !< test results
-          integer(kind_pe), intent(in) :: my_rank, n_cpu
           integer, intent(in) :: comm
 
           integer(kind_particle) :: maxtest !< maximum ntest
           type(t_particle), dimension(:), allocatable :: received, sending
           integer(kind_particle) :: nreceived, nsending
           integer(kind_particle) :: i, j
-          integer :: ierr, req, stat(MPI_STATUS_SIZE)
-          integer(kind_pe) :: currank, nextrank, prevrank
+          integer :: ierr, stat(MPI_STATUS_SIZE)
+          integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8 :: delta(3)
           integer :: ibox
@@ -63,6 +62,8 @@ module module_directsum
           real*8 :: t1
           integer :: omp_thread_num
 
+          call MPI_COMM_RANK(comm, my_rank, ierr)
+          call MPI_COMM_SIZE(comm, n_cpu, ierr)
 
           call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_KIND_PARTICLE, MPI_MAX, comm, ierr)
           allocate(received(1:maxtest), sending(1:maxtest))
@@ -134,13 +135,13 @@ module module_directsum
             nsending = nreceived
             sending(1:nsending) = received(1:nreceived)
             ! send size of current data package to right neighbour, receive size of new data package from left neighbour
-            call MPI_ISEND(nsending, 1, MPI_INTEGER, nextrank, MPI_TAG_DIRECT_DATA_PACKAGE_SIZE, comm,  req, ierr)
-            call MPI_RECV(nreceived, 1, MPI_INTEGER, prevrank, MPI_TAG_DIRECT_DATA_PACKAGE_SIZE, comm, stat, ierr)
-            call MPI_WAIT(req, stat, ierr)
+            call MPI_SENDRECV(nsending, 1, MPI_INTEGER, nextrank, MPI_TAG_DIRECT_DATA_PACKAGE_SIZE, &
+              nreceived, 1, MPI_INTEGER, prevrank, MPI_TAG_DIRECT_DATA_PACKAGE_SIZE, &
+              comm, stat, ierr)
             ! send current data package to right neighbour, receive new data package from left neighbour
-            call MPI_ISEND(sending, nsending,  MPI_TYPE_PARTICLE, nextrank, MPI_TAG_DIRECT_DATA_PACKAGE, comm,  req, ierr)
-            call MPI_RECV(received, nreceived, MPI_TYPE_PARTICLE, prevrank, MPI_TAG_DIRECT_DATA_PACKAGE, comm, stat, ierr)
-            call MPI_WAIT(req, stat, ierr)
+            call MPI_SENDRECV(sending, nsending, MPI_TYPE_PARTICLE, nextrank, MPI_TAG_DIRECT_DATA_PACKAGE, &
+              received, nreceived, MPI_TYPE_PARTICLE, prevrank, MPI_TAG_DIRECT_DATA_PACKAGE, &
+              comm, stat, ierr)
 
             call timer_add(t_direct_comm,MPI_WTIME()-t1)
 
