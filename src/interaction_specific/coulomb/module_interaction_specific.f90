@@ -349,6 +349,7 @@ module module_interaction_specific
           particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
         end subroutine calc_force_per_interaction
 
+
         !>
         !> Force calculation wrapper for contributions that only have
         !> to be added once per particle

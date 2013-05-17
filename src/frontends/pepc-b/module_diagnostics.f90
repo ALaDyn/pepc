@@ -364,7 +364,6 @@ end subroutine kinenergy
       use module_particle_props
       use module_utilities
       !use module_gle
-      use module_htable
       use module_pepc_wrappers
       use module_pepc, only: pepc_check_sanity
 
@@ -482,9 +481,9 @@ end subroutine kinenergy
 ! If interaction lists needed, must ensure that intlist() is large enough to contain all lists
 ! - will otherwise just get last pass of tree walk
 
-        call pepc_check_sanity('PEPC-B: error_test()', particles = particles, dump = .true.) ! Printed tree info (htable etc)
-        !call draw_tree2d(xl)     ! Draw PE-trees
-!        call draw_lists      ! Draw interaction lists
+        call pepc_check_sanity('PEPC-B: error_test()', particles = particles, dump = .true.) ! Printed tree info
+        !call draw_tree2d(xl)     ! Draw PE-trees , see src/utils/module_treediags for details on how to do this
+!        call draw_lists      ! Draw interaction lists , see module_interaction_partners in frontend pepc-f for details on how to achieve this
         !call draw_domains()   ! Domains
        
 

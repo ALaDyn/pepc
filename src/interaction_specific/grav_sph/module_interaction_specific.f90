@@ -321,7 +321,7 @@ contains
        particles(i)%results%pot       = 0._8
 
        particles(i)%results%maxdist2           = huge(0._8)
-       particles(i)%results%neighbour_keys(:)  = 0_8
+       particles(i)%results%neighbour_nodes(:) = -1 ! FIXME: this should be NODE_INVALID
        particles(i)%results%maxidx             = 1
     end do
   end subroutine particleresults_clear
@@ -333,13 +333,13 @@ contains
   !> calculated fields, and for being able to call several
   !> (different) force calculation routines
   !>
-  subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
+  subroutine calc_force_per_interaction(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
     use module_pepc_types
     use treevars
     implicit none
 
     type(t_tree_node_interaction_data), intent(in) :: node
-    integer(kind_key), intent(in) :: key
+    integer(kind_node), intent(in) :: node_idx
     type(t_particle), intent(inout) :: particle
     logical, intent(in) :: node_is_leaf
     real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -383,7 +383,7 @@ contains
        particle%results%pot       = particle%results%pot  + phic
 
     case (5)
-       call update_nn_list(particle, node, key, delta, dist2)
+       call update_nn_list(particle, node, node_idx, delta, dist2)
 
     case default
        write(*,*) "value of force_law is not allowed in calc_force_per_interaction:", force_law
@@ -412,7 +412,7 @@ contains
   ! > put in on the lists instead of the formerly furthest particle and update
   ! > the distance to the furthest particle.
   ! >
-  subroutine update_nn_list(particle, node, key, d, dist2)
+  subroutine update_nn_list(particle, node, node_idx, d, dist2)
     use module_interaction_specific_types, only: &
          max_neighbour_particles
 
@@ -421,7 +421,7 @@ contains
     implicit none
     include 'mpif.h'
 
-    integer*8, intent(in) :: key !< index of particle to interact with
+    integer*8, intent(in) :: node_idx !< node index of particle to interact with
     type(t_tree_node_interaction_data), intent(in) :: node
     real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
     type(t_particle), intent(inout) :: particle
@@ -433,9 +433,9 @@ contains
 
        if (dist2 < particle%results%maxdist2) then
           ! add node to NN_list
-          particle%results%neighbour_keys(particle%results%maxidx) = key
-          particle%results%dist2(particle%results%maxidx)          = dist2
-          particle%results%dist_vector(:,particle%results%maxidx)  = d
+          particle%results%neighbour_nodes(particle%results%maxidx) = node_idx
+          particle%results%dist2(particle%results%maxidx)           = dist2
+          particle%results%dist_vector(:,particle%results%maxidx)   = d
           tmp                       = maxloc(particle%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
           particle%results%maxidx   = tmp(1)
           particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)
@@ -445,9 +445,9 @@ contains
 
     case(4)
        
-       if ( (dist2 < particle%results%maxdist2) .or. ( dist2 < 4.*node%h**2 ) ) then
+       if ( (dist2 < particle%results%maxdist2) .or. ( dist2 < 4.*node%h*node%h ) ) then
           ! add node to NN_list
-          particle%results%neighbour_keys(particle%results%maxidx)  = key
+          particle%results%neighbour_nodes(particle%results%maxidx) = node_idx
           particle%results%dist2(particle%results%maxidx)           = dist2
           particle%results%dist_vector(:,particle%results%maxidx)   = d
           particle%results%maxidx   = particle%results%maxidx + 1

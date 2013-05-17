@@ -918,7 +918,7 @@ contains
     ! end if
 
     write(*,*) "3d grid distribution:", my_rank, my_n_x_grid, my_start_x
-    call flush()
+!    call flush()
     
 !    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
     

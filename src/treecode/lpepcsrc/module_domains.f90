@@ -253,7 +253,12 @@ module module_domains
 
     ! check whether there is enough space in the local key domain
     if ( ( local_keys(d%npnew) - local_keys(1) + 1) < d%npnew) then
-      DEBUG_ERROR('("There are more particles than available keys in the local domain: npp=",I0,", but upper and lower key (octal) =", 2(x,O0),"; upper-lower (dec) = ",I0)', d%npnew, local_keys(d%npnew), local_keys(1), local_keys(d%npnew) - local_keys(1))
+      DEBUG_WARNING_ALL('("There are more particles than available keys in the local domain: npp=",I0,", but upper and lower key (octal) =", 2(x,O0),"; upper-lower (dec) = ",I0,". Usually, particle coordinates are invalid in this case. Printing particle list to diag file.")', d%npnew, local_keys(d%npnew), local_keys(1), local_keys(d%npnew) - local_keys(1))
+      DEBUG_INFO(*, '1st column: KEY, folowing columns: t_particle structure')
+      do i=1,d%npnew
+        DEBUG_INFO(*, local_keys(i), particles(i))
+      end do
+      call debug_mpi_abort()
     end if
 
     ! key differences for identifiying duplicates and/or overlap, be aware of the problem, that for me==num_pe-1, key_diffs(npp) is invalid since there is no right neighbour

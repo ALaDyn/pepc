@@ -554,13 +554,14 @@ module module_tree_grow
   !> Data for leaves are completely valid while those
   !> for twigs have to be updated via a call to `tree_build_upwards()`.
   !>
-  !> Upon exit, the `key_leaf` property of any particle is set appropriately.
+  !> Upon exit, the `node_leaf` property of any particle is set appropriately.
   !>
   !> @warning In contrast to `tree_build_upwards()`, this function may *not*
   !> be called several times to add further particles etc.
   !>
   subroutine tree_build_from_particles(t, p, bp)
     use module_tree, only: t_tree, TREE_KEY_ROOT
+    use module_tree_node, only: NODE_INVALID
     use treevars, only : idim, nlev
     use module_pepc_types, only: t_particle, t_tree_node
     use module_spacefilling, only: level_from_key
@@ -602,7 +603,7 @@ module module_tree_grow
       kidx(i) = t_keyidx( bp(2)%key, 0 )
     end if
 
-    p(:)%key_leaf = 0_kind_key
+    p(:)%node_leaf = NODE_INVALID
 
     call timer_reset(t_props_leaves)
     call insert_helper(t, TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), kidx(1:i), t%node_root)
@@ -614,7 +615,7 @@ module module_tree_grow
     t%ntwig_me = t%ntwig
 
     ! check if we did not miss any particles
-    if (any(p(:)%key_leaf == 0_kind_key)) then
+    if (any(p(:)%node_leaf == NODE_INVALID)) then
       DEBUG_WARNING_ALL(*, ' did not incorporate all particles into its tree')
     end if
 
@@ -669,8 +670,8 @@ module module_tree_grow
           call timer_resume(t_props_leaves)
           call multipole_from_particle(p(ki(1)%idx)%x, p(ki(1)%idx)%data, this_node%interaction_data)
           call timer_stop(t_props_leaves)
-          p(ki(1)%idx)%key_leaf = k
           call tree_insert_node(t, this_node, inserted_node_idx)
+          p(ki(1)%idx)%node_leaf = inserted_node_idx
         end if
       else ! more particles left, split twig
         if (l >= nlev) then ! no more levels left, cannot split

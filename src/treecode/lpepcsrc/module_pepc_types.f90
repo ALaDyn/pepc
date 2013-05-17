@@ -65,7 +65,7 @@ module module_pepc_types
          real*8 :: x(1:3)      !< coordinates
          real*8 :: work        !< work load from force sum
          integer(kind_key) :: key      !< particle key, i.e. key on highest tree level
-         integer(kind_key) :: key_leaf !< key of corresponding leaf (tree node)
+         integer(kind_key) :: node_leaf !< ode index of corresponding leaf (tree node)
          integer(kind_particle) :: label     !< particle label (only for diagnostic purposes, can be used freely by the frontend
          integer(kind_pe) :: pid                      !< particle owner
          type(t_particle_data) :: data       !< real physics (charge, etc.)
@@ -142,17 +142,17 @@ module module_pepc_types
 
         ! register particle type
         blocklengths(1:nprops_particle)  = [3, 1, 1, 1, 1, 1, 1, 1]
-        types(1:nprops_particle)         = [MPI_REAL8, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PE, &
+        types(1:nprops_particle)         = [MPI_REAL8, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PARTICLE, MPI_KIND_PE, &
           MPI_TYPE_particle_data, MPI_TYPE_particle_results]
-        call MPI_GET_ADDRESS( dummy_particle,          address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%x,        address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%work,     address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%key,      address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%key_leaf, address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%label,    address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%pid,      address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%data,     address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%results,  address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_particle,           address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%x,         address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%work,      address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%key,       address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%node_leaf, address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%label,     address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%pid,       address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%data,      address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%results,   address(8), ierr )
         displacements(1:nprops_particle) = int(address(1:nprops_particle) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, MPI_TYPE_particle, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_particle, ierr)

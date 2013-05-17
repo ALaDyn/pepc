@@ -19,12 +19,12 @@ module module_interaction_partners
 
       if (root) then
           allocate(probe_particles(num_of_probes))
-          allocate(interaction_keylist(num_of_probes,1000000))
+          allocate(interaction_nodelist(num_of_probes,1000000))
           allocate(no_interaction_partners(num_of_probes))
           allocate(interaction_vbox(num_of_probes,1000000,3))
       else
           allocate(probe_particles(1))
-          allocate(interaction_keylist(1,1000000))
+          allocate(interaction_nodelist(1,1000000))
           allocate(no_interaction_partners(1))
           allocate(interaction_vbox(1,1000000,3))
       end if
