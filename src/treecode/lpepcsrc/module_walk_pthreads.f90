@@ -488,7 +488,6 @@ module module_walk
     use module_interaction_specific
     use module_debug
     use module_atomic_ops
-    use module_tree, only: tree_lookup_root
     use module_pepc_types
     use treevars, only: main_thread_processor_id
     implicit none
@@ -516,7 +515,7 @@ module module_walk
     real*8  :: t_get_new_particle, t_walk_single_particle
 
     integer(kind_node), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
-    call tree_lookup_root(walk_tree, defer_list_root_only(1), 'walk_worker_thread:root node')
+    defer_list_root_only(1) = walk_tree%node_root
 
     my_processor_id = get_my_core()
     shared_core = (my_processor_id == walk_tree%communicator%processor_id) .or. &
@@ -725,7 +724,6 @@ module module_walk
                                           defer_list_new, defer_list_entries_new, &
                                           todo_list, partner_leaves, my_threaddata)
     use module_tree_node
-    use module_tree, only: tree_lookup_node_critical
     use module_tree_communicator, only: tree_node_fetch_children
     use module_interaction_specific
     use module_spacefilling, only : is_ancestor_of_particle
@@ -824,7 +822,7 @@ module module_walk
       ! interact
       ! Check cutoff
       if (all(abs(delta) < spatial_interaction_cutoff)) then
-        call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, is_leaf)
+        call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox, is_leaf)
         num_interactions = num_interactions + 1
       end if
       ! Interaction was considered, count partner leaves
@@ -849,7 +847,10 @@ module module_walk
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
-        call tree_node_fetch_children(walk_tree, walk_node, particle, shifted_particle_position) ! fetch children from remote
+        ! eager requests
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle, shifted_particle_position) ! fetch children from remote
+        ! simpel requests
+        ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1
         ! if posting the request failed, this is not a problem, since we defer the particle anyway

@@ -65,7 +65,7 @@ module module_pepc_types
          real*8 :: x(1:3)      !< coordinates
          real*8 :: work        !< work load from force sum
          integer(kind_key) :: key      !< particle key, i.e. key on highest tree level
-         integer(kind_key) :: key_leaf !< key of corresponding leaf (tree node)
+         integer(kind_key) :: node_leaf !< ode index of corresponding leaf (tree node)
          integer(kind_particle) :: label     !< particle label (only for diagnostic purposes, can be used freely by the frontend
          integer(kind_pe) :: pid                      !< particle owner
          type(t_particle_data) :: data       !< real physics (charge, etc.)
@@ -77,35 +77,39 @@ module module_pepc_types
         integer(kind_key) :: key
         integer(kind_byte) :: childcode
         integer(kind_byte) :: flags_global !< flags which are globally valid (and have to be shipped to other ranks)
+        integer(kind_level) :: level
         integer(kind_byte) :: flags_local  !< flags which are only locally valid (may not be shipped)
-        logical(kind_byte) :: request_sent !< is set to .true. after a request for child data has been sent
+        integer(kind_pe) :: owner
         integer(kind_node) :: leaves       !< total number of leaf nodes below this node
         integer(kind_node) :: descendants  !< total number of descendants (tree nodes and leaves) below this node
-        integer(kind_pe) :: owner
-        integer(kind_level) :: level
-        type(t_tree_node_interaction_data) :: interaction_data
+        integer(kind_node) :: parent
         integer(kind_node) :: first_child
         integer(kind_node) :: next_sibling
+        logical(kind_byte) :: request_sent !< is set to .true. after a request for child data has been sent
+        type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node
  
       !> Data structure for shipping tree nodes
-      integer, private, parameter :: nprops_tree_node_package = 9
+      integer, private, parameter :: nprops_tree_node_package = 11
       type, public :: t_tree_node_package
         integer(kind_key) :: key
         integer(kind_byte) :: childcode
         integer(kind_byte) :: flags_global
         integer(kind_level) :: level ! an integer*1 is sufficient. we place it here, to avoid excessive padding
         integer(kind_byte) :: dummy ! manual padding - so we know what exactly is happening here
+        integer(kind_pe) :: owner
         integer(kind_node) :: leaves !< total number of leaf nodes below this node
         integer(kind_node) :: descendants  !< total number of descendants (tree nodes and leaves) below this node
-        integer(kind_pe) :: owner
+        integer(kind_node) :: parent
+        integer(kind_node) :: first_child
         type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node_package
 
       !> Data structure for requesting tree nodes with eager send algorithm
-      integer, private, parameter :: nprops_request_eager = 2
+      integer, private, parameter :: nprops_request_eager = 3
       type, public :: t_request_eager
-        integer(kind_key) :: key
+        integer(kind_node) :: node
+        integer(kind_node) :: parent
         type(t_particle) :: particle
       end type t_request_eager
       
@@ -138,45 +142,48 @@ module module_pepc_types
 
         ! register particle type
         blocklengths(1:nprops_particle)  = [3, 1, 1, 1, 1, 1, 1, 1]
-        types(1:nprops_particle)         = [MPI_REAL8, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PE, &
+        types(1:nprops_particle)         = [MPI_REAL8, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PARTICLE, MPI_KIND_PE, &
           MPI_TYPE_particle_data, MPI_TYPE_particle_results]
-        call MPI_GET_ADDRESS( dummy_particle,          address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%x,        address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%work,     address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%key,      address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%key_leaf, address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%label,    address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%pid,      address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%data,     address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_particle%results,  address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_particle,           address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%x,         address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%work,      address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%key,       address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%node_leaf, address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%label,     address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%pid,       address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%data,      address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_particle%results,   address(8), ierr )
         displacements(1:nprops_particle) = int(address(1:nprops_particle) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle, blocklengths, displacements, types, MPI_TYPE_particle, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_particle, ierr)
 
         ! register tree_node type
-        blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+        blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         types(1:nprops_tree_node_package)         = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
-          MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_PE, MPI_TYPE_tree_node_interaction_data]
+          MPI_KIND_PE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_tree_node_interaction_data]
         call MPI_GET_ADDRESS( dummy_tree_node_package,                  address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%key,              address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%childcode,        address(2), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%flags_global,     address(3), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%level,            address(4), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%dummy,            address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%leaves,           address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%descendants,      address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%owner,            address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(9), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%owner,            address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%leaves,           address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%descendants,      address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%parent,           address(9), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%first_child,      address(10), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(11), ierr )
         displacements(1:nprops_tree_node_package) = int(address(1:nprops_tree_node_package) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_package, blocklengths, displacements, types, MPI_TYPE_tree_node_package, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package, ierr )
 
         ! register request type
-        blocklengths(1:nprops_request_eager)  = [1, 1]
-        types(1:nprops_request_eager)         = [MPI_KIND_KEY, MPI_TYPE_particle]
+        blocklengths(1:nprops_request_eager)  = [1, 1, 1]
+        types(1:nprops_request_eager)         = [MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_particle]
         call MPI_GET_ADDRESS( dummy_request,                  address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_request%key,              address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_request%particle,         address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_request%node,             address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_request%parent,           address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_request%particle,         address(3), ierr )
         displacements(1:nprops_request_eager) = int(address(1:nprops_request_eager) - address(0))
         call MPI_TYPE_STRUCT( nprops_request_eager, blocklengths, displacements, types, MPI_TYPE_request_eager, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_request_eager, ierr )

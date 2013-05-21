@@ -73,7 +73,7 @@ module module_walk
 
   subroutine tree_walk(t, ps, twalk, twalk_loc, vbox)
     use module_pepc_types, only: t_particle, kind_node
-    use module_tree, only: t_tree, tree_lookup_root
+    use module_tree, only: t_tree
     use treevars, only: nlev
     use module_debug
     implicit none
@@ -85,7 +85,6 @@ module module_walk
     real*8, intent(inout) :: twalk_loc !< also time until completion
     real*8, intent(in) :: vbox(3) !< lattice vector
 
-    integer(kind_node) :: r
     type(t_particle), pointer :: p
     integer :: i
     integer(kind_node) :: ni
@@ -104,12 +103,10 @@ module module_walk
       b2(i) = b2(i - 1) / 4.0_8
     end do
 
-    call tree_lookup_root(t, r)
-
     do i = lbound(ps, 1), ubound(ps, 1)
       p => ps(i)
       ni = 0_kind_node
-      call tree_walk_single(r)
+      call tree_walk_single(t%node_root)
       DEBUG_ASSERT(ni == t%npart)
     end do
 
@@ -162,7 +159,7 @@ module module_walk
 
       ! interact
 1     if (all(abs(d) < spatial_interaction_cutoff)) then
-        call calc_force_per_interaction(p, t%nodes(n)%interaction_data, t%nodes(n)%key, d, d2, vbox, is_leaf)
+        call calc_force_per_interaction(p, t%nodes(n)%interaction_data, n, d, d2, vbox, is_leaf)
         interactions_local = interactions_local + 1.0_8
       end if
       ! count partner
@@ -171,7 +168,7 @@ module module_walk
 
       ! resolve
 3     if (.not. tree_node_children_available(t%nodes(n))) then
-        call tree_node_fetch_children(t, t%nodes(n))
+        call tree_node_fetch_children(t, t%nodes(n), n)
         do
           ERROR_ON_FAIL(pthreads_sched_yield())
           if (tree_node_children_available(t%nodes(n))) then

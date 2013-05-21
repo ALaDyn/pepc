@@ -247,9 +247,6 @@ contains
          t_particle, &
          t_tree_node
 
-    use module_tree, only: &
-         tree_lookup_node_critical
-    
     implicit none
     include 'mpif.h'
 
@@ -303,8 +300,7 @@ contains
        particles(local_particle_index)%results%rho = particles(local_particle_index)%data%q *kernel
 
        do actual_neighbour = 1, num_neighbour_particles
-          call tree_lookup_node_critical(t, particles(local_particle_index)%results%neighbour_keys(actual_neighbour), actual_node, &
-             "sph_density()")
+         actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
 
           call sph_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, kernel)
 
@@ -402,9 +398,6 @@ contains
     use physvars, only: &
          my_rank
 
-    use module_tree, only: &
-         tree_lookup_node_critical
-
     implicit none
     include 'mpif.h'
 
@@ -485,8 +478,7 @@ contains
 
        do actual_neighbour = 1, num_neighbour_particles
           
-          call tree_lookup_node_critical(t, particles(local_particle_index)%results%neighbour_keys(actual_neighbour), actual_node, &
-               "sph_sum_force()")
+          actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
           
           ! scalar distance
           distance = sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) )
@@ -655,11 +647,6 @@ contains
          kind_node, &
          kind_pe
 
-    use module_htable, only: &
-         t_htable_iterator, &
-         htable_iterator, &
-         htable_iterator_next
-    
     ! only for sort test
     use module_sort
 
@@ -667,11 +654,13 @@ contains
          my_rank, &
          n_cpu
 
-    use module_tree, only: &
-         tree_lookup_node_critical
-
     use module_tree_node, only: &
          tree_node_is_leaf
+         
+    use module_tree, only: &
+         tree_traverse_to_key
+         
+    use module_debug
 
     implicit none
     include 'mpif.h'
@@ -695,7 +684,7 @@ contains
     
     integer(kind_node) :: nleaf_non_local
     integer*8, allocatable :: non_local_node_keys(:)
-    integer*8, allocatable :: key_arr_cp(:)
+    integer*8, allocatable :: non_local_nodes(:)
     integer(kind_pe), allocatable :: non_local_node_owner(:)
     integer, allocatable :: node_arr_cp(:)
     integer, allocatable :: int_arr(:)
@@ -723,59 +712,30 @@ contains
     ! address calculation
     integer, dimension(1:max_props) :: blocklengths, displacements, types
     integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
+    logical :: found
 
-    type(t_htable_iterator) :: it
-        
-   
     nleaf_non_local = t%nleaf - t%nleaf_me ! bigger than necessary, TODO: find a better estimation for this
 
     allocate( non_local_node_keys(nleaf_non_local), non_local_node_owner(nleaf_non_local), requests_per_process(n_cpu), &
-         key_arr_cp(nleaf_non_local), node_arr_cp(nleaf_non_local), int_arr(nleaf_non_local), requests_from_process(n_cpu), &
+         non_local_nodes(nleaf_non_local), node_arr_cp(nleaf_non_local), int_arr(nleaf_non_local), requests_from_process(n_cpu), &
          sdispls(n_cpu), rdispls(n_cpu), STAT=ierr )
-    ! TODO: remove key_arr_cp and int_arr after sort test
+    ! TODO: remove int_arr after sort test
     ! TODO: test STAT
 
     num_request = 0
 
     ! get leafs from hashtabel with owner .ne. my_rank
-    ! TODO: do not search in htable, but in array containing nodes ? (Idee von Lukas)
-    it = htable_iterator(t%node_storage)
-    do
-       if( htable_iterator_next(it, actual_key, iactual_node) ) then
-          actual_node => t%nodes(iactual_node)
+    do iactual_node=1,t%nodes_nentries
+       actual_node => t%nodes(iactual_node)
           if( (actual_node%owner .ne. my_rank) .and. tree_node_is_leaf(actual_node) ) then
              if( actual_node%owner > n_cpu-1) write(*,*) 'strange owner:', my_rank, actual_node%owner, actual_node%key
 
              num_request = num_request + 1
-             non_local_node_keys(num_request) = actual_node%key
+             non_local_nodes(num_request)      = iactual_node
+             non_local_node_keys(num_request)  = actual_node%key
              non_local_node_owner(num_request) = actual_node%owner
           end if
-        else
-          exit
-       end if
     end do
-    
-
-
-    ! TODO: find a better place for this test
-    ! ! test sort with keys
-    ! write(*,*) ' starting sort test'
-    ! key_arr_cp = non_local_node_keys
-    
-    ! call sort(non_local_node_keys, int_arr)
-    
-    ! do i= 1, nleaf_non_local
-    !    if( key_arr_cp(int_arr(i)) .ne. non_local_node_keys(i) ) write(*,*) 'Error in sort.'
-    ! end do
-    
-    ! do i= 1, nleaf_non_local-1
-    !    if( non_local_node_keys(i) > non_local_node_keys(i+1)) write(*,*) 'Error in sort.'
-    ! end do
-    
-    ! write(*,*) 'sort test finished'
-    
-
-
 
     ! a test for debugging
     if( sph_debug) then
@@ -796,12 +756,9 @@ contains
        end do
     end if
 
-
     ! sort keys according to owners
-    key_arr_cp(1:num_request) = non_local_node_keys(1:num_request)
-    do i= 1, num_request
-       non_local_node_keys(i) = key_arr_cp(int_arr(i))
-    end do
+    non_local_node_keys(1:num_request) = non_local_node_keys(int_arr(1:num_request))
+    non_local_nodes(1:num_request)     = non_local_nodes(int_arr(1:num_request))
 
     requests_per_process = 0
 
@@ -842,16 +799,7 @@ contains
 !    write (*,*) 'rdispls:', my_rank, rdispls
 
 
-    call MPI_ALLTOALLV(non_local_node_keys, requests_per_process, sdispls, MPI_INTEGER8, &
-         requested_keys, requests_from_process, rdispls, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
-
-    ! test whether requested keys are locally known
-    do i = 1, total_num_requests_from_others
-       call tree_lookup_node_critical(t, requested_keys(i), actual_node, 'update properties: test requested keys')
-    end do
-
-    
-    ! register propertyupdate data type
+    ! register propertyupdate data type ! FIXME: this has to be released somewhere: MPI_TYPE_FREE()
     blocklengths(1:nprops_property_update)  = [1, 1, 1, 1, 3, 1]
     types(1:nprops_property_update)         = [MPI_INTEGER8, MPI_INTEGER, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
     call MPI_GET_ADDRESS( dummy_property_update,                  address(0), ierr )
@@ -868,22 +816,37 @@ contains
 
     allocate( packed_updates(total_num_requests_from_others), received_updates(num_request) )
 
-    ! pack everything together
+    ! test whether requested keys are locally known and pack everything together
     do i = 1, total_num_requests_from_others
-       call tree_lookup_node_critical(t, requested_keys(i), actual_node, 'update properties: packaging particles')
+      !TODO: it would be more elegant to include the node_index inside the owner's t%nodes(:) array into the t_tree_node data
+      !      structure for faster lookup. This is essentially done in the tree_communicator by keeping %first_child as a pointer into the
+      !      owner's nodes-array. Here, this is not really possible until now as first_child is occupied with real data here.
+      if (.not. tree_traverse_to_key(t, requested_keys(i), iactual_node)) then 
+        DEBUG_ERROR(*, 'Did not find requested key in my local tree')
+      endif
+      
+      actual_node => t%nodes(iactual_node)
+      
+      found = .false.
+      do j = 1, np_local
+        if (particles(j)%node_leaf == iactual_node) then
+          packed_updates(i) = t_property_update( actual_node%key, actual_node%owner, particles(j)%results%h, &
+          particles(j)%results%rho, actual_node%interaction_data%v, actual_node%interaction_data%temperature )
 
-       do j = 1, np_local
-          if (particles(j)%key_leaf == requested_keys(i)) then; exit; end if
-       end do
-
-       packed_updates(i) = t_property_update( actual_node%key, actual_node%owner, particles(j)%results%h, &
-            particles(j)%results%rho, actual_node%interaction_data%v, actual_node%interaction_data%temperature )
-
-       ! test whether requested key is parent of particle key
-       ! TODO: write a test funciton for this?
-       ! write(*,'(i3,a,O30,O30)') my_rank, 'packing:', htable(actual_address)%key, particles(actual_node)%key
-
+          ! test whether requested key is parent of particle key
+          ! TODO: write a test function for this?
+          ! write(*,'(i3,a,O30,O30)') my_rank, 'packing:', htable(actual_address)%key, particles(actual_node)%key
+          found = .true.
+          exit
+        end if
+      end do
+      
+      if (.not. found) then
+        DEBUG_ERROR(*, 'Did not find node in my local keylist')
+      end if
+      
     end do
+
     
     disp = 0
     do i = 1, n_cpu
@@ -897,18 +860,13 @@ contains
        disp = disp + requests_per_process(i)
     end do
 
-
     call MPI_ALLTOALLV(packed_updates, requests_from_process, sdispls, mpi_type_property_update, &
          received_updates, requests_per_process, rdispls, mpi_type_property_update, MPI_COMM_WORLD, ierr)
 
-
     do i= 1, num_request
        if( received_updates(i)%key .ne. non_local_node_keys(i) ) write(*,*) 'Error in update on', my_rank, 'key mismatch', received_updates(i)%key, non_local_node_keys(i)
-    end do
 
-    do i= 1, num_request
-       call tree_lookup_node_critical(t, received_updates(i)%key, actual_node, &
-            'update properties: updating properties of remote nodes' )
+       actual_node => t%nodes(non_local_nodes(i))
        
        actual_node%interaction_data%rho         = received_updates(i)%rho
        actual_node%interaction_data%temperature = received_updates(i)%temperature
@@ -917,10 +875,8 @@ contains
        
     end do
 
-
     do i = 1, np_local
-       call tree_lookup_node_critical(t, particles(i)%key_leaf, actual_node, 'update tree node properties')
-       
+       actual_node => t%nodes(particles(i)%node_leaf)
        actual_node%interaction_data%rho         = particles(i)%results%rho
        actual_node%interaction_data%temperature = particles(i)%data%temperature
        actual_node%interaction_data%h           = particles(i)%results%h
@@ -931,10 +887,11 @@ contains
 
 
 
+
     ! TODO: update tree_nodes%h for all parents
 
 
-    deallocate( non_local_node_keys, non_local_node_owner, requests_per_process, key_arr_cp, int_arr, node_arr_cp, STAT=ierr )
+    deallocate( non_local_nodes, non_local_node_keys, non_local_node_owner, requests_per_process, int_arr, node_arr_cp, STAT=ierr )
 
     
     deallocate( requested_keys, STAT=ierr ) 

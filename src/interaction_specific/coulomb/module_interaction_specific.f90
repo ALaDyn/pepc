@@ -42,7 +42,7 @@ module module_interaction_specific
 
       !> debug stuff for interaction partners (currently only used by pepc-f frontend)
       !> see module_treediags::write_interaction_partners_to_vtk() and module_interaction_specific::calc_force_per_interaction(force_law==6)
-      integer(kind_key), allocatable,public :: interaction_keylist(:,:)
+      integer(kind_node), allocatable,public :: interaction_nodelist(:,:)
       integer(kind_node), allocatable,public :: no_interaction_partners(:)
       real*8, allocatable,public :: interaction_vbox(:,:,:)
 
@@ -289,14 +289,14 @@ module module_interaction_specific
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
+        subroutine calc_force_per_interaction(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
           use module_pepc_types
           use treevars
           use module_coulomb_kernels
           implicit none
 
           type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_key), intent(in) :: key
+          integer(kind_node), intent(in) :: node_idx
           type(t_particle), intent(inout) :: particle
           logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -337,7 +337,7 @@ module module_interaction_specific
                 end if
             case (6)  !  used to save interaction partners
                 no_interaction_partners(particle%label)=no_interaction_partners(particle%label)+1
-                interaction_keylist(particle%label,no_interaction_partners(particle%label))=key
+                interaction_nodelist(particle%label,no_interaction_partners(particle%label))=node_idx
                 interaction_vbox(particle%label,no_interaction_partners(particle%label),1:3)=vbox(1:3)
             case default
               exyz = 0.
@@ -348,6 +348,7 @@ module module_interaction_specific
           particle%results%pot       = particle%results%pot  + phic
           particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
         end subroutine calc_force_per_interaction
+
 
         !>
         !> Force calculation wrapper for contributions that only have
