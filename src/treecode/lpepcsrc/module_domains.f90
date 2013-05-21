@@ -174,8 +174,7 @@ module module_domains
     call timer_start(t_domains_add_sort)
     call timer_start(t_domains_sort_pure)
 
-    allocate(ship_parts(d%nppmax), get_parts(d%nppmax), temp(d%nppmax), workload(d%nppmax), irnkl2(d%nppmax), &
-      local_keys(d%nppmax))
+    allocate(temp(d%nppmax), workload(d%nppmax), irnkl2(d%nppmax), local_keys(d%nppmax))
 
     ! start permutation of local key list
     workload(1:d%npold) = particles(1:d%npold)%work
@@ -199,7 +198,8 @@ module module_domains
     ! Now permute particle properties
     ! Set up particle structure
     call timer_start(t_domains_add_pack)
-
+    
+    allocate(ship_parts(d%nppmax))
     do i = 1, d%npold
       ship_parts(i) = particles( d%indxl(i) )
     end do
@@ -207,6 +207,7 @@ module module_domains
     call timer_stop(t_domains_add_pack)
 
     deallocate(particles) ! has size npold until here, i.e. npp == npold
+    allocate(get_parts(d%nppmax))
 
     call timer_start(t_domains_add_alltoallv)
 
@@ -216,6 +217,7 @@ module module_domains
 
     call timer_stop(t_domains_add_alltoallv)
 
+    deallocate(ship_parts)
     allocate(particles(d%npnew))
 
     call timer_start(t_domains_add_unpack)
@@ -223,6 +225,7 @@ module module_domains
     do i = 1, d%npnew
       particles(d%irnkl(i)) = get_parts(i)
     end do
+    deallocate(get_parts)
 
     call timer_stop(t_domains_add_unpack)
 
@@ -309,7 +312,7 @@ module module_domains
                                   'Particle list after boundary swap (see t_particle in module_pepc_types.f90 for meaning of the columns)')
 
     call timer_stop(t_domains_bound)
-    deallocate(ship_parts, get_parts, temp, workload, irnkl2, local_keys, key_diffs)
+    deallocate(temp, workload, irnkl2, local_keys, key_diffs)
 
     ! reset work load, do not need a (overflowing) history of all my sins...
     particles(:)%work = 1.
