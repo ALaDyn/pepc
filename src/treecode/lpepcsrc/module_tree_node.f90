@@ -42,7 +42,6 @@ module module_tree_node
     public tree_node_children_available
     public tree_node_get_num_children
     public tree_node_get_num_preceding_children
-    public tree_node_get_childkeys
     public tree_node_has_child
     public tree_node_pack
     public tree_node_unpack
@@ -177,33 +176,6 @@ module module_tree_node
 
       res = popcnt(n%childcode)
     end function
-
-
-    !>
-    !> returns the keys of all children, that are attached to the
-    !> node `n`
-    !>
-    subroutine tree_node_get_childkeys(n, childnum, childkeys)
-      use treevars, only: idim
-      use module_spacefilling, only: shift_key_by_level
-      implicit none
-      type(t_tree_node), intent(in) :: n
-      integer, intent(out) :: childnum
-      integer(kind_key), dimension(:), intent(out) :: childkeys
-
-      integer   :: i
-      integer(kind_key) :: keyhead
-
-      keyhead   = shift_key_by_level(n%key, 1_kind_level)
-      childnum = 0
-
-      do i = 0, 2**idim - 1
-        if (tree_node_has_child(n, i)) then
-          childnum            = childnum + 1
-          childkeys(childnum) = ior(keyhead, 1_kind_key*i)
-        end if
-      end do
-    end subroutine tree_node_get_childkeys
 
 
     subroutine tree_node_pack(n, p)
