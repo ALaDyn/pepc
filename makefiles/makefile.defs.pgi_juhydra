@@ -9,7 +9,7 @@ module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 
 MACH     = JUHYDRA_pgi
 
-DEBUG    = 1
+DEBUG    = 0
 
 RANLIB   = ranlib
 
@@ -30,9 +30,9 @@ ifeq ($(DEBUG), 1)
   LDFLAGS  = -g -pg -O0 -mp -ta=nvidia,time -Minfo=all -traceback
 #  CPPFLAGS += -DNDEBUG
 else
-  FFLAGS   = -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
-  CFLAGS   = -O3
-  LDFLAGS  = -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
+  FFLAGS   = -tp=sandybridge -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
+  CFLAGS   = -O3                                                           
+  LDFLAGS  = -tp=sandybridge -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
   CPPFLAGS += -DNDEBUG
 endif
 

@@ -1,25 +1,25 @@
 
-#define DEBUG_HEADER(file) write(*,*) 'DBG'
+#define DEBUG_HEADER(file) write(*,*) 'HDR '
 
-#define DEBUG_INFO(format, ...) write(*,*) 'DBG'
+#define DEBUG_INFO(format, ...) write(*,*) 'IFO ', __FILE__ ,__LINE__
 
-#define DEBUG_WARNING_ALL(format, ...) write(*,*) 'DBG'
+#define DEBUG_WARNING_ALL(format, ...) write(*,*) 'WRN ', __FILE__ ,__LINE__
 
-#define DEBUG_WARNING(format, ...) write(*,*) 'DBG'
+#define DEBUG_WARNING(format, ...) write(*,*) 'WRN ', __FILE__ ,__LINE__
 
-#define DEBUG_ERROR(format, ...) write(*,*) 'DBG'
+#define DEBUG_ERROR(format, ...) write(*,*) 'ERR ', __FILE__ ,__LINE__
 
-#define DEBUG_ERROR_NO_HEADER(format, ...) write(*,*) 'DBG'
+#define DEBUG_ERROR_NO_HEADER(format, ...) write(*,*) 'ERR '
 
-#define DEBUG_ERROR_NO_DIAGFILE(format, ...) write(*,*) 'DBG'
+#define DEBUG_ERROR_NO_DIAGFILE(format, ...) write(*,*) 'ERR ', __FILE__ ,__LINE__
 
-#define DEBUG_DATA(format, ...) write(*,*) 'DBG'
+#define DEBUG_DATA(format, ...) write(*,*) 'DTA ', __FILE__ ,__LINE__
 
 #define DEBUG_STRINGIFY_HELPER(s) #s
 
 #define DEBUG_STRINGIFY(s) DEBUG_STRINGIFY_HELPER(s)
 
-#define DEBUG_ERROR_ON_FAIL_HELPER(ret, sep, msg) if (0/=ret) write(*,*) 'DBG'
+#define DEBUG_ERROR_ON_FAIL_HELPER(ret, sep, msg) if (0/=ret) write(*,*) 'ERR ', __FILE__ ,__LINE__
 
 #define DEBUG_ERROR_ON_FAIL(ret) DEBUG_ERROR_ON_FAIL_HELPER(ret, "", "")
 
@@ -33,9 +33,9 @@
 
 #else
 
-#define DEBUG_ASSERT_MSG(cond, fmt, ...) write(*,*) 'DBG'
+#define DEBUG_ASSERT_MSG(cond, fmt, ...) if(.not.cond) write(*,*) 'ASS1 ', __FILE__ ,__LINE__
 
-#define DEBUG_ASSERT(cond) write(*,*) 'DBG'
+#define DEBUG_ASSERT(cond) if(.not.cond) write(*,*) 'ASS2 ', __FILE__ ,__LINE__
 
 #endif
 
