@@ -39,18 +39,19 @@ module module_checkpoint
 
       contains
 
-          subroutine write_particles_ascii(my_rank, itime, np_local, dp, filename)
+          subroutine write_particles_ascii(my_rank, itime, dp, filename)
             use module_pepc_types
             use module_utils
             use module_pepc, only : pepc_write_parameters
             use module_debug, only : pepc_status
             implicit none
-            integer, intent(in) :: my_rank, itime, np_local
-            type(t_particle), intent(in), dimension(np_local) :: dp
+            integer(kind_pe), intent(in) :: my_rank
+            integer(kind_default), intent(in) :: itime
+            type(t_particle), intent(in), dimension(:) :: dp
             character(*), intent(out) :: filename
             logical :: firstcall  = .true.
             character(50) :: dir
-            integer :: i
+            integer(kind_particle) :: i
 
             dir = trim(directory)//"/ascii/"
             write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(dir), itime, my_rank
@@ -63,7 +64,7 @@ module module_checkpoint
             endif
 
             open(filehandle, file=trim(filename), STATUS='REPLACE')
-            do i=1, np_local
+            do i=1, size(dp,kind=kind(i))
               write(filehandle,*) dp(i)
             end do
             close(filehandle)
@@ -77,14 +78,15 @@ module module_checkpoint
           end subroutine
 
 
-          subroutine write_particles_binary(my_rank, itime, np_local, dp, filename)
+          subroutine write_particles_binary(my_rank, itime, dp, filename)
             use module_pepc_types
             use module_utils
             use module_pepc, only : pepc_write_parameters
             use module_debug, only : pepc_status
             implicit none
-            integer, intent(in) :: my_rank, itime, np_local
-            type(t_particle), intent(in), dimension(np_local) :: dp
+            integer(kind_pe), intent(in) :: my_rank
+            integer(kind_default), intent(in) :: itime
+            type(t_particle), intent(in), dimension(:) :: dp
             character(*), intent(out) :: filename
             logical :: firstcall  = .true.
 
@@ -101,7 +103,7 @@ module module_checkpoint
             endif
 
             open(filehandle, file=trim(filename), STATUS='REPLACE', ACCESS="STREAM")
-            write(filehandle) dp(1:np_local)
+            write(filehandle) dp(1:size(dp))
             close(filehandle)
 
             filename = trim(filename)//".h"
@@ -113,16 +115,17 @@ module module_checkpoint
           end subroutine
 
 
-          subroutine write_particles_mpiio(comm, my_rank, itime, np_local, n_total, dp, filename)
+          subroutine write_particles_mpiio(comm, my_rank, itime, n_total, dp, filename)
             use module_pepc_types
             use module_debug
             use module_utils
             use module_pepc, only : pepc_write_parameters
             implicit none
-            integer, intent(in) :: my_rank, itime, np_local
+            integer(kind_pe), intent(in) :: my_rank
+            integer(kind_default), intent(in) :: itime
             integer*8, intent(in) :: n_total
             integer, intent(in) :: comm
-            type(t_particle), intent(in) :: dp(np_local)
+            type(t_particle), intent(in) :: dp(:)
             character(*), intent(out) :: filename
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer(KIND=MPI_OFFSET_KIND) :: disp
@@ -160,7 +163,7 @@ module module_checkpoint
             ! Redefine file view, now with our custom type
             call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
             ! Write particle data
-            call MPI_FILE_WRITE_ORDERED(fh, dp(:), np_local, MPI_TYPE_particle, status, ierr)
+            call MPI_FILE_WRITE_ORDERED(fh, dp(:), size(dp,kind=kind_particle), MPI_TYPE_particle, status, ierr)
             ! Take care before closing
             call MPI_FILE_SYNC(fh,ierr)
             call MPI_FILE_CLOSE(fh,ierr)
@@ -174,13 +177,14 @@ module module_checkpoint
           end subroutine
 
 
-          subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, np_local, n_total, dp, filename)
+          subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, n_total, dp, filename)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
             implicit none
-            integer, intent(in) :: my_rank, n_cpu, itime_in
-            integer, intent(out) :: itime, np_local
+            integer(kind_pe), intent(in) :: my_rank, n_cpu
+            integer(kind_default) :: itime_in
+            integer(kind_default), intent(out) :: itime
             integer*8, intent(out) :: n_total
             integer, intent(in) :: comm
             character(*), intent(out) :: filename
@@ -191,26 +195,27 @@ module module_checkpoint
             dir = trim(directory)//"/mpi/"
             write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime_in
 
-            call read_particles_mpiio_from_filename(comm, my_rank, n_cpu, itime, np_local, n_total, dp, filename)
+            call read_particles_mpiio_from_filename(comm, my_rank, n_cpu, itime, n_total, dp, filename)
 
             filename = trim(filename)//".h"
           end subroutine
 
 
-          subroutine read_particles_mpiio_from_filename(comm, my_rank, n_cpu, itime, np_local, n_total, dp, filename)
+          subroutine read_particles_mpiio_from_filename(comm, my_rank, n_cpu, itime, n_total, dp, filename)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
             implicit none
-            integer, intent(in) :: my_rank, n_cpu
-            integer, intent(out) :: itime, np_local
-            integer*8, intent(out) :: n_total
-            integer, intent(in) :: comm
+            integer(kind_pe), intent(in) :: my_rank, n_cpu
+            integer(kind_default), intent(out) :: itime
+            integer(kind_default) :: np_local ! this has to be default - not kind_particle as it is parameter to MPI functions
+            integer(kind_particle), intent(out) :: n_total
+            integer(kind_default), intent(in) :: comm
             character(*), intent(in) :: filename
             character(255) :: filename2
             type(t_particle), allocatable :: dp(:)
-            integer :: fh, ierr, status(MPI_STATUS_SIZE)
-            integer*8 :: remain
+            integer(kind_default) :: fh, ierr, status(MPI_STATUS_SIZE)
+            integer(kind_particle) :: remain
 
 
             call pepc_status("READ PARTICLES MPI: "//filename)

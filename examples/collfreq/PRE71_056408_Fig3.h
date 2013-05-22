@@ -1,4 +1,4 @@
-&pepcmw
+&pepccollfreq
 
 ! setup follows Figure 3 in [PRE 7, 056408]
 
@@ -13,20 +13,11 @@
 ! number of timesteps
  nt = 300
  dt = 2.0
-
-! fmm-periodicity framework
-! lattice basis vectors
-  t_lattice_1 = 1.0   0.0   0.0
-  t_lattice_2 = 0.0   1.0   0.0
-  t_lattice_3 = 0.0   0.0   1.0
-! periodicity in x-, y-, and z-direction
-  periodicity = .true.  .true.  .true.
-! extrinsic-to-intrinsic correction
-  do_extrinsic_correction = .true.
+  
 ! only perform nearest-image-periodicity
 !  periodicity_nearest_image = .true.
 
- beam_config_in = 0000
+ beam_config_in = 0121
  I0_Wpercm2     = 4.3E16
 ! lambda_nm      = 436.0 ! is automatically set since omega_wpl is given
 ! t_pulse_fs     = 100.0 ! does not apply here
@@ -77,12 +68,12 @@ workflow_setup = 2 ! [PRE 71, 056408 (2005)] P. Hilse et al: "Collisional absorp
 /
 
 &libpepc
+ num_threads = 60
  debug_level = 0
  interaction_list_length_factor = 1
 /
 
 &walk_para_pthreads
- num_walk_threads         = 8
- max_particles_per_thread = 2000
+ max_particles_per_thread = 250
 /
 

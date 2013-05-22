@@ -44,14 +44,13 @@ module module_velocity_setup
         !>   @param i1 minimal index in u to be used
         !>   @param n maximum index in u to be used
         !>
-        subroutine cold_start(ux,uy,uz,nmax,i1,n)
+        subroutine cold_start(ux,uy,uz)
           implicit none
-          integer(kind_particle), intent(in) :: i1,n,nmax
-          real*8 :: ux(nmax), uy(nmax), uz(nmax)
+          real*8 :: ux(:), uy(:), uz(:)
 
-          ux(i1:i1+n-1) = 0.
-          uy(i1:i1+n-1) = 0.
-          uz(i1:i1+n-1) = 0.
+          ux(:) = 0.
+          uy(:) = 0.
+          uz(:) = 0.
         end subroutine cold_start
 
 
