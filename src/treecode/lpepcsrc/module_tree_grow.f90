@@ -668,7 +668,9 @@ module module_tree_grow
             if (.not. is_ancestor_of_particle(ki(pend + 1)%key, childkey, childlevel)) then; exit; end if
             pend = pend + 1
           end do
-          
+         
+          !if(pstart .gt. pend) write(*,*) '......', pstart, pend
+          !if(pstart .le. pend) call insert_helper(t, childkey, childlevel, ki(pstart:pend), child_nodes(nchild + 1))
           call insert_helper(t, childkey, childlevel, ki(pstart:pend), child_nodes(nchild + 1))
           if (child_nodes(nchild + 1) .ne. NODE_INVALID) then; nchild = nchild + 1; end if
           pstart = pend + 1

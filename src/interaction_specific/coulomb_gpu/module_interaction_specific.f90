@@ -56,6 +56,7 @@ module module_interaction_specific
 ! ENDE CS
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
+      integer, parameter, public :: MAX_IACT_PARTNERS = 500
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -92,7 +93,6 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      integer, parameter :: MAX_IACT_PARTNERS = 500
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -714,6 +714,16 @@ module module_interaction_specific
            real*8 :: exyz(3), phic
            real*8 :: delta(3), dist2
 
+           interface 
+              subroutine kernel1(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
+              use module_pepc_types
+              use module_interaction_specific_types
+              implicit none
+              type(t_particle_thread), intent(inout) :: particle
+              real*8, intent(in) :: eps2, WORKLOAD_PENALTY_INTERACTION
+              end subroutine
+           end interface
+
 !           write(*,*) ' LLLL computing a list of length', particle%queued_l
 
            select case (force_law)
@@ -735,18 +745,7 @@ module module_interaction_specific
 
            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
 
-              do idx = 1, particle%queued_l
-
-                 delta = particle%partner_l(idx)%delta
-                 dist2 = dot_product(delta, delta)
-
-                 call calc_force_coulomb_3D_leaf(particle%partner_l(idx)%charge, delta, dist2 + eps2, exyz, phic)
-
-                 particle%results%e         = particle%results%e    + exyz
-                 particle%results%pot       = particle%results%pot  + phic
-                 particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-
-              end do
+              call kernel1(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
 
            case (4)  ! LJ potential for quiet start
 

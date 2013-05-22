@@ -91,7 +91,7 @@ pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a libopa
 	@mkdir -p $(BINDIR)
 	@-$(RM) $(BINDIR)/$@
 	@FRONTEND=$@ ROOTDIR=$(ROOTDIR) SVNREVISION=$(SVNREVISION) WORKDIR=$(BUILDDIR)/$(MACH)/$@ $(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
-	@cp -p $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
+	@ln -s $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
 	@echo ""
 	@echo "======== successfully built frontend { $@ } :-)"
 	@echo ""

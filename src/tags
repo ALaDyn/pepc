@@ -3,14 +3,14 @@
 !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
-!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+!_TAG_PROGRAM_VERSION	5.8	//
 1	treecode/lpepcsrc/module_walk_simple.f90	/^1     if (all(abs(d) < spatial_interaction_cutoff)) then$/;"	l	subroutine:tree_walk_single	file:
 100	utils/module_velocity_setup.f90	/^        100    format (i4,f10.6)$/;"	l	function:rano	file:
 2	treecode/lpepcsrc/module_walk_simple.f90	/^2     ni = ni + t%nodes(n)%leaves$/;"	l	subroutine:tree_walk_single	file:
 3	treecode/lpepcsrc/module_walk_simple.f90	/^3     if (.not. tree_node_children_available(t%nodes(n))) then$/;"	l	subroutine:tree_walk_single	file:
-ACLOCAL	treecode/openpa/openpa/Makefile	/^ACLOCAL = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run aclocal-1.12$/;"	m
-ACLOCAL	treecode/openpa/openpa/src/Makefile	/^ACLOCAL = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run aclocal-1.12$/;"	m
-ACLOCAL	treecode/openpa/openpa/test/Makefile	/^ACLOCAL = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run aclocal-1.12$/;"	m
+ACLOCAL	treecode/openpa/openpa/Makefile	/^ACLOCAL = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run aclocal-1.12$/;"	m
+ACLOCAL	treecode/openpa/openpa/src/Makefile	/^ACLOCAL = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run aclocal-1.12$/;"	m
+ACLOCAL	treecode/openpa/openpa/test/Makefile	/^ACLOCAL = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run aclocal-1.12$/;"	m
 ACLOCAL_AMFLAGS	treecode/openpa/openpa/Makefile	/^ACLOCAL_AMFLAGS = -I confdb$/;"	m
 ACLOCAL_M4	treecode/openpa/openpa/Makefile	/^ACLOCAL_M4 = $(top_srcdir)\/aclocal.m4$/;"	m
 ACLOCAL_M4	treecode/openpa/openpa/src/Makefile	/^ACLOCAL_M4 = $(top_srcdir)\/aclocal.m4$/;"	m
@@ -58,18 +58,18 @@ ARRAY7_COPY	treecode/sl_pepc/src/include/sl_elements.h	50;"	d
 ARRAY8_COPY	treecode/sl_pepc/src/include/sl_elements.h	51;"	d
 ARRAY9_COPY	treecode/sl_pepc/src/include/sl_elements.h	52;"	d
 AT	treecode/openpa/openpa/test/opa_test.h	115;"	d
-AUTOCONF	treecode/openpa/openpa/Makefile	/^AUTOCONF = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoconf$/;"	m
-AUTOCONF	treecode/openpa/openpa/src/Makefile	/^AUTOCONF = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoconf$/;"	m
-AUTOCONF	treecode/openpa/openpa/test/Makefile	/^AUTOCONF = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoconf$/;"	m
-AUTOHEADER	treecode/openpa/openpa/Makefile	/^AUTOHEADER = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoheader$/;"	m
-AUTOHEADER	treecode/openpa/openpa/src/Makefile	/^AUTOHEADER = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoheader$/;"	m
-AUTOHEADER	treecode/openpa/openpa/test/Makefile	/^AUTOHEADER = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoheader$/;"	m
-AUTOMAKE	treecode/openpa/openpa/Makefile	/^AUTOMAKE = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run automake-1.12$/;"	m
-AUTOMAKE	treecode/openpa/openpa/src/Makefile	/^AUTOMAKE = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run automake-1.12$/;"	m
-AUTOMAKE	treecode/openpa/openpa/test/Makefile	/^AUTOMAKE = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run automake-1.12$/;"	m
-AWK	treecode/openpa/openpa/Makefile	/^AWK = mawk$/;"	m
-AWK	treecode/openpa/openpa/src/Makefile	/^AWK = mawk$/;"	m
-AWK	treecode/openpa/openpa/test/Makefile	/^AWK = mawk$/;"	m
+AUTOCONF	treecode/openpa/openpa/Makefile	/^AUTOCONF = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoconf$/;"	m
+AUTOCONF	treecode/openpa/openpa/src/Makefile	/^AUTOCONF = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoconf$/;"	m
+AUTOCONF	treecode/openpa/openpa/test/Makefile	/^AUTOCONF = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoconf$/;"	m
+AUTOHEADER	treecode/openpa/openpa/Makefile	/^AUTOHEADER = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoheader$/;"	m
+AUTOHEADER	treecode/openpa/openpa/src/Makefile	/^AUTOHEADER = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoheader$/;"	m
+AUTOHEADER	treecode/openpa/openpa/test/Makefile	/^AUTOHEADER = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run autoheader$/;"	m
+AUTOMAKE	treecode/openpa/openpa/Makefile	/^AUTOMAKE = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run automake-1.12$/;"	m
+AUTOMAKE	treecode/openpa/openpa/src/Makefile	/^AUTOMAKE = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run automake-1.12$/;"	m
+AUTOMAKE	treecode/openpa/openpa/test/Makefile	/^AUTOMAKE = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run automake-1.12$/;"	m
+AWK	treecode/openpa/openpa/Makefile	/^AWK = gawk$/;"	m
+AWK	treecode/openpa/openpa/src/Makefile	/^AWK = gawk$/;"	m
+AWK	treecode/openpa/openpa/test/Makefile	/^AWK = gawk$/;"	m
 BR_TRACE_IF	treecode/sl_pepc/src/core/binning_radix.c	17;"	d	file:
 BR_TRACE_IF	treecode/sl_pepc/src/core/binning_radix.c	19;"	d	file:
 BULK_AR	treecode/sl_pepc/Makefile	/^BULK_AR:=true$/;"	m
@@ -168,23 +168,23 @@ DBG_TIMINGFILE	treecode/lpepcsrc/module_debug.f90	/^      integer, parameter, pu
 DBG_TREE	treecode/lpepcsrc/module_debug.f90	/^      integer, parameter, public :: DBG_TREE /;"	v	module:module_debug
 DBG_WALK	treecode/lpepcsrc/module_debug.f90	/^      integer, parameter, public :: DBG_WALK /;"	v	module:module_debug
 DBG_WALKSUMMARY	treecode/lpepcsrc/module_debug.f90	/^      integer, parameter, public :: DBG_WALKSUMMARY /;"	v	module:module_debug
-DEBUG_ASSERT	treecode/lpepcsrc/pepc_debug.h	68;"	d
-DEBUG_ASSERT	treecode/lpepcsrc/pepc_debug.h	87;"	d
-DEBUG_ASSERT_MSG	treecode/lpepcsrc/pepc_debug.h	70;"	d
-DEBUG_ASSERT_MSG	treecode/lpepcsrc/pepc_debug.h	74;"	d
-DEBUG_DATA	treecode/lpepcsrc/pepc_debug.h	48;"	d
-DEBUG_ERROR	treecode/lpepcsrc/pepc_debug.h	28;"	d
-DEBUG_ERROR_NO_DIAGFILE	treecode/lpepcsrc/pepc_debug.h	44;"	d
-DEBUG_ERROR_NO_HEADER	treecode/lpepcsrc/pepc_debug.h	37;"	d
-DEBUG_ERROR_ON_FAIL	treecode/lpepcsrc/pepc_debug.h	62;"	d
-DEBUG_ERROR_ON_FAIL_HELPER	treecode/lpepcsrc/pepc_debug.h	57;"	d
-DEBUG_ERROR_ON_FAIL_MSG	treecode/lpepcsrc/pepc_debug.h	64;"	d
+DEBUG_ASSERT	treecode/lpepcsrc/pepc_debug.h	30;"	d
+DEBUG_ASSERT	treecode/lpepcsrc/pepc_debug.h	38;"	d
+DEBUG_ASSERT_MSG	treecode/lpepcsrc/pepc_debug.h	32;"	d
+DEBUG_ASSERT_MSG	treecode/lpepcsrc/pepc_debug.h	36;"	d
+DEBUG_DATA	treecode/lpepcsrc/pepc_debug.h	16;"	d
+DEBUG_ERROR	treecode/lpepcsrc/pepc_debug.h	10;"	d
+DEBUG_ERROR_NO_DIAGFILE	treecode/lpepcsrc/pepc_debug.h	14;"	d
+DEBUG_ERROR_NO_HEADER	treecode/lpepcsrc/pepc_debug.h	12;"	d
+DEBUG_ERROR_ON_FAIL	treecode/lpepcsrc/pepc_debug.h	24;"	d
+DEBUG_ERROR_ON_FAIL_HELPER	treecode/lpepcsrc/pepc_debug.h	22;"	d
+DEBUG_ERROR_ON_FAIL_MSG	treecode/lpepcsrc/pepc_debug.h	26;"	d
 DEBUG_HEADER	treecode/lpepcsrc/pepc_debug.h	2;"	d
-DEBUG_INFO	treecode/lpepcsrc/pepc_debug.h	6;"	d
-DEBUG_STRINGIFY	treecode/lpepcsrc/pepc_debug.h	55;"	d
-DEBUG_STRINGIFY_HELPER	treecode/lpepcsrc/pepc_debug.h	53;"	d
-DEBUG_WARNING	treecode/lpepcsrc/pepc_debug.h	20;"	d
-DEBUG_WARNING_ALL	treecode/lpepcsrc/pepc_debug.h	12;"	d
+DEBUG_INFO	treecode/lpepcsrc/pepc_debug.h	4;"	d
+DEBUG_STRINGIFY	treecode/lpepcsrc/pepc_debug.h	20;"	d
+DEBUG_STRINGIFY_HELPER	treecode/lpepcsrc/pepc_debug.h	18;"	d
+DEBUG_WARNING	treecode/lpepcsrc/pepc_debug.h	8;"	d
+DEBUG_WARNING_ALL	treecode/lpepcsrc/pepc_debug.h	6;"	d
 DECR_AND_TEST_NITER_INNER	treecode/openpa/openpa/test/test_primitives.c	59;"	d	file:
 DECR_AND_TEST_NITER_OUTER	treecode/openpa/openpa/test/test_primitives.c	60;"	d	file:
 DEFAULT_ALL_AS_MPI	treecode/sl_pepc/Makefile	/^DEFAULT_ALL_AS_MPI:=$/;"	m
@@ -245,9 +245,9 @@ ECHO_N	treecode/openpa/openpa/test/Makefile	/^ECHO_N = -n$/;"	m
 ECHO_T	treecode/openpa/openpa/Makefile	/^ECHO_T = $/;"	m
 ECHO_T	treecode/openpa/openpa/src/Makefile	/^ECHO_T = $/;"	m
 ECHO_T	treecode/openpa/openpa/test/Makefile	/^ECHO_T = $/;"	m
-EGREP	treecode/openpa/openpa/Makefile	/^EGREP = \/bin\/grep -E$/;"	m
-EGREP	treecode/openpa/openpa/src/Makefile	/^EGREP = \/bin\/grep -E$/;"	m
-EGREP	treecode/openpa/openpa/test/Makefile	/^EGREP = \/bin\/grep -E$/;"	m
+EGREP	treecode/openpa/openpa/Makefile	/^EGREP = \/usr\/bin\/grep -E$/;"	m
+EGREP	treecode/openpa/openpa/src/Makefile	/^EGREP = \/usr\/bin\/grep -E$/;"	m
+EGREP	treecode/openpa/openpa/test/Makefile	/^EGREP = \/usr\/bin\/grep -E$/;"	m
 EMPTY_PARTICLE_RESULTS	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^      type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS /;"	v	module:module_interaction_specific_types
 EMPTY_PARTICLE_RESULTS	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS /;"	v	module:module_interaction_specific_types
 EMPTY_PARTICLE_RESULTS	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^      type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS /;"	v	module:module_interaction_specific_types
@@ -276,9 +276,9 @@ FAIL_OP_ERROR	treecode/openpa/openpa/test/opa_test.h	146;"	d
 FAI_RET_EXPECTED	treecode/openpa/openpa/test/test_primitives.c	84;"	d	file:
 FAI_RET_NITER	treecode/openpa/openpa/test/test_primitives.c	85;"	d	file:
 FAR	treecode/sl_pepc/Makefile	/^FAR:=perl$/;"	m
-FGREP	treecode/openpa/openpa/Makefile	/^FGREP = \/bin\/grep -F$/;"	m
-FGREP	treecode/openpa/openpa/src/Makefile	/^FGREP = \/bin\/grep -F$/;"	m
-FGREP	treecode/openpa/openpa/test/Makefile	/^FGREP = \/bin\/grep -F$/;"	m
+FGREP	treecode/openpa/openpa/Makefile	/^FGREP = \/usr\/bin\/grep -F$/;"	m
+FGREP	treecode/openpa/openpa/src/Makefile	/^FGREP = \/usr\/bin\/grep -F$/;"	m
+FGREP	treecode/openpa/openpa/test/Makefile	/^FGREP = \/usr\/bin\/grep -F$/;"	m
 FINT4_TYPE_C	treecode/sl_pepc/fortran2c_types.h	23;"	d
 FINT4_TYPE_C	treecode/sl_pepc/fortran2c_types.h	33;"	d
 FINT4_TYPE_FMT	treecode/sl_pepc/fortran2c_types.h	25;"	d
@@ -357,9 +357,9 @@ FREAL_TYPE_MPI	treecode/sl_pepc/fortran2c_types.h	82;"	d
 FREAL_TYPE_MPI	treecode/sl_pepc/fortran2c_types.h	86;"	d
 GLOBAL_REDUCEBCAST_THRESHOLD	treecode/sl_pepc/sl_pepckeys/sl_tune.h	13;"	d
 GLOBAL_REDUCEBCAST_THRESHOLD	treecode/sl_pepc/sl_pepcparts/sl_tune.h	13;"	d
-GREP	treecode/openpa/openpa/Makefile	/^GREP = \/bin\/grep$/;"	m
-GREP	treecode/openpa/openpa/src/Makefile	/^GREP = \/bin\/grep$/;"	m
-GREP	treecode/openpa/openpa/test/Makefile	/^GREP = \/bin\/grep$/;"	m
+GREP	treecode/openpa/openpa/Makefile	/^GREP = \/usr\/bin\/grep$/;"	m
+GREP	treecode/openpa/openpa/src/Makefile	/^GREP = \/usr\/bin\/grep$/;"	m
+GREP	treecode/openpa/openpa/test/Makefile	/^GREP = \/usr\/bin\/grep$/;"	m
 GROUPED_CAS_INT_NITER	treecode/openpa/openpa/test/test_primitives.c	116;"	d	file:
 GROUPED_CAS_INT_TPG	treecode/openpa/openpa/test/test_primitives.c	117;"	d	file:
 GROUPED_CAS_PTR_NITER	treecode/openpa/openpa/test/test_primitives.c	127;"	d	file:
@@ -458,9 +458,9 @@ KEY_SET_URAND_INIT	treecode/sl_pepc/src/core/elements.c	584;"	d	file:
 KEY_SET_VARIABLES	treecode/sl_pepc/src/core/elements.c	436;"	d	file:
 KEY_SET_VARIABLES	treecode/sl_pepc/src/core/elements.c	573;"	d	file:
 L2L	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        function L2L(/;"	f	module:module_fmm_framework
-LD	treecode/openpa/openpa/Makefile	/^LD = \/usr\/bin\/ld -m elf_x86_64$/;"	m
-LD	treecode/openpa/openpa/src/Makefile	/^LD = \/usr\/bin\/ld -m elf_x86_64$/;"	m
-LD	treecode/openpa/openpa/test/Makefile	/^LD = \/usr\/bin\/ld -m elf_x86_64$/;"	m
+LD	treecode/openpa/openpa/Makefile	/^LD = \/usr\/x86_64-suse-linux\/bin\/ld -m elf_x86_64$/;"	m
+LD	treecode/openpa/openpa/src/Makefile	/^LD = \/usr\/x86_64-suse-linux\/bin\/ld -m elf_x86_64$/;"	m
+LD	treecode/openpa/openpa/test/Makefile	/^LD = \/usr\/x86_64-suse-linux\/bin\/ld -m elf_x86_64$/;"	m
 LDADD	treecode/openpa/openpa/test/Makefile	/^LDADD = -lopa$/;"	m
 LDFLAGS	treecode/openpa/openpa/Makefile	/^LDFLAGS = $/;"	m
 LDFLAGS	treecode/openpa/openpa/src/Makefile	/^LDFLAGS = $/;"	m
@@ -526,9 +526,9 @@ MAINT	treecode/openpa/openpa/test/Makefile	/^MAINT = #$/;"	m
 MAKEFILE_IN	treecode/sl_pepc/Makefile	/^MAKEFILE_IN:=$(call or2,$(MAKEFILE_IN),Makefile.in)$/;"	m
 MAKEFILE_IN	treecode/sl_pepc/Makefile	/^MAKEFILE_IN:=$(wildcard $(MAKEFILE_IN))$/;"	m
 MAKEFILE_IN	treecode/sl_pepc/Makefile	/^MAKEFILE_IN:=Makefile.pepc$/;"	m
-MAKEINFO	treecode/openpa/openpa/Makefile	/^MAKEINFO = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run makeinfo$/;"	m
-MAKEINFO	treecode/openpa/openpa/src/Makefile	/^MAKEINFO = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run makeinfo$/;"	m
-MAKEINFO	treecode/openpa/openpa/test/Makefile	/^MAKEINFO = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run makeinfo$/;"	m
+MAKEINFO	treecode/openpa/openpa/Makefile	/^MAKEINFO = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run makeinfo$/;"	m
+MAKEINFO	treecode/openpa/openpa/src/Makefile	/^MAKEINFO = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run makeinfo$/;"	m
+MAKEINFO	treecode/openpa/openpa/test/Makefile	/^MAKEINFO = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/missing --run makeinfo$/;"	m
 MANIFEST_TOOL	treecode/openpa/openpa/Makefile	/^MANIFEST_TOOL = :$/;"	m
 MANIFEST_TOOL	treecode/openpa/openpa/src/Makefile	/^MANIFEST_TOOL = :$/;"	m
 MANIFEST_TOOL	treecode/openpa/openpa/test/Makefile	/^MANIFEST_TOOL = :$/;"	m
@@ -927,15 +927,15 @@ OPA_incr_int_by_fai	treecode/openpa/openpa/src/primitives/opa_emulated.h	/^stati
 OPA_incr_int_by_fai	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	90;"	d
 OPA_incr_int_by_llsc	treecode/openpa/openpa/src/primitives/opa_emulated.h	/^static _opa_inline void OPA_incr_int_by_llsc(OPA_int_t *ptr)$/;"	f
 OPA_incr_int_by_llsc	treecode/openpa/openpa/src/primitives/opa_gcc_ppc.h	166;"	d
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_by_lock.h	/^typedef struct { volatile int v;  } OPA_int_t;$/;"	t	typeref:struct:__anon3
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	t	typeref:struct:__anon15
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_intel_32_64_ops.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	t	typeref:struct:__anon9
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	t	typeref:struct:__anon17
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_ppc.h	/^typedef struct { volatile int v    OPA_ATTRIBUTE((aligned (8))); } OPA_int_t;$/;"	t	typeref:struct:__anon13
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_sicortex.h	/^typedef struct { volatile int v;  } OPA_int_t;$/;"	t	typeref:struct:__anon11
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_nt_intrinsics.h	/^typedef struct { volatile long v;  } OPA_int_t;$/;"	t	typeref:struct:__anon1
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_sun_atomic_ops.h	/^typedef struct { volatile uint_t v;  } OPA_int_t;$/;"	t	typeref:struct:__anon5
-OPA_int_t	treecode/openpa/openpa/src/primitives/opa_unsafe.h	/^typedef struct { int v;  } OPA_int_t;$/;"	t	typeref:struct:__anon7
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_by_lock.h	/^typedef struct { volatile int v;  } OPA_int_t;$/;"	t	typeref:struct:__anon11
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	t	typeref:struct:__anon5
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_intel_32_64_ops.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	t	typeref:struct:__anon13
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	t	typeref:struct:__anon7
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_ppc.h	/^typedef struct { volatile int v    OPA_ATTRIBUTE((aligned (8))); } OPA_int_t;$/;"	t	typeref:struct:__anon9
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_gcc_sicortex.h	/^typedef struct { volatile int v;  } OPA_int_t;$/;"	t	typeref:struct:__anon15
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_nt_intrinsics.h	/^typedef struct { volatile long v;  } OPA_int_t;$/;"	t	typeref:struct:__anon17
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_sun_atomic_ops.h	/^typedef struct { volatile uint_t v;  } OPA_int_t;$/;"	t	typeref:struct:__anon1
+OPA_int_t	treecode/openpa/openpa/src/primitives/opa_unsafe.h	/^typedef struct { int v;  } OPA_int_t;$/;"	t	typeref:struct:__anon3
 OPA_int_t	treecode/openpa/openpa/test/opa_test.h	/^typedef volatile int OPA_int_t;$/;"	t
 OPA_load_acquire_int	treecode/openpa/openpa/src/primitives/opa_by_lock.h	89;"	d
 OPA_load_acquire_int	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	92;"	d
@@ -978,15 +978,15 @@ OPA_load_ptr	treecode/openpa/openpa/test/opa_test.h	51;"	d
 OPA_ppc_eieio_	treecode/openpa/openpa/src/primitives/opa_gcc_ppc.h	53;"	d
 OPA_ppc_hwsync_	treecode/openpa/openpa/src/primitives/opa_gcc_ppc.h	52;"	d
 OPA_ppc_lwsync_	treecode/openpa/openpa/src/primitives/opa_gcc_ppc.h	51;"	d
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_by_lock.h	/^typedef struct { int * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon4
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon16
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_intel_32_64_ops.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon10
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon18
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_ppc.h	/^typedef struct { void * volatile v OPA_ATTRIBUTE((aligned (8))); } OPA_ptr_t;$/;"	t	typeref:struct:__anon14
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_sicortex.h	/^typedef struct { int * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon12
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_nt_intrinsics.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon2
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_sun_atomic_ops.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon6
-OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_unsafe.h	/^typedef struct { int *v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon8
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_by_lock.h	/^typedef struct { int * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon12
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon6
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_intel_32_64_ops.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon14
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon8
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_ppc.h	/^typedef struct { void * volatile v OPA_ATTRIBUTE((aligned (8))); } OPA_ptr_t;$/;"	t	typeref:struct:__anon10
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_gcc_sicortex.h	/^typedef struct { int * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon16
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_nt_intrinsics.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon18
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_sun_atomic_ops.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon2
+OPA_ptr_t	treecode/openpa/openpa/src/primitives/opa_unsafe.h	/^typedef struct { int *v; } OPA_ptr_t;$/;"	t	typeref:struct:__anon4
 OPA_ptr_t	treecode/openpa/openpa/test/opa_test.h	/^typedef void * volatile OPA_ptr_t;$/;"	t
 OPA_read_barrier	treecode/openpa/openpa/configure	/^    OPA_read_barrier();$/;"	f
 OPA_read_barrier	treecode/openpa/openpa/src/primitives/opa_by_lock.h	200;"	d
@@ -1200,15 +1200,15 @@ RM	treecode/sl_pepc/Makefile	/^RM:=$(call or2,$(RM),rm -f)$/;"	m
 RWLOCKS_BUSY	treecode/pthreads/pthreads_c.c	/^int RWLOCKS_BUSY = EBUSY;$/;"	v
 SCATTERED_ARRAY_LOCS	treecode/openpa/openpa/test/test_barriers.c	63;"	d	file:
 SCATTERED_ARRAY_SIZE	treecode/openpa/openpa/test/test_barriers.c	62;"	d	file:
-SED	treecode/openpa/openpa/Makefile	/^SED = \/bin\/sed$/;"	m
-SED	treecode/openpa/openpa/src/Makefile	/^SED = \/bin\/sed$/;"	m
-SED	treecode/openpa/openpa/test/Makefile	/^SED = \/bin\/sed$/;"	m
+SED	treecode/openpa/openpa/Makefile	/^SED = \/usr\/bin\/sed$/;"	m
+SED	treecode/openpa/openpa/src/Makefile	/^SED = \/usr\/bin\/sed$/;"	m
+SED	treecode/openpa/openpa/test/Makefile	/^SED = \/usr\/bin\/sed$/;"	m
 SET_MAKE	treecode/openpa/openpa/Makefile	/^SET_MAKE = $/;"	m
 SET_MAKE	treecode/openpa/openpa/src/Makefile	/^SET_MAKE = $/;"	m
 SET_MAKE	treecode/openpa/openpa/test/Makefile	/^SET_MAKE = $/;"	m
-SHELL	treecode/openpa/openpa/Makefile	/^SHELL = \/bin\/bash$/;"	m
-SHELL	treecode/openpa/openpa/src/Makefile	/^SHELL = \/bin\/bash$/;"	m
-SHELL	treecode/openpa/openpa/test/Makefile	/^SHELL = \/bin\/bash$/;"	m
+SHELL	treecode/openpa/openpa/Makefile	/^SHELL = \/bin\/sh$/;"	m
+SHELL	treecode/openpa/openpa/src/Makefile	/^SHELL = \/bin\/sh$/;"	m
+SHELL	treecode/openpa/openpa/test/Makefile	/^SHELL = \/bin\/sh$/;"	m
 SIZEOF_INT	treecode/openpa/openpa/src/config.h	131;"	d
 SIZEOF_VOID_P	treecode/openpa/openpa/src/config.h	134;"	d
 SKIPPED	treecode/openpa/openpa/test/opa_test.h	144;"	d
@@ -1559,10 +1559,10 @@ TARGET	treecode/sl_pepc/Makefile	/^TARGET:=$/;"	m
 TESTING	treecode/openpa/openpa/test/opa_test.h	126;"	d
 TESTS	treecode/openpa/openpa/test/Makefile	/^TESTS = sanity$(EXEEXT) test_primitives$(EXEEXT) \\$/;"	m
 TEST_ERROR	treecode/openpa/openpa/test/opa_test.h	145;"	d
-THREADED_MODE_DEFAULT	treecode/openpa/openpa/test/test_queue.c	/^    THREADED_MODE_DEFAULT,              \/* Test does not try to influence scheduling *\/$/;"	e	enum:__anon44	file:
-THREADED_MODE_EMPTY	treecode/openpa/openpa/test/test_queue.c	/^    THREADED_MODE_EMPTY,                \/* Test tries to keep queue empty *\/$/;"	e	enum:__anon44	file:
-THREADED_MODE_FULL	treecode/openpa/openpa/test/test_queue.c	/^    THREADED_MODE_FULL,                 \/* Test tries to keep queue full *\/$/;"	e	enum:__anon44	file:
-THREADED_MODE_NMODES	treecode/openpa/openpa/test/test_queue.c	/^    THREADED_MODE_NMODES                \/* Number of modes (must be last) *\/$/;"	e	enum:__anon44	file:
+THREADED_MODE_DEFAULT	treecode/openpa/openpa/test/test_queue.c	/^    THREADED_MODE_DEFAULT,              \/* Test does not try to influence scheduling *\/$/;"	e	enum:__anon23	file:
+THREADED_MODE_EMPTY	treecode/openpa/openpa/test/test_queue.c	/^    THREADED_MODE_EMPTY,                \/* Test tries to keep queue empty *\/$/;"	e	enum:__anon23	file:
+THREADED_MODE_FULL	treecode/openpa/openpa/test/test_queue.c	/^    THREADED_MODE_FULL,                 \/* Test tries to keep queue full *\/$/;"	e	enum:__anon23	file:
+THREADED_MODE_NMODES	treecode/openpa/openpa/test/test_queue.c	/^    THREADED_MODE_NMODES                \/* Number of modes (must be last) *\/$/;"	e	enum:__anon23	file:
 THREADED_NITER	treecode/openpa/openpa/test/test_queue.c	30;"	d	file:
 THREAD_COUNTER_INTERACTIONS	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer, parameter :: THREAD_COUNTER_INTERACTIONS /;"	v	module:module_walk
 THREAD_COUNTER_INTERACTIONS	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    integer, public, parameter :: THREAD_COUNTER_INTERACTIONS /;"	v	module:module_walk_pthreads_commutils
@@ -1871,22 +1871,22 @@ _slpwkey_t	treecode/sl_pepc/src/include/sl_types.h	/^typedef struct _slpwkey_t$/
 _splitter_t	treecode/sl_pepc/src/include/sl_types.h	/^typedef struct _splitter_t$/;"	s
 _tproc_data_t	treecode/sl_pepc/src/include/sl_types.h	/^typedef struct _tproc_data_t$/;"	s
 _tproc_sort_back_data	treecode/sl_pepc/src/core_mpi/mpi_sort_special.c	/^typedef struct _tproc_sort_back_data$/;"	s	file:
-abs_builddir	treecode/openpa/openpa/Makefile	/^abs_builddir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
-abs_builddir	treecode/openpa/openpa/src/Makefile	/^abs_builddir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/src$/;"	m
-abs_builddir	treecode/openpa/openpa/test/Makefile	/^abs_builddir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/test$/;"	m
+abs_builddir	treecode/openpa/openpa/Makefile	/^abs_builddir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
+abs_builddir	treecode/openpa/openpa/src/Makefile	/^abs_builddir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/src$/;"	m
+abs_builddir	treecode/openpa/openpa/test/Makefile	/^abs_builddir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/test$/;"	m
 abs_charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^        real*8 :: abs_charge /;"	k	type:t_tree_node_interaction_data
 abs_charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: abs_charge /;"	k	type:t_tree_node_interaction_data
 abs_charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: abs_charge /;"	k	type:t_tree_node_interaction_data
 abs_charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^        real*8 :: abs_charge /;"	k	type:t_tree_node_interaction_data
-abs_srcdir	treecode/openpa/openpa/Makefile	/^abs_srcdir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
-abs_srcdir	treecode/openpa/openpa/src/Makefile	/^abs_srcdir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/src$/;"	m
-abs_srcdir	treecode/openpa/openpa/test/Makefile	/^abs_srcdir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/test$/;"	m
-abs_top_builddir	treecode/openpa/openpa/Makefile	/^abs_top_builddir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
-abs_top_builddir	treecode/openpa/openpa/src/Makefile	/^abs_top_builddir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
-abs_top_builddir	treecode/openpa/openpa/test/Makefile	/^abs_top_builddir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
-abs_top_srcdir	treecode/openpa/openpa/Makefile	/^abs_top_srcdir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
-abs_top_srcdir	treecode/openpa/openpa/src/Makefile	/^abs_top_srcdir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
-abs_top_srcdir	treecode/openpa/openpa/test/Makefile	/^abs_top_srcdir = \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
+abs_srcdir	treecode/openpa/openpa/Makefile	/^abs_srcdir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
+abs_srcdir	treecode/openpa/openpa/src/Makefile	/^abs_srcdir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/src$/;"	m
+abs_srcdir	treecode/openpa/openpa/test/Makefile	/^abs_srcdir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/test$/;"	m
+abs_top_builddir	treecode/openpa/openpa/Makefile	/^abs_top_builddir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
+abs_top_builddir	treecode/openpa/openpa/src/Makefile	/^abs_top_builddir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
+abs_top_builddir	treecode/openpa/openpa/test/Makefile	/^abs_top_builddir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
+abs_top_srcdir	treecode/openpa/openpa/Makefile	/^abs_top_srcdir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
+abs_top_srcdir	treecode/openpa/openpa/src/Makefile	/^abs_top_srcdir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
+abs_top_srcdir	treecode/openpa/openpa/test/Makefile	/^abs_top_srcdir = \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa$/;"	m
 ac_ct_AR	treecode/openpa/openpa/Makefile	/^ac_ct_AR = ar$/;"	m
 ac_ct_AR	treecode/openpa/openpa/src/Makefile	/^ac_ct_AR = ar$/;"	m
 ac_ct_AR	treecode/openpa/openpa/test/Makefile	/^ac_ct_AR = ar$/;"	m
@@ -1904,7 +1904,7 @@ ac_fn_c_try_compile	treecode/openpa/openpa/configure	/^ac_fn_c_try_compile ()$/;
 ac_fn_c_try_cpp	treecode/openpa/openpa/configure	/^ac_fn_c_try_cpp ()$/;"	f
 ac_fn_c_try_link	treecode/openpa/openpa/configure	/^ac_fn_c_try_link ()$/;"	f
 ac_fn_c_try_run	treecode/openpa/openpa/configure	/^ac_fn_c_try_run ()$/;"	f
-add_t	treecode/openpa/openpa/test/test_primitives.c	/^} add_t;$/;"	t	typeref:struct:__anon21	file:
+add_t	treecode/openpa/openpa/test/test_primitives.c	/^} add_t;$/;"	t	typeref:struct:__anon27	file:
 add_to_iact_list	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^             subroutine add_to_iact_list(/;"	s	subroutine:calc_force_per_interaction_thread
 add_to_iact_list_leaf	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^             subroutine add_to_iact_list_leaf(/;"	s	subroutine:calc_force_per_interaction_thread
 addparticle	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^          subroutine addparticle(/;"	s	subroutine:calc_omega_tilde
@@ -2156,9 +2156,9 @@ bins1	treecode/sl_pepc/src/include/sl_types.h	/^  bin_t *bins0, *bins1;$/;"	m	st
 bins_new	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_bin_t *bins, *bins_new;$/;"	m	struct:pepckeys__local_bins_t
 bins_new	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_bin_t *bins, *bins_new;$/;"	m	struct:pepcparts__local_bins_t
 bins_new	treecode/sl_pepc/src/include/sl_types.h	/^  bin_t *bins, *bins_new;$/;"	m	struct:_local_bins_t
-bit_mask	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slkey_pure_t bit_mask;$/;"	m	struct:pepckeys__binning_data_t::__anon51
-bit_mask	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slkey_pure_t bit_mask;$/;"	m	struct:pepcparts__binning_data_t::__anon50
-bit_mask	treecode/sl_pepc/src/include/sl_types.h	/^    slkey_pure_t bit_mask;$/;"	m	struct:_binning_data_t::__anon46
+bit_mask	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slkey_pure_t bit_mask;$/;"	m	struct:pepckeys__binning_data_t::__anon54
+bit_mask	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slkey_pure_t bit_mask;$/;"	m	struct:pepcparts__binning_data_t::__anon53
+bit_mask	treecode/sl_pepc/src/include/sl_types.h	/^    slkey_pure_t bit_mask;$/;"	m	struct:_binning_data_t::__anon49
 block	treecode/sl_pepc/src/core/merge2_tridgell.c	/^} block;$/;"	t	typeref:struct:_block	file:
 bm	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_binning_t *bm;$/;"	m	struct:pepckeys__global_bins_t
 bm	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_binning_t *bm;$/;"	m	struct:pepckeys__local_bins_t
@@ -2242,10 +2242,10 @@ calc_mu_cent	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^       
 calc_neighbour_boxes	treecode/lpepcsrc/module_mirror_boxes.f90	/^        subroutine calc_neighbour_boxes(/;"	s
 calc_omega_tilde	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        subroutine calc_omega_tilde(/;"	s	module:module_fmm_framework
 cartesian_to_spherical	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        function cartesian_to_spherical(/;"	f	module:module_fmm_framework
-cas_int_fairness_t	treecode/openpa/openpa/test/test_primitives.c	/^} cas_int_fairness_t;$/;"	t	typeref:struct:__anon30	file:
-cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} cas_int_t;$/;"	t	typeref:struct:__anon26	file:
-cas_ptr_fairness_t	treecode/openpa/openpa/test/test_primitives.c	/^} cas_ptr_fairness_t;$/;"	t	typeref:struct:__anon31	file:
-cas_ptr_t	treecode/openpa/openpa/test/test_primitives.c	/^} cas_ptr_t;$/;"	t	typeref:struct:__anon27	file:
+cas_int_fairness_t	treecode/openpa/openpa/test/test_primitives.c	/^} cas_int_fairness_t;$/;"	t	typeref:struct:__anon36	file:
+cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} cas_int_t;$/;"	t	typeref:struct:__anon32	file:
+cas_ptr_fairness_t	treecode/openpa/openpa/test/test_primitives.c	/^} cas_ptr_fairness_t;$/;"	t	typeref:struct:__anon37	file:
+cas_ptr_t	treecode/openpa/openpa/test/test_primitives.c	/^} cas_ptr_t;$/;"	t	typeref:struct:__anon33	file:
 cc_data0_add	treecode/sl_pepc/src/include/sl_data_singles.h	103;"	d
 cc_data0_add	treecode/sl_pepc/src/include/sl_data_singles.h	120;"	d
 cc_data0_add	treecode/sl_pepc/src/include/sl_data_singles.h	164;"	d
@@ -3221,8 +3221,8 @@ cc_rti_minc_alloc	treecode/sl_pepc/src/include/sl_rti_intern.h	92;"	d
 cc_rti_minc_free	treecode/sl_pepc/src/include/sl_rti_intern.h	105;"	d
 cc_rti_minc_free	treecode/sl_pepc/src/include/sl_rti_intern.h	93;"	d
 ccurrent	treecode/sl_pepc/src/core_mpi/mpi_select_exact_generic.c	/^  slint_t crange[2], ccurrent[2];$/;"	m	struct:_border_info_t	file:
-change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon34	file:
-change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon35	file:
+change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon40	file:
+change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon41	file:
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: charge$/;"	k	type:t_iact_partner_l
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
@@ -3264,8 +3264,8 @@ cmod_cfg	treecode/sl_pepc/Makefile	/^ cmod_cfg:=$/;"	m
 cmod_cfg	treecode/sl_pepc/Makefile	/^ cmod_cfg:=1$/;"	m
 cmod_dir	treecode/sl_pepc/Makefile	/^cmod_dir:=$(call and2,$(cmod),$(cmod)\/)$/;"	m
 cmod_prefix	treecode/sl_pepc/Makefile	/^cmod_prefix:=$(call and2,$(cmod),$(cmod)_)$/;"	m
-cmp	treecode/sl_pepc/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon52
-cmp	treecode/sl_pepc/src/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon47
+cmp	treecode/sl_pepc/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon50
+cmp	treecode/sl_pepc/src/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon46
 coc	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^        real*8 :: coc(/;"	k	type:t_tree_node_interaction_data
 coc	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: coc(/;"	k	type:t_tree_node_interaction_data
 coc	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: coc(/;"	k	type:t_tree_node_interaction_data
@@ -3339,12 +3339,12 @@ cs	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t *cs, *bin_cs;$/
 cs	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t *cs;$/;"	m	struct:pepcparts__global_bins_t
 cs	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t *cs, *bin_cs;$/;"	m	struct:_local_bins_t
 cs	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t *cs;$/;"	m	struct:_global_bins_t
-cumu	treecode/sl_pepc/include/sl_rti.h	/^  double last, cumu;$/;"	m	struct:__anon53
-cumu	treecode/sl_pepc/src/include/sl_rti.h	/^  double last, cumu;$/;"	m	struct:__anon48
-cur	treecode/sl_pepc/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon54
-cur	treecode/sl_pepc/src/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon49
-cur_max	treecode/sl_pepc/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon54
-cur_max	treecode/sl_pepc/src/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon49
+cumu	treecode/sl_pepc/include/sl_rti.h	/^  double last, cumu;$/;"	m	struct:__anon51
+cumu	treecode/sl_pepc/src/include/sl_rti.h	/^  double last, cumu;$/;"	m	struct:__anon47
+cur	treecode/sl_pepc/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon52
+cur	treecode/sl_pepc/src/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon48
+cur_max	treecode/sl_pepc/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon52
+cur_max	treecode/sl_pepc/src/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon48
 curr_test	treecode/openpa/openpa/test/opa_test.h	/^static unsigned curr_test;   \/* Current test number bein run *\/$/;"	v
 current_chi	treecode/sl_pepc/src/core_mpi/mpi_select_exact_generic.c	429;"	d	file:
 current_clo	treecode/sl_pepc/src/core_mpi/mpi_select_exact_generic.c	428;"	d	file:
@@ -4525,7 +4525,7 @@ decomposition	treecode/lpepcsrc/module_tree.f90	/^      type(t_decomposition)/;"
 decomposition_allocated	treecode/lpepcsrc/module_domains.f90	/^  logical function decomposition_allocated(/;"	f	module:module_domains
 decomposition_create	treecode/lpepcsrc/module_domains.f90	/^  subroutine decomposition_create(/;"	s	module:module_domains
 decomposition_destroy	treecode/lpepcsrc/module_domains.f90	/^  subroutine decomposition_destroy(/;"	s	module:module_domains
-decr_test_t	treecode/openpa/openpa/test/test_primitives.c	/^} decr_test_t;$/;"	t	typeref:struct:__anon23	file:
+decr_test_t	treecode/openpa/openpa/test/test_primitives.c	/^} decr_test_t;$/;"	t	typeref:struct:__anon29	file:
 defer_list_length	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer :: todo_list_length, defer_list_length,/;"	v	module:module_walk
 defer_list_length	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    integer :: todo_list_length, defer_list_length$/;"	v	module:module_walk
 defer_list_parse_and_compact	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine defer_list_parse_and_compact(/;"	s	function:walk_single_particle
@@ -4764,13 +4764,13 @@ exec_prefix	treecode/openpa/openpa/test/Makefile	/^exec_prefix = ${prefix}$/;"	m
 external_pkg_config_libs	treecode/openpa/openpa/Makefile	/^external_pkg_config_libs = $/;"	m
 external_pkg_config_libs	treecode/openpa/openpa/src/Makefile	/^external_pkg_config_libs = $/;"	m
 external_pkg_config_libs	treecode/openpa/openpa/test/Makefile	/^external_pkg_config_libs = $/;"	m
-faa_ret_t	treecode/openpa/openpa/test/test_primitives.c	/^} faa_ret_t;$/;"	t	typeref:struct:__anon24	file:
+faa_ret_t	treecode/openpa/openpa/test/test_primitives.c	/^} faa_ret_t;$/;"	t	typeref:struct:__anon30	file:
 factorial	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        real(kfp) function factorial(/;"	f	module:module_fmm_framework
-fai_ret_t	treecode/openpa/openpa/test/test_primitives.c	/^} fai_ret_t;$/;"	t	typeref:struct:__anon25	file:
-failed	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *failed;        \/* Whether the test has failed and should be terminated *\/$/;"	m	struct:__anon37	file:
-failed	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *failed;        \/* Whether the test has failed and should be terminated *\/$/;"	m	struct:__anon39	file:
-false_positives	treecode/openpa/openpa/test/test_primitives.c	/^    int         false_positives; \/* Number of times SC failed unnecessarily *\/$/;"	m	struct:__anon34	file:
-false_positives	treecode/openpa/openpa/test/test_primitives.c	/^    int         false_positives; \/* Number of times SC failed unnecessarily *\/$/;"	m	struct:__anon35	file:
+fai_ret_t	treecode/openpa/openpa/test/test_primitives.c	/^} fai_ret_t;$/;"	t	typeref:struct:__anon31	file:
+failed	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *failed;        \/* Whether the test has failed and should be terminated *\/$/;"	m	struct:__anon43	file:
+failed	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *failed;        \/* Whether the test has failed and should be terminated *\/$/;"	m	struct:__anon45	file:
+false_positives	treecode/openpa/openpa/test/test_primitives.c	/^    int         false_positives; \/* Number of times SC failed unnecessarily *\/$/;"	m	struct:__anon40	file:
+false_positives	treecode/openpa/openpa/test/test_primitives.c	/^    int         false_positives; \/* Number of times SC failed unnecessarily *\/$/;"	m	struct:__anon41	file:
 fcentral	treecode/lpepcsrc/module_walk_smpss_utils.f90	/^  logical :: fcentral$/;"	v	module:module_walk_smpss_utils
 fictcharge	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      type(t_tree_node_interaction_data) :: fictcharge(/;"	v	module:module_fmm_framework
 filehandle	utils/module_checkpoint.f90	/^      integer, parameter :: filehandle /;"	v	module:module_checkpoint
@@ -5051,6 +5051,7 @@ func_xform	treecode/openpa/openpa/confdb/ltmain.sh	/^func_xform ()$/;"	f
 func_xform	treecode/openpa/openpa/config.status	/^func_xform ()\\$/;"	f
 func_xform	treecode/openpa/openpa/configure	/^func_xform ()\\$/;"	f
 func_xform	treecode/openpa/openpa/libtool	/^func_xform ()$/;"	f
+gamma	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^            function gamma(/;"	f	function:factorial
 gather_particle_diag	utils/benchmarking.f90	/^  subroutine gather_particle_diag(/;"	s	module:benchmarking
 gb_counts	treecode/sl_pepc/src/include/sl_types_intern.h	48;"	d
 gb_counts	treecode/sl_pepc/src/include/sl_types_intern.h	51;"	d
@@ -5073,22 +5074,22 @@ global_tree	treecode/lpepcsrc/module_pepc.f90	/^    type(t_tree), public, target
 globaldims	utils/module_vtk.f90	/^          integer, private, dimension(2,3) :: globaldims,/;"	v	module:module_vtk
 gposts	treecode/lpepcsrc/module_domains.f90	/^    integer, allocatable :: gposts(/;"	k	type:t_decomposition
 grouped_cas_int_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_int_helper(void *_udata)$/;"	f	file:
-grouped_cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_int_t;$/;"	t	typeref:struct:__anon28	file:
+grouped_cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_int_t;$/;"	t	typeref:struct:__anon34	file:
 grouped_cas_ptr_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_ptr_helper(void *_udata)$/;"	f	file:
-grouped_cas_ptr_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_ptr_t;$/;"	t	typeref:struct:__anon29	file:
-groupno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *groupno;       \/* Unique group number *\/$/;"	m	struct:__anon29	file:
-groupno	treecode/openpa/openpa/test/test_primitives.c	/^    int         groupno;        \/* Unique group number *\/$/;"	m	struct:__anon28	file:
+grouped_cas_ptr_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_ptr_t;$/;"	t	typeref:struct:__anon35	file:
+groupno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *groupno;       \/* Unique group number *\/$/;"	m	struct:__anon35	file:
+groupno	treecode/openpa/openpa/test/test_primitives.c	/^    int         groupno;        \/* Unique group number *\/$/;"	m	struct:__anon34	file:
 half	interaction_specific/coulomb_gpu/module_coulomb_kernels.f90	/^    real(kfp), parameter :: half /;"	v	module:module_coulomb_kernels
 hashconst	treecode/lpepcsrc/module_htable.f90	/^      integer*8                          :: hashconst /;"	k	type:t_htable
 have_key_val_rand	treecode/sl_pepc/src/include/sl_key.h	78;"	d
 have_key_val_rand	treecode/sl_pepc/src/include/sl_key.h	81;"	d
 have_key_val_rand_minmax	treecode/sl_pepc/src/include/sl_key.h	85;"	d
 have_key_val_rand_minmax	treecode/sl_pepc/src/include/sl_key.h	88;"	d
-hdr	treecode/openpa/openpa/test/test_queue.c	/^    OPA_Queue_element_hdr_t hdr;        \/* Queue element header *\/$/;"	m	struct:__anon42	file:
-hdr	treecode/openpa/openpa/test/test_queue.c	/^    OPA_Queue_element_hdr_t hdr;        \/* Queue element header *\/$/;"	m	struct:__anon43	file:
+hdr	treecode/openpa/openpa/test/test_queue.c	/^    OPA_Queue_element_hdr_t hdr;        \/* Queue element header *\/$/;"	m	struct:__anon21	file:
+hdr	treecode/openpa/openpa/test/test_queue.c	/^    OPA_Queue_element_hdr_t hdr;        \/* Queue element header *\/$/;"	m	struct:__anon22	file:
 head	treecode/openpa/openpa/src/opa_queue.h	/^    OPA_Shm_rel_addr_t head; \/* holds the offset pointer, not the abs ptr *\/$/;"	m	struct:OPA_Queue_info_t
-head	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *head;          \/* Head of stack (index into objs) *\/$/;"	m	struct:__anon37	file:
-head	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *head;          \/* Head of stack (index into objs) *\/$/;"	m	struct:__anon39	file:
+head	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *head;          \/* Head of stack (index into objs) *\/$/;"	m	struct:__anon43	file:
+head	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *head;          \/* Head of stack (index into objs) *\/$/;"	m	struct:__anon45	file:
 helper	frontends/pepc-essential/module_helper.f90	/^module helper$/;"	m
 hit	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_binning_hit_f hit;$/;"	m	struct:pepckeys__binning_t
 hit	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_binning_hit_f hit;$/;"	m	struct:pepcparts__binning_t
@@ -5150,7 +5151,7 @@ include_far_field_if_periodic	interaction_specific/coulomb_gpu/module_interactio
 includedir	treecode/openpa/openpa/Makefile	/^includedir = ${prefix}\/include$/;"	m
 includedir	treecode/openpa/openpa/src/Makefile	/^includedir = ${prefix}\/include$/;"	m
 includedir	treecode/openpa/openpa/test/Makefile	/^includedir = ${prefix}\/include$/;"	m
-incr_decr_t	treecode/openpa/openpa/test/test_primitives.c	/^} incr_decr_t;$/;"	t	typeref:struct:__anon22	file:
+incr_decr_t	treecode/openpa/openpa/test/test_primitives.c	/^} incr_decr_t;$/;"	t	typeref:struct:__anon28	file:
 index	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slindex_t index;$/;"	m	struct:pepckeys__packed_element_t
 index	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slindex_t index;$/;"	m	struct:pepcparts__packed_element_t
 index	treecode/sl_pepc/src/include/sl_types.h	/^  slindex_t index;$/;"	m	struct:_packed_element_t
@@ -5221,9 +5222,9 @@ insertsort	treecode/sl_pepc/src/core/sort_radix_iter.c	26;"	d	file:
 insertsort_finalize	treecode/sl_pepc/src/core/sort_radix_af.c	183;"	d	file:
 insertsort_finalize	treecode/sl_pepc/src/core/sort_radix_iter.c	213;"	d	file:
 insertsort_finalize_adaptive	treecode/sl_pepc/src/core/sort_radix_af.c	184;"	d	file:
-install_sh	treecode/openpa/openpa/Makefile	/^install_sh = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/install-sh$/;"	m
-install_sh	treecode/openpa/openpa/src/Makefile	/^install_sh = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/install-sh$/;"	m
-install_sh	treecode/openpa/openpa/test/Makefile	/^install_sh = ${SHELL} \/home\/brd26487\/work\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/install-sh$/;"	m
+install_sh	treecode/openpa/openpa/Makefile	/^install_sh = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/install-sh$/;"	m
+install_sh	treecode/openpa/openpa/src/Makefile	/^install_sh = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/install-sh$/;"	m
+install_sh	treecode/openpa/openpa/test/Makefile	/^install_sh = ${SHELL} \/home\/broemmel\/OpenACC\/pepc\/branch_gpu\/src\/treecode\/openpa\/openpa\/confdb\/install-sh$/;"	m
 install_sh_DATA	treecode/openpa/openpa/Makefile	/^install_sh_DATA = $(install_sh) -c -m 644$/;"	m
 install_sh_DATA	treecode/openpa/openpa/src/Makefile	/^install_sh_DATA = $(install_sh) -c -m 644$/;"	m
 install_sh_DATA	treecode/openpa/openpa/test/Makefile	/^install_sh_DATA = $(install_sh) -c -m 644$/;"	m
@@ -5255,6 +5256,7 @@ interactions_local	treecode/lpepcsrc/module_walk_simple.f90	/^  real*8, public :
 internal_pkg_config_libs	treecode/openpa/openpa/Makefile	/^internal_pkg_config_libs = $/;"	m
 internal_pkg_config_libs	treecode/openpa/openpa/src/Makefile	/^internal_pkg_config_libs = $/;"	m
 internal_pkg_config_libs	treecode/openpa/openpa/test/Makefile	/^internal_pkg_config_libs = $/;"	m
+intfuncgamma	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^            pure function intfuncgamma(/;"	f	function:factorial
 inverse3	treecode/lpepcsrc/module_math_tools.f90	/^        function inverse3(/;"	f	module:module_math_tools
 irlen	treecode/lpepcsrc/module_domains.f90	/^    integer, allocatable :: irlen(/;"	k	type:t_decomposition
 irnkl	treecode/lpepcsrc/module_domains.f90	/^    integer, allocatable :: irnkl(/;"	k	type:t_decomposition
@@ -5363,8 +5365,8 @@ km	treecode/sl_pepc/src/core/elements.c	726;"	d	file:
 label	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: label /;"	k	type:t_particle_thread
 label	treecode/lpepcsrc/module_pepc_types.f90	/^         integer :: label /;"	k	type:t_particle
 last	treecode/lpepcsrc/module_comm_env.f90	/^    logical :: last /;"	k	type:t_comm_env
-last	treecode/sl_pepc/include/sl_rti.h	/^  double last, cumu;$/;"	m	struct:__anon53
-last	treecode/sl_pepc/src/include/sl_rti.h	/^  double last, cumu;$/;"	m	struct:__anon48
+last	treecode/sl_pepc/include/sl_rti.h	/^  double last, cumu;$/;"	m	struct:__anon51
+last	treecode/sl_pepc/src/include/sl_rti.h	/^  double last, cumu;$/;"	m	struct:__anon47
 last_exec_b	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t last_exec_b;$/;"	m	struct:pepckeys__local_bins_t
 last_exec_b	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t last_exec_b;$/;"	m	struct:pepcparts__local_bins_t
 last_exec_b	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t last_exec_b;$/;"	m	struct:_local_bins_t
@@ -5398,12 +5400,12 @@ level	treecode/lpepcsrc/module_pepc_types.f90	/^        integer :: level$/;"	k	t
 level	treecode/lpepcsrc/module_pepc_types.f90	/^        integer*1 :: level /;"	k	type:t_tree_node_package
 level_from_key	treecode/lpepcsrc/module_spacefilling.f90	/^        elemental function level_from_key(/;"	f	module:module_spacefilling
 lib_LTLIBRARIES	treecode/openpa/openpa/src/Makefile	/^lib_LTLIBRARIES = libopa.la$/;"	m
-libdir	treecode/openpa/openpa/Makefile	/^libdir = ${exec_prefix}\/lib$/;"	m
-libdir	treecode/openpa/openpa/src/Makefile	/^libdir = ${exec_prefix}\/lib$/;"	m
-libdir	treecode/openpa/openpa/test/Makefile	/^libdir = ${exec_prefix}\/lib$/;"	m
-libexecdir	treecode/openpa/openpa/Makefile	/^libexecdir = ${exec_prefix}\/libexec$/;"	m
-libexecdir	treecode/openpa/openpa/src/Makefile	/^libexecdir = ${exec_prefix}\/libexec$/;"	m
-libexecdir	treecode/openpa/openpa/test/Makefile	/^libexecdir = ${exec_prefix}\/libexec$/;"	m
+libdir	treecode/openpa/openpa/Makefile	/^libdir = ${exec_prefix}\/lib64$/;"	m
+libdir	treecode/openpa/openpa/src/Makefile	/^libdir = ${exec_prefix}\/lib64$/;"	m
+libdir	treecode/openpa/openpa/test/Makefile	/^libdir = ${exec_prefix}\/lib64$/;"	m
+libexecdir	treecode/openpa/openpa/Makefile	/^libexecdir = ${exec_prefix}\/lib$/;"	m
+libexecdir	treecode/openpa/openpa/src/Makefile	/^libexecdir = ${exec_prefix}\/lib$/;"	m
+libexecdir	treecode/openpa/openpa/test/Makefile	/^libexecdir = ${exec_prefix}\/lib$/;"	m
 libopa_la_LDFLAGS	treecode/openpa/openpa/src/Makefile	/^libopa_la_LDFLAGS = ${libopa_so_versionflags}$/;"	m
 libopa_la_LIBADD	treecode/openpa/openpa/src/Makefile	/^libopa_la_LIBADD =$/;"	m
 libopa_la_LINK	treecode/openpa/openpa/src/Makefile	/^libopa_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \\$/;"	m
@@ -5422,23 +5424,23 @@ libpepc_restore_particles	treecode/lpepcsrc/module_libpepc_main.f90	/^    subrou
 libpepc_timber_tree	treecode/lpepcsrc/module_libpepc_main.f90	/^    subroutine libpepc_timber_tree(/;"	s	module:module_libpepc_main
 libpepc_traverse_tree	treecode/lpepcsrc/module_libpepc_main.f90	/^    subroutine libpepc_traverse_tree(/;"	s	module:module_libpepc_main
 libpepc_write_parameters	treecode/lpepcsrc/module_libpepc_main.f90	/^    subroutine libpepc_write_parameters(/;"	s	module:module_libpepc_main
-linear_array_t	treecode/openpa/openpa/test/test_barriers.c	/^} linear_array_t;$/;"	t	typeref:struct:__anon40	file:
+linear_array_t	treecode/openpa/openpa/test/test_barriers.c	/^} linear_array_t;$/;"	t	typeref:struct:__anon19	file:
 link	treecode/lpepcsrc/module_htable.f90	/^      integer*8                  :: link /;"	k	type:t_htable_bucket
-llsc_int_aba_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_int_aba_t;$/;"	t	typeref:struct:__anon34	file:
-llsc_int_stack_obj_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_int_stack_obj_t;$/;"	t	typeref:struct:__anon36	file:
-llsc_int_stack_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_int_stack_t;$/;"	t	typeref:struct:__anon37	file:
-llsc_ptr_aba_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_ptr_aba_t;$/;"	t	typeref:struct:__anon35	file:
-llsc_ptr_stack_obj_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_ptr_stack_obj_t;$/;"	t	typeref:struct:__anon38	file:
-llsc_ptr_stack_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_ptr_stack_t;$/;"	t	typeref:struct:__anon39	file:
+llsc_int_aba_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_int_aba_t;$/;"	t	typeref:struct:__anon40	file:
+llsc_int_stack_obj_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_int_stack_obj_t;$/;"	t	typeref:struct:__anon42	file:
+llsc_int_stack_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_int_stack_t;$/;"	t	typeref:struct:__anon43	file:
+llsc_ptr_aba_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_ptr_aba_t;$/;"	t	typeref:struct:__anon41	file:
+llsc_ptr_stack_obj_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_ptr_stack_obj_t;$/;"	t	typeref:struct:__anon44	file:
+llsc_ptr_stack_t	treecode/openpa/openpa/test/test_primitives.c	/^} llsc_ptr_stack_t;$/;"	t	typeref:struct:__anon45	file:
 load_lattice_coefficients	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        subroutine load_lattice_coefficients(/;"	s	module:module_fmm_framework
-loadstore_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} loadstore_int_t;$/;"	t	typeref:struct:__anon19	file:
-loadstore_ptr_t	treecode/openpa/openpa/test/test_primitives.c	/^} loadstore_ptr_t;$/;"	t	typeref:struct:__anon20	file:
+loadstore_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} loadstore_int_t;$/;"	t	typeref:struct:__anon25	file:
+loadstore_ptr_t	treecode/openpa/openpa/test/test_primitives.c	/^} loadstore_ptr_t;$/;"	t	typeref:struct:__anon26	file:
 local_bins_t	treecode/sl_pepc/src/include/sl_types.h	/^} local_bins_t;$/;"	t	typeref:struct:_local_bins_t
 local_lt_eq_counts	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t *local_lt_eq_counts;$/;"	m	struct:pepckeys__classification_info_t
 local_lt_eq_counts	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t *local_lt_eq_counts;$/;"	m	struct:pepcparts__classification_info_t
 local_lt_eq_counts	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t *local_lt_eq_counts;$/;"	m	struct:_classification_info_t
-local_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         local_val;      \/* Local int value for this thread *\/$/;"	m	struct:__anon32	file:
-local_val	treecode/openpa/openpa/test/test_primitives.c	/^    void        *local_val;     \/* Local ptr value for this thread *\/$/;"	m	struct:__anon33	file:
+local_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         local_val;      \/* Local int value for this thread *\/$/;"	m	struct:__anon38	file:
+local_val	treecode/openpa/openpa/test/test_primitives.c	/^    void        *local_val;     \/* Local ptr value for this thread *\/$/;"	m	struct:__anon39	file:
 localedir	treecode/openpa/openpa/Makefile	/^localedir = ${datarootdir}\/locale$/;"	m
 localedir	treecode/openpa/openpa/src/Makefile	/^localedir = ${datarootdir}\/locale$/;"	m
 localedir	treecode/openpa/openpa/test/Makefile	/^localedir = ${datarootdir}\/locale$/;"	m
@@ -5481,14 +5483,8 @@ mandir	treecode/openpa/openpa/test/Makefile	/^mandir = ${datarootdir}\/man$/;"	m
 masks	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t *masks;$/;"	m	struct:pepckeys__classification_info_t
 masks	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t *masks;$/;"	m	struct:pepcparts__classification_info_t
 masks	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t *masks;$/;"	m	struct:_classification_info_t
-master_thread	treecode/openpa/openpa/test/test_barriers.c	/^    int       master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon40	file:
-master_thread	treecode/openpa/openpa/test/test_barriers.c	/^    int       master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon41	file:
-master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon19	file:
-master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon20	file:
-master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon21	file:
-master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon22	file:
-master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon23	file:
-master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon24	file:
+master_thread	treecode/openpa/openpa/test/test_barriers.c	/^    int       master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon19	file:
+master_thread	treecode/openpa/openpa/test/test_barriers.c	/^    int       master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon20	file:
 master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon25	file:
 master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon26	file:
 master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon27	file:
@@ -5498,17 +5494,23 @@ master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         ma
 master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon31	file:
 master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon32	file:
 master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon33	file:
+master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon34	file:
+master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon35	file:
+master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon36	file:
 master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon37	file:
+master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon38	file:
 master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon39	file:
-max	treecode/sl_pepc/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon54
-max	treecode/sl_pepc/src/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon49
+master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon43	file:
+master_thread	treecode/openpa/openpa/test/test_primitives.c	/^    int         master_thread;  \/* Whether this is the master thread *\/$/;"	m	struct:__anon45	file:
+max	treecode/sl_pepc/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon52
+max	treecode/sl_pepc/src/include/sl_rti.h	/^  int max, cur, cur_max;$/;"	m	struct:__anon48
 max_count	treecode/sl_pepc/include/sl_pepckeys.h	/^  double min_count, max_count;$/;"	m	struct:pepckeys__partcond2_t
 max_count	treecode/sl_pepc/include/sl_pepcparts.h	/^  double min_count, max_count;$/;"	m	struct:pepcparts__partcond2_t
 max_count	treecode/sl_pepc/src/include/sl_types.h	/^  double min_count, max_count;$/;"	m	struct:_partcond2_t
 max_cpart	treecode/sl_pepc/include/sl_pepckeys.h	/^  double min_cpart, max_cpart;$/;"	m	struct:pepckeys__partcond2_t
 max_cpart	treecode/sl_pepc/include/sl_pepcparts.h	/^  double min_cpart, max_cpart;$/;"	m	struct:pepcparts__partcond2_t
 max_cpart	treecode/sl_pepc/src/include/sl_types.h	/^  double min_cpart, max_cpart;$/;"	m	struct:_partcond2_t
-max_groupno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *max_groupno;   \/* Maximum unique group number *\/$/;"	m	struct:__anon29	file:
+max_groupno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *max_groupno;   \/* Maximum unique group number *\/$/;"	m	struct:__anon35	file:
 max_header_size	utils/module_checkpoint.f90	/^      integer(KIND=MPI_OFFSET_KIND) :: max_header_size /;"	v	module:module_checkpoint
 max_nbinnings	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t nbinnings, max_nbinnings;$/;"	m	struct:pepckeys__local_bins_t
 max_nbinnings	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t nbinnings, max_nbinnings;$/;"	m	struct:pepcparts__local_bins_t
@@ -5536,7 +5538,7 @@ max_size	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t size, max
 max_size	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t size, max_size;$/;"	m	struct:pepcparts__packed_elements_t
 max_size	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t size, max_size;$/;"	m	struct:_elements_t
 max_size	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t size, max_size;$/;"	m	struct:_packed_elements_t
-max_threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *max_threadno;  \/* Maximum unique thread number *\/$/;"	m	struct:__anon27	file:
+max_threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *max_threadno;  \/* Maximum unique thread number *\/$/;"	m	struct:__anon33	file:
 max_weight	treecode/sl_pepc/include/sl_pepckeys.h	/^  double min_weight, max_weight;$/;"	m	struct:pepckeys__partcond2_t
 max_weight	treecode/sl_pepc/include/sl_pepcparts.h	/^  double min_weight, max_weight;$/;"	m	struct:pepcparts__partcond2_t
 max_weight	treecode/sl_pepc/src/include/sl_types.h	/^  double min_weight, max_weight;$/;"	m	struct:_partcond2_t
@@ -5664,7 +5666,7 @@ mod	treecode/sl_pepc/Makefile	/^mod:=$(patsubst %\/,%,$(mod))$/;"	m
 mod_list	treecode/sl_pepc/Makefile	/^mod_list:=$(mod) $(mod_list)$/;"	m
 mod_list	treecode/sl_pepc/Makefile	/^mod_list:=$(wordlist 2,$(words $(mod_list)),$(mod_list))$/;"	m
 mod_list	treecode/sl_pepc/Makefile	/^mod_list:=$/;"	m
-mode	treecode/openpa/openpa/test/test_queue.c	/^    threaded_mode_t mode;               \/* Test mode (empty or full) *\/$/;"	m	struct:__anon45	file:
+mode	treecode/openpa/openpa/test/test_queue.c	/^    threaded_mode_t mode;               \/* Test mode (empty or full) *\/$/;"	m	struct:__anon24	file:
 module_atomic_ops	treecode/openpa/module_atomic_ops.f90	/^module module_atomic_ops$/;"	m
 module_base64	utils/module_base64.f90	/^module module_base64$/;"	m
 module_box	treecode/lpepcsrc/module_box.f90	/^module module_box$/;"	m
@@ -5707,10 +5709,10 @@ module_walk	treecode/lpepcsrc/module_walk_simple.f90	/^module module_walk$/;"	m
 module_walk	treecode/lpepcsrc/module_walk_smpss.f90	/^module module_walk$/;"	m
 module_walk_pthreads_commutils	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^module module_walk_pthreads_commutils$/;"	m
 module_walk_smpss_utils	treecode/lpepcsrc/module_walk_smpss_utils.f90	/^module module_walk_smpss_utils$/;"	m
-moved	treecode/sl_pepc/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon52
-moved	treecode/sl_pepc/src/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon47
-movek	treecode/sl_pepc/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon52
-movek	treecode/sl_pepc/src/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon47
+moved	treecode/sl_pepc/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon50
+moved	treecode/sl_pepc/src/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon46
+movek	treecode/sl_pepc/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon50
+movek	treecode/sl_pepc/src/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon46
 mpi_allgather_partconds	treecode/sl_pepc/src/core_mpi/mpi_select_common.c	/^slint_t mpi_allgather_partconds(partcond_t *pcond_in, partcond_t *pconds_out, int size, int rank, MPI_Comm comm) \/* sl_proto, sl_func mpi_allgather_partconds *\/$/;"	f
 mpi_allgather_partconds	treecode/sl_pepc/src/include/sl_rename.h	378;"	d
 mpi_bcast_partconds	treecode/sl_pepc/src/core_mpi/mpi_select_common.c	/^slint_t mpi_bcast_partconds(slint_t npconds, partcond_t *pconds, int root, int size, int rank, MPI_Comm comm) \/* sl_proto, sl_func mpi_bcast_partconds *\/$/;"	f
@@ -5938,10 +5940,10 @@ myrank	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      integer
 n	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t n;$/;"	m	struct:pepckeys__splitter_t
 n	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t n;$/;"	m	struct:pepcparts__splitter_t
 n	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t n;$/;"	m	struct:_splitter_t
-n1	treecode/openpa/openpa/test/test_primitives.c	/^    int         n1;             \/* # of times faa returned 1 *\/$/;"	m	struct:__anon24	file:
+n1	treecode/openpa/openpa/test/test_primitives.c	/^    int         n1;             \/* # of times faa returned 1 *\/$/;"	m	struct:__anon30	file:
 n_ranks	frontends/pepc-essential/module_helper.f90	/^  integer :: my_rank, n_ranks$/;"	v	module:helper
-nalloc	treecode/sl_pepc/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon54
-nalloc	treecode/sl_pepc/src/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon49
+nalloc	treecode/sl_pepc/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon52
+nalloc	treecode/sl_pepc/src/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon48
 nbinnings	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t nbinnings, max_nbinnings;$/;"	m	struct:pepckeys__local_bins_t
 nbinnings	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t nbinnings, max_nbinnings;$/;"	m	struct:pepcparts__local_bins_t
 nbinnings	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t nbinnings, max_nbinnings;$/;"	m	struct:_local_bins_t
@@ -5966,31 +5968,31 @@ nelements	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t nelements;
 nelements	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t nelements;$/;"	m	struct:pepcparts__local_bins_t
 nelements	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t nelements;$/;"	m	struct:_local_bins_t
 nentries	treecode/lpepcsrc/module_htable.f90	/^      integer*8                          :: nentries /;"	k	type:t_htable
-nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon19	file:
-nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon20	file:
-nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon24	file:
 nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon25	file:
+nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon26	file:
 nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon30	file:
 nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon31	file:
+nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon36	file:
 nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon37	file:
-nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon39	file:
+nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon43	file:
+nerrors	treecode/openpa/openpa/test/test_primitives.c	/^    int         nerrors;        \/* Number of errors *\/$/;"	m	struct:__anon45	file:
 next	treecode/openpa/openpa/src/opa_queue.h	/^    OPA_Shm_rel_addr_t next; \/* holds the offset pointer, not the abs ptr *\/$/;"	m	struct:OPA_Queue_element_hdr_t
-next	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   next;           \/* Index of next object in stack *\/$/;"	m	struct:__anon36	file:
-next	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   next;           \/* Next object in stack *\/$/;"	m	struct:__anon38	file:
+next	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   next;           \/* Index of next object in stack *\/$/;"	m	struct:__anon42	file:
+next	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   next;           \/* Next object in stack *\/$/;"	m	struct:__anon44	file:
 next_sibling	treecode/lpepcsrc/module_pepc_types.f90	/^        integer(kind_node) :: next_sibling$/;"	k	type:t_tree_node
 next_unassigned_particle	treecode/lpepcsrc/module_walk_pthreads.f90	/^  type(t_atomic_int), pointer :: next_unassigned_particle$/;"	v	module:module_walk
 next_unassigned_particle	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    type(t_atomic_int), pointer, public :: next_unassigned_particle$/;"	v	module:module_walk_pthreads_commutils
 nfetches	treecode/lpepcsrc/module_walk_smpss_utils.f90	/^  integer :: nfetches$/;"	v	module:module_walk_smpss_utils
 nfictcharge	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      integer :: nfictcharge /;"	v	module:module_fmm_framework
-nfree	treecode/sl_pepc/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon54
-nfree	treecode/sl_pepc/src/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon49
-ngroups	treecode/openpa/openpa/test/test_primitives.c	/^    int         ngroups;        \/* Number of groups *\/$/;"	m	struct:__anon28	file:
+nfree	treecode/sl_pepc/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon52
+nfree	treecode/sl_pepc/src/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon48
+ngroups	treecode/openpa/openpa/test/test_primitives.c	/^    int         ngroups;        \/* Number of groups *\/$/;"	m	struct:__anon34	file:
 nine	interaction_specific/coulomb_gpu/module_coulomb_kernels.f90	/^    real(kfp), parameter :: nine /;"	v	module:module_coulomb_kernels
 nintmax	treecode/lpepcsrc/module_tree.f90	/^      integer*8 :: nintmax /;"	k	type:t_tree
 nleaf	treecode/lpepcsrc/module_tree.f90	/^      integer*8 :: nleaf /;"	k	type:t_tree
 nleaf_me	treecode/lpepcsrc/module_tree.f90	/^      integer*8 :: nleaf_me /;"	k	type:t_tree
 nlev	treecode/lpepcsrc/treevars.f90	/^  integer :: nlev,/;"	v	module:treevars
-nm1	treecode/openpa/openpa/test/test_primitives.c	/^    int         nm1;            \/* # of times faa returned -1 *\/$/;"	m	struct:__anon25	file:
+nm1	treecode/openpa/openpa/test/test_primitives.c	/^    int         nm1;            \/* # of times faa returned -1 *\/$/;"	m	struct:__anon31	file:
 nmm	treecode/sl_pepc/src/core_mpi/mpi_sort_special.c	/^  slint_t nmm;$/;"	m	struct:_tproc_sort_back_data	file:
 nmove_auto_loop_border_a4o	treecode/sl_pepc/src/include/sl_tune_intern.h	51;"	d
 nmove_auto_loop_border_o4o	treecode/sl_pepc/src/include/sl_tune_intern.h	47;"	d
@@ -6029,22 +6031,22 @@ nprops_tree_node_interaction_data	interaction_specific/coulomb_gpu/module_intera
 nprops_tree_node_interaction_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^      integer, private, parameter :: nprops_tree_node_interaction_data /;"	v	module:module_interaction_specific_types
 nprops_tree_node_interaction_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^      integer, private, parameter :: nprops_tree_node_interaction_data /;"	v	module:module_interaction_specific_types
 nprops_tree_node_package	treecode/lpepcsrc/module_pepc_types.f90	/^      integer, private, parameter :: nprops_tree_node_package /;"	v	module:module_pepc_types
-npushers	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *npushers;      \/* Number of pusher threads running *\/$/;"	m	struct:__anon37	file:
-npushers	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *npushers;      \/* Number of pusher threads running *\/$/;"	m	struct:__anon39	file:
-nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* # of times cas succeeded *\/$/;"	m	struct:__anon26	file:
-nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* # of times cas succeeded *\/$/;"	m	struct:__anon27	file:
-nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* # of times cas succeeded *\/$/;"	m	struct:__anon28	file:
-nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* # of times cas succeeded *\/$/;"	m	struct:__anon29	file:
-nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* Number of successful pops or pushes *\/$/;"	m	struct:__anon37	file:
-nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* Number of successful pops or pushes *\/$/;"	m	struct:__anon39	file:
+npushers	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *npushers;      \/* Number of pusher threads running *\/$/;"	m	struct:__anon43	file:
+npushers	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *npushers;      \/* Number of pusher threads running *\/$/;"	m	struct:__anon45	file:
+nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* # of times cas succeeded *\/$/;"	m	struct:__anon32	file:
+nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* # of times cas succeeded *\/$/;"	m	struct:__anon33	file:
+nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* # of times cas succeeded *\/$/;"	m	struct:__anon34	file:
+nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* # of times cas succeeded *\/$/;"	m	struct:__anon35	file:
+nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* Number of successful pops or pushes *\/$/;"	m	struct:__anon43	file:
+nsuccess	treecode/openpa/openpa/test/test_primitives.c	/^    int         nsuccess;       \/* Number of successful pops or pushes *\/$/;"	m	struct:__anon45	file:
 nt	frontends/pepc-essential/module_helper.f90	/^  inte/;"	v	module:helper
-nthreads	treecode/openpa/openpa/test/test_primitives.c	/^    int         nthreads;       \/* Number of threads *\/$/;"	m	struct:__anon30	file:
-nthreads	treecode/openpa/openpa/test/test_primitives.c	/^    int         nthreads;       \/* Number of threads *\/$/;"	m	struct:__anon31	file:
-ntrue	treecode/openpa/openpa/test/test_primitives.c	/^    unsigned    ntrue;          \/* # of times decr_and_test returned true *\/$/;"	m	struct:__anon23	file:
+nthreads	treecode/openpa/openpa/test/test_primitives.c	/^    int         nthreads;       \/* Number of threads *\/$/;"	m	struct:__anon36	file:
+nthreads	treecode/openpa/openpa/test/test_primitives.c	/^    int         nthreads;       \/* Number of threads *\/$/;"	m	struct:__anon37	file:
+ntrue	treecode/openpa/openpa/test/test_primitives.c	/^    unsigned    ntrue;          \/* # of times decr_and_test returned true *\/$/;"	m	struct:__anon29	file:
 ntwig	treecode/lpepcsrc/module_tree.f90	/^      integer*8 :: ntwig /;"	k	type:t_tree
 ntwig_me	treecode/lpepcsrc/module_tree.f90	/^      integer*8 :: ntwig_me /;"	k	type:t_tree
-num	treecode/sl_pepc/include/sl_rti.h	/^  int num;$/;"	m	struct:__anon53
-num	treecode/sl_pepc/src/include/sl_rti.h	/^  int num;$/;"	m	struct:__anon48
+num	treecode/sl_pepc/include/sl_rti.h	/^  int num;$/;"	m	struct:__anon51
+num	treecode/sl_pepc/src/include/sl_rti.h	/^  int num;$/;"	m	struct:__anon47
 num_interaction_leaves	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    integer*8 :: num_interaction_leaves$/;"	v	module:module_walk
 num_nonshared_threads	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer :: num_nonshared_threads,/;"	v	module:module_walk
 num_nonshared_threads	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    integer, public :: num_nonshared_threads,/;"	v	module:module_walk_pthreads_commutils
@@ -6060,19 +6062,19 @@ num_threads	treecode/openpa/openpa/test/opa_test.h	/^static const unsigned num_t
 num_walk_threads	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer, public :: num_walk_threads /;"	v	module:module_walk
 num_walk_threads	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    integer, public :: num_walk_threads /;"	v	module:module_walk
 numtimings	treecode/lpepcsrc/module_timings.f90	/^    integer, private, parameter :: numtimings /;"	v	module:module_timings
-nunchanged_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         nunchanged_val; \/* Number of times change_val was false *\/$/;"	m	struct:__anon34	file:
-nunchanged_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         nunchanged_val; \/* Number of times change_val was false *\/$/;"	m	struct:__anon35	file:
-obj	treecode/openpa/openpa/test/test_primitives.c	/^    int         obj;            \/* Object for currect pusher thread (index into objs) *\/$/;"	m	struct:__anon37	file:
-obj	treecode/openpa/openpa/test/test_primitives.c	/^    llsc_ptr_stack_obj_t *obj;  \/* Object for currect pusher thread *\/$/;"	m	struct:__anon39	file:
-objs	treecode/openpa/openpa/test/test_primitives.c	/^    llsc_int_stack_obj_t **objs; \/* Array of pointers to objects *\/$/;"	m	struct:__anon37	file:
+nunchanged_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         nunchanged_val; \/* Number of times change_val was false *\/$/;"	m	struct:__anon40	file:
+nunchanged_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         nunchanged_val; \/* Number of times change_val was false *\/$/;"	m	struct:__anon41	file:
+obj	treecode/openpa/openpa/test/test_primitives.c	/^    int         obj;            \/* Object for currect pusher thread (index into objs) *\/$/;"	m	struct:__anon43	file:
+obj	treecode/openpa/openpa/test/test_primitives.c	/^    llsc_ptr_stack_obj_t *obj;  \/* Object for currect pusher thread *\/$/;"	m	struct:__anon45	file:
+objs	treecode/openpa/openpa/test/test_primitives.c	/^    llsc_int_stack_obj_t **objs; \/* Array of pointers to objects *\/$/;"	m	struct:__anon43	file:
 offset	treecode/openpa/openpa/src/opa_queue.h	/^    OPA_ptr_t offset;$/;"	m	struct:OPA_Shm_rel_addr_t
 oldincludedir	treecode/openpa/openpa/Makefile	/^oldincludedir = \/usr\/include$/;"	m
 oldincludedir	treecode/openpa/openpa/src/Makefile	/^oldincludedir = \/usr\/include$/;"	m
 oldincludedir	treecode/openpa/openpa/test/Makefile	/^oldincludedir = \/usr\/include$/;"	m
 omega	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        complex(kfp) function omega(/;"	f	module:module_fmm_framework
 omega_tilde	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      complex(kfp) :: omega_tilde(/;"	v	module:module_fmm_framework
-on_stack	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   on_stack;       \/* Whether this object is on the stack *\/$/;"	m	struct:__anon36	file:
-on_stack	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   on_stack;       \/* Whether this object is on the stack *\/$/;"	m	struct:__anon38	file:
+on_stack	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   on_stack;       \/* Whether this object is on the stack *\/$/;"	m	struct:__anon42	file:
+on_stack	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   on_stack;       \/* Whether this object is on the stack *\/$/;"	m	struct:__anon44	file:
 one	interaction_specific/coulomb_gpu/module_coulomb_kernels.f90	/^    real(kfp), parameter :: one /;"	v	module:module_coulomb_kernels
 one	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      real(kfp), parameter :: one /;"	v	module:module_fmm_framework
 or2	treecode/sl_pepc/Makefile	/^or2 = $(if $(1),$(1),$(2))$/;"	m
@@ -6085,11 +6087,11 @@ p	treecode/openpa/module_atomic_ops.f90	/^    type/;"	k	type:t_atomic_int
 packed_element_t	treecode/sl_pepc/src/include/sl_types.h	/^} packed_element_t;$/;"	t	typeref:struct:_packed_element_t
 packed_elements_t	treecode/sl_pepc/src/include/sl_types.h	/^} packed_elements_t;$/;"	t	typeref:struct:_packed_elements_t
 padding1	treecode/openpa/openpa/src/opa_queue.h	/^    char padding1[OPA_QUEUE_CACHELINE_PADDING-2*sizeof(OPA_Shm_rel_addr_t)];$/;"	m	struct:OPA_Queue_info_t
-padding1	treecode/openpa/openpa/test/test_primitives.c	/^    char        padding1[OPA_TEST_CACHELINE_PADDING];$/;"	m	struct:__anon34	file:
-padding1	treecode/openpa/openpa/test/test_primitives.c	/^    char        padding1[OPA_TEST_CACHELINE_PADDING];$/;"	m	struct:__anon35	file:
+padding1	treecode/openpa/openpa/test/test_primitives.c	/^    char        padding1[OPA_TEST_CACHELINE_PADDING];$/;"	m	struct:__anon40	file:
+padding1	treecode/openpa/openpa/test/test_primitives.c	/^    char        padding1[OPA_TEST_CACHELINE_PADDING];$/;"	m	struct:__anon41	file:
 padding2	treecode/openpa/openpa/src/opa_queue.h	/^    char padding2[OPA_QUEUE_CACHELINE_PADDING-sizeof(OPA_Shm_rel_addr_t)];$/;"	m	struct:OPA_Queue_info_t
-padding2	treecode/openpa/openpa/test/test_primitives.c	/^    char        padding2[OPA_TEST_CACHELINE_PADDING - sizeof(OPA_int_t)];$/;"	m	struct:__anon34	file:
-padding2	treecode/openpa/openpa/test/test_primitives.c	/^    char        padding2[OPA_TEST_CACHELINE_PADDING - sizeof(OPA_ptr_t)];$/;"	m	struct:__anon35	file:
+padding2	treecode/openpa/openpa/test/test_primitives.c	/^    char        padding2[OPA_TEST_CACHELINE_PADDING - sizeof(OPA_int_t)];$/;"	m	struct:__anon40	file:
+padding2	treecode/openpa/openpa/test/test_primitives.c	/^    char        padding2[OPA_TEST_CACHELINE_PADDING - sizeof(OPA_ptr_t)];$/;"	m	struct:__anon41	file:
 papi_check	utils/benchmarking.f90	/^  integer                      :: papi_check,/;"	v	module:benchmarking
 papi_cnt	utils/benchmarking.f90	/^  integer                      :: papi_check, papi_cnt$/;"	v	module:benchmarking
 papi_events	utils/benchmarking.f90	/^  integer                      :: papi_events(/;"	v	module:benchmarking
@@ -6123,12 +6125,12 @@ partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQV
 partner_l	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_iact_partner_l)/;"	k	type:t_particle_thread
 parttype_p	treecode/sl_pepc/src/include/sl_types.h	/^} parttype_t, *parttype_p;$/;"	t	typeref:struct:_parttype_t
 parttype_t	treecode/sl_pepc/src/include/sl_types.h	/^} parttype_t, *parttype_p;$/;"	t	typeref:struct:_parttype_t
-pass_point_0	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_0;   \/* Whether we have passed point 0 *\/$/;"	m	struct:__anon34	file:
-pass_point_0	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_0;   \/* Whether we have passed point 0 *\/$/;"	m	struct:__anon35	file:
-pass_point_1	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_1;   \/* Whether we have passed point 1 *\/$/;"	m	struct:__anon34	file:
-pass_point_1	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_1;   \/* Whether we have passed point 1 *\/$/;"	m	struct:__anon35	file:
-pass_point_2	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_2;   \/* Whether we have passed point 2 *\/$/;"	m	struct:__anon34	file:
-pass_point_2	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_2;   \/* Whether we have passed point 2 *\/$/;"	m	struct:__anon35	file:
+pass_point_0	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_0;   \/* Whether we have passed point 0 *\/$/;"	m	struct:__anon40	file:
+pass_point_0	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_0;   \/* Whether we have passed point 0 *\/$/;"	m	struct:__anon41	file:
+pass_point_1	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_1;   \/* Whether we have passed point 1 *\/$/;"	m	struct:__anon40	file:
+pass_point_1	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_1;   \/* Whether we have passed point 1 *\/$/;"	m	struct:__anon41	file:
+pass_point_2	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_2;   \/* Whether we have passed point 2 *\/$/;"	m	struct:__anon40	file:
+pass_point_2	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_2;   \/* Whether we have passed point 2 *\/$/;"	m	struct:__anon41	file:
 pcm	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t pcm;$/;"	m	struct:pepckeys__partcond_intern_t
 pcm	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t pcm;$/;"	m	struct:pepckeys__partcond_t
 pcm	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t pcm;$/;"	m	struct:pepcparts__partcond_intern_t
@@ -6831,7 +6833,7 @@ q	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^
 q	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: q$/;"	k	type:t_particle_data
 q	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^         real*8 :: q /;"	k	type:t_particle_data
 q	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^         real*8 :: q /;"	k	type:t_particle_data
-qhead	treecode/openpa/openpa/test/test_queue.c	/^    OPA_Queue_info_t *qhead;            \/* Head for shared queue *\/$/;"	m	struct:__anon45	file:
+qhead	treecode/openpa/openpa/test/test_queue.c	/^    OPA_Queue_info_t *qhead;            \/* Head for shared queue *\/$/;"	m	struct:__anon24	file:
 qs_halfrec_i	treecode/sl_pepc/src/core/sort_quick.c	/^slint qs_halfrec_i(elements_t *s, slint l, slint h, elements_t *xs) \/* sl_func qs_halfrec_i *\/$/;"	f
 qs_halfrec_i	treecode/sl_pepc/src/include/sl_rename.h	217;"	d
 qs_halfrec_p	treecode/sl_pepc/src/core/sort_quick.c	/^slint qs_halfrec_p(elements_t xl, elements_t xh, elements_t *xs) \/* sl_func qs_halfrec_p *\/$/;"	f
@@ -6846,17 +6848,17 @@ quad_trace	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      rea
 quan	treecode/sl_pepc/src/core/merge2_tridgell.c	/^  slint rank, size, quan;$/;"	m	struct:_block	file:
 queued	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued /;"	k	type:t_particle_thread
 queued_l	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued_l /;"	k	type:t_particle_thread
-radix	treecode/sl_pepc/include/sl_pepckeys.h	/^  } radix;$/;"	m	union:pepckeys__binning_data_t	typeref:struct:pepckeys__binning_data_t::__anon51
-radix	treecode/sl_pepc/include/sl_pepcparts.h	/^  } radix;$/;"	m	union:pepcparts__binning_data_t	typeref:struct:pepcparts__binning_data_t::__anon50
-radix	treecode/sl_pepc/src/include/sl_types.h	/^  } radix;$/;"	m	union:_binning_data_t	typeref:struct:_binning_data_t::__anon46
+radix	treecode/sl_pepc/include/sl_pepckeys.h	/^  } radix;$/;"	m	union:pepckeys__binning_data_t	typeref:struct:pepckeys__binning_data_t::__anon54
+radix	treecode/sl_pepc/include/sl_pepcparts.h	/^  } radix;$/;"	m	union:pepcparts__binning_data_t	typeref:struct:pepcparts__binning_data_t::__anon53
+radix	treecode/sl_pepc/src/include/sl_types.h	/^  } radix;$/;"	m	union:_binning_data_t	typeref:struct:_binning_data_t::__anon49
 random	frontends/pepc-essential/module_helper.f90	/^  subroutine random(/;"	s	module:helper
 random_gauss	frontends/pepc-essential/module_helper.f90	/^  subroutine random_gauss(/;"	s	module:helper
 rank	treecode/lpepcsrc/module_comm_env.f90	/^    integer :: rank /;"	k	type:t_comm_env
 rank	treecode/sl_pepc/src/core/merge2_tridgell.c	/^  slint rank, size, quan;$/;"	m	struct:_block	file:
 rano	utils/module_velocity_setup.f90	/^          real*8 function rano(/;"	f	module:module_velocity_setup
-rcurrent	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rcurrent;$/;"	m	struct:pepckeys__binning_data_t::__anon51
-rcurrent	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rcurrent;$/;"	m	struct:pepcparts__binning_data_t::__anon50
-rcurrent	treecode/sl_pepc/src/include/sl_types.h	/^    slint_t rcurrent;$/;"	m	struct:_binning_data_t::__anon46
+rcurrent	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rcurrent;$/;"	m	struct:pepckeys__binning_data_t::__anon54
+rcurrent	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rcurrent;$/;"	m	struct:pepcparts__binning_data_t::__anon53
+rcurrent	treecode/sl_pepc/src/include/sl_types.h	/^    slint_t rcurrent;$/;"	m	struct:_binning_data_t::__anon49
 read_particles_mpiio	utils/module_checkpoint.f90	/^          subroutine read_particles_mpiio(/;"	s	module:module_checkpoint
 read_particles_mpiio_from_filename	utils/module_checkpoint.f90	/^          subroutine read_particles_mpiio_from_filename(/;"	s	module:module_checkpoint
 rec	treecode/sl_pepc/src/core/mergep_2way.c	/^static inline void rec(elements_t *s, elements_t *sx, slint_t p, int offset, int *displs, merge2x_f m2x)$/;"	f	file:
@@ -6881,12 +6883,12 @@ results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQV
 results	treecode/lpepcsrc/module_pepc_types.f90	/^         type(t_particle_results)/;"	k	type:t_particle
 results_add	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^      subroutine results_add(/;"	s	module:module_interaction_specific
 retval	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^      subroutine retval(/;"	s	module:module_walk_pthreads_commutils
-rhigh	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepckeys__binning_data_t::__anon51
-rhigh	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepcparts__binning_data_t::__anon50
-rhigh	treecode/sl_pepc/src/include/sl_types.h	/^    slint_t rhigh, rlow, rwidth;$/;"	m	struct:_binning_data_t::__anon46
-rlow	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepckeys__binning_data_t::__anon51
-rlow	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepcparts__binning_data_t::__anon50
-rlow	treecode/sl_pepc/src/include/sl_types.h	/^    slint_t rhigh, rlow, rwidth;$/;"	m	struct:_binning_data_t::__anon46
+rhigh	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepckeys__binning_data_t::__anon54
+rhigh	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepcparts__binning_data_t::__anon53
+rhigh	treecode/sl_pepc/src/include/sl_types.h	/^    slint_t rhigh, rlow, rwidth;$/;"	m	struct:_binning_data_t::__anon49
+rlow	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepckeys__binning_data_t::__anon54
+rlow	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepcparts__binning_data_t::__anon53
+rlow	treecode/sl_pepc/src/include/sl_types.h	/^    slint_t rhigh, rlow, rwidth;$/;"	m	struct:_binning_data_t::__anon49
 root	frontends/pepc-essential/module_helper.f90	/^  logical :: root$/;"	v	module:helper
 rs_iter	treecode/sl_pepc/src/core/sort_radix_iter.c	/^slint rs_iter(elements_t *s, elements_t *sx, slint presorted, slint rhigh, slint rlow, slint rwidth) \/* sl_func rs_iter *\/$/;"	f
 rs_iter	treecode/sl_pepc/src/include/sl_rename.h	251;"	d
@@ -6922,8 +6924,8 @@ rti_cclear_movek	treecode/sl_pepc/src/include/sl_rti_intern.h	28;"	d
 rti_cclear_movek	treecode/sl_pepc/src/include/sl_rti_intern.h	47;"	d
 rti_ccmp	treecode/sl_pepc/src/include/sl_rti_intern.h	31;"	d
 rti_ccmp	treecode/sl_pepc/src/include/sl_rti_intern.h	50;"	d
-rti_cmc	treecode/sl_pepc/include/sl_rti.h	/^} rti_cmc;$/;"	t	typeref:struct:__anon52
-rti_cmc	treecode/sl_pepc/src/include/sl_rti.h	/^} rti_cmc;$/;"	t	typeref:struct:__anon47
+rti_cmc	treecode/sl_pepc/include/sl_rti.h	/^} rti_cmc;$/;"	t	typeref:struct:__anon50
+rti_cmc	treecode/sl_pepc/src/include/sl_rti.h	/^} rti_cmc;$/;"	t	typeref:struct:__anon46
 rti_cmoved	treecode/sl_pepc/src/include/sl_rti_intern.h	33;"	d
 rti_cmoved	treecode/sl_pepc/src/include/sl_rti_intern.h	52;"	d
 rti_cmovek	treecode/sl_pepc/src/include/sl_rti_intern.h	32;"	d
@@ -6932,8 +6934,8 @@ rti_env	treecode/sl_pepc/src/core/sl_common.c	/^rti rti_env;  \/* sl_global, sl_
 rti_env	treecode/sl_pepc/src/include/sl_rename.h	163;"	d
 rti_malloc	treecode/sl_pepc/src/include/sl_rti_intern.h	101;"	d
 rti_malloc	treecode/sl_pepc/src/include/sl_rti_intern.h	89;"	d
-rti_mem	treecode/sl_pepc/include/sl_rti.h	/^} rti_mem;$/;"	t	typeref:struct:__anon54
-rti_mem	treecode/sl_pepc/src/include/sl_rti.h	/^} rti_mem;$/;"	t	typeref:struct:__anon49
+rti_mem	treecode/sl_pepc/include/sl_rti.h	/^} rti_mem;$/;"	t	typeref:struct:__anon52
+rti_mem	treecode/sl_pepc/src/include/sl_rti.h	/^} rti_mem;$/;"	t	typeref:struct:__anon48
 rti_mfree	treecode/sl_pepc/src/include/sl_rti_intern.h	102;"	d
 rti_mfree	treecode/sl_pepc/src/include/sl_rti_intern.h	90;"	d
 rti_minc_alloc	treecode/sl_pepc/src/include/sl_rti_intern.h	87;"	d
@@ -7188,8 +7190,8 @@ rti_tid_sort_radix_iter	treecode/sl_pepc/include/sl_rti.h	/^  rti_tid_sort_radix
 rti_tid_sort_radix_iter	treecode/sl_pepc/src/include/sl_rti.h	/^  rti_tid_sort_radix_iter,$/;"	e	enum:rti_tid
 rti_tids	treecode/sl_pepc/include/sl_rti.h	/^  rti_tids$/;"	e	enum:rti_tid
 rti_tids	treecode/sl_pepc/src/include/sl_rti.h	/^  rti_tids$/;"	e	enum:rti_tid
-rti_tim	treecode/sl_pepc/include/sl_rti.h	/^} rti_tim[rti_tids];$/;"	t	typeref:struct:__anon53
-rti_tim	treecode/sl_pepc/src/include/sl_rti.h	/^} rti_tim[rti_tids];$/;"	t	typeref:struct:__anon48
+rti_tim	treecode/sl_pepc/include/sl_rti.h	/^} rti_tim[rti_tids];$/;"	t	typeref:struct:__anon51
+rti_tim	treecode/sl_pepc/src/include/sl_rti.h	/^} rti_tim[rti_tids];$/;"	t	typeref:struct:__anon47
 rti_tlast	treecode/sl_pepc/src/include/sl_rti_intern.h	68;"	d
 rti_tlast	treecode/sl_pepc/src/include/sl_rti_intern.h	78;"	d
 rti_tnum	treecode/sl_pepc/src/include/sl_rti_intern.h	70;"	d
@@ -7204,9 +7206,9 @@ run_communication_loop	treecode/lpepcsrc/module_tree_communicator.f90	/^  functi
 run_communication_loop	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^      subroutine run_communication_loop(/;"	s	module:module_walk_pthreads_commutils
 run_communication_loop_inner	treecode/lpepcsrc/module_tree_communicator.f90	/^  subroutine run_communication_loop_inner(/;"	s	module:module_tree_communicator
 run_communication_loop_inner	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    subroutine run_communication_loop_inner(/;"	s	module:module_walk_pthreads_commutils
-rwidth	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepckeys__binning_data_t::__anon51
-rwidth	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepcparts__binning_data_t::__anon50
-rwidth	treecode/sl_pepc/src/include/sl_types.h	/^    slint_t rhigh, rlow, rwidth;$/;"	m	struct:_binning_data_t::__anon46
+rwidth	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepckeys__binning_data_t::__anon54
+rwidth	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepcparts__binning_data_t::__anon53
+rwidth	treecode/sl_pepc/src/include/sl_types.h	/^    slint_t rhigh, rlow, rwidth;$/;"	m	struct:_binning_data_t::__anon49
 rwlocks_init	treecode/pthreads/pthreads_c.c	/^int rwlocks_init(int numlocks)$/;"	f
 rwlocks_rdlock	treecode/pthreads/pthreads_c.c	/^int rwlocks_rdlock(int id)$/;"	f
 rwlocks_tryrdlock	treecode/pthreads/pthreads_c.c	/^int rwlocks_tryrdlock(int id)$/;"	f
@@ -7225,7 +7227,7 @@ sanity_DEPENDENCIES	treecode/openpa/openpa/test/Makefile	/^sanity_DEPENDENCIES =
 sanity_LDADD	treecode/openpa/openpa/test/Makefile	/^sanity_LDADD = $(LDADD)$/;"	m
 sanity_OBJECTS	treecode/openpa/openpa/test/Makefile	/^sanity_OBJECTS = $(am_sanity_OBJECTS)$/;"	m
 sanity_SOURCES	treecode/openpa/openpa/test/Makefile	/^sanity_SOURCES = sanity.c$/;"	m
-sanity_t	treecode/openpa/openpa/test/test_queue.c	/^} sanity_t;$/;"	t	typeref:struct:__anon42	file:
+sanity_t	treecode/openpa/openpa/test/test_queue.c	/^} sanity_t;$/;"	t	typeref:struct:__anon21	file:
 sbindir	treecode/openpa/openpa/Makefile	/^sbindir = ${exec_prefix}\/sbin$/;"	m
 sbindir	treecode/openpa/openpa/src/Makefile	/^sbindir = ${exec_prefix}\/sbin$/;"	m
 sbindir	treecode/openpa/openpa/test/Makefile	/^sbindir = ${exec_prefix}\/sbin$/;"	m
@@ -7233,31 +7235,31 @@ scramble_v	utils/module_velocity_setup.f90	/^        subroutine scramble_v(/;"	s
 send_data	treecode/lpepcsrc/module_tree_communicator.f90	/^  subroutine send_data(/;"	s	module:module_tree_communicator
 send_request	treecode/lpepcsrc/module_tree_communicator.f90	/^    function send_request(/;"	f	subroutine:send_requests
 send_requests	treecode/lpepcsrc/module_tree_communicator.f90	/^  subroutine send_requests(/;"	s	module:module_tree_communicator
-sequenceno	treecode/openpa/openpa/test/test_queue.c	/^    int         sequenceno;             \/* Unique sequence number within thread *\/$/;"	m	struct:__anon43	file:
+sequenceno	treecode/openpa/openpa/test/test_queue.c	/^    int         sequenceno;             \/* Unique sequence number within thread *\/$/;"	m	struct:__anon22	file:
 set_base_from	treecode/openpa/openpa/confdb/depcomp	/^set_base_from ()$/;"	f
 set_dir_from	treecode/openpa/openpa/confdb/depcomp	/^set_dir_from ()$/;"	f
 set_parameter	frontends/pepc-essential/module_helper.f90	/^  subroutine set_parameter(/;"	s	module:helper
 setup_defer_list	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine setup_defer_list(/;"	s	function:walk_worker_thread
 setup_defer_list	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^      subroutine setup_defer_list(/;"	s	function:walk_worker_thread
 shadow_head	treecode/openpa/openpa/src/opa_queue.h	/^    OPA_Shm_rel_addr_t  shadow_head; \/* holds the offset pointer, not the abs ptr *\/$/;"	m	struct:OPA_Queue_info_t
-shared_array	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *shared_array;$/;"	m	struct:__anon40	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being added to by all threads *\/$/;"	m	struct:__anon21	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being added to by all threads *\/$/;"	m	struct:__anon24	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being added to by all threads *\/$/;"	m	struct:__anon25	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being decr and tested by all threads *\/$/;"	m	struct:__anon23	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being manipulated by all threads *\/$/;"	m	struct:__anon22	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being manipulated by all threads *\/$/;"	m	struct:__anon26	file:
+shared_array	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *shared_array;$/;"	m	struct:__anon19	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being added to by all threads *\/$/;"	m	struct:__anon27	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being added to by all threads *\/$/;"	m	struct:__anon30	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being added to by all threads *\/$/;"	m	struct:__anon31	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being decr and tested by all threads *\/$/;"	m	struct:__anon29	file:
 shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being manipulated by all threads *\/$/;"	m	struct:__anon28	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being manipulated by all threads *\/$/;"	m	struct:__anon30	file:
 shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being manipulated by all threads *\/$/;"	m	struct:__anon32	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being read\/written by all threads *\/$/;"	m	struct:__anon19	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   shared_val;     \/* Shared value being manipulated by both threads *\/$/;"	m	struct:__anon34	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared int being read\/written by all threads *\/$/;"	m	struct:__anon20	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared ptr being manipulated by all threads *\/$/;"	m	struct:__anon27	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared ptr being manipulated by all threads *\/$/;"	m	struct:__anon29	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared ptr being manipulated by all threads *\/$/;"	m	struct:__anon31	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being manipulated by all threads *\/$/;"	m	struct:__anon34	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being manipulated by all threads *\/$/;"	m	struct:__anon36	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being manipulated by all threads *\/$/;"	m	struct:__anon38	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *shared_val;    \/* Shared int being read\/written by all threads *\/$/;"	m	struct:__anon25	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   shared_val;     \/* Shared value being manipulated by both threads *\/$/;"	m	struct:__anon40	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared int being read\/written by all threads *\/$/;"	m	struct:__anon26	file:
 shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared ptr being manipulated by all threads *\/$/;"	m	struct:__anon33	file:
-shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   shared_val;     \/* Shared value being manipulated by both threads *\/$/;"	m	struct:__anon35	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared ptr being manipulated by all threads *\/$/;"	m	struct:__anon35	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared ptr being manipulated by all threads *\/$/;"	m	struct:__anon37	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   *shared_val;    \/* Shared ptr being manipulated by all threads *\/$/;"	m	struct:__anon39	file:
+shared_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_ptr_t   shared_val;     \/* Shared value being manipulated by both threads *\/$/;"	m	struct:__anon41	file:
 sharedstatedir	treecode/openpa/openpa/Makefile	/^sharedstatedir = ${prefix}\/com$/;"	m
 sharedstatedir	treecode/openpa/openpa/src/Makefile	/^sharedstatedir = ${prefix}\/com$/;"	m
 sharedstatedir	treecode/openpa/openpa/test/Makefile	/^sharedstatedir = ${prefix}\/com$/;"	m
@@ -7959,8 +7961,8 @@ srcdir	treecode/openpa/openpa/src/Makefile	/^srcdir = .$/;"	m
 srcdir	treecode/openpa/openpa/test/Makefile	/^srcdir = .$/;"	m
 stack_size	treecode/sl_pepc/src/core/sort_quick.c	154;"	d	file:
 stack_size	treecode/sl_pepc/src/core/sort_quick.c	215;"	d	file:
-start	treecode/sl_pepc/include/sl_rti.h	/^  double start, stop;$/;"	m	struct:__anon53
-start	treecode/sl_pepc/src/include/sl_rti.h	/^  double start, stop;$/;"	m	struct:__anon48
+start	treecode/sl_pepc/include/sl_rti.h	/^  double start, stop;$/;"	m	struct:__anon51
+start	treecode/sl_pepc/src/include/sl_rti.h	/^  double start, stop;$/;"	m	struct:__anon47
 stats_add	treecode/sl_pepc/src/core/elements.c	759;"	d	file:
 stats_add	treecode/sl_pepc/src/core/elements.c	842;"	d	file:
 stats_addsqr	treecode/sl_pepc/src/core/elements.c	760;"	d	file:
@@ -7983,16 +7985,16 @@ stats_t	treecode/sl_pepc/src/core/elements.c	749;"	d	file:
 stats_t	treecode/sl_pepc/src/core/elements.c	837;"	d	file:
 stats_u	treecode/lpepcsrc/treevars.f90	/^  integer, parameter :: stats_u /;"	v	module:treevars
 step	frontends/pepc-essential/module_helper.f90	/^  integer :: step$/;"	v	module:helper
-stop	treecode/sl_pepc/include/sl_rti.h	/^  double start, stop;$/;"	m	struct:__anon53
-stop	treecode/sl_pepc/src/include/sl_rti.h	/^  double start, stop;$/;"	m	struct:__anon48
+stop	treecode/sl_pepc/include/sl_rti.h	/^  double start, stop;$/;"	m	struct:__anon51
+stop	treecode/sl_pepc/src/include/sl_rti.h	/^  double start, stop;$/;"	m	struct:__anon47
 subdir	treecode/openpa/openpa/Makefile	/^subdir = .$/;"	m
 subdir	treecode/openpa/openpa/src/Makefile	/^subdir = src$/;"	m
 subdir	treecode/openpa/openpa/test/Makefile	/^subdir = test$/;"	m
 subfolder	utils/module_vtk.f90	/^      character(*), private, parameter :: subfolder /;"	v	module:module_vtk
 subfolder_collections	utils/module_vtk.f90	/^      character(*), parameter :: subfolder_collections /;"	v	module:module_vtk
 subfolder_vtk	utils/module_vtk.f90	/^      character(*), parameter :: subfolder_vtk /;"	v	module:module_vtk
-successful_threads	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *successful_threads; \/* # of threads that have completed *\/$/;"	m	struct:__anon30	file:
-successful_threads	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *successful_threads; \/* # of threads that have completed *\/$/;"	m	struct:__anon31	file:
+successful_threads	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *successful_threads; \/* # of threads that have completed *\/$/;"	m	struct:__anon36	file:
+successful_threads	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   *successful_threads; \/* # of threads that have completed *\/$/;"	m	struct:__anon37	file:
 sum_fetches	treecode/lpepcsrc/module_tree.f90	/^      integer*8 :: sum_fetches /;"	k	type:t_tree_communicator
 sum_ships	treecode/lpepcsrc/module_tree.f90	/^      integer*8 :: sum_ships /;"	k	type:t_tree_communicator
 sum_unused	treecode/lpepcsrc/module_htable.f90	/^      integer*8                          :: sum_unused /;"	k	type:t_htable
@@ -8000,13 +8002,13 @@ swap	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^            sub
 swap_ab	treecode/lpepcsrc/module_sort.f90	/^  subroutine swap_ab(/;"	s	module:module_sort
 swap_defer_lists	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine swap_defer_lists(/;"	s	function:walk_worker_thread
 swap_defer_lists	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^      subroutine swap_defer_lists(/;"	s	function:walk_worker_thread
-swap_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} swap_int_t;$/;"	t	typeref:struct:__anon32	file:
-swap_ptr_t	treecode/openpa/openpa/test/test_primitives.c	/^} swap_ptr_t;$/;"	t	typeref:struct:__anon33	file:
-sx	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_elements_t sx;$/;"	m	struct:pepckeys__binning_data_t::__anon51
+swap_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} swap_int_t;$/;"	t	typeref:struct:__anon38	file:
+swap_ptr_t	treecode/openpa/openpa/test/test_primitives.c	/^} swap_ptr_t;$/;"	t	typeref:struct:__anon39	file:
+sx	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_elements_t sx;$/;"	m	struct:pepckeys__binning_data_t::__anon54
 sx	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_elements_t *sx;$/;"	m	struct:pepckeys__mergek_t
-sx	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_elements_t sx;$/;"	m	struct:pepcparts__binning_data_t::__anon50
+sx	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_elements_t sx;$/;"	m	struct:pepcparts__binning_data_t::__anon53
 sx	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_elements_t *sx;$/;"	m	struct:pepcparts__mergek_t
-sx	treecode/sl_pepc/src/include/sl_types.h	/^    elements_t sx;$/;"	m	struct:_binning_data_t::__anon46
+sx	treecode/sl_pepc/src/include/sl_types.h	/^    elements_t sx;$/;"	m	struct:_binning_data_t::__anon49
 sx	treecode/sl_pepc/src/include/sl_types.h	/^  elements_t *sx;$/;"	m	struct:_mergek_t
 sysconfdir	treecode/openpa/openpa/Makefile	/^sysconfdir = ${prefix}\/etc$/;"	m
 sysconfdir	treecode/openpa/openpa/src/Makefile	/^sysconfdir = ${prefix}\/etc$/;"	m
@@ -8120,8 +8122,8 @@ target_alias	treecode/openpa/openpa/src/Makefile	/^target_alias = $/;"	m
 target_alias	treecode/openpa/openpa/test/Makefile	/^target_alias = $/;"	m
 tbl	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        complex(kfp) function tbl(/;"	f	module:module_fmm_framework
 tblinv	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        integer function tblinv(/;"	f	module:module_fmm_framework
-terminated	treecode/openpa/openpa/test/test_primitives.c	/^    int         terminated;     \/* Whether this thread was terminated by MAX_ITER *\/$/;"	m	struct:__anon30	file:
-terminated	treecode/openpa/openpa/test/test_primitives.c	/^    int         terminated;     \/* Whether this thread was terminated by MAX_ITER *\/$/;"	m	struct:__anon31	file:
+terminated	treecode/openpa/openpa/test/test_primitives.c	/^    int         terminated;     \/* Whether this thread was terminated by MAX_ITER *\/$/;"	m	struct:__anon36	file:
+terminated	treecode/openpa/openpa/test/test_primitives.c	/^    int         terminated;     \/* Whether this thread was terminated by MAX_ITER *\/$/;"	m	struct:__anon37	file:
 test_barriers_DEPENDENCIES	treecode/openpa/openpa/test/Makefile	/^test_barriers_DEPENDENCIES =$/;"	m
 test_barriers_LDADD	treecode/openpa/openpa/test/Makefile	/^test_barriers_LDADD = $(LDADD)$/;"	m
 test_barriers_OBJECTS	treecode/openpa/openpa/test/Makefile	/^test_barriers_OBJECTS = $(am_test_barriers_OBJECTS)$/;"	m
@@ -8250,7 +8252,7 @@ threaded_cas_ptr_fairness_helper	treecode/openpa/openpa/test/test_primitives.c	/
 threaded_cas_ptr_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_cas_ptr_helper(void *_udata)$/;"	f	file:
 threaded_decr_and_test_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_decr_and_test_helper(void *_udata)$/;"	f	file:
 threaded_decr_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_decr_helper(void *_udata)$/;"	f	file:
-threaded_element_t	treecode/openpa/openpa/test/test_queue.c	/^} threaded_element_t;$/;"	t	typeref:struct:__anon43	file:
+threaded_element_t	treecode/openpa/openpa/test/test_queue.c	/^} threaded_element_t;$/;"	t	typeref:struct:__anon22	file:
 threaded_faa_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_faa_helper(void *_udata)$/;"	f	file:
 threaded_faa_ret_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_faa_ret_helper(void *_udata)$/;"	f	file:
 threaded_fad_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_fad_helper(void *_shared_val)$/;"	f	file:
@@ -8268,17 +8270,17 @@ threaded_llsc_ptr_stack_pop	treecode/openpa/openpa/test/test_primitives.c	/^stat
 threaded_llsc_ptr_stack_push	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_llsc_ptr_stack_push(void *_udata)$/;"	f	file:
 threaded_loadstore_int_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_loadstore_int_helper(void *_udata)$/;"	f	file:
 threaded_loadstore_ptr_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_loadstore_ptr_helper(void *_udata)$/;"	f	file:
-threaded_mode_t	treecode/openpa/openpa/test/test_queue.c	/^} threaded_mode_t;$/;"	t	typeref:enum:__anon44	file:
+threaded_mode_t	treecode/openpa/openpa/test/test_queue.c	/^} threaded_mode_t;$/;"	t	typeref:enum:__anon23	file:
 threaded_swap_int_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_swap_int_helper(void *_udata)$/;"	f	file:
 threaded_swap_ptr_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *threaded_swap_ptr_helper(void *_udata)$/;"	f	file:
-threaded_t	treecode/openpa/openpa/test/test_queue.c	/^} threaded_t;$/;"	t	typeref:struct:__anon45	file:
-threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *threadno;      \/* Unique thread number *\/$/;"	m	struct:__anon27	file:
-threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *threadno;      \/* Unique thread number *\/$/;"	m	struct:__anon31	file:
-threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         threadno;       \/* Unique thread number *\/$/;"	m	struct:__anon26	file:
-threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         threadno;       \/* Unique thread number *\/$/;"	m	struct:__anon30	file:
-threadno	treecode/openpa/openpa/test/test_primitives.c	/^    unsigned    threadno;       \/* Thread number *\/$/;"	m	struct:__anon33	file:
-threadno	treecode/openpa/openpa/test/test_queue.c	/^    int         threadno;               \/* Unique thread number *\/$/;"	m	struct:__anon43	file:
-threadno	treecode/openpa/openpa/test/test_queue.c	/^    int         threadno;               \/* Unique thread number *\/$/;"	m	struct:__anon45	file:
+threaded_t	treecode/openpa/openpa/test/test_queue.c	/^} threaded_t;$/;"	t	typeref:struct:__anon24	file:
+threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *threadno;      \/* Unique thread number *\/$/;"	m	struct:__anon33	file:
+threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         *threadno;      \/* Unique thread number *\/$/;"	m	struct:__anon37	file:
+threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         threadno;       \/* Unique thread number *\/$/;"	m	struct:__anon32	file:
+threadno	treecode/openpa/openpa/test/test_primitives.c	/^    int         threadno;       \/* Unique thread number *\/$/;"	m	struct:__anon36	file:
+threadno	treecode/openpa/openpa/test/test_primitives.c	/^    unsigned    threadno;       \/* Thread number *\/$/;"	m	struct:__anon39	file:
+threadno	treecode/openpa/openpa/test/test_queue.c	/^    int         threadno;               \/* Unique thread number *\/$/;"	m	struct:__anon22	file:
+threadno	treecode/openpa/openpa/test/test_queue.c	/^    int         threadno;               \/* Unique thread number *\/$/;"	m	struct:__anon24	file:
 threads_finished	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    type(t_atomic_int), pointer, public :: threads_finished$/;"	v	module:module_walk_pthreads_commutils
 three	interaction_specific/coulomb_gpu/module_coulomb_kernels.f90	/^    real(kfp), parameter :: three /;"	v	module:module_coulomb_kernels
 three	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      real(kfp), parameter :: three=/;"	v	module:module_fmm_framework
@@ -8423,9 +8425,9 @@ type	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t type;$/;"	m	struct:_par
 uninit_commutils	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^      subroutine uninit_commutils$/;"	s	module:module_walk_pthreads_commutils
 uninit_walk_data	treecode/lpepcsrc/module_walk_pthreads.f90	/^  subroutine uninit_walk_data(/;"	s	module:module_walk
 uninit_walk_data	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    subroutine uninit_walk_data(/;"	s	module:module_walk
-unique_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         unique_val;     \/* This thread's unique value to add to shared_val *\/$/;"	m	struct:__anon21	file:
-unique_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         unique_val;     \/* This thread's unique value to store in shared_val *\/$/;"	m	struct:__anon19	file:
-unique_val	treecode/openpa/openpa/test/test_primitives.c	/^    void        *unique_val;    \/* This thread's unique value to store in shared_val *\/$/;"	m	struct:__anon20	file:
+unique_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         unique_val;     \/* This thread's unique value to add to shared_val *\/$/;"	m	struct:__anon27	file:
+unique_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         unique_val;     \/* This thread's unique value to store in shared_val *\/$/;"	m	struct:__anon25	file:
+unique_val	treecode/openpa/openpa/test/test_primitives.c	/^    void        *unique_val;    \/* This thread's unique value to store in shared_val *\/$/;"	m	struct:__anon26	file:
 unpack_children	treecode/lpepcsrc/module_tree_communicator.f90	/^    recursive subroutine unpack_children(/;"	s	subroutine:unpack_data
 unpack_data	treecode/lpepcsrc/module_tree_communicator.f90	/^  subroutine unpack_data(/;"	s	module:module_tree_communicator
 usage_error	treecode/openpa/openpa/confdb/test-driver	/^usage_error ()$/;"	f
@@ -8433,36 +8435,36 @@ use_pretabulated_lattice_coefficients	interaction_specific/coulomb_gpu/module_fm
 v	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: v(/;"	k	type:t_particle_data
 v	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^         real*8 :: v(/;"	k	type:t_particle_data
 v	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^         real*8 :: v(/;"	k	type:t_particle_data
-v	treecode/openpa/openpa/src/primitives/opa_by_lock.h	/^typedef struct { int * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon4
-v	treecode/openpa/openpa/src/primitives/opa_by_lock.h	/^typedef struct { volatile int v;  } OPA_int_t;$/;"	m	struct:__anon3
-v	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon16
-v	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	m	struct:__anon15
-v	treecode/openpa/openpa/src/primitives/opa_gcc_intel_32_64_ops.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon10
-v	treecode/openpa/openpa/src/primitives/opa_gcc_intel_32_64_ops.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	m	struct:__anon9
-v	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon18
-v	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	m	struct:__anon17
-v	treecode/openpa/openpa/src/primitives/opa_gcc_sicortex.h	/^typedef struct { int * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon12
-v	treecode/openpa/openpa/src/primitives/opa_gcc_sicortex.h	/^typedef struct { volatile int v;  } OPA_int_t;$/;"	m	struct:__anon11
-v	treecode/openpa/openpa/src/primitives/opa_nt_intrinsics.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon2
-v	treecode/openpa/openpa/src/primitives/opa_nt_intrinsics.h	/^typedef struct { volatile long v;  } OPA_int_t;$/;"	m	struct:__anon1
-v	treecode/openpa/openpa/src/primitives/opa_sun_atomic_ops.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon6
-v	treecode/openpa/openpa/src/primitives/opa_sun_atomic_ops.h	/^typedef struct { volatile uint_t v;  } OPA_int_t;$/;"	m	struct:__anon5
-v	treecode/openpa/openpa/src/primitives/opa_unsafe.h	/^typedef struct { int *v; } OPA_ptr_t;$/;"	m	struct:__anon8
-v	treecode/openpa/openpa/src/primitives/opa_unsafe.h	/^typedef struct { int v;  } OPA_int_t;$/;"	m	struct:__anon7
-v_0	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_0;$/;"	m	struct:__anon41	file:
-v_1	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_1;$/;"	m	struct:__anon41	file:
-v_2	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_2;$/;"	m	struct:__anon41	file:
-v_3	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_3;$/;"	m	struct:__anon41	file:
-v_4	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_4;$/;"	m	struct:__anon41	file:
-v_5	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_5;$/;"	m	struct:__anon41	file:
-v_6	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_6;$/;"	m	struct:__anon41	file:
-v_7	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_7;$/;"	m	struct:__anon41	file:
-v_8	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_8;$/;"	m	struct:__anon41	file:
-v_9	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_9;$/;"	m	struct:__anon41	file:
+v	treecode/openpa/openpa/src/primitives/opa_by_lock.h	/^typedef struct { int * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon12
+v	treecode/openpa/openpa/src/primitives/opa_by_lock.h	/^typedef struct { volatile int v;  } OPA_int_t;$/;"	m	struct:__anon11
+v	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon6
+v	treecode/openpa/openpa/src/primitives/opa_gcc_ia64.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	m	struct:__anon5
+v	treecode/openpa/openpa/src/primitives/opa_gcc_intel_32_64_ops.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon14
+v	treecode/openpa/openpa/src/primitives/opa_gcc_intel_32_64_ops.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	m	struct:__anon13
+v	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon8
+v	treecode/openpa/openpa/src/primitives/opa_gcc_intrinsics.h	/^typedef struct { volatile int v;    } OPA_int_t;$/;"	m	struct:__anon7
+v	treecode/openpa/openpa/src/primitives/opa_gcc_sicortex.h	/^typedef struct { int * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon16
+v	treecode/openpa/openpa/src/primitives/opa_gcc_sicortex.h	/^typedef struct { volatile int v;  } OPA_int_t;$/;"	m	struct:__anon15
+v	treecode/openpa/openpa/src/primitives/opa_nt_intrinsics.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon18
+v	treecode/openpa/openpa/src/primitives/opa_nt_intrinsics.h	/^typedef struct { volatile long v;  } OPA_int_t;$/;"	m	struct:__anon17
+v	treecode/openpa/openpa/src/primitives/opa_sun_atomic_ops.h	/^typedef struct { void * volatile v; } OPA_ptr_t;$/;"	m	struct:__anon2
+v	treecode/openpa/openpa/src/primitives/opa_sun_atomic_ops.h	/^typedef struct { volatile uint_t v;  } OPA_int_t;$/;"	m	struct:__anon1
+v	treecode/openpa/openpa/src/primitives/opa_unsafe.h	/^typedef struct { int *v; } OPA_ptr_t;$/;"	m	struct:__anon4
+v	treecode/openpa/openpa/src/primitives/opa_unsafe.h	/^typedef struct { int v;  } OPA_int_t;$/;"	m	struct:__anon3
+v_0	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_0;$/;"	m	struct:__anon20	file:
+v_1	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_1;$/;"	m	struct:__anon20	file:
+v_2	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_2;$/;"	m	struct:__anon20	file:
+v_3	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_3;$/;"	m	struct:__anon20	file:
+v_4	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_4;$/;"	m	struct:__anon20	file:
+v_5	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_5;$/;"	m	struct:__anon20	file:
+v_6	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_6;$/;"	m	struct:__anon20	file:
+v_7	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_7;$/;"	m	struct:__anon20	file:
+v_8	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_8;$/;"	m	struct:__anon20	file:
+v_9	treecode/openpa/openpa/test/test_barriers.c	/^    OPA_int_t *v_9;$/;"	m	struct:__anon20	file:
 val	treecode/lpepcsrc/module_htable.f90	/^      integer(kind_node)         :: val /;"	k	type:t_htable_bucket
-val	treecode/openpa/openpa/test/test_queue.c	/^    int         val;                    \/* Value of element *\/$/;"	m	struct:__anon42	file:
+val	treecode/openpa/openpa/test/test_queue.c	/^    int         val;                    \/* Value of element *\/$/;"	m	struct:__anon21	file:
 values	treecode/lpepcsrc/module_htable.f90	/^      type(t_tree_node), public, pointer :: values(/;"	k	type:t_htable
-variables_t	treecode/openpa/openpa/test/test_barriers.c	/^} variables_t;$/;"	t	typeref:struct:__anon41	file:
+variables_t	treecode/openpa/openpa/test/test_barriers.c	/^} variables_t;$/;"	t	typeref:struct:__anon20	file:
 vbox	treecode/lpepcsrc/module_walk_pthreads.f90	/^  real*8 :: vbox(/;"	v	module:module_walk
 vbox	treecode/lpepcsrc/module_walk_pthreads_blocking.f90	/^    real*8 :: vbox(/;"	v	module:module_walk
 vbox	treecode/lpepcsrc/module_walk_smpss_utils.f90	/^  real*8 :: vbox(/;"	v	module:module_walk_smpss_utils

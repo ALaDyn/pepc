@@ -1,5 +1,5 @@
 MOD_UNLOAD = intel parastation
-MOD_LOAD   = parastation pgi/12.10 mvapich2
+MOD_LOAD   = pgi/12.10 mvapich2
 
 HELP = "\
 \# Makefile for JuHYDTA using PGI compilers\n\
@@ -19,29 +19,31 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" -DLEAFY
 
-INLINING = 
+IN = -Mipa
+INLINING = -Minline -fast
 
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+  FFLAGS   = -g -pg -O0 -mp -ta=nvidia,time -Minfo=all -traceback -C -Mbounds
   CFLAGS   = -g -pg -O0
-  LDFLAGS  = -g -pg -O0
+  LDFLAGS  = -g -pg -O0 -mp -ta=nvidia,time -Minfo=all -traceback
+#  CPPFLAGS += -DNDEBUG
 else
-  FFLAGS   = -O3 $(INLINING)
-  CFLAGS   = -O3
-  LDFLAGS  = -O3 $(INLINING)
+  FFLAGS   = -tp=sandybridge -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
+  CFLAGS   = -O3                                                           
+  LDFLAGS  = -tp=sandybridge -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
   CPPFLAGS += -DNDEBUG
 endif
 
 FCPRE    = 
-FC       = mpif90 -f90=pgf90 -mp
+FC       = mpif90 -f90=pgf90
 
 CCPRE    = 
 CC       = mpicc
 
 LDPRE    = 
-LD       = mpif90 -f90=pgf90 -mp
+LD       = mpif90 -f90=pgf90
 
 LDLIBS   += 
 
