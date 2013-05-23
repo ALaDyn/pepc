@@ -164,6 +164,7 @@ module module_particle_setup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine particle_setup_homogeneous(particles,fences)
+          use physvars, only: rngseed
           use module_pepc_types
           implicit none
           type(t_particle), intent(inout) :: particles(:)
@@ -171,6 +172,9 @@ module module_particle_setup
           integer(kind_pe) :: mpi_cnt
           integer(kind_particle) :: p
           real*8 :: xt, yt, zt
+
+          ! "random" initialization of par_rand
+          xt = par_rand(rngseed)
 
           do mpi_cnt = 0, n_cpu-1
             do p = 1, (fences(mpi_cnt) - fences(mpi_cnt-1))
