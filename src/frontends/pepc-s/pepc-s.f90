@@ -33,7 +33,7 @@ module module_pepcs
 
   contains
 
-    subroutine pepc(local_particles, local_max_particles, total_particles, &
+    subroutine pepc(local_particles, local_max_particles, &
                           positions, charges,  &
                           field, potentials,   &
                           virial_tensor,       &
@@ -52,7 +52,7 @@ module module_pepcs
         implicit none
         include 'mpif.h'
 
-        fcs_integer, intent(inout) :: local_particles, total_particles, local_max_particles
+        fcs_integer, intent(inout) :: local_particles, local_max_particles
         fcs_real, intent(in) :: positions(3,local_max_particles), charges(local_max_particles)
         fcs_real, intent(out) :: field(3,local_max_particles), potentials(local_max_particles)
         fcs_real, intent(out), dimension(3,3) :: virial_tensor
@@ -96,11 +96,11 @@ module module_pepcs
         periodicity(1:3) = (lat_period(1:3) == 1)
         fmm_extrinsic_correction = lat_corr
         debug_level = db_level
-        call pepc_prepare(3)
+        call pepc_prepare(3_kind_dim)
         ! =============================================================
 
-       call pepc_particleresults_clear(particles, local_particles)
-       call pepc_grow_and_traverse(local_particles, total_particles, particles, itime)
+        call pepc_particleresults_clear(particles)
+        call pepc_grow_and_traverse(particles, itime=itime)
 
         ! read fields and potentials from internal data structures
         do i=1,local_particles

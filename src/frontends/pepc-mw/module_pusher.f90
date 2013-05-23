@@ -96,9 +96,9 @@ module module_pusher
     subroutine reorder_particles(np_local, particles, num_force_particles)
         use module_pepc_types
         implicit none
-        integer, intent(in) :: np_local
+        integer(kind_particle), intent(in) :: np_local
         type(t_particle), intent(inout) :: particles(1:np_local)
-        integer, intent(out) :: num_force_particles
+        integer(kind_particle), intent(out) :: num_force_particles
 
         type(t_particle) :: temp(1:np_local)
         integer :: num_electrons, num_ions, i
@@ -136,11 +136,12 @@ module module_pusher
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine integrator(p_start,p_finish,scheme)
-
+        use module_pepc_types
         use physvars
         use module_io
         implicit none
-        integer, intent(in) :: p_start,p_finish,scheme
+        integer(kind_particle), intent(in) :: p_start,p_finish
+        integer :: scheme
 
         if (my_rank==0) then
             write(file_stdout  ,'(/"-- PUSHER --"/a20,i8)') 'scheme = ',scheme
@@ -184,15 +185,17 @@ module module_pusher
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine velocities(p_start,p_finish,scheme)
-
+        use module_pepc_types
         use physvars
         implicit none
         include 'mpif.h'
 
-        integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
+        integer(kind_particle), intent(in) :: p_start,p_finish  ! min, max particle nos.
         integer, intent(in) :: scheme
 
-        integer p, i, ne_loc, ierr
+        integer i, ne_loc
+        integer(kind_particle) :: p
+        integer(kind_default) :: ierr
         real*8, dimension(3, np_local) :: uh, acc
         real*8 :: sum_vxe, sum_vye, sum_vze, acmax
         real*8 :: delta_u
@@ -593,8 +596,9 @@ module module_pusher
     subroutine velocities_boris(ips,ipf,delt)
         use physvars
         use module_math_tools
+        use module_pepc_types
         implicit none
-        integer, intent(in) :: ips,ipf
+        integer(kind_particle), intent(in) :: ips,ipf
         real*8, intent(in) :: delt
 
         integer :: p
@@ -627,9 +631,9 @@ module module_pusher
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine push_nonrel(ips,ipf,delt)
-
+        use module_pepc_types
         use physvars
-        integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
+        integer(kind_particle), intent(in) :: ips, ipf  ! 1st and last particle numbers
         real*8, intent(in) :: delt
         integer :: p
 
@@ -646,9 +650,9 @@ module module_pusher
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine push_rel(ips,ipf,delt)
-
+        use module_pepc_types
         use physvars
-        integer, intent(in) :: ips, ipf  ! 1st and last particle numbers
+        integer(kind_particle), intent(in) :: ips, ipf  ! 1st and last particle numbers
         real*8, intent(in) :: delt
         integer :: p
         real*8 :: gam
@@ -669,16 +673,18 @@ module module_pusher
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine nose_hoover_diagnostics(p_start,p_finish)
+      use module_pepc_types
       use module_units
       use physvars
       implicit none
       include 'mpif.h'
-      integer, intent(in) :: p_start, p_finish
+      integer(kind_particle), intent(in) :: p_start, p_finish
       real*8 :: ex_e, ex_i
       real*8 :: epot_e, epot_i, H_e, H_i
       real*8 :: eta_e, veta_e, eta_i, veta_i, Ue_uncor, Ui_uncor
       real*8 :: uprime(1:3), uprime2, gammah, acc(1:3)
-      integer :: p, ierr
+      integer(kind_particle) :: p
+      integer(kind_default) :: ierr
       integer, parameter :: file_nose_hoover_dat = 93
       
       integer, parameter :: V2E = 1
@@ -823,15 +829,17 @@ module module_pusher
     subroutine NVT_diagnostics(p_start,p_finish,Te_before,Ti_before)
       use module_units
       use physvars
+      use module_pepc_types
       implicit none
       include 'mpif.h'
-      integer, intent(in) :: p_start, p_finish
+      integer(kind_particle), intent(in) :: p_start, p_finish
       real*8, intent(in) :: Te_before, Ti_before
       real*8 :: betae, betai
       real*8 :: epot_e, epot_i, H_e, H_i
       real*8 :: Ue_uncor, Ui_uncor, delta_Ue, delta_Ui
       real*8 :: uprime(1:3), uprime2, gammah, acc(1:3)
-      integer :: p, ierr
+      integer(kind_particle) :: p
+      integer(kind_default) :: ierr
       integer, parameter :: file_thermostat_dat = 93
       
       real*8, save :: delta_Ue_cum = 0.
@@ -975,13 +983,15 @@ module module_pusher
     subroutine NVE_diagnostics(p_start,p_finish)
       use module_units
       use physvars
+      use module_pepc_types
       implicit none
       include 'mpif.h'
-      integer, intent(in) :: p_start, p_finish
+      integer(kind_particle), intent(in) :: p_start, p_finish
       real*8 :: epot_e, epot_i, H_e, H_i
       real*8 :: Ue_uncor, Ui_uncor, delta_Ue, delta_Ui
       real*8 :: uprime(1:3), uprime2, gammah, acc(1:3)
-      integer :: p, ierr
+      integer(kind_particle) :: p
+      integer(kind_default) :: ierr
       integer, parameter :: file_nve_dat = 93
       
       integer, parameter :: V2E = 1

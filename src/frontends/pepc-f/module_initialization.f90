@@ -93,9 +93,6 @@ module module_initialization
                 IF(boundaries(src_boundary)%type==2) THEN
                     IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
                     STOP
-                ELSE IF (boundaries(src_boundary)%type==3) THEN
-                    IF (root) write(*,'(a)') "Open boundary cannot be used as surface source"
-                    STOP
                 END IF
                 IF (root) write(*,'(a,i3,a,i3)') "Boundary ",src_boundary," chosen as surface source of type ",quelltyp
             END IF
@@ -191,16 +188,6 @@ module module_initialization
     END IF
 
 
-    !ne=0.5*tnpp*fsup/(dx*dy*dz)
-    !omega_p=sqrt(ne*e*e/eps0/me)
-
-
-
-    call init_rng()
-    call init_periodicity()
-    call pepc_prepare(3)
-
-
   end subroutine set_parameters
 
 !====================================================================================== 
@@ -214,7 +201,8 @@ module module_initialization
     include 'mpif.h'
       
     integer, parameter :: fid = 666
-    integer :: global_max_label,local_max_label,ip,ib
+    integer(kind_particle) :: global_max_label,local_max_label
+    integer :: ip,ib
     real(KIND=8) :: q_loc(nb),q_glob(nb)
     logical :: hit
 

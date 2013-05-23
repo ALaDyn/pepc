@@ -9,7 +9,8 @@ module encap
    end type pepc_comm_t
 
    type, bind(c) :: pepc_pars_t
-      integer(c_int) :: np, npp, pdump, fdump, cdump
+      integer(c_int) :: pdump, fdump, cdump
+      integer(c_int64_t) :: np, npp
       type(pepc_comm_t) :: pepc_comm
    end type pepc_pars_t
 
@@ -24,8 +25,8 @@ module encap
    end type time_pars_t
 
   type field_grid_t
-    integer(kind = 4), dimension(2) :: n
-    integer(kind = 4) :: ntot, nl
+    integer(kind = kind_particle), dimension(2) :: n
+    integer(kind = kind_particle) :: ntot, nl
     real(kind = 8), dimension(2) :: offset, extent, dx
     type(t_particle), dimension(:), allocatable :: p
     real(kind = 8), dimension(:,:), allocatable :: ne, ni, vex, vey, vix, viy

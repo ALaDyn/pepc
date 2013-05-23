@@ -37,6 +37,7 @@ subroutine sum_radial(timestamp)
   use physvars
   use module_units
   use module_utils
+  use module_pepc_types
   implicit none
   include 'mpif.h'
 
@@ -130,7 +131,7 @@ subroutine sum_radial(timestamp)
      open (60,file=trim(cfile))
      write(60,'(7(a12))') '#   r      ','ni   ','rhoi   ','vi_min','vi_max','er',' phi'
      write(60,'((7(1pe12.4)))') &
-          ((i-1)*dr, gi_glob(i)/max(1,ni), ni_glob(i), &
+          ((i-1)*dr, gi_glob(i)/max(1_kind_particle,ni), ni_glob(i), &
 		 vi_glob_min(i), vi_glob_max(i), particles(np_local-ngr+i)%results%e(1), particles(np_local-ngr+i)%results%pot, i=1,ngr)
      close(60)
 

@@ -20,7 +20,8 @@ contains
     type(pepc_comm_t), intent(in) :: pepc_comm
 
     type(field_grid_nml_t) :: field_grid_nml
-    integer :: ipl, ipg, ix, iy, mpi_size, mpi_rank
+    integer(kind_default) :: mpi_size, mpi_rank
+    integer(kind_particle) :: ipl, ipg, ix, iy
 
     call create_directory(field_dir)
 
@@ -32,7 +33,7 @@ contains
     field_grid%n = field_grid_nml%n
     field_grid%ntot = product(field_grid%n)
     field_grid%nl = field_grid%ntot / mpi_size
-    if (mpi_rank < mod(field_grid%ntot, mpi_size)) &
+    if (mpi_rank < mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) &
       field_grid%nl = field_grid%nl + 1
     field_grid%offset = field_grid_nml%offset
     field_grid%extent = field_grid_nml%extent
@@ -57,9 +58,9 @@ contains
       field_grid%viy(field_grid%n(1), field_grid%n(2)))
 
     do ipl = 1, field_grid%nl
-      ipg = ipl + min(mpi_rank, mod(field_grid%ntot, mpi_size)) * &
+      ipg = ipl + min(int(mpi_rank, kind=kind_particle), mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) * &
         (field_grid%ntot / mpi_size + 1) + &
-        max(0, mpi_rank - mod(field_grid%ntot, mpi_size)) * &
+        max(0_kind_particle, mpi_rank - mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) * &
         (field_grid%ntot / mpi_size)
 
       ix = mod(ipg - 1, field_grid%n(1)) + 1
@@ -115,7 +116,7 @@ contains
 
     integer, parameter :: para_file_id = 10
     
-    integer, dimension(2) :: n
+    integer(kind_particle), dimension(2) :: n
     real(kind=8), dimension(2) :: offset
     real(kind=8), dimension(2) :: extent
 
@@ -149,12 +150,13 @@ contains
     type(field_grid_t), intent(inout) :: field_grid
     type(t_particle), dimension(:), intent(in) :: p
 
-    integer :: ipl, mpi_err
+    integer(kind_particle) :: ipl
+    integer(kind_default) :: mpi_err
     integer, dimension(2) :: ic
     real(kind=8) :: da, rda
 
-    call pepc_particleresults_clear(field_grid%p, int(field_grid%nl))
-    call pepc_traverse_tree(int(field_grid%nl), field_grid%p)
+    call pepc_particleresults_clear(field_grid%p)
+    call pepc_traverse_tree(field_grid%p)
     field_grid%p(:)%results%e(1) = field_grid%p(:)%results%e(1) * force_const
     field_grid%p(:)%results%e(2) = field_grid%p(:)%results%e(2) * force_const
     field_grid%p(:)%results%pot  = field_grid%p(:)%results%pot  * force_const
@@ -237,16 +239,17 @@ contains
     type(physics_pars_t), intent(in) :: physics_pars
     type(field_grid_t), intent(in) :: field_grid
 
-    integer :: my_count
+    integer(kind_particle) :: my_count
     integer(kind = MPI_OFFSET_KIND) :: my_offset
     real(kind = 8), dimension(:), allocatable :: fflat
 
     allocate(fflat(field_grid%ntot))
 
     my_count = field_grid%nl
-    my_offset = min(pepc_comm%mpi_rank, mod(field_grid%ntot, pepc_comm%mpi_size)) &
+    my_offset = min(int(pepc_comm%mpi_rank, kind=kind_particle), &
+      mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) &
       * (field_grid%ntot / pepc_comm%mpi_size + 1) + &
-      max(0, pepc_comm%mpi_rank - mod(field_grid%ntot, pepc_comm%mpi_size)) * &
+      max(0_kind_particle, pepc_comm%mpi_rank - mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) * &
       field_grid%ntot / pepc_comm%mpi_size
 
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)

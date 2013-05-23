@@ -160,24 +160,23 @@ module module_fmm_framework
         !> has to be called every timestep with particles that were used in tree buildup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine fmm_framework_timestep(particles, nparticles)
+        subroutine fmm_framework_timestep(particles)
           use module_pepc_types
           use module_mirror_boxes
           use module_debug
           implicit none
-          integer, intent(in) :: nparticles
           type(t_particle), intent(in) :: particles(:)
 
           if (do_periodic) then
-            if (.not. check_lattice_boundaries(particles, nparticles)) then
+            if (.not. check_lattice_boundaries(particles)) then
               DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
             endif
             
             if (      (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_REDLACK) &
                  .or. (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_FICTCHARGE)) then
-              call calc_box_dipole(particles, nparticles)
+              call calc_box_dipole(particles)
             endif
-            call calc_omega_tilde(particles, nparticles)
+            call calc_omega_tilde(particles)
             call calc_mu_cent(omega_tilde, mu_cent)
           endif
         end subroutine fmm_framework_timestep
@@ -563,16 +562,14 @@ module module_fmm_framework
         !> central box
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_omega_tilde(particles, nparticles)
+        subroutine calc_omega_tilde(particles)
           use treevars, only: num_threads
           use module_pepc_types
           use module_debug
           implicit none
 
           type(t_particle), intent(in) :: particles(:)
-          integer, intent(in) :: nparticles
-
-          integer :: p
+          integer(kind_particle) :: p
           integer :: ierr
           
           omega_tilde = zero
@@ -581,7 +578,7 @@ module module_fmm_framework
 
           !$ call omp_set_num_threads(num_threads)
           !$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles,LatticeCenter) SCHEDULE(RUNTIME) REDUCTION(+:omega_tilde)
-          do p=1,nparticles
+          do p=1,size(particles, kind=kind(p))
             call addparticle(omega_tilde, particles(p)%x, particles(p)%data%q)
           end do
           !$OMP  END PARALLEL DO          
@@ -662,24 +659,22 @@ module module_fmm_framework
         !> for performing the extrinsic-to-intrinsic correction
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_box_dipole(particles, nparticles)
+        subroutine calc_box_dipole(particles)
           use module_debug
           use module_pepc_types
           implicit none
 
           type(t_particle), intent(in) :: particles(:)
-          integer, intent(in) :: nparticles
 
           real*8 :: r(3)
-
-          integer :: p
+          integer(kind_particle) :: p
           integer :: ierr
 
           box_dipole = zero
           quad_trace = zero
 
           ! calculate dipole contributions of all local particles
-          do p=1,nparticles
+          do p=1,size(particles, kind=kind(p))
             r = particles(p)%x - LatticeCenter
             box_dipole = box_dipole + particles(p)%data%q * r
             quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)

@@ -5,3 +5,6 @@ SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_V_U))
 
 BACKEND = vortex
 
+LD = $(AR)
+LDFLAGS = $(ARFLAGS)
+LDLIBS =  libsl.a libopa.a

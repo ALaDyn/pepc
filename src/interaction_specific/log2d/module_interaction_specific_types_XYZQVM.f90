@@ -18,37 +18,36 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Contains all types that are specific to a certain interaction
 !> all subroutines and types within this module are obligatory
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_interaction_specific_types
       implicit none
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
       integer, parameter :: pMultipole = 10
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public type declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+      integer, parameter :: CALC_FORCE_SOURCE_KIND_PARTICULAR = 1
+      integer, parameter :: CALC_FORCE_SOURCE_KIND_DIRICHLET = 2
+      integer, parameter :: CALC_FORCE_SOURCE_KIND_NEUMANN = 3
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
+         real*8 :: phi
          real*8 :: q
          real*8 :: v(3)
          real*8 :: m
+#ifdef BEM2D
+         real*8 :: ra(2)
+         real*8 :: rb(2)
+         integer :: source_kind
+#endif
       end type t_particle_data
-      integer, private, parameter :: nprops_particle_data = 3
+#ifdef BEM2D
+      integer, private, parameter :: nprops_particle_data = 7
+#else
+      integer, private, parameter :: nprops_particle_data = 4
+#endif
 
       !> Data structure for shipping results
       type t_particle_results
@@ -69,25 +68,12 @@ module module_interaction_specific_types
       end type t_tree_node_interaction_data
       integer, private, parameter :: nprops_tree_node_interaction_data = 5
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
       !> Creates and registers interaction-specific MPI-types
       !> is automatically called from register_libpepc_mpi_types()
       !>
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine register_interaction_specific_mpi_types(mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results)
         implicit none
         include 'mpif.h'
@@ -105,12 +91,23 @@ module module_interaction_specific_types
         type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
         ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [1, 3, 1]
-        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_particle_data,   address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%q, address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%v, address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%m, address(3), ierr )
+#ifdef BEM2D
+        blocklengths(1:nprops_particle_data) = [1, 1, 3, 1, 2, 2, 1]
+        types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_INTEGER]
+#else
+        blocklengths(1:nprops_particle_data) = [1, 1, 3, 1]
+        types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+#endif
+        call MPI_GET_ADDRESS( dummy_particle_data, address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%phi, address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%q, address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%v, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%m, address(4), ierr )
+#ifdef BEM2D
+        call MPI_GET_ADDRESS( dummy_particle_data%ra, address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%rb, address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%source_kind, address(7), ierr )
+#endif
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
@@ -139,6 +136,4 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)
 
       end subroutine register_interaction_specific_mpi_types
-
-
 end module module_interaction_specific_types

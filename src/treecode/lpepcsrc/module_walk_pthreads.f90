@@ -93,7 +93,7 @@
 module module_walk
   use, intrinsic :: iso_c_binding
   use module_tree, only: t_tree
-  use module_pepc_types, only: t_tree_node, t_particle
+  use module_pepc_types
   use module_atomic_ops, only: t_atomic_int
   implicit none
   private
@@ -115,18 +115,18 @@ module module_walk
   integer, parameter :: THREAD_COUNTER_POST_REQUEST        = 4
 
   !> type for input and return values of walk_threads
-  type, public :: t_threaddata
+  type :: t_threaddata
     integer :: id !< just a running number to distinguish the threads, currently unused
     logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
     integer :: coreid !< thread output value: id of thread's processor
     logical :: finished !< will be set to .true. when the thread has finished
     real*8 :: timers(NUM_THREAD_TIMERS)
-    integer*8 :: counters(NUM_THREAD_COUNTERS)
+    integer(kind_node) :: counters(NUM_THREAD_COUNTERS)
   end type t_threaddata
 
   type(c_ptr), allocatable :: thread_handles(:)
   type(t_threaddata), allocatable, target :: threaddata(:)
-  integer, public :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
+  integer :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
   real :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
   integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
@@ -140,6 +140,7 @@ module module_walk
   type(t_tree), pointer :: walk_tree
 
   type(t_atomic_int), pointer :: next_unassigned_particle
+  type(t_atomic_int), pointer :: thread_startup_complete
 
   ! local walktime (i.e. from comm_loop start until send_walk_finished() )
   real*8, pointer :: twalk_loc
@@ -154,7 +155,7 @@ module module_walk
   real*8 :: thread_counters_shared_avg(NUM_THREAD_COUNTERS)
   real*8 :: thread_counters_shared_dev(NUM_THREAD_COUNTERS)
 
-  namelist /walk_para_pthreads/ num_walk_threads, max_particles_per_thread
+  namelist /walk_para_pthreads/ max_particles_per_thread
 
   public tree_walk
   public tree_walk_finalize
@@ -175,7 +176,8 @@ module module_walk
 
     integer, intent(in) :: u
 
-    integer :: i, ierr
+    integer :: i
+    integer(kind_default) :: ierr
     real*8, allocatable ::  num_interactions(:), num_mac_evaluations(:)  ! Load balance arrays
     real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, &
       max_mac_evaluations
@@ -270,13 +272,6 @@ module module_walk
 
     call pepc_status("READ PARAMETERS, section walk_para_pthreads")
     read(filehandle, NML=walk_para_pthreads)
-
-    if (num_walk_threads > 0) then ! it has been set through the namelist
-      DEBUG_INFO(*,  'Setting num_walk_threads through the walk_para_pthreads namelist directly is deprecated and will be removed soon. Please switch to parameter num_threads in namelist libpepc in your parameter files.')
-      num_threads = num_walk_threads
-    else          
-      num_walk_threads = num_threads
-    end if
   end subroutine
 
 
@@ -296,15 +291,10 @@ module module_walk
   !> computes derived parameters for tree walk
   !>
   subroutine tree_walk_prepare()
-    use module_atomic_ops, only: atomic_allocate_int
-    use module_debug
+    use treevars, only: num_threads
     implicit none
-    ! nothing to do here
 
-    call atomic_allocate_int(next_unassigned_particle)
-    if (.not. associated(next_unassigned_particle)) then
-      DEBUG_ERROR(*, "atomic_allocate_int() failed!")
-    end if
+    num_walk_threads = max(num_threads, 1)
 
     !if (me == 0) then
     !  write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
@@ -318,10 +308,7 @@ module module_walk
   !> but needs to be implemented in the module_walk
   !>
   subroutine tree_walk_finalize()
-    use module_atomic_ops, only: atomic_deallocate_int
     implicit none
-
-    call atomic_deallocate_int(next_unassigned_particle)
   end subroutine tree_walk_finalize
 
 
@@ -333,7 +320,7 @@ module module_walk
     use, intrinsic :: iso_c_binding
     use module_pepc_types
     use module_timings
-    use module_debug, only : pepc_status
+    use module_debug
     implicit none
     include 'mpif.h'
 
@@ -344,7 +331,10 @@ module module_walk
 
     call pepc_status('WALK HYBRID')
 
-    num_particles = size(p)
+    ! we have to have at least one walk thread
+    DEBUG_ASSERT(num_walk_threads >= 1)
+
+    num_particles = size(p, kind=kind(num_particles))
     particle_data => p
     walk_tree => t
     ! box shift vector
@@ -370,12 +360,13 @@ module module_walk
   subroutine walk_hybrid()
     use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread
     use module_debug
+    use module_atomic_ops, only: atomic_store_int
     use, intrinsic :: iso_c_binding
     implicit none
     include 'mpif.h'
 
     integer :: ith
-    integer*8 :: num_processed_particles
+    integer(kind_particle) :: num_processed_particles
 
     allocate(threaddata(num_walk_threads))
 
@@ -383,11 +374,15 @@ module module_walk
 
     twalk_loc = MPI_WTIME()
 
+    call atomic_store_int(thread_startup_complete, 0)
+
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
       DEBUG_ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
+    
+    call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
@@ -410,8 +405,7 @@ module module_walk
     ! check wether all particles really have been processed
     num_processed_particles = sum(threaddata(:)%counters(THREAD_COUNTER_PROCESSED_PARTICLES))
     if (num_processed_particles .ne. num_particles) then
-      DEBUG_ERROR(*, "Serious issue on PE", walk_tree%comm_env%rank, ": all walk threads have terminated, but obviously not all particles are finished with walking: num_processed_particles =",
-                          num_processed_particles, " num_particles =", num_particles)
+      DEBUG_ERROR(*, "Serious issue on PE", walk_tree%comm_env%rank, ": all walk threads have terminated, but obviously not all particles are finished with walking: num_processed_particles =", num_processed_particles, " num_particles =", num_particles)
     end if
 
     deallocate(threaddata)
@@ -453,14 +447,23 @@ module module_walk
   subroutine init_walk_data()
     use, intrinsic :: iso_c_binding
     use pthreads_stuff, only: pthreads_alloc_thread
-    use module_atomic_ops, only: atomic_store_int
+    use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
     use module_debug
     implicit none
 
     integer :: i
 
-    ! we have to have at least one walk thread
-    num_walk_threads = max(num_walk_threads, 1)
+    ! initialize atomic variables
+    call atomic_allocate_int(next_unassigned_particle)
+    call atomic_allocate_int(thread_startup_complete)
+
+    if (.not. (associated(next_unassigned_particle) .and. associated(thread_startup_complete))) then
+      DEBUG_ERROR(*, "atomic_allocate_int() failed!")
+    end if
+
+    call atomic_store_int(next_unassigned_particle, 1)
+    call atomic_store_int(thread_startup_complete, 0)
+
     ! evenly balance particles to threads if there are less than the maximum
     max_particles_per_thread = max(min(num_particles/num_walk_threads, max_particles_per_thread),1)
     ! allocate storage for thread handles
@@ -475,18 +478,18 @@ module module_walk
 
     ! we will only want to reject the root node and the particle itself if we are in the central box
     in_central_box = (dot_product(vbox,vbox) == 0)
-
-    ! initialize atomic variables
-    call atomic_store_int(next_unassigned_particle, 1)
-
   end subroutine init_walk_data
 
 
   subroutine uninit_walk_data()
+    use module_atomic_ops, only: atomic_deallocate_int
     use pthreads_stuff, only: pthreads_free_thread
     implicit none
 
     integer :: i
+
+    call atomic_deallocate_int(next_unassigned_particle)
+    call atomic_deallocate_int(thread_startup_complete)
 
     do i = 1, num_walk_threads
       call pthreads_free_thread(thread_handles(i))
@@ -502,7 +505,7 @@ module module_walk
     use module_debug
     use module_atomic_ops
     use module_tree, only: tree_lookup_root
-    use module_pepc_types, only: kind_node
+    use module_pepc_types
     use treevars, only: main_thread_processor_id
     implicit none
     include 'mpif.h'
@@ -512,7 +515,7 @@ module module_walk
 
     integer, dimension(:), allocatable :: thread_particle_indices
     type(t_particle_thread), dimension(:), allocatable :: thread_particle_data
-    integer*8, dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
+    integer(kind_node), dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
     integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
     integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
@@ -537,6 +540,11 @@ module module_walk
 
     if ((shared_core) .and. (num_walk_threads > 1)) then
           my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
+#if defined(__TOS_BGQ__)
+          if (get_num_threads_on_my_hwthread() > 1) then
+            my_max_particles_per_thread = 0
+          endif
+#endif
     else
           my_max_particles_per_thread = max_particles_per_thread
     end if
@@ -647,12 +655,17 @@ module module_walk
       deallocate(todo_list)
     end if
 
+    ! we have to wait here until all threads have started before some of them die again :-)
+    do while (atomic_load_int(thread_startup_complete) /= 1)
+      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+    end do
+
     if (walk_profile) then
       my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
       my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
       my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
     end if
-
+    
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr
@@ -736,8 +749,6 @@ module module_walk
       ptr_defer_list_old     => defer_list_old(defer_list_start_pos(idx):defer_list_start_pos(idx+1)-1)
       defer_list_entries_old =  defer_list_start_pos(idx+1) - defer_list_start_pos(idx)
     end subroutine setup_defer_list
-
-
   end function walk_worker_thread
 
 
@@ -752,7 +763,7 @@ module module_walk
     use module_debug
     use module_mirror_boxes, only : spatial_interaction_cutoff
     use module_atomic_ops
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types
     implicit none
     include 'mpif.h'
 
@@ -762,17 +773,16 @@ module module_walk
     integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
     integer, intent(out) :: defer_list_entries_new
     integer(kind_node), intent(inout) :: todo_list(0:todo_list_length-1) 
-    integer*8, intent(inout) :: partner_leaves
+    integer(kind_node), intent(inout) :: partner_leaves
     type(t_threaddata), intent(inout) :: my_threaddata
     logical :: walk_single_particle !< function will return .true. if this particle has finished its walk
 
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
-    real*8 :: dist2
-    real*8 :: delta(3), shifted_particle_position(3)
+    real*8 :: dist2, delta(3), shifted_particle_position(3)
     logical :: is_leaf, is_related
-    integer*8 :: num_interactions, num_mac_evaluations, num_post_request
+    integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
     real*8 :: t_post_request
 
     todo_list_entries      = 0

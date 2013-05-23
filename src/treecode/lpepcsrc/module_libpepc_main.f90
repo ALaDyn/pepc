@@ -23,10 +23,12 @@
 !>
 module module_libpepc_main
     use module_debug, only : debug_level
-    use treevars, only : np_mult, interaction_list_length_factor, num_threads
+    use treevars, only : np_mult, interaction_list_length_factor, num_threads, idim
     use module_spacefilling, only : curve_type
-    use module_domains, only: weighted, force_cubic_domain
+    use module_domains, only: weighted
+    use module_box, only: force_cubic_domain
     use module_mirror_boxes, only: mirror_box_layers, periodicity
+    use module_pepc_types
 
     implicit none
     private
@@ -38,7 +40,7 @@ module module_libpepc_main
     public libpepc_read_parameters
     public libpepc_write_parameters
 
-    namelist /libpepc/ debug_level, periodicity, np_mult, curve_type, force_cubic_domain, weighted, interaction_list_length_factor, mirror_box_layers, num_threads
+    namelist /libpepc/ debug_level, periodicity, np_mult, curve_type, force_cubic_domain, weighted, interaction_list_length_factor, mirror_box_layers, num_threads, idim
 
     contains
 
@@ -69,9 +71,9 @@ module module_libpepc_main
 
     !>
     !> Builds the tree from the given particles, redistributes particles
-    !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
+    !> to other MPI ranks if necessary (i.e. reallocates particles changing size(p))
     !>
-    subroutine libpepc_grow_tree(t, n, p, npl)
+    subroutine libpepc_grow_tree(t, p)
       use module_pepc_types, only: t_particle
       use module_tree, only: t_tree
       use module_tree_grow, only: tree_grow
@@ -81,15 +83,13 @@ module module_libpepc_main
       implicit none
 
       type(t_tree), intent(inout) :: t
-      integer*8, intent(in) :: n !< total number of simulation particles (across all MPI ranks)
       type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
-      integer, optional, intent(in) :: npl !< number of valid entries in p (local particles)
-
-      call tree_grow(t, n, p, npl)
+      
+      call tree_grow(t, p)
       call tree_communicator_start(t)
  
       call pepc_status('AFTER GROW: CALC FORCE')
-      call calc_force_after_grow(p, size(p))
+      call calc_force_after_grow(p)
       ! call pepc_status('AFTER GROW: TRAVERSE')
       call pepc_status('AFTER GROW DONE')
     end subroutine
@@ -170,7 +170,7 @@ module module_libpepc_main
         call timer_start(t_lattice)
         ! add lattice contribution and other per-particle-forces
         ! TODO: do not call calc_force_per_particle here!
-        call calc_force_per_particle(p, size(p))
+        call calc_force_per_particle(p)
         call timer_stop(t_lattice)
         call timer_stop(t_fields_passes)
         call pepc_status('TRAVERSAL DONE')
@@ -180,7 +180,7 @@ module module_libpepc_main
     !>
     !> Restores the initial particle distribution (before calling pepc_grow_tree() ).
     !>
-    subroutine libpepc_restore_particles(t, np_local, particles)
+    subroutine libpepc_restore_particles(t, particles)
         use module_pepc_types, only: t_particle
         use module_timings
         use module_debug, only : pepc_status
@@ -189,7 +189,6 @@ module module_libpepc_main
         implicit none
 
         type(t_tree), intent(inout) :: t
-        integer, intent(inout) :: np_local    !< number of particles on this CPU, i.e. number of particles in particles-array
         type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data on local MPI rank - is replaced by original particle data that was given before calling pepc_grow_tree()
 
         call pepc_status('RESTORE PARTICLES')
@@ -198,8 +197,6 @@ module module_libpepc_main
         call timer_start(t_restore)
         call domain_restore(t%decomposition, particles)
         call timer_stop(t_restore)
-      
-        np_local = size(particles) ! we have got the original particle order again
 
         call pepc_status('RESTORATION DONE')
     end subroutine libpepc_restore_particles

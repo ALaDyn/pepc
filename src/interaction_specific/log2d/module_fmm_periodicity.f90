@@ -154,22 +154,21 @@ module module_fmm_periodicity
         !> has to be called every timestep with particles that were used in tree buildup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine fmm_periodicity_timestep(particles, nparticles)
+        subroutine fmm_periodicity_timestep(particles)
           use module_pepc_types
           use module_mirror_boxes, only: check_lattice_boundaries, do_periodic
           use module_debug
           implicit none
-          integer, intent(in) :: nparticles
           type(t_particle), intent(in) :: particles(:)
 
           if (do_periodic) then
-            if (.not. check_lattice_boundaries(particles, nparticles)) then
+            if (.not. check_lattice_boundaries(particles)) then
               DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
             endif
             
-            call calc_omega_tilde(particles, nparticles)
+            call calc_omega_tilde(particles)
             call calc_mu_cent(omega_tilde, mu_cent)
-            call calc_extrinsic_correction(particles, nparticles)
+            call calc_extrinsic_correction(particles)
           endif
         end subroutine fmm_periodicity_timestep
 
@@ -243,16 +242,16 @@ module module_fmm_periodicity
         !> central box
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_omega_tilde(particles, nparticles)
+        subroutine calc_omega_tilde(particles)
           use module_pepc_types
           use module_mirror_boxes, only: LatticeCenter
           use module_debug
           implicit none
 
           type(t_particle), intent(in) :: particles(:)
-          integer, intent(in) :: nparticles
 
-          integer :: k, p
+          integer :: k
+          integer(kind_particle) :: p
           integer :: ierr
           complex(kfp), parameter :: ic = (zero, one)
           complex(kfp) :: z0
@@ -262,7 +261,7 @@ module module_fmm_periodicity
           omega_tilde = 0
 
           ! calculate multipole contributions of all local particles
-          do p=1,nparticles
+          do p=1,size(particles, kind=kind(p))
             x0 = particles(p)%x - LatticeCenter
             z0 = x0(1) + ic * x0(2)
             qtotal = qtotal + particles(p)%data%q
@@ -304,22 +303,22 @@ module module_fmm_periodicity
         !>  [J. Chem. Phys. 101, 5024, eqn (5)] contains this volume
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_extrinsic_correction(particles, nparticles)
+        subroutine calc_extrinsic_correction(particles)
           use module_debug
           use module_pepc_types
           use module_mirror_boxes, only : unit_box_volume, LatticeCenter
           implicit none
 
           type(t_particle), intent(in) :: particles(:)
-          integer, intent(in) :: nparticles
 
           real(kfp), parameter :: pi = acos(-one)
           real*8 :: r(2)
-          integer :: p, ierr
+          integer(kind_particle) :: p
+          integer(kind_default) :: ierr
 
           if (do_extrinsic_correction) then
             quad_trace = zero
-            do p=1,nparticles
+            do p=1,size(particles, kind=kind(p))
               r = particles(p)%x(1:2) - LatticeCenter(1:2)
               quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
             end do

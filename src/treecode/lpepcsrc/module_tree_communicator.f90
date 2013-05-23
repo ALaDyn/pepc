@@ -45,6 +45,7 @@ module module_tree_communicator
   use module_tree, only: t_request_queue_entry, t_tree_communicator, TREE_COMM_REQUEST_QUEUE_LENGTH, TREE_COMM_ANSWER_BUFF_LENGTH, &
     TREE_COMM_THREAD_STATUS_STOPPED, TREE_COMM_THREAD_STATUS_STARTING, TREE_COMM_THREAD_STATUS_STARTED, &
     TREE_COMM_THREAD_STATUS_STOPPING, TREE_COMM_THREAD_STATUS_WAITING
+  use module_pepc_types
   implicit none
   private
 
@@ -94,11 +95,11 @@ module module_tree_communicator
     implicit none
     include 'mpif.h'
 
-    integer :: msg_size_request, msg_size_data, buffsize, ierr
+    integer(kind_default) :: msg_size_request, msg_size_data, buffsize, ierr
 
     if (.not. allocated(tree_comm_bsend_buffer)) then
       ! compute upper bounds for request and data message size
-      call MPI_PACK_SIZE(1, MPI_INTEGER8, mpi_comm_lpepc, msg_size_request, ierr)
+      call MPI_PACK_SIZE(1, MPI_KIND_KEY, mpi_comm_lpepc, msg_size_request, ierr)
       msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
       call MPI_PACK_SIZE(8, MPI_TYPE_tree_node_package, mpi_comm_lpepc, msg_size_data, ierr)
@@ -120,7 +121,7 @@ module module_tree_communicator
     implicit none
     include 'mpif.h'
 
-    integer :: dummy, buffsize, ierr
+    integer(kind_default) :: dummy, buffsize, ierr
 
     if (allocated(tree_comm_bsend_buffer)) then
       ! free our buffer that was reserved for buffered communication
@@ -146,10 +147,11 @@ module module_tree_communicator
   subroutine tree_communicator_start(t)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_createthread
+    use pthreads_stuff, only: pthreads_createthread, pthreads_sched_yield
     use module_atomic_ops, only: atomic_load_int, atomic_store_int
     use module_debug
     use module_timings
+    use treevars, only: main_thread_processor_id
     implicit none
 
     type(t_tree), target, intent(inout) :: t
@@ -167,6 +169,11 @@ module module_tree_communicator
     tp = c_loc(t)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
     DEBUG_ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp))
+    
+    ! we have to wait here until the communicator has really started to find out its processor id
+    do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STARTED)
+      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+    end do
   end subroutine tree_communicator_start
 
 
@@ -316,7 +323,8 @@ module module_tree_communicator
     include 'mpif.h'
 
     type(t_tree), intent(in) :: t
-    integer :: i, ierr
+    integer(kind_pe) :: i
+    integer(kind_default) :: ierr
 
     ! all PEs have to be informed
     ! TODO: need better idea here...
@@ -342,7 +350,8 @@ module module_tree_communicator
     include 'mpif.h'
 
     type(t_tree), intent(in) :: t
-    integer :: i, ierr
+    integer(kind_pe) :: i
+    integer(kind_default) :: ierr
 
     ! all PEs have to be informed
     ! TODO: need better idea here...
@@ -367,7 +376,7 @@ module module_tree_communicator
     implicit none
 
     type(t_tree), intent(in) :: t
-    integer, intent(in) :: sender
+    integer(kind_pe), intent(in) :: sender
     logical :: ret
 
     DEBUG_INFO('("PE", I6, " has told us to dump our tree and exit now")', sender)
@@ -393,8 +402,8 @@ module module_tree_communicator
     ! PGI issues?
     type(t_tree_node_package), intent(in) :: nodes(:) 
     integer, intent(in) :: numnodes 
-    integer, intent(in) :: adressee 
-    integer :: ierr 
+    integer(kind_pe), intent(in) :: adressee 
+    integer(kind_default) :: ierr 
 
     ! Ship child data back to PE that requested it 
     call MPI_BSEND(nodes, numnodes, MPI_TYPE_tree_node_package, & 
@@ -416,8 +425,8 @@ module module_tree_communicator
     use module_debug
     implicit none
     type(t_tree), intent(inout) :: t
-    integer*8, intent(in) :: key
-    integer, intent(in) :: ipe_sender
+    integer(kind_key), intent(in) :: key
+    integer(kind_pe), intent(in) :: ipe_sender
     
     type(t_tree_node_package) :: children_to_send(8) ! for an octtree, there will never be more than 8 direct children - no need for counting in advance
     integer :: nchild
@@ -464,7 +473,7 @@ module module_tree_communicator
     implicit none
     type(t_tree), intent(inout) :: t
     type(t_request_eager), intent(in) :: request
-    integer, intent(in) :: ipe_sender
+    integer(kind_pe), intent(in) :: ipe_sender
     
     integer(kind_node) :: parent_idx, firstchild
     type(t_tree_node), pointer :: parent
@@ -488,7 +497,7 @@ module module_tree_communicator
     if (tree_node_get_first_child(parent, firstchild)) then
       ! first, we only collect pointers to all children that have to be sent and count them
     
-      allocate(child_nodes(2*parent%leaves)) ! this should be sufficient for completely balanced and unbalanced trees
+      allocate(child_nodes(parent%descendants)) ! enough space to keep all descendants in this array
       
       call eager_collect_traverse(firstchild)
 
@@ -568,7 +577,7 @@ module module_tree_communicator
     type(t_tree), intent(inout) :: t
     type(t_tree_node_package) :: child_data(num_children) !< child data that has been received
     integer :: num_children !< actual number of valid children in dataset
-    integer, intent(in) :: ipe_sender
+    integer(kind_pe), intent(in) :: ipe_sender
 
     integer(kind_node) :: parent_node
     integer :: ic
@@ -715,7 +724,7 @@ module module_tree_communicator
       type(t_request_queue_entry), volatile, intent(inout) :: req
       type(t_comm_env), intent(inout) :: comm_env
 
-      integer :: ierr
+      integer(kind_default) :: ierr
 
       if (.not. btest( req%node%flags_local1, TREE_NODE_FLAG_LOCAL1_REQUEST_SENT ) ) then
         ! send a request to PE req_queue_owners(req_queue_top)
@@ -725,7 +734,7 @@ module module_tree_communicator
           call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager, req%node%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
             comm_env%comm, ierr)
         else
-          call MPI_BSEND(req%request%key, 1, MPI_INTEGER8, req%node%owner, TREE_COMM_TAG_REQUEST_KEY, &
+          call MPI_BSEND(req%request%key, 1, MPI_KIND_KEY, req%node%owner, TREE_COMM_TAG_REQUEST_KEY, &
             comm_env%comm, ierr)
         endif
 
@@ -750,8 +759,8 @@ module module_tree_communicator
   function run_communication_loop(arg) bind(c)
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
-    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread
-    use module_atomic_ops, only: atomic_load_int, atomic_store_int
+    use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread, i_want_to_break_free
+    use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_write_barrier
     use module_debug
     implicit none
     include 'mpif.h'
@@ -763,7 +772,7 @@ module module_tree_communicator
     !integer, intent(in) :: max_particles_per_thread
     integer, dimension(mintag:maxtag) :: nummessages
     integer :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
-    integer :: ierr
+    integer(kind_default) :: ierr
     logical, allocatable :: comm_finished(:) ! will hold information on PE 0 about which processor
                                              ! is still communicating and which ones are finished
                                              ! to emulate a non-blocking barrier
@@ -772,10 +781,16 @@ module module_tree_communicator
     call c_f_pointer(arg, t)
     DEBUG_ASSERT(associated(t))
     
-    ! signal successfull start
-    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTED)
+    if (.not. i_want_to_break_free()) then
+      DEBUG_WARNING_ALL(*, "Could not place communicator on a suitable hardware thread.")
+    end if
+
     ! store ID of comm-thread processor
     t%communicator%processor_id = get_my_core()
+    call atomic_write_barrier()
+
+    ! signal successfull start
+    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTED)
 
     nummessages            = 0
     messages_per_iteration = 0
@@ -856,14 +871,14 @@ module module_tree_communicator
     integer, intent(inout), dimension(mintag:maxtag) :: nummessages
 
     logical :: msg_avail
-    integer :: ierr
+    integer(kind_default) :: ierr
     integer :: stat(MPI_STATUS_SIZE)
     type(t_request_eager) :: request
-    integer*8 :: req_key
+    integer(kind_key) :: req_key
     type (t_tree_node_package), allocatable :: child_data(:) ! child data to be received
     integer :: num_children
-    integer :: ipe_sender, msg_tag
-    integer :: dummy
+    integer(kind_pe) :: ipe_sender
+    integer ::msg_tag
     real*8 :: tcomm
 
     ! probe for incoming messages
@@ -894,7 +909,7 @@ module module_tree_communicator
           case (TREE_COMM_TAG_REQUEST_KEY)
             ! actually receive this request...
             ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-            call MPI_RECV(req_key, 1, MPI_INTEGER8, ipe_sender, TREE_COMM_TAG_REQUEST_KEY, &
+            call MPI_RECV(req_key, 1, MPI_KIND_KEY, ipe_sender, TREE_COMM_TAG_REQUEST_KEY, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
             ! ... and answer it
             call answer_request_simple(t, req_key, ipe_sender)
@@ -924,7 +939,7 @@ module module_tree_communicator
           case (TREE_COMM_TAG_FINISHED_PE)
             ! actually receive the data (however, we are not interested in it here)
             ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-            call MPI_RECV(dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_PE, &
+            call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_PE, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
 
             DEBUG_ASSERT_MSG(t%comm_env%rank == 0, *, "this kind of message is only expected at rank 0!")
@@ -950,7 +965,7 @@ module module_tree_communicator
 
           ! all PEs have finished their walk
           case (TREE_COMM_TAG_FINISHED_ALL)
-            call MPI_RECV( dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_ALL, &
+            call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_ALL, &
                         t%comm_env%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
 
             if (tree_comm_debug) then
@@ -962,7 +977,7 @@ module module_tree_communicator
           ! on some rank something went wrong - we shall dump our tree  
           case (TREE_COMM_TAG_DUMP_TREE_AND_ABORT)
             
-            call MPI_RECV( dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_DUMP_TREE_AND_ABORT, &
+            call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_DUMP_TREE_AND_ABORT, &
                         t%comm_env%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
 
             if (tree_comm_debug) then

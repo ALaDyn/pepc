@@ -40,6 +40,7 @@ program pepcv
   use pfasst_helper_module
   use pfasst_calc_module
   use pfasst_run_module
+  use module_pepc_types
   implicit none
 
   integer :: i, ierr
@@ -63,7 +64,7 @@ program pepcv
   ! Set up particles
   call special_start()
 
-  call pepc_prepare(3)
+  call pepc_prepare(3_kind_dim)
 
   call init_pfasst(vortex_particles(1:np),np)
 

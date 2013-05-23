@@ -86,7 +86,7 @@ module variables
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
-  integer                       :: next_label
+  integer(kind_particle)        :: next_label
 
   !variables for reflux in every 2nd timestep
   integer                        :: new_e_r_last_ts=0

@@ -1,5 +1,5 @@
 MOD_UNLOAD = intel parastation
-MOD_LOAD   = pgi/12.10 mvapich2
+MOD_LOAD   = pgi mvapich2
 
 HELP = "\
 \# Makefile for JuHYDTA using PGI compilers\n\
@@ -9,7 +9,7 @@ module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 
 MACH     = JUHYDRA_pgi
 
-DEBUG    = 1
+DEBUG    = 0
 
 RANLIB   = ranlib
 
@@ -19,7 +19,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" -DLEAFY
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" -DLEAFY -D__OPENACC
 
 IN = -Mipa
 INLINING = -Minline -fast

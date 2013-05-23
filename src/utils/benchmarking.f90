@@ -46,8 +46,6 @@ module benchmarking
   
 contains
 
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> routine for selecting particles that are used for diagnostic output
   !> for given input idx=1:NUM_DIAG_PARTICLES, it returns a particle number from
@@ -55,7 +53,6 @@ contains
   !> the number of particles can be adjusted by modifying the constants
   !> NUM_PARTICLES_FRONT, NUM_PARTICLES_MID, and NUM_PARTICLES_BACK
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   function diagnostic_particle(idx)
     use physvars
     implicit none
@@ -75,13 +72,9 @@ contains
                     diagnostic_particle = npart_total-(NUM_DIAG_PARTICLES-idx)
       end select
     end if
-
   end function
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !>
-  !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   subroutine gather_particle_diag()
     use physvars
     implicit none
@@ -145,8 +138,6 @@ contains
        diag_props(i,:) = diag_props_buf(:)
 
     end do
-
-
   end subroutine gather_particle_diag
 
 
@@ -155,17 +146,14 @@ contains
 
     call dump_trajectory()
     call dump_fields()
-
   end subroutine benchmarking_dump_diagnostics
 
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> output of position of selected particles to file trajectory.dat
   !> for diagnostic purposes.
   !> should only be called once per simulation run
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine dump_trajectory()
     use physvars
     implicit none
@@ -184,17 +172,14 @@ contains
        
     end do
     close(91)
-    
   end subroutine dump_trajectory
 
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> output of charge, potential and electric field to file fielddump.dat
   !> for diagnostic purposes.
   !> should only be called once per simulation run
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine dump_fields()
     use physvars
     use module_fmm_framework
@@ -214,16 +199,13 @@ contains
        write(91,'(i12,5e20.12)') p, diag_props(i,7), diag_props(i,9:12)
     end do
     close(91)
-
   end subroutine dump_fields
 
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !>
   !> output of number of interactions of selected particles and in total
   !> into file num_interactions.dat for diagnostic purposes.
   !>
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine dump_num_interactions()
     use physvars
     implicit none
@@ -241,13 +223,10 @@ contains
 
     write(91,*) itime, int(sum(work)), ( int(work(diagnostic_particle(i))), i=1,NUM_DIAG_PARTICLES )
     close(91)
-
   end subroutine dump_num_interactions
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
   subroutine benchmark_pre
-
     use physvars
     implicit none
 
@@ -256,13 +235,10 @@ contains
     if(my_rank == 0) write(*,*) "benchmarking: pre"
 
     time_start = MPI_WTIME()
-    
   end subroutine benchmark_pre
   
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine benchmark_inner
-    
     use physvars
     implicit none
     
@@ -296,13 +272,10 @@ contains
     !  ------------------ PAPI ------------------
     
     time_pre = MPI_WTIME()
-    
   end subroutine benchmark_inner
   
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
   subroutine benchmark_post
-    
     use physvars
     implicit none
 
@@ -337,12 +310,10 @@ contains
     
 #endif
     !  ------------------ PAPI ------------------
-    
   end subroutine benchmark_post
   
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine benchmark_end
 
+  subroutine benchmark_end
     use physvars
     implicit none
 
@@ -358,8 +329,5 @@ contains
        write(*,*) "pepc timing - post: ", time_post - time_inner
        write(*,*) "pepc timing - total: ", time_post - time_start
     end if
-
   end subroutine benchmark_end
-  
-  
 end module benchmarking

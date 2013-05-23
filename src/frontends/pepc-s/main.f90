@@ -71,7 +71,7 @@ program pepcs
           q(  ip) = 0.13
      end do
 
-     call pepc(nparts, nparts, nparts_total,    &
+     call pepc(nparts, nparts,    &
                  xyz, q, field, pot, virial,    &
                  lx, ly, lz, lperiod, extrcorr, &
                  eps, theta, db_level)

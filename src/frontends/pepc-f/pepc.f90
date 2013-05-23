@@ -74,6 +74,10 @@ program pepc
     call init_boundaries()
     call init_source()
 
+    call init_rng()
+    call init_periodicity()
+    call pepc_prepare(3_kind_dim)
+
     if (do_resume)then
         call init_after_resume()
     else
@@ -87,11 +91,13 @@ program pepc
     if (interaction_partner_diags) call init_probes(5)
 
     !get initial field configuration
-    call pepc_particleresults_clear(particles, np)
-    call pepc_grow_tree(np, tnp, particles)
-    call pepc_traverse_tree(np, particles)
+    call pepc_particleresults_clear(particles)
+    call pepc_grow_tree(particles)
+    np = size(particles, kind=kind(np))
+    call pepc_traverse_tree(particles)
     if (diags) call pepc_tree_diagnostics()
-    if (do_restore_particles) call pepc_restore_particles(np, particles)
+    if (do_restore_particles) call pepc_restore_particles(particles)
+    np = size(particles, kind=kind(np))
     call pepc_timber_tree()
 
 
@@ -125,22 +131,29 @@ program pepc
 
 
         !pepc routines and timing"        
-        call pepc_particleresults_clear(particles, np)
+        call pepc_particleresults_clear(particles)
         if(root) write(*,'(a)') " == [main loop] grow tree"
-        call pepc_grow_tree(np, tnp, particles)
+        call pepc_grow_tree(particles)
+        np = size(particles, kind=kind(np))
         timer(6)=get_time() !6-5: grow_tree
 
         if(root) write(*,'(a)') " == [main loop] traverse tree"
-        call pepc_traverse_tree(np, particles)
+        call pepc_traverse_tree(particles)
         timer(7)=get_time() !7-6: traverse_tree
 
         if (diags) call pepc_tree_diagnostics()
-        if (do_restore_particles) call pepc_restore_particles(np, particles)
+        if (do_restore_particles) call pepc_restore_particles(particles)
+        np = size(particles, kind=kind(np))
         if (interaction_partner_diags) call get_interaction_partners(5)
+        timer(8)=get_time()
+
         if(root) write(*,'(a)') " == [main loop] timber tree"
         call pepc_timber_tree()
+        timer(9)=get_time() !9-8: timber
+
         if (diags) call timings_GatherAndOutput(step)
-        timer(8)=get_time() !8-7: timber+diag
+        timer(10)=get_time() !10-9 + 8-7: diag
+
 
 
         !diagnostics and checkpoints (positions and fields after current timestep)
@@ -154,22 +167,22 @@ program pepc
                 call write_particles(particles)
             end if
         end if
-        timer(9)=get_time()
-
-
 
         call main_output(out)
+        timer(11)=get_time()
+
         !output for root
         if(root) then
             write(*,*) " "
             write(*,'(a,i12)')    " ====== finished computing step  : ", step
             write(*,'(a,es12.4)') " ====== simulation time          : ", step * dt
-            write(*,'(a,es12.4)') " ====== run time                 : ", timer(3)-timer(1)
+            write(*,'(a,es12.4)') " ====== run time                 : ", timer(11)-timer(1)
             write(*,*) " "
             write(*,'(a)') " ================================================================================== "
             write(*,*) " "
             write(*,*) " "
-            call timing_output(timer(4) - timer(3),timer(5) - timer(4),timer(6) - timer(5),timer(7) - timer(6),timer(8) - timer(7),timer(9) - timer(8),out)
+            call timing_output(timer(4)-timer(3), timer(5)-timer(4), timer(6)-timer(5), timer(7)-timer(6),&
+                               timer(10)-timer(9)+timer(8)-timer(7), timer(9)-timer(8), timer(11)-timer(10), out)
             call end_of_ts_output(step,out)
 
         end if

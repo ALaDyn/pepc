@@ -26,3 +26,8 @@ tutorial/data/*
 tutorial/dumps/*
 tutorial/fields/*
 #pepc-b/config_private.h
+runs
+makefile.defs
+.excludes
+.project
+.settings

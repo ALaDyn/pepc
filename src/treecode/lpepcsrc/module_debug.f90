@@ -22,6 +22,7 @@
 !>  Encapsulates some debugging and i/o specific routines
 !>
 module module_debug
+     use module_pepc_types
      implicit none
      save
      private
@@ -95,7 +96,7 @@ module module_debug
        include 'mpif.h'
 
        character(MPI_MAX_PROCESSOR_NAME) :: procname
-       integer :: resultlen, ierr
+       integer(kind_default) :: resultlen, ierr
 
        debug_my_rank = me
        call MPI_GET_PROCESSOR_NAME( procname, resultlen, ierr )
@@ -151,7 +152,7 @@ module module_debug
        use treevars, only : MPI_COMM_lpepc
        implicit none
        include 'mpif.h'
-       integer :: ierr
+       integer(kind_default) :: ierr
 
        call MPI_ABORT(MPI_COMM_lpepc, 1, ierr)
      end subroutine
@@ -164,7 +165,7 @@ module module_debug
        use treevars, only : MPI_COMM_lpepc
        implicit none
        include 'mpif.h'
-       integer :: ierr
+       integer(kind_default) :: ierr
 
        call MPI_BARRIER(MPI_COMM_lpepc, ierr)
      end subroutine

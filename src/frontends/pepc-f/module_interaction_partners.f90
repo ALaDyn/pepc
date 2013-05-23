@@ -67,7 +67,7 @@ module module_interaction_partners
           help_num_of_probes=0
       end if
       force_law=6
-      call pepc_traverse_tree(help_num_of_probes, probe_particles)
+      call pepc_traverse_tree(probe_particles(1:help_num_of_probes))
       force_law=3
       do i=1,help_num_of_probes
           call write_interaction_partners_to_vtk(step, i,0.0_8, -1)

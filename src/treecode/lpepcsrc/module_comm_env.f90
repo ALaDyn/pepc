@@ -23,6 +23,7 @@
 !> associated procedures.
 !>
 module module_comm_env
+  use module_pepc_types
   implicit none
   private
 
@@ -30,9 +31,9 @@ module module_comm_env
   !> Derived type representing a communication environment.
   !>
   type, public :: t_comm_env
-    integer :: comm !< an MPI communicator
-    integer :: size !< size of the communicator
-    integer :: rank !< rank within the communicator
+    integer(kind_default) :: comm !< an MPI communicator
+    integer(kind_pe) :: size !< size of the communicator
+    integer(kind_pe) :: rank !< rank within the communicator
     logical :: first !< whether this process is the first process
     logical :: last !< whether this process is the last process
   end type t_comm_env
@@ -65,11 +66,11 @@ module module_comm_env
 
     integer, intent(in) :: comm !< the MPI communicator used for communication
     type(t_comm_env), intent(out) :: c !< the communication environment to initialize
-    integer :: ierr
+    integer(kind_default) :: ierr
 
     c%comm = comm
-    call mpi_comm_size(c%comm, c%size, ierr)
-    call mpi_comm_rank(c%comm, c%rank, ierr)
+    call MPI_COMM_SIZE(c%comm, c%size, ierr)
+    call MPI_COMM_RANK(c%comm, c%rank, ierr)
     c%first = c%rank == 0
     c%last = c%rank == (c%size - 1)
   end subroutine comm_env_mirror_from_mpi
@@ -99,7 +100,7 @@ module module_comm_env
     integer, intent(in) :: comm
     type(t_comm_env), intent(out) :: c
 
-    integer :: cdup, ierr
+    integer(kind_default) :: cdup, ierr
 
     call mpi_comm_dup(comm, cdup, ierr)
     call comm_env_mirror_from_mpi(cdup, c)
@@ -131,7 +132,7 @@ module module_comm_env
     include 'mpif.h'
 
     type(t_comm_env), intent(inout) :: c !< environment to destroy
-    integer :: ierr
+    integer(kind_default) :: ierr
     
     call mpi_comm_free(c%comm, ierr)
     c%size = 0

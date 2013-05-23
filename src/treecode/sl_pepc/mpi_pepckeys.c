@@ -12,10 +12,6 @@
 typedef pepckeys_slint_t slint_t;
 #define slint_fmt pepckeys_sl_int_type_fmt
 
-typedef FINT_TYPE_C finteger_t;
-#define finteger_mpi  FINT_TYPE_MPI
-#define finteger_fmt  FINT_TYPE_FMT
-
 /*#define MAX_IMBALANCE  0.01*/
 
 #define PART_MINMAX
@@ -55,23 +51,23 @@ typedef FINT_TYPE_C finteger_t;
 #endif
 
 
-void receive_stats(finteger_t nmax, int *scounts, int *sdispls, int *rcounts, int *rdispls, pepckeys_sldata0_t *work, int size, int rank, MPI_Comm comm);
+void receive_stats(pepckeys_sl_globalcount_t nmax, int *scounts, int *sdispls, int *rcounts, int *rdispls, pepckeys_sldata0_t *work, int size, int rank, MPI_Comm comm);
 void border_stats(slint_t nkeys, pepckeys_slkey_t *keys, int size, int rank, MPI_Comm comm);
 
 
-void slsort_keys(finteger_t *nin,                                       /* IN */
-                 finteger_t *nmax,                                      /* IN */
-                 pepckeys_slkey_t *keys,                                /* INOUT */
-                 pepckeys_sldata0_t *work,                              /* INOUT */
-                 finteger_t *balance_weight,                            /* IN */
-                 double *max_imbalance,                                 /* IN */
-                 finteger_t *nout,                                      /* OUT */
-                 finteger_t *indxl, finteger_t *irnkl,                  /* OUT */
-                 finteger_t *fscounts, finteger_t *frcounts,            /* OUT */
-                 finteger_t *fsdispls, finteger_t *frdispls,            /* OUT */
-                 pepckeys_slkey_t *keys2,                               /* SCRATCH */
-                 finteger_t *irnkl2,                                    /* SCRATCH */
-                 finteger_t *fsize, finteger_t *frank, MPI_Fint *fcomm) /* IN */
+void slsort_keys(pepckeys_sl_globalcount_t *nin,                             /* IN */
+                 pepckeys_sl_globalcount_t *nmax,                            /* IN */
+                 pepckeys_slkey_t *keys,                                     /* INOUT */
+                 pepckeys_sldata0_t *work,                                   /* INOUT */
+                 pepckeys_slindex_t *balance_weight,                         /* IN */
+                 pepckeys_sldata0_t *max_imbalance,                          /* IN */
+                 pepckeys_sl_globalcount_t *nout,                            /* OUT */
+                 pepckeys_slindex_t *indxl, pepckeys_slindex_t *irnkl,       /* OUT */
+                 pepckeys_slindex_t *fscounts, pepckeys_slindex_t *frcounts, /* OUT */
+                 pepckeys_slindex_t *fsdispls, pepckeys_slindex_t *frdispls, /* OUT */
+                 pepckeys_slkey_t *keys2,                                    /* SCRATCH */
+                 pepckeys_slindex_t *irnkl2,                                 /* SCRATCH */
+                 MPI_Fint *fsize, MPI_Fint *frank, MPI_Fint *fcomm)          /* IN */
 {
   int size = *fsize;
   int rank = *frank;
@@ -141,7 +137,7 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
   printf("%d:  balance_weight: %" finteger_fmt "\n", rank, *balance_weight);
   printf("%d:  max_imbalance: %f\n", rank, *max_imbalance);
 
-  printf("%d:  sizeof(integer) = %d\n", rank, (int) sizeof(finteger_t));
+  printf("%d:  sizeof(integer) = %d\n", rank, (int) sizeof(FINT_TYPE_C));
   printf("%d:  sizeof(integer*8) = %d\n", rank, (int) sizeof(FINT8_TYPE_C));
   printf("%d:  sizeof(pepckeys_key) = %d\n", rank, (int) sizeof(pepckeys_slkey_t));
   printf("%d:  sizeof(pepckeys_index) = %d\n", rank, (int) sizeof(pepckeys_slindex_t));
@@ -393,19 +389,19 @@ void slsort_keys(finteger_t *nin,                                       /* IN */
 }
 
 
-void slsort_keys_(finteger_t *nin,                                       /* IN */
-                  finteger_t *nmax,                                      /* IN */
-                  pepckeys_slkey_t *keys,                                /* INOUT */
-                  pepckeys_sldata0_t *work,                              /* INOUT */
-                  finteger_t *balance_weight,                            /* IN */
-                  double *max_imbalance,                                 /* IN */
-                  finteger_t *nout,                                      /* OUT */
-                  finteger_t *indxl, finteger_t *irnkl,                  /* OUT */
-                  finteger_t *fscounts, finteger_t *frcounts,            /* OUT */
-                  finteger_t *fsdispls, finteger_t *frdispls,            /* OUT */
-                  pepckeys_slkey_t *keys2,                               /* SCRATCH */
-                  finteger_t *irnkl2,                                    /* SCRATCH */
-                  finteger_t *fsize, finteger_t *frank, MPI_Fint* fcomm) /* IN */
+void slsort_keys_(pepckeys_sl_globalcount_t *nin,                            /* IN */
+                 pepckeys_sl_globalcount_t *nmax,                            /* IN */
+                 pepckeys_slkey_t *keys,                                     /* INOUT */
+                 pepckeys_sldata0_t *work,                                   /* INOUT */
+                 pepckeys_slindex_t *balance_weight,                         /* IN */
+                 pepckeys_sldata0_t *max_imbalance,                          /* IN */
+                 pepckeys_sl_globalcount_t *nout,                            /* OUT */
+                 pepckeys_slindex_t *indxl, pepckeys_slindex_t *irnkl,       /* OUT */
+                 pepckeys_slindex_t *fscounts, pepckeys_slindex_t *frcounts, /* OUT */
+                 pepckeys_slindex_t *fsdispls, pepckeys_slindex_t *frdispls, /* OUT */
+                 pepckeys_slkey_t *keys2,                                    /* SCRATCH */
+                 pepckeys_slindex_t *irnkl2,                                 /* SCRATCH */
+                 MPI_Fint *fsize, MPI_Fint *frank, MPI_Fint *fcomm)          /* IN */
 {
   slsort_keys(nin, nmax, keys, work, balance_weight, max_imbalance, nout, indxl, irnkl, fscounts, frcounts, fsdispls, frdispls, keys2, irnkl2, fsize, frank, fcomm);
 }

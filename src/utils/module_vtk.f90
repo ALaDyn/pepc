@@ -18,11 +18,6 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!>
-!>  Encapsulates ...
-!>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_vtk
       use module_base64
       implicit none
@@ -60,12 +55,6 @@ module module_vtk
 #else
       logical, parameter :: bigendian = .false.
 #endif
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       type vtkfile
         private
@@ -106,6 +95,7 @@ module module_vtk
           procedure :: write_data_array_Int8_3  => vtkfile_write_data_array_Int8_3
 
           procedure :: write_data_Int4_1        => vtkfile_write_data_Int4_1
+          procedure :: write_data_Int8_1        => vtkfile_write_data_Int8_1
 
           generic :: write_data_array => write_data_array_Real4_1, & ! name, one-dim real*4, number of entries
                                             write_data_array_Real4_3,  & ! name, three-dim real*4 as three separate arrays, number of entries
@@ -117,7 +107,8 @@ module module_vtk
                                             write_data_array_Int4_3,   &
                                             write_data_array_Int8_1,   &
                                             write_data_array_Int8_3,   &
-                                            write_data_Int4_1
+                                            write_data_Int4_1, &
+                                            write_data_Int8_1
           procedure :: startpointdata => vtkfile_startpointdata
           procedure :: finishpointdata => vtkfile_finishpointdata
           procedure :: startcelldata => vtkfile_startcelldata
@@ -129,7 +120,10 @@ module module_vtk
         contains
           procedure :: create => vtkfile_unstructured_grid_create ! filename
           procedure :: create_parallel => vtkfile_unstructured_grid_create_parallel ! filename, mpi_comm, rank, num_pe --> rank 0 writes .pvtX-file
-          procedure :: write_headers => vtkfile_unstructured_grid_write_headers ! number of particles, writes anything incl. <Piece>
+          procedure :: write_headers4 => vtkfile_unstructured_grid_write_headers
+          procedure :: write_headers8 => vtkfile_unstructured_grid_write_headers8 
+          generic :: write_headers => write_headers4, write_headers8 ! number of particles, writes anything incl. <Piece>
+                                        
           procedure :: startpoints => vtkfile_unstructured_grid_startpoints
           procedure :: finishpoints => vtkfile_unstructured_grid_finishpoints
           procedure :: startcells => vtkfile_unstructured_grid_startcells
@@ -150,20 +144,7 @@ module module_vtk
           procedure :: write_final => vtkfile_rectilinear_grid_write_final
       end type vtkfile_rectilinear_grid
 
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
       character(*), private, parameter :: subfolder = subfolder_collections//subfolder_vtk
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       contains
 
@@ -251,7 +232,6 @@ module module_vtk
        integer, intent(in) :: comm
 
        vtk%communicator = comm
-
      end subroutine vtkfile_set_communicator
 
 
@@ -275,7 +255,7 @@ module module_vtk
      end subroutine
 
 
-     subroutine vtkfile_write_data_array_Real4_1(vtk, name, ndata, data)
+     subroutine vtkfile_write_data_array_Real4_1(vtk, name, data)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
@@ -284,6 +264,8 @@ module module_vtk
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Float32")
+        
+        ndata = size(data, kind=kind(ndata))
 
         if (vtk%binary) then
           numbytes = ndata*1*4
@@ -304,7 +286,7 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Real4_1
 
 
-     subroutine vtkfile_write_data_array_Real4_3(vtk, name, ndata, data1, data2, data3)
+     subroutine vtkfile_write_data_array_Real4_3(vtk, name, data1, data2, data3)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
@@ -313,6 +295,8 @@ module module_vtk
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 3, "Float32")
+
+        ndata = size(data1, kind=kind(ndata))
 
         if (vtk%binary) then
           numbytes = ndata*3*4
@@ -335,7 +319,7 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Real4_3
 
 
-     subroutine vtkfile_write_data_array_Real8_1(vtk, name, ndata, data)
+     subroutine vtkfile_write_data_array_Real8_1(vtk, name, data)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
@@ -344,6 +328,8 @@ module module_vtk
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Float64")
+
+        ndata = size(data, kind=kind(ndata))
 
         if (vtk%binary) then
           numbytes = ndata*1*8
@@ -364,7 +350,7 @@ module module_vtk
       end subroutine vtkfile_write_data_array_Real8_1
 
 
-     subroutine vtkfile_write_data_array_Real8_3(vtk, name, ndata, data1, data2, data3)
+     subroutine vtkfile_write_data_array_Real8_3(vtk, name, data1, data2, data3)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
@@ -373,6 +359,8 @@ module module_vtk
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 3, "Float64")
+
+        ndata = size(data1, kind=kind(ndata))
 
         if (vtk%binary) then
           numbytes = ndata*3*8
@@ -471,7 +459,7 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Real8_3_field3
 
 
-     subroutine vtkfile_write_data_array_Int4_1(vtk, name, ndata, data)
+     subroutine vtkfile_write_data_array_Int4_1(vtk, name, data)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
@@ -480,6 +468,8 @@ module module_vtk
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Int32")
+
+        ndata = size(data, kind=kind(ndata))
 
         if (vtk%binary) then
           numbytes = ndata*1*4
@@ -524,7 +514,31 @@ module module_vtk
      end subroutine vtkfile_write_data_Int4_1
 
 
-     subroutine vtkfile_write_data_array_Int4_3(vtk, name, ndata, data1, data2, data3)
+     subroutine vtkfile_write_data_Int8_1(vtk, name, data)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer*8 :: data
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 1, "Int64")
+
+        if (vtk%binary) then
+          numbytes = 1*8
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(data)
+          call base64%finish()
+        else
+          write(vtk%filehandle, '(I20)') data
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_Int8_1
+
+
+     subroutine vtkfile_write_data_array_Int4_3(vtk, name, data1, data2, data3)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
@@ -533,6 +547,8 @@ module module_vtk
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 3, "Int32")
+
+        ndata = size(data1, kind=kind(ndata))
 
         if (vtk%binary) then
           numbytes = ndata*3*4
@@ -555,7 +571,7 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Int4_3
 
 
-     subroutine vtkfile_write_data_array_Int8_1(vtk, name, ndata, data)
+     subroutine vtkfile_write_data_array_Int8_1(vtk, name, data)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
@@ -564,6 +580,8 @@ module module_vtk
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Int64")
+
+        ndata = size(data, kind=kind(ndata))
 
         if (vtk%binary) then
           numbytes = ndata*1*8
@@ -584,7 +602,7 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Int8_1
 
 
-     subroutine vtkfile_write_data_array_Int8_3(vtk, name, ndata, data1, data2, data3)
+     subroutine vtkfile_write_data_array_Int8_3(vtk, name, data1, data2, data3)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
@@ -593,6 +611,8 @@ module module_vtk
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 3, "Int64")
+
+        ndata = size(data1, kind=kind(ndata))
 
         if (vtk%binary) then
           numbytes = ndata*3*8
@@ -693,6 +713,22 @@ module module_vtk
           write(vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
         endif
      end subroutine vtkfile_unstructured_grid_write_headers
+
+
+     subroutine vtkfile_unstructured_grid_write_headers8(vtk, npart, ncell)
+        implicit none
+        class(vtkfile_unstructured_grid) :: vtk
+        integer*8 :: npart, ncell
+
+        write(vtk%filehandle, '("<VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+        write(vtk%filehandle, '("<UnstructuredGrid GhostLevel=""0"">")')
+        write(vtk%filehandle, '("<Piece NumberOfPoints=""", I0, """ NumberOfCells=""", I0, """>")') npart, ncell
+
+        if (vtk%my_rank == 0) then
+          write(vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+          write(vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
+        endif
+     end subroutine vtkfile_unstructured_grid_write_headers8
 
 
      subroutine vtkfile_unstructured_grid_dont_write_cells(vtk)
@@ -879,6 +915,4 @@ module module_vtk
         write(vtk%filehandle, '("</Coordinates>")')
         if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PCoordinates>")')
      end subroutine vtkfile_rectilinear_grid_finishcoordinates
-
-
 end module module_vtk

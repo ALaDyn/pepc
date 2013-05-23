@@ -64,9 +64,10 @@ module module_particle_setup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine update_particle_numbers(total_particles)
+          use module_pepc_types
           implicit none
-          integer, intent(in) :: total_particles
-          integer :: tmp
+          integer(kind_particle), intent(in) :: total_particles
+          integer(kind_particle) :: tmp
 
           ! we want the total particle number to be divisible by Zion+1
           ni          = floor(total_particles / (Zion + 1.))
@@ -78,7 +79,7 @@ module module_particle_setup
           ! distributed pairwise
           tmp = (ni / n_cpu)
 
-          if (((tmp * n_cpu) .ne. ni) .and. (mod(ni, n_cpu) > my_rank)) then
+          if (((tmp * n_cpu) .ne. ni) .and. (mod(ni, int(n_cpu, kind=kind_particle)) > my_rank)) then
               tmp = tmp + 1
           endif
 
@@ -125,8 +126,9 @@ module module_particle_setup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine rescale_coordinates_cuboid()
+          use module_pepc_types
           implicit none
-          integer :: i
+          integer(kind_particle) :: i
           real*8 :: bb(3)
 
           bb = [x_plasma, y_plasma, z_plasma]
@@ -173,6 +175,7 @@ module module_particle_setup
           use module_icosahedron
           use module_velocity_setup
           use module_diagnostics
+          use module_pepc_types
           implicit none
           include 'mpif.h'
           integer, intent(in) :: iconf
@@ -247,7 +250,7 @@ module module_particle_setup
               call init_fields_zero()
 
             case(7)
-              call update_particle_numbers((nint((npart_total/8)**(1./3.))**3)*8)
+              call update_particle_numbers((nint((npart_total/8)**(1./3.),kind_particle)**3)*8)
 
               if (my_rank == 0) then
                 write(*,*) "Using special start... case 7 (3D Madelung Setup)"
@@ -256,11 +259,11 @@ module module_particle_setup
 
               call particle_setup_madelung(0)
               !call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1_kind_particle,np_local)
               call init_fields_zero()
 
             case(71)
-              call update_particle_numbers((nint((npart_total/8)**(1./3.))**3)*8)
+              call update_particle_numbers((nint((npart_total/8)**(1./3.),kind_particle)**3)*8)
 
               if (my_rank == 0) then
                 write(*,*) "Using special start... case 7 (3D Madelung Dipole Setup)"
@@ -269,11 +272,11 @@ module module_particle_setup
 
               call particle_setup_madelung(1)
               !call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1_kind_particle,np_local)
               call init_fields_zero()
 
             case(72)
-              call update_particle_numbers((nint((npart_total/8)**(1./3.))**3)*8)
+              call update_particle_numbers((nint((npart_total/8)**(1./3.),kind_particle)**3)*8)
 
               if (my_rank == 0) then
                 write(*,*) "Using special start... case 7 (3D Madelung Monocharged Setup)"
@@ -282,7 +285,7 @@ module module_particle_setup
 
               call particle_setup_madelung(2)
               !call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1_kind_particle,np_local)
               call init_fields_zero()
 
             case(8)
@@ -293,7 +296,7 @@ module module_particle_setup
               call init_fields_zero()
 
             case(12)
-              npart_total   = get_nextlower_particles(npart_total/2)*2
+              npart_total   = get_nextlower_particles(int(npart_total/2))*2
 
               call update_particle_numbers(npart_total)
               if (my_rank == 0) then
@@ -321,7 +324,7 @@ module module_particle_setup
 
               call particle_setup_ionlattice()
               call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1_kind_particle,np_local)
               call init_fields_zero()
 
             case(14)
@@ -766,13 +769,14 @@ module module_particle_setup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine particle_setup_icosahedron(fences)
+          use module_pepc_types
           use module_units
           use module_icosahedron
           use physvars, only : particle_shift
           implicit none
           integer, intent(in) :: fences(-1:n_cpu-1)
           integer :: currlayer, particletype
-          integer :: p
+          integer(kind_particle) :: p
           real*8 :: r(3), xt, yt, zt
 
              ! "random" initialization of par_rand
@@ -780,7 +784,7 @@ module module_particle_setup
 
              do p=1,np_local/2
                ! get particle position inside the cluster
-               r = get_particle(p + fences(my_rank-1)/2-1, currlayer, particletype)
+               r = get_particle(int(p) + fences(my_rank-1)/2-1, currlayer, particletype)
 
                ! put an ion there
                particles(np_local-p+1)%x(1)   = r(1)
@@ -828,8 +832,9 @@ module module_particle_setup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine particle_setup_ionlattice()
+          use module_pepc_types
           implicit none
-          integer :: n, i, j, k
+          integer(kind_particle) :: n, i, j, k
           real*8 :: delta(3)
           integer :: globalidx, myidx
 
@@ -903,13 +908,14 @@ module module_particle_setup
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine init_generic(fences)
           use module_velocity_setup
-	  use module_units
+          use module_units
+          use module_pepc_types
           implicit none
           integer, intent(in) :: fences(-1:n_cpu-1)
-          integer :: nep, nip
-          integer :: i
+          integer(kind_particle) :: nep, nip
+          integer(kind_particle) :: i
           real*8, dimension(1:np_local) :: tmp1, tmp2, tmp3
-	  real*8 :: vte_real, vti_real
+          real*8 :: vte_real, vti_real
 
           ! electrons and ions are distributed pairwise onto the mpi ranks
           nep = np_local / 2
@@ -923,17 +929,17 @@ module module_particle_setup
           particles(2:np_local:2)%label     =  fences(my_rank-1) + (/(i, i = 1, nep)/)      ! Ion labels
 
           vte_real = vte
-	  if (Te_initial_eV > 0.) vte_real = sqrt(3.*unit_kB*Te_initial_eV/unit_Ryd_in_eV/mass_e)
-	  vti_real = vti
-	  if (Ti_initial_eV > 0.) vti_real = sqrt(3.*unit_kB*Ti_initial_eV/unit_Ryd_in_eV/mass_i)
+          if (Te_initial_eV > 0.) vte_real = sqrt(3.*unit_kB*Te_initial_eV/unit_Ryd_in_eV/mass_e)
+          vti_real = vti
+          if (Ti_initial_eV > 0.) vti_real = sqrt(3.*unit_kB*Ti_initial_eV/unit_Ryd_in_eV/mass_i)
 
           if (my_rank==0) write(*,*) 'INIT_GENERIC: Initializing particle velocities to vte =',vte_real,' vti =',vti_real
 
           ! The following routines distribute their results to array slices
           if (vte_real > 0) then
-             call maxwell3(tmp1,tmp2,tmp3,np_local,1,nep,vte_real)
+             call maxwell3(tmp1,tmp2,tmp3,np_local,1_kind_particle,nep,vte_real)
           else
-             call cold_start(tmp1,tmp2,tmp3,np_local,1,nep)
+             call cold_start(tmp1,tmp2,tmp3,np_local,1_kind_particle,nep)
           endif
 
           if (vti_real > 0) then
@@ -962,8 +968,9 @@ module module_particle_setup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine init_fields_zero()
+          use module_pepc_types
           implicit none
-          integer :: p
+          integer(kind_particle) :: p
 
           do p=1,np_local
             particles(p)%data%b(1:3)    = 0.

@@ -46,7 +46,7 @@ module module_box
   !>
   subroutine box_create(b, p, c)
     use module_comm_env, only: t_comm_env
-    use module_pepc_types, only: t_particle
+    use module_pepc_types
     use module_debug
     implicit none
     include 'mpif.h'
@@ -55,7 +55,7 @@ module module_box
     type(t_particle), intent(in) :: p(:) !< particles to embed in the bounding box
     type(t_comm_env), intent(in) :: c !< communication environment
 
-    integer :: ierr
+    integer(kind_default) :: ierr
     real*8 :: min_local(3), max_local(3)
 
     ! Find limits of local simulation region

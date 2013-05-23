@@ -22,20 +22,21 @@
 !>  Encapsulates all global variables for lpepc
 !>
 module treevars
+  use module_pepc_types
   implicit none
 
   ! I/O units
   integer, parameter :: stats_u = 60 !< statistics
 
   !  Associated parallelization stuff
-  integer :: me       !< Rank of current task
-  integer :: num_pe   !< # cpus used by program
-  integer :: MPI_COMM_lpepc !< communicator that has been supplied to or created by pepc_initialize
+  integer(kind_pe) :: me       !< Rank of current task
+  integer(kind_pe) :: num_pe   !< # cpus used by program
+  integer(kind_default) :: MPI_COMM_lpepc !< communicator that has been supplied to or created by pepc_initialize
   integer :: num_threads = 3 !< number of threads to be used for hybrid parallelization (Pthreads, OpenMP, etc.), for compatibility, we set it to num_walk_threads in tree_walk_read_parameters() for now
   integer :: main_thread_processor_id !< id of processor that runs the applications main thread
 
-  integer :: nlev, & !< max refinement level
-             idim !< dimension of the system
+  integer(kind_level) :: nlev !< max refinement level
+  integer(kind_dim)   :: idim = 3_kind_dim !< dimension of the system
 
 ! Memory control
   real    :: np_mult = 1.5
@@ -45,10 +46,13 @@ module treevars
 
   subroutine treevars_prepare(dim)
     implicit none
-    integer, intent(in) :: dim
 
-    idim = dim
-    nlev = 60 / idim
+    integer(kind_dim), optional, intent(in) :: dim
+
+    if (present(dim)) then; idim = dim; end if
+
+                                ! we do not use the first (sign) bit and need space for one additional placeholder-bit
+    nlev = int(bit_size(1_kind_key) - 2, kind_level) / idim
   end subroutine treevars_prepare
 
 

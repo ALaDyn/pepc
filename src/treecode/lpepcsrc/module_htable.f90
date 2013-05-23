@@ -25,38 +25,39 @@
 !> [ch]: http://en.wikipedia.org/wiki/Coalesced_hashing
 !>
 module module_htable
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types
     use module_tree_node, only: NODE_INVALID
     implicit none
     private
 
-    integer*8, public, parameter :: HTABLE_KEY_INVALID = -1_8
-    integer*8, public, parameter :: HTABLE_KEY_EMPTY   =  0_8
-    integer*8, parameter :: HTABLE_FREE_LO = 1024_8 !< min address allowed for resolving collisions (from 4th level up)
-
+    integer(kind_key), public, parameter :: HTABLE_KEY_INVALID = -1_kind_key
+    integer(kind_key), public, parameter :: HTABLE_KEY_EMPTY   =  0_kind_key
+    integer(kind_node), parameter :: HTABLE_FREE_LO = 1024_kind_node !< min address allowed for resolving collisions (from 4th level up)
+    integer(kind_node), parameter :: HTABLE_LINK_NONE = -1_kind_node
+    
     type :: t_htable_bucket
-      integer*8                  :: key = HTABLE_KEY_EMPTY  !< the entry key
-      integer*8                  :: link = -1_8             !< link for collision resolution
+      integer(kind_key)          :: key = HTABLE_KEY_EMPTY  !< the entry key
+      integer(kind_node)         :: link = HTABLE_LINK_NONE !< link for collision resolution
       integer(kind_node)         :: val                     !< the entry index
     end type t_htable_bucket
-    type (t_htable_bucket), parameter :: HTABLE_EMPTY_BUCKET = t_htable_bucket(HTABLE_KEY_EMPTY, -1_8, NODE_INVALID) !< constant for empty hashentry
+    type (t_htable_bucket), parameter :: HTABLE_EMPTY_BUCKET = t_htable_bucket(HTABLE_KEY_EMPTY, HTABLE_LINK_NONE, NODE_INVALID) !< constant for empty hashentry
 
     type, public :: t_htable
       private
-      integer*8                          :: hashconst     !< bitmask for hashfunction
-      integer*8                          :: maxentries    !< max number of entries
-      integer*8                          :: nentries      !< number of entries present
-      integer*8                          :: sum_unused    !< number of free addresses
+      integer(kind_key)                  :: hashconst     !< bitmask for hashfunction
+      integer(kind_node)                 :: maxentries    !< max number of entries
+      integer(kind_node)                 :: nentries      !< number of entries present
+      integer(kind_node)                 :: sum_unused    !< number of free addresses
       type(t_htable_bucket), allocatable :: buckets(:)    !< hashtable buckets
-      integer*8, allocatable             :: free_addr(:)  !< list of free hash table addresses
-      integer*8, allocatable             :: point_free(:) !< pointer to free address index
+      integer(kind_node), allocatable    :: free_addr(:)  !< list of free hash table addresses
+      integer(kind_node), allocatable    :: point_free(:) !< pointer to free address index
       type(t_tree_node), public, pointer :: values(:)     !< array of entry values
     end type t_htable
 
     type, public :: t_htable_iterator
       private
       type(t_htable), pointer :: t => null()
-      integer*8               :: i =  0_8
+      integer(kind_key)       :: i =  0_kind_key
     end type t_htable_iterator
 
     public htable_create
@@ -88,13 +89,13 @@ module module_htable
       implicit none
 
       type(t_htable), intent(inout) :: t
-      integer*8 :: n
+      integer(kind_node) :: n
 
       DEBUG_ASSERT(.not. htable_allocated(t))
 
-      t%maxentries = max(n, 2_8**15)
-      t%nentries   = 0_8
-      t%hashconst  = 2_8**int(log(1. * t%maxentries) / log(2.)) - 1_8
+      t%maxentries = max(n, 2_kind_node**15)
+      t%nentries   = 0_kind_node
+      t%hashconst  = 2_kind_node**int(log(1. * t%maxentries) / log(2.)) - 1_kind_node
 
       allocate( &
         t%buckets(0:t%maxentries - 1), &
@@ -127,7 +128,7 @@ module module_htable
       implicit none
       type(t_htable), intent(inout) :: t
 
-      t%nentries = 0_8
+      t%nentries = 0_kind_node
       t%buckets  = HTABLE_EMPTY_BUCKET
 
       DEBUG_ASSERT(htable_allocated(t))
@@ -155,7 +156,7 @@ module module_htable
       implicit none
       type(t_htable), intent(in) :: t
 
-      integer*8 :: htable_entries
+      integer(kind_node) :: htable_entries
 
       htable_entries = t%nentries
     end function htable_entries
@@ -168,7 +169,7 @@ module module_htable
       implicit none
       type(t_htable), intent(in) :: t
 
-      integer*8 :: htable_maxentries
+      integer(kind_node) :: htable_maxentries
 
       htable_maxentries = t%maxentries
     end function htable_maxentries
@@ -185,9 +186,9 @@ module module_htable
       DEBUG_ASSERT(htable_allocated(t))
 
       deallocate(t%buckets, t%free_addr, t%point_free, t%values)
-      t%maxentries = 0_8
-      t%nentries   = 0_8
-      t%hashconst  = 0_8
+      t%maxentries = 0_kind_node
+      t%nentries   = 0_kind_node
+      t%hashconst  = 0_kind_key
     end subroutine htable_destroy
 
 
@@ -199,18 +200,18 @@ module module_htable
       use module_debug
       implicit none
       type(t_htable), intent(inout) :: t
-      integer*8 :: i
+      integer(kind_node) :: i
 
       ! build list of free addresses for faster collision resolution on insertion into htable
       DEBUG_ASSERT(htable_allocated(t))
-      t%sum_unused = 0_8
+      t%sum_unused = 0_kind_node
       do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
         if (t%buckets(i)%key == HTABLE_KEY_EMPTY .and. i >= HTABLE_FREE_LO) then
           t%free_addr(t%sum_unused) = i                ! Free address list for resolving collisions
           t%point_free(i)           = t%sum_unused     ! Index
-          t%sum_unused              = t%sum_unused + 1_8
+          t%sum_unused              = t%sum_unused + 1_kind_node
         else
-          t%point_free(i)           = -1_8
+          t%point_free(i)           = -1_kind_node
         end if
       end do
     end subroutine htable_prepare_address_list
@@ -231,12 +232,12 @@ module module_htable
       implicit none
 
       type(t_htable), intent(inout) :: t
-      integer*8, intent(in) :: k
+      integer(kind_key), intent(in) :: k
       type(t_tree_node), intent(in) :: v
       integer(kind_node), intent(out), optional :: entry_pointer
       logical :: htable_add
 
-      integer*8 :: hashaddr
+      integer(kind_node) :: hashaddr
 
       DEBUG_ASSERT(htable_allocated(t))
       if (t%nentries >= t%maxentries) then
@@ -249,26 +250,26 @@ module module_htable
 
         if (hashaddr .eq. -1_8) then
           ! the first entry is already empty
-          hashaddr = iand(k, t%hashconst)
+          hashaddr = htable_hash_function(t, k)
 
           if (t%point_free(hashaddr) /= -1_8) then ! Check if new address in collision res. list
-            if (t%sum_unused <= 0_8) then
+            if (t%sum_unused <= 0_kind_node) then
               DEBUG_ERROR(*, "Hash table collision resolution list exhausted. ", t%nentries, " / ", t%maxentries, " entries")
             end if
-            t%sum_unused                            = t%sum_unused - 1_8
+            t%sum_unused                            = t%sum_unused - 1_kind_node
             t%free_addr(t%point_free(hashaddr))     = t%free_addr(t%sum_unused) ! Replace free address with last on list
             t%point_free(t%free_addr(t%sum_unused)) = t%point_free(hashaddr)    ! Reset pointer
-            t%point_free(hashaddr)                  = -1_8
+            t%point_free(hashaddr)                  = -1_kind_node
           end if
         else
           ! we are at the end of a linked list --> create new entry
-          if (t%sum_unused <= 0_8) then
+          if (t%sum_unused <= 0_kind_node) then
             DEBUG_ERROR(*, "Hash table collision resolution list exhausted. ", t%nentries, " / ", t%maxentries, " entries")
           end if
-          t%sum_unused             = t%sum_unused - 1_8
+          t%sum_unused             = t%sum_unused - 1_kind_node
           t%buckets(hashaddr)%link = t%free_addr(t%sum_unused)
           hashaddr                 = t%buckets( hashaddr )%link
-          t%point_free(hashaddr)   = -1_8
+          t%point_free(hashaddr)   = -1_kind_node
         end if
 
         ! check if new entry is really empty
@@ -283,7 +284,7 @@ module module_htable
         t%buckets(hashaddr)%key = k
         t%values(t%nentries) = v
         t%buckets(hashaddr)%val = t%nentries
-        t%nentries = t%nentries + 1_8
+        t%nentries = t%nentries + 1_kind_node
       else
         ! this key does already exists in the htable - as 'hashaddr' we return its current address
         htable_add = .false.
@@ -305,7 +306,7 @@ module module_htable
       implicit none
 
       type(t_htable), intent(in) :: t
-      integer*8, intent(in) :: k
+      integer(kind_key), intent(in) :: k
 
       logical :: htable_contains
 
@@ -326,12 +327,12 @@ module module_htable
       implicit none
 
       type(t_htable), intent(in) :: t
-      integer*8, intent(in) :: k
+      integer(kind_key), intent(in) :: k
       integer(kind_node), intent(out) :: v
       character(LEN=*), optional, intent(in) :: caller
 
       logical :: htable_lookup
-      integer*8 :: addr
+      integer(kind_node) :: addr
 
       DEBUG_ASSERT(htable_allocated(t))
       htable_lookup = testaddr(t, k, addr)
@@ -342,7 +343,7 @@ module module_htable
         if (present(caller)) then
           DEBUG_WARNING_ALL('("Key not resolved in htable_lookup_critical at ",a)', caller)
           DEBUG_WARNING_ALL('("key                  (oct) = ", o22)', k)
-          DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', iand( k, t%hashconst))
+          DEBUG_WARNING_ALL('("initial address      (dez) = ", i22)', htable_hash_function(t, k))
           DEBUG_WARNING_ALL('("   last address      (dez) = ", i22)', addr)
           if (.not. (addr == -1)) then
             DEBUG_WARNING_ALL('("htable(lastaddr)%key (oct) = ", o22)', t%buckets(addr)%key)
@@ -366,7 +367,7 @@ module module_htable
       implicit none
 
       type(t_htable), intent(in) :: t
-      integer*8, intent(in) :: k
+      integer(kind_key), intent(in) :: k
       integer(kind_node), intent(out) :: v
       character(LEN=*), intent(in) :: caller
 
@@ -391,9 +392,9 @@ module module_htable
       implicit none
 
       type(t_htable), intent(inout) :: t
-      integer*8, intent(in) :: key
+      integer(kind_key), intent(in) :: key
 
-      integer*8 :: addr
+      integer(kind_node) :: addr
 
       DEBUG_ASSERT(htable_allocated(t))
       if (testaddr(t, key, addr)) then
@@ -417,10 +418,10 @@ module module_htable
       implicit none
 
       type(t_htable), intent(inout) :: t
-      integer*8, intent(in) :: keys(num_keys)
-      integer, intent(in) :: num_keys
+      integer(kind_node), intent(in) :: num_keys
+      integer(kind_key), intent(in) :: keys(num_keys)
 
-      integer :: i
+      integer(kind_node) :: i
 
       DEBUG_ASSERT(htable_allocated(t))
       do i = 1, num_keys
@@ -428,6 +429,18 @@ module module_htable
       end do
 
     end subroutine
+    
+    
+    function htable_hash_function(t, key)
+      implicit none
+
+      type(t_htable), intent(in) :: t
+      integer(kind_key), intent(in) :: key
+      integer(kind_node) :: htable_hash_function
+      
+      htable_hash_function = int(iand( key, t%hashconst), kind_node) ! cell address hash function
+      
+    end function
 
 
     !>
@@ -443,14 +456,14 @@ module module_htable
       implicit none
 
       type(t_htable), intent(in) :: t
-      integer*8, intent(in)  :: keyin
-      integer*8, intent(out), optional :: addr
+      integer(kind_key), intent(in)  :: keyin
+      integer(kind_node), intent(out), optional :: addr
       logical :: testaddr
 
-      integer :: ires
-      integer*8 :: nextaddr, lastaddr
+      integer(kind_node) :: ires
+      integer(kind_node) :: nextaddr, lastaddr
 
-      nextaddr = iand( keyin, t%hashconst) ! cell address hash function
+      nextaddr = htable_hash_function(t, keyin)
 
       if (t%buckets( nextaddr )%key == HTABLE_KEY_EMPTY) then ! already the first entry is empty
         testaddr                = .false.  ! key does not exist in htable
@@ -465,7 +478,7 @@ module module_htable
         nextaddr = t%buckets( nextaddr )%link    ! look at next linked entry
         ires     = ires + 1
 
-        if (   (nextaddr == -1_8) & ! reached end of linked list without finding the key --> node is not in htable or htable is corrupt
+        if (   (nextaddr == -1_kind_node) & ! reached end of linked list without finding the key --> node is not in htable or htable is corrupt
           .or. (ires >= t%maxentries) ) & ! we probed at as many positions as the htable has entries --> circular linked list or htable corrupt
           then
             testaddr                = .false.  ! key does not exist in htable
@@ -511,7 +524,7 @@ module module_htable
       implicit none
 
       type(t_htable_iterator), intent(inout) :: it
-      integer*8, intent(out) :: k
+      integer(kind_key), intent(out) :: k
       integer(kind_node), intent(out) :: v
 
       logical htable_iterator_next
@@ -523,11 +536,11 @@ module module_htable
           htable_iterator_next = .true.
           k    =  it%t%buckets(it%i)%key
           v    =  it%t%buckets(it%i)%val
-          it%i =  it%i + 1_8
+          it%i =  it%i + 1_kind_key
           return
         end if
 
-        it%i = it%i + 1_8
+        it%i = it%i + 1_kind_key
       end do
 
       htable_iterator_next = .false.
@@ -549,7 +562,7 @@ module module_htable
       type(t_htable), intent(in) :: t
       character(*), intent(in) :: caller
 
-      integer*8 :: i, nentries_check, sum_unused_check
+      integer(kind_node) :: i, nentries_check, sum_unused_check
 
       call pepc_status('CHECK TABLE')
       DEBUG_ASSERT(htable_allocated(t))
@@ -600,7 +613,7 @@ module module_htable
         type(t_particle), optional, intent(in) :: particles(:)
 
         character(1) :: collision
-        integer*8 :: i
+        integer(kind_node) :: i
 
         call pepc_status('DIAGNOSE')
         DEBUG_ASSERT(htable_allocated(t))
@@ -670,16 +683,20 @@ module module_htable
         write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i)) .and. .not. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
-            write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
+          if (htable_entry_is_valid(t%buckets(i))) then
+            if (.not. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
+              write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
+            end if
           end if
         end do
 
         write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from hash-table', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
 
         do i = lbound(t%buckets, dim = 1), ubound(t%buckets, dim = 1)
-          if (htable_entry_is_valid(t%buckets(i)) .and. tree_node_is_leaf(t%values(t%buckets(i)%val))) then
-            write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
+          if (htable_entry_is_valid(t%buckets(i))) then
+            if (tree_node_is_leaf(t%values(t%buckets(i)%val))) then
+              write(debug_ipefile,*) t%values(t%buckets(i)%val)%interaction_data
+            endif
           end if
         end do
 

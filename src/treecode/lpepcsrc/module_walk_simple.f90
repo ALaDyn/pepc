@@ -72,6 +72,7 @@ module module_walk
 
 
   subroutine tree_walk(t, ps, twalk, twalk_loc, vbox)
+    use module_interaction_specific_types
     use module_pepc_types, only: t_particle, kind_node
     use module_tree, only: t_tree, tree_lookup_root
     use treevars, only: nlev
@@ -86,9 +87,9 @@ module module_walk
     real*8, intent(in) :: vbox(3) !< lattice vector
 
     integer(kind_node) :: r
-    type(t_particle), pointer :: p
+    type(t_particle_thread) :: p
     integer :: i
-    integer*8 :: ni
+    integer(kind_node) :: ni
     logical :: in_central_box
     real*8 :: b2(0:nlev)
 
@@ -107,10 +108,19 @@ module module_walk
     call tree_lookup_root(t, r)
 
     do i = lbound(ps, 1), ubound(ps, 1)
-      p => ps(i)
-      ni = 0_8
-      call tree_walk_single(r)
-      DEBUG_ASSERT(ni == t%npart)
+       p%x        = ps(i)%x 
+       p%work     = ps(i)%work 
+       p%key      = ps(i)%key 
+       p%key_leaf = ps(i)%key_leaf 
+       p%label    = ps(i)%label 
+       p%pid      = ps(i)%pid 
+       p%data     = ps(i)%data 
+       p%results  = ps(i)%results 
+       p%queued   = -1 
+       p%my_idx   = i 
+       ni = 0_kind_node
+       call tree_walk_single(r)
+       DEBUG_ASSERT(ni == t%npart)
     end do
 
     twalk = MPI_WTIME() + twalk
@@ -121,7 +131,7 @@ module module_walk
     recursive subroutine tree_walk_single(n)
       use module_atomic_ops, only: atomic_read_barrier
       use module_spacefilling, only: is_ancestor_of_particle
-      use module_interaction_specific, only: mac, calc_force_per_interaction
+      use module_interaction_specific
       use module_tree_communicator, only: tree_node_fetch_children
       use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
         tree_node_get_first_child, tree_node_get_next_sibling
@@ -156,6 +166,9 @@ module module_walk
       else if (is_leaf .and. is_related) then ! self
         go to 2 ! ignore, but count
       end if
+
+      if(p%queued .gt. 0) call compute_iact_list(p)
+      if(p%queued_l .gt. 0) call compute_iact_list_leaf(p)
 
       DEBUG_ASSERT_MSG(.false., *, "The block of ifs above should be exhaustive!")
       return

@@ -19,4 +19,5 @@ BACKENDTYPE = XYZQVM
 
 #WALK = smpss
 #WALK = pthreads_blocking
-WALK = pthreads
+#WALK = pthreads
+WALK = simple

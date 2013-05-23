@@ -23,26 +23,27 @@
 !>
 module module_domains
   use module_comm_env, only: t_comm_env
+  use module_pepc_types
   implicit none
   save
   private
 
   type, public :: t_decomposition
-    integer :: npold  !< original particle number
-    integer :: npnew  !< particle number after domain decomposition
-    integer :: nppmax !< maximum number of local particles after domain decomposition
-    integer, allocatable :: indxl(:)  !< permutes `particles(:)` into the MPI buffer to be use for shipping
-    integer, allocatable :: irnkl(:)  !< permutes receiving MPI buffer into `particles(:)`
-    integer, allocatable :: fposts(:) !< send displacements
-    integer, allocatable :: gposts(:) !< receive displacements
-    integer, allocatable :: islen(:)  !< send counts
-    integer, allocatable :: irlen(:)  !< receive counts
+    integer(kind_particle) :: npold  !< original particle number
+    integer(kind_particle) :: npnew  !< particle number after domain decomposition
+    integer(kind_particle) :: nppmax !< maximum number of local particles after domain decomposition
+    !> these have to be kind_default as MPI_ALLTOALLV expects default integer kind arguments
+    integer(kind_default), allocatable :: indxl(:)  !< permutes `particles(:)` into the MPI buffer to be use for shipping
+    integer(kind_default), allocatable :: irnkl(:)  !< permutes receiving MPI buffer into `particles(:)`
+    integer(kind_default), allocatable :: fposts(:) !< send displacements
+    integer(kind_default), allocatable :: gposts(:) !< receive displacements
+    integer(kind_default), allocatable :: islen(:)  !< send counts
+    integer(kind_default), allocatable :: irlen(:)  !< receive counts
 
     type(t_comm_env) :: comm_env !< the communication topology over which the domain is decomposed
   end type t_decomposition
 
-  integer, public :: weighted = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
-  logical, public :: force_cubic_domain = .false. !< if set to .true., pepc uses an overall cubic enclosure of the particle cloud instead of the cuboid (closer) one
+  integer(kind_default), public :: weighted = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
 
   public decomposition_destroy
   public decomposition_allocated
@@ -57,8 +58,8 @@ module module_domains
     implicit none
 
     type(t_decomposition), intent(inout) :: d
-    integer, intent(in) :: nl
-    integer*8, intent(in) :: n
+    integer(kind_particle), intent(in) :: nl
+    integer(kind_particle), intent(in) :: n
     type(t_comm_env), intent(in) :: c
 
     call comm_env_dup(c, d%comm_env)
@@ -110,7 +111,7 @@ module module_domains
   !>  Share particle keys amoung PEs
   !>  - weighting according to load incurred on previous timestep
   !>
-  subroutine domain_decompose(d, b, n, particles, bp, c, npl)
+  subroutine domain_decompose(d, b, n, particles, bp, c)
     use module_pepc_types, only: t_particle, mpi_type_particle
     use module_box, only: t_box
     use module_timings
@@ -121,39 +122,43 @@ module module_domains
 
     type(t_decomposition), intent(inout) :: d
     type(t_box), intent(in) :: b
-    integer*8, intent(in) :: n
+    integer(kind_particle), intent(in) :: n
     type(t_particle), allocatable, intent(inout) :: particles(:)
     type(t_particle), intent(out) :: bp(2)
     type(t_comm_env), intent(in) :: c
-    integer, optional, intent(in) :: npl
 
-    integer :: i, j, ierr
-    real*8 imba
-    type (t_particle), allocatable :: ship_parts(:), get_parts(:) !< arrays for parallel sort
-    integer*8, allocatable :: w1(:), local_keys(:), key_diffs(:)
-    real*8, allocatable :: work2(:)
-    integer, allocatable :: irnkl2(:)
+    integer(kind_default) :: ierr
+    integer(kind_particle) :: i, j
+    real*8 :: imba
+    type(t_particle), allocatable :: ship_parts(:), get_parts(:) !< arrays for parallel sort
+    integer(kind_key), allocatable :: temp(:), local_keys(:), key_diffs(:)
+    real*8, allocatable :: workload(:)
+    integer(kind_default), allocatable :: irnkl2(:)
 
     interface
       subroutine slsort_keys(nin, nmax, keys, workload, balance_weight, max_imbalance, nout, indxl, &
         irnkl, scounts, rcounts, sdispls, rdispls, keys2, irnkl2, size, rank, comm)
-        integer,intent(in) :: nin, nmax, balance_weight, size, rank, comm
-        real*8,intent(in) :: max_imbalance
-        integer,intent(out) :: nout, indxl(*), irnkl(*), scounts(*), rcounts(*), sdispls(*), rdispls(*), irnkl2(*)
-        integer*8,intent(out) :: keys2(*)
-        integer*8,intent(inout) :: keys(*)
+        use module_pepc_types
+        integer(kind_particle), intent(in) :: nin
+        integer(kind_particle), intent(in) :: nmax
+        integer(kind_key), intent(inout) :: keys(*)
         real*8,intent(inout) :: workload(*)
+        integer(kind_default), intent(in) :: balance_weight
+        real*8,intent(in) :: max_imbalance
+        integer(kind_particle), intent(out) :: nout
+        integer(kind_default), intent(out) :: indxl(*), irnkl(*), scounts(*), rcounts(*), sdispls(*), rdispls(*)
+        integer(kind_key), intent(out) :: keys2(*)
+        integer(kind_default), intent(out) :: irnkl2(*)
+        integer(kind_pe), intent(in) :: size, rank
+        integer(kind_default), intent(in) :: comm
       end subroutine slsort_keys
     end interface
 
     call pepc_status('DOMAIN DECOMPOSITION')
     call timer_start(t_domains)
 
-    if (present(npl)) then
-      d%npold = npl
-    else
-      d%npold = size(particles, 1)
-    end if
+    d%npold = size(particles, 1)
+
     imba = 0.01
 
     ! workload per particle must be nonzero
@@ -169,16 +174,16 @@ module module_domains
     call timer_start(t_domains_add_sort)
     call timer_start(t_domains_sort_pure)
 
-    allocate(ship_parts(d%nppmax), get_parts(d%nppmax), w1(d%nppmax), work2(d%nppmax), irnkl2(d%nppmax), &
+    allocate(ship_parts(d%nppmax), get_parts(d%nppmax), temp(d%nppmax), workload(d%nppmax), irnkl2(d%nppmax), &
       local_keys(d%nppmax))
 
     ! start permutation of local key list
-    work2(1:d%npold) = particles(1:d%npold)%work
+    workload(1:d%npold) = particles(1:d%npold)%work
     local_keys(1:d%npold) = particles(1:d%npold)%key
 
     ! perform index sort on keys
-    call slsort_keys(d%npold, d%nppmax, local_keys, work2, weighted, imba, d%npnew, d%indxl, d%irnkl, &
-      d%islen, d%irlen, d%fposts, d%gposts, w1, irnkl2, d%comm_env%size, d%comm_env%rank , &
+    call slsort_keys(d%npold, d%nppmax, local_keys, workload, weighted, imba, d%npnew, d%indxl, d%irnkl, &
+      d%islen, d%irlen, d%fposts, d%gposts, temp, irnkl2, d%comm_env%size, d%comm_env%rank , &
       d%comm_env%comm)
 
     ! FIXME: every processor has to have at least one particle
@@ -206,9 +211,8 @@ module module_domains
     call timer_start(t_domains_add_alltoallv)
 
     ! perform permute
-    call MPI_alltoallv(ship_parts, d%islen, d%fposts, mpi_type_particle, &
-      get_parts, d%irlen, d%gposts, mpi_type_particle, &
-      d%comm_env%comm, ierr)
+    call MPI_ALLTOALLV(ship_parts, d%islen, d%fposts, mpi_type_particle, &
+      get_parts, d%irlen, d%gposts, MPI_TYPE_particle, d%comm_env%comm, ierr)
 
     call timer_stop(t_domains_add_alltoallv)
 
@@ -263,11 +267,11 @@ module module_domains
 
     do i = 1, d%npnew
       if (key_diffs(i) < 1) then
-        DEBUG_INFO('("Identical keys found for i = ", I0, " and its successor, key = ", O0, ", labels = ", I0,x,I0)', i, local_keys(i), particles(i)%label, particles(i+1)%label)
+        DEBUG_INFO('("Identical keys found for i = ", I0, " of ", I0, " and its successor, key = ", O0, ", label(i) = ", I0)', i, d%npnew, local_keys(i), particles(i)%label)
 
         ! looking upwards and downwards synchronously, we try to find the nearest gap
         do j = 1, max(d%npnew - i, i)
-          if (key_diffs(max(1, i - j)) > 1) then
+          if (key_diffs(max(1_kind_particle, i - j)) > 1) then
             ! there is a near gap below the current keys --> shift keys downwards
             DEBUG_INFO('("Fixing by shifting keys of section ", I0,":",I0," downwards")', i-j+1, i)
             local_keys(i-j+1:i) = local_keys(i-j+1:i) - 1
@@ -300,7 +304,7 @@ module module_domains
                                   'Particle list after boundary swap (see t_particle in module_pepc_types.f90 for meaning of the columns)')
 
     call timer_stop(t_domains_bound)
-    deallocate(ship_parts, get_parts, w1, work2, irnkl2, local_keys, key_diffs)
+    deallocate(ship_parts, get_parts, temp, workload, irnkl2, local_keys, key_diffs)
 
     ! reset work load, do not need a (overflowing) history of all my sins...
     particles(:)%work = 1.
@@ -320,7 +324,9 @@ module module_domains
       implicit none
       include 'mpif.h'
 
-      integer :: prev, next, state(MPI_STATUS_SIZE), npp
+      integer :: state(MPI_STATUS_SIZE)
+      integer(kind_particle) :: npp
+      integer(kind_pe) :: prev, next
 
       npp = d%npnew
 
@@ -328,12 +334,12 @@ module module_domains
       if (d%comm_env%first) then
         prev = MPI_PROC_NULL
       else
-        prev = d%comm_env%rank - 1
+        prev = d%comm_env%rank - 1_kind_pe
       end if
       if (d%comm_env%last) then
         next = MPI_PROC_NULL
       else
-        next = d%comm_env%rank + 1
+        next = d%comm_env%rank + 1_kind_pe
       end if
 
       ! Copy boundary particles to adjacent PEs to ensure proper tree construction
@@ -365,7 +371,8 @@ module module_domains
       type(t_decomposition), intent(inout) :: d
       type(t_particle), intent(inout), allocatable :: p(:)
 
-      integer :: i, ierr
+      integer(kind_particle) :: i
+      integer(kind_default) :: ierr
       type (t_particle), allocatable :: get_parts(:), ship_parts(:)
 
       call pepc_status('RESTORE DOMAINS')
@@ -378,7 +385,7 @@ module module_domains
       deallocate(p) ! had size npnew
 
       ! perform permute
-      call MPI_alltoallv(ship_parts, d%irlen, d%gposts, MPI_TYPE_particle, &
+      call MPI_ALLTOALLV(ship_parts, d%irlen, d%gposts, MPI_TYPE_particle, &
             get_parts, d%islen, d%fposts, MPI_TYPE_particle, &
             d%comm_env%comm, ierr)
 
@@ -398,10 +405,10 @@ module module_domains
     use module_debug
     implicit none
     type(t_particle), intent(in) :: particles(:)
-    integer, intent(in) :: npart
+    integer(kind_particle), intent(in) :: npart
     character(*), intent(in) :: callinfo
 
-    integer :: j
+    integer(kind_particle) :: j
 
     call debug_ipefile_open()
     write (debug_ipefile,'(/a/)') callinfo

@@ -88,8 +88,8 @@ module module_pepc_wrappers
     !>
     !>  TODO: update function documentation
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine pepc_fields_coulomb_wrapper(np_local,npart_total,p_x, p_y, p_z, p_q, p_w, p_label, &
-                    p_Ex, p_Ey, p_Ez, p_pot, itime, no_dealloc, no_restore, force_const)
+    subroutine pepc_fields_coulomb_wrapper(np_local,p_x, p_y, p_z, p_q, p_w, p_label, &
+                    p_Ex, p_Ey, p_Ez, p_pot, itime, no_dealloc, force_const)
         use treevars
         use module_pepc
         implicit none
@@ -101,7 +101,7 @@ module module_pepc_wrappers
         integer, intent(in), dimension(np_local) :: p_label  ! particle label
         real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
         real*8, dimension(np_local) :: p_w ! work loads
-        logical, intent(in) :: no_dealloc, no_restore
+        logical, intent(in) :: no_dealloc
         real*8, intent(in) :: force_const
 
         integer :: i
@@ -166,9 +166,9 @@ module module_pepc_wrappers
                                        EMPTY_PARTICLE_RESULTS )
       end do
 
-      call pepc_particleresults_clear(grid_particles, ngp)
+      call pepc_particleresults_clear(grid_particles)
 
-      call pepc_traverse_tree(ngp, grid_particles)
+      call pepc_traverse_tree(grid_particles)
 
       do i=1,ngp
         p_ex(i)  = force_const*grid_particles(i)%results%e(1)

@@ -18,60 +18,20 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!>
-!>
-!>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_directsum
 
       implicit none
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private type declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
       integer, parameter :: MPI_TAG_DIRECT_DATA_PACKAGE_SIZE = 47
       integer, parameter :: MPI_TAG_DIRECT_DATA_PACKAGE      = 48
 
-
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> direct computation of coulomb force onto a selection of local particles
         !> due to contributions of all (also remote) other particles
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine directforce(particles, np_local, testidx, ntest, directresults, my_rank, n_cpu, comm)
+        subroutine directforce(particles, testidx, ntest, directresults, my_rank, n_cpu, comm)
           use module_pepc_types
           use module_interaction_specific_types
           use module_interaction_specific
@@ -82,28 +42,35 @@ module module_directsum
           implicit none
           include 'mpif.h'
 
-          type(t_particle), intent(in) :: particles(1:np_local)
-          integer, intent(in) :: np_local !< number of local particles
-          integer, dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
-          integer, intent(in) :: ntest !< number of particles in testidx
+          type(t_particle), intent(in) :: particles(:)
+          integer(kind_particle), dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
+          integer(kind_particle), intent(in) :: ntest !< number of particles in testidx
           type(t_particle_results), dimension(:), allocatable, intent(out) :: directresults !< test results
-          integer, intent(in) :: my_rank, n_cpu, comm
+          integer(kind_pe), intent(in) :: my_rank, n_cpu
+          integer, intent(in) :: comm
 
-          integer :: maxtest !< maximum ntest
+          integer(kind_particle) :: maxtest !< maximum ntest
           type(t_particle), dimension(:), allocatable :: received, sending
           integer :: nreceived, nsending
-          integer :: ierr, req, stat(MPI_STATUS_SIZE), i, j, currank, nextrank, prevrank
+          integer(kind_particle) :: i, j
+          integer :: ierr, req, stat(MPI_STATUS_SIZE)
+          integer(kind_pe) :: currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8 :: delta(3)
           integer :: ibox
-          type(t_particle) :: latticeparticles(ntest)
+          type(t_particle), allocatable :: latticeparticles(:)
 
           real*8 :: t1
           integer :: omp_thread_num
 
 
-          call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_INTEGER, MPI_MAX, comm, ierr)
-          allocate(received(1:maxtest), sending(1:maxtest))
+          call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_KIND_PARTICLE, MPI_MAX, comm, ierr)
+          write(*,*) ntest, maxtest
+          allocate(received(1:maxtest))
+          write(*,*) '0'
+          allocate(sending(1:maxtest))
+          write(*,*) '1'
+          allocate(latticeparticles(ntest))
 
           call timer_reset(t_direct_force)
           call timer_reset(t_direct_comm)
@@ -118,8 +85,8 @@ module module_directsum
           !$OMP END PARALLEL
 
           ! determine right and left neighbour
-          nextrank = modulo(my_rank + 1, n_cpu)
-          prevrank = modulo(my_rank - 1 + n_cpu, n_cpu)
+          nextrank = modulo(my_rank + 1_kind_pe, n_cpu)
+          prevrank = modulo(my_rank - 1_kind_pe + n_cpu, n_cpu)
 
           ! insert initial data into input array - these particles will be shipped around later
           nreceived = ntest
@@ -127,16 +94,17 @@ module module_directsum
             received(i) = particles(testidx(i))
           end do
            
-          call particleresults_clear(received, ntest)
+          call particleresults_clear(received)
 
           ! we copy all local particles into a node array to be able to feed them to calc_force_per_interaction
-          allocate(local_nodes(np_local))
-          do i=1,np_local
+          allocate(local_nodes(size(particles)))
+          
+          do i=1,size(particles)
             call multipole_from_particle(particles(i)%x, particles(i)%data, local_nodes(i))
           end do
 
           ! we will send our data packet to every other mpi rank
-          do currank=0,n_cpu-1
+          do currank=0_kind_pe,n_cpu-1_kind_pe
 
             ! calculate force from local particles i onto particles j in received-buffer
             ! loop over all received particles
@@ -145,7 +113,7 @@ module module_directsum
 
             !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
             do j=1,nreceived
-                do i=1,np_local
+                do i=1,size(particles)
 
                     do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
                       ! if we use our own particles, test for equality; exclude particle itself if we are in central box
@@ -195,13 +163,11 @@ module module_directsum
           !call calc_force_per_particle here: add lattice contribution, compare module_libpepc_main
           call timer_start(t_lattice)
           ! add lattice contribution and other per-particle-forces
-          call calc_force_after_grow(particles, np_local)
+          call calc_force_after_grow(particles)
           latticeparticles(1:ntest)         = particles(testidx)
           latticeparticles(1:ntest)%results = directresults(1:ntest)
-          call calc_force_per_particle(latticeparticles, ntest)
+          call calc_force_per_particle(latticeparticles(1:ntest))
           directresults(1:ntest) = latticeparticles(1:ntest)%results
           call timer_stop(t_lattice)
-
         end subroutine
-
 end module module_directsum

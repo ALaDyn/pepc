@@ -32,16 +32,56 @@ int get_my_core()
 {
   return Kernel_PhysicalProcessorID();
 }
+
+int i_want_to_break_free_c() {
+  return 0;
+}
 #elif defined(__TOS_BGQ__)
 // see XL C/C++ for Blue Gene/Q, V12.1 > Compiler Reference > 
 //       Compiler predefined macros > Macros related to the platform
 
+#define _GNU_SOURCE
+#include <stdint.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <sched.h>
 #include <spi/include/kernel/location.h>
+#include <spi/include/kernel/thread.h>
 
 int get_my_core()
 {
   return Kernel_ProcessorCoreID();
 }
+
+int i_want_to_break_free_c()
+{
+  pthread_t tid = pthread_self();
+  cpu_set_t cpumask;
+  uint64_t i, imask, accessible = Kernel_ThreadMask(Kernel_MyTcoord());
+
+  for (i = 0; i < 64; ++i) {
+    imask = ((uint64_t)1) << (63 - i);
+    if (imask == (imask & accessible)) {
+      CPU_ZERO(&cpumask);
+      CPU_SET(i, &cpumask);
+      pthread_setaffinity_np(tid, sizeof(cpumask), &cpumask);
+      if (Kernel_SnoopNumThreads() == 1) {
+        // printf("Settling for hw thread %d\n", Kernel_ProcessorID());
+        return 0;
+      }
+    }
+  }
+
+  return -1;
+}
+
+#include <spi/include/kernel/thread.h>
+
+int get_num_threads_on_my_hwthread()
+{
+  return Kernel_SnoopNumThreads();
+}
+
 #else /* !defined(__TOS_BGP__) && !defined(__TOS_BGQ__) */
 int get_my_core()
 {
@@ -50,6 +90,10 @@ int get_my_core()
   static int lastreq = 144;
 
   return ++lastreq;
+}
+
+int i_want_to_break_free_c() {
+  return 0;
 }
 #endif
 

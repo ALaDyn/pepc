@@ -29,6 +29,7 @@ prepare: $(SRC)
 	@echo "LDLIBS=$(LDLIBS)"           >> $(MAKEENVS)
 	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
 	@cp makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(WORKDIR)
+	@cp $(FRONTENDDIR)/$(FRONTEND)/makefile.include $(WORKDIR)/makefile.include.frontend
 	@cp -r $(LIBDIR)/* $(WORKDIR)
 	@echo ""
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build
