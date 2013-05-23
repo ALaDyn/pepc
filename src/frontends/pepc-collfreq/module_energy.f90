@@ -55,7 +55,7 @@ contains
     !> Find potential, kinetic energies
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine energies(particles,energy,ekine,ekini)
+    subroutine energies(particles,ekine,ekini)
 
         use physvars
         use module_fmm_framework
@@ -66,14 +66,13 @@ contains
         use module_param_dump
 
         implicit none
-        real*8, intent(inout) :: energy(:,:)
         type(t_particle), intent(in) :: particles(:)
         real*8 :: epot, ekine, ekini, etot, totalmomentum(3)
         integer :: ifile
         logical, save :: firstcall = .true.
 
-        call energy_pot(particles, energy, epot)
-        call energy_kin(particles, energy, ekine, ekini, tempe, tempi, totalmomentum)
+        call energy_pot(particles, epot)
+        call energy_kin(particles, ekine, ekini, tempe, tempi, totalmomentum)
         
         vte = sqrt(3*unit_kB*tempe/mass_e)
         vti = sqrt(3*unit_kB*tempi/mass_i)
@@ -86,8 +85,6 @@ contains
         potfarfield  = potfarfield  / npart_total
 
         etot = epot + ekine + ekini
-
-        energy(3,:) = energy(1,:) + energy(2,:)
 
         if (my_rank == 0) then
             do ifile = file_stdout,file_pepc_out,file_pepc_out-file_stdout
@@ -119,20 +116,25 @@ contains
     !> Calculate potential energies
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine energy_pot(particles, energy, epot_total)
+    subroutine energy_pot(particles, epot_total)
         use physvars
         use module_fmm_framework
+        use module_pepc_types
         implicit none
         include 'mpif.h'
 
         integer :: ierr
 
         type(t_particle), intent(in) :: particles(:)
-        real*8, intent(inout) :: energy(:,:)
         real*8, intent(out) :: epot_total
+        integer(kind_particle) :: p
 
-        energy(1,:) = 0.5 * particles(:)%data%q*particles(:)%results%pot
-        epot_total           = sum(energy(1,:))
+        epot_total = 0.
+        
+        do p=1,size(particles, kind=kind(p))
+          epot_total = epot_total + 0.5 * particles(p)%data%q*particles(p)%results%pot
+        end do
+        
         call MPI_ALLREDUCE(MPI_IN_PLACE, epot_total,1, MPI_REAL8, MPI_SUM, MPI_COMM_PEPC, ierr)
 
         ! this can also be done in fields.f90, but thematically it fits better here :-)
@@ -151,7 +153,7 @@ contains
     !> Calculate kinetic energies
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine energy_kin(particles, energy,ekine,ekini,ltempe,ltempi, totalmomentum)
+    subroutine energy_kin(particles,ekine,ekini,ltempe,ltempi, totalmomentum)
         use physvars
         use module_units
         use module_pusher
@@ -163,9 +165,8 @@ contains
         type(t_particle), intent(in) :: particles(:)
         integer(kind_particle) :: p
         integer(kind_default) :: ierr
-        real*8, intent(inout) :: energy(:,:)
         real*8 :: ekine, ekini,ltempe,ltempi, gamma, totalmomentum(3)
-        real*8 :: uh(3), uh2
+        real*8 :: uh(3), uh2, tmp
 
         integer, parameter :: V2E  =  1
         integer, parameter :: VEX  =  2
@@ -213,20 +214,20 @@ contains
             uh2   = dot_product(uh,uh)
             gamma = sqrt(1.0 + uh2/unit_c2)
 
-            energy(2,p) = particles(p)%data%m*unit_c2*(gamma - 1.0)
+            tmp = particles(p)%data%m*unit_c2*(gamma - 1.0)
 
             totalmomentum = totalmomentum + particles(p)%data%m * uh
 
             if (particles(p)%data%q < 0.) then
                 ! electrons
-                sums(V2E)     = sums(V2E)     + uh2 / gamma**2.
+                sums(V2E)     = sums(V2E)     + uh2 / (gamma*gamma)
                 sums(VEX:VEZ) = sums(VEX:VEZ) + uh  / gamma
-                sums(KINE)    = sums(KINE)    + energy(2,p)
+                sums(KINE)    = sums(KINE)    + tmp
             else
                 ! ions
-                sums(V2I)     = sums(V2I)     + uh2 / gamma**2.
+                sums(V2I)     = sums(V2I)     + uh2 / (gamma*gamma)
                 sums(VIX:VIZ) = sums(VIX:VIZ) + uh  / gamma
-                sums(KINI)    = sums(KINI)    + energy(2,p)
+                sums(KINI)    = sums(KINI)    + tmp
             endif
         end do
 

@@ -60,7 +60,6 @@ program pepc
 
 ! particle arrays
   type(t_particle), allocatable :: particles(:)     ! position
-  real*8, allocatable :: energy(:,:)         ! potential, kinetic, and total energy
     
   ! Allocate array space for tree
   call pepc_initialize("pepc-collfreq", my_rank, n_cpu, .true., comm=MPI_COMM_PEPC)
@@ -81,7 +80,6 @@ program pepc
   ! Set up particles - in case if ispecial ==-1, particles and parameters are automatically read from a file again
   call particle_setup(particles, ispecial)
 
-  allocate(energy(1:3,size(particles, kind=kind_particle)))
 
   if (my_rank == 0) write(*,*) "Starting PEPC-COLLFREQ with",n_cpu," Processors, simulating",size(particles,kind=kind_particle), " Particles on each Processor in",nt,"timesteps..."
 
@@ -133,9 +131,11 @@ program pepc
 
    if (.not. directforce) then
     call pepc_traverse_tree(particles(1:size(particles,kind=kind_particle)))
+    call debug_barrier()
     if (dbg(DBG_STATS)) call pepc_statistics(itime)
 
-    call pepc_restore_particles(particles)
+    call debug_barrier()
+    !call pepc_restore_particles(particles)
     call pepc_timber_tree()
 
    else
@@ -161,7 +161,7 @@ program pepc
    ! periodic systems demand periodic boundary conditions
    if (do_periodic) call constrain_periodic(particles)
 
-   call energies(particles, energy, Ukine, Ukini)
+   call energies(particles, Ukine, Ukini)
 
    ! time-dependent diagnostics stuff
    call workflow(my_rank, itime, trun, dt, WORKFLOW_STEP_POST)
@@ -179,7 +179,7 @@ program pepc
   ! final particle dump
   call write_particles(particles, .true.)
 
-  deallocate (particles, energy)
+  deallocate (particles)
   
   ! Time stamp
   if (my_rank==0) call stamp(file_stdout,2)
