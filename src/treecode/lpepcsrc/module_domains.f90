@@ -384,26 +384,27 @@ module module_domains
       type (t_particle), allocatable :: get_parts(:), ship_parts(:)
 
       call pepc_status('RESTORE DOMAINS')
-      allocate(get_parts(d%npold), ship_parts(d%npnew))
 
+      allocate(ship_parts(d%npnew))
       do i = 1, d%npnew
         ship_parts(i) = p(d%irnkl(i))
       end do
 
       deallocate(p) ! had size npnew
+      allocate(get_parts(d%npold))
 
       ! perform permute
       call MPI_ALLTOALLV(ship_parts, d%irlen, d%gposts, MPI_TYPE_particle, &
             get_parts, d%islen, d%fposts, MPI_TYPE_particle, &
             d%comm_env%comm, ierr)
 
+      deallocate(ship_parts)
       allocate(p(d%npold))
-
       do i = 1, d%npold
           p(d%indxl(i)) = get_parts(i)
       end do
 
-      deallocate(get_parts, ship_parts)
+      deallocate(get_parts)
       call decomposition_destroy(d)
   end subroutine domain_restore
 
