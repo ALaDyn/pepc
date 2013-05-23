@@ -27,13 +27,21 @@ module module_tree
     use module_comm_env, only: t_comm_env
     use module_domains, only: t_decomposition
     use pthreads_stuff, only: t_pthread_with_type
-    use module_atomic_ops, only: t_atomic_int, t_critical_section
+    use module_atomic_ops, only: t_atomic_int
     use module_pepc_types
     use, intrinsic :: iso_c_binding
     implicit none
     private
 
     integer(kind_key), public, parameter :: TREE_KEY_ROOT    =  1_kind_key
+    
+    !> data type for communicator request queue
+    type, public :: t_request_queue_entry
+      type(t_tree_node), pointer :: node
+      logical :: eager_request
+      type(t_request_eager) :: request
+      logical :: entry_valid
+    end type    
 
     integer, public, parameter :: TREE_COMM_ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
     integer, public, parameter :: TREE_COMM_REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
@@ -41,20 +49,26 @@ module module_tree
     integer, public, parameter :: TREE_COMM_THREAD_STATUS_STOPPED  = 1
     integer, public, parameter :: TREE_COMM_THREAD_STATUS_STARTING = 2
     integer, public, parameter :: TREE_COMM_THREAD_STATUS_STARTED  = 3
-    integer, public, parameter :: TREE_COMM_THREAD_STATUS_WAITING  = 4
+    integer, public, parameter :: TREE_COMM_THREAD_STATUS_STOPPING = 4
+    integer, public, parameter :: TREE_COMM_THREAD_STATUS_WAITING  = 5
 
     !> data type for tree communicator
     type, public :: t_tree_communicator
+      ! request queue
+      type(t_request_queue_entry) :: req_queue(TREE_COMM_REQUEST_QUEUE_LENGTH)
+      type(t_atomic_int), pointer :: req_queue_bottom !< position of queue bottom in array; pushed away from top by tree users
+      type(t_atomic_int), pointer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending    
+      
       ! counters and timers
       integer*8 :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
       real*8 :: timings_comm(3) !< array for storing internal timing information
+      integer :: request_balance !< total (#requests - #answers), should be zero after complete traversal
       integer(kind_node) :: sum_ships   !< total number of node ships
       integer(kind_node) :: sum_fetches !< total number of node fetches
 
       ! thread data
       type(t_pthread_with_type) :: comm_thread
       type(t_atomic_int), pointer :: thread_status
-      type(t_critical_section), pointer :: cs_request
       integer :: processor_id
     end type t_tree_communicator
 
@@ -277,7 +291,7 @@ module module_tree
     !>
     subroutine tree_communicator_create(c)
       use, intrinsic :: iso_c_binding
-      use module_atomic_ops, only: atomic_allocate_int, atomic_store_int, critical_section_allocate
+      use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
       use module_debug
       implicit none
 
@@ -286,13 +300,19 @@ module module_tree
       DEBUG_ASSERT(.not. tree_communicator_allocated(c))
       c%timings_comm = 0.
       
+      call atomic_allocate_int(c%req_queue_bottom)
+      call atomic_allocate_int(c%req_queue_top)
       call atomic_allocate_int(c%thread_status)
-      call critical_section_allocate(c%cs_request)
-      if (.not. (associated(c%thread_status) .or. associated(c%cs_request))) then
+      if (.not. (associated(c%req_queue_bottom) .and. associated(c%req_queue_top) &
+                 .and. associated(c%thread_status))) then
         DEBUG_ERROR(*, "atomic_allocate_int() failed!")
       end if
+      call atomic_store_int(c%req_queue_bottom, 0)
+      call atomic_store_int(c%req_queue_top, 0)
       call atomic_store_int(c%thread_status, TREE_COMM_THREAD_STATUS_STOPPED)
 
+      c%request_balance =  0
+      c%req_queue(:)%entry_valid = .false. ! used in send_requests() to ensure that only completely stored entries are sent form the list
       c%sum_ships = 0
       c%sum_fetches = 0
     end subroutine tree_communicator_create
@@ -303,7 +323,7 @@ module module_tree
     !>
     subroutine tree_communicator_destroy(c)
       use, intrinsic :: iso_c_binding
-      use module_atomic_ops, only: critical_section_deallocate, atomic_deallocate_int
+      use module_atomic_ops, only: atomic_deallocate_int
       use module_atomic_ops, only: atomic_load_int
       use module_debug
       implicit none
@@ -316,8 +336,9 @@ module module_tree
         DEBUG_ERROR(*, "tree_communicator_destroy() called with comm thread still running!")
       end if
 
+      call atomic_deallocate_int(c%req_queue_bottom)
+      call atomic_deallocate_int(c%req_queue_top)
       call atomic_deallocate_int(c%thread_status)
-      call critical_section_deallocate(c%cs_request)
     end subroutine tree_communicator_destroy
 
 
@@ -331,7 +352,7 @@ module module_tree
       logical :: tree_communicator_allocated
       type(t_tree_communicator), intent(in) :: c
 
-      tree_communicator_allocated = associated(c%thread_status) .or. associated(c%cs_request)
+      tree_communicator_allocated = associated(c%thread_status)
     end function tree_communicator_allocated
 
 
@@ -570,13 +591,14 @@ module module_tree
       write(debug_ipefile,'(/a)') 'Node Storage'
 
       write(debug_ipefile,'(141x,a48)') &
-                  '       REQUEST_SENT                    ', &
+                  '       REQUEST_POSTED                  ', &
                   '       |     HAS_REMOTE_CONTRIBUTIONS  ', &
                   '       |     |HAS_LOCAL_CONTRIBUTIONS  ', &
-                  '       |     || CHILDREN_AVAILABLE     ', &
-                  '       |     || |       IS_FILL_NODE   ', &
-                  '       |     || |       |IS_BRANCH_NODE', &
-                  '       |     || |       ||             '
+                  '       |     ||REQUEST_SENT            ', &
+                  '       |     |||CHILDREN_AVAILABLE     ', &
+                  '       |     ||||       IS_FILL_NODE   ', &
+                  '       |     ||||       |IS_BRANCH_NODE', &
+                  '       |     ||||       ||             '
 
       write(debug_ipefile,'(3(x,a10),3(x,a22),3(x,a10),x,a10,4x,3(a8,x),a8,/,150("-"),a35)') &
                    'node', &
@@ -608,7 +630,7 @@ module module_tree
                 t%nodes(i)%first_child, &
                 t%nodes(i)%next_sibling, &
                 t%nodes(i)%leaves, &
-                t%nodes(i)%request_sent, &
+                t%nodes(i)%request_posted, &
                 t%nodes(i)%flags_local, &
                 t%nodes(i)%flags_global, &
                 t%nodes(i)%childcode

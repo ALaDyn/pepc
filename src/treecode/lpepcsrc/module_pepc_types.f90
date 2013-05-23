@@ -85,7 +85,7 @@ module module_pepc_types
         integer(kind_node) :: parent
         integer(kind_node) :: first_child
         integer(kind_node) :: next_sibling
-        logical(kind_byte) :: request_sent !< is set to .true. after a request for child data has been sent
+        logical(kind_byte) :: request_posted !< is set to .true. after a request for child data has been put onto the request list
         type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node
  

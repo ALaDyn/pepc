@@ -28,6 +28,7 @@ module module_tree_node
 
     ! bits in flags to be set when children are requested, the request has been sent, and they have arrived
     integer, public, parameter :: TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE       = 0 !< bit is used in flags_local to denote that children information for the node is available in the local hashtable
+    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_REQUEST_SENT             = 1 !< bit is set in flags_local if request for child nodes has actually been sent
     integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local for all nodes that contain some local nodes beneath them
     integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local for all nodes that contain some remote nodes beneath them
     integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE           = 0 !< bit is set in flags_global for all branch nodes (set in tree_exchange)
@@ -217,7 +218,7 @@ module module_tree_node
       n%parent           = p%parent
       n%first_child      = p%first_child
       n%next_sibling     = NODE_INVALID
-      n%request_sent     = .false.
+      n%request_posted   = .false.
       n%interaction_data = p%interaction_data
       
     end subroutine tree_node_unpack

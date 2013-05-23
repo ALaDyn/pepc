@@ -658,7 +658,7 @@ module module_tree_grow
           this_node%childcode    = 0
           this_node%flags_global = 0
           this_node%flags_local  = ibset(this_node%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
-          this_node%request_sent = .false.
+          this_node%request_posted = .false.
           this_node%owner        = t%comm_env%rank
           this_node%key          = k
           this_node%level        = l
@@ -790,7 +790,7 @@ module module_tree_grow
     parent%childcode    = childcode
     parent%flags_global = flags_global
     parent%flags_local  = flags_local
-    parent%request_sent = .false.
+    parent%request_posted = .false.
     parent%leaves       = nleaves
     parent%descendants  = ndescendants
     parent%owner        = parent_owner

@@ -42,9 +42,9 @@
 !    end while
 !
 module module_tree_communicator
-  use module_tree, only: t_tree_communicator, TREE_COMM_REQUEST_QUEUE_LENGTH, TREE_COMM_ANSWER_BUFF_LENGTH, &
+  use module_tree, only: t_request_queue_entry, t_tree_communicator, TREE_COMM_REQUEST_QUEUE_LENGTH, TREE_COMM_ANSWER_BUFF_LENGTH, &
     TREE_COMM_THREAD_STATUS_STOPPED, TREE_COMM_THREAD_STATUS_STARTING, TREE_COMM_THREAD_STATUS_STARTED, &
-    TREE_COMM_THREAD_STATUS_WAITING
+    TREE_COMM_THREAD_STATUS_STOPPING, TREE_COMM_THREAD_STATUS_WAITING
   use module_pepc_types
   implicit none
   private
@@ -68,6 +68,10 @@ module module_tree_communicator
   ! IDs for internal timing measurement
   integer, public, parameter :: TREE_COMM_TIMING_COMMLOOP = 1
   integer, public, parameter :: TREE_COMM_TIMING_RECEIVE  = 2
+  integer, public, parameter :: TREE_COMM_TIMING_SENDREQS = 3
+
+  integer, parameter :: TREE_COMM_MAX_MESSAGES_PER_ITERATION = 20
+  integer, parameter :: TREE_COMM_MIN_MESSAGES_PER_ITERATION = 5
 
   ! MPI buffer
   integer*1, allocatable, target :: tree_comm_bsend_buffer(:) !< buffer for bsend-calls
@@ -160,6 +164,7 @@ module module_tree_communicator
     ! TODO: in future, need to handle multiple communicators.
     call timer_reset(t_comm_total)
     call timer_reset(t_comm_recv)
+    call timer_reset(t_comm_sendreqs)
     
     tp = c_loc(t)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
@@ -191,21 +196,19 @@ module module_tree_communicator
     include 'mpif.h'
 
     type(t_tree), intent(inout) :: t
-    integer(kind_Default) :: ierr
 
     DEBUG_ASSERT(atomic_load_int(t%communicator%thread_status) == TREE_COMM_THREAD_STATUS_STARTED \
             .or. atomic_load_int(t%communicator%thread_status) == TREE_COMM_THREAD_STATUS_STARTING)
             
-    ! notify rank 0 that we are finished with our walk
-    call MPI_BSEND(tree_comm_dummy, 1, MPI_INTEGER, 0, TREE_COMM_TAG_FINISHED_PE, &
-      t%comm_env%comm, ierr)
-    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_WAITING)
+    ! notify rank the communicator that we are finished with our walk
+    call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STOPPING)
 
     ERROR_ON_FAIL(pthreads_jointhread(t%communicator%comm_thread))
     tree_comm_thread_counter = tree_comm_thread_counter - 1
 
     call timer_add(t_comm_total,    t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP))
     call timer_add(t_comm_recv,     t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE))
+    call timer_add(t_comm_sendreqs, t%communicator%timings_comm(TREE_COMM_TIMING_SENDREQS))
 
     if (tree_comm_debug) then
       DEBUG_INFO('("PE", I6, " run_communication_loop end.")', t%comm_env%rank)
@@ -217,7 +220,8 @@ module module_tree_communicator
   !> Request children of node `n` in tree `t` from the responsible remote rank.
   !> The local node that actually needs the remote node is `n_targ`.
   !>
-  !> This routine returns after sending the request. The caller is then free
+  !> This routine returns immediately as the actual communication with the
+  !> remote rank is handled by the communicator thread. The caller is then free
   !> to continue working on something different. Later on, `tree_node_children_available`
   !> can be used to check whether the requested data has arrived in the
   !> meantime.
@@ -229,8 +233,8 @@ module module_tree_communicator
   subroutine tree_node_fetch_children(t, n, nidx, particle, pos)
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node, t_particle
-    use module_atomic_ops, only: atomic_write_barrier, &
-      critical_section_enter, critical_section_leave
+    use module_atomic_ops, only: atomic_mod_increment_and_fetch_int, &
+      atomic_write_barrier, atomic_load_int
     use module_tree_node
     use module_debug
     implicit none
@@ -241,45 +245,70 @@ module module_tree_communicator
     integer(kind_node), intent(in) :: nidx
     type(t_particle), intent(in), optional :: particle
     real*8, intent(in), optional :: pos(3)
-    integer(kind_default) :: ierr
     type(t_request_eager) :: req_eager
     integer(kind_node) :: req_simple(2)
-    logical(kind_byte) :: dontsend
     
-    
-    ! check wether the node has already been requested -- then there is no need for waiting for the critical section
-    if (.not. n%request_sent) then
-      ! the following part has to be secured against synchronous invocation
-      ! otherwise it will be possible that two walk threads can synchronously send a node request for identical nodes
-      call critical_section_enter(t%communicator%cs_request)
-        dontsend = n%request_sent
-        n%request_sent = .true.
-        call atomic_write_barrier()
-      call critical_section_leave(t%communicator%cs_request)
+    integer :: local_queue_bottom
 
-      if (.not. dontsend) then
-        ! send a request to PE n%owner
-        ! telling, that we need child data for particle request_key(req_queue_top)
-        if (present(particle)) then
-          req_eager%node     = n%first_child
-          req_eager%parent   = nidx
-          req_eager%particle = particle
-          if (present(pos)) then 
-            req_eager%particle%x = pos
-          end if
-
-          call MPI_BSEND(req_eager, 1, MPI_TYPE_request_eager, n%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
-            t%comm_env%comm, ierr)
-        else
-          req_simple(1) = n%first_child
-          req_simple(2) = nidx
-        
-          call MPI_BSEND(n%first_child, 2, MPI_KIND_NODE, n%owner, TREE_COMM_TAG_REQUEST_KEY, &
-            t%comm_env%comm, ierr)
-        endif
-      end if
+    ! check wether the node has already been requested
+    ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
+    ! otherwise it will be possible that two walk threads can synchronously post a particle to the request queue
+    if (n%request_posted) then
+      return
     end if
 
+    ! we first flag the particle as having been already requested to prevent other threads from doing it while
+    ! we are inside this function
+    n%request_posted=.true. ! Set requested flag
+
+    ! thread-safe way of reserving storage for our request
+    local_queue_bottom = atomic_mod_increment_and_fetch_int(t%communicator%req_queue_bottom, TREE_COMM_REQUEST_QUEUE_LENGTH)
+
+    if (local_queue_bottom == atomic_load_int(t%communicator%req_queue_top)) then
+      DEBUG_ERROR(*, "Issue with request sending queue: TREE_COMM_REQUEST_QUEUE_LENGTH is too small: ", TREE_COMM_REQUEST_QUEUE_LENGTH)
+    end if
+
+    ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
+    DEBUG_ASSERT(.not. t%communicator%req_queue(local_queue_bottom)%entry_valid)
+
+    t%communicator%req_queue(local_queue_bottom)%request%node   = n%first_child
+    t%communicator%req_queue(local_queue_bottom)%request%parent = nidx
+    t%communicator%req_queue(local_queue_bottom)%node           => n
+
+    if (present(particle)) then
+      call enqueue_eager(t%communicator%req_queue, n, nidx, particle, pos)
+    else
+      t%communicator%req_queue(local_queue_bottom)%eager_request  = .false.
+    end if
+
+    call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
+    t%communicator%req_queue(local_queue_bottom)%entry_valid    = .true.
+
+    contains
+
+    subroutine enqueue_eager(q, n, nidx, p, pos)
+      implicit none
+
+      type(t_request_queue_entry), intent(inout) :: q(TREE_COMM_REQUEST_QUEUE_LENGTH)
+      type(t_tree_node), target, intent(in) :: n
+      integer(kind_node), intent(in) :: nidx
+      type(t_particle), intent(in) :: p
+      real*8, optional, intent(in) :: pos(3)
+
+      DEBUG_ASSERT(.not. q(local_queue_bottom)%entry_valid)
+
+      q(local_queue_bottom)%request%node   = n%first_child
+      q(local_queue_bottom)%request%parent = nidx
+      q(local_queue_bottom)%eager_request  = .true.
+      
+      if (present(pos)) then
+        q(local_queue_bottom)%request%particle%x = pos
+      end if
+
+      q(local_queue_bottom)%node           => n
+      call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
+      q(local_queue_bottom)%entry_valid    = .true.
+    end subroutine enqueue_eager
   end subroutine tree_node_fetch_children
 
 
@@ -363,7 +392,7 @@ module module_tree_communicator
   !>
   subroutine send_data(t, nodes, numnodes, adressee) 
     use module_tree, only: t_tree 
-    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package 
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, t_request_eager 
     implicit none 
     include 'mpif.h' 
 
@@ -625,9 +654,96 @@ module module_tree_communicator
 
 
   !>
+  !> send all requests from our thread-safe list until we find an invalid one
+  !>
+  subroutine send_requests(q, b, t, rb, tsend, comm_env)
+    use module_tree, only: t_request_queue_entry
+    use module_comm_env, only: t_comm_env
+    use module_atomic_ops, only: t_atomic_int, atomic_load_int, atomic_store_int, atomic_read_barrier
+    use module_debug
+    implicit none
+    include 'mpif.h'
+
+    type(t_request_queue_entry), volatile, intent(inout) :: q(TREE_COMM_REQUEST_QUEUE_LENGTH) !< request queue
+    type(t_atomic_int), intent(inout) :: b !< queue bottom
+    type(t_atomic_int), intent(inout) :: t !< queue top
+    integer, intent(inout) :: rb !< request balance
+    real*8, intent(inout) :: tsend !< time measurement
+    type(t_comm_env), intent(inout) :: comm_env !< communication environment for sending
+
+    integer :: tmp_top
+
+    tsend = tsend - MPI_WTIME()
+
+    do while (atomic_load_int(t) .ne. atomic_load_int(b))
+      tmp_top = mod(atomic_load_int(t), TREE_COMM_REQUEST_QUEUE_LENGTH) + 1
+
+      ! first check whether the entry is actually valid	  
+      if (q(tmp_top)%entry_valid) then
+        call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
+
+        if (tree_comm_debug) then
+          DEBUG_INFO('("PE", I6, " sending request.      req_queue_top=", I5, ", request_key=", O22, ", request_owner=", I6)', comm_env%rank, tmp_top, q(tmp_top)%node%key, q(tmp_top)%node%owner)
+        end if
+
+        if (send_request(q(tmp_top), comm_env)) then
+          rb = rb + 1
+        end if
+
+        ! we have to invalidate this request queue entry. this shows that we actually processed it and prevents it from accidentially being resent after the req_queue wrapped around
+        q(tmp_top)%entry_valid = .false.
+        call atomic_store_int(t, tmp_top)
+      else
+        ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
+        exit
+      end if
+    end do
+
+    tsend = tsend + MPI_WTIME()
+
+    contains
+
+    function send_request(req, comm_env)
+      use module_tree_node
+      use module_pepc_types, only : MPI_TYPE_request_eager
+      implicit none
+      include 'mpif.h'
+      
+      logical :: send_request
+      type(t_request_queue_entry), volatile, intent(inout) :: req
+      type(t_comm_env), intent(inout) :: comm_env
+      integer(kind_node) :: req_simple(2)
+
+      integer(kind_default) :: ierr
+
+      if (.not. btest( req%node%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT ) ) then
+        ! send a request to PE req_queue_owners(req_queue_top)
+        ! telling, that we need child data for particle request_key(req_queue_top)
+        
+        if (req%eager_request) then
+          call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager, req%node%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
+            comm_env%comm, ierr)
+        else
+          req_simple(1) = req%request%node
+          req_simple(2) = req%request%parent
+          call MPI_BSEND(req_simple, 2, MPI_KIND_NODE, req%node%owner, TREE_COMM_TAG_REQUEST_KEY, &
+            comm_env%comm, ierr)
+        endif
+
+        req%node%flags_local = ibset(req%node%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
+        send_request = .true.
+      else
+        send_request = .false.
+      end if
+    end function
+  end subroutine send_requests
+
+
+  !>
   !> main routine of the communicator thread.
   !>
-  !> Repeatedly calls MPI_PROBE to check for requests to answer, then relinquishes the
+  !> Repeatedly checks the request queue for new requests to send out
+  !> and calls MPI_IPROBE to check for requests to answer, then relinquishes the
   !> CPU.
   !>
   !> @todo Factor out thread scheduling code below and reactivate it.
@@ -646,6 +762,9 @@ module module_tree_communicator
 
     type(t_tree), pointer :: t
     !integer, intent(in) :: max_particles_per_thread
+    integer, dimension(mintag:maxtag) :: nummessages
+    integer :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
+    integer(kind_default) :: ierr
     logical, allocatable :: comm_finished(:) ! will hold information on PE 0 about which processor
                                              ! is still communicating and which ones are finished
                                              ! to emulate a non-blocking barrier
@@ -661,6 +780,9 @@ module module_tree_communicator
     ! signal successfull start
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTED)
 
+    nummessages            = 0
+    messages_per_iteration = 0
+
     allocate(comm_finished(t%comm_env%size))
     comm_finished = .false.
 
@@ -669,8 +791,43 @@ module module_tree_communicator
     do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STOPPED)
       t%communicator%comm_loop_iterations(1) = t%communicator%comm_loop_iterations(1) + 1
 
-      ! process any incoming messages
-      call run_communication_loop_inner(t, comm_finished)
+      ! send our requested keys
+      call send_requests(t%communicator%req_queue, &
+                         t%communicator%req_queue_bottom, &
+                         t%communicator%req_queue_top, &
+                         t%communicator%request_balance, &
+                         t%communicator%timings_comm(TREE_COMM_TIMING_SENDREQS), &
+                         t%comm_env)
+
+      if (atomic_load_int(t%communicator%thread_status) == TREE_COMM_THREAD_STATUS_STOPPING) then
+        ! notify rank 0 that we are finished with our walk
+        call MPI_BSEND(tree_comm_dummy, 1, MPI_INTEGER, 0, TREE_COMM_TAG_FINISHED_PE, &
+          t%comm_env%comm, ierr)
+        call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_WAITING)
+      end if
+
+      ! check whether we are still waiting for data or some other communication
+      !if (walk_status == WALK_IAM_FINISHED) call check_comm_finished(t)
+
+      ! process any incoming answers
+      call run_communication_loop_inner(t, comm_finished, nummessages)
+
+      messages_per_iteration = messages_per_iteration + sum(nummessages)
+      t%communicator%request_balance = t%communicator%request_balance - nummessages(TREE_COMM_TAG_REQUESTED_DATA)
+      nummessages(TREE_COMM_TAG_REQUESTED_DATA) = 0
+
+      ! adjust the sched_yield()-timeout for the thread that shares its processor with the communicator
+      !if (messages_per_iteration > MAX_MESSAGES_PER_ITERATION) then
+      !  particles_per_yield = int(max(0.75 * particles_per_yield, 0.01*max_particles_per_thread))
+      !  if (walk_debug) then
+      !    DEBUG_INFO('("messages_per_iteration = ", I6, " > ", I6, " --> Decreased particles_per_yield to", I10)', messages_per_iteration, MAX_MESSAGES_PER_ITERATION, particles_per_yield)
+      !  end if
+      !else if ((particles_per_yield < max_particles_per_thread) .and. (messages_per_iteration < MIN_MESSAGES_PER_ITERATION)) then
+      !  particles_per_yield = int(min(1.5 * particles_per_yield, 1. * max_particles_per_thread))
+      !  if (walk_debug) then
+      !    DEBUG_INFO('("messages_per_iteration = ", I6, " < ", I6, " --> Increased particles_per_yield to", I10)', messages_per_iteration, MIN_MESSAGES_PER_ITERATION, particles_per_yield)
+      !  end if
+      !end if
 
       ! currently, there is no further communication request --> other threads may do something interesting
       ERROR_ON_FAIL(pthreads_sched_yield())
@@ -689,7 +846,7 @@ module module_tree_communicator
   !>
   !> Checks for incoming MPI messages and acts on them.
   !>
-  subroutine run_communication_loop_inner(t, comm_finished)
+  subroutine run_communication_loop_inner(t, comm_finished, nummessages)
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node_package, MPI_TYPE_tree_node_package, t_request_eager, MPI_TYPE_request_eager
     use module_atomic_ops, only: atomic_store_int
@@ -699,6 +856,7 @@ module module_tree_communicator
 
     type(t_tree), intent(inout) :: t
     logical, intent(inout) :: comm_finished(:)
+    integer, intent(inout), dimension(mintag:maxtag) :: nummessages
 
     integer(kind_default) :: ierr
     integer :: stat(MPI_STATUS_SIZE)
@@ -709,95 +867,119 @@ module module_tree_communicator
     integer(kind_pe) :: ipe_sender
     integer ::msg_tag
     real*8 :: tcomm
+    logical :: msg_avail
 
     ! probe for incoming messages
-    call MPI_PROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, stat, ierr)
+    ! TODO: could be done with a blocking probe, but
+    ! since my Open-MPI Version is *not thread-safe*,
+    ! we will have to guarantee, that there is only one thread
+    ! doing all the communication during walk...
+    ! otherwise, we cannot send any messages while this thread is idling in a blocking probe
+    ! and hence cannot abort this block
+    ! if a blocking probe is used,
+    ! the calls to send_requests() and send_walk_finished() have
+    ! to be performed asynchonously (i.e. from the walk threads)
+    call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, msg_avail, stat, ierr)
 
-    t%communicator%comm_loop_iterations(3) = t%communicator%comm_loop_iterations(3) + 1
-    tcomm = MPI_WTIME()
+    if (msg_avail) then
+      t%communicator%comm_loop_iterations(3) = t%communicator%comm_loop_iterations(3) + 1
+      tcomm = MPI_WTIME()
 
-    ipe_sender = stat(MPI_SOURCE)
-    msg_tag    = stat(MPI_TAG)
+      do while (msg_avail)
+        ipe_sender = stat(MPI_SOURCE)
+        msg_tag    = stat(MPI_TAG)
 
-    select case (msg_tag)
-      ! another PE requested data for a certain node and its siblings
-      case (TREE_COMM_TAG_REQUEST_KEY)
-        ! actually receive this request...
-        call MPI_RECV(req_simple, 2, MPI_KIND_NODE, ipe_sender, TREE_COMM_TAG_REQUEST_KEY, &
+        ! the functions returns the number of received messages of any tag
+        nummessages(msg_tag) = nummessages(msg_tag) + 1
+
+        select case (msg_tag)
+          ! another PE requested child data for a certain key
+          case (TREE_COMM_TAG_REQUEST_KEY)
+            ! actually receive this request...
+            ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+            call MPI_RECV(req_simple, 2, MPI_KIND_NODE, ipe_sender, TREE_COMM_TAG_REQUEST_KEY, &
                 t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
-        ! ... and answer it
-        call answer_request_simple(t, req_simple, ipe_sender)
-      ! another PE requested child data for a certain node, its siblings and wants us to do some additional work
-      case (TREE_COMM_TAG_REQUEST_KEY_EAGER)
-        ! actually receive this request...
-        call MPI_RECV(request, 1, MPI_TYPE_request_eager, ipe_sender, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
-                t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
-        ! ... and answer it
-        call answer_request_eager(t, request, ipe_sender)
+            ! ... and answer it
+            call answer_request_simple(t, req_simple, ipe_sender)
 
-      ! some PE answered our request and sends
-      case (TREE_COMM_TAG_REQUESTED_DATA)
-        ! actually receive the data...
-        call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_package, num_children, ierr)
-        allocate(child_data(num_children))
-        call MPI_RECV(child_data, num_children, MPI_TYPE_tree_node_package, ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, &
-                t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
-        ! ... and put it into the tree and all other data structures
-        call unpack_data(t, child_data, num_children, ipe_sender)
-        deallocate(child_data)
+          case (TREE_COMM_TAG_REQUEST_KEY_EAGER)
+            ! actually receive this request...
+            ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+            call MPI_RECV(request, 1, MPI_TYPE_request_eager, ipe_sender, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
+                    t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
+            ! ... and answer it
+            call answer_request_eager(t, request, ipe_sender)
+
+          ! some PE answered our request and sends
+          case (TREE_COMM_TAG_REQUESTED_DATA)
+            ! actually receive the data...
+            ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+            call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_package, num_children, ierr)
+            allocate(child_data(num_children))
+            call MPI_RECV(child_data, num_children, MPI_TYPE_tree_node_package, ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, &
+                    t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
+            ! ... and put it into the tree and all other data structures
+            call unpack_data(t, child_data, num_children, ipe_sender)
+            deallocate(child_data)
             
-      ! rank 0 does bookkeeping about which PE is already finished with its walk
-      ! no one else will ever receive this message tag
-      case (TREE_COMM_TAG_FINISHED_PE)
-        ! actually receive the data (however, we are not interested in it here)
-        ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-        call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_PE, &
-                t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
+          ! rank 0 does bookkeeping about which PE is already finished with its walk
+          ! no one else will ever receive this message tag
+          case (TREE_COMM_TAG_FINISHED_PE)
+            ! actually receive the data (however, we are not interested in it here)
+            ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+            call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_PE, &
+                    t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
 
-        DEBUG_ASSERT_MSG(t%comm_env%rank == 0, *, "this kind of message is only expected at rank 0!")
-        if (tree_comm_debug) then
-          DEBUG_INFO('("PE", I6, " has been told that PE", I6, " has finished walking")', t%comm_env%rank, ipe_sender)
-          DEBUG_INFO(*, 'comm_finished = ', comm_finished)
-        end if
-
-        if (.not. comm_finished(ipe_sender + 1)) then
-          comm_finished(ipe_sender + 1) = .true.
-
-          if (all(comm_finished)) then
-            call broadcast_comm_finished(t)
+            DEBUG_ASSERT_MSG(t%comm_env%rank == 0, *, "this kind of message is only expected at rank 0!")
             if (tree_comm_debug) then
-              DEBUG_INFO(*, 'BCWF: comm_finished = ', comm_finished)
+              DEBUG_INFO('("PE", I6, " has been told that PE", I6, " has finished walking")', t%comm_env%rank, ipe_sender)
+              DEBUG_INFO(*, 'comm_finished = ', comm_finished)
+              DEBUG_INFO('("nummessages(TAG_FINISHED_PE) = ", I6, ", count(comm_finished) = ", I6)', nummessages(TREE_COMM_TAG_FINISHED_PE), count(comm_finished))
             end if
-          end if
-        else
-          DEBUG_WARNING_ALL('("PE", I6, " has been told that PE", I6, " has finished walking, but already knew that. Obviously received duplicate TAG_FINISHED_PE, ignoring.")', t%comm_env%rank, ipe_sender)
-        end if
 
-      ! all PEs have finished their walk
-      case (TREE_COMM_TAG_FINISHED_ALL)
-        call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_ALL, &
-                    t%comm_env%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+            if (.not. comm_finished(ipe_sender + 1)) then
+              comm_finished(ipe_sender + 1) = .true.
 
-        if (tree_comm_debug) then
-          DEBUG_INFO('("PE", I6, " has been told to terminate by PE", I6, " since all walks on all PEs are finished")', t%comm_env%rank, ipe_sender)
-        end if
+              if (all(comm_finished)) then
+                call broadcast_comm_finished(t)
+                if (tree_comm_debug) then
+                  DEBUG_INFO(*, 'BCWF: comm_finished = ', comm_finished)
+                  DEBUG_INFO('("BCWF: nummessages(TREE_COMM_TAG_FINISHED_PE) = ", I6, ", count(comm_finished) = ", I6)', nummessages(TREE_COMM_TAG_FINISHED_PE), count(comm_finished))
+                end if
+              end if
+            else
+              DEBUG_WARNING_ALL('("PE", I6, " has been told that PE", I6, " has finished walking, but already knew that. Obviously received duplicate TAG_FINISHED_PE, ignoring.")', t%comm_env%rank, ipe_sender)
+            end if
 
-        call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STOPPED)
+          ! all PEs have finished their walk
+          case (TREE_COMM_TAG_FINISHED_ALL)
+            call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_FINISHED_ALL, &
+                        t%comm_env%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+
+            if (tree_comm_debug) then
+              DEBUG_INFO('("PE", I6, " has been told to terminate by PE", I6, " since all walks on all PEs are finished")', t%comm_env%rank, ipe_sender)
+            end if
+
+            call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STOPPED)
           
-      ! on some rank something went wrong - we shall dump our tree  
-      case (TREE_COMM_TAG_DUMP_TREE_AND_ABORT)
+          ! on some rank something went wrong - we shall dump our tree  
+          case (TREE_COMM_TAG_DUMP_TREE_AND_ABORT)
             
-        call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_DUMP_TREE_AND_ABORT, &
-                    t%comm_env%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
+            call MPI_RECV(tree_comm_dummy, 1, MPI_INTEGER, ipe_sender, TREE_COMM_TAG_DUMP_TREE_AND_ABORT, &
+                        t%comm_env%comm, MPI_STATUS_IGNORE, ierr) ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
 
-        if (tree_comm_debug) then
-          DEBUG_INFO('("PE", I6, " has been told to dump its tree and abort by PE", I6)', t%comm_env%rank, ipe_sender)
-        end if
+            if (tree_comm_debug) then
+              DEBUG_INFO('("PE", I6, " has been told to dump its tree and abort by PE", I6)', t%comm_env%rank, ipe_sender)
+            end if
 
-        call dump_tree_and_abort(t, ipe_sender)
+            call dump_tree_and_abort(t, ipe_sender)
 
-    end select
+        end select
 
-    t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE) = t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE) +  (MPI_WTIME() - tcomm)
+        call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, msg_avail, stat, ierr)
+      end do ! while (msg_avail)
+
+      t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE) = t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE) +  (MPI_WTIME() - tcomm)
+    end if ! msg_avail
   end subroutine run_communication_loop_inner
 end module module_tree_communicator
