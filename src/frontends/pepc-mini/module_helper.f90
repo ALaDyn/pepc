@@ -363,7 +363,7 @@ module helper
   
     tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
   
-    call directforce(particles, tindx, tn, trslt, my_rank, n_ranks, MPI_COMM_WORLD)
+    call directforce(particles, tindx, tn, trslt, MPI_COMM_WORLD)
   
     L2sum_local  = 0.0
     L2sum_global = 0.0

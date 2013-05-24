@@ -50,7 +50,7 @@ module physvars
   integer :: n_cpu   ! # cpus used by program
 
 ! Control stuff
-  integer :: ispecial       ! Switch to select special electron configs 
+  integer :: ispecial =1      ! Switch to select special electron configs 
   integer :: debug_level =0 ! Debug level for printed O/P
 
    real :: dt             ! timestep

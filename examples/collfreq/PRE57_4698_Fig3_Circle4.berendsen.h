@@ -1,4 +1,4 @@
-&pepcmw
+&pepccollfreq
 
 ! setup follows one datapoint in Figure 3 in [PRE 57, 4698]
 
@@ -14,15 +14,6 @@
  nt = 750
  dt = 2.0
 
-! fmm-periodicity framework
-! lattice basis vectors
-  t_lattice_1 = 1.0   0.0   0.0
-  t_lattice_2 = 0.0   1.0   0.0
-  t_lattice_3 = 0.0   0.0   1.0
-! periodicity in x-, y-, and z-direction
-  periodicity = .true.  .true.  .true.
-! extrinsic-to-intrinsic correction
-  do_extrinsic_correction = .true.
 ! only perform nearest-image-periodicity
 !  periodicity_nearest_image = .true.
 
@@ -79,12 +70,12 @@ tau_temp_relaxation = 5.0
 /
 
 &libpepc
+ num_threads = 60
  debug_level = 0
  interaction_list_length_factor = 1
 /
 
 &walk_para_pthreads
- num_walk_threads         = 8
- max_particles_per_thread = 2000
+ max_particles_per_thread = 250
 /
 

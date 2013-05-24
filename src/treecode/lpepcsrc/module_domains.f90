@@ -174,8 +174,7 @@ module module_domains
     call timer_start(t_domains_add_sort)
     call timer_start(t_domains_sort_pure)
 
-    allocate(ship_parts(d%nppmax), get_parts(d%nppmax), temp(d%nppmax), workload(d%nppmax), irnkl2(d%nppmax), &
-      local_keys(d%nppmax))
+    allocate(temp(d%nppmax), workload(d%nppmax), irnkl2(d%nppmax), local_keys(d%nppmax))
 
     ! start permutation of local key list
     workload(1:d%npold) = particles(1:d%npold)%work
@@ -199,7 +198,8 @@ module module_domains
     ! Now permute particle properties
     ! Set up particle structure
     call timer_start(t_domains_add_pack)
-
+    
+    allocate(ship_parts(d%nppmax))
     do i = 1, d%npold
       ship_parts(i) = particles( d%indxl(i) )
     end do
@@ -207,6 +207,7 @@ module module_domains
     call timer_stop(t_domains_add_pack)
 
     deallocate(particles) ! has size npold until here, i.e. npp == npold
+    allocate(get_parts(d%nppmax))
 
     call timer_start(t_domains_add_alltoallv)
 
@@ -216,6 +217,7 @@ module module_domains
 
     call timer_stop(t_domains_add_alltoallv)
 
+    deallocate(ship_parts)
     allocate(particles(d%npnew))
 
     call timer_start(t_domains_add_unpack)
@@ -223,6 +225,7 @@ module module_domains
     do i = 1, d%npnew
       particles(d%irnkl(i)) = get_parts(i)
     end do
+    deallocate(get_parts)
 
     call timer_stop(t_domains_add_unpack)
 
@@ -253,7 +256,12 @@ module module_domains
 
     ! check whether there is enough space in the local key domain
     if ( ( local_keys(d%npnew) - local_keys(1) + 1) < d%npnew) then
-      DEBUG_ERROR('("There are more particles than available keys in the local domain: npp=",I0,", but upper and lower key (octal) =", 2(x,O0),"; upper-lower (dec) = ",I0)', d%npnew, local_keys(d%npnew), local_keys(1), local_keys(d%npnew) - local_keys(1))
+      DEBUG_WARNING_ALL('("There are more particles than available keys in the local domain: npp=",I0,", but upper and lower key (octal) =", 2(x,O0),"; upper-lower (dec) = ",I0,". Usually, particle coordinates are invalid in this case. Printing particle list to diag file.")', d%npnew, local_keys(d%npnew), local_keys(1), local_keys(d%npnew) - local_keys(1))
+      DEBUG_INFO(*, '1st column: KEY, folowing columns: t_particle structure')
+      do i=1,d%npnew
+        DEBUG_INFO(*, local_keys(i), particles(i))
+      end do
+      call debug_mpi_abort()
     end if
 
     ! key differences for identifiying duplicates and/or overlap, be aware of the problem, that for me==num_pe-1, key_diffs(npp) is invalid since there is no right neighbour
@@ -304,7 +312,7 @@ module module_domains
                                   'Particle list after boundary swap (see t_particle in module_pepc_types.f90 for meaning of the columns)')
 
     call timer_stop(t_domains_bound)
-    deallocate(ship_parts, get_parts, temp, workload, irnkl2, local_keys, key_diffs)
+    deallocate(temp, workload, irnkl2, local_keys, key_diffs)
 
     ! reset work load, do not need a (overflowing) history of all my sins...
     particles(:)%work = 1.
@@ -376,26 +384,27 @@ module module_domains
       type (t_particle), allocatable :: get_parts(:), ship_parts(:)
 
       call pepc_status('RESTORE DOMAINS')
-      allocate(get_parts(d%npold), ship_parts(d%npnew))
 
+      allocate(ship_parts(d%npnew))
       do i = 1, d%npnew
         ship_parts(i) = p(d%irnkl(i))
       end do
 
       deallocate(p) ! had size npnew
+      allocate(get_parts(d%npold))
 
       ! perform permute
       call MPI_ALLTOALLV(ship_parts, d%irlen, d%gposts, MPI_TYPE_particle, &
             get_parts, d%islen, d%fposts, MPI_TYPE_particle, &
             d%comm_env%comm, ierr)
 
+      deallocate(ship_parts)
       allocate(p(d%npold))
-
       do i = 1, d%npold
           p(d%indxl(i)) = get_parts(i)
       end do
 
-      deallocate(get_parts, ship_parts)
+      deallocate(get_parts)
       call decomposition_destroy(d)
   end subroutine domain_restore
 

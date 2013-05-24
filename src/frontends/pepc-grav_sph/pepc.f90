@@ -189,7 +189,7 @@ program pepce
   end if
 
   write(*,*) "pepc run_type:", run_type
-  call flush()
+!  call flush()
 
   if( run_type .eq. 1) then ! normal simulation from default or with initial particle distribution
      write(*,*) "run_type = 1"

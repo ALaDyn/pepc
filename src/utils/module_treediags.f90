@@ -43,7 +43,6 @@ module module_treediags
           use module_pepc_types, only: t_tree_node
           use module_tree, only: t_tree
           use module_tree_node
-          use module_pepc, only: global_tree
           use module_pepc_types, only: kind_node
           implicit none
 
@@ -61,7 +60,6 @@ module module_treediags
           type(t_tree_node), pointer :: bnode
           integer(kind_node) :: i, num_nodes
           integer(kind_default) :: mpi_rank, mpi_size, ierr
-          integer :: j
           real*8, dimension(:), allocatable  :: bcocx, bcocy, bcocz
           integer, dimension(:), allocatable :: bowner, blevel, mirror_level
           integer, dimension(:, :), allocatable :: mirror_indices
@@ -128,7 +126,6 @@ module module_treediags
           use module_pepc_types, only: t_tree_node
           use module_tree, only: t_tree
           use module_tree_node
-          use module_pepc, only: global_tree
           use module_pepc_types, only: kind_node
           implicit none
 
@@ -248,15 +245,19 @@ module module_treediags
         !> Writes the interaction partners of the particle with the 
         !> specified label into vtk files, once as boxes, once as points
         !>
-        subroutine write_interaction_partners_to_vtk(step, label,tsim, vtk_step)
+        subroutine write_interaction_partners_to_vtk(step, label,tsim, vtk_step, interaction_nodelist, no_interaction_partners, interaction_vbox)
           use module_pepc, only: global_tree
-          use module_tree, only: tree_lookup_node_critical
+          use module_pepc_types
           use treevars
-          use module_interaction_specific
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step
           integer, intent(in) :: label
           real*8, intent(in) :: tsim
+          
+          integer(kind_node), intent(in) :: interaction_nodelist(:,:)
+          integer(kind_node), intent(in) :: no_interaction_partners(:)
+          real*8, intent(in) :: interaction_vbox(:,:,:)
+          
 
           integer(kind_node), allocatable :: i, partner_nodes(:)
           character(255) :: fn_box, fn_point
@@ -268,8 +269,7 @@ module module_treediags
             allocate(partner_nodes(no_interaction_partners(label)))
 
             do i = 1, no_interaction_partners(label)
-              call tree_lookup_node_critical(global_tree, interaction_keylist(label, i), partner_nodes(i), &
-                'write_interaction_partners_to_vtk()')
+              partner_nodes(i) = interaction_nodelist(label, i)
             end do
 
             call write_nodes_to_vtk_as_points(fn_point, MPI_Comm_lpepc, step, tsim, vtk_step, global_tree, partner_nodes, &
@@ -294,7 +294,7 @@ module module_treediags
         subroutine write_leaves_to_vtk(step, tsim, vtk_step, t_)
           use module_pepc, only: global_tree
           use module_pepc_types, only: t_tree_node, kind_node
-          use module_tree, only: t_tree, tree_lookup_root, tree_allocated
+          use module_tree, only: t_tree, tree_allocated
           use module_debug
           implicit none
 
@@ -304,7 +304,7 @@ module module_treediags
           type(t_tree), optional, target, intent(in) :: t_
 
           type(t_tree), pointer :: t
-          integer(kind_node) :: r, i
+          integer(kind_node) :: i
           integer(kind_node), allocatable :: leaves(:)
 
           if (present(t_)) then
@@ -320,8 +320,7 @@ module module_treediags
 
           allocate(leaves(t%nleaf_me))
           i = 0
-          call tree_lookup_root(t, r)
-          call collect_leaves(t, r)
+          call collect_leaves(t, t%node_root)
           DEBUG_ASSERT(i == t%nleaf_me)
 
           call write_nodes_to_vtk_as_boxes("leaves", t%comm_env%comm, step, tsim, vtk_step, t, leaves)
@@ -345,7 +344,7 @@ module module_treediags
             ns = NODE_INVALID
 
             associate (n => t%nodes(nidx))
-              if (btest(n%flags_local1, TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS)) then
+              if (btest(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
                 if (tree_node_is_leaf(n)) then
                   i = i + 1
                   leaves(i) = nidx
@@ -371,7 +370,7 @@ module module_treediags
         subroutine write_branches_to_vtk(step, tsim, vtk_step, t_)
           use module_pepc, only: global_tree
           use module_pepc_types, only: t_tree_node, kind_node
-          use module_tree, only: t_tree, tree_lookup_root, tree_allocated
+          use module_tree, only: t_tree, tree_allocated
           use module_debug
           implicit none
 
@@ -381,7 +380,7 @@ module module_treediags
           type(t_tree), optional, target, intent(in) :: t_
 
           type(t_tree), pointer :: t
-          integer(kind_node) :: r, i
+          integer(kind_node) :: i
           integer(kind_node), allocatable :: branch_nodes(:)
 
           if (present(t_)) then
@@ -398,8 +397,7 @@ module module_treediags
           if (t%comm_env%first) then
             allocate(branch_nodes(t%nbranch))
             i = 0
-            call tree_lookup_root(t, r)
-            call collect_branches(t, r)
+            call collect_branches(t, t%node_root)
             DEBUG_ASSERT(i == t%nbranch)
 
             call write_nodes_to_vtk_as_boxes("branches", t%comm_env%comm, step, tsim, vtk_step, t, branch_nodes)

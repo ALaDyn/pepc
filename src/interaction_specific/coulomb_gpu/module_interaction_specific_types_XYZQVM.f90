@@ -89,8 +89,8 @@ module module_interaction_specific_types
          real*8 :: x(1:3)      !< coordinates
          real*8 :: work        !< work load from force sum
          integer*8 :: key      !< particle key, i.e. key on highgest tree level
-         integer*8 :: key_leaf !< key of corresponding leaf (tree node)
-         integer :: label      !< particle label (only for diagnostic purposes, can be used freely by the frontend
+         integer*8 :: node_leaf !< key of corresponding leaf (tree node)
+         integer*8 :: label      !< particle label (only for diagnostic purposes, can be used freely by the frontend
          integer :: pid        !< particle owner
          type(t_particle_data) :: data       !< real physics (charge, etc.)
          type(t_particle_results) :: results !< results of calc_force_etc and companions

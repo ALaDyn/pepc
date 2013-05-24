@@ -27,11 +27,10 @@ module module_tree_node
     private
 
     ! bits in flags to be set when children are requested, the request has been sent, and they have arrived
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL2_REQUEST_POSTED           = 0 !< bit is used in flags_local2 to denote that a request for children information is already in the request queue
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL1_CHILDREN_AVAILABLE       = 0 !< bit is used in flags_local1 to denote that children information for the node is available in the local hashtable
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL1_REQUEST_SENT             = 1 !< bit is used in flags_local1 to denote that children information has already been requested from the owner
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL1_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local1 for all nodes that contain some local nodes beneath them
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL1_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local1 for all nodes that contain some remote nodes beneath them
+    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE       = 0 !< bit is used in flags_local to denote that children information for the node is available in the local hashtable
+    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_REQUEST_SENT             = 1 !< bit is set in flags_local if request for child nodes has actually been sent
+    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local for all nodes that contain some local nodes beneath them
+    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local for all nodes that contain some remote nodes beneath them
     integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE           = 0 !< bit is set in flags_global for all branch nodes (set in tree_exchange)
     integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE             = 1 !< bit is set in flags_global for all nodes that are above (towards root) branch nodes
 
@@ -43,7 +42,7 @@ module module_tree_node
     public tree_node_is_root
     public tree_node_children_available
     public tree_node_get_num_children
-    public tree_node_get_childkeys
+    public tree_node_get_num_preceding_children
     public tree_node_has_child
     public tree_node_pack
     public tree_node_unpack
@@ -67,7 +66,11 @@ module module_tree_node
       type(t_tree_node), intent(in) :: p
       integer(kind_node), intent(out) :: fc
 
-      fc = p%first_child
+      if (tree_node_children_available(p)) then
+        fc = p%first_child
+      else
+        fc = NODE_INVALID
+      endif
       tree_node_get_first_child = (fc .ne. NODE_INVALID)
     end function tree_node_get_first_child
 
@@ -108,6 +111,20 @@ module module_tree_node
 
 
     !>
+    !> returns the number of children between (including) first_child 
+    !> and (including) child `c` below `n`
+    !>
+    function tree_node_get_num_preceding_children(n, c)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      integer(kind_byte), intent(in) :: c
+      integer(kind_byte) :: tree_node_get_num_preceding_children
+      
+      tree_node_get_num_preceding_children = int(popcnt(ishft(n%childcode, bit_size(n%childcode)-(c+1))),kind(tree_node_get_num_preceding_children))-1_kind_byte
+    end function
+      
+
+    !>
     !> checks whether `n` is a root node
     !>
     function tree_node_is_root(n)
@@ -129,7 +146,7 @@ module module_tree_node
       type(t_tree_node), intent(in) :: n
       logical :: tree_node_children_available
 
-      tree_node_children_available = btest(n%flags_local1, TREE_NODE_FLAG_LOCAL1_CHILDREN_AVAILABLE)
+      tree_node_children_available = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
     end function tree_node_children_available
 
 
@@ -162,33 +179,6 @@ module module_tree_node
     end function
 
 
-    !>
-    !> returns the keys of all children, that are attached to the
-    !> node `n`
-    !>
-    subroutine tree_node_get_childkeys(n, childnum, childkeys)
-      use treevars, only: idim
-      use module_spacefilling, only: shift_key_by_level
-      implicit none
-      type(t_tree_node), intent(in) :: n
-      integer, intent(out) :: childnum
-      integer(kind_key), dimension(:), intent(out) :: childkeys
-
-      integer   :: i
-      integer(kind_key) :: keyhead
-
-      keyhead   = shift_key_by_level(n%key, 1_kind_level)
-      childnum = 0
-
-      do i = 0, 2**idim - 1
-        if (tree_node_has_child(n, i)) then
-          childnum            = childnum + 1
-          childkeys(childnum) = ior(keyhead, 1_kind_key*i)
-        end if
-      end do
-    end subroutine tree_node_get_childkeys
-
-
     subroutine tree_node_pack(n, p)
       use module_pepc_types, only: t_tree_node_package
       implicit none
@@ -196,13 +186,15 @@ module module_tree_node
       type(t_tree_node), intent(in) :: n
       type(t_tree_node_package), intent(out) :: p
 
-      p%key = n%key
-      p%childcode = n%childcode
-      p%flags_global = n%flags_global
-      p%leaves = n%leaves
-      p%descendants = n%descendants
-      p%owner = n%owner
-      p%level = int(n%level,kind(p%level))
+      p%key              = n%key
+      p%childcode        = n%childcode
+      p%flags_global     = n%flags_global
+      p%level            = n%level
+      p%owner            = n%owner
+      p%leaves           = n%leaves
+      p%descendants      = n%descendants
+      p%parent           = NODE_INVALID ! this is to be filled by answer_request()
+      p%first_child      = n%first_child
       p%interaction_data = n%interaction_data
       
     end subroutine tree_node_pack
@@ -215,18 +207,20 @@ module module_tree_node
       type(t_tree_node_package), intent(in) :: p
       type(t_tree_node), intent(out) :: n
 
-      n%key = p%key
-      n%childcode = p%childcode
-      n%flags_global = p%flags_global
-      n%flags_local1 = 0
-      n%flags_local2 = 0
-      n%leaves = p%leaves
-      n%descendants = p%descendants
-      n%owner = p%owner
-      n%level = p%level
+      n%key              = p%key
+      n%childcode        = p%childcode
+      n%flags_global     = p%flags_global
+      n%level            = p%level
+      n%flags_local      = 0_kind_byte
+      n%owner            = p%owner
+      n%leaves           = p%leaves
+      n%descendants      = p%descendants
+      n%parent           = p%parent
+      n%first_child      = p%first_child
+      n%next_sibling     = NODE_INVALID
+      n%request_posted   = .false.
       n%interaction_data = p%interaction_data
-      n%first_child  = NODE_INVALID
-      n%next_sibling = NODE_INVALID
+      
     end subroutine tree_node_unpack
 
 

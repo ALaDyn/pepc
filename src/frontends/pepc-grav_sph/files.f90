@@ -292,7 +292,7 @@ contains
      SPH_ASCII02_columnwidth = 16
 
      if(my_rank == 0) write(*,*) "IO: write particles in mpi-io ascii 02 mode. Step:", step
-     flush(6)
+!     flush(6)
 
      width = SPH_ASCII02_columnwidth
 
@@ -312,7 +312,7 @@ contains
 
      if(IO_debug) then
         write(*,*) 'opening file'
-        flush(6)
+!        flush(6)
      end if
 
  
@@ -324,7 +324,7 @@ contains
 
         if(IO_debug) then
            write(*,*) 'writing header', all_part, step
-           flush(6)
+!           flush(6)
         end if
  
         write(header, '(a,I10,a)') '# SPH_ASCII02 ', all_part, new_line('A')
@@ -333,7 +333,7 @@ contains
         
         if(IO_debug) then
            write(*,*) 'writing header 1 ', headerlength, trim(header)
-           flush(6)
+!           flush(6)
         end if
  
         offset = 0_8
@@ -341,7 +341,7 @@ contains
  
         if(IO_debug) then
            write(*,*) 'writing header 2 ', status
-           flush(6)
+!           flush(6)
         end if
 
         write( formatstring, '(a,I2,a,I2,a)' ) '(a,I6,2a,I2,2a,a', width-2, ',x,15(a', width, ',x),a)'
@@ -366,7 +366,7 @@ contains
  
         if(IO_debug) then
            write(*,*) 'writing header 3'
-           flush(6)
+!           flush(6)
         end if
 
         offset = int(headerlength, 8)
@@ -374,7 +374,7 @@ contains
  
         if(IO_debug) then
            write(*,*) 'writing header done'
-           flush(6)
+!           flush(6)
         end if
         
         current_offset = int(headerlength, 8) + int(extended_header_length, 8)
@@ -509,14 +509,14 @@ contains
                     write(*,*) "======================================================================="
                     write(*,*) "Error: Unknown output_type."
                     write(*,*) ""
-                    call flush()
+!                    call flush()
                     syntax_error = .true.
                  end if
               else
                  write(*,*) "======================================================================="
                  write(*,*) "Error: To few arguments for -convert. Need target type and data file."
                  write(*,*) ""
-                 call flush()
+!                 call flush()
                  syntax_error = .true.
               end if
               
@@ -711,7 +711,7 @@ contains
     integer :: resume_time
 
 
-!    integer :: ftell  ! ftell is intrinsic function
+    integer :: ftell  ! FIXME: ftell is a GNU extension, not available in xlf, see http://gcc.gnu.org/onlinedocs/gfortran/FTELL.html
 
 
     if(my_rank .eq. 0) write(*,*) "read particles from SPH_ASCII01 file with MPIIO: ", TRIM(filename)

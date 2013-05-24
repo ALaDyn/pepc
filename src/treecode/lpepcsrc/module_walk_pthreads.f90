@@ -95,6 +95,7 @@ module module_walk
   use module_tree, only: t_tree
   use module_pepc_types
   use module_atomic_ops, only: t_atomic_int
+  use pthreads_stuff, only: t_pthread_with_type
   implicit none
   private
   
@@ -124,7 +125,7 @@ module module_walk
     integer(kind_node) :: counters(NUM_THREAD_COUNTERS)
   end type t_threaddata
 
-  type(c_ptr), allocatable :: thread_handles(:)
+  type(t_pthread_with_type), target, allocatable :: thread_handles(:)
   type(t_threaddata), allocatable, target :: threaddata(:)
   integer :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
   real :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
@@ -266,7 +267,6 @@ module module_walk
   !>
   subroutine tree_walk_read_parameters(filehandle)
     use module_debug
-    use treevars, only: num_threads
     implicit none
     integer, intent(in) :: filehandle
 
@@ -358,7 +358,7 @@ module module_walk
 
 
   subroutine walk_hybrid()
-    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread
+    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread, THREAD_TYPE_WORKER
     use module_debug
     use module_atomic_ops, only: atomic_store_int
     use, intrinsic :: iso_c_binding
@@ -379,14 +379,14 @@ module module_walk
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
-      DEBUG_ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith))), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
+      ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith)), thread_type = THREAD_TYPE_WORKER, counter = ith), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
     
     call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
-      DEBUG_ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
+      ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
 
       if (dbg(DBG_WALKSUMMARY)) then
         DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
@@ -446,12 +446,9 @@ module module_walk
 
   subroutine init_walk_data()
     use, intrinsic :: iso_c_binding
-    use pthreads_stuff, only: pthreads_alloc_thread
     use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
     use module_debug
     implicit none
-
-    integer :: i
 
     ! initialize atomic variables
     call atomic_allocate_int(next_unassigned_particle)
@@ -468,13 +465,6 @@ module module_walk
     max_particles_per_thread = max(min(num_particles/num_walk_threads, max_particles_per_thread),1)
     ! allocate storage for thread handles
     allocate(thread_handles(num_walk_threads))
-    thread_handles = c_null_ptr
-    do i = 1, num_walk_threads
-      thread_handles(i) = pthreads_alloc_thread()
-      if (.not. c_associated(thread_handles(i))) then
-        DEBUG_ERROR(*, "pthreads_alloc_thread() failed!")
-      end if
-    end do
 
     ! we will only want to reject the root node and the particle itself if we are in the central box
     in_central_box = (dot_product(vbox,vbox) == 0)
@@ -483,17 +473,11 @@ module module_walk
 
   subroutine uninit_walk_data()
     use module_atomic_ops, only: atomic_deallocate_int
-    use pthreads_stuff, only: pthreads_free_thread
     implicit none
-
-    integer :: i
 
     call atomic_deallocate_int(next_unassigned_particle)
     call atomic_deallocate_int(thread_startup_complete)
 
-    do i = 1, num_walk_threads
-      call pthreads_free_thread(thread_handles(i))
-    end do
     deallocate(thread_handles)
   end subroutine uninit_walk_data
 
@@ -504,7 +488,6 @@ module module_walk
     use module_interaction_specific
     use module_debug
     use module_atomic_ops
-    use module_tree, only: tree_lookup_root
     use module_pepc_types
     use treevars, only: main_thread_processor_id
     implicit none
@@ -532,7 +515,7 @@ module module_walk
     real*8  :: t_get_new_particle, t_walk_single_particle
 
     integer(kind_node), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
-    call tree_lookup_root(walk_tree, defer_list_root_only(1), 'walk_worker_thread:root node')
+    defer_list_root_only(1) = walk_tree%node_root
 
     my_processor_id = get_my_core()
     shared_core = (my_processor_id == walk_tree%communicator%processor_id) .or. &
@@ -540,11 +523,6 @@ module module_walk
 
     if ((shared_core) .and. (num_walk_threads > 1)) then
           my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
-#if defined(__TOS_BGQ__)
-          if (get_num_threads_on_my_hwthread() > 1) then
-            my_max_particles_per_thread = 0
-          endif
-#endif
     else
           my_max_particles_per_thread = max_particles_per_thread
     end if
@@ -586,7 +564,7 @@ module module_walk
 
         ! after processing a number of particles: handle control to other (possibly comm) thread
         if (shared_core) then
-          DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+          ERROR_ON_FAIL(pthreads_sched_yield())
         end if
 
         do i=1,my_max_particles_per_thread
@@ -657,7 +635,7 @@ module module_walk
 
     ! we have to wait here until all threads have started before some of them die again :-)
     do while (atomic_load_int(thread_startup_complete) /= 1)
-      DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+      ERROR_ON_FAIL(pthreads_sched_yield())
     end do
 
     if (walk_profile) then
@@ -669,7 +647,7 @@ module module_walk
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr
-    DEBUG_ERROR_ON_FAIL(pthreads_exitthread())
+    ERROR_ON_FAIL(pthreads_exitthread())
 
     contains
   
@@ -721,16 +699,16 @@ module module_walk
 
         if (contains_particle(idx)) then
           ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
-          thread_particle_data(idx)%x        = particle_data(thread_particle_indices(idx))%x
-          thread_particle_data(idx)%work     = particle_data(thread_particle_indices(idx))%work
-          thread_particle_data(idx)%key      = particle_data(thread_particle_indices(idx))%key
-          thread_particle_data(idx)%key_leaf = particle_data(thread_particle_indices(idx))%key_leaf
-          thread_particle_data(idx)%label    = particle_data(thread_particle_indices(idx))%label
-          thread_particle_data(idx)%pid      = particle_data(thread_particle_indices(idx))%pid
-          thread_particle_data(idx)%data     = particle_data(thread_particle_indices(idx))%data
-          thread_particle_data(idx)%results  = particle_data(thread_particle_indices(idx))%results
-          thread_particle_data(idx)%queued   = -1
-          thread_particle_data(idx)%my_idx   = thread_particle_indices(idx)
+          thread_particle_data(idx)%x         = particle_data(thread_particle_indices(idx))%x
+          thread_particle_data(idx)%work      = particle_data(thread_particle_indices(idx))%work
+          thread_particle_data(idx)%key       = particle_data(thread_particle_indices(idx))%key
+          thread_particle_data(idx)%node_leaf = particle_data(thread_particle_indices(idx))%node_leaf
+          thread_particle_data(idx)%label     = particle_data(thread_particle_indices(idx))%label
+          thread_particle_data(idx)%pid       = particle_data(thread_particle_indices(idx))%pid
+          thread_particle_data(idx)%data      = particle_data(thread_particle_indices(idx))%data
+          thread_particle_data(idx)%results   = particle_data(thread_particle_indices(idx))%results
+          thread_particle_data(idx)%queued    =  -1
+          thread_particle_data(idx)%my_idx    = thread_particle_indices(idx)
           ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
@@ -756,7 +734,6 @@ module module_walk
                                           defer_list_new, defer_list_entries_new, &
                                           todo_list, partner_leaves, my_threaddata)
     use module_tree_node
-    use module_tree, only: tree_lookup_node_critical
     use module_tree_communicator, only: tree_node_fetch_children
     use module_interaction_specific
     use module_spacefilling, only : is_ancestor_of_particle
@@ -857,7 +834,7 @@ module module_walk
       ! interact
       ! Check cutoff
       if (all(abs(delta) < spatial_interaction_cutoff)) then
-        call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node%key, delta, dist2, vbox, is_leaf)
+        call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox, is_leaf)
         num_interactions = num_interactions + 1
       end if
       ! Interaction was considered, count partner leaves
@@ -882,7 +859,10 @@ module module_walk
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
-        call tree_node_fetch_children(walk_tree, walk_node, particle_data(particle%my_idx), shifted_particle_position) ! fetch children from remote
+        ! eager requests
+        call tree_node_fetch_children(walk_tree, walk_node, particle_data(particle%my_idx), particle, shifted_particle_position) ! fetch children from remote
+        ! simpel requests
+        ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1
         ! if posting the request failed, this is not a problem, since we defer the particle anyway

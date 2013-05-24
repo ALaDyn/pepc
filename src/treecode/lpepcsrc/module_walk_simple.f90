@@ -74,9 +74,10 @@ module module_walk
   subroutine tree_walk(t, ps, twalk, twalk_loc, vbox)
     use module_interaction_specific_types
     use module_pepc_types, only: t_particle, kind_node
-    use module_tree, only: t_tree, tree_lookup_root
+    use module_tree, only: t_tree
     use treevars, only: nlev
     use module_debug
+    use module_interaction_specific
     implicit none
     include 'mpif.h'
 
@@ -86,7 +87,6 @@ module module_walk
     real*8, intent(inout) :: twalk_loc !< also time until completion
     real*8, intent(in) :: vbox(3) !< lattice vector
 
-    integer(kind_node) :: r
     type(t_particle_thread) :: p
     integer :: i
     integer(kind_node) :: ni
@@ -105,21 +105,21 @@ module module_walk
       b2(i) = b2(i - 1) / 4.0_8
     end do
 
-    call tree_lookup_root(t, r)
-
     do i = lbound(ps, 1), ubound(ps, 1)
-       p%x        = ps(i)%x 
-       p%work     = ps(i)%work 
-       p%key      = ps(i)%key 
-       p%key_leaf = ps(i)%key_leaf 
-       p%label    = ps(i)%label 
-       p%pid      = ps(i)%pid 
-       p%data     = ps(i)%data 
-       p%results  = ps(i)%results 
-       p%queued   = -1 
-       p%my_idx   = i 
+       p%x         = ps(i)%x 
+       p%work      = ps(i)%work 
+       p%key       = ps(i)%key 
+       p%node_leaf = ps(i)%node_leaf 
+       p%label     = ps(i)%label 
+       p%pid       = ps(i)%pid 
+       p%data      = ps(i)%data 
+       p%results   = ps(i)%results 
+       p%queued    = -1 
+       p%my_idx    = i 
        ni = 0_kind_node
-       call tree_walk_single(r)
+       call tree_walk_single(t%node_root)
+       if(p%queued   .gt. 0) call compute_iact_list(p)
+       if(p%queued_l .gt. 0) call compute_iact_list_leaf(p)
        DEBUG_ASSERT(ni == t%npart)
     end do
 
@@ -131,7 +131,6 @@ module module_walk
     recursive subroutine tree_walk_single(n)
       use module_atomic_ops, only: atomic_read_barrier
       use module_spacefilling, only: is_ancestor_of_particle
-      use module_interaction_specific
       use module_tree_communicator, only: tree_node_fetch_children
       use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
         tree_node_get_first_child, tree_node_get_next_sibling
@@ -167,15 +166,12 @@ module module_walk
         go to 2 ! ignore, but count
       end if
 
-      if(p%queued .gt. 0) call compute_iact_list(p)
-      if(p%queued_l .gt. 0) call compute_iact_list_leaf(p)
-
       DEBUG_ASSERT_MSG(.false., *, "The block of ifs above should be exhaustive!")
       return
 
       ! interact
 1     if (all(abs(d) < spatial_interaction_cutoff)) then
-        call calc_force_per_interaction(p, t%nodes(n)%interaction_data, t%nodes(n)%key, d, d2, vbox, is_leaf)
+        call calc_force_per_interaction(p, t%nodes(n)%interaction_data, n, d, d2, vbox, is_leaf)
         interactions_local = interactions_local + 1.0_8
       end if
       ! count partner
@@ -184,9 +180,9 @@ module module_walk
 
       ! resolve
 3     if (.not. tree_node_children_available(t%nodes(n))) then
-        call tree_node_fetch_children(t, t%nodes(n))
+        call tree_node_fetch_children(t, t%nodes(n), n)
         do
-          DEBUG_ERROR_ON_FAIL(pthreads_sched_yield())
+          ERROR_ON_FAIL(pthreads_sched_yield())
           if (tree_node_children_available(t%nodes(n))) then
             call atomic_read_barrier()
             exit
@@ -205,6 +201,7 @@ module module_walk
       else
         DEBUG_ERROR(*, "walk_simple: unexpectedly, this twig had no children")
       end if
+
       return
     end subroutine tree_walk_single
   end subroutine tree_walk

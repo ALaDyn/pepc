@@ -49,11 +49,11 @@ module module_interaction_specific
       real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
       real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
-! CS DEBUG STUFF FOR INTERACTION PARTNERS
-      integer(kind_key), allocatable,public :: interaction_keylist(:,:)
+      !> debug stuff for interaction partners (currently only used by pepc-f frontend) 
+ 	  !> see module_treediags::write_interaction_partners_to_vtk() and module_interaction_specific::calc_force_per_interaction(force_law==6) 
+      integer(kind_node), allocatable,public :: interaction_nodelist(:,:)
       integer(kind_node), allocatable,public :: no_interaction_partners(:)
       real*8, allocatable,public :: interaction_vbox(:,:,:)
-! ENDE CS
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
       integer, parameter, public :: MAX_IACT_PARTNERS = 500
@@ -385,14 +385,14 @@ module module_interaction_specific
         !> single particles (global) and particle lists (thread-local)
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction_global(particle, node, key, delta, dist2, vbox, node_is_leaf)
+        subroutine calc_force_per_interaction_global(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
           use module_pepc_types
           use treevars
           use module_coulomb_kernels
           implicit none
 
           type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_key), intent(in) :: key
+          integer(kind_node), intent(in) :: node_idx
           type(t_particle), intent(inout) :: particle
           logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -431,12 +431,10 @@ module module_interaction_specific
                     ! It's a twig, do ME with coulomb
                     call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
                 end if
-! START CHRISTAN SALMAGNE; ADDED FOR DEBUGGING
             case (6)  !  used to save interaction partners
                 no_interaction_partners(particle%label)=no_interaction_partners(particle%label)+1
-                interaction_keylist(particle%label,no_interaction_partners(particle%label))=key
+                interaction_nodelist(particle%label,no_interaction_partners(particle%label))=node_idx
                 interaction_vbox(particle%label,no_interaction_partners(particle%label),1:3)=vbox(1:3)
-! END CS
             case default
               exyz = 0.
               phic = 0.
@@ -453,11 +451,11 @@ module module_interaction_specific
         !> Force calculation wrapper for thread-local list.
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction_thread(particle, node, key, delta, dist2, vbox, node_is_leaf)
+        subroutine calc_force_per_interaction_thread(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
           implicit none
 
           type(t_tree_node_interaction_data), intent(inout) :: node
-          integer*8, intent(in) :: key
+          integer(kind_node), intent(in) :: node_idx
           type(t_particle_thread), intent(inout) :: particle
           logical, intent(inout) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2

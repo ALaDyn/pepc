@@ -44,7 +44,7 @@ module module_interaction_specific_types
       type t_particle_results
          real*8 :: maxdist2       !< maxval(dist2)
          integer :: maxidx        !< maxloc(dist2)
-         integer*8:: neighbour_keys(max_neighbour_particles)
+         integer*8:: neighbour_nodes(max_neighbour_particles) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
          real*8 :: dist2(max_neighbour_particles)
          real*8 :: dist_vector(3,max_neighbour_particles)                           ! distance_vectors from particle to neighbour with respact to periodic shift vector
          real*8 :: rho            !< density for sph
@@ -114,7 +114,7 @@ module module_interaction_specific_types
         call MPI_GET_ADDRESS( dummy_particle_results,                    address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%maxdist2,           address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%maxidx,             address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%neighbour_keys,     address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%neighbour_nodes,    address(3), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%dist2,              address(4), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%dist_vector,        address(5), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%rho,                address(6), ierr )

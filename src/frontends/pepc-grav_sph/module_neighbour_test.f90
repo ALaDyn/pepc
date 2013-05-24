@@ -100,9 +100,6 @@ contains
     use module_mirror_boxes, only: &
          lattice_vect
 
-    use module_tree, only: &
-         tree_lookup_node_critical
-
     implicit none
     include 'mpif.h'
 
@@ -412,8 +409,7 @@ contains
     do local_particle_index = 1, np_local
        do index_in_result_neighbour_list = 1, num_neighbour_particles
 
-          call tree_lookup_node_critical(t, particles(local_particle_index)%results%neighbour_keys(index_in_result_neighbour_list), &
-            actual_node, "validate_n_nearest_neighbour_list()")
+          actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(index_in_result_neighbour_list))
           node_key = veccoord_to_key_lastlevel(t%bounding_box, actual_node%interaction_data%coc)
 
           found = .false.
@@ -508,9 +504,6 @@ contains
          neighbour_boxes, &
          lattice_vect
 
-    use module_tree, only: &
-         tree_lookup_node_critical
-
     implicit none
     include 'mpif.h'
     
@@ -600,7 +593,7 @@ contains
 
        ! overplot neighbours with a black circle
        do actual_neighbour = 1, num_neighbour_particles
-          call tree_lookup_node_critical(t, particles(local_particle_index)%results%neighbour_keys(actual_neighbour), actual_node, "draw_neighbours()")
+          actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
           
           write (60, '(a)') 'set color black'
           write (60, '(a,2f13.4)') 'amove ', actual_node%interaction_data%coc(1), actual_node%interaction_data%coc(2)

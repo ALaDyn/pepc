@@ -1094,7 +1094,7 @@ contains
             indices(i) = i
         end do
 
-        call directforce(particles, indices, int(np_local, kind=kind_particle), directresults, my_rank, n_cpu, MPI_COMM_WORLD)
+        call directforce(particles, indices, int(np_local, kind=kind_particle), directresults, MPI_COMM_WORLD)
         results(1:np_local) = directresults(1:np_local)
 
         deallocate(directresults)

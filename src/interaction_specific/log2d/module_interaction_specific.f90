@@ -41,11 +41,6 @@ module module_interaction_specific
   real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
   real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential
 
-  ! these are required by module_treediags, for now
-  integer(kind_key), allocatable, public :: interaction_keylist(:,:)
-  integer(kind_node), allocatable, public :: no_interaction_partners(:)
-  real*8, allocatable, public :: interaction_vbox(:,:,:)
-
   namelist /calc_force_log2d/ mac_select, include_far_field_if_periodic, theta2, eps2
 
   ! currently, all public functions in module_interaction_specific are obligatory
@@ -327,12 +322,12 @@ module module_interaction_specific
   !> calculated fields, and for being able to call several
   !> (different) force calculation routines
   !>
-  subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
+  subroutine calc_force_per_interaction(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
     use module_pepc_types
     implicit none
 
     type(t_tree_node_interaction_data), intent(in) :: node
-    integer(kind_key), intent(in) :: key
+    integer(kind_node), intent(in) :: node_idx
     type(t_particle), intent(inout) :: particle
     logical, intent(in) :: node_is_leaf
     real*8, intent(in) :: vbox(3), delta(3), dist2

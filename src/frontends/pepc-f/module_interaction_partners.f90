@@ -19,12 +19,12 @@ module module_interaction_partners
 
       if (root) then
           allocate(probe_particles(num_of_probes))
-          allocate(interaction_keylist(num_of_probes,1000000))
+          allocate(interaction_nodelist(num_of_probes,1000000))
           allocate(no_interaction_partners(num_of_probes))
           allocate(interaction_vbox(num_of_probes,1000000,3))
       else
           allocate(probe_particles(1))
-          allocate(interaction_keylist(1,1000000))
+          allocate(interaction_nodelist(1,1000000))
           allocate(no_interaction_partners(1))
           allocate(interaction_vbox(1,1000000,3))
       end if
@@ -55,9 +55,11 @@ module module_interaction_partners
 
 
     subroutine get_interaction_partners(num_of_probes)
+      use module_interaction_specific, only: interaction_nodelist, &
+        no_interaction_partners, interaction_vbox
       implicit none
 
-      integer                                   :: num_of_probes
+      integer :: num_of_probes
 
       integer :: i,help_num_of_probes
 
@@ -70,7 +72,7 @@ module module_interaction_partners
       call pepc_traverse_tree(probe_particles(1:help_num_of_probes))
       force_law=3
       do i=1,help_num_of_probes
-          call write_interaction_partners_to_vtk(step, i,0.0_8, -1)
+          call write_interaction_partners_to_vtk(step, i,0.0_8, -1, interaction_nodelist, no_interaction_partners, interaction_vbox)
           write(*,*)i,no_interaction_partners(i)
       end do
       no_interaction_partners=0

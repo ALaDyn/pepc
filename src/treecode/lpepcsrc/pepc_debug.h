@@ -19,11 +19,11 @@
 
 #define DEBUG_STRINGIFY(s) DEBUG_STRINGIFY_HELPER(s)
 
-#define DEBUG_ERROR_ON_FAIL_HELPER(ret, sep, msg) if (0/=ret) write(*,*) 'ERR ', __FILE__ ,__LINE__
+#define ERROR_ON_FAIL_HELPER(ret, sep, msg) if (0/=ret) write(*,*) 'ERR ', __FILE__ ,__LINE__
 
-#define DEBUG_ERROR_ON_FAIL(ret) DEBUG_ERROR_ON_FAIL_HELPER(ret, "", "")
+#define ERROR_ON_FAIL(ret) ERROR_ON_FAIL_HELPER(ret, "", "")
 
-#define DEBUG_ERROR_ON_FAIL_MSG(ret, msg) DEBUG_ERROR_ON_FAIL_HELPER(ret, ": ", msg)
+#define ERROR_ON_FAIL_MSG(ret, msg) ERROR_ON_FAIL_HELPER(ret, ": ", msg)
 
 #ifdef NDEBUG
 
@@ -33,9 +33,9 @@
 
 #else
 
-#define DEBUG_ASSERT_MSG(cond, fmt, ...) if(.not.cond) write(*,*) 'ASS1 ', __FILE__ ,__LINE__
+#define DEBUG_ASSERT_MSG(cond, fmt, ...) if(.not.(cond)) write(*,*) 'ASS1 ', __FILE__ ,__LINE__
 
-#define DEBUG_ASSERT(cond) if(.not.cond) write(*,*) 'ASS2 ', __FILE__ ,__LINE__
+#define DEBUG_ASSERT(cond) if(.not.(cond)) write(*,*) 'ASS2 ', __FILE__ ,__LINE__
 
 #endif
 

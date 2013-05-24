@@ -86,7 +86,7 @@ module module_pepc
       integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-co...
       integer(kind_default) :: ierr, provided
 
-      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE ! " If the process is multithreaded, multiple threads may call MPI at once with no restrictions."
+      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_SERIALIZED ! " If the process is multithreaded, only one thread will make MPI calls at a time: MPI calls are not made concurrently" ATTENTION: This requires that possible multiple communicator threads will use some critical sections. Otherwise MPI_THREAD_MULTIPLE will have to be used.
 #ifdef __OPENACC
       integer :: strt, stp, tck
 #endif
@@ -273,7 +273,7 @@ module module_pepc
 
       integer(kind_dim), optional, intent(in) :: idim
 
-      DEBUG_ERROR_ON_FAIL(pthreads_init())
+      ERROR_ON_FAIL(pthreads_init())
       call treevars_prepare(idim)
       call calc_neighbour_boxes() ! initialize mirror boxes
       call calc_force_prepare() ! prepare interaction-specific routines
@@ -478,8 +478,7 @@ module module_pepc
     !>
     subroutine pepc_check_sanity(caller, dump, particles)
       use module_pepc_types, only: t_particle
-      use module_tree, only: tree_check
-      use module_htable, only: htable_check, htable_dump
+      use module_tree, only: tree_check, tree_dump
       use module_debug
       implicit none
 
@@ -487,12 +486,11 @@ module module_pepc
       logical, optional, intent(in) :: dump !< whether to dump the hash table
       type(t_particle), optional, intent(in) :: particles(:) !< list of particles to dump along with the hash table
 
-      if ((.not. (htable_check(global_tree%node_storage, caller) &
-        .and. tree_check(global_tree, caller)))) then
-        call htable_dump(global_tree%node_storage, particles)
+      if (.not. tree_check(global_tree, caller)) then
+        call tree_dump(global_tree, particles)
         DEBUG_ERROR(*, "Sanity check failed, aborting!")
       else if (dump) then
-        call htable_dump(global_tree%node_storage, particles)
+        call tree_dump(global_tree, particles)
       end if
     end subroutine pepc_check_sanity
 
