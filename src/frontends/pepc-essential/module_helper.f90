@@ -229,7 +229,7 @@ module helper
   
     allocate(tindx(tn), trnd(tn), trslt(tn))
   
-    call random(trnd(1:np))
+    call random(trnd(1:tn))
   
     tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
   

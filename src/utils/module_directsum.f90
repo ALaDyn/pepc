@@ -50,14 +50,14 @@ module module_directsum
 
           integer(kind_particle) :: maxtest !< maximum ntest
           type(t_particle), dimension(:), allocatable :: received, sending
-          integer :: nreceived, nsending
+          integer(kind_particle) :: nreceived, nsending
           integer(kind_particle) :: i, j
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8 :: delta(3)
           integer :: ibox
-          type(t_particle), allocatable :: latticeparticles(:)
+          type(t_particle) :: latticeparticles(ntest)
 
           real*8 :: t1
           integer :: omp_thread_num
@@ -66,12 +66,7 @@ module module_directsum
           call MPI_COMM_SIZE(comm, n_cpu, ierr)
 
           call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_KIND_PARTICLE, MPI_MAX, comm, ierr)
-          write(*,*) ntest, maxtest
-          allocate(received(1:maxtest))
-          write(*,*) '0'
-          allocate(sending(1:maxtest))
-          write(*,*) '1'
-          allocate(latticeparticles(ntest))
+          allocate(received(1:maxtest), sending(1:maxtest))
 
           call timer_reset(t_direct_force)
           call timer_reset(t_direct_comm)
