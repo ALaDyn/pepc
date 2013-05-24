@@ -86,7 +86,9 @@ module module_pepc
       integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-co...
       integer(kind_default) :: ierr, provided
 
-      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_SERIALIZED ! " If the process is multithreaded, only one thread will make MPI calls at a time: MPI calls are not made concurrently" ATTENTION: This requires that possible multiple communicator threads will use some critical sections. Otherwise MPI_THREAD_MULTIPLE will have to be used.
+      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_SERIALIZED ! " If the process is multithreaded, only one thread will make MPI calls at a time:
+      !                     MPI calls are not made concurrently" ATTENTION: This requires that possible multiple communicator threads will use some critical sections.
+      !                     Otherwise MPI_THREAD_MULTIPLE will have to be used.
 #ifdef __OPENACC
       integer :: strt, stp, tck
 #endif
