@@ -56,7 +56,7 @@ module module_interaction_specific
       real*8, allocatable,public :: interaction_vbox(:,:,:)
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
-      integer, parameter, public :: MAX_IACT_PARTNERS = 500
+      integer, parameter, public :: MAX_IACT_PARTNERS = 2000 ! 500
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -611,30 +611,7 @@ module module_interaction_specific
 
            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
 
-              do idx = 1, particle%queued
-
-#ifndef LEAFY
-                 node_is_leaf = particle%partner(idx)%leaf
-#endif
-                 node  = particle%partner(idx)%node
-                 delta = particle%partner(idx)%delta
-                 dist2 = dot_product(delta, delta)
-
-#ifndef LEAFY
-                 if (node_is_leaf) then
-                    call calc_force_coulomb_3D_direct(node, delta, dist2 + eps2, exyz, phic)
-                 else
-#endif
-                    call calc_force_coulomb_3D(       node, delta, dist2 + eps2, exyz, phic)
-#ifndef LEAFY
-                 end if
-#endif
-
-                 particle%results%e         = particle%results%e    + exyz
-                 particle%results%pot       = particle%results%pot  + phic
-                 particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-
-              end do
+              call kernel_node(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
 
            case (4)  ! LJ potential for quiet start
 
@@ -711,7 +688,7 @@ module module_interaction_specific
            real*8 :: delta(3), dist2
 
            interface 
-              subroutine kernel1(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
+              subroutine kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
               use module_pepc_types
               use module_interaction_specific_types
               implicit none
@@ -741,7 +718,7 @@ module module_interaction_specific
 
            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
 
-              call kernel1(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
+              call kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
 
            case (4)  ! LJ potential for quiet start
 

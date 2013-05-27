@@ -25,6 +25,34 @@
 module module_interaction_specific_types
       implicit none
 
+      !> Data structure for storing multiple moments of tree nodes
+      type t_tree_node_interaction_data
+        real*8 :: coc(3)     ! centre of charge
+        real*8 :: charge     ! net charge sum
+        real*8 :: abs_charge !  absolute charge sum
+        real*8 :: dip(3)     ! dipole moment
+        real*8 :: quad(3)    ! diagonal quadrupole moments
+        real*8 :: xyquad     ! other quadrupole moments
+        real*8 :: yzquad
+        real*8 :: zxquad
+        real*8 :: bmax
+      end type t_tree_node_interaction_data
+      integer, private, parameter :: nprops_tree_node_interaction_data = 9
+
+      !> Data structure for storing interaction partners
+      type t_iact_partner
+         real*8 :: delta(3)
+         type(t_tree_node_interaction_data) :: node
+         logical :: leaf
+      end type t_iact_partner
+      integer, private, parameter :: nprops_partner_data = 3
+      type t_iact_partner_l
+         real*8 :: delta(3)
+         real*8 :: charge
+      end type t_iact_partner_l
+      integer, private, parameter :: nprops_partner_l_data = 2
+
+
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
          real*8 :: q
@@ -42,20 +70,24 @@ module module_interaction_specific_types
 
       type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], 0.)
 
-      !> Data structure for storing multiple moments of tree nodes
-      type t_tree_node_interaction_data
-        real*8 :: coc(3)     ! centre of charge
-        real*8 :: charge     ! net charge sum
-        real*8 :: abs_charge !  absolute charge sum
-        real*8 :: dip(3)     ! dipole moment
-        real*8 :: quad(3)    ! diagonal quadrupole moments
-        real*8 :: xyquad     ! other quadrupole moments
-        real*8 :: yzquad
-        real*8 :: zxquad
-        real*8 :: bmax
-      end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 9
-
+      !> Data structure for thread local storage of single particles
+      !> This includes lists of the interaction partners
+      type t_particle_thread
+         real*8 :: x(1:3)      !< coordinates
+         real*8 :: work        !< work load from force sum
+         integer*8 :: key      !< particle key, i.e. key on highgest tree level
+         integer*8 :: node_leaf !< key of corresponding leaf (tree node)
+         integer*8 :: label      !< particle label (only for diagnostic purposes, can be used freely by the frontend
+         integer :: pid        !< particle owner
+         type(t_particle_data) :: data       !< real physics (charge, etc.)
+         type(t_particle_results) :: results !< results of calc_force_etc and companions
+         integer :: queued = -1
+         type(t_iact_partner), allocatable :: partner(:)
+         integer :: queued_l = -1
+         type(t_iact_partner_l), allocatable :: partner_l(:)
+         integer :: my_idx = -1
+      end type t_particle_thread
+      integer, private, parameter :: nprops_particle_thread = 10
       contains
 
       !>

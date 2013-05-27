@@ -1352,6 +1352,60 @@ module module_fmm_framework
               case default
                 factorial = gamma(real(n+1, kfp))
             end select
+
+            contains
+
+            pure function intfuncgamma(x, y) result(z)
+            real :: z
+            real, intent(in) :: x, y
+
+            z = x**(y-1.0) * exp(-x)
+            end function intfuncgamma
+
+
+            function gamma(a) result(g)
+            real(kfp) :: g
+            real(kfp), intent(in) :: a
+
+            real, parameter :: small = 1.0e-4
+            integer, parameter :: points = 100000
+
+            real :: infty, dx, p, sp(2, points), x
+            integer :: i
+            logical :: correction
+
+            x = a
+
+            correction = .false.
+            ! value with x<1 gives \infty, so we use
+            ! \Gamma(x+1) = x\Gamma(x)
+            ! to avoid the problem
+            if ( x < 1.0 ) then
+                    correction = .true.
+                    x = x + 1
+            end if
+
+            ! find a "reasonable" infinity...
+            ! we compute this integral indeed
+            ! \int_0^M dt t^{x-1} e^{-t}
+            ! where M is such that M^{x-1} e^{-M} ≤ \epsilon
+            infty = 1.0e4
+            do while ( intfuncgamma(infty, x) > small )
+            infty = infty * 10.0
+            end do
+
+            ! using simpson
+            dx = infty/real(points)
+            sp = 0.0
+            forall(i=1:points/2-1) sp(1, 2*i) = intfuncgamma(2.0*(i)*dx, x)
+            forall(i=1:points/2) sp(2, 2*i - 1) = intfuncgamma((2.0*(i)-1.0)*dx, x)
+            g = (intfuncgamma(0.0, x) + 2.0*sum(sp(1,:)) + 4.0*sum(sp(2,:)) + &
+            intfuncgamma(infty, x))*dx/3.0
+
+            if ( correction ) g = g/a
+
+            end function gamma
+
         end function factorial
 
 
