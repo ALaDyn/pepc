@@ -245,8 +245,6 @@ module module_tree_communicator
     integer(kind_node), intent(in) :: nidx
     type(t_particle), intent(in), optional :: particle
     real*8, intent(in), optional :: pos(3)
-    type(t_request_eager) :: req_eager
-    integer(kind_node) :: req_simple(2)
     
     integer :: local_queue_bottom
 
@@ -276,39 +274,21 @@ module module_tree_communicator
     t%communicator%req_queue(local_queue_bottom)%node           => n
 
     if (present(particle)) then
-      call enqueue_eager(t%communicator%req_queue, n, nidx, particle, pos)
+      ! eager request
+      t%communicator%req_queue(local_queue_bottom)%eager_request    = .true.
+      t%communicator%req_queue(local_queue_bottom)%request%particle = particle
+      
+      if (present(pos)) then
+        t%communicator%req_queue(local_queue_bottom)%request%particle%x = pos
+      end if
     else
+      ! simple request
       t%communicator%req_queue(local_queue_bottom)%eager_request  = .false.
     end if
 
     call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
     t%communicator%req_queue(local_queue_bottom)%entry_valid    = .true.
 
-    contains
-
-    subroutine enqueue_eager(q, n, nidx, p, pos)
-      implicit none
-
-      type(t_request_queue_entry), intent(inout) :: q(TREE_COMM_REQUEST_QUEUE_LENGTH)
-      type(t_tree_node), target, intent(in) :: n
-      integer(kind_node), intent(in) :: nidx
-      type(t_particle), intent(in) :: p
-      real*8, optional, intent(in) :: pos(3)
-
-      DEBUG_ASSERT(.not. q(local_queue_bottom)%entry_valid)
-
-      q(local_queue_bottom)%request%node   = n%first_child
-      q(local_queue_bottom)%request%parent = nidx
-      q(local_queue_bottom)%eager_request  = .true.
-      
-      if (present(pos)) then
-        q(local_queue_bottom)%request%particle%x = pos
-      end if
-
-      q(local_queue_bottom)%node           => n
-      call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
-      q(local_queue_bottom)%entry_valid    = .true.
-    end subroutine enqueue_eager
   end subroutine tree_node_fetch_children
 
 

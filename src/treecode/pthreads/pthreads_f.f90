@@ -94,8 +94,6 @@ module pthreads_stuff
     end function
   end interface
 
-  private :: pthreads_createthread_c
-
   contains
 
   integer(c_int) function pthreads_createthread(thread, start_routine, arg, thread_type, counter)
