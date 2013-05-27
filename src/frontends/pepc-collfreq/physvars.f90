@@ -28,6 +28,12 @@ module physvars
   integer(kind_particle) :: ne = 200     !  # electrons
   integer(kind_particle) :: ni = 0       !  # ions
   real*8 :: maxdt(6)       ! maximum allowed dt from different constraints
+  integer, parameter :: MAXDT_OMEGA_PLASMA  = 1
+  integer, parameter :: MAXDT_POSUPDATE_VTE = 2
+  integer, parameter :: MAXDT_VELUPDATE_VTE = 3
+  integer, parameter :: MAXDT_OMEGA_LASER   = 4
+  integer, parameter :: MAXDT_POSUPDATE_VTO = 5
+  integer, parameter :: MAXDT_VELUPDATE_VTO = 6    
   real*8 :: xl = 1.      ! box size
   real*8 :: yl = 1.      ! box size
   real*8 :: zl = 1.      ! box size
@@ -76,8 +82,10 @@ module physvars
   logical :: treediags = .false.
 
    logical, public :: restart = .false. !< Restart switch: config read from parts_all.in
-   real*8 :: dt = 0.01            ! timestep
-   real*8 :: trun = 0.          ! total run time including restarts
+   real*8 :: dt = 0.01            !< timestep
+   real*8 :: dt_ori = 0.01 !< timestep as originally requested by input file
+   real*8 :: trun = 0.          !< total run time including restarts
+   real*8 :: tend = 10. !< physical end time (sim units)
    integer :: nt = 100
    integer :: itime = 0   ! # timesteps and current timestep
    integer :: itime_in    ! timestep to read mpi-io checkpoint from in case of ispecial==-1

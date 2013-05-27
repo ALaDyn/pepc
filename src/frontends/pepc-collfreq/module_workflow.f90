@@ -66,7 +66,8 @@ module module_workflow
           use module_pusher
 	  implicit none
 	  integer, intent(in) :: my_rank, itime, workflow_step
-	  real*8, intent(in) :: trun, dt
+	  real*8, intent(in) :: trun
+      real*8, intent(inout) :: dt
 	  character(200) :: setup_name
 	  integer :: stage = -1
 
@@ -145,10 +146,13 @@ module module_workflow
           use module_pusher
           use module_units
           use module_interaction_specific, only : kelbg_invsqrttemp
-          use physvars, only : Te
+          use physvars, only: Te, maxdt, dt_ori, &
+            MAXDT_OMEGA_PLASMA, MAXDT_VELUPDATE_VTE, MAXDT_POSUPDATE_VTE, &
+            MAXDT_OMEGA_LASER,  MAXDT_VELUPDATE_VTO, MAXDT_POSUPDATE_VTO
           implicit none
           integer, intent(in) :: itime, workflow_step
-          real*8, intent(in) :: trun, dt
+          real*8, intent(in) :: trun
+          real*8, intent(inout) :: dt
           integer, intent(out) :: stage
           logical, save :: firstcall = .true.
           integer, save :: origbeamconfig
@@ -170,6 +174,7 @@ module module_workflow
                 beam_config_in = 0                   ! relaxation (not into equilibrium due to large ion mass)
                 call laser_setup()                   ! ==> 2-temp. plasma
                 integrator_scheme = INTEGRATOR_SCHEME_NVE
+                dt = min(dt_ori, minval(maxdt(MAXDT_OMEGA_PLASMA:MAXDT_VELUPDATE_VTE)))
                 stage = 1
 
                 ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
@@ -181,6 +186,7 @@ module module_workflow
                 call laser_setup()
                 integrator_scheme = INTEGRATOR_SCHEME_NVT
                 enable_drift_elimination = .true.
+                dt = min(dt_ori, minval(maxdt(MAXDT_OMEGA_PLASMA:MAXDT_VELUPDATE_VTE)))
                 stage = 2
 
                 ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
@@ -192,6 +198,7 @@ module module_workflow
                 call laser_setup()
                 integrator_scheme = INTEGRATOR_SCHEME_NVE
                 enable_drift_elimination = .false.
+                dt = min(dt_ori, minval(maxdt(MAXDT_OMEGA_PLASMA:MAXDT_VELUPDATE_VTE)))
                 stage = 3
 
               else                                 ! laser switched on
@@ -199,6 +206,7 @@ module module_workflow
                 call laser_setup()
                 integrator_scheme = INTEGRATOR_SCHEME_NVE
                 enable_drift_elimination = .false.
+                dt = min(dt_ori, minval(maxdt(MAXDT_OMEGA_PLASMA:MAXDT_VELUPDATE_VTO)))
                 stage = 4
 
               endif
@@ -230,9 +238,11 @@ module module_workflow
           use module_interaction_specific, only : kelbg_invsqrttemp
           use physvars, only : mass_e, qe
           use physvars, only : vte
+          use module_prepare, only : adjust_maxdt
           implicit none
           integer, intent(in) :: itime, workflow_step
-          real*8, intent(in) :: trun, dt
+          real*8, intent(in) :: trun
+          real*8, intent(inout) :: dt
           integer, intent(out) :: stage
 
           call workflow_PRE_71_056408(itime, trun, dt, workflow_step, stage)
@@ -243,6 +253,8 @@ module module_workflow
             I0_Wpercm2 = (unit_epsilon0 * unit_c * E0**2 / 2. ) * unit_P0_in_W / (100*unit_abohr_in_m)**2
 
             call laser_setup()
+
+            call adjust_maxdt()
           endif
 
         end subroutine workflow_PRE_71_056408_fixed_v0_vte
@@ -262,10 +274,13 @@ module module_workflow
           use module_pusher
           use module_units
           use module_interaction_specific, only : kelbg_invsqrttemp
-          use physvars, only : Te
+          use physvars, only: Te, maxdt, dt_ori, &
+            MAXDT_OMEGA_PLASMA, MAXDT_VELUPDATE_VTE, MAXDT_POSUPDATE_VTE, &
+            MAXDT_OMEGA_LASER,  MAXDT_VELUPDATE_VTO, MAXDT_POSUPDATE_VTO
           implicit none
           integer, intent(in) :: itime, workflow_step
-          real*8, intent(in) :: trun, dt
+          real*8, intent(in) :: trun
+          real*8, intent(inout) :: dt
           integer, intent(out) :: stage
           integer, intent(in) :: thermostat
           logical, save :: firstcall = .true.
@@ -288,7 +303,9 @@ module module_workflow
                 beam_config_in = 0                   ! relaxation (not into equilibrium due to large ion mass)
                 call laser_setup()                   ! ==> 2-temp. plasma
                 integrator_scheme = INTEGRATOR_SCHEME_NVE
+                dt = min(dt_ori, minval(maxdt(MAXDT_OMEGA_PLASMA:MAXDT_VELUPDATE_VTE)))
                 stage = 1
+                
 
                 ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
                 ! to avoid problems due to invalid rescaling in next stage
@@ -299,6 +316,7 @@ module module_workflow
                 call laser_setup()
                 integrator_scheme = INTEGRATOR_SCHEME_NVT
                 enable_drift_elimination = .true.
+                dt = min(dt_ori, minval(maxdt(MAXDT_OMEGA_PLASMA:MAXDT_VELUPDATE_VTE)))
                 stage = 2
 
                 ! we set the temperature of the kelbg interaction to the desired electron temperature here instead of actual temperature
@@ -310,12 +328,14 @@ module module_workflow
                 call laser_setup()
                 integrator_scheme = INTEGRATOR_SCHEME_NVE
                 enable_drift_elimination = .false.
+                dt = min(dt_ori, minval(maxdt(MAXDT_OMEGA_PLASMA:MAXDT_VELUPDATE_VTE)))
                 stage = 3
 
               else                                 ! laser switched on
                 beam_config_in = origbeamconfig
                 call laser_setup()
                 integrator_scheme = thermostat
+                dt = min(dt_ori, minval(maxdt(MAXDT_OMEGA_PLASMA:MAXDT_VELUPDATE_VTO))) !adjust timestep to resolve laser oscillation
                 stage = 4
 
               endif

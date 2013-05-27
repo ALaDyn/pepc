@@ -99,16 +99,16 @@ program pepc
   endif
 
   ! Loop over all timesteps
-  do while (itime < nt)
+  do while (trun < tend)
    itime = itime + 1
    trun  = trun  + dt
 
    if (my_rank==0 ) then
       ifile=6
-         write(ifile,'(//a)') "==================================================================="
-         write(ifile,'(//a,i8,3x,a,f12.3,"  (",f12.3," fs)")') &
-              ' Timestep ',itime &
-              ,' total run time = ',trun, trun*unit_t0_in_fs
+         write(ifile,'(//"===================================================================")')
+         write(ifile,'(//"Timestep  ",i8,3x," total run time = ",f12.3,"  (",f12.3," fs)")') &
+                  itime , trun, trun*unit_t0_in_fs
+         write(ifile,'(//"Steps left (approx.) ",i8)') int((tend-trun)/dt)
    endif
 
    ! set temperature in each timestep for kelbg interaction

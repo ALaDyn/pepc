@@ -35,9 +35,6 @@ subroutine frontend_prepare()
   use module_io
   use module_interaction_specific, only : force_law
   implicit none
-  integer :: ifile
-  real*8 :: maxF
-  real*8 :: vte_init
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  derived parameters (physics)  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -135,12 +132,39 @@ subroutine frontend_prepare()
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  parameters (simulation generic)   !!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  call adjust_maxdt()
+  
+  trun = itime * dt
+  
+  tau_temp_relaxation = tau_temp_relaxation*dt
+  if (nose_hoover_Q_e < 0) nose_Hoover_Q_e = tau_temp_relaxation*tau_temp_relaxation*3./2.*ne*unit_kB*Te
+  if (nose_hoover_Q_i < 0) nose_Hoover_Q_i = tau_temp_relaxation*tau_temp_relaxation*3./2.*ni*unit_kB*Ti
+
+
+end subroutine frontend_prepare
+
+
+subroutine adjust_maxdt()
+  use physvars
+  use module_laser
+  use module_units
+  use module_interaction_specific, only : eps2, include_far_field_if_periodic, force_law
+  use module_io
+  implicit none
+
+  real*8 :: maxF
+  real*8 :: vte_init
+  integer :: ifile
+
   maxdt(:) = huge(maxdt(1))
   
-  maxdt(1) = 2./max(omega,1.e-10_8) * 1./19.
-  maxdt(2) = 2./max(wpl_e,1.e-10_8) * 1./19.
+  maxdt(MAXDT_OMEGA_LASER) = 2./max(omega,1.e-10_8) * 1./19.
+  maxdt(MAXDT_OMEGA_PLASMA) = 2./max(wpl_e,1.e-10_8) * 1./19.
   
   vte_init = max(vte, sqrt(3.*unit_kB*Te_initial_eV/unit_Ryd_in_eV/mass_e))
+  
+  tend = nt*dt
+  dt_ori = dt
 
   if (force_law == 5) then
     ! in r->0 Kelbg is like Plummer with eps = lambda
@@ -155,13 +179,13 @@ subroutine frontend_prepare()
 
 
   if (vte_init>0.) then
-    maxdt(3) = a_ee / vte_init          / 10.
-    maxdt(4) = mass_e * vte_init / maxF !/ 10. ! here we assume that particles never approach each other too close, so that maxF = maxF/10.
+    maxdt(MAXDT_POSUPDATE_VTE) = a_ee / vte_init          / 10.
+    maxdt(MAXDT_VELUPDATE_VTE) = mass_e * vte_init / maxF !/ 10. ! here we assume that particles never approach each other too close, so that maxF = maxF/10.
   endif
   
   if (vosc>0.) then
-    maxdt(5) = a_ee / vosc          / 10.
-    maxdt(6) = mass_e * vosc / maxF !/ 10. ! here we assume that particles never approach each other too close
+    maxdt(MAXDT_POSUPDATE_VTO) = a_ee / vosc          / 10.
+    maxdt(MAXDT_VELUPDATE_VTO) = mass_e * vosc / maxF !/ 10. ! here we assume that particles never approach each other too close
   endif
 
   if (any(maxdt < dt)) then
@@ -172,18 +196,11 @@ subroutine frontend_prepare()
       end do
     end if
 
-    nt = int(nt * dt / minval(maxdt))
+    nt = int(tend / minval(maxdt))
     dt = minval(maxdt)
   endif
-
-  trun = itime * dt
   
-  tau_temp_relaxation = tau_temp_relaxation*dt
-  if (nose_hoover_Q_e < 0) nose_Hoover_Q_e = tau_temp_relaxation*tau_temp_relaxation*3./2.*ne*unit_kB*Te
-  if (nose_hoover_Q_i < 0) nose_Hoover_Q_i = tau_temp_relaxation*tau_temp_relaxation*3./2.*ni*unit_kB*Ti
-
-
-end subroutine frontend_prepare
+end subroutine
 
 end module
 

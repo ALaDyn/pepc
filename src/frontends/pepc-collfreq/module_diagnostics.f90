@@ -175,7 +175,7 @@ contains
 
         if (binary .or. ascii .or. mpiio) then
 
-            !!! read particle date as a binary file
+            !!! read particle data as a binary file
             if (binary) write(*,*) "read_particles(): binary mode unsupported" !call read_particles_binary(my_rank, itime, dp)
 
             !!! read particle date as a text file
