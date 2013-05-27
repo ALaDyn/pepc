@@ -34,6 +34,12 @@ else
 #-fuse-linker-plugin
 endif
 
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+LDFLAGS += -u walk_worker_thread -u run_communication_loop
+
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
   LDFLAGS  += -fopenmp 
