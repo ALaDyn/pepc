@@ -169,6 +169,7 @@ module bem
     use module_pepc
     use module_interaction_specific
     use module_interaction_specific_types
+    use module_walk, only: interactions_local
     implicit none
 
     #include <finclude/petsc.h90>
@@ -183,7 +184,7 @@ module bem
     PetscInt :: i
     PetscScalar, pointer :: lhs(:), res(:)
 
-    write (*, *) "bem_matmult iteration: ", bem_iteration
+    write (*, '("bem_matmult iteration: ", I0)', advance = 'NO') bem_iteration
 
     !write (*, *) "LHS vector:"
     !call VecView(x, PETSC_VIEWER_STDOUT_SELF, ierr)
@@ -199,6 +200,8 @@ module bem
     do i = 1, size(bem_el)
       call calc_force_per_interaction_self(bem_el(i))
     end do
+
+    write (*, *) ", interactions: ", interactions_local + size(bem_el)
 
     ! store results in vector y
     call VecGetArrayF90(y, res, ierr)
@@ -254,6 +257,7 @@ program pepc
   use treevars
   use module_walk
   use module_vtk
+  use module_vtk_helpers
   use module_vtk_particles
   use module_treediags
 
@@ -263,7 +267,7 @@ program pepc
 
   include 'mpif.h'
 
-  integer(kind_particle), parameter :: NX = 32, NY = 32, NSIDE = 100, NPART = 128
+  integer(kind_particle), parameter :: NX = 1024, NY = NX, NSIDE = 1024, NPART = 1024
 
   type(t_particle), target, allocatable :: pgrid(:), pside(:), part(:)
 
@@ -275,9 +279,13 @@ program pepc
   real*8, parameter :: pi = 3.1415926535897932385_8
   real*8 :: l, dx, dy
 
+  integer, dimension(2,3) :: globaldims, mydims
+  real*8, allocatable :: xcoords(:), ycoords(:), zcoords(:)
+  real*8, allocatable :: scalarvalues(:, :, :), vectorvalues(:, :, :, :)
+
   call pepc_initialize("pepc-testbem2d", mpi_rank, mpi_size, .true., comm = mpi_comm)
   num_threads = 8
-  theta2 = 0.09_8
+  theta2 = 0.36_8
   call pepc_prepare(2_kind_dim)
   call pepc_write_parameters(output_unit)
 
@@ -350,6 +358,14 @@ program pepc
 
   call bem_solve(pside, part)
 
+  open (file = 'boundary_solution.dat', status = 'replace', newunit = fd)
+  do ip = 1, 4 * NSIDE
+    associate (p => pside(ip))
+      write (fd, '(7(g0,:,","))') p%data%ra, p%data%rb, p%data%phi, p%data%q, 0
+    end associate
+  end do
+  close (fd)
+
   ! Set up grid
   allocate(pgrid(NX * NY))
   dx = 1.0_8 / NX
@@ -365,8 +381,8 @@ program pepc
 
         p%data%source_kind = CALC_FORCE_SOURCE_KIND_PARTICULAR
 
-        p%x(1) = (ix - 1 + 0.5_8) * dx
-        p%x(2) = (iy - 1 + 0.5_8) * dy
+        p%x(1) = (ix - 0.5_8) * dx
+        p%x(2) = (iy - 0.5_8) * dy
         p%x(3) = 0.0_8
       end associate
     end do
@@ -386,17 +402,42 @@ program pepc
   pgrid(:)%results%e(1) = pgrid(:)%results%e(1) / (2 * pi)
   pgrid(:)%results%e(2) = pgrid(:)%results%e(2) / (2 * pi)
 
-  open (file = 'result.dat', status = 'replace', newunit = fd)
-  do ip = 1, NX * NY
-    associate (p => pgrid(ip))
-      write (fd, '(3(g0,:,","))') p%x(1:2), p%results%pot
-    end associate
-  end do
-  close (fd)
+!  open (file = 'result.dat', status = 'replace', newunit = fd)
+!  do ip = 1, NX * NY
+!    associate (p => pgrid(ip))
+!      write (fd, '(3(g0,:,","))') p%x(1:2), p%results%pot
+!    end associate
+!  end do
+!  close (fd)
 
-  call vtk_write_particles("grid", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pgrid, write_results)
+  !call vtk_write_particles("grid", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pgrid, write_results)
   call vtk_write_particles("boundary", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pside, write_bc)
-  !call vtk_write_particles("boundary_results", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pside, write_results)
+  call vtk_write_particles("boundary_results", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pside, write_results)
+
+  allocate (xcoords(NX), ycoords(NY), zcoords(1))
+  allocate (scalarvalues(NX, NY, 1), vectorvalues(NX, NY, 1, 3))
+  globaldims(1, :) = [ 1, 1, 1 ]
+  globaldims(2, :) = [ NX, NY, 1_8 ]
+  mydims = globaldims
+
+  xcoords = [ ((ix - 0.5_8) * dx, ix = 1, NX) ]
+  ycoords = [ ((iy - 0.5_8) * dy, iy = 1, NY) ]
+  zcoords = [ 0.0 ]
+  
+  do ix = 1, NX
+    do iy = 1, NY
+      associate (p => pgrid(iy + NY * (ix - 1)))
+        scalarvalues(ix, iy, 1) = p%results%pot
+        vectorvalues(ix, iy, 1, 1:2) = p%results%e(1:2)
+        vectorvalues(ix, iy, 1, 3) = 0.0_8
+      end associate
+    end do
+  end do
+  
+  call vtk_field_on_grid("grid", 0, 0.0_8, VTK_STEP_FIRST, globaldims, mydims, xcoords, ycoords, zcoords, &
+    scalarvalues, "phi", vectorvalues, "e", 0, 1, MPI_COMM_WORLD)
+  deallocate (xcoords, ycoords, zcoords)
+  deallocate (scalarvalues, vectorvalues)
 
   deallocate(pside, pgrid, part)
 

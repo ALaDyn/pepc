@@ -7,8 +7,8 @@ FILES_L_U = module_vtk.f90 \
 	    module_treediags.f90
 
 CPPFLAGS += -I$(PETSC_DIR)/include -DBEM2D
-LDFLAGS += -L$(PETSC_DIR)/lib
-LDLIBS += -lblas -llapack -lpetsc
+LDFLAGS += -L$(PETSC_DIR)/lib -L/usr/X11/lib
+LDLIBS += -lblas -llapack -lpetsc -lX11
 
 SRC        += $(FILES_L)
 SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-testbem2d/, $(FILES_L))
