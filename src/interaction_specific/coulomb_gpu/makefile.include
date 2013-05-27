@@ -1,15 +1,14 @@
 
 # only include charge in particle_data type (default)
 FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQ.f90 \
-              module_fmm_framework.f90  module_pepc_wrappers.f90 module_coulomb_kernels.f90 \
-	      gpu_kernel_Coulomb_3D_leaf.f90
+              module_fmm_framework.f90  module_pepc_wrappers.f90 module_coulomb_kernels.f90
 
 
 ifeq ($(BACKENDTYPE), XYZQVM)
 # include charge, velocity and mass in particle data type
 FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQVM.f90 \
               module_fmm_framework.f90 module_coulomb_kernels.f90 \
-              gpu_kernel_Coulomb_3D_leaf.f90
+              gpu_kernels_Coulomb_3D.f90
 endif
 
 

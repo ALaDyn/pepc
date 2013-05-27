@@ -95,6 +95,10 @@ module module_walk
 
     call pepc_status('WALK SIMPLE')
 
+#ifdef __OPENACC
+    !$acc data create(gpu_l, gpu)
+#endif
+
     twalk = - MPI_WTIME()
     interactions_local = 0.0_8
     mac_evaluations_local = 0.0_8
@@ -125,6 +129,10 @@ module module_walk
 
     twalk = MPI_WTIME() + twalk
     twalk_loc = twalk
+
+#ifdef __OPENACC
+   !$acc end data
+#endif
 
     contains
 

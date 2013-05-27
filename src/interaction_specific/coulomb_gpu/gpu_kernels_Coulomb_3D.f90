@@ -2,7 +2,6 @@
 subroutine kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    use module_pepc_types
    use module_interaction_specific_types
-   use module_interaction_specific, only: MAX_IACT_PARTNERS
 #ifdef __OPENACC
    use openacc
 #endif
@@ -15,14 +14,6 @@ subroutine kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    real*8 :: dist2
    real*8 :: rd,rd3charge
    real*8 :: e_1, e_2, e_3, pot
-
-   type chargedelta
-      real*8 :: delta1(1:MAX_IACT_PARTNERS)
-      real*8 :: delta2(1:MAX_IACT_PARTNERS)
-      real*8 :: delta3(1:MAX_IACT_PARTNERS)
-      real*8 :: charge(1:MAX_IACT_PARTNERS)
-   end type chargedelta
-   type(chargedelta) :: gpu_l
 
    !!write(*,*) 'kernel will start with ',particle%queued_l,' iterations'
 
@@ -44,7 +35,7 @@ subroutine kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    !!call acc_set_device_num(0, acc_device_nvidia)
 
 #ifdef __OPENACC
-   !$acc parallel loop reduction(+: e_1, e_2, e_3, pot) copyin(gpu_l) private(dist2, rd, rd3charge)
+   !$acc parallel loop reduction(+: e_1, e_2, e_3, pot) present_or_copyin(gpu_l) private(dist2, rd, rd3charge)
 #endif
    do idx = 1, particle%queued_l
 
@@ -83,7 +74,6 @@ end subroutine kernel_leaf
 subroutine kernel_node(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    use module_pepc_types
    use module_interaction_specific_types
-   use module_interaction_specific, only: MAX_IACT_PARTNERS
 #ifdef __OPENACC
    use openacc
 #endif
@@ -95,23 +85,6 @@ subroutine kernel_node(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    integer :: idx
    real*8 :: dist2
    real*8 :: e_1, e_2, e_3, pot
-
-   type mpdelta
-      real*8 :: delta1(1:MAX_IACT_PARTNERS)
-      real*8 :: delta2(1:MAX_IACT_PARTNERS)
-      real*8 :: delta3(1:MAX_IACT_PARTNERS)
-      real*8 :: charge(1:MAX_IACT_PARTNERS)
-      real*8 :: dip1(1:MAX_IACT_PARTNERS)
-      real*8 :: dip2(1:MAX_IACT_PARTNERS)
-      real*8 :: dip3(1:MAX_IACT_PARTNERS)
-      real*8 :: quad1(1:MAX_IACT_PARTNERS)
-      real*8 :: quad2(1:MAX_IACT_PARTNERS)
-      real*8 :: quad3(1:MAX_IACT_PARTNERS)
-      real*8 :: xyquad(1:MAX_IACT_PARTNERS)
-      real*8 :: yzquad(1:MAX_IACT_PARTNERS)
-      real*8 :: zxquad(1:MAX_IACT_PARTNERS)
-   end type mpdelta
-   type(mpdelta) :: gpu
 
    real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 
@@ -137,7 +110,7 @@ subroutine kernel_node(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    pot = 0.d0
 
 #ifdef __OPENACC
-   !$acc parallel loop reduction(+: e_1, e_2, e_3, pot) copyin(gpu) private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)
+   !$acc parallel loop reduction(+: e_1, e_2, e_3, pot) present_or_copyin(gpu) private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)
 #endif
    do idx = 1, particle%queued
 

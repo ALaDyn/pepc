@@ -85,6 +85,8 @@ module module_interaction_specific_types
 
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
+      integer, parameter, public :: MAX_IACT_PARTNERS = 2000 ! 500
+
       type t_particle_thread
          real*8 :: x(1:3)      !< coordinates
          real*8 :: work        !< work load from force sum
@@ -101,6 +103,32 @@ module module_interaction_specific_types
          integer :: my_idx = -1
       end type t_particle_thread
       integer, private, parameter :: nprops_particle_thread = 10
+
+      !> Data structures to be fed to the GPU
+      type chargedelta
+         real*8 :: delta1(1:MAX_IACT_PARTNERS)
+         real*8 :: delta2(1:MAX_IACT_PARTNERS)
+         real*8 :: delta3(1:MAX_IACT_PARTNERS)
+         real*8 :: charge(1:MAX_IACT_PARTNERS)
+      end type chargedelta
+      type(chargedelta) :: gpu_l
+      !
+      type mpdelta
+         real*8 :: delta1(1:MAX_IACT_PARTNERS)
+         real*8 :: delta2(1:MAX_IACT_PARTNERS)
+         real*8 :: delta3(1:MAX_IACT_PARTNERS)
+         real*8 :: charge(1:MAX_IACT_PARTNERS)
+         real*8 :: dip1(1:MAX_IACT_PARTNERS)
+         real*8 :: dip2(1:MAX_IACT_PARTNERS)
+         real*8 :: dip3(1:MAX_IACT_PARTNERS)
+         real*8 :: quad1(1:MAX_IACT_PARTNERS)
+         real*8 :: quad2(1:MAX_IACT_PARTNERS)
+         real*8 :: quad3(1:MAX_IACT_PARTNERS)
+         real*8 :: xyquad(1:MAX_IACT_PARTNERS)
+         real*8 :: yzquad(1:MAX_IACT_PARTNERS)
+         real*8 :: zxquad(1:MAX_IACT_PARTNERS)
+      end type mpdelta
+      type(mpdelta) :: gpu
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

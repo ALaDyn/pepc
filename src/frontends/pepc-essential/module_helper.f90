@@ -52,7 +52,7 @@ module helper
   integer :: diag_interval        ! number of timesteps between all diagnostics and IO
   real*8  :: plasma_dimensions(3) ! size of the simulation box
   
-  integer, parameter :: particle_direct = 144 ! number of particle for direct summation
+  integer, parameter :: particle_direct = 1000 ! 144 ! number of particle for direct summation
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
