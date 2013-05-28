@@ -21,8 +21,7 @@ ARFLAGS  = -rs
 CPP      = cpp
 CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" $(DEFS)
 
-IN = -Mipa
-INLINING = -Minline -fast
+INLINING = -Minline -fast -Mipa
 
 ifeq ($(DEBUG), 1)
   FFLAGS   = -g -pg -O0 -mp -ta=nvidia,time -Minfo=all -traceback -C -Mbounds

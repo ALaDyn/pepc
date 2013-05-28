@@ -17,9 +17,6 @@ subroutine kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
 
    !!write(*,*) 'kernel will start with ',particle%queued_l,' iterations'
 
-   !!!call acc_init(acc_device_nvidia)
-   !!write(*,*) 'num devices ', acc_get_num_devices(acc_device_nvidia)
-
    do idx = 1, particle%queued_l
        gpu_l%delta1(idx) = particle%partner_l(idx)%delta(1)
        gpu_l%delta2(idx) = particle%partner_l(idx)%delta(2)
@@ -31,8 +28,6 @@ subroutine kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    e_2 = 0.d0
    e_3 = 0.d0
    pot = 0.d0
-
-   !!call acc_set_device_num(0, acc_device_nvidia)
 
 #ifdef __OPENACC
    !$acc parallel loop reduction(+: e_1, e_2, e_3, pot) present_or_copyin(gpu_l) private(dist2, rd, rd3charge)
@@ -64,8 +59,6 @@ subroutine kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    particle%results%e   = particle%results%e + [e_1, e_2, e_3]
    particle%results%pot = particle%results%pot + pot
    particle%work        = particle%work + particle%queued_l * WORKLOAD_PENALTY_INTERACTION
-
-   !!!call acc_shutdown(acc_device_nvidia)
 
    return
 
