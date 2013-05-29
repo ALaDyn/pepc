@@ -25,6 +25,8 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_interaction_specific_types
+      use pthreads_stuff
+      use module_atomic_ops, only: t_atomic_int
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -43,7 +45,7 @@ module module_interaction_specific_types
       type t_tree_node_interaction_data
         real*8 :: coc(3)     ! centre of charge
         real*8 :: charge     ! net charge sum
-        real*8 :: abs_charge !  absolute charge sum
+        real*8 :: abs_charge ! absolute charge sum
         real*8 :: dip(3)     ! dipole moment
         real*8 :: quad(3)    ! diagonal quadrupole moments
         real*8 :: xyquad     ! other quadrupole moments
@@ -85,21 +87,24 @@ module module_interaction_specific_types
 
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
-      integer, parameter, public :: MAX_IACT_PARTNERS = 2000 ! 500
+      integer, public, parameter :: MAX_IACT_PARTNERS = 2000 ! 500
+      integer, public, parameter :: ACC_QUEUE_LENGTH  = 100
 
+      !> Thread local data structure to store extra interaction information
+      ! thread local, since we do not want to ship this via MPI
       type t_particle_thread
-         real*8 :: x(1:3)      !< coordinates
-         real*8 :: work        !< work load from force sum
-         integer*8 :: key      !< particle key, i.e. key on highgest tree level
-         integer*8 :: node_leaf !< key of corresponding leaf (tree node)
-         integer*8 :: label      !< particle label (only for diagnostic purposes, can be used freely by the frontend
-         integer :: pid        !< particle owner
-         type(t_particle_data) :: data       !< real physics (charge, etc.)
-         type(t_particle_results) :: results !< results of calc_force_etc and companions
+         real*8 :: x(1:3)                             !< coordinates
+         real*8, pointer :: work                      !< work load from force sum
+         integer*8 :: key                             !< particle key, i.e. key on highgest tree level
+         integer*8 :: node_leaf                       !< key of corresponding leaf (tree node)
+         integer*8 :: label                           !< particle label (only for diagnostic purposes, can be used freely by the frontend
+         integer :: pid                               !< particle owner
+         type(t_particle_data) :: data                !< real physics (charge, etc.)
+         type(t_particle_results), pointer :: results !< results of calc_force_etc and companions
          integer :: queued = -1
-         type(t_iact_partner), allocatable :: partner(:)
+         type(t_iact_partner), pointer :: partner(:)
          integer :: queued_l = -1
-         type(t_iact_partner_l), allocatable :: partner_l(:)
+         type(t_iact_partner_l), pointer :: partner_l(:)
          integer :: my_idx = -1
       end type t_particle_thread
       integer, private, parameter :: nprops_particle_thread = 10
@@ -129,6 +134,24 @@ module module_interaction_specific_types
          real*8 :: zxquad(1:MAX_IACT_PARTNERS)
       end type mpdelta
       type(mpdelta) :: gpu
+
+      type, public :: t_acc_queue_entry
+         type(t_particle_thread) :: particle
+         type(t_particle_results), pointer :: results
+         real*8 :: eps, pen
+         logical :: entry_valid
+         integer :: queued
+         type(t_iact_partner), pointer :: partner(:)
+      end type
+
+      type :: t_acc
+         type(t_atomic_int), pointer :: thread_status
+         integer :: processor_id
+         type(t_pthread_with_type) :: acc_thread
+         type(t_acc_queue_entry) :: acc_queue(ACC_QUEUE_LENGTH)
+         type(t_atomic_int), pointer :: q_top, q_bottom
+      end type
+      type(t_acc) :: acc
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

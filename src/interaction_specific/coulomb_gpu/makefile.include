@@ -8,7 +8,7 @@ ifeq ($(BACKENDTYPE), XYZQVM)
 # include charge, velocity and mass in particle data type
 FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQVM.f90 \
               module_fmm_framework.f90 module_coulomb_kernels.f90 \
-              gpu_kernels_Coulomb_3D.f90
+              gpu_kernels_Coulomb_3D.f90 accelerator_eq_gpu.f90
 endif
 
 

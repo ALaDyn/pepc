@@ -28,6 +28,7 @@
 module module_interaction_specific
      use module_pepc_types
      use module_interaction_specific_types
+     use module_accelerator
      implicit none
      save
      private
@@ -50,7 +51,7 @@ module module_interaction_specific
       real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
       !> debug stuff for interaction partners (currently only used by pepc-f frontend) 
- 	  !> see module_treediags::write_interaction_partners_to_vtk() and module_interaction_specific::calc_force_per_interaction(force_law==6) 
+      !> see module_treediags::write_interaction_partners_to_vtk() and module_interaction_specific::calc_force_per_interaction(force_law==6) 
       integer(kind_node), allocatable,public :: interaction_nodelist(:,:)
       integer(kind_node), allocatable,public :: no_interaction_partners(:)
       real*8, allocatable,public :: interaction_vbox(:,:,:)
@@ -237,9 +238,32 @@ module module_interaction_specific
       subroutine calc_force_prepare()
         use treevars, only : me, MPI_COMM_lpepc
         use module_fmm_framework, only : fmm_framework_init
+        use pthreads_stuff, only: pthreads_createthread, pthreads_sched_yield, THREAD_TYPE_ACCELERATOR
+        use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_allocate_int
+        !use module_tree_communicator, only: tree_comm_thread_counter
+
         implicit none
 
         call fmm_framework_init(me, MPI_COMM_lpepc)
+
+        ! start ACCELERATOR thread (GPUs, MIC, BG/Q Quad, ...)
+        if (.not. associated(acc%thread_status)) then 
+           call atomic_allocate_int(acc%thread_status)
+           call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_WAITING)
+        end if
+
+        ! do that only once...
+        if (      atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTED &
+            .and. atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTING ) then
+           call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
+           !tree_comm_thread_counter = tree_comm_thread_counter + 1
+           ERROR_ON_FAIL(pthreads_createthread(acc%acc_thread, c_funloc(acc_loop), c_null_ptr, thread_type = THREAD_TYPE_ACCELERATOR, counter = 99))
+
+           ! we have to wait here until the communicator has really started to find out its processor id
+           do while (atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTED)
+              ERROR_ON_FAIL(pthreads_sched_yield())
+           end do
+        end if
 
       end subroutine
 
@@ -296,8 +320,14 @@ module module_interaction_specific
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       subroutine calc_force_finalize()
+        use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_allocate_int
         implicit none
-        ! nothing to do here
+
+        ! stop GPU thread, or at least signal it to stop
+        call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPED)
+
+        return
+
       end subroutine calc_force_finalize
 
 
@@ -609,7 +639,7 @@ module module_interaction_specific
 
            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
 
-              call kernel_node(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
+              call dispatch_list(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
 
            case (4)  ! LJ potential for quiet start
 
@@ -670,7 +700,7 @@ module module_interaction_specific
 
            ! free space and refresh list
            particle%queued = -1
-           deallocate(particle%partner)
+           nullify(particle%partner)
 
            return
 
@@ -770,7 +800,7 @@ module module_interaction_specific
 
            ! free space and refresh list
            particle%queued_l = -1
-           deallocate(particle%partner_l)
+           nullify(particle%partner_l)
 
            return
 

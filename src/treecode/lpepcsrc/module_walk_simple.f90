@@ -95,10 +95,6 @@ module module_walk
 
     call pepc_status('WALK SIMPLE')
 
-#ifdef __OPENACC
-    !$acc data create(gpu_l, gpu)
-#endif
-
     twalk = - MPI_WTIME()
     interactions_local = 0.0_8
     mac_evaluations_local = 0.0_8
@@ -111,15 +107,15 @@ module module_walk
 
     do i = lbound(ps, 1), ubound(ps, 1)
        p%x         = ps(i)%x 
-       p%work      = ps(i)%work 
+       p%work     => ps(i)%work 
        p%key       = ps(i)%key 
        p%node_leaf = ps(i)%node_leaf 
        p%label     = ps(i)%label 
        p%pid       = ps(i)%pid 
        p%data      = ps(i)%data 
-       p%results   = ps(i)%results 
+       p%results  => ps(i)%results 
        p%queued    = -1 
-       p%my_idx    = i 
+       p%my_idx    = i
        ni = 0_kind_node
        call tree_walk_single(t%node_root)
        if(p%queued   .gt. 0) call compute_iact_list(p)
@@ -130,9 +126,11 @@ module module_walk
     twalk = MPI_WTIME() + twalk
     twalk_loc = twalk
 
-#ifdef __OPENACC
-   !$acc end data
-#endif
+    ! include a barrier to make sure all accelerator kernels are finished
+    write(*,*) 'pause for 30secs'
+    call system('sleep 30s')
+
+    return
 
     contains
 

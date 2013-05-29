@@ -73,9 +73,6 @@ module module_pepc
       use module_domains
       use module_debug
       use pthreads_stuff, only: get_my_core
-#ifdef __OPENACC
-      use openacc
-#endif
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
@@ -89,9 +86,6 @@ module module_pepc
       integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_SERIALIZED ! " If the process is multithreaded, only one thread will make MPI calls at a time:
       !                     MPI calls are not made concurrently" ATTENTION: This requires that possible multiple communicator threads will use some critical sections.
       !                     Otherwise MPI_THREAD_MULTIPLE will have to be used.
-#ifdef __OPENACC
-      integer :: strt, stp, tck
-#endif
 
       call pepc_status('SETUP')
 
@@ -142,15 +136,6 @@ module module_pepc
       ! copy call parameters to treevars module
       me     = my_rank
       num_pe = n_cpu
-
-#ifdef __OPENACC
-      ! start GPU stuff here to reduce time spent in walk
-      write(*,*) '[',me,'] Starting GPU Context...'
-      call system_clock(strt)
-      call acc_init(acc_device_nvidia)
-      call system_clock(stp,tck)
-      write(*,*) '[',me,'] ...done', real(stp-strt)/tck,'secs'
-#endif
 
       if (present(db_level_in)) then
           debug_level = db_level_in
