@@ -277,7 +277,7 @@ module module_geometry
         wall%x0=x0
         wall%e1=e1
         wall%e2=e2
-        wall%n=n/dotproduct(n,n)
+        wall%n=n/sqrt(dotproduct(n,n))
         wall%type=typ
         wall%indx=indx
         wall%reflux_particles=.false.
