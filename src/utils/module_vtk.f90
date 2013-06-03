@@ -97,6 +97,9 @@ module module_vtk
           procedure :: write_data_Int4_1        => vtkfile_write_data_Int4_1
           procedure :: write_data_Int8_1        => vtkfile_write_data_Int8_1
 
+          procedure :: write_data_repeat_Int4_1 => vtkfile_write_data_repeat_Int4_1
+          procedure :: write_data_repeat_Int8_1 => vtkfile_write_data_repeat_Int8_1
+
           generic :: write_data_array => write_data_array_Real4_1, & ! name, one-dim real*4, number of entries
                                             write_data_array_Real4_3,  & ! name, three-dim real*4 as three separate arrays, number of entries
                                             write_data_array_Real8_1,  & ! ...
@@ -108,7 +111,9 @@ module module_vtk
                                             write_data_array_Int8_1,   &
                                             write_data_array_Int8_3,   &
                                             write_data_Int4_1, &
-                                            write_data_Int8_1
+                                            write_data_Int8_1, &
+                                            write_data_repeat_Int4_1, &
+                                            write_data_repeat_Int8_1
           procedure :: startpointdata => vtkfile_startpointdata
           procedure :: finishpointdata => vtkfile_finishpointdata
           procedure :: startcelldata => vtkfile_startcelldata
@@ -495,22 +500,8 @@ module module_vtk
         class(vtkfile) :: vtk
         character(*) :: name
         integer*4 :: data
-        integer*4 :: numbytes
-        type(base64_encoder) :: base64
-        call vtk%write_data_array_header(name, 1, "Int32")
 
-        if (vtk%binary) then
-          numbytes = 1*4
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(data)
-          call base64%finish()
-        else
-          write(vtk%filehandle, '(I20)') data
-        endif
-        write(vtk%filehandle, '("</DataArray>")')
+        call vtk%write_data_array_Int4_1(name, [ data ])
      end subroutine vtkfile_write_data_Int4_1
 
 
@@ -519,22 +510,8 @@ module module_vtk
         class(vtkfile) :: vtk
         character(*) :: name
         integer*8 :: data
-        integer*4 :: numbytes
-        type(base64_encoder) :: base64
-        call vtk%write_data_array_header(name, 1, "Int64")
 
-        if (vtk%binary) then
-          numbytes = 1*8
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(data)
-          call base64%finish()
-        else
-          write(vtk%filehandle, '(I20)') data
-        endif
-        write(vtk%filehandle, '("</DataArray>")')
+        call vtk%write_data_array_Int8_1(name, [ data ])
      end subroutine vtkfile_write_data_Int8_1
 
 
@@ -633,6 +610,64 @@ module module_vtk
         endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Int8_3
+
+
+     subroutine vtkfile_write_data_repeat_Int4_1(vtk, name, n, v)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer*4 :: n
+        integer*4 :: v
+        integer*4 :: i, numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 1, "Int32")
+ 
+        if (vtk%binary) then
+          numbytes = n*4
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          do i=1,n
+            call base64%encode(v)
+          end do
+          call base64%finish()
+        else
+          do i=1,n
+          write(vtk%filehandle, '(I20)') v
+          end do
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_repeat_Int4_1
+
+
+     subroutine vtkfile_write_data_repeat_Int8_1(vtk, name, n, v)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer*4 :: n
+        integer*8 :: v
+        integer*4 :: i, numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 1, "Int64")
+ 
+        if (vtk%binary) then
+          numbytes = n*8
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          do i=1,n
+            call base64%encode(v)
+          end do
+          call base64%finish()
+        else
+          do i=1,n
+          write(vtk%filehandle, '(I20)') v
+          end do
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_repeat_Int8_1
 
 
      subroutine vtkfile_startpointdata(vtk)

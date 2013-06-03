@@ -73,7 +73,7 @@ module module_vtk_particles
         call vtk%write_data_array("work", p(:)%work)
         call vtk%write_data_array("pelabel", p(:)%label)
         call vtk%write_data_array("local index", [(i,i=1,np)])
-        call vtk%write_data_array("processor", p(:)%pid)
+        call vtk%write_data_array("processor", int(np, kind = 4), mpi_rank)
         if (present(helper_func)) then; call helper_func(p, vtk); end if
       call vtk%finishpointdata()
       call vtk%dont_write_cells()
