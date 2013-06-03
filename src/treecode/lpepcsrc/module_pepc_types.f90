@@ -65,7 +65,7 @@ module module_pepc_types
          real*8 :: x(1:3)      !< coordinates
          real*8 :: work        !< work load from force sum
          integer(kind_key) :: key      !< particle key, i.e. key on highest tree level
-         integer(kind_key) :: node_leaf !< ode index of corresponding leaf (tree node)
+         integer(kind_node) :: node_leaf !< node index of corresponding leaf (tree node)
          integer(kind_particle) :: label     !< particle label (only for diagnostic purposes, can be used freely by the frontend
          integer(kind_pe) :: pid                      !< particle owner
          type(t_particle_data) :: data       !< real physics (charge, etc.)
