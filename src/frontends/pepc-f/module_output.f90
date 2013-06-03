@@ -344,7 +344,7 @@ MODULE output
 
         npart=tnp
         !call write_particles_ascii(my_rank,step,np,particles,filename)
-        call write_particles_mpiio(MPI_COMM_WORLD,my_rank,step,np,npart,particles,filename)
+        call write_particles_mpiio(MPI_COMM_WORLD,my_rank,step,npart,particles,filename)
 
         if (root) then
             open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
