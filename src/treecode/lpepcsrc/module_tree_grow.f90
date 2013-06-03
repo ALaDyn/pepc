@@ -576,24 +576,24 @@ module module_tree_grow
 
     type t_keyidx
       integer(kind_key) :: key
-      integer :: idx
+      integer(kind_particle) :: idx
     end type
 
     type(t_keyidx), allocatable :: kidx(:)
-    integer :: i, j
+    integer(kind_particle) :: i, j
 
     call pepc_status('INSERT PARTICLES')
 
     call timer_start(t_build_pure)
 
-    allocate(kidx(ubound(p, 1) + 2)) ! might not need those two, but what the heck
+    allocate(kidx(size(p, kind = kind_particle) + 2)) ! might not need those two, but what the heck
     i = 0
     if (.not. t%comm_env%first) then
       i = i + 1
       kidx(i) = t_keyidx( bp(1)%key, 0 )
     end if
 
-    do j = 1, ubound(p, 1)
+    do j = 1, size(p, kind = kind_particle)
       i = i + 1
       kidx(i) = t_keyidx( p(j)%key, j )
     end do
@@ -688,13 +688,14 @@ module module_tree_grow
         call tree_insert_node(t, this_node, inserted_node_idx)
 
         nchild = 0
-        pstart = lbound(ki, dim = 1)
+        pstart = lbound(ki, dim = 1, kind = kind(pstart))
+        pend = pstart - 1 ! silence compiler warnings about pend being used without initialising
         childlevel = l + 1_kind_level
         do ichild = 0, 2**idim - 1
           childkey = child_key_from_parent_key(k, ichild)
 
           pend = pstart - 1
-          do while (pend < ubound(ki, dim = 1))
+          do while (pend < ubound(ki, dim = 1, kind = kind(pend)))
             if (.not. is_ancestor_of_particle(ki(pend + 1)%key, childkey, childlevel)) then; exit; end if
             pend = pend + 1
           end do
@@ -742,7 +743,7 @@ module module_tree_grow
 
     type(t_tree_node_interaction_data) :: interaction_data(1:8)
     integer(kind_key) :: parent_keys(1:8)
-    integer :: nchild, i
+    integer(kind_node) :: nchild, i
     integer(kind_node) :: nleaves
     integer(kind_node) :: ndescendants
     integer(kind_byte) :: flags_local, flags_global, childcode
