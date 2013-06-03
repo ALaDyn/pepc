@@ -33,7 +33,6 @@ contains
 
       type(physics_nml_t) :: physics_nml
       integer :: dummy_nresume
-      integer(kind = 4) :: dummy_npp_out
       character(len = 255) :: dummy_file_name
 
       call read_in_physics_params(physics_nml, para_file_available, para_file_name)
@@ -62,7 +61,6 @@ contains
         call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%mpi_comm, &
           pepc_pars%pepc_comm%mpi_rank, pepc_pars%pepc_comm%mpi_size, dummy_nresume, &
           pepc_pars%np, p, dummy_file_name)
-        pepc_pars%npp = dummy_npp_out
 
         if (dummy_nresume .ne. time_pars%nresume) then
           DEBUG_ERROR(*, "Resume timestep mismatch, parameter file says: ", time_pars%nresume, " checkpoint file says: ", dummy_nresume)
@@ -153,7 +151,7 @@ contains
 
       type(pepc_pars_t), intent(in) :: pepc_pars
       type(physics_pars_t), intent(in) :: physics_pars
-      type(t_particle), dimension(pepc_pars%npp), intent(inout) :: p
+      type(t_particle), allocatable, intent(inout) :: p(:)
 
       integer(kind_particle) :: nx, ny, ipl, ipg, ix, iy, np, npp
       integer(kind_default) :: mpi_rank, mpi_size
@@ -177,7 +175,10 @@ contains
       mpi_rank = pepc_pars%pepc_comm%mpi_rank
       mpi_size = pepc_pars%pepc_comm%mpi_size
       np = pepc_pars%np
-      npp = pepc_pars%npp
+      npp = np / mpi_size
+      if (mpi_rank < mod(np, int(mpi_size, kind=kind_particle))) then
+        npp = npp + 1
+      end if
       nx = nint(sqrt(lx * np / (2 * ly)))
       ny = np / (2 * nx)
 
@@ -198,6 +199,8 @@ contains
 
       dx = lx / nx
       dy = ly / ny
+
+      allocate(p(1:npp))
 
       do ipl = 1, npp
         ipg = ipl + min(int(mpi_rank, kind=kind_particle), mod(np, int(mpi_size, kind=kind_particle))) * (np / mpi_size + 1) + &
@@ -291,7 +294,7 @@ contains
     e_kin = 0.0D0
     e_pot = 0.0D0
 
-    do ip = 1, pepc_pars%npp
+    do ip = 1, size(p)
       e_kin = e_kin + e_kin_of_particle(p(ip)) 
       e_pot = e_pot + e_pot_of_particle(p(ip))
     end do

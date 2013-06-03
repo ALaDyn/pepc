@@ -104,7 +104,7 @@ contains
       type(pepc_pars_t), intent(in) :: pepc_pars
       type(time_pars_t), intent(in) :: time_pars
       type(physics_pars_t), intent(in) :: physics_pars
-      type(t_particle), dimension(pepc_pars%npp), intent(inout) :: p
+      type(t_particle), intent(inout) :: p(:)
 
       integer(kind_particle) :: ip
       real*8 :: beta, gam
@@ -114,7 +114,7 @@ contains
 
       B0 = physics_pars%B0
 
-      do ip=1,pepc_pars%npp
+      do ip = 1, size(p)
         ! charge/mass*time-constant
         beta   = p(ip)%data%q / (2. * p(ip)%data%m) * time_pars%dt
         ! first half step with electric field
@@ -175,7 +175,7 @@ contains
     vti = physics_pars%vti
     lx  = physics_pars%l_plasma(1)
 
-    do ip = 1, pepc_pars%npp
+    do ip = 1, size(p)
       if (p(ip)%x(1) .gt. lx) then
 
         e_constraint = e_constraint + e_kin_of_particle(p(ip))

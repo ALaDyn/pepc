@@ -171,7 +171,7 @@ contains
     rda = 1.0D0 / da
 
     ! make a spatial histogram of local particle numbers and velocities per species
-    do ipl = 1, pepc_pars%npp
+    do ipl = 1, size(p)
       ! do not count particles outside the grid
       if (any(p(ipl)%x(1:2) < field_grid%offset) .or. &
         any((p(ipl)%x(1:2) - field_grid%offset) >= field_grid%extent)) cycle

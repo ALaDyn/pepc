@@ -10,7 +10,7 @@ module encap
 
    type, bind(c) :: pepc_pars_t
       integer(c_int) :: pdump, fdump, cdump
-      integer(c_int64_t) :: np, npp
+      integer(c_int64_t) :: np
       type(pepc_comm_t) :: pepc_comm
    end type pepc_pars_t
 

@@ -34,22 +34,16 @@ contains
 
       ! Pass MPI stuff to parameters
       pepc_pars%np = pepc_nml%np
-      pepc_pars%npp = pepc_pars%np / pepc_pars%pepc_comm%mpi_size
-      if (pepc_pars%pepc_comm%mpi_rank < mod(pepc_pars%np, int(pepc_pars%pepc_comm%mpi_size, kind=kind_particle))) then
-        pepc_pars%npp = pepc_pars%npp + 1
-      end if
+
       pepc_pars%pdump = pepc_nml%pdump
       pepc_pars%fdump = pepc_nml%fdump
       pepc_pars%cdump = pepc_nml%cdump
-
-      allocate(p(1:pepc_pars%npp))
 
    end subroutine pepc_setup
 
 
    subroutine read_in_params(pepc_namelist, file_available, file_name)
       use encap
-      use mpi
       use module_mirror_boxes, only: mirror_box_layers
       use module_fmm_periodicity, only: do_extrinsic_correction
       implicit none
@@ -85,8 +79,8 @@ contains
 
    subroutine write_params(pepc_pars, file_name)
       use encap
-      use module_mirror_boxes, only: t_lattice_1, t_lattice_2, t_lattice_3, &
-        periodicity, mirror_box_layers
+      use module_mirror_boxes, only: mirror_box_layers
+      use module_fmm_periodicity, only: do_extrinsic_correction
       implicit none
 
       type(pepc_pars_t), intent(in) :: pepc_pars
@@ -100,8 +94,7 @@ contains
       integer :: fdump = 0
       integer :: cdump = 0
 
-      namelist /pepc_nml/ np, pdump, fdump, cdump,&
-        t_lattice_1, t_lattice_2, t_lattice_3, periodicity, mirror_box_layers
+      namelist /pepc_nml/ np, pdump, fdump, cdump, mirror_box_layers, do_extrinsic_correction
 
       np = pepc_pars%np
       pdump = pepc_pars%pdump
@@ -146,7 +139,7 @@ contains
     
     ta = get_time()
     
-    allocate(dummy_ez(pepc_pars%npp))
+    allocate(dummy_ez(size(p)))
     dummy_ez = 0
 
     time = time_pars%dt * step
@@ -161,7 +154,7 @@ contains
 
     call vtk%create_parallel("particles", step, pepc_pars%pepc_comm%mpi_rank, &
       pepc_pars%pepc_comm%mpi_size, time, vtk_step)
-    call vtk%write_headers(pepc_pars%npp, 0_kind_particle)
+    call vtk%write_headers(size(p, kind = kind_particle), 0_kind_particle)
     call vtk%startpoints()
     call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
     call vtk%finishpoints()
@@ -174,7 +167,7 @@ contains
     call vtk%write_data_array("mass", p(:)%data%m)
     call vtk%write_data_array("work", p(:)%work)
     call vtk%write_data_array("pelabel", p(:)%label)
-    call vtk%write_data_array("local index", [(i,i=1,pepc_pars%npp)])
+    call vtk%write_data_array("local index", [(i,i=1,size(p))])
     call vtk%write_data_array("processor", p(:)%pid)
     call vtk%finishpointdata()
     call vtk%dont_write_cells()
