@@ -23,8 +23,7 @@ module checkpoint_helper
     character(len = 255) :: file_name
 
     call write_particles_mpiio(pepc_pars%pepc_comm%mpi_comm, &
-      pepc_pars%pepc_comm%mpi_rank, step, int(pepc_pars%npp, kind=4), &
-      pepc_pars%np, p, file_name)
+      pepc_pars%pepc_comm%mpi_rank, step, pepc_pars%np, p, file_name)
 
     if (pepc_pars%pepc_comm%mpi_rank == 0) then
       call write_field_grid_params(field_grid, file_name)

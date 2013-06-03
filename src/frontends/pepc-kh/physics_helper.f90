@@ -61,7 +61,7 @@ contains
       if (time_pars%nresume > 0) then
         call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%mpi_comm, &
           pepc_pars%pepc_comm%mpi_rank, pepc_pars%pepc_comm%mpi_size, dummy_nresume, &
-          dummy_npp_out, pepc_pars%np, p, dummy_file_name)
+          pepc_pars%np, p, dummy_file_name)
         pepc_pars%npp = dummy_npp_out
 
         if (dummy_nresume .ne. time_pars%nresume) then
