@@ -27,7 +27,7 @@ ARFLAGS  = -rs
 CPP      = cpp
 CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
-INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg 
+INLINING = -fdump-ipa-inline -findirect-inlining -flto-partition=none -finline-limit=120000
 # -flto
 #-fwhopr
 
@@ -38,9 +38,9 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -Wall -O0 -pg -g 
   LDFLAGS  =       -O0 -pg -g 
 else
-  FFLAGS   = -Wall -O5 -pg    -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
-  CFLAGS   = -Wall -O5 -pg
-  LDFLAGS  = -pthread -pg -O5 $(INLINING) -fwhole-program  
+  FFLAGS   = -Wall -O3 -pg -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens $(INLINING)
+  CFLAGS   = -Wall -O3 -pg
+  LDFLAGS  = -pthread -pg -O3 $(INLINING) -fwhole-program  
   CPPFLAGS += -DNDEBUG
 #-Wl,--threads
 #-fuse-linker-plugin
