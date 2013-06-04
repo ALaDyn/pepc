@@ -482,7 +482,7 @@ end subroutine kinenergy
 ! - will otherwise just get last pass of tree walk
 
         call pepc_check_sanity('PEPC-B: error_test()', particles = particles, dump = .true.) ! Printed tree info
-        !call draw_tree2d(xl)     ! Draw PE-trees , see src/utils/module_treediags for details on how to do this
+        !call draw_tree2d(xl)     ! Draw PE-trees , see src/utils/module_vtk_helpers for details on how to do this
 !        call draw_lists      ! Draw interaction lists , see module_interaction_partners in frontend pepc-f for details on how to achieve this
         !call draw_domains()   ! Domains
        

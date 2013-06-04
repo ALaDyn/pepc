@@ -1,10 +1,6 @@
 FILES_L   = pepc.f90
 
-FILES_L_U = module_vtk.f90 \
-            module_base64.f90 \
-	    module_vtk_particles.f90 \
-	    module_vtk_helpers.f90 \
-	    module_treediags.f90
+FILES_L_U = module_vtk_helpers.f90
 
 CPPFLAGS += -I$(PETSC_DIR)/include -DBEM2D
 LDFLAGS += -L$(PETSC_DIR)/lib -L/usr/X11/lib

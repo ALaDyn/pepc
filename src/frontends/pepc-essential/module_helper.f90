@@ -291,7 +291,7 @@ module helper
 
 
   subroutine write_particles(p)
-    use module_vtk_particles
+    use module_vtk_helpers
     implicit none
 
     include 'mpif.h'
@@ -308,14 +308,16 @@ module helper
 
     contains
 
-    subroutine coulomb_and_l2(p, vtkf)
+    subroutine coulomb_and_l2(d, r, vtkf)
       use module_vtk
+      use module_interaction_specific_types
       implicit none
 
-      type(t_particle), intent(in) :: p(:)
+      type(t_particle_data), intent(in) :: d(:)
+      type(t_particle_results), intent(in) :: r(:)
       type(vtkfile_unstructured_grid), intent(inout) :: vtkf
       
-      call vtk_write_particles_coulomb_XYZQVM_helper(p, vtkf)
+      call vtk_write_particle_data_results(d, r, vtkf)
       if(particle_test) call vtkf%write_data_array("L2 error", direct_L2(:))
     end subroutine
   end subroutine write_particles
@@ -323,7 +325,7 @@ module helper
   
   subroutine write_domain(p)
     use module_vtk
-    use module_treediags
+    use module_vtk_helpers
     implicit none
   
     type(t_particle), allocatable, intent(in) :: p(:)
@@ -332,9 +334,9 @@ module helper
   
     ! output of tree diagnostics
     vtk_step = vtk_step_of_step(step)
-    call write_branches_to_vtk(step,  dt * step, vtk_step)
-    call write_leaves_to_vtk(step, dt * step, vtk_step)
-    call write_spacecurve_to_vtk(step, dt * step, vtk_step, p)
+    call vtk_write_branches(step,  dt * step, vtk_step)
+    call vtk_write_leaves(step, dt * step, vtk_step)
+    call vtk_write_spacecurve(step, dt * step, vtk_step, p)
   end subroutine write_domain
   
 

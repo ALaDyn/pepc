@@ -47,8 +47,8 @@ program pepc
   use module_workflow
   use module_units
   use module_param_dump
-  use module_treediags
   use module_vtk
+  use module_vtk_helpers
   use module_energy
   use module_particle_setup
   use module_debug
@@ -164,8 +164,8 @@ program pepc
            vtk_step = VTK_STEP_NORMAL
          endif
 
-         call write_branches_to_vtk(itime,   trun*unit_t0_in_fs, vtk_step)
-         call write_spacecurve_to_vtk(itime, trun*unit_t0_in_fs, vtk_step, particles)
+         call vtk_write_branches(itime,   trun*unit_t0_in_fs, vtk_step)
+         call vtk_write_spacecurve(itime, trun*unit_t0_in_fs, vtk_step, particles)
        endif
 
        call pepc_restore_particles(particles)

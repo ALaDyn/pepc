@@ -218,31 +218,33 @@ end module bem
 
 
 module writers
-  use module_pepc_types
+  use module_interaction_specific_types
   use module_vtk
   implicit none
 
   contains
 
-  subroutine write_results(p, vtkf)
+  subroutine write_results(d, r, vtkf)
     implicit none
 
-    type(t_particle), intent(in) :: p(:)
+    type(t_particle_data), intent(in) :: d(:)
+    type(t_particle_results), intent(in) :: r(:)
     type(vtkfile_unstructured_grid), intent(inout) :: vtkf
 
-    call vtkf%write_data_array("phi", p(:)%results%pot)
-    call vtkf%write_data_array("ex", p(:)%results%e(1))
-    call vtkf%write_data_array("ey", p(:)%results%e(2))
+    call vtkf%write_data_array("phi", r(:)%pot)
+    call vtkf%write_data_array("ex", r(:)%e(1))
+    call vtkf%write_data_array("ey", r(:)%e(2))
   end subroutine write_results
 
-  subroutine write_bc(p, vtkf)
+  subroutine write_bc(d, r, vtkf)
     implicit none
 
-    type(t_particle), intent(in) :: p(:)
+    type(t_particle_data), intent(in) :: d(:)
+    type(t_particle_results), intent(in) :: r(:)
     type(vtkfile_unstructured_grid), intent(inout) :: vtkf
 
-    call vtkf%write_data_array("phi", p(:)%data%phi)
-    call vtkf%write_data_array("q", p(:)%data%q)
+    call vtkf%write_data_array("phi", d(:)%phi)
+    call vtkf%write_data_array("q", d(:)%q)
   end subroutine write_bc
 end module writers
 
@@ -258,8 +260,6 @@ program pepc
   use module_walk
   use module_vtk
   use module_vtk_helpers
-  use module_vtk_particles
-  use module_treediags
 
   use writers
   use bem
@@ -391,7 +391,7 @@ program pepc
   call pepc_particleresults_clear(pgrid)
   call pepc_grow_tree(pside)
   call pepc_traverse_tree(pgrid)
-  call write_leaves_to_vtk(0, 0.0_8, VTK_STEP_FIRST)
+  call vtk_write_leaves(0, 0.0_8, VTK_STEP_FIRST)
   call pepc_timber_tree()
 
   call pepc_grow_tree(part)
@@ -434,7 +434,7 @@ program pepc
     end do
   end do
   
-  call vtk_field_on_grid("grid", 0, 0.0_8, VTK_STEP_FIRST, globaldims, mydims, xcoords, ycoords, zcoords, &
+  call vtk_write_field_on_grid("grid", 0, 0.0_8, VTK_STEP_FIRST, globaldims, mydims, xcoords, ycoords, zcoords, &
     scalarvalues, "phi", vectorvalues, "e", 0, 1, MPI_COMM_WORLD)
   deallocate (xcoords, ycoords, zcoords)
   deallocate (scalarvalues, vectorvalues)

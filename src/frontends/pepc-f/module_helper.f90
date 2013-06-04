@@ -220,7 +220,7 @@ module helper
 !=======================================================================================
   subroutine pepc_tree_diagnostics()
       use module_vtk
-      use module_treediags
+      use module_vtk_helpers
       use module_pepc
 
       implicit none
@@ -236,8 +236,8 @@ module helper
       endif
 
       call pepc_statistics(step)
-      call write_branches_to_vtk(step,   step*dt, vtk_step)
-      call write_spacecurve_to_vtk(step, step*dt, vtk_step, particles)
+      call vtk_write_branches(step,   step*dt, vtk_step)
+      call vtk_write_spacecurve(step, step*dt, vtk_step, particles)
 
   end subroutine pepc_tree_diagnostics
 

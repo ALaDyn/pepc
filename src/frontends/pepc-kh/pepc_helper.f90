@@ -122,6 +122,7 @@ contains
   subroutine write_particles(pepc_pars, time_pars, step, p)
     use module_pepc_types
     use module_vtk
+    use module_vtk_helpers
     use encap
     implicit none
     
@@ -135,13 +136,9 @@ contains
     integer :: vtk_step
     real*8 :: time
     real*8 :: ta, tb
-    real*8, allocatable :: dummy_ez(:)
     
     ta = get_time()
     
-    allocate(dummy_ez(size(p)))
-    dummy_ez = 0
-
     time = time_pars%dt * step
 
     if (step .eq. 0) then
@@ -152,29 +149,7 @@ contains
       vtk_step = VTK_STEP_NORMAL
     endif
 
-    call vtk%create_parallel("particles", step, pepc_pars%pepc_comm%mpi_rank, &
-      pepc_pars%pepc_comm%mpi_size, time, vtk_step)
-    call vtk%write_headers(size(p, kind = kind_particle), 0_kind_particle)
-    call vtk%startpoints()
-    call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
-    call vtk%finishpoints()
-    call vtk%startpointdata()
-    call vtk%write_data_array("velocity", p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
-    call vtk%write_data_array("el_field", p(:)%results%e(1), &
-                              p(:)%results%e(2), dummy_ez)
-    call vtk%write_data_array("el_pot", p(:)%results%pot)
-    call vtk%write_data_array("charge", p(:)%data%q)
-    call vtk%write_data_array("mass", p(:)%data%m)
-    call vtk%write_data_array("work", p(:)%work)
-    call vtk%write_data_array("pelabel", p(:)%label)
-    call vtk%write_data_array("local index", [(i,i=1,size(p))])
-    call vtk%write_data_array("processor", p(:)%pid)
-    call vtk%finishpointdata()
-    call vtk%dont_write_cells()
-    call vtk%write_final()
-    call vtk%close()
-
-    deallocate(dummy_ez)
+    call vtk_write_particles("particles", pepc_pars%pepc_comm%mpi_comm, step, time, vtk_step, p)
 
     tb = get_time()
 
@@ -186,7 +161,7 @@ contains
   subroutine write_domain(time_pars, step, p)
     use module_pepc_types
     use module_vtk
-    use module_treediags
+    use module_vtk_helpers
 
     use encap
     implicit none
@@ -206,9 +181,9 @@ contains
       vtk_step = VTK_STEP_NORMAL
     endif
 
-    call write_branches_to_vtk(step,  time_pars%dt * step, vtk_step)
-    call write_leaves_to_vtk(step, time_pars%dt * step, vtk_step)
-    call write_spacecurve_to_vtk(step, time_pars%dt * step, vtk_step, p)
+    call vtk_write_branches(step,  time_pars%dt * step, vtk_step)
+    call vtk_write_leaves(step, time_pars%dt * step, vtk_step)
+    call vtk_write_spacecurve(step, time_pars%dt * step, vtk_step, p)
     
   end subroutine write_domain
 

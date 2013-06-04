@@ -510,7 +510,7 @@ module helper
   subroutine write_domain(p)
     
     use module_vtk
-    use module_treediags
+    use module_vtk_helpers
     implicit none
   
     type(t_particle), allocatable, intent(in) :: p(:)
@@ -525,8 +525,8 @@ module helper
     else
       vtk_step = VTK_STEP_NORMAL
     endif
-    call write_branches_to_vtk(step,  dt * step, vtk_step)
-    call write_spacecurve_to_vtk(step, dt * step, vtk_step, p)
+    call vtk_write_branches(step,  dt * step, vtk_step)
+    call vtk_write_spacecurve(step, dt * step, vtk_step, p)
     
   end subroutine write_domain
   

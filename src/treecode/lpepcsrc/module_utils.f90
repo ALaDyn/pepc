@@ -49,11 +49,12 @@ module module_utils
 
 
   !> checks if MPI_IN_PLACE might be damaged and aborts the application if necessary
-  subroutine MPI_IN_PLACE_test()
-    use treevars, only : MPI_COMM_lpepc
-    use module_pepc_types
+  subroutine MPI_IN_PLACE_test(comm)
+    use module_pepc_kinds
     implicit none
     include 'mpif.h'
+
+    integer(kind_default) :: comm
 
     integer(kind_default) :: ierr
     integer(kind_pe) :: n_cpu
@@ -61,15 +62,15 @@ module module_utils
     integer :: data = initval
 
     ! Get the number of MPI tasks
-    call MPI_COMM_SIZE(MPI_COMM_lpepc, n_cpu, ierr)
+    call MPI_COMM_SIZE(comm, n_cpu, ierr)
 
-    call MPI_ALLREDUCE(MPI_IN_PLACE, data, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_lpepc, ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE, data, 1, MPI_INTEGER, MPI_SUM, comm, ierr)
 
     if (initval*n_cpu .ne. data) then
       print '(3(a,/))', 'Serious Issue: MPI_IN_PLACE is not working in your configuration of MPI distribution, compiler(flags) and compiler-optimization.', &
                       'If you are using GCC, you might want to deactivate link time optimization (flags -flto, -fwhole-program, etc.).', &
                       'If running on OSX, please update to at least OpenMPI 1.5.5 or MPICH2 (see also https://svn.open-mpi.org/trac/ompi/ticket/1982).'
-      call MPI_ABORT(MPI_COMM_lpepc, 1, ierr)
+      call MPI_ABORT(comm, 1, ierr)
     end if
   end subroutine
 end module module_utils

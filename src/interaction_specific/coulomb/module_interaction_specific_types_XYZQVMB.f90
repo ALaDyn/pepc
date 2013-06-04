@@ -60,6 +60,42 @@ module module_interaction_specific_types
       contains
 
       !>
+      !> Writes particle interaction data and results to a VTK file.
+      !>
+      subroutine vtk_write_particle_data_results(d, r, vtkf)
+        use module_vtk
+        implicit none
+
+        type(t_particle_data), intent(in) :: d(:)
+        type(t_particle_results), intent(in) :: r(:)
+        type(vtkfile_unstructured_grid), intent(inout) :: vtkf
+
+        call vtkf%write_data_array("q", d(:)%q)
+        call vtkf%write_data_array("v", d(:)%v(1), d(:)%v(2), d(:)%v(3))
+        call vtkf%write_data_array("m", d(:)%m)
+        call vtkf%write_data_array("B", d(:)%b(1), d(:)%b(2), d(:)%b(3))
+
+        call vtkf%write_data_array("pot", r(:)%pot)
+        call vtkf%write_data_array("field", r(:)%e(1), r(:)%e(2), r(:)%e(3))
+      end subroutine vtk_write_particle_data_results
+
+
+      !>
+      !> Writes (a sensible subset of) tree node interaction data to a VTK file.
+      !>
+      subroutine vtk_write_node_interaction_data(d, vtkf)
+        use module_vtk
+        implicit none
+
+        type(t_tree_node_interaction_data), intent(in) :: d(:)
+        type(vtkfile_unstructured_grid), intent(inout) :: vtkf
+
+        call vtkf%write_data_array("charge", d(:)%charge)
+        call vtkf%write_data_array("abs_charge", d(:)%abs_charge)
+      end subroutine vtk_write_node_interaction_data
+
+
+      !>
       !> Creates and registers interaction-specific MPI-types
       !> is automatically called from register_libpepc_mpi_types()
       !>

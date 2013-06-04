@@ -190,18 +190,18 @@ contains
     end do
 
     ! accumulate the histograms
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%ne, field_grid%ntot, MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ne, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%ni, field_grid%ntot, MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ni, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%vex, field_grid%ntot, MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%vex, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%vey, field_grid%ntot, MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%vey, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%vix, field_grid%ntot, MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%vix, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%viy, field_grid%ntot, MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%viy, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
     ! normalize to fluid quantities
@@ -284,7 +284,7 @@ contains
       integer(kind = 4), parameter :: field_header_magic = 1
 
       character(1024) :: filename
-      integer :: fh, mpi_err
+      integer :: fh, mpi_err, nx_, ny_
       integer(kind = MPI_OFFSET_KIND) :: mpi_disp
       integer, dimension(MPI_STATUS_SIZE) :: mpi_stat
 
@@ -296,6 +296,9 @@ contains
       if (mpi_err .ne. MPI_SUCCESS) then
         DEBUG_ERROR(*, 'write_field_on_grid(): I/O error for ', filename)
       end if
+
+      nx_ = int(field_grid%n(1))
+      ny_ = int(field_grid%n(2))
 
       call mpi_file_set_view(fh, 0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, &
         'native', MPI_INFO_NULL, mpi_err)
@@ -321,8 +324,8 @@ contains
       ! float64 max
       if (pepc_comm%mpi_rank == 0) then
         call mpi_file_write(fh, field_header_magic, 1, MPI_INTEGER4, mpi_stat, mpi_err)
-        call mpi_file_write(fh, field_grid%n(1), 1, MPI_INTEGER4, mpi_stat, mpi_err)
-        call mpi_file_write(fh, field_grid%n(2), 1, MPI_INTEGER4, mpi_stat, mpi_err)
+        call mpi_file_write(fh, nx_, 1, MPI_INTEGER4, mpi_stat, mpi_err)
+        call mpi_file_write(fh, ny_, 1, MPI_INTEGER4, mpi_stat, mpi_err)
         call mpi_file_write(fh, field_grid%offset(1), 1, MPI_REAL8, mpi_stat, mpi_err)
         call mpi_file_write(fh, field_grid%offset(2), 1, MPI_REAL8, mpi_stat, mpi_err)
         call mpi_file_write(fh, field_grid%extent(1), 1, MPI_REAL8, mpi_stat, mpi_err)
@@ -348,7 +351,7 @@ contains
       call mpi_file_set_view(fh, field_header_size, MPI_REAL8, MPI_REAL8, &
         'native', MPI_INFO_NULL, mpi_err)
 
-      call mpi_file_write_at_all(fh, my_offset, y(:), field_grid%nl, MPI_REAL8, mpi_stat, mpi_err)
+      call mpi_file_write_at_all(fh, my_offset, y(:), int(field_grid%nl, kind = kind_default), MPI_REAL8, mpi_stat, mpi_err)
 
       call mpi_file_sync(fh, mpi_err)
       call mpi_file_close(fh, mpi_err)

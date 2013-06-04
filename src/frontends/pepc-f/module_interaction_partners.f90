@@ -2,7 +2,7 @@ module module_interaction_partners
   use module_pepc_types
   use variables
   use module_interaction_specific
-  use module_treediags
+  use module_vtk_helpers
   use module_pepc
 
   implicit none
@@ -72,7 +72,7 @@ module module_interaction_partners
       call pepc_traverse_tree(probe_particles(1:help_num_of_probes))
       force_law=3
       do i=1,help_num_of_probes
-          call write_interaction_partners_to_vtk(step, i,0.0_8, -1, interaction_nodelist, no_interaction_partners, interaction_vbox)
+          call vtk_write_interaction_partners(step, i,0.0_8, -1, interaction_nodelist, no_interaction_partners, interaction_vbox)
           write(*,*)i,no_interaction_partners(i)
       end do
       no_interaction_partners=0

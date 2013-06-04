@@ -3,6 +3,7 @@
 FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQ.f90 \
               module_fmm_framework.f90  module_pepc_wrappers.f90 module_coulomb_kernels.f90
 
+FILES_UTILS = module_base64.f90 module_vtk.f90
 
 ifeq ($(BACKENDTYPE), XYZQVM)
 # include charge, velocity and mass in particle data type
@@ -23,5 +24,6 @@ FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_
               module_fmm_framework.f90 module_coulomb_kernels.f90
 endif
 
-SRC        += $(FILES_INT)
-SRC_COPY   += $(addprefix ./src/interaction_specific/coulomb/, $(FILES_INT))
+SRC        += $(FILES_INT) $(FILES_UTILS)
+SRC_COPY   += $(addprefix ./src/interaction_specific/coulomb/, $(FILES_INT)) \
+              $(addprefix $(UTILSDIR)/, $(FILES_UTILS))

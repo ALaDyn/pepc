@@ -306,19 +306,19 @@ contains
 
             !!! write particle date as a binary file
             if (binary) then
-                call write_particles_binary(my_rank, itime, int(np_local, kind_default), particles, filename)
+                call write_particles_binary(my_rank, itime, particles, filename)
                 call write_frontend_parameters_to_file(filename)
             endif
 
             !!! write particle date as a text file
             if (ascii) then
-                call write_particles_ascii(my_rank, itime, int(np_local, kind_default), particles, filename)
+                call write_particles_ascii(my_rank, itime, particles, filename)
                 call write_frontend_parameters_to_file(filename)
             endif
 
             !!! write particle checkpoint data using mpi-io
             if (mpiio) then
-                call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, int(np_local, kind_default), npart, particles, filename)
+                call write_particles_mpiio(MPI_COMM_WORLD, my_rank, itime, npart, particles, filename)
                 call write_frontend_parameters_to_file(filename)
             endif
 
@@ -373,7 +373,7 @@ contains
 
             !!! read particle checkpoint data using mpi-io
             if (mpiio) then
-                call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, nl, npart_total, particles, filename)
+                call read_particles_mpiio(itime_in_, MPI_COMM_WORLD, my_rank, n_cpu, itime, npart_total, particles, filename)
                 np_local = nl
                 call read_frontend_parameters_from_file(filename)
             endif

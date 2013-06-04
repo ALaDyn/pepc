@@ -41,7 +41,7 @@ module module_interaction_specific
       real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
       !> debug stuff for interaction partners (currently only used by pepc-f frontend)
-      !> see module_treediags::write_interaction_partners_to_vtk() and module_interaction_specific::calc_force_per_interaction(force_law==6)
+      !> see module_vtk_helpers::write_interaction_partners_to_vtk() and module_interaction_specific::calc_force_per_interaction(force_law==6)
       integer(kind_node), allocatable,public :: interaction_nodelist(:,:)
       integer(kind_node), allocatable,public :: no_interaction_partners(:)
       real*8, allocatable,public :: interaction_vbox(:,:,:)

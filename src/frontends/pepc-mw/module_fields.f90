@@ -367,7 +367,7 @@ module module_fields
          vtk_step = VTK_STEP_NORMAL
        endif
 
-       call vtk_field_on_grid("laser", itime, trun*unit_t0_in_fs, vtk_step, &
+       call vtk_write_field_on_grid("laser", itime, trun*unit_t0_in_fs, vtk_step, &
                     globaldims, mydims, xcoords, ycoords, zcoords, pot, "phipon", efield, "epon", &
                     my_rank, n_cpu, MPI_COMM_PEPC)
 

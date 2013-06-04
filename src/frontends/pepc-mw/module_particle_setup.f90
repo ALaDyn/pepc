@@ -259,7 +259,7 @@ module module_particle_setup
 
               call particle_setup_madelung(0)
               !call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1_kind_particle,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3))
               call init_fields_zero()
 
             case(71)
@@ -272,7 +272,7 @@ module module_particle_setup
 
               call particle_setup_madelung(1)
               !call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1_kind_particle,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3))
               call init_fields_zero()
 
             case(72)
@@ -285,7 +285,7 @@ module module_particle_setup
 
               call particle_setup_madelung(2)
               !call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1_kind_particle,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3))
               call init_fields_zero()
 
             case(8)
@@ -324,7 +324,7 @@ module module_particle_setup
 
               call particle_setup_ionlattice()
               call rescale_coordinates_cuboid()
-              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3),np_local,1_kind_particle,np_local)
+              call cold_start(particles(1:np_local)%data%v(1),particles(1:np_local)%data%v(2),particles(1:np_local)%data%v(3))
               call init_fields_zero()
 
             case(14)
@@ -939,13 +939,13 @@ module module_particle_setup
           if (vte_real > 0) then
              call maxwell3(tmp1,tmp2,tmp3,np_local,1_kind_particle,nep,vte_real)
           else
-             call cold_start(tmp1,tmp2,tmp3,np_local,1_kind_particle,nep)
+             call cold_start(tmp1,tmp2,tmp3)
           endif
 
           if (vti_real > 0) then
              call maxwell3(tmp1,tmp2,tmp3,np_local,nep+1,nip,vti_real)
           else
-             call cold_start(tmp1,tmp2,tmp3,np_local,nep+1,nip)
+             call cold_start(tmp1,tmp2,tmp3)
           endif
           ! we redistribute them to the pairwise ordering
           particles(1:np_local-1:2)%data%v(1) = tmp1(    1:nep)

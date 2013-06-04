@@ -84,6 +84,7 @@ module module_vtk
           procedure :: write_data_array_Real4_1  => vtkfile_write_data_array_Real4_1
           procedure :: write_data_array_Real4_3  => vtkfile_write_data_array_Real4_3
           procedure :: write_data_array_Real8_1  => vtkfile_write_data_array_Real8_1
+          procedure :: write_data_array_Real8_2  => vtkfile_write_data_array_Real8_2
           procedure :: write_data_array_Real8_3  => vtkfile_write_data_array_Real8_3
 
           procedure :: write_data_array_Real8_1_field3  => vtkfile_write_data_array_Real8_1_field3
@@ -103,6 +104,7 @@ module module_vtk
           generic :: write_data_array => write_data_array_Real4_1, & ! name, one-dim real*4, number of entries
                                             write_data_array_Real4_3,  & ! name, three-dim real*4 as three separate arrays, number of entries
                                             write_data_array_Real8_1,  & ! ...
+                                            write_data_array_Real8_2,  &
                                             write_data_array_Real8_3,  &
                                             write_data_array_Real8_1_field3,  &
                                             write_data_array_Real8_3_field3,  &
@@ -353,6 +355,38 @@ module module_vtk
         endif
         write(vtk%filehandle, '("</DataArray>")')
       end subroutine vtkfile_write_data_array_Real8_1
+
+
+     subroutine vtkfile_write_data_array_Real8_2(vtk, name, data1, data2)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer :: ndata, i
+        real*8 :: data1(:), data2(:)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 2, "Float64")
+
+        ndata = size(data1, kind=kind(ndata))
+
+        if (vtk%binary) then
+          numbytes = ndata*3*8
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          do i=1,ndata
+            call base64%encode(data1(i))
+            call base64%encode(data2(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
+          write(vtk%filehandle, '(3G14.6)') data1(i), data2(i)
+          end do
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_array_Real8_2
 
 
      subroutine vtkfile_write_data_array_Real8_3(vtk, name, data1, data2, data3)
