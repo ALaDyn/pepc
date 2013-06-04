@@ -88,7 +88,7 @@ module module_interaction_specific_types
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
       integer, public, parameter :: MAX_IACT_PARTNERS = 2000 ! 500
-      integer, public, parameter :: ACC_QUEUE_LENGTH  = 100
+      integer, public, parameter :: ACC_QUEUE_LENGTH  = 200
 
       !> Thread local data structure to store extra interaction information
       ! thread local, since we do not want to ship this via MPI
@@ -149,7 +149,7 @@ module module_interaction_specific_types
          integer :: processor_id
          type(t_pthread_with_type) :: acc_thread
          type(t_acc_queue_entry) :: acc_queue(ACC_QUEUE_LENGTH)
-         type(t_atomic_int), pointer :: q_top, q_bottom
+         type(t_atomic_int), pointer :: q_top, q_bottom, q_len
       end type
       type(t_acc) :: acc
 

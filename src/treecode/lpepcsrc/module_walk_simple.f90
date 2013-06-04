@@ -78,6 +78,8 @@ module module_walk
     use treevars, only: nlev
     use module_debug
     use module_interaction_specific
+    use pthreads_stuff, only: pthreads_sched_yield
+    use module_atomic_ops
     implicit none
     include 'mpif.h'
 
@@ -126,9 +128,12 @@ module module_walk
     twalk = MPI_WTIME() + twalk
     twalk_loc = twalk
 
-    ! include a barrier to make sure all accelerator kernels are finished
-    write(*,*) 'pause for 30secs'
-    call system('sleep 30s')
+    ! include a 'barrier' to make sure all accelerator kernels are finished
+    do while( atomic_load_int(acc%q_len) .ne. ACC_QUEUE_LENGTH )
+       ! busy loop while the queue is processed
+!!!       write(*,*) 'waiting for GPU...'
+       ERROR_ON_FAIL(pthreads_sched_yield())
+    end do
 
     return
 

@@ -7,7 +7,7 @@
 
 #define DEBUG_WARNING(format, ...) write(*,*) 'WRN ', __FILE__ ,__LINE__
 
-#define DEBUG_ERROR(format, ...) write(*,*) 'ERR ', __FILE__ ,__LINE__
+#define DEBUG_ERROR(format, ...) write(*,*) 'ERR ', __FILE__ ,__LINE__; stop
 
 #define DEBUG_ERROR_NO_HEADER(format, ...) write(*,*) 'ERR '
 

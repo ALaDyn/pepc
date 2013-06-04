@@ -29,7 +29,7 @@ ifeq ($(DEBUG), 1)
   LDFLAGS  = -g -pg -O0 -mp -ta=nvidia,time -Minfo=all -traceback
 #  CPPFLAGS += -DNDEBUG
 else
-  FFLAGS   = -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
+  FFLAGS   = -Mbackslash -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
   CFLAGS   = -O3
   LDFLAGS  = -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia,time
   CPPFLAGS += -DNDEBUG

@@ -259,7 +259,7 @@ module module_interaction_specific
            !tree_comm_thread_counter = tree_comm_thread_counter + 1
            ERROR_ON_FAIL(pthreads_createthread(acc%acc_thread, c_funloc(acc_loop), c_null_ptr, thread_type = THREAD_TYPE_ACCELERATOR, counter = 99))
 
-           ! we have to wait here until the communicator has really started to find out its processor id
+           ! we have to wait here until the accelerator has really started
            do while (atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTED)
               ERROR_ON_FAIL(pthreads_sched_yield())
            end do
