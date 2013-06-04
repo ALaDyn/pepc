@@ -929,7 +929,6 @@ contains
         get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
-        particles(1:m_np)%pid = my_rank
 
         ! Check if sort finished and find inner doublets
         k = 0
@@ -1011,7 +1010,6 @@ contains
         get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
-        particles(1:m_np)%pid = my_rank
         particles(1:m_np)%work = 1. !TODO: is this elegant? 
 
     end subroutine sort_remesh

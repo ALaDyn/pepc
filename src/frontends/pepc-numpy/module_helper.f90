@@ -95,7 +95,7 @@ module helper
         call vtk%write_data_array("species", p(:)%data%species)
         call vtk%write_data_array("pelabel", p(:)%label)
         call vtk%write_data_array("local index", [(i,i=1,np)])
-        call vtk%write_data_array("processor", p(:)%pid)
+        !call vtk%write_data_array("processor", p(:)%pid)
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()

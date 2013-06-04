@@ -494,7 +494,7 @@ module helper
     call vtk%write_data_array("work", p(1:np)%work)
     call vtk%write_data_array("pelabel", p(1:np)%label)
     call vtk%write_data_array("local index", [(i,i=1,np)])
-    call vtk%write_data_array("processor", p(1:np)%pid)
+    call vtk%write_data_array("processor", int(np, kind = 4), my_rank)
     if(particle_test) call vtk%write_data_array("L2 error", direct_L2(1:np))
     call vtk%finishpointdata()
     call vtk%dont_write_cells()

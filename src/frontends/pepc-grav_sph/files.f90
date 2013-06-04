@@ -227,7 +227,7 @@ contains
     call vtk%write_data_array("temperature",      particles(1:np)%data%temperature)
     call vtk%write_data_array("smoothing-length", particles(1:np)%results%h)
     call vtk%write_data_array("density",          particles(1:np)%results%rho)
-    call vtk%write_data_array("pid",              [(my_rank,i=1,np)])
+    call vtk%write_data_array("pid",              np, my_rank)
     call vtk%write_data_array("sph-force",        particles(1:np)%results%sph_force(1), particles(1:np)%results%sph_force(2), particles(1:np)%results%sph_force(3) )
     call vtk%write_data_array("particle-type",    particles(1:np)%data%type)
     call vtk%finishpointdata()

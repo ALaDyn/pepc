@@ -95,7 +95,7 @@ program pepc
             particles_npy(j+14*npart)=j+1
             particles_npy(j+15*npart)=all_particles(j+1)%label
             particles_npy(j+16*npart)=all_particles(j+1)%work
-            particles_npy(j+17*npart)=all_particles(j+1)%pid
+            !particles_npy(j+17*npart)=all_particles(j+1)%pid
             particles_npy(j+18*npart)=all_particles(j+1)%data%species
         end do
         endif

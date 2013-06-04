@@ -217,7 +217,7 @@ module files
             call vtk%write_data_array("vorticity", vortex_particles(1:np)%data%alpha(1), vortex_particles(1:np)%data%alpha(2), vortex_particles(1:np)%data%alpha(3))
             call vtk%write_data_array("work", vortex_particles(1:np)%work)
             call vtk%write_data_array("label", vortex_particles(1:np)%label)
-            call vtk%write_data_array("pid", [(my_rank,i=1,np)])
+            call vtk%write_data_array("pid", np, my_rank)
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()

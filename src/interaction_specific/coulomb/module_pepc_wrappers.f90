@@ -85,7 +85,6 @@ module module_pepc_wrappers
                                                            -1_8,       &  ! key - will be assigned later
                                                            -1_8,       &  ! leaf key - will be assigned later
                                                      p_label(i),       &  ! particle label for tracking purposes
-                                                             me,       &  ! particle owner
                                        t_particle_data( p_q(i)),       &  ! charge etc
                                        EMPTY_PARTICLE_RESULTS )
         end do
@@ -133,7 +132,6 @@ module module_pepc_wrappers
                                                             -1_8,       &  ! key - will be assigned later
                                                             -1_8,       &  ! leaf key - will be assigned later
                                                       p_label(i),       &  ! particle label for tracking purposes
-                                                              me,       &  ! particle owner
                                           t_particle_data( 0.0 ),       &  ! charge etc
                                        EMPTY_PARTICLE_RESULTS )
       end do
