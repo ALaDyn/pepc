@@ -87,8 +87,8 @@ module module_interaction_specific_types
 
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
-      integer, public, parameter :: MAX_IACT_PARTNERS = 2000 ! 500
-      integer, public, parameter :: ACC_QUEUE_LENGTH  = 200
+      integer, public, parameter :: MAX_IACT_PARTNERS = 256 * 4 * 2 !4000 ! 500
+      integer, public, parameter :: ACC_QUEUE_LENGTH  = 100
 
       !> Thread local data structure to store extra interaction information
       ! thread local, since we do not want to ship this via MPI

@@ -115,7 +115,7 @@ module module_walk
        p%label     = ps(i)%label 
        p%pid       = ps(i)%pid 
        p%data      = ps(i)%data 
-       p%results  => ps(i)%results 
+       p%results  => ps(i)%results
        p%queued    = -1 
        p%my_idx    = i
        ni = 0_kind_node

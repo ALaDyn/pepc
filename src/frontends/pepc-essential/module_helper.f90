@@ -52,7 +52,7 @@ module helper
   integer :: diag_interval        ! number of timesteps between all diagnostics and IO
   real*8  :: plasma_dimensions(3) ! size of the simulation box
   
-  integer, parameter :: particle_direct = 1000 ! 144 ! number of particle for direct summation
+  integer, parameter :: particle_direct = -1 ! 144 ! number of particle for direct summation
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
@@ -223,15 +223,25 @@ module helper
     end if
     allocate(direct_L2(np))
     direct_L2 = -1.0_8
-  
-    tn = particle_direct / n_ranks
-    if(my_rank.eq.(n_ranks-1)) tn = tn + MOD(particle_direct, n_ranks)
+ 
+    if (particle_direct .eq. -1) then
+       tn = np
+    else
+       tn = particle_direct / n_ranks
+       if(my_rank.eq.(n_ranks-1)) tn = tn + MOD(particle_direct, n_ranks)
+    endif 
   
     allocate(tindx(tn), trnd(tn), trslt(tn))
-  
-    call random(trnd(1:tn))
-  
-    tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
+ 
+    if (particle_direct .eq. -1) then
+       do ti = 1, tn
+          tindx(ti) = ti
+       enddo
+    else
+       call random(trnd(1:tn))
+
+       tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
+    endif 
   
     call directforce(particles, tindx, tn, trslt, MPI_COMM_WORLD)
   

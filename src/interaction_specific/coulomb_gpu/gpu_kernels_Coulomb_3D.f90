@@ -103,7 +103,8 @@ subroutine kernel_node(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
    pot = 0.d0
 
 #ifdef __OPENACC
-   !$acc parallel loop reduction(+: e_1, e_2, e_3, pot) present_or_copyin(gpu) private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)
+   !$acc update device(gpu)
+   !$acc parallel loop reduction(+: e_1, e_2, e_3, pot) present(gpu) private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)
 #endif
    do idx = 1, particle%queued
 
@@ -115,8 +116,8 @@ subroutine kernel_node(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
       dy = gpu%delta2(idx)
       dz = gpu%delta3(idx)
 
-      r  = sqrt(dist2) ! eps2 is added in calling routine to have plummer instead of coulomb here
-      rd = 1/r
+      r  = sqrt(dist2+eps2) ! eps2 is added in calling routine to have plummer instead of coulomb here
+      rd = 1.d0/r
       rd2 = rd *rd
       rd3 = rd *rd2
       rd5 = rd3*rd2
@@ -129,29 +130,29 @@ subroutine kernel_node(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
       dy3 = dy*dy2
       dz3 = dz*dz2
 
-      fd1 = 3*dx2*rd5 - rd3
-      fd2 = 3*dy2*rd5 - rd3
-      fd3 = 3*dz2*rd5 - rd3
-      fd4 = 3*dx*dy*rd5
-      fd5 = 3*dy*dz*rd5
-      fd6 = 3*dx*dz*rd5
+      fd1 = 3.d0*dx2*rd5 - rd3
+      fd2 = 3.d0*dy2*rd5 - rd3
+      fd3 = 3.d0*dz2*rd5 - rd3
+      fd4 = 3.d0*dx*dy*rd5
+      fd5 = 3.d0*dy*dz*rd5
+      fd6 = 3.d0*dx*dz*rd5
 
-      pot = pot + gpu%charge(idx)*rd                                               &  !  monopole term
-            + (dx*gpu%dip1(idx) + dy*gpu%dip2(idx) + dz*gpu%dip3(idx))*rd3         &  !  dipole
-            + 0.5d0*(fd1*gpu%quad1(idx) + fd2*gpu%quad2(idx) + fd3*gpu%quad3(idx)) &  !  quadrupole
-            +       fd4*gpu%xyquad(idx)  + fd5*gpu%yzquad(idx)  + fd6*gpu%zxquad(idx)
+      pot = pot + gpu%charge(idx)*rd                                                 &  !  monopole term
+            + (dx*gpu%dip1(idx) + dy*gpu%dip2(idx) + dz*gpu%dip3(idx))*rd3           &  !  dipole
+            + 0.5d0*(fd1*gpu%quad1(idx)  + fd2*gpu%quad2(idx)  + fd3*gpu%quad3(idx)) &  !  quadrupole
+            +        fd4*gpu%xyquad(idx) + fd5*gpu%yzquad(idx) + fd6*gpu%zxquad(idx)
 
       e_1 = e_1 + gpu%charge(idx)*dx*rd3                                           &  ! monopole term
                 + fd1*gpu%dip1(idx) + fd4*gpu%dip2(idx) + fd6*gpu%dip3(idx)        &  ! dipole term
-                + 3      * (                                                       &  ! quadrupole term
+                + 3.d0   * (                                                       &  ! quadrupole term
                    0.5d0 * (                                                       &
-                       ( 5*dx3   *rd7 - 3*dx*rd5 )*gpu%quad1(idx)                  &
-                     + ( 5*dx*dy2*rd7 -   dx*rd5 )*gpu%quad2(idx)                  &
-                     + ( 5*dx*dz2*rd7 -   dx*rd5 )*gpu%quad3(idx)                  &
+                       ( 5.d0*dx3   *rd7 - 3.d0*dx*rd5 )*gpu%quad1(idx)            &
+                     + ( 5.d0*dx*dy2*rd7 -      dx*rd5 )*gpu%quad2(idx)            &
+                     + ( 5.d0*dx*dz2*rd7 -      dx*rd5 )*gpu%quad3(idx)            &
                    )                                                               &
-                   + ( 5*dy*dx2  *rd7 - dy*rd5 )*gpu%xyquad(idx)                   &
-                   + ( 5*dz*dx2  *rd7 - dz*rd5 )*gpu%zxquad(idx)                   &
-                   + ( 5*dx*dy*dz*rd7          )*gpu%yzquad(idx)                   &
+                   + ( 5.d0*dy*dx2  *rd7 - dy*rd5 )*gpu%xyquad(idx)                &
+                   + ( 5.d0*dz*dx2  *rd7 - dz*rd5 )*gpu%zxquad(idx)                &
+                   + ( 5.d0*dx*dy*dz*rd7          )*gpu%yzquad(idx)                &
                   )
 
       e_2 = e_2 + gpu%charge(idx)*dy*rd3                                           &
