@@ -50,14 +50,13 @@ module module_utils
 
   !> checks if MPI_IN_PLACE might be damaged and aborts the application if necessary
   subroutine MPI_IN_PLACE_test(comm)
-    use module_pepc_kinds
     implicit none
     include 'mpif.h'
 
-    integer(kind_default) :: comm
+    integer :: comm
 
-    integer(kind_default) :: ierr
-    integer(kind_pe) :: n_cpu
+    integer :: ierr
+    integer*8 :: n_cpu
     integer, parameter :: initval = 47
     integer :: data = initval
 
