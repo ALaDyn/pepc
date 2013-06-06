@@ -87,7 +87,7 @@ module module_interaction_specific_types
 
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
-      integer, public, parameter :: MAX_IACT_PARTNERS = 256 * 4 * 2 !4000 ! 500
+      integer, public, parameter :: MAX_IACT_PARTNERS = 256 * 4 * 2 ! multiples of 256 because of gang size?
       integer, public, parameter :: ACC_QUEUE_LENGTH  = 100
 
       !> Thread local data structure to store extra interaction information
@@ -116,7 +116,6 @@ module module_interaction_specific_types
          real*8 :: delta3(1:MAX_IACT_PARTNERS)
          real*8 :: charge(1:MAX_IACT_PARTNERS)
       end type chargedelta
-      type(chargedelta) :: gpu_l
       !
       type mpdelta
          real*8 :: delta1(1:MAX_IACT_PARTNERS)
@@ -133,7 +132,10 @@ module module_interaction_specific_types
          real*8 :: yzquad(1:MAX_IACT_PARTNERS)
          real*8 :: zxquad(1:MAX_IACT_PARTNERS)
       end type mpdelta
-      type(mpdelta) :: gpu
+
+      type(chargedelta) :: gpu_l
+      type(mpdelta) :: gpu(1:5)  ! extended to (:) for streams...
+      integer :: gpu_id          ! to keep track of streams
 
       type, public :: t_acc_queue_entry
          type(t_particle_thread) :: particle

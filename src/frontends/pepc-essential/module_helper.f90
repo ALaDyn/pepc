@@ -52,7 +52,7 @@ module helper
   integer :: diag_interval        ! number of timesteps between all diagnostics and IO
   real*8  :: plasma_dimensions(3) ! size of the simulation box
   
-  integer, parameter :: particle_direct = -1 ! 144 ! number of particle for direct summation
+  integer :: particle_direct      ! number of particle for direct summation
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
@@ -70,13 +70,14 @@ module helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    namelist /pepcessential/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, particle_test, diag_interval, plasma_dimensions
+    namelist /pepcessential/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, particle_test, particle_direct, diag_interval, plasma_dimensions
     
     ! set default parameter values
     tnp               = 10000
     nt                = 0
     dt                = 1e-2
     particle_test     = .false.
+    particle_direct   = -1 ! n_ranks
     particle_output   = .false.
     domain_output     = .false.
     reflecting_walls  = .false.

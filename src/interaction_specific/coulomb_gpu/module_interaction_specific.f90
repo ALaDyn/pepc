@@ -324,7 +324,12 @@ module module_interaction_specific
         implicit none
 
         ! stop GPU thread, or at least signal it to stop
-        call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPED)
+        call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPING)
+
+        ! wait for thread to finish properly
+        do while (atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STOPPED)
+           ERROR_ON_FAIL(pthreads_sched_yield())
+        end do
 
         return
 
