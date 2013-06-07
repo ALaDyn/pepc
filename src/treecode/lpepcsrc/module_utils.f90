@@ -53,12 +53,10 @@ module module_utils
     implicit none
     include 'mpif.h'
 
-    integer :: comm
+    integer, intent(inout) :: comm
 
-    integer :: ierr
-    integer*8 :: n_cpu
     integer, parameter :: initval = 47
-    integer :: data = initval
+    integer :: ierr, n_cpu, data = initval
 
     ! Get the number of MPI tasks
     call MPI_COMM_SIZE(comm, n_cpu, ierr)
