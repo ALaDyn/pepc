@@ -221,8 +221,8 @@ module module_geometry
 
         hit=.false.
 
-        if (p%data%species == 0) then
-             hit = .false.
+        if (species(p%data%species)%physical_particle .eqv. .false.) then
+            hit = .false.
             return
         end if
 
