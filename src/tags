@@ -1838,6 +1838,7 @@ __restrict__	treecode/openpa/openpa/src/config.h	168;"	d
 __restrict__	treecode/openpa/openpa/src/opa_config.h	236;"	d
 _atomic_alloc_int	treecode/openpa/atomic_ops.c	/^OPA_int_t* _atomic_alloc_int()$/;"	f
 _atomic_compare_and_swap_int	treecode/openpa/atomic_ops.c	/^int _atomic_compare_and_swap_int(OPA_int_t* storage, int oldval, int newval)$/;"	f
+_atomic_fetch_and_decrement_int	treecode/openpa/atomic_ops.c	/^int _atomic_fetch_and_decrement_int(OPA_int_t* storage)$/;"	f
 _atomic_fetch_and_increment_int	treecode/openpa/atomic_ops.c	/^int _atomic_fetch_and_increment_int(OPA_int_t* storage)$/;"	f
 _atomic_free_int	treecode/openpa/atomic_ops.c	/^void _atomic_free_int(OPA_int_t* storage)$/;"	f
 _atomic_load_int	treecode/openpa/atomic_ops.c	/^int _atomic_load_int(OPA_int_t* storage)$/;"	f
@@ -2064,6 +2065,7 @@ as_fn_unset	treecode/openpa/openpa/config.status	/^as_fn_unset ()$/;"	f
 as_fn_unset	treecode/openpa/openpa/configure	/^as_fn_unset ()$/;"	f
 atomic_allocate_int	treecode/openpa/module_atomic_ops.f90	/^  subroutine atomic_allocate_int(/;"	s	module:module_atomic_ops
 atomic_deallocate_int	treecode/openpa/module_atomic_ops.f90	/^  subroutine atomic_deallocate_int(/;"	s	module:module_atomic_ops
+atomic_fetch_and_decrement_int	treecode/openpa/module_atomic_ops.f90	/^  integer function atomic_fetch_and_decrement_int(/;"	f	module:module_atomic_ops
 atomic_fetch_and_increment_int	treecode/openpa/module_atomic_ops.f90	/^  integer function atomic_fetch_and_increment_int(/;"	f	module:module_atomic_ops
 atomic_load_int	treecode/openpa/module_atomic_ops.f90	/^  integer function atomic_load_int(/;"	f	module:module_atomic_ops
 atomic_mod_increment_and_fetch_int	treecode/openpa/module_atomic_ops.f90	/^  integer function atomic_mod_increment_and_fetch_int(/;"	f	module:module_atomic_ops
@@ -5079,7 +5081,8 @@ global_bins_t	treecode/sl_pepc/src/include/sl_types.h	/^} global_bins_t;$/;"	t	t
 global_tree	treecode/lpepcsrc/module_pepc.f90	/^    type(t_tree), public, target, save :: global_tree$/;"	v	module:module_pepc
 globaldims	utils/module_vtk.f90	/^          integer, private, dimension(2,3) :: globaldims,/;"	v	module:module_vtk
 gposts	treecode/lpepcsrc/module_domains.f90	/^    integer(kind_default), allocatable :: gposts(/;"	k	type:t_decomposition
-gpu	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(mpdelta) :: gpu$/;"	v	module:module_interaction_specific_types
+gpu	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(mpdelta) :: gpu(/;"	v	module:module_interaction_specific_types
+gpu_id	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer :: gpu_id /;"	v	module:module_interaction_specific_types
 gpu_l	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(chargedelta) :: gpu_l$/;"	v	module:module_interaction_specific_types
 grouped_cas_int_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_int_helper(void *_udata)$/;"	f	file:
 grouped_cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_int_t;$/;"	t	typeref:struct:__anon16	file:
@@ -6090,7 +6093,7 @@ partial_weights	treecode/sl_pepc/src/core_mpi/mpi_select_common.c	473;"	d	file:
 particle	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_/;"	k	type:t_acc_queue_entry
 particle	treecode/lpepcsrc/module_pepc_types.f90	/^        type(t_particle)/;"	k	type:t_request_eager
 particle_data	treecode/lpepcsrc/module_walk_pthreads.f90	/^  type(t_particle), pointer, dimension(:) :: particle_data$/;"	v	module:module_walk
-particle_direct	frontends/pepc-essential/module_helper.f90	/^  integer, parameter :: particle_direct /;"	v	module:helper
+particle_direct	frontends/pepc-essential/module_helper.f90	/^  integer :: particle_direct /;"	v	module:helper
 particle_output	frontends/pepc-essential/module_helper.f90	/^  logical :: particle_output /;"	v	module:helper
 particle_test	frontends/pepc-essential/module_helper.f90	/^  logical :: particle_test /;"	v	module:helper
 particleresults_clear	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^      subroutine particleresults_clear(/;"	s	module:module_interaction_specific
@@ -6813,7 +6816,8 @@ q	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^
 q	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: q$/;"	k	type:t_particle_data
 q	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^         real*8 :: q /;"	k	type:t_particle_data
 q	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^         real*8 :: q /;"	k	type:t_particle_data
-q_bottom	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_atomic_int), pointer :: q_top, q_bottom$/;"	k	type:t_acc
+q_bottom	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_atomic_int), pointer :: q_top, q_bottom,/;"	k	type:t_acc
+q_len	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_atomic_int), pointer :: q_top, q_bottom, q_len$/;"	k	type:t_acc
 q_top	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_atomic_int), pointer :: q_top,/;"	k	type:t_acc
 qhead	treecode/openpa/openpa/test/test_queue.c	/^    OPA_Queue_info_t *qhead;            \/* Head for shared queue *\/$/;"	m	struct:__anon4	file:
 qs_halfrec_i	treecode/sl_pepc/src/core/sort_quick.c	/^slint qs_halfrec_i(elements_t *s, slint l, slint h, elements_t *xs) \/* sl_func qs_halfrec_i *\/$/;"	f
@@ -6831,6 +6835,7 @@ quad2	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.
 quad3	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: quad3(/;"	k	type:mpdelta
 quad_trace	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      real(kfp) :: quad_trace /;"	v	module:module_fmm_framework
 quan	treecode/sl_pepc/src/core/merge2_tridgell.c	/^  slint rank, size, quan;$/;"	m	struct:_block	file:
+queue_lock	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^   type(t_critical_section), pointer :: queue_lock$/;"	v	module:module_accelerator
 queued	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued /;"	k	type:t_particle_thread
 queued	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued$/;"	k	type:t_acc_queue_entry
 queued_l	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued_l /;"	k	type:t_particle_thread

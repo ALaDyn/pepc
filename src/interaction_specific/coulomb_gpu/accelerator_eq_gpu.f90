@@ -40,11 +40,12 @@ module module_accelerator
       integer :: strt, stp, tck
 #endif
       ! kernel data
+      real*8, dimension(MAX_IACT_PARTNERS, size(gpu)) :: e_1, e_2, e_3, pot
+      real*8 :: e_1_, e_2_, e_3_, pot_
 
       ! GPU kernel stuff... move to a function again?
       integer :: idx, queued
       real*8 :: dist2, eps2, WORKLOAD_PENALTY_INTERACTION
-      real*8 :: e_1, e_2, e_3, pot
 
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 
@@ -98,7 +99,14 @@ module module_accelerator
 
       ! create GPU memory
 !!!      !$acc data create(gpu_l, gpu, eps2)
+#ifdef __OPENACC
+#define ONE
+#ifdef ONE
+      !$acc data create(gpu_l, gpu, e_1, e_2, e_3, pot)
+#else
       !$acc data create(gpu_l, gpu)
+#endif
+#endif
       
       do while (atomic_load_int(acc%thread_status) .lt. ACC_THREAD_STATUS_STOPPING)
    
@@ -114,10 +122,12 @@ module module_accelerator
 #ifdef INLINEKERNEL
                ! find a stream
                gpu_id = mod(gpu_id,size(gpu)) + 1
-               !$acc wait(gpu_id)
+!!!               !$acc wait(gpu_id)
 
+#ifdef __OPENACC
                flushy = mod(flushy+1,5000)
                if ( flushy .eq. 0 ) write(*,*) 'sync ',cudaDeviceSynchronize()
+#endif
 
                ! move list, copy data
                queued = acc%acc_queue(tmp_top)%particle%queued
@@ -138,24 +148,50 @@ module module_accelerator
                enddo
 
                ! update GPU data
+#ifdef __OPENACC
                !$acc update device(gpu(gpu_id:gpu_id)) async(gpu_id)
+#endif
 
+#ifdef ONE
+               e_1(:, gpu_id) = 0.d0
+               e_2(:, gpu_id) = 0.d0
+               e_3(:, gpu_id) = 0.d0
+               pot(:, gpu_id) = 0.d0
+
+#ifdef __OPENACC
+               !$acc update device(e_1(:,gpu_id:gpu_id), e_2(:,gpu_id:gpu_id), e_3(:,gpu_id:gpu_id), pot(:,gpu_id:gpu_id)) async(gpu_id)
+#endif
+#else
                ! flush reduction variables (should not be necessary)
-               e_1 = 0.d0
-               e_2 = 0.d0
-               e_3 = 0.d0
-               pot = 0.d0
+               e_1_ = 0.d0
+               e_2_ = 0.d0
+               e_3_ = 0.d0
+               pot_ = 0.d0
+#endif
 
                ! read penalty and epsilon
                eps2 = acc%acc_queue(tmp_top)%eps
-!!!               !$acc update device(eps2) if(eps_update)
+!!!               !$acc update device(eps2) if(eps_update)   !<<< this should WORK!
                eps_update = .false.
 
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
 
                ! run GPU kernel
-               !$acc parallel loop reduction(+: e_1, e_2, e_3, pot) present(gpu(gpu_id:gpu_id)) pcopyin(eps2) private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6) async(gpu_id)
-!!               !$acc parallel loop private(e_1, e_2, e_3, pot) present(gpu(gpu_id:gpu_id), eps2) private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6) async(gpu_id)
+#ifdef __OPENACC
+#ifdef ONE
+               !$acc parallel loop                                                                                 &       
+               !$acc present(gpu(gpu_id:gpu_id))                                                                   &
+               !$acc present(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))                           &
+               !$acc private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)  &
+               !$acc async(gpu_id)
+#else
+               !$acc parallel loop                                                                                 &
+               !$acc present(gpu(gpu_id:gpu_id))                                                                   &
+               !$acc reduction(+: e_1_, e_2_, e_3_, pot_)                                                          &
+               !$acc private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)  &
+               !$acc async(gpu_id)
+#endif
+#endif
                do idx = 1, queued
              
                   dist2     =         gpu(gpu_id)%delta1(idx) * gpu(gpu_id)%delta1(idx)
@@ -166,7 +202,7 @@ module module_accelerator
                   dy = gpu(gpu_id)%delta2(idx)
                   dz = gpu(gpu_id)%delta3(idx)
             
-                  r  = sqrt(dist2+eps2) ! eps2 is added in calling routine to have plummer instead of coulomb here
+                  r  = sqrt(dist2+1e-4)!eps2) ! eps2 is added in calling routine to have plummer instead of coulomb here
                   rd = 1.d0/r
                   rd2 = rd *rd
                   rd3 = rd *rd2
@@ -187,56 +223,99 @@ module module_accelerator
                   fd5 = 3.d0*dy*dz*rd5
                   fd6 = 3.d0*dx*dz*rd5
             
-                  pot = pot + gpu(gpu_id)%charge(idx)*rd                                                 &  !  monopole term
+#ifdef ONE
+                  pot(idx, gpu_id) = gpu(gpu_id)%charge(idx)*rd                                                          &  !  monopole term
+#else
+                  pot_ = pot_ + gpu(gpu_id)%charge(idx)*rd                                                               &  !  monopole term
+#endif
                         + (dx*gpu(gpu_id)%dip1(idx) + dy*gpu(gpu_id)%dip2(idx) + dz*gpu(gpu_id)%dip3(idx))*rd3           &  !  dipole
                         + 0.5d0*(fd1*gpu(gpu_id)%quad1(idx)  + fd2*gpu(gpu_id)%quad2(idx)  + fd3*gpu(gpu_id)%quad3(idx)) &  !  quadrupole
                         +        fd4*gpu(gpu_id)%xyquad(idx) + fd5*gpu(gpu_id)%yzquad(idx) + fd6*gpu(gpu_id)%zxquad(idx)
             
-                  e_1 = e_1 + gpu(gpu_id)%charge(idx)*dx*rd3                                           &  ! monopole term
-                            + fd1*gpu(gpu_id)%dip1(idx) + fd4*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip3(idx)        &  ! dipole term
-                            + 3.d0   * (                                                       &  ! quadrupole term
-                               0.5d0 * (                                                       &
-                                   ( 5.d0*dx3   *rd7 - 3.d0*dx*rd5 )*gpu(gpu_id)%quad1(idx)            &
-                                 + ( 5.d0*dx*dy2*rd7 -      dx*rd5 )*gpu(gpu_id)%quad2(idx)            &
-                                 + ( 5.d0*dx*dz2*rd7 -      dx*rd5 )*gpu(gpu_id)%quad3(idx)            &
-                               )                                                               &
-                               + ( 5.d0*dy*dx2  *rd7 - dy*rd5 )*gpu(gpu_id)%xyquad(idx)                &
-                               + ( 5.d0*dz*dx2  *rd7 - dz*rd5 )*gpu(gpu_id)%zxquad(idx)                &
-                               + ( 5.d0*dx*dy*dz*rd7          )*gpu(gpu_id)%yzquad(idx)                &
+#ifdef ONE
+                  e_1(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dx*rd3                                                      &  ! monopole term
+#else
+                  e_1_ = e_1_ + gpu(gpu_id)%charge(idx)*dx*rd3                                                                  &  ! monopole term
+#endif
+                            + fd1*gpu(gpu_id)%dip1(idx) + fd4*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip3(idx)          &  ! dipole term
+                            + 3.d0   * (                                                                                 &  ! quadrupole term
+                               0.5d0 * (                                                                                 &
+                                   ( 5.d0*dx3   *rd7 - 3.d0*dx*rd5 )*gpu(gpu_id)%quad1(idx)                              &
+                                 + ( 5.d0*dx*dy2*rd7 -      dx*rd5 )*gpu(gpu_id)%quad2(idx)                              &
+                                 + ( 5.d0*dx*dz2*rd7 -      dx*rd5 )*gpu(gpu_id)%quad3(idx)                              &
+                               )                                                                                         &
+                               + ( 5.d0*dy*dx2  *rd7 - dy*rd5 )*gpu(gpu_id)%xyquad(idx)                                  &
+                               + ( 5.d0*dz*dx2  *rd7 - dz*rd5 )*gpu(gpu_id)%zxquad(idx)                                  &
+                               + ( 5.d0*dx*dy*dz*rd7          )*gpu(gpu_id)%yzquad(idx)                                  &
                               )
             
-                  e_2 = e_2 + gpu(gpu_id)%charge(idx)*dy*rd3                                           &
-                            + fd2*gpu(gpu_id)%dip2(idx) + fd4*gpu(gpu_id)%dip1(idx) + fd5*gpu(gpu_id)%dip3(idx)        &
-                            + 3 * (                                                            &
-                               0.5d0 * (                                                       &
-                                   ( 5*dy3*rd7    - 3*dy*rd5 )*gpu(gpu_id)%quad2(idx)                  &
-                                 + ( 5*dy*dx2*rd7 -   dy*rd5 )*gpu(gpu_id)%quad1(idx)                  &
-                                 + ( 5*dy*dz2*rd7 -   dy*rd5 )*gpu(gpu_id)%quad3(idx)                  &
-                               )                                                               &
-                               + ( 5*dx*dy2  *rd7 - dx*rd5 )*gpu(gpu_id)%xyquad(idx)                   &
-                               + ( 5*dz*dy2  *rd7 - dz*rd5 )*gpu(gpu_id)%yzquad(idx)                   &
-                               + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%zxquad(idx)                   &
+#ifdef ONE
+                  e_2(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dy*rd3                                                      &
+#else
+                  e_2_= e_2_ + gpu(gpu_id)%charge(idx)*dy*rd3                                                                   &
+#endif
+                            + fd2*gpu(gpu_id)%dip2(idx) + fd4*gpu(gpu_id)%dip1(idx) + fd5*gpu(gpu_id)%dip3(idx)          &
+                            + 3 * (                                                                                      &
+                               0.5d0 * (                                                                                 &
+                                   ( 5*dy3*rd7    - 3*dy*rd5 )*gpu(gpu_id)%quad2(idx)                                    &
+                                 + ( 5*dy*dx2*rd7 -   dy*rd5 )*gpu(gpu_id)%quad1(idx)                                    &
+                                 + ( 5*dy*dz2*rd7 -   dy*rd5 )*gpu(gpu_id)%quad3(idx)                                    &
+                               )                                                                                         &
+                               + ( 5*dx*dy2  *rd7 - dx*rd5 )*gpu(gpu_id)%xyquad(idx)                                     &
+                               + ( 5*dz*dy2  *rd7 - dz*rd5 )*gpu(gpu_id)%yzquad(idx)                                     &
+                               + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%zxquad(idx)                                     &
                               )
             
-                  e_3 = e_3 + gpu(gpu_id)%charge(idx)*dz*rd3                                           &
-                            + fd3*gpu(gpu_id)%dip3(idx) + fd5*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip1(idx)        &
-                            + 3 * (                                                            &
-                               0.5d0 * (                                                       &
-                                 + ( 5*dz3   *rd7 - 3*dz*rd5 )*gpu(gpu_id)%quad3(idx)                  &
-                                 + ( 5*dz*dy2*rd7 -   dz*rd5 )*gpu(gpu_id)%quad2(idx)                  &
-                                 + ( 5*dz*dx2*rd7 -   dz*rd5 )*gpu(gpu_id)%quad1(idx)                  &
-                                              )                                                &
-                               + ( 5*dx*dz2  *rd7 - dx*rd5 )*gpu(gpu_id)%zxquad(idx)                   &
-                               + ( 5*dy*dz2  *rd7 - dy*rd5 )*gpu(gpu_id)%yzquad(idx)                   &
-                               + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                   &
+#ifdef ONE
+                  e_3(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dz*rd3                                                      &
+#else
+                  e_3_ = e_3_ + gpu(gpu_id)%charge(idx)*dz*rd3                                                                  &
+#endif
+                            + fd3*gpu(gpu_id)%dip3(idx) + fd5*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip1(idx)          &
+                            + 3 * (                                                                                      &
+                               0.5d0 * (                                                                                 &
+                                 + ( 5*dz3   *rd7 - 3*dz*rd5 )*gpu(gpu_id)%quad3(idx)                                    &
+                                 + ( 5*dz*dy2*rd7 -   dz*rd5 )*gpu(gpu_id)%quad2(idx)                                    &
+                                 + ( 5*dz*dx2*rd7 -   dz*rd5 )*gpu(gpu_id)%quad1(idx)                                    &
+                                              )                                                                          &
+                               + ( 5*dx*dz2  *rd7 - dx*rd5 )*gpu(gpu_id)%zxquad(idx)                                     &
+                               + ( 5*dy*dz2  *rd7 - dy*rd5 )*gpu(gpu_id)%yzquad(idx)                                     &
+                               + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                                     &
                               )
                end do
+#ifdef __OPENACC
                !$acc end parallel loop
+#endif
 
-               acc%acc_queue(tmp_top)%particle%results%e   = acc%acc_queue(tmp_top)%particle%results%e + [e_1, e_2, e_3]
-               acc%acc_queue(tmp_top)%particle%results%pot = acc%acc_queue(tmp_top)%particle%results%pot + pot
+!!               ! perform the reduction...
+!!               !$acc parallel loop present(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) async(gpu_id)
+!!               do idx =  2, queued
+!!                  e_1(1, gpu_id) = e_1(1, gpu_id) + e_1(idx, gpu_id)
+!!                  e_2(1, gpu_id) = e_2(1, gpu_id) + e_2(idx, gpu_id)
+!!                  e_3(1, gpu_id) = e_3(1, gpu_id) + e_3(idx, gpu_id)
+!!                  pot(1, gpu_id) = pot(1, gpu_id) + pot(idx, gpu_id)
+!!               end do
+!!               !$acc end parallel loop
+! this was too naive. the threadblocks are not synchronised. the sum will fail...
+
+               ! get data from GPU
+#ifdef ONE
+#ifdef __OPENACC
+               !$acc update host(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) async(gpu_id)
+               !$acc wait
+#endif
+               acc%acc_queue(tmp_top)%particle%results%e(1) = acc%acc_queue(tmp_top)%particle%results%e(1) + sum(e_1(:,gpu_id))
+               acc%acc_queue(tmp_top)%particle%results%e(2) = acc%acc_queue(tmp_top)%particle%results%e(2) + sum(e_2(:,gpu_id))
+               acc%acc_queue(tmp_top)%particle%results%e(3) = acc%acc_queue(tmp_top)%particle%results%e(3) + sum(e_3(:,gpu_id))
+               acc%acc_queue(tmp_top)%particle%results%pot  = acc%acc_queue(tmp_top)%particle%results%pot  + sum(pot(:,gpu_id))
+               acc%acc_queue(tmp_top)%particle%work         = acc%acc_queue(tmp_top)%particle%work + &
+                                                              queued * WORKLOAD_PENALTY_INTERACTION
+#else
+               acc%acc_queue(tmp_top)%particle%results%e   = acc%acc_queue(tmp_top)%particle%results%e + [e_1_, e_2_, e_3_]
+               acc%acc_queue(tmp_top)%particle%results%pot = acc%acc_queue(tmp_top)%particle%results%pot + pot_
                acc%acc_queue(tmp_top)%particle%work        = acc%acc_queue(tmp_top)%particle%work + &
                                                              queued * WORKLOAD_PENALTY_INTERACTION
+#endif
 #else
                ! copy particle info to temporal local copy
                call kernel_node(acc%acc_queue(tmp_top)%particle, acc%acc_queue(tmp_top)%eps, acc%acc_queue(tmp_top)%pen)
@@ -268,6 +347,7 @@ module module_accelerator
 
       ! free GPU memory
 #ifdef __OPENACC
+      !$acc wait
       !$acc end data
       write(*,*) 'sync ',cudaDeviceSynchronize()
       write(*,*) 'reset ',cudaDeviceReset()
