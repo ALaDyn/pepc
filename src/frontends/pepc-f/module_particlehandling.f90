@@ -20,6 +20,7 @@ module particlehandling
         type(t_particle), allocatable :: p_hits_logical_sheath(:,:,:)
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
         real*8 :: xp(3)
+        real(KIND=8) v_new(3),v_perp(3),mu,sigma,x_ran(3),ran,ran1,ran2,t1(3),t2(3)
 
 
         IF (ANY(boundaries(1:nb)%type==4)) allocate(p_hits_logical_sheath(0:nspecies-1,nb,np),stat=rc)
@@ -47,6 +48,40 @@ module particlehandling
                         np = np-1
                         ib = 0
                         rp = rp - 1
+                    ELSE IF (boundaries(ib)%type==5) THEN                              !immediate half-Maxwellian refluxing perpendicular to surface
+                        !v_old=p(rp)%data%v
+                        !v_perp=dotproduct(boundaries(ib)%n,v_old)*boundaries(ib)%n
+                        !p(rp)%data%v=p(rp)%data%v-v_perp
+                        !sigma=sqrt(species(p(rp)%data%species)%t_src*e/(p(rp)%data%m/fsup))
+                        !mu=0.0
+                        !call random_gauss_list(v_ran,mu,sigma)
+                        !v_ran(1)=abs(v_ran(1))
+                        !v_perp=v_ran(1)*boundaries(ib)%n
+                        !p(rp)%data%v=p(rp)%data%v+v_perp
+                        !xp = p(rp)%x - boundaries(ib)%x0
+                        !ran=rnd_num()
+                        !x_ran=v_perp*ran*dt
+                        !p(rp)%x = p(rp)%x - dotproduct(xp,boundaries(ib)%n)*boundaries(ib)%n + x_ran
+                        !ib=0
+                        mu=0.0_8
+                        sigma=sqrt(species(p(rp)%data%species)%t_src*e/(p(rp)%data%m/fsup))
+                        call random_gauss_list(v_new(2:3),mu,sigma)
+                        call random_gaussian_flux(v_new(1),sigma)
+                        t1=boundaries(ib)%e1/sqrt(dotproduct(boundaries(ib)%e1,boundaries(ib)%e1))
+                        t2(1)=boundaries(ib)%n(2)*t1(3) - boundaries(ib)%n(3)*t1(2)
+                        t2(2)=boundaries(ib)%n(3)*t1(1) - boundaries(ib)%n(1)*t1(3)
+                        t2(3)=boundaries(ib)%n(1)*t1(2) - boundaries(ib)%n(2)*t1(1)
+                        t2=t2/sqrt(dotproduct(t2,t2))
+                        p(rp)%data%v(1) = boundaries(ib)%n(1)*v_new(1) + t1(1)*v_new(2) + t2(1)*v_new(3)
+                        p(rp)%data%v(2) = boundaries(ib)%n(2)*v_new(1) + t1(2)*v_new(2) + t2(2)*v_new(3)
+                        p(rp)%data%v(3) = boundaries(ib)%n(3)*v_new(1) + t1(3)*v_new(2) + t2(3)*v_new(3)
+
+                        ran=rnd_num()
+                        ran1=rnd_num()
+                        ran2=rnd_num()
+                        p(rp)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 + ran2*boundaries(ib)%e2
+                        p(rp)%x = p(rp)%x + boundaries(ib)%n*v_new(1)*dt*ran
+                        ib=0
                     ELSE IF (boundaries(ib)%type==2) THEN                              !Periodic BC
                         p(rp)%x = p(rp)%x + boundaries(ib)%n*boundaries(ib)%dist       !Particle re-enters at opposite boundary
                         ib = 0
@@ -68,10 +103,10 @@ module particlehandling
             rp = rp-1
         END DO
 
-        call reallocate_particles(p,np, np)
-
         IF (ANY(boundaries(1:nb)%type==4)) call treat_logical_sheath_boundaries(p,hits,reflux,p_hits_logical_sheath)
         IF (ANY(boundaries(1:nb)%type==4)) deallocate(p_hits_logical_sheath)
+
+        call reallocate_particles(p,np, np)
 
     END SUBROUTINE
 
@@ -135,7 +170,11 @@ module particlehandling
                                         ihits=ihits+sum(thits(i,ib,:))
                                     END IF
                                 END DO
-                                vcut_el(ib)=v_perp_temp(ehits-ihits)
+                                IF (ehits-ihits>0) THEN
+                                    vcut_el(ib)=v_perp_temp(ehits-ihits)
+                                ELSE
+                                    vcut_el(ib)=0.0_8
+                                END IF
                                 deallocate(v_perp_temp)
                             END IF
                             call MPI_BCAST(vcut_el(ib),1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,rc)
@@ -172,6 +211,8 @@ module particlehandling
 
         integer :: ip
         real(KIND=8) :: v_perp,xp(3)
+
+        IF (vcut_el<=0.0_8) return
 
         DO ip=1,hits(ispecies,ib)
             v_perp=-dotproduct(p_hits_logical_sheath(ispecies,ib,ip)%data%v,boundaries(ib)%n)
@@ -402,7 +443,44 @@ module particlehandling
 
         call set_recycling_output_values(thits,treflux)
 
-    END SUBROUTINE
+    END SUBROUTINE hits_on_boundaries
+
+!======================================================================================
+    subroutine check_for_leakage(p)
+        implicit none
+        include 'mpif.h'
+
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        type(t_particle) :: p1(1)
+
+        integer      :: rc
+
+        integer      :: ip,nlp,tnlp
+
+        nlp=0
+        tnlp=0
+
+        DO ip=1,np
+            IF (p(ip)%x(1)>=0. .AND. p(ip)%x(1)<=dx .AND. p(ip)%x(2)>=0. .AND. &
+                p(ip)%x(2)<=dy .AND. p(ip)%x(3)>=0. .AND. p(ip)%x(3)<=dz)   THEN
+                CYCLE
+            ELSE
+                nlp=nlp+1
+                !write(*,'(i6,a,i16,i16)')my_rank,": label,species: ", p(ip)%label,p(ip)%data%species
+                !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle velocity: ", p(ip)%data%v
+                !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle position: ", p(ip)%x
+                !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": old particle position: ", p(ip)%x - dt*p(ip)%data%v
+
+                p1(1)=p(ip)
+                call source(p1,quelltyp)
+                p(ip)=p1(1)
+            END IF
+        END DO
+
+        call MPI_ALLREDUCE(nlp, tnlp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        if(root) write(*,*) "Number of leaked particles:",tnlp
+
+    END SUBROUTINE check_for_leakage
 
 
 !======================================================================================
@@ -504,15 +582,17 @@ module particlehandling
         mu=0.0
         n=size(p) 
         DO ip=1, n
-            IF (p(ip)%data%species==0) THEN
-                p(ip)%data%v = 0.0_8
-                DO ib=1,nb
-                    IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                        ran1=rnd_num()
-                        ran2=rnd_num()
-                        p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                    END IF
-                END DO
+            IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
+                IF (p(ip)%data%species==0) THEN
+                    p(ip)%data%v = 0.0_8
+                    DO ib=1,nb
+                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
+                            ran1=rnd_num()
+                            ran2=rnd_num()
+                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+                        END IF
+                    END DO
+                END IF
             ELSE
                 sigma=sqrt(species(p(ip)%data%species)%t_src*e/(p(ip)%data%m/fsup))
                 call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
@@ -548,15 +628,17 @@ module particlehandling
         mu=0.0
         n=size(p) 
         DO ip=1, n
-            IF (p(ip)%data%species==0) THEN
-                p(ip)%data%v = 0.0_8
-                DO ib=1,nb
-                    IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                        ran1=rnd_num()
-                        ran2=rnd_num()
-                        p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                    END IF
-                END DO
+            IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
+                IF (p(ip)%data%species==0) THEN
+                    p(ip)%data%v = 0.0_8
+                    DO ib=1,nb
+                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
+                            ran1=rnd_num()
+                            ran2=rnd_num()
+                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+                        END IF
+                    END DO
+                END IF
             ELSE
                 sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
 
@@ -569,7 +651,10 @@ module particlehandling
                     call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
                 END IF
 
-                p(ip)%x=x0_src + rnd_num()*e1_src + rnd_num()*e2_src + rnd_num()*e3_src
+                ran=rnd_num()
+                ran1=rnd_num()
+                ran2=rnd_num()
+                p(ip)%x=x0_src + ran*e1_src + ran1*e2_src + ran2*e3_src
 
                 !If treated in guding centre approximation, electrons just need other startign values in
                 !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
@@ -586,25 +671,30 @@ module particlehandling
         type(t_particle), intent(inout) :: p(:)
         integer            :: n,ip,ib
         real*8             :: mu,sigma
-        real               :: ran1,ran2
+        real               :: ran1,ran2,ran
 
         mu=0.0
         n=size(p)
         DO ip=1, n
-            IF (p(ip)%data%species==0) THEN
-                p(ip)%data%v = 0.0_8
-                DO ib=1,nb
-                    IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                        ran1=rnd_num()
-                        ran2=rnd_num()
-                        p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                    END IF
-                END DO
+            IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
+                IF (p(ip)%data%species==0) THEN
+                    p(ip)%data%v = 0.0_8
+                    DO ib=1,nb
+                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
+                            ran1=rnd_num()
+                            ran2=rnd_num()
+                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+                        END IF
+                    END DO
+                END IF
             ELSE
                 sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
                 call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
 
-                p(ip)%x=x0_src + rnd_num()*e1_src + rnd_num()*e2_src + rnd_num()*e3_src
+                ran=rnd_num()
+                ran1=rnd_num()
+                ran2=rnd_num()
+                p(ip)%x=x0_src + ran*e1_src + ran1*e2_src + ran2*e3_src
 
 
                 !If treated in guding centre approximation, electrons just need other startign values in
@@ -622,23 +712,28 @@ module particlehandling
         type(t_particle), intent(inout) :: p(:)
         integer            :: n,ip,ib
         real*8             :: mu,sigma
-        real               :: ran1,ran2
+        real               :: ran1,ran2,ran
 
         mu=0.0
         n=size(p)
         DO ip=1, n
-            IF (p(ip)%data%species==0) THEN
-                p(ip)%data%v = 0.0_8
-                DO ib=1,nb
-                    IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                        ran1=rnd_num()
-                        ran2=rnd_num()
-                        p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                    END IF
-                END DO
-            ELSE
+            IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
+                IF (p(ip)%data%species==0) THEN
+                    p(ip)%data%v = 0.0_8
+                    DO ib=1,nb
+                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
+                            ran1=rnd_num()
+                            ran2=rnd_num()
+                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+                        END IF
+                    END DO
+                END IF
                 sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
-                p(ip)%x=x0_src + rnd_num()*e1_src + rnd_num()*e2_src + rnd_num()*e3_src
+
+                ran=rnd_num()
+                ran1=rnd_num()
+                ran2=rnd_num()
+                p(ip)%x=x0_src + ran*e1_src + ran1*e2_src + ran2*e3_src
 
                 call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
 
