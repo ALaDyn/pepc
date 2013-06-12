@@ -9,6 +9,7 @@
 2	treecode/lpepcsrc/module_walk_simple.f90	/^2     ni = ni + t%nodes(n)%leaves$/;"	l	subroutine:tree_walk_single	file:
 3	treecode/lpepcsrc/module_walk_simple.f90	/^3     if (.not. tree_node_children_available(t%nodes(n))) then$/;"	l	subroutine:tree_walk_single	file:
 ACC_QUEUE_LENGTH	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, public, parameter :: ACC_QUEUE_LENGTH /;"	v	module:module_interaction_specific_types
+ACC_THREAD_STATUS_FLUSH	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^   integer, public, parameter :: ACC_THREAD_STATUS_FLUSH /;"	v	module:module_accelerator
 ACC_THREAD_STATUS_STARTED	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^   integer, public, parameter :: ACC_THREAD_STATUS_STARTED /;"	v	module:module_accelerator
 ACC_THREAD_STATUS_STARTING	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^   integer, public, parameter :: ACC_THREAD_STATUS_STARTING /;"	v	module:module_accelerator
 ACC_THREAD_STATUS_STOPPED	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^   integer, public, parameter :: ACC_THREAD_STATUS_STOPPED /;"	v	module:module_accelerator
@@ -6765,6 +6766,7 @@ pkglibexecdir	treecode/openpa/openpa/Makefile	/^pkglibexecdir = $(libexecdir)\/o
 pkglibexecdir	treecode/openpa/openpa/src/Makefile	/^pkglibexecdir = $(libexecdir)\/openpa$/;"	m
 pkglibexecdir	treecode/openpa/openpa/test/Makefile	/^pkglibexecdir = $(libexecdir)\/openpa$/;"	m
 plasma_dimensions	frontends/pepc-essential/module_helper.f90	/^  real*8  :: plasma_dimensions(/;"	v	module:helper
+point	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^      type point$/;"	t	function:acc_loop
 pop	treecode/sl_pepc/src/core/sort_quick.c	162;"	d	file:
 pop	treecode/sl_pepc/src/core/sort_quick.c	210;"	d	file:
 post	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_binning_post_f post;$/;"	m	struct:pepckeys__binning_t
@@ -6871,6 +6873,7 @@ request_balance	treecode/lpepcsrc/module_tree.f90	/^      integer :: request_bal
 request_posted	treecode/lpepcsrc/module_pepc_types.f90	/^        logical(kind_byte) :: request_posted /;"	k	type:t_tree_node
 resolve	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine resolve(/;"	s	function:walk_single_particle
 restrict	treecode/openpa/openpa/src/config.h	160;"	d
+results	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^         type(t_particle_results)/;"	k	type:point
 results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_results)/;"	k	type:t_acc_queue_entry
 results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_results)/;"	k	type:t_particle_thread
 results	treecode/lpepcsrc/module_pepc_types.f90	/^         type(t_particle_results)/;"	k	type:t_particle
@@ -8499,6 +8502,7 @@ weighted	treecode/lpepcsrc/module_domains.f90	/^  integer(kind_default), public 
 weighted	treecode/sl_pepc/include/sl_pepckeys.h	/^  int weighted;$/;"	m	struct:pepckeys__partcond2_t
 weighted	treecode/sl_pepc/include/sl_pepcparts.h	/^  int weighted;$/;"	m	struct:pepcparts__partcond2_t
 weighted	treecode/sl_pepc/src/include/sl_types.h	/^  int weighted;$/;"	m	struct:_partcond2_t
+work	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^         real*8, pointer :: work$/;"	k	type:point
 work	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8, pointer :: work /;"	k	type:t_particle_thread
 work	treecode/lpepcsrc/module_pepc_types.f90	/^         real*8 :: work /;"	k	type:t_particle
 work_on_communicator_particle_number_factor	treecode/lpepcsrc/module_walk_pthreads.f90	/^  real :: work_on_communicator_particle_number_factor /;"	v	module:module_walk

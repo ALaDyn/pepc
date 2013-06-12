@@ -58,15 +58,6 @@ module module_accelerator
       integer :: flushy
       logical :: eps_update
 
-      ! the following lines in case we want to submit an argument...
-      ! right now the data-strucutre is 'global' in module_interaction_specific_types
-      !type(c_ptr), value :: arg
-      !type(acc_driver), pointer :: acc
-      !
-      !gpu => null()
-      !call c_f_pointer(arg, acc)
-      !DEBUG_ASSERT(associated(acc))
-   
       ! store ID of comm-thread processor
       acc%processor_id = get_my_core()
       call atomic_write_barrier()
@@ -104,9 +95,8 @@ module module_accelerator
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
 
       ! create GPU memory
-!!!      !$acc data create(gpu_l, gpu, eps2)
 #ifdef __OPENACC
-!!!#define ONE
+#define ONE
 #ifdef ONE
       !$acc data create(gpu_l, gpu, e_1, e_2, e_3, pot)
 #else
@@ -128,7 +118,6 @@ module module_accelerator
 #ifdef INLINEKERNEL
                ! find a stream
                gpu_id = mod(gpu_id,size(gpu)) + 1
-!!!               !$acc wait(gpu_id)
 
 #ifdef __OPENACC
                flushy = mod(flushy+1,5000)
@@ -165,16 +154,7 @@ module module_accelerator
 #endif
 #endif
 
-#ifdef ONE
-               ! really, this is not necessary. we write to all of those entries anyway...
-!!               e_1(:, gpu_id) = 0.d0
-!!               e_2(:, gpu_id) = 0.d0
-!!               e_3(:, gpu_id) = 0.d0
-!!               pot(:, gpu_id) = 0.d0
-#ifdef __OPENACC
-!!               !$acc update device(e_1(:,gpu_id:gpu_id), e_2(:,gpu_id:gpu_id), e_3(:,gpu_id:gpu_id), pot(:,gpu_id:gpu_id)) async(gpu_id)
-#endif
-#else
+#ifndef ONE
                ! flush reduction variables (should not be necessary)
                e_1_ = 0.d0
                e_2_ = 0.d0
@@ -299,22 +279,8 @@ module module_accelerator
                !$acc end parallel loop
 #endif
 
-!!               ! perform the reduction...
-!!               !$acc parallel loop present(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) async(gpu_id)
-!!               do idx =  2, queued
-!!                  e_1(1, gpu_id) = e_1(1, gpu_id) + e_1(idx, gpu_id)
-!!                  e_2(1, gpu_id) = e_2(1, gpu_id) + e_2(idx, gpu_id)
-!!                  e_3(1, gpu_id) = e_3(1, gpu_id) + e_3(idx, gpu_id)
-!!                  pot(1, gpu_id) = pot(1, gpu_id) + pot(idx, gpu_id)
-!!               end do
-!!               !$acc end parallel loop
-! this was too naive. the threadblocks are not synchronised. the sum will fail...
-
                ! get data from GPU
 #ifdef ONE
-#ifdef __OPENACC
-!!!               !$acc update host(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) async(gpu_id)
-#endif
 
 !!!#define FAILSRED
 #ifdef FAILSRED
@@ -328,27 +294,19 @@ module module_accelerator
 
 #else
                if (gpu_id .eq. size(gpu)) then
-  !             if (.true.) then
 #define CPURED
 #ifdef CPURED
-  !                !$acc update host(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
-!!                  !$acc wait
                   !$acc update host(e_1, e_2, e_3, pot)
                   do idx = 1,size(gpu)
-  !                do idx = gpu_id,gpu_id
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
                      ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
                      ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
                      ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
                   enddo
-!                  do idx = 1,size(gpu)
-!                     write(*,'(i4,1x,z10,1x,f15.10)') gpu_id, loc(ptr(idx)%results), e_1(1,idx)
-!                  enddo
 #else
                   !$acc wait
                   do idx = 1,size(gpu)
-  !                do idx = gpu_id, gpu_id
                      !$acc parallel loop                                        &
                      !$acc reduction(+: e_1_, e_2_, e_3_, pot_)                 &
                      !$acc present(e_1(:,idx), e_2(:,idx), e_3(:,idx), pot(:,idx))
