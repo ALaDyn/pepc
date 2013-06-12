@@ -80,6 +80,7 @@ module module_walk
     use module_interaction_specific
     use pthreads_stuff, only: pthreads_sched_yield
     use module_atomic_ops
+    use module_accelerator, only: ACC_THREAD_STATUS_FLUSH, ACC_THREAD_STATUS_STARTED       
     implicit none
     include 'mpif.h'
 
@@ -134,6 +135,13 @@ module module_walk
 !!!       write(*,*) 'waiting for GPU...'
        ERROR_ON_FAIL(pthreads_sched_yield())
     end do
+    ! include another 'barrier' to flush all accelerator caches
+    call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_FLUSH)
+    do while( atomic_load_int(acc%thread_status) .ne. ACC_THREAD_STATUS_STARTED )
+       ! busy loop while the queue is processed
+       ERROR_ON_FAIL(pthreads_sched_yield())
+    end do
+
 
     return
 

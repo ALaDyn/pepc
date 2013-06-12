@@ -134,7 +134,7 @@ module module_interaction_specific_types
       end type mpdelta
 
       type(chargedelta) :: gpu_l
-      type(mpdelta) :: gpu(1:16) ! extended to (:) for streams...
+      type(mpdelta) :: gpu(1:8)  ! extended to (:) for streams...
       integer :: gpu_id          ! to keep track of streams
 
       type, public :: t_acc_queue_entry
