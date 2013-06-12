@@ -118,9 +118,22 @@ module module_initialization
         integer :: rc,ispecies
 
         ! set initially number of local wall particles
-        DO ispecies=0,nspecies-1
-            npps(ispecies) = tnpps(ispecies) / n_ranks
-            if(my_rank.eq.(n_ranks-1)) npps(ispecies) = npps(ispecies) + MOD(tnpps(ispecies), n_ranks)
+        ispecies=0
+        npps(ispecies) = tnpps(ispecies) / n_ranks
+        if(my_rank.eq.(n_ranks-1)) npps(ispecies) = npps(ispecies) + MOD(tnpps(ispecies), n_ranks)
+
+        ! set initially number of local particles
+        DO ispecies=1,nspecies-1
+            IF (species(ispecies)%physical_particle) THEN
+                npps(ispecies) = tnpps(ispecies) / n_ranks
+                if(my_rank.eq.(n_ranks-1)) npps(ispecies) = npps(ispecies) + MOD(tnpps(ispecies), n_ranks)
+            ELSE !probes only on root (will be moved to othe ranks in grow_tree anyway)
+                IF (my_rank == 0) THEN
+                    npps(ispecies) = tnpps(ispecies)
+                ELSE
+                    npps(ispecies) = 0
+                END IF
+            END IF
         END DO
 
         tnp= SUM(tnpps)
@@ -131,6 +144,7 @@ module module_initialization
         call init_particles(particles)
 
     end subroutine init
+
 
 !======================================================================================
 
@@ -272,5 +286,6 @@ module module_initialization
 
 
     end subroutine
+
 
 end module

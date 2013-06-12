@@ -16,6 +16,7 @@ MODULE output
 
     CONTAINS
 
+
 !===============================================================================
 
     SUBROUTINE init_output_arrays()
@@ -54,6 +55,44 @@ MODULE output
 
 !===============================================================================
 
+    SUBROUTINE probe_output(ispecies,filehandle)
+        use diagnostics
+        use module_pepc_types
+        implicit none
+        include 'mpif.h'
+
+        integer,intent(in)      :: filehandle,ispecies
+        integer :: nprobes(0:n_ranks-1),rc, displs(0:n_ranks-1),i
+        type(t_particle), allocatable :: probes(:)
+        type(t_particle)  :: tprobes(tnpps(ispecies))
+
+        displs=0
+
+        call MPI_GATHER(npps(ispecies), 1, MPI_INTEGER, nprobes, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, rc)
+
+        IF (root) THEN
+            displs(0)=0
+            DO i=1,n_ranks-1
+                displs(i)=displs(i-1)+nprobes(i-1)
+            END DO
+        END IF
+
+        call get_probe_particles(probes,ispecies)
+
+        call MPI_GATHERV(probes, npps(ispecies), MPI_TYPE_PARTICLE, tprobes, nprobes, displs, MPI_TYPE_PARTICLE, 0, MPI_COMM_WORLD, rc)
+
+
+        IF (root) THEN
+            write(filehandle,'(a10,4(a16))')"Label","x","y","z","POT"
+            DO i=1,tnpps(ispecies)
+                write(filehandle,'(i10.10,4(1pe16.7E3))')tprobes(i)%label,tprobes(i)%x,tprobes(i)%results%pot
+            END DO
+        END IF
+
+    END SUBROUTINE  probe_output
+
+!===============================================================================
+
     SUBROUTINE energy_output(ispecies,filehandle)
         use diagnostics
         implicit none
@@ -76,7 +115,6 @@ MODULE output
 
 !===============================================================================
 
-!notizen: andere quelle, andere verteilung der Wandteilchen (fixed pos, regelmäßig würfeln)
     SUBROUTINE avg_wallpotential_output(ib,filehandle)
         use diagnostics
         implicit none
@@ -163,6 +201,7 @@ MODULE output
                 IF(root) write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
                 IF(root) write(filehandle,*)
             ELSE
+                IF(species(ispecies)%indx /= 0) call probe_output(ispecies,filehandle)
                 IF(root) write(filehandle,*)
                 IF(root) write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
                 IF(root) write(filehandle,*)
@@ -343,7 +382,6 @@ MODULE output
         integer, parameter :: fid = 666
 
         npart=tnp
-        !call write_particles_ascii(my_rank,step,np,particles,filename)
         call write_particles_mpiio(MPI_COMM_WORLD,my_rank,step,npart,particles,filename)
 
         if (root) then

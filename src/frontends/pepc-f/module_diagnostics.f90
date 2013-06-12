@@ -46,6 +46,33 @@ MODULE diagnostics
 
 !===============================================================================
 
+    subroutine get_probe_particles(probes,ispecies)
+        implicit none
+        include 'mpif.h'
+
+        integer, intent(in)        :: ispecies
+        integer                    :: rc,ip,n,i
+
+        type(t_particle),  intent(inout),allocatable :: probes(:)
+
+
+        n=size(particles)
+
+        allocate(probes(npps(ispecies)),stat=rc)
+
+        i=1
+        DO ip=1,n
+            IF (particles(ip)%data%species == ispecies) THEN
+                probes(i) = particles(ip)
+                i = i+1
+            END IF
+        END DO
+
+
+    end subroutine get_probe_particles
+
+!===============================================================================
+
     function get_avg_wallpotential(p,ib)
         use module_geometry
         implicit none
@@ -138,7 +165,6 @@ MODULE diagnostics
 
     end function get_v_mean
 
-!===============================================================================
 
 !===============================================================================
 

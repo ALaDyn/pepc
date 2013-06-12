@@ -151,7 +151,7 @@ module module_species
                 IF (root) write(*,'(a,i3,a)') " A flux cannot be set for a nonphysical species (species ",ispecies," )."
                 STOP
             END IF
-        IF ((species(ispecies)%physical_particle .eqv. .false.) .and. (species(ispecies)%t_src/=0.)) THEN
+            IF ((species(ispecies)%physical_particle .eqv. .false.) .and. (species(ispecies)%t_src/=0.)) THEN
                 IF (root) write(*,'(a,i3,a)') " Source Temperature cannot be set for a nonphysical species (species ",ispecies," )."
                 STOP
             END IF

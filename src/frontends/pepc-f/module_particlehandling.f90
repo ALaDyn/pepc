@@ -488,23 +488,55 @@ module particlehandling
         implicit none
     
         type(t_particle), intent(inout) :: p(:)
-        integer :: ip,ispecies,i
+        integer :: ip,ispecies,i,j
+
+
+        real(KIND=8) :: probe_start_x(0:nspecies-1), probe_start_y(0:nspecies-1), probe_start_z(0:nspecies-1)
+        real(KIND=8) :: probe_end_x(0:nspecies-1), probe_end_y(0:nspecies-1), probe_end_z(0:nspecies-1)
+        namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
+
+
+        open(1234,file=trim(input_file))
+        read(1234,NML=probe_positions)
+        close(1234)
 
         ip=0
         DO ispecies=1,nspecies-1
-            DO i=1, npps(ispecies)
-                ip = ip + 1
-                p(ip)%data%B(1)=Bx
-                p(ip)%data%B(2)=By
-                p(ip)%data%B(3)=Bz
-                p(ip)%label       = my_rank * (SUM(tnpps(1:nspecies-1)) / n_ranks) + ip
-                p(ip)%data%q      = species(ispecies)%q*fsup
-                p(ip)%data%m      = species(ispecies)%m*fsup
-                p(ip)%data%species= species(ispecies)%indx
-                p(ip)%results%e   = 0.0_8
-                p(ip)%results%pot = 0.0_8
-                p(ip)%work        = 1.0_8
-            END DO
+            IF (species(ispecies)%physical_particle) THEN
+                DO i=1, npps(ispecies)
+                    ip = ip + 1
+                    p(ip)%data%B(1)=Bx
+                    p(ip)%data%B(2)=By
+                    p(ip)%data%B(3)=Bz
+                    p(ip)%label       = my_rank * (SUM(tnpps(1:nspecies-1)) / n_ranks) + ip
+                    p(ip)%data%q      = species(ispecies)%q*fsup
+                    p(ip)%data%m      = species(ispecies)%m*fsup
+                    p(ip)%data%species= species(ispecies)%indx
+                    p(ip)%results%e   = 0.0_8
+                    p(ip)%results%pot = 0.0_8
+                    p(ip)%work        = 1.0_8
+                END DO
+            ELSE
+                j=0
+                DO i=1, npps(ispecies)
+                    ip = ip + 1
+                    p(ip)%data%B(1)=Bx
+                    p(ip)%data%B(2)=By
+                    p(ip)%data%B(3)=Bz
+                    p(ip)%label       = my_rank * (SUM(tnpps(1:nspecies-1)) / n_ranks) + ip
+                    p(ip)%data%q      = species(ispecies)%q*fsup
+                    p(ip)%data%m      = species(ispecies)%m*fsup
+                    p(ip)%data%species= species(ispecies)%indx
+                    p(ip)%results%e   = 0.0_8
+                    p(ip)%results%pot = 0.0_8
+                    p(ip)%work        = 1.0_8
+                    p(ip)%x(1) = probe_start_x(ispecies) + (j+0.5) * (probe_end_x(ispecies) - probe_start_x(ispecies)) / species(ispecies)%nip
+                    p(ip)%x(2) = probe_start_y(ispecies) + (j+0.5) * (probe_end_y(ispecies) - probe_start_y(ispecies)) / species(ispecies)%nip
+                    p(ip)%x(3) = probe_start_z(ispecies) + (j+0.5) * (probe_end_z(ispecies) - probe_start_z(ispecies)) / species(ispecies)%nip
+                    p(ip)%data%v = 0.
+                    j=j+1
+                END DO
+            END IF
         END DO
 
         ispecies=0
@@ -524,6 +556,7 @@ module particlehandling
 
         call source(p,quelltyp)
         
+
         next_label = SUM(tnpps)+1
   
     END SUBROUTINE init_particles

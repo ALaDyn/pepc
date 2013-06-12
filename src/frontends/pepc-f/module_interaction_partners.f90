@@ -7,7 +7,7 @@ module module_interaction_partners
 
   implicit none
 
-  type(t_particle), allocatable :: probe_particles(:)
+  type(t_particle), allocatable :: int_probe_particles(:)
 
   contains
     subroutine init_probes(num_of_probes)
@@ -18,12 +18,12 @@ module module_interaction_partners
       integer :: i
 
       if (root) then
-          allocate(probe_particles(num_of_probes))
+          allocate(int_probe_particles(num_of_probes))
           allocate(interaction_nodelist(num_of_probes,1000000))
           allocate(no_interaction_partners(num_of_probes))
           allocate(interaction_vbox(num_of_probes,1000000,3))
       else
-          allocate(probe_particles(1))
+          allocate(int_probe_particles(1))
           allocate(interaction_nodelist(1,1000000))
           allocate(no_interaction_partners(1))
           allocate(interaction_vbox(1,1000000,3))
@@ -32,23 +32,23 @@ module module_interaction_partners
 
       if (root) then
         do i=1,num_of_probes
-            probe_particles(i)%label       = i
-            probe_particles(i)%data%q      = 1.0_8
-            probe_particles(i)%data%m      = 1.0_8
+            int_probe_particles(i)%label       = i
+            int_probe_particles(i)%data%q      = 1.0_8
+            int_probe_particles(i)%data%m      = 1.0_8
 
-            probe_particles(i)%results%e   = 0.0_8
-            probe_particles(i)%results%pot = 0.0_8
-            probe_particles(i)%work        = 1.0_8
-            probe_particles(i)%data%species= 12
+            int_probe_particles(i)%results%e   = 0.0_8
+            int_probe_particles(i)%results%pot = 0.0_8
+            int_probe_particles(i)%work        = 1.0_8
+            int_probe_particles(i)%data%species= 12
 
-            probe_particles(i)%data%v(1:3)     =0.0_8
-            probe_particles(i)%x(1) =(i-1)*dx/(num_of_probes-1.)
-            probe_particles(i)%x(2) =(i-1)*dy/(num_of_probes-1.)
-            probe_particles(i)%x(3) =(i-1)*dz/(num_of_probes-1.)
+            int_probe_particles(i)%data%v(1:3)     =0.0_8
+            int_probe_particles(i)%x(1) =(i-1)*dx/(num_of_probes-1.)
+            int_probe_particles(i)%x(2) =(i-1)*dy/(num_of_probes-1.)
+            int_probe_particles(i)%x(3) =(i-1)*dz/(num_of_probes-1.)
 
-            probe_particles(i)%data%B(1)=Bx
-            probe_particles(i)%data%B(2)=By
-            probe_particles(i)%data%B(3)=Bz
+            int_probe_particles(i)%data%B(1)=Bx
+            int_probe_particles(i)%data%B(2)=By
+            int_probe_particles(i)%data%B(3)=Bz
         end do
       end if
     end subroutine init_probes
@@ -69,7 +69,7 @@ module module_interaction_partners
           help_num_of_probes=0
       end if
       force_law=6
-      call pepc_traverse_tree(probe_particles(1:help_num_of_probes))
+      call pepc_traverse_tree(int_probe_particles(1:help_num_of_probes))
       force_law=3
       do i=1,help_num_of_probes
           call vtk_write_interaction_partners(step, i,0.0_8, -1, interaction_nodelist, no_interaction_partners, interaction_vbox)

@@ -49,8 +49,9 @@ module variables
   integer :: tnp              ! total number of particles (all species)
   integer*8 :: npart          ! total number of particles, needed as int8 for checkpoints
   integer :: np               ! local number of particles (all species)
-  integer :: diag_interval    
-  integer :: checkp_interval
+  integer :: diag_interval    ! interval for writing probe data
+  integer :: vtk_interval     ! interval for writing vtk output
+  integer :: checkp_interval  ! interval for setting checkpoints
   logical :: diags
   logical :: interaction_partner_diags
 
@@ -122,7 +123,7 @@ module variables
 
 
   namelist /source_nml/ x0_src,e1_src,e2_src,e3_src,quelltyp,src_boundary
-  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval
+  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval, vtk_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 

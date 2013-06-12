@@ -33,7 +33,7 @@ MODULE integrator
         END IF
 
         DO ip=1, np
-            IF (p(ip)%label>0) THEN                            ! wall particles have negative labels
+            IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
                 beta=p(ip)%data%q / p(ip)%data%m *fact*0.5     ! charge/mass constant needed in Boris-algorithm
                 !   first half-accn <-> first part of Boris-algorithm
                 uxm = p(ip)%data%v(1) + beta * p(ip)%results%e(1) * fc
@@ -86,7 +86,7 @@ MODULE integrator
 
 
         DO ip=1, np
-            IF (p(ip)%label>0) THEN
+            IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
                 p(ip)%data%v = p(ip)%data%v + fact * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * fc
             END IF
         END DO
@@ -110,7 +110,7 @@ MODULE integrator
         if(root) write(*,'(a)') " == [pusher] push particles "
 
         DO ip=1, np
-            IF (p(ip)%label>0) THEN
+            IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
                 p(ip)%x      = p(ip)%x      + fact * p(ip)%data%v    
             END IF
         END DO
