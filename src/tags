@@ -1916,7 +1916,6 @@ acc_queue	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZ
 acc_thread	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_pthread_with_type) :: acc_thread$/;"	k	type:t_acc
 add_t	treecode/openpa/openpa/test/test_primitives.c	/^} add_t;$/;"	t	typeref:struct:__anon9	file:
 add_to_iact_list	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^             subroutine add_to_iact_list(/;"	s	subroutine:calc_force_per_interaction_thread
-add_to_iact_list_leaf	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^             subroutine add_to_iact_list_leaf(/;"	s	subroutine:calc_force_per_interaction_thread
 addparticle	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^          subroutine addparticle(/;"	s	subroutine:calc_omega_tilde
 aix_post_process_depfile	treecode/openpa/openpa/confdb/depcomp	/^aix_post_process_depfile ()$/;"	f
 all_local_lt_eq_counts	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t *all_local_lt_eq_counts;$/;"	m	struct:pepckeys__classification_info_t
@@ -3232,13 +3231,10 @@ ccurrent	treecode/sl_pepc/src/core_mpi/mpi_select_exact_generic.c	/^  slint_t cr
 change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon22	file:
 change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon23	file:
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
-charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: charge$/;"	k	type:t_iact_partner_l
-charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: charge(/;"	k	type:chargedelta
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: charge(/;"	k	type:mpdelta
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
-chargedelta	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type chargedelta$/;"	t	module:module_interaction_specific_types
 chars	utils/module_base64.f90	/^    character, parameter :: chars(/;"	v	module:module_base64
 check_PROGRAMS	treecode/openpa/openpa/test/Makefile	/^check_PROGRAMS = $(am__EXEEXT_1)$/;"	m
 check_lattice_boundaries	treecode/lpepcsrc/module_mirror_boxes.f90	/^        logical function check_lattice_boundaries(/;"	f
@@ -3293,7 +3289,6 @@ comm_thread	treecode/lpepcsrc/module_tree.f90	/^      type(t_pthread_with_type) 
 communicator	treecode/lpepcsrc/module_tree.f90	/^      type(t_tree_communicator)/;"	k	type:t_tree
 communicator	utils/module_vtk.f90	/^          integer :: communicator$/;"	k	type:vtkfile
 compute_iact_list	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^        subroutine compute_iact_list(/;"	s	module:module_interaction_specific
-compute_iact_list_leaf	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^        subroutine compute_iact_list_leaf(/;"	s	module:module_interaction_specific
 compute_particle_keys	treecode/lpepcsrc/module_spacefilling.f90	/^        subroutine compute_particle_keys(/;"	s	module:module_spacefilling
 constrain_periodic	treecode/lpepcsrc/module_mirror_boxes.f90	/^        subroutine constrain_periodic(/;"	s
 contains_particle	treecode/lpepcsrc/module_walk_pthreads.f90	/^    logical function contains_particle(/;"	f	function:walk_worker_thread
@@ -4538,12 +4533,8 @@ defer_list_length	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer :: todo
 defer_list_parse_and_compact	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine defer_list_parse_and_compact(/;"	s	function:walk_single_particle
 defer_list_push	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine defer_list_push(/;"	s	function:walk_single_particle
 delta	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta(/;"	k	type:t_iact_partner
-delta	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta(/;"	k	type:t_iact_partner_l
-delta1	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta1(/;"	k	type:chargedelta
 delta1	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta1(/;"	k	type:mpdelta
-delta2	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta2(/;"	k	type:chargedelta
 delta2	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta2(/;"	k	type:mpdelta
-delta3	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta3(/;"	k	type:chargedelta
 delta3	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta3(/;"	k	type:mpdelta
 depcomp	treecode/openpa/openpa/src/Makefile	/^depcomp = $(SHELL) $(top_srcdir)\/confdb\/depcomp$/;"	m
 depcomp	treecode/openpa/openpa/test/Makefile	/^depcomp = $(SHELL) $(top_srcdir)\/confdb\/depcomp$/;"	m
@@ -5084,7 +5075,6 @@ globaldims	utils/module_vtk.f90	/^          integer, private, dimension(2,3) :: 
 gposts	treecode/lpepcsrc/module_domains.f90	/^    integer(kind_default), allocatable :: gposts(/;"	k	type:t_decomposition
 gpu	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(mpdelta) :: gpu(/;"	v	module:module_interaction_specific_types
 gpu_id	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer :: gpu_id /;"	v	module:module_interaction_specific_types
-gpu_l	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(chargedelta) :: gpu_l$/;"	v	module:module_interaction_specific_types
 grouped_cas_int_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_int_helper(void *_udata)$/;"	f	file:
 grouped_cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_int_t;$/;"	t	typeref:struct:__anon16	file:
 grouped_cas_ptr_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_ptr_helper(void *_udata)$/;"	f	file:
@@ -6006,7 +5996,6 @@ nprops_particle_results	interaction_specific/coulomb_gpu/module_interaction_spec
 nprops_particle_results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^      integer, private, parameter :: nprops_particle_results /;"	v	module:module_interaction_specific_types
 nprops_particle_thread	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, private, parameter :: nprops_particle_thread /;"	v	module:module_interaction_specific_types
 nprops_partner_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, private, parameter :: nprops_partner_data /;"	v	module:module_interaction_specific_types
-nprops_partner_l_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, private, parameter :: nprops_partner_l_data /;"	v	module:module_interaction_specific_types
 nprops_request_eager	treecode/lpepcsrc/module_pepc_types.f90	/^      integer, private, parameter :: nprops_request_eager /;"	v	module:module_pepc_types
 nprops_tree_node_interaction_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^      integer, private, parameter :: nprops_tree_node_interaction_data /;"	v	module:module_interaction_specific_types
 nprops_tree_node_interaction_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, private, parameter :: nprops_tree_node_interaction_data /;"	v	module:module_interaction_specific_types
@@ -6102,7 +6091,6 @@ particles	frontends/pepc-essential/module_helper.f90	/^  type(t_particle), alloc
 particles	interaction_specific/coulomb_gpu/module_pepc_wrappers.f90	/^      type(t_particle), public, dimension(:), allocatable :: particles$/;"	v	module:module_pepc_wrappers
 partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_iact_partner)/;"	k	type:t_acc_queue_entry
 partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_iact_partner)/;"	k	type:t_particle_thread
-partner_l	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_iact_partner_l)/;"	k	type:t_particle_thread
 parttype_p	treecode/sl_pepc/src/include/sl_types.h	/^} parttype_t, *parttype_p;$/;"	t	typeref:struct:_parttype_t
 parttype_t	treecode/sl_pepc/src/include/sl_types.h	/^} parttype_t, *parttype_p;$/;"	t	typeref:struct:_parttype_t
 pass_point_0	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_0;   \/* Whether we have passed point 0 *\/$/;"	m	struct:__anon22	file:
@@ -6840,7 +6828,6 @@ quan	treecode/sl_pepc/src/core/merge2_tridgell.c	/^  slint rank, size, quan;$/;"
 queue_lock	interaction_specific/coulomb_gpu/accelerator_eq_gpu.f90	/^   type(t_critical_section), pointer :: queue_lock$/;"	v	module:module_accelerator
 queued	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued /;"	k	type:t_particle_thread
 queued	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued$/;"	k	type:t_acc_queue_entry
-queued_l	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued_l /;"	k	type:t_particle_thread
 radix	treecode/sl_pepc/include/sl_pepckeys.h	/^  } radix;$/;"	m	union:pepckeys__binning_data_t	typeref:struct:pepckeys__binning_data_t::__anon51
 radix	treecode/sl_pepc/include/sl_pepcparts.h	/^  } radix;$/;"	m	union:pepcparts__binning_data_t	typeref:struct:pepcparts__binning_data_t::__anon47
 radix	treecode/sl_pepc/src/include/sl_types.h	/^  } radix;$/;"	m	union:_binning_data_t	typeref:struct:_binning_data_t::__anon55
@@ -8039,7 +8026,6 @@ t_fields_stats	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter :: 
 t_fields_tree	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter :: t_fields_tree /;"	v	module:module_timings
 t_global	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter :: t_global /;"	v	module:module_timings
 t_iact_partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type t_iact_partner$/;"	t	module:module_interaction_specific_types
-t_iact_partner_l	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type t_iact_partner_l$/;"	t	module:module_interaction_specific_types
 t_keyidx	treecode/lpepcsrc/module_tree_grow.f90	/^    type t_keyidx$/;"	t	subroutine:tree_build_from_particles
 t_lattice	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter :: t_lattice /;"	v	module:module_timings
 t_lattice_1	treecode/lpepcsrc/module_mirror_boxes.f90	/^      real*8, public :: t_lattice_1(/;"	v	module:module_mirror_boxes

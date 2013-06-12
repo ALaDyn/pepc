@@ -121,8 +121,7 @@ module module_walk
        p%my_idx    = i
        ni = 0_kind_node
        call tree_walk_single(t%node_root)
-       if(p%queued   .gt. 0) call compute_iact_list(p)
-       if(p%queued_l .gt. 0) call compute_iact_list_leaf(p)
+       if(p%queued .gt. 0) call compute_iact_list(p)
        DEBUG_ASSERT(ni == t%npart)
     end do
 

@@ -72,7 +72,6 @@ module module_interaction_specific
       end interface calc_force_per_interaction
       public calc_force_per_interaction
       public compute_iact_list
-      public compute_iact_list_leaf
       public calc_force_per_particle
       interface mac
          module procedure mac_global, mac_thread ! these stay private and are for thread-(non)-local types
@@ -496,59 +495,29 @@ module module_interaction_specific
           !! this will be an array of interaction partners, to be associated with the thread-local particle data
           !!type(t_iact_partner), pointer :: iact_partner(:)
 
-#ifdef LEAFY
-          if(node_is_leaf) then
-             select case (particle%queued_l)
+          select case (particle%queued)
 
-             case (-1) ! allocate interaction list and start filling it
+          case (-1) ! allocate interaction list and start filling it
 
-                allocate(particle%partner_l(MAX_IACT_PARTNERS))
-                particle%queued_l = 0
-                call add_to_iact_list_leaf(particle, node, delta)
+             allocate(particle%partner(MAX_IACT_PARTNERS))
+             particle%queued = 0
+             call add_to_iact_list(particle, node, delta, node_is_leaf)
 
-             case (MAX_IACT_PARTNERS) ! compute list and add current partner to empty list
+          case (MAX_IACT_PARTNERS) ! compute list and add current partner to empty list
 
-                ! compute list, which leaves us we NO list
-                call compute_iact_list_leaf(particle)
-                ! create new list
-                allocate(particle%partner_l(MAX_IACT_PARTNERS))
-                particle%queued_l = 0
-                ! add to new list
-                call add_to_iact_list_leaf(particle, node, delta)
+             ! compute list, which leaves us we NO list
+             call compute_iact_list(particle)
+             ! create new list
+             allocate(particle%partner(MAX_IACT_PARTNERS))
+             particle%queued = 0
+             ! add to new list
+             call add_to_iact_list(particle, node, delta, node_is_leaf)
 
-             case default ! add to list
+          case default ! add to list
 
-                call add_to_iact_list_leaf(particle, node, delta)
+             call add_to_iact_list(particle, node, delta, node_is_leaf)
 
-             end select
-          else
-#endif
-             select case (particle%queued)
-
-             case (-1) ! allocate interaction list and start filling it
-
-                allocate(particle%partner(MAX_IACT_PARTNERS))
-                particle%queued = 0
-                call add_to_iact_list(particle, node, delta, node_is_leaf)
-
-             case (MAX_IACT_PARTNERS) ! compute list and add current partner to empty list
-
-                ! compute list, which leaves us we NO list
-                call compute_iact_list(particle)
-                ! create new list
-                allocate(particle%partner(MAX_IACT_PARTNERS))
-                particle%queued = 0
-                ! add to new list
-                call add_to_iact_list(particle, node, delta, node_is_leaf)
-
-             case default ! add to list
-
-                call add_to_iact_list(particle, node, delta, node_is_leaf)
-
-             end select
-#ifdef LEAFY
-          endif
-#endif
+          end select
 
           return
 
@@ -573,23 +542,6 @@ module module_interaction_specific
 
              end subroutine add_to_iact_list
 
-             subroutine add_to_iact_list_leaf(particle, node, delta)
-                implicit none
-
-                type(t_particle_thread), intent(inout) :: particle
-                type(t_tree_node_interaction_data), intent(in) :: node
-                real*8, intent(in) :: delta(3)
-
-                integer :: queued
-
-                queued = particle%queued_l + 1
-
-                particle%partner_l(queued)%delta = delta
-                particle%partner_l(queued)%charge  = node%charge
-                particle%queued_l = queued
-
-             end subroutine add_to_iact_list_leaf
-
         end subroutine calc_force_per_interaction_thread
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -607,33 +559,23 @@ module module_interaction_specific
            real*8 :: exyz(3), phic
            real*8 :: delta(3), dist2
            type(t_tree_node_interaction_data) :: node
-#ifndef LEAFY
            logical :: node_is_leaf
-#endif
-
-!           write(*,*) ' LLLLLLLL computing a list of length', particle%queued
 
            select case (force_law)
            case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
 
               do idx = 1, particle%queued
 
-#ifndef LEAFY
                  node_is_leaf = particle%partner(idx)%leaf
-#endif
                  node  = particle%partner(idx)%node
                  delta = particle%partner(idx)%delta
                  dist2 = dot_product(delta, delta)
 
-#ifndef LEAFY
                  if (node_is_leaf) then
                     call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
                  else
-#endif
                     call calc_force_coulomb_2D(       node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
-#ifndef LEAFY
                  end if
-#endif
                  exyz(3) = 0.
 
                  particle%results%e         = particle%results%e    + exyz
@@ -666,25 +608,19 @@ module module_interaction_specific
 
               do idx = 1, particle%queued
 
-#ifndef LEAFY
                  node_is_leaf = particle%partner(idx)%leaf
-#endif
                  node  = particle%partner(idx)%node
                  delta = particle%partner(idx)%delta
                  dist2 = dot_product(delta, delta)
 
                  !  and Kelbg for particle-particle interaction
-#ifndef LEAFY
                  if (node_is_leaf) then
                     ! It's a leaf, do direct summation with kelbg
                     call calc_force_kelbg_3D_direct(particle, node, delta, dist2, kelbg_invsqrttemp, exyz, phic)
                  else
-#endif
                     ! It's a twig, do ME with coulomb
                     call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
-#ifndef LEAFY
                  end if
-#endif
 
                  particle%results%e         = particle%results%e    + exyz
                  particle%results%pot       = particle%results%pot  + phic
@@ -710,106 +646,6 @@ module module_interaction_specific
            return
 
         end subroutine compute_iact_list
-        subroutine compute_iact_list_leaf(particle)
-           use module_coulomb_kernels
-           implicit none
-
-           type(t_particle_thread), intent(inout) :: particle
-
-           integer :: idx
-           real*8 :: exyz(3), phic
-           real*8 :: delta(3), dist2
-
-           interface 
-              subroutine kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
-              use module_pepc_types
-              use module_interaction_specific_types
-              implicit none
-              type(t_particle_thread), intent(inout) :: particle
-              real*8, intent(in) :: eps2, WORKLOAD_PENALTY_INTERACTION
-              end subroutine
-           end interface
-
-!           write(*,*) ' LLLL computing a list of length', particle%queued_l
-
-           select case (force_law)
-           case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-
-              do idx = 1, particle%queued_l
-
-                 delta = particle%partner_l(idx)%delta
-                 dist2 = dot_product(delta, delta)
-
-!!!                 call calc_force_coulomb_2D_leaf(particle%partner_l(idx)%charge, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
-                 exyz(3) = 0.
-
-                 particle%results%e         = particle%results%e    + exyz
-                 particle%results%pot       = particle%results%pot  + phic
-                 particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-
-              end do
-
-           case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-
-              call kernel_leaf(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
-
-           case (4)  ! LJ potential for quiet start
-
-              do idx = 1, particle%queued_l
-
-!!!                 node  = particle%partner(idx)%node
-                 delta = particle%partner_l(idx)%delta
-                 dist2 = dot_product(delta, delta)
-
-!!!                 call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
-
-                 particle%results%e         = particle%results%e    + exyz
-                 particle%results%pot       = particle%results%pot  + phic
-                 particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-
-              end do
-
-           case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
-
-              do idx = 1, particle%queued_l
-
-!!!                 node  = particle%partner(idx)%node
-                 delta = particle%partner_l(idx)%delta
-                 dist2 = dot_product(delta, delta)
-
-!!!                 !  and Kelbg for particle-particle interaction
-!!!                 if (node_is_leaf) then
-!!!                    ! It's a leaf, do direct summation with kelbg
-!!!                    call calc_force_kelbg_3D_direct(particle, node, delta, dist2, kelbg_invsqrttemp, exyz, phic)
-!!!                 else
-!!!                    ! It's a twig, do ME with coulomb
-!!!                    call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
-!!!                 end if
-
-                 particle%results%e         = particle%results%e    + exyz
-                 particle%results%pot       = particle%results%pot  + phic
-                 particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-
-              end do
-
-           case default
-
-              exyz = 0.
-              phic = 0.
-
-              particle%results%e         = particle%results%e    + exyz
-              particle%results%pot       = particle%results%pot  + phic
-              particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-
-           end select
-
-           ! free space and refresh list
-           particle%queued_l = -1
-           nullify(particle%partner_l)
-
-           return
-
-        end subroutine compute_iact_list_leaf
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

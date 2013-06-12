@@ -62,11 +62,6 @@ module module_interaction_specific_types
          logical :: leaf
       end type t_iact_partner
       integer, private, parameter :: nprops_partner_data = 3
-      type t_iact_partner_l
-         real*8 :: delta(3)
-         real*8 :: charge
-      end type t_iact_partner_l
-      integer, private, parameter :: nprops_partner_l_data = 2
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
@@ -103,20 +98,11 @@ module module_interaction_specific_types
          type(t_particle_results), pointer :: results !< results of calc_force_etc and companions
          integer :: queued = -1
          type(t_iact_partner), pointer :: partner(:)
-         integer :: queued_l = -1
-         type(t_iact_partner_l), pointer :: partner_l(:)
          integer :: my_idx = -1
       end type t_particle_thread
       integer, private, parameter :: nprops_particle_thread = 10
 
       !> Data structures to be fed to the GPU
-      type chargedelta
-         real*8 :: delta1(1:MAX_IACT_PARTNERS)
-         real*8 :: delta2(1:MAX_IACT_PARTNERS)
-         real*8 :: delta3(1:MAX_IACT_PARTNERS)
-         real*8 :: charge(1:MAX_IACT_PARTNERS)
-      end type chargedelta
-      !
       type mpdelta
          real*8 :: delta1(1:MAX_IACT_PARTNERS)
          real*8 :: delta2(1:MAX_IACT_PARTNERS)
@@ -133,7 +119,6 @@ module module_interaction_specific_types
          real*8 :: zxquad(1:MAX_IACT_PARTNERS)
       end type mpdelta
 
-      type(chargedelta) :: gpu_l
       type(mpdelta) :: gpu(1:8)  ! extended to (:) for streams...
       integer :: gpu_id          ! to keep track of streams
 
