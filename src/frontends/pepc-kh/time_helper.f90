@@ -112,7 +112,7 @@ contains
 
       real*8, dimension(3) :: B0
 
-      B0 = physics_pars%B0
+      B0 = [0.0_8, 0.0_8, physics_pars%B0]
 
       do ip = 1, size(p)
         ! charge/mass*time-constant

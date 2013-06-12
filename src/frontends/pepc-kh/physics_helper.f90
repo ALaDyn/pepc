@@ -50,8 +50,7 @@ contains
       t_lattice_2 = [ 0.0D0, physics_pars%l_plasma(2), 0.0D0 ]
       t_lattice_3 = [ 0.0D0, 0.0D0, 1.0D0 ]
       if (.not. include_far_field_if_periodic) then
-        !spatial_interaction_cutoff = [ huge(0.0D0), mirror_box_layers * physics_pars%l_plasma(2), huge(0.0D0) ]
-        spatial_interaction_cutoff = [ huge(0.0D0), physics_pars%l_plasma(2), huge(0.0D0) ]
+        spatial_interaction_cutoff = huge(0.0D0) * [ 1.0D0, 1.0D0, 1.0D0 ]
       end if
       periodicity = [ .false., .true., .false. ]
 
