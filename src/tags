@@ -5888,7 +5888,7 @@ mss_sync	treecode/sl_pepc/src/include/sl_rename.h	430;"	d
 mu	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        complex(kfp) function mu(/;"	f	module:module_fmm_framework
 mu_cent	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      complex(kfp) :: mu_cent(/;"	v	module:module_fmm_framework
 multipole_from_particle	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^      subroutine multipole_from_particle(/;"	s	module:module_interaction_specific
-my_idx	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: my_idx /;"	k	type:t_particle_thread
+my_idx	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer*8 :: my_idx /;"	k	type:t_particle_thread
 my_rank	frontends/pepc-essential/module_helper.f90	/^  integer(kind_pe) :: my_rank,/;"	v	module:helper
 my_rank	utils/module_vtk.f90	/^          integer :: my_rank$/;"	k	type:vtkfile
 my_rti_ccmp	treecode/sl_pepc/include/sl_rti.h	20;"	d

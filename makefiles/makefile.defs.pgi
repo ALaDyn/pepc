@@ -23,20 +23,20 @@ CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" $(DEFS)
 
 INLINING = -Minline -fast -Mipa
 
+FFLAGS   = -Mbackslash -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia
+CFLAGS   = -O3
+LDFLAGS  = -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia
+CPPFLAGS += -DNDEBUG
 ifeq ($(DEBUG), 1)
   FFLAGS   = -g -pg -O0 -mp -ta=nvidia -Minfo=all -traceback -C -Mbounds
   CFLAGS   = -g -pg -O0
   LDFLAGS  = -g -pg -O0 -mp -ta=nvidia -Minfo=all -traceback
 #  CPPFLAGS += -DNDEBUG
-elifeq($(DEBUG), -1)
+endif
+ifeq ($(DEBUG), -1)
   FFLAGS   = -Mbackslash -tp=nehalem -O3 -mp -Minfo=all $(INLINING)
   CFLAGS   = -O3
   LDFLAGS  = -tp=nehalem -O3 -mp -Minfo=all $(INLINING)
-  CPPFLAGS += -DNDEBUG
-else
-  FFLAGS   = -Mbackslash -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia
-  CFLAGS   = -O3
-  LDFLAGS  = -tp=nehalem -O3 -mp -Minfo=all $(INLINING) -ta=nvidia
   CPPFLAGS += -DNDEBUG
 endif
 

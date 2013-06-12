@@ -360,7 +360,9 @@ module module_walk
   subroutine walk_hybrid()
     use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread, THREAD_TYPE_WORKER
     use module_debug
-    use module_atomic_ops, only: atomic_store_int
+    use module_atomic_ops, only: atomic_store_int, atomic_load_int
+    use module_accelerator, only: ACC_THREAD_STATUS_FLUSH, ACC_THREAD_STATUS_STARTED       
+    use module_interaction_specific_types
     use, intrinsic :: iso_c_binding
     implicit none
     include 'mpif.h'
@@ -391,6 +393,13 @@ module module_walk
       if (dbg(DBG_WALKSUMMARY)) then
         DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
       end if
+    end do
+
+    ! include 'barrier' to flush all accelerator caches and make sure they are finished
+    call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_FLUSH)
+    do while( atomic_load_int(acc%thread_status) .ne. ACC_THREAD_STATUS_STARTED )
+       ! busy loop while the queue is processed
+       ERROR_ON_FAIL(pthreads_sched_yield())
     end do
 
     if (walk_debug) then
@@ -700,13 +709,13 @@ module module_walk
         if (contains_particle(idx)) then
           ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
           thread_particle_data(idx)%x         = particle_data(thread_particle_indices(idx))%x
-          thread_particle_data(idx)%work      = particle_data(thread_particle_indices(idx))%work
+          thread_particle_data(idx)%work     => particle_data(thread_particle_indices(idx))%work
           thread_particle_data(idx)%key       = particle_data(thread_particle_indices(idx))%key
           thread_particle_data(idx)%node_leaf = particle_data(thread_particle_indices(idx))%node_leaf
           thread_particle_data(idx)%label     = particle_data(thread_particle_indices(idx))%label
           thread_particle_data(idx)%pid       = particle_data(thread_particle_indices(idx))%pid
           thread_particle_data(idx)%data      = particle_data(thread_particle_indices(idx))%data
-          thread_particle_data(idx)%results   = particle_data(thread_particle_indices(idx))%results
+          thread_particle_data(idx)%results  => particle_data(thread_particle_indices(idx))%results
           thread_particle_data(idx)%queued    =  -1
           thread_particle_data(idx)%my_idx    = thread_particle_indices(idx)
           ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
@@ -816,7 +825,6 @@ module module_walk
     ! if todo_list and defer_list are now empty, the walk has finished
     walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
     if(walk_single_particle .and. (particle%queued .gt. 0)) call compute_iact_list(particle)
-    if(walk_single_particle .and. (particle%queued_l .gt. 0)) call compute_iact_list_leaf(particle)
 
     my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) = my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) + num_interactions
     my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
@@ -860,7 +868,7 @@ module module_walk
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
         ! eager requests
-        call tree_node_fetch_children(walk_tree, walk_node, particle_data(particle%my_idx), particle, shifted_particle_position) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, particle%my_idx, particle_data(particle%my_idx), shifted_particle_position) ! fetch children from remote
         ! simpel requests
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if

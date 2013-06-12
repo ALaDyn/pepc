@@ -128,19 +128,12 @@ module module_walk
     twalk = MPI_WTIME() + twalk
     twalk_loc = twalk
 
-    ! include a 'barrier' to make sure all accelerator kernels are finished
-    do while( atomic_load_int(acc%q_len) .ne. ACC_QUEUE_LENGTH )
-       ! busy loop while the queue is processed
-!!!       write(*,*) 'waiting for GPU...'
-       ERROR_ON_FAIL(pthreads_sched_yield())
-    end do
-    ! include another 'barrier' to flush all accelerator caches
+    ! include 'barrier' to flush all accelerator caches and make sure they are finished
     call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_FLUSH)
     do while( atomic_load_int(acc%thread_status) .ne. ACC_THREAD_STATUS_STARTED )
        ! busy loop while the queue is processed
        ERROR_ON_FAIL(pthreads_sched_yield())
     end do
-
 
     return
 

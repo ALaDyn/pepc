@@ -98,7 +98,7 @@ module module_interaction_specific_types
          type(t_particle_results), pointer :: results !< results of calc_force_etc and companions
          integer :: queued = -1
          type(t_iact_partner), pointer :: partner(:)
-         integer :: my_idx = -1
+         integer*8 :: my_idx = -1
       end type t_particle_thread
       integer, private, parameter :: nprops_particle_thread = 10
 
