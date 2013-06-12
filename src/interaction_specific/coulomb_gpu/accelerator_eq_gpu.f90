@@ -96,12 +96,7 @@ module module_accelerator
 
       ! create GPU memory
 #ifdef __OPENACC
-#define ONE
-#ifdef ONE
-      !$acc data create(gpu_l, gpu, e_1, e_2, e_3, pot)
-#else
-      !$acc data create(gpu_l, gpu)
-#endif
+      !$acc data create(gpu, e_1, e_2, e_3, pot)
 #endif
       
       do while (atomic_load_int(acc%thread_status) .lt. ACC_THREAD_STATUS_STOPPING)
@@ -114,12 +109,10 @@ module module_accelerator
             if (acc%acc_queue(tmp_top)%entry_valid) then
                call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
-#define INLINEKERNEL
-#ifdef INLINEKERNEL
                ! find a stream
                gpu_id = mod(gpu_id,size(gpu)) + 1
 
-#ifdef __OPENACC
+#if defined __OPENACC && defined NVVP
                flushy = mod(flushy+1,5000)
                if ( flushy .eq. 0 ) write(*,*) 'sync ',cudaDeviceSynchronize()
 #endif
@@ -147,19 +140,7 @@ module module_accelerator
 
                ! update GPU data
 #ifdef __OPENACC
-#ifdef ONE
                !$acc update device(gpu(gpu_id:gpu_id)) async(gpu_id)
-#else
-               !$acc update device(gpu(gpu_id:gpu_id))
-#endif
-#endif
-
-#ifndef ONE
-               ! flush reduction variables (should not be necessary)
-               e_1_ = 0.d0
-               e_2_ = 0.d0
-               e_3_ = 0.d0
-               pot_ = 0.d0
 #endif
 
                ! read penalty and epsilon
@@ -171,18 +152,11 @@ module module_accelerator
 
                ! run GPU kernel
 #ifdef __OPENACC
-#ifdef ONE
                !$acc parallel loop                                                                                 &       
                !$acc present(gpu(gpu_id:gpu_id))                                                                   &
                !$acc present(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))                           &
                !$acc private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)  &
                !$acc async(gpu_id)
-#else
-               !$acc parallel loop                                                                                 &
-               !$acc present(gpu(gpu_id:gpu_id))                                                                   &
-               !$acc reduction(+: e_1_, e_2_, e_3_, pot_)                                                          &
-               !$acc private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)
-#endif
 #endif
                do idx = 1, queued(gpu_id)
              
@@ -215,20 +189,12 @@ module module_accelerator
                   fd5 = 3.d0*dy*dz*rd5
                   fd6 = 3.d0*dx*dz*rd5
             
-#ifdef ONE
                   pot(idx, gpu_id) = gpu(gpu_id)%charge(idx)*rd                                                          &  !  monopole term
-#else
-                  pot_ = pot_ + gpu(gpu_id)%charge(idx)*rd                                                               &  !  monopole term
-#endif
                         + (dx*gpu(gpu_id)%dip1(idx) + dy*gpu(gpu_id)%dip2(idx) + dz*gpu(gpu_id)%dip3(idx))*rd3           &  !  dipole
                         + 0.5d0*(fd1*gpu(gpu_id)%quad1(idx)  + fd2*gpu(gpu_id)%quad2(idx)  + fd3*gpu(gpu_id)%quad3(idx)) &  !  quadrupole
                         +        fd4*gpu(gpu_id)%xyquad(idx) + fd5*gpu(gpu_id)%yzquad(idx) + fd6*gpu(gpu_id)%zxquad(idx)
             
-#ifdef ONE
                   e_1(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dx*rd3                                                      &  ! monopole term
-#else
-                  e_1_ = e_1_ + gpu(gpu_id)%charge(idx)*dx*rd3                                                                  &  ! monopole term
-#endif
                             + fd1*gpu(gpu_id)%dip1(idx) + fd4*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip3(idx)          &  ! dipole term
                             + 3.d0   * (                                                                                 &  ! quadrupole term
                                0.5d0 * (                                                                                 &
@@ -241,11 +207,7 @@ module module_accelerator
                                + ( 5.d0*dx*dy*dz*rd7          )*gpu(gpu_id)%yzquad(idx)                                  &
                               )
             
-#ifdef ONE
                   e_2(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dy*rd3                                                      &
-#else
-                  e_2_= e_2_ + gpu(gpu_id)%charge(idx)*dy*rd3                                                                   &
-#endif
                             + fd2*gpu(gpu_id)%dip2(idx) + fd4*gpu(gpu_id)%dip1(idx) + fd5*gpu(gpu_id)%dip3(idx)          &
                             + 3 * (                                                                                      &
                                0.5d0 * (                                                                                 &
@@ -258,11 +220,7 @@ module module_accelerator
                                + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%zxquad(idx)                                     &
                               )
             
-#ifdef ONE
                   e_3(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dz*rd3                                                      &
-#else
-                  e_3_ = e_3_ + gpu(gpu_id)%charge(idx)*dz*rd3                                                                  &
-#endif
                             + fd3*gpu(gpu_id)%dip3(idx) + fd5*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip1(idx)          &
                             + 3 * (                                                                                      &
                                0.5d0 * (                                                                                 &
@@ -278,24 +236,8 @@ module module_accelerator
 #ifdef __OPENACC
                !$acc end parallel loop
 #endif
-
                ! get data from GPU
-#ifdef ONE
-
-!!!#define FAILSRED
-#ifdef FAILSRED
-               !$acc update host(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
-               !$acc wait
-               acc%acc_queue(tmp_top)%particle%results%e(1) = acc%acc_queue(tmp_top)%particle%results%e(1) + sum(e_1(1:queued(gpu_id),gpu_id))
-               acc%acc_queue(tmp_top)%particle%results%e(2) = acc%acc_queue(tmp_top)%particle%results%e(2) + sum(e_2(1:queued(gpu_id),gpu_id))
-               acc%acc_queue(tmp_top)%particle%results%e(3) = acc%acc_queue(tmp_top)%particle%results%e(3) + sum(e_3(1:queued(gpu_id),gpu_id))
-               acc%acc_queue(tmp_top)%particle%results%pot  = acc%acc_queue(tmp_top)%particle%results%pot  + sum(pot(1:queued(gpu_id),gpu_id))
-               acc%acc_queue(tmp_top)%particle%work         = acc%acc_queue(tmp_top)%particle%work + queued(gpu_id) * WORKLOAD_PENALTY_INTERACTION
-
-#else
                if (gpu_id .eq. size(gpu)) then
-#define CPURED
-#ifdef CPURED
                   !$acc update host(e_1, e_2, e_3, pot)
                   do idx = 1,size(gpu)
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
@@ -304,38 +246,7 @@ module module_accelerator
                      ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
                      ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
                   enddo
-#else
-                  !$acc wait
-                  do idx = 1,size(gpu)
-                     !$acc parallel loop                                        &
-                     !$acc reduction(+: e_1_, e_2_, e_3_, pot_)                 &
-                     !$acc present(e_1(:,idx), e_2(:,idx), e_3(:,idx), pot(:,idx))
-                     do idx_ = 1, queued(idx)
-                        e_1_ = e_1_ + e_1(idx_, idx)
-                        e_2_ = e_2_ + e_2(idx_, idx)
-                        e_3_ = e_3_ + e_3(idx_, idx)
-                        pot_ = pot_ + pot(idx_, idx)
-                     enddo
-                     !$acc end parallel loop
-                     ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + e_1_ 
-                     ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + e_2_
-                     ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + e_3_
-                     ptr(idx)%results%pot  = ptr(idx)%results%pot  + pot_
-                     ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
-                  enddo
-#endif
                endif
-#endif
-#else
-               acc%acc_queue(tmp_top)%particle%results%e   = acc%acc_queue(tmp_top)%particle%results%e + [e_1_, e_2_, e_3_]
-               acc%acc_queue(tmp_top)%particle%results%pot = acc%acc_queue(tmp_top)%particle%results%pot + pot_
-               acc%acc_queue(tmp_top)%particle%work        = acc%acc_queue(tmp_top)%particle%work + &
-                                                             queued(gpu_id) * WORKLOAD_PENALTY_INTERACTION
-#endif
-#else
-               ! copy particle info to temporal local copy
-               call kernel_node(acc%acc_queue(tmp_top)%particle, acc%acc_queue(tmp_top)%eps, acc%acc_queue(tmp_top)%pen)
-#endif
 
                ! kill list
                call critical_section_enter(queue_lock)
@@ -362,13 +273,10 @@ module module_accelerator
          ! flush GPU buffers at end of timestep
          if (atomic_load_int(acc%thread_status) .eq. ACC_THREAD_STATUS_FLUSH) then
             ! got signal to flush, so check if there is data to flush...
-#ifdef ONE
             if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) .and. &
                  .not. (gpu_id .eq. size(gpu))                                               &
                ) then
                write(*,*) 'flushing GPU - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
-#ifdef CPURED
-!               !$acc wait
                !$acc update host(e_1, e_2, e_3, pot)
                do idx = 1,gpu_id
                   ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
@@ -377,28 +285,7 @@ module module_accelerator
                   ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
                   ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
                enddo
-#else
-               !$acc wait
-               do idx = 1,gpu_id
-                  !$acc parallel loop                                        &
-                  !$acc reduction(+: e_1_, e_2_, e_3_, pot_)                 &
-                  !$acc present(e_1(:,idx), e_2(:,idx), e_3(:,idx), pot(:,idx))
-                  do idx_ = 1, queued(idx)
-                     e_1_ = e_1_ + e_1(idx_, idx)
-                     e_2_ = e_2_ + e_2(idx_, idx)
-                     e_3_ = e_3_ + e_3(idx_, idx)
-                     pot_ = pot_ + pot(idx_, idx)
-                  enddo
-                  !$acc end parallel loop
-                  ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + e_1_ 
-                  ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + e_2_
-                  ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + e_3_
-                  ptr(idx)%results%pot  = ptr(idx)%results%pot  + pot_
-                  ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
-               enddo
-#endif
             endif
-#endif
             ! reset queue
             gpu_id = 0
             ! tell others we're ready again...
