@@ -250,7 +250,7 @@ contains
       mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) &
       * (field_grid%ntot / pepc_comm%mpi_size + 1) + &
       max(0_kind_particle, pepc_comm%mpi_rank - mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) * &
-      field_grid%ntot / pepc_comm%mpi_size
+      (field_grid%ntot / pepc_comm%mpi_size)
 
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)
     call write_quantity_on_grid("ex", field_grid%p(:)%results%e(1))
