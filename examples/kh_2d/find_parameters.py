@@ -35,8 +35,8 @@ def find_parameters_density(fname):
   plt.plot(x, rho, 'kx')
   plt.plot(x, softstep(x, p), 'k-')
   plt.xlabel('x (electron Debye length)')
-  plt.ylabel('n (electron Debye length)^(-3)')
-  plt.title('density profile fit: ' + fname)
+  plt.ylabel('rho (electron Debye length)^(-3)')
+  plt.title('density profile fit: ' + fname + ', wp x t = ' + str(fb.t_of_fieldblob(fname)))
   return p
 
 def find_parameters_velocity(fname):
@@ -51,7 +51,7 @@ def find_parameters_velocity(fname):
   plt.plot(x, peak(x, p), 'k-')
   plt.xlabel('x (eletron Debye length)')
   plt.ylabel('vy (electron thermal velocity)')
-  plt.title('velocity profile fit: ' + fname)
+  plt.title('velocity profile fit: ' + fname + ', wp x t = ' + str(fb.t_of_fieldblob(fname)))
   return p
 
 def find_parameters_velocity_th(fname):
@@ -68,7 +68,7 @@ def find_parameters_velocity_th(fname):
   plt.plot(x, p[0] * th(x, p[1:]), 'k-')
   plt.xlabel('x (eletron Debye length)')
   plt.ylabel('vy (electron thermal velocity)')
-  plt.title('velocity profile fit: ' + fname)
+  plt.title('velocity profile fit: ' + fname + ', wp x t = ' + str(fb.t_of_fieldblob(fname)))
   return p
 
 if __name__ == '__main__':
@@ -84,22 +84,24 @@ if __name__ == '__main__':
     prho = find_parameters_density(fp[0])
     rho0, x0rho, Delta = prho
     print 'rho0:    ', rho0
-    print 'x0:      ', x0rho
+    print 'X0:      ', x0rho
     print 'Delta:   ', Delta
     print "rho'0:   ", softstepp(x0rho, prho)
 
     print 'Parameters for: ' + fp[1]
     pv = find_parameters_velocity(fp[1])
     v0, x0v, delta = pv
-    print 'v0: ', peak(x0rho, pv)
-    print 'delta:', delta
-    print "v'0: ", peakp(x0rho, pv)
+    print 'v0:    ', peak(x0rho, pv)
+    print 'x0:    ', x0v
+    print 'delta: ', delta
+    print "v'0:   ", peakp(x0rho, pv)
 
     print 'Teilhaber profile parameters:'
     pvi = find_parameters_velocity_th(fp[1])
     v0, x0v, delta = pvi
-    print 'v0: ', v0
-    print 'delta:', delta
-    print "v'0: ", pvi[0] * thp(x0v, pvi[1:])
+    print 'v0:    ', v0
+    print 'x0:    ', x0v
+    print 'delta: ', delta
+    print "v'0:   ", pvi[0] * thp(x0v, pvi[1:])
 
   plt.show()

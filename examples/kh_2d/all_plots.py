@@ -8,6 +8,9 @@ def run_with_output(argv):
 
 if __name__ == '__main__':
   run_with_output('./plot_energy.py')
+  run_with_output([ './plot_modes.py', 'potential', '20' ])
+  run_with_output([ './plot_modes.py', 'ey', '20' ])
+  run_with_output([ './plot_modes.py', 'ne', '20' ])
 
   movieprops = [
     ('ne', 'density', 'Reds'),
