@@ -57,7 +57,8 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, r, vtkf)
-        import t_particle_data, t_particle_results, vtkfile_unstructured_grid
+        use module_interaction_specific_types, only: t_particle_data, t_particle_results
+        use module_vtk, only: vtkfile_unstructured_grid
         implicit none
         type(t_particle_data), intent(in) :: d(:)
         type(t_particle_results), intent(in) :: r(:)
@@ -105,13 +106,11 @@ module module_vtk_helpers
   subroutine vtk_write_nodes_as_points(fname, mpi_comm, step, tsim, vtk_step, t, nodes, node_vbox, helper_func)
     use treevars
     use module_vtk
-    use module_spacefilling
     use module_mirror_boxes
-    use module_pepc_types, only: t_tree_node
+    use module_pepc_types
+    use module_interaction_specific_types
     use module_tree, only: t_tree
     use module_tree_node
-    use module_pepc_types, only: kind_node
-    use module_interaction_specific_types
     implicit none
 
     include 'mpif.h'
@@ -127,7 +126,8 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        import t_tree_node_interaction_data, vtkfile_unstructured_grid
+        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_vtk, only: vtkfile_unstructured_grid
         implicit none
         type(t_tree_node_interaction_data), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
@@ -217,11 +217,10 @@ module module_vtk_helpers
     use module_vtk
     use module_spacefilling
     use module_mirror_boxes
-    use module_pepc_types, only: t_tree_node
+    use module_pepc_types
+    use module_interaction_specific_types
     use module_tree, only: t_tree
     use module_tree_node
-    use module_pepc_types, only: kind_node
-    use module_interaction_specific_types
     implicit none
 
     include 'mpif.h'
@@ -237,7 +236,8 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        import t_tree_node_interaction_data, vtkfile_unstructured_grid
+        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_vtk, only: vtkfile_unstructured_grid
         implicit none
         type(t_tree_node_interaction_data), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
@@ -364,8 +364,6 @@ module module_vtk_helpers
   subroutine vtk_write_interaction_partners(step, label,tsim, vtk_step, interaction_nodelist, no_interaction_partners, interaction_vbox, helper_func)
     use module_pepc, only: global_tree
     use module_pepc_types
-    use module_interaction_specific_types, only: t_tree_node_interaction_data
-    use module_vtk, only: vtkfile_unstructured_grid
     use treevars
     integer, intent(in) :: step
     integer, intent(in) :: vtk_step
@@ -378,7 +376,8 @@ module module_vtk_helpers
     
     interface
       subroutine helper_func(d, vtkf)
-        import t_tree_node_interaction_data, vtkfile_unstructured_grid
+        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_vtk, only: vtkfile_unstructured_grid
         implicit none
         type(t_tree_node_interaction_data), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
@@ -423,8 +422,6 @@ module module_vtk_helpers
     use module_pepc, only: global_tree
     use module_pepc_types, only: t_tree_node, kind_node
     use module_tree, only: t_tree, tree_allocated
-    use module_vtk, only: vtkfile_unstructured_grid
-    use module_interaction_specific_types, only: t_tree_node_interaction_data
     use module_debug
     implicit none
 
@@ -435,7 +432,8 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        import t_tree_node_interaction_data, vtkfile_unstructured_grid
+        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_vtk, only: vtkfile_unstructured_grid
         implicit none
         type(t_tree_node_interaction_data), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
@@ -512,8 +510,6 @@ module module_vtk_helpers
     use module_pepc, only: global_tree
     use module_pepc_types, only: t_tree_node, kind_node
     use module_tree, only: t_tree, tree_allocated
-    use module_vtk, only: vtkfile_unstructured_grid
-    use module_interaction_specific_types, only: t_tree_node_interaction_data
     use module_debug
     implicit none
 
@@ -524,7 +520,8 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        import t_tree_node_interaction_data, vtkfile_unstructured_grid
+        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_vtk, only: vtkfile_unstructured_grid
         implicit none
         type(t_tree_node_interaction_data), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf

@@ -167,8 +167,8 @@ module module_velocity_setup
 
           integer :: dum1, dum2, dum3
           real*8 :: uxt, uyt, uzt
-          real*8 :: ux(nmax), uy(nmax), uz(nmax)
           integer(kind_particle) :: i, j, k, kk, p, i1, n, n1,nmax
+          real*8 :: ux(nmax), uy(nmax), uz(nmax)
 
           dum1 = -71 - 10*my_rank
           dum2 = -113301 - 10*my_rank

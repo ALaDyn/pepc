@@ -626,9 +626,9 @@ contains
         implicit none
         include 'mpif.h'
 
+        integer(kind_particle), intent(in) :: np_local !< number of local particles
         type(t_particle), intent(inout) :: particles(1:np_local)
         integer, intent(in) :: verbosity !< verbosity level: 0 - only print max. relative deviations, 1 - additionally print all. relative deviations, 2 - additionally print all. calculated forces
-        integer(kind_particle), intent(in) :: np_local !< number of local particles
         integer(kind_particle), dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
         integer(kind_particle) :: ntest !< number of particles in testidx
         integer, intent(in) :: my_rank, n_cpu, comm

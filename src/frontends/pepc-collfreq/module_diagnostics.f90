@@ -55,7 +55,7 @@ contains
 
         call timer_start(t_all)
 
-        call directforce(particles, [(i,i=1,size(particles,kind=kind(i)))], size(particles,kind=kind_particle), directresults, MPI_COMM_PEPC)
+        call directforce(particles, [(i,i=1,size(particles,kind=kind_particle))], size(particles,kind=kind_particle), directresults, MPI_COMM_PEPC)
         particles(1:size(particles,kind=kind_particle))%results = directresults(1:size(particles,kind=kind_particle))
 
         deallocate(directresults)
