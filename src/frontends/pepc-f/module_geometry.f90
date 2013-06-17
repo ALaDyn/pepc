@@ -367,6 +367,9 @@ module module_geometry
         y(2)=py-wall%x0(2)
         y(3)=pz-wall%x0(3)
 
+        lambda=0.
+        mu=0.
+
         dist=dotproduct(wall%n,y)
 
         if ((a(1)/=0) .and. ((b(2)/=0) .or. (b(3)/=0)))  then
