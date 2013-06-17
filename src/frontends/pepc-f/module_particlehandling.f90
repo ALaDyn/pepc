@@ -385,14 +385,18 @@ module particlehandling
 
 !======================================================================================
 
-    SUBROUTINE get_number_of_particles()
+    SUBROUTINE get_number_of_particles(p)
         implicit none
 
-        integer :: ip
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        integer :: ip,n,ispecies
+
+        n=size(p)
 
         npps=0
-        DO ip=1,np
-           npps(particles(ip)%data%species) = npps(particles(ip)%data%species) + 1
+        DO ip=1,n
+           ispecies = p(ip)%data%species
+           IF (ispecies >= 0) npps(ispecies) = npps(ispecies) + 1
         END DO
 
     END SUBROUTINE get_number_of_particles
@@ -436,7 +440,7 @@ module particlehandling
 
         call charge_wall(p,thits)
 
-        call get_number_of_particles()
+        call get_number_of_particles(p)
 
         call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         tnp=SUM(tnpps)
@@ -455,12 +459,14 @@ module particlehandling
 
         integer      :: rc
 
-        integer      :: ip,nlp,tnlp
+        integer      :: ip,nlp,tnlp,n
 
         nlp=0
         tnlp=0
 
-        DO ip=1,np
+        n=size(p)
+
+        DO ip=1,n
             IF (p(ip)%x(1)>=0. .AND. p(ip)%x(1)<=dx .AND. p(ip)%x(2)>=0. .AND. &
                 p(ip)%x(2)<=dy .AND. p(ip)%x(3)>=0. .AND. p(ip)%x(3)<=dz)   THEN
                 CYCLE
@@ -489,12 +495,6 @@ module particlehandling
     
         type(t_particle), intent(inout) :: p(:)
         integer :: ip,ispecies,i,j
-
-
-        real(KIND=8) :: probe_start_x(0:nspecies-1), probe_start_y(0:nspecies-1), probe_start_z(0:nspecies-1)
-        real(KIND=8) :: probe_end_x(0:nspecies-1), probe_end_y(0:nspecies-1), probe_end_z(0:nspecies-1)
-        namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
-
 
         open(1234,file=trim(input_file))
         read(1234,NML=probe_positions)

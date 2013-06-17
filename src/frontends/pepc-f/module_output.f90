@@ -83,9 +83,9 @@ MODULE output
 
 
         IF (root) THEN
-            write(filehandle,'(a10,4(a16))')"Label","x","y","z","POT"
+            write(filehandle,'(a10,a10,7(a16))')"","Label","x","y","z","POT","Ex","Ey","Ez"
             DO i=1,tnpps(ispecies)
-                write(filehandle,'(i10.10,4(1pe16.7E3))')tprobes(i)%label,tprobes(i)%x,tprobes(i)%results%pot
+                write(filehandle,'(a10,i10.10,7(1pe16.7E3))')"Probe:    ",tprobes(i)%label,tprobes(i)%x,tprobes(i)%results%pot*fc,tprobes(i)%results%E*fc
             END DO
         END IF
 
@@ -139,15 +139,15 @@ MODULE output
         real(kind=8)             :: timestep
 
         timestep=integrator+particlehandling+pepc_grow+output+pepc_traverse+pepc_diag+pepc_timber
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in integrator [s], %            :", integrator,", ",100.*integrator/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in particlehandling [s], %      :", particlehandling,", ",100.*particlehandling/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in grow_tree routine [s], %     :", pepc_grow,", ",100.*pepc_grow/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in traverse_tree routine [s], % :", pepc_traverse,", ",100.*pepc_traverse/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in timber_tree routine [s], %   :", pepc_timber,", ",100.*pepc_timber/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in pepc diag routines [s], %    :", pepc_diag,", ",100.*pepc_diag/timestep," %"
-        if(root) write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in output routines [s], %       :", output,", ",100.*output/timestep," %"
-        if(root) write(filehandle,'(a,es16.8)') " == total time in timestep [s]           :", timestep
-        if(root) write(filehandle,*)
+        write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in integrator [s], %            :", integrator,", ",100.*integrator/timestep," %"
+        write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in particlehandling [s], %      :", particlehandling,", ",100.*particlehandling/timestep," %"
+        write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in grow_tree routine [s], %     :", pepc_grow,", ",100.*pepc_grow/timestep," %"
+        write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in traverse_tree routine [s], % :", pepc_traverse,", ",100.*pepc_traverse/timestep," %"
+        write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in timber_tree routine [s], %   :", pepc_timber,", ",100.*pepc_timber/timestep," %"
+        write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in pepc diag routines [s], %    :", pepc_diag,", ",100.*pepc_diag/timestep," %"
+        write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in output routines [s], %       :", output,", ",100.*output/timestep," %"
+        write(filehandle,'(a,es16.8)') " == total time in timestep [s]           :", timestep
+        write(filehandle,*)
 
     END SUBROUTINE timing_output
 
@@ -159,13 +159,13 @@ MODULE output
 
         integer,intent(in)      :: timestep,filehandle
 
-        if(root) write(filehandle,'(a,es16.8)') " == timestep                             :",dt
-        if(root) write(filehandle,'(a,i16)') " == finished computing step              :",timestep
-        if(root) write(filehandle,'(a)') " "
-        if(root) write(filehandle,'(a)')"############################################################################################################"
-        if(root) write(filehandle,'(a)')"    ====================================================================================================    "
-        if(root) write(filehandle,'(a)')"############################################################################################################"
-        if(root) write(filehandle,'(a)') " "
+        write(filehandle,'(a,es16.8)') " == timestep                             :",dt
+        write(filehandle,'(a,i16)') " == finished computing step              :",timestep
+        write(filehandle,'(a)') " "
+        write(filehandle,'(a)')"############################################################################################################"
+        write(filehandle,'(a)')"    ====================================================================================================    "
+        write(filehandle,'(a)')"############################################################################################################"
+        write(filehandle,'(a)') " "
 
     END SUBROUTINE end_of_ts_output
 
@@ -183,9 +183,13 @@ MODULE output
         IF(root) write(filehandle,'(a)')"================================================================================================"
         DO ispecies=0,nspecies-1
             IF(root) THEN
-                write(filehandle,'(a,i2,a)')"----------------------------------- Species ",ispecies," ---------------"
+                IF (species(ispecies)%physical_particle) THEN
+                    write(filehandle,'(a,i2,a)')"----------------------------------- Species ",ispecies," -----------------"
+                ELSE
+                    write(filehandle,'(a,i2,a)')"----------------------------------- Species ",ispecies," --(unphysical)---"
+                END IF
                 write(filehandle,'(a,a)')"Name: ",TRIM(species(ispecies)%name)
-                IF (.not. species(ispecies)%physical_particle) write(filehandle,'(a)')"(no physical species)"
+                write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
                 write(filehandle,*)
             END IF
             IF (species(ispecies)%physical_particle) THEN
@@ -198,12 +202,12 @@ MODULE output
                 IF(root) write(filehandle,*)
                 IF(root) write(filehandle,'(a,i10)') "Refluxed particles :",SUM(treflux_out(ispecies,1:nb))+species(ispecies)%nfp
                 IF(root) write(filehandle,*)
-                IF(root) write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
-                IF(root) write(filehandle,*)
             ELSE
-                IF(species(ispecies)%indx /= 0) call probe_output(ispecies,filehandle)
-                IF(root) write(filehandle,*)
-                IF(root) write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
+                IF(diag_interval.ne.0) THEN
+                    IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
+                        IF(species(ispecies)%indx /= 0) call probe_output(ispecies,filehandle)
+                    END IF
+                END IF
                 IF(root) write(filehandle,*)
             END IF
 
@@ -303,7 +307,7 @@ MODULE output
     
         type(t_particle), allocatable, intent(in) :: p(:)
 
-        integer :: i
+        integer :: i,n
         type(vtkfile_unstructured_grid) :: vtk
         integer :: vtk_step
         real*8 :: time
@@ -312,6 +316,8 @@ MODULE output
         ta = get_time()
     
         time = dt* step
+
+        n=size(p)
 
         if (step .eq. 0) then
           vtk_step = VTK_STEP_FIRST
@@ -322,7 +328,7 @@ MODULE output
         endif
 
         call vtk%create_parallel("particles", step, my_rank, n_ranks, time, vtk_step)
-        call vtk%write_headers(np, 0)
+        call vtk%write_headers(n, 0)
         call vtk%startpoints()
         call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
         call vtk%finishpoints()
@@ -334,8 +340,8 @@ MODULE output
         call vtk%write_data_array("mass", p(:)%data%m)
         call vtk%write_data_array("work", p(:)%work)
         call vtk%write_data_array("pelabel", p(:)%label)
-        call vtk%write_data_array("local index", [(i,i=1,np)])
-        call vtk%write_data_array("processor", np, my_rank)
+        call vtk%write_data_array("local index", [(i,i=1,n)])
+        call vtk%write_data_array("processor", n, my_rank)
         call vtk%write_data_array("species", p(:)%data%species)
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
@@ -387,6 +393,7 @@ MODULE output
         if (root) then
             open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
             write(fid,NML=pepcf)
+            write(fid,NML=probe_positions)
 
             nbnd=nb
             DO ib=1,nbnd

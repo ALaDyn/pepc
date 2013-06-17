@@ -49,9 +49,9 @@ module variables
   integer :: tnp              ! total number of particles (all species)
   integer*8 :: npart          ! total number of particles, needed as int8 for checkpoints
   integer :: np               ! local number of particles (all species)
-  integer :: diag_interval    ! interval for writing probe data
-  integer :: vtk_interval     ! interval for writing vtk output
-  integer :: checkp_interval  ! interval for setting checkpoints
+  integer :: diag_interval=0  ! interval for writing probe data
+  integer :: vtk_interval=0   ! interval for writing vtk output
+  integer :: checkp_interval=0! interval for setting checkpoints
   logical :: diags
   logical :: interaction_partner_diags
 
@@ -87,6 +87,8 @@ module variables
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
+  type(t_particle), allocatable :: mirror_particles(:)
+  type(t_particle), allocatable :: all_particles(:)
   integer(kind_particle)        :: next_label
 
   !variables for reflux in every 2nd timestep
@@ -121,9 +123,14 @@ module variables
   integer :: src_boundary     ! if quelltyp==0 or 3 (surface sources) the boundary has to be specified (x0,e1,e2,e3 will be ignored)
                               ! if quelltyp==1 or 2 (volume sources) this value will be set to 0 and ignored
 
+  integer :: spiegelladung=0
 
+  real(KIND=8),allocatable :: probe_start_x(:), probe_start_y(:), probe_start_z(:)
+  real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)
+
+  namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
   namelist /source_nml/ x0_src,e1_src,e2_src,e3_src,quelltyp,src_boundary
-  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval, vtk_interval
+  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval, vtk_interval,spiegelladung
   namelist /walk_para_smpss/ chunk_size_default
 
 

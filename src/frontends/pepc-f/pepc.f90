@@ -47,6 +47,7 @@ program pepc
 
     ! timing variables
     real*8 :: timer(20)
+    integer :: rc,ip,imp,irp
     !real*8 :: davor,danach
 
 
@@ -87,6 +88,8 @@ program pepc
     call init_output_arrays()
     call write_parameters()
 
+
+
     !probes for analysing interaction partner diags
     if (interaction_partner_diags) call init_probes(5)
 
@@ -105,13 +108,14 @@ program pepc
     if(checkp_interval.ne.0) then
         call set_checkpoint()
     end if
-    if(diag_interval.ne.0) then
+    if(vtk_interval.ne.0) then
         call write_particles(particles)
     end if
 
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
     if(root) write(*,*)""
+    if(root) write(*,*)"spiegelladung=",spiegelladung
 
 
     !MAIN LOOP ====================================================================================================
@@ -121,7 +125,6 @@ program pepc
 
         ! Move particles according to electric field configuration
         call boris_nonrel(particles)
-        !call standard_integrator(particles)
         timer(4) = get_time()
 
 
@@ -129,49 +132,116 @@ program pepc
         call hits_on_boundaries(particles)
         timer(5) = get_time()
 
+        IF (spiegelladung==1) THEN
+            allocate(all_particles(size(particles)+sum(npps(1:2))),stat=rc)
+            all_particles(1:size(particles))=particles
+            imp=1
+            DO ip=1,size(particles)
+                IF (species(particles(ip)%data%species)%physical_particle .eqv. .false.) CYCLE
+                all_particles(size(particles)+imp) = particles(ip)
+                all_particles(size(particles)+imp)%data%q = -all_particles(size(particles)+imp)%data%q
+                all_particles(size(particles)+imp)%x(1) = -all_particles(size(particles)+imp)%x(1) + 2*dx
+                all_particles(size(particles)+imp)%data%species = -1
+                imp = imp+1
+            END DO
+        END IF
 
-        !pepc routines and timing"        
+        !pepc routines
         call pepc_particleresults_clear(particles)
-        if(root) write(*,'(a)') " == [main loop] grow tree"
-        call pepc_grow_tree(particles)
-        np = size(particles, kind=kind(np))
-        timer(6)=get_time() !6-5: grow_tree
+        IF (spiegelladung==1) call pepc_particleresults_clear(all_particles)
 
+        !grow tree
+        if(root) write(*,'(a)') " == [main loop] grow tree"
+        IF (spiegelladung/=1)call pepc_grow_tree(particles)
+        IF (spiegelladung/=1)call get_number_of_particles(particles)
+        IF (spiegelladung==1)call pepc_grow_tree(all_particles)
+
+        IF (spiegelladung==1) THEN
+            call get_number_of_particles(all_particles)
+            deallocate(particles)
+            allocate(particles(sum(npps)),stat=rc)
+            irp=1
+            DO ip=1,size(all_particles)
+                IF (all_particles(ip)%data%species==-1) CYCLE
+                particles(irp)=all_particles(ip)
+                irp=irp+1
+            END DO
+        END IF
+
+        timer(6)=get_time() !6-5: grow_tree
+        !end grow tree
+
+        !traverse tree
         if(root) write(*,'(a)') " == [main loop] traverse tree"
         call pepc_traverse_tree(particles)
-        timer(7)=get_time() !7-6: traverse_tree
 
+        IF (spiegelladung==2) THEN
+            allocate(mirror_particles(sum(npps(1:2))),stat=rc)
+            imp=1
+            DO ip=1,size(particles)
+                IF (species(particles(ip)%data%species)%physical_particle .eqv. .false.) CYCLE
+                mirror_particles(imp) = particles(ip)
+                mirror_particles(imp)%data%q = -mirror_particles(imp)%data%q
+                mirror_particles(imp)%x(1) = -mirror_particles(imp)%x(1) + 2*dx
+                mirror_particles(imp)%data%species = -1
+                imp = imp+1
+            END DO
+            call pepc_timber_tree()
+            call pepc_grow_tree(mirror_particles)
+            call pepc_traverse_tree(particles)
+        END IF
+
+        timer(7)=get_time() !7-6: traverse_tree
+        !end traverse tree
+
+
+        !diagnostics
         if (diags) call pepc_tree_diagnostics()
-        if (do_restore_particles) call pepc_restore_particles(particles)
+        !if (do_restore_particles) call pepc_restore_particles(particles)
         np = size(particles, kind=kind(np))
         if (interaction_partner_diags) call get_interaction_partners(5)
-        timer(8)=get_time()
 
+
+        timer(8)=get_time()
+        !end diagnostics
+
+
+        !timber tree
         if(root) write(*,'(a)') " == [main loop] timber tree"
         call pepc_timber_tree()
+
+
         timer(9)=get_time() !9-8: timber
+        !end timber tree
 
+
+        !further diagnostics
         if (diags) call timings_GatherAndOutput(step)
+
+
         timer(10)=get_time() !10-9 + 8-7: diag
+        !end further diagnostics
 
 
-
-        !diagnostics and checkpoints (positions and fields after current timestep)
+        !vtk and checkpoints (positions and fields after current timestep)
         if(checkp_interval.ne.0) then
             if ((MOD(step,checkp_interval)==0).or.(step==nt+startstep)) then
                 call set_checkpoint()
             end if
         end if
-        if(diag_interval.ne.0) then
-            if ((MOD(step,diag_interval)==0).or.(step==nt+startstep)) THEN
-                call write_particles(particles)
+        if(vtk_interval.ne.0) then
+            if ((MOD(step,vtk_interval)==0).or.(step==nt+startstep)) THEN
+                IF (spiegelladung==1) call write_particles(all_particles)
+                IF (spiegelladung/=1) call write_particles(particles)
             end if
         end if
+        !end vtk and checkpoints
 
+
+        !output
         call main_output(out)
-        timer(11)=get_time()
 
-        !output for root
+        timer(11)=get_time()
         if(root) then
             write(*,*) " "
             write(*,'(a,i12)')    " ====== finished computing step  : ", step
@@ -184,24 +254,24 @@ program pepc
             call timing_output(timer(4)-timer(3), timer(5)-timer(4), timer(6)-timer(5), timer(7)-timer(6),&
                                timer(10)-timer(9)+timer(8)-timer(7), timer(9)-timer(8), timer(11)-timer(10), out)
             call end_of_ts_output(step,out)
-
         end if
-
         if (MOD(step-startstep,10)==0) call flush_files()
+        !end output
 
-
+        IF (spiegelladung==1) deallocate(all_particles)
+        IF (spiegelladung==2) deallocate(mirror_particles)
     end do
     !END OF MAIN LOOP ====================================================================================================
 
     deallocate(particles)
 
 
-    timer(10) = get_time()
+    timer(12) = get_time()
 
     if(root) then
         write(*,*)            " "
         write(*,'(a)')        " ===== finished pepc simulation"
-        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(10) - timer(1)
+        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(12) - timer(1)
     end if
 
     call close_files()

@@ -119,6 +119,13 @@ module module_species
 
         call check_species()
 
+        allocate(probe_start_x(0:nspecies-1),stat=rc)
+        allocate(probe_start_y(0:nspecies-1),stat=rc)
+        allocate(probe_start_z(0:nspecies-1),stat=rc)
+        allocate(probe_end_x(0:nspecies-1),stat=rc)
+        allocate(probe_end_y(0:nspecies-1),stat=rc)
+        allocate(probe_end_z(0:nspecies-1),stat=rc)
+
         deallocate(nfp)
         deallocate(mass)
         deallocate(charge)

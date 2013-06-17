@@ -217,12 +217,16 @@ module module_initialization
       
     integer, parameter :: fid = 666
     integer(kind_particle) :: global_max_label,local_max_label
-    integer :: ip,ib
+    integer :: ip,ib,ispecies,i,j,rc
     real(KIND=8) :: q_loc(nb),q_glob(nb)
     logical :: hit
 
 
-    tnp=npart
+    open(1234,file=trim(input_file))
+    read(1234,NML=probe_positions)
+    close(1234)
+
+
     npps=0
     tnpps=0
 
@@ -232,15 +236,12 @@ module module_initialization
 
     call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-    write(*,*)my_rank,npps,tnpps
-
     IF (tnpps(0)/=count_wallparticles()) THEN
-        IF (root) write(*,*) "Number of Wallparticles in checkpoint does not match number in input."
+        IF (root) write(*,*) "Number of Wallparticles in checkpoint does not match number in input.",tnpps(0),count_wallparticles()
         IF (root) write(*,*) "You can't change the number of Wallparticles when resuming"
         STOP
     END IF
-
-
+    tnp=sum(tnpps)
 
     q_loc=0.
     q_glob=0.
@@ -259,7 +260,6 @@ module module_initialization
         boundaries(ib)%q_tot=q_glob(ib)
     END DO
 
-
     global_max_label = 0
     local_max_label  = 0
     DO ip=1,np
@@ -267,6 +267,48 @@ module module_initialization
     END DO
     call MPI_ALLREDUCE(local_max_label, global_max_label, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
     next_label = global_max_label + 1
+
+    IF (nspecies>3) THEN
+        DO ispecies=3,nspecies-1
+            IF (.not. species(ispecies)%physical_particle) THEN
+                IF (tnpps(ispecies)==0) THEN
+                    IF (species(ispecies)%nip/=0) THEN
+                        IF (root) THEN
+                            call reallocate_particles(particles, size(particles), size(particles)+species(ispecies)%nip)
+                            j=0
+                            DO i=1, species(ispecies)%nip
+                                ip=i+size(particles)-species(ispecies)%nip
+                                particles(ip)%data%B(1)=Bx
+                                particles(ip)%data%B(2)=By
+                                particles(ip)%data%B(3)=Bz
+                                particles(ip)%label       = next_label
+                                next_label = next_label + 1
+                                particles(ip)%data%q      = species(ispecies)%q*fsup
+                                particles(ip)%data%m      = species(ispecies)%m*fsup
+                                particles(ip)%data%species= species(ispecies)%indx
+                                particles(ip)%results%e   = 0.0_8
+                                particles(ip)%results%pot = 0.0_8
+                                particles(ip)%work        = 1.0_8
+                                particles(ip)%x(1) = probe_start_x(ispecies) + (j+0.5) * (probe_end_x(ispecies) - probe_start_x(ispecies)) / species(ispecies)%nip
+                                particles(ip)%x(2) = probe_start_y(ispecies) + (j+0.5) * (probe_end_y(ispecies) - probe_start_y(ispecies)) / species(ispecies)%nip
+                                particles(ip)%x(3) = probe_start_z(ispecies) + (j+0.5) * (probe_end_z(ispecies) - probe_start_z(ispecies)) / species(ispecies)%nip
+                                particles(ip)%data%v = 0.
+                                j=j+1
+                            END DO
+                        END IF
+                    END IF
+                ELSE
+                    IF (tnpps(ispecies) /= species(ispecies)%nip) THEN
+                        IF (root) write(*,*) "Number of probes in checkpoint does not match number in input. Species: ",ispecies
+                        IF (root) write(*,*) "Number of probes cannot be changed when resuming. If additional probes are required, add a new species."
+                        STOP
+                    END IF
+                END IF
+            END IF
+        END DO
+    END IF
+    call MPI_BCAST(next_label, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, rc)
+
 
   end subroutine
 
