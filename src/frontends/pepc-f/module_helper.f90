@@ -191,31 +191,6 @@ module helper
   end subroutine
 
 
-!======================================================================================
-!sortiert wallparticles nach hinten
-  subroutine sort_particles(p)
-    implicit none
-
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    type(t_particle)                               :: p_help_vorn
-
-
-    integer :: i,iback
-
-    iback=np
-
-    DO i=1,np
-        if (p(i)%data%species == 0) then
-            p_help_vorn=p(i)
-            do while (p(iback)%data%species==0)
-                iback=iback-1
-            end do
-            if (iback<=i) exit
-            p(i)=p(iback)
-            p(iback)=p_help_vorn
-        end if
-    END DO
-  end subroutine
 
 !=======================================================================================
   subroutine pepc_tree_diagnostics()
