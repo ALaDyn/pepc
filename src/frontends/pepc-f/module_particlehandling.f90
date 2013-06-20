@@ -182,11 +182,7 @@ module particlehandling
 
         DO ib = 1,nb
             IF (boundaries(ib)%type==4) THEN
-                DO ispecies = 0,nspecies-1
-                    IF (species(ispecies)%physical_particle .and. species(ispecies)%indx==1) THEN
-                        call repell_electrons_at_logical_sheath(p,hits,reflux,vcut_el(ib),p_hits_logical_sheath,ib,ispecies)
-                    END IF
-                END DO
+               call repell_electrons_at_logical_sheath(p,hits,reflux,vcut_el(ib),p_hits_logical_sheath,ib)
             END IF
         END DO
 
@@ -195,7 +191,7 @@ module particlehandling
 
 !======================================================================================
 
-    SUBROUTINE repell_electrons_at_logical_sheath(p,hits,reflux,vcut_el,p_hits_logical_sheath,ib,ispecies)
+    SUBROUTINE repell_electrons_at_logical_sheath(p,hits,reflux,vcut_el,p_hits_logical_sheath,ib)
 
         implicit none
         include 'mpif.h'
@@ -203,10 +199,13 @@ module particlehandling
         type(t_particle), allocatable, intent(inout) :: p(:),p_hits_logical_sheath(:,:,:)
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
         real(KIND=8),intent(in) :: vcut_el
-        integer, intent(in) :: ib,ispecies
+        integer, intent(in) :: ib
+        integer :: ispecies
 
         integer :: ip
         real(KIND=8) :: v_perp,xp(3)
+
+        ispecies=1
 
         IF (vcut_el<=0.0_8) return
 
@@ -457,7 +456,7 @@ module particlehandling
         type(t_particle), allocatable :: p1(:)
 
         integer      :: rc
-        integer      :: ip,nlp,tnlp,n
+        integer      :: ip,nlp(0:nspecies-1),tnlp(0:nspecies-1),n
 
         nlp=0
         tnlp=0
@@ -470,7 +469,7 @@ module particlehandling
                 p(ip)%x(2)<=dy .AND. p(ip)%x(3)>=0. .AND. p(ip)%x(3)<=dz)   THEN
                 CYCLE
             ELSE
-                nlp=nlp+1
+                nlp(p(ip)%data%species) = nlp(p(ip)%data%species) + 1
                 !write(*,'(i6,a,i16,i16)')my_rank,": label,species: ", p(ip)%label,p(ip)%data%species
                 !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle velocity: ", p(ip)%data%v
                 !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle position: ", p(ip)%x
@@ -482,8 +481,12 @@ module particlehandling
             END IF
         END DO
 
-        call MPI_ALLREDUCE(nlp, tnlp, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        if(root) write(*,*) "Number of leaked particles:",tnlp
+        IF (nlp(0)>0) call redistribute_wall_particles(p)
+
+        call MPI_ALLREDUCE(nlp, tnlp, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        IF (root) THEN
+            if(sum(tnlp)>0) write(*,*) "Number of leaked particles per species:",tnlp
+        END IF
 
     END SUBROUTINE check_for_leakage
 
@@ -568,14 +571,18 @@ module particlehandling
         type(t_particle), intent(inout) :: p(:)
         real :: ran1,ran2
         integer :: ip,ib
+        logical :: hit
 
         DO ip=1, np
             IF (p(ip)%data%species/=0) CYCLE
             DO ib=1,nb
                 IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                    ran1=rnd_num()
-                    ran2=rnd_num()
-                    p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+                    call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit)
+                    IF (.not. hit) THEN
+                        ran1=rnd_num()
+                        ran2=rnd_num()
+                        p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+                    END IF
                 END IF
             END DO
         END DO
