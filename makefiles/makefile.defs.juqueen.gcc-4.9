@@ -14,19 +14,20 @@ MAKE     = make
 AR       = ar
 ARFLAGS  = -rs
 
-CPP      = cpp
+# GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
+CPP      = cpp -Uvector
 CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
 
 INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -fno-fat-lto-objects -fuse-linker-plugin
 
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -mcpu=a2 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all
-  CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -mcpu=a2 -g 
-  LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -mcpu=a2 -g 
+  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all
+  CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g 
+  LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
 else
-  FFLAGS   = -Wall -O5 -mcpu=a2 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
-  CFLAGS   = -Wall -O5 -mcpu=a2 -g
-  LDFLAGS   = -pthread -mcpu=a2 -g -O5 $(INLINING) -fwhole-file
+  FFLAGS   = -Wall -O5 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
+  CFLAGS   = -Wall -O5 -g
+  LDFLAGS   = -pthread -g -O5 $(INLINING) -fwhole-file
   CPPFLAGS += -DNDEBUG
 #-Wl,--threads
 #-fuse-linker-plugin
@@ -47,13 +48,13 @@ else
 endif
 
 FCPRE    = 
-FC       = mpigfortran-4.9
+FC       = mpigfortran
 
 CCPRE    = 
-CC       = mpigcc-4.9
+CC       = mpigcc
 
 LDPRE    = 
-LD       = mpigfortran-4.9
+LD       = mpigfortran
 LDLIBS   = 
 
 RM       = rm -rf
