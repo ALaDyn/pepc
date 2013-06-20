@@ -233,8 +233,8 @@ module module_geometry
             return
         end if
 
-        x=p%x
-        xold=p%x - dt*p%data%v
+        x = p%x
+        xold = p%x - dt*p%data%v
         call get_intersect(xold,x,wall,intersect)
         call check_hit(intersect(1),intersect(2),intersect(3),wall,hit)
 
@@ -421,13 +421,21 @@ module module_geometry
 
         type(t_boundary), intent(in) :: wall
         real*8, intent(in), dimension(3) :: xold,xnew
-        real*8 :: lambda,n(3),x0(3)
+        real*8 :: n(3),x0(3),lambda,a,b
         real*8, intent(out), dimension(3) :: intersect
 
-        x0=wall%x0
-        n=wall%n
-        lambda=(dotproduct(n,x0)-dotproduct(n,xold)) / dotproduct(n, xnew-xold)
-        intersect=xold + lambda*(xnew-xold)
+        x0= wall%x0
+        n = wall%n
+        a = dotproduct((xold-x0),n)
+        b = dotproduct((xnew-x0),n)
+        !IF (a < 0) THEN
+        !    write(*,*) "no intersection, xold outside of the domain"
+        !END IF
+        !IF (b > 0) THEN
+        !    write(*,*) "no intersection, xnew inside of the domain"
+        !END IF
+        lambda = abs(a) / (abs(a)+abs(b))
+        intersect = xold + (xnew-xold)*lambda
 
     end subroutine get_intersect
 

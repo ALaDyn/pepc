@@ -44,7 +44,7 @@ MODULE output
 
 
         v_mean=get_v_mean(particles,np,ispecies)
-        v_th=sqrt(2*species(ispecies)%t_src*e/species(ispecies)%m)
+        v_th=sqrt(2*species(ispecies)%src_t*e/species(ispecies)%m)
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity (1,2,3) [m/s]     : ",v_mean
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity/v_th (1,2,3)      : ",v_mean/v_th
 
@@ -266,7 +266,6 @@ MODULE output
           write(*,'(a,es12.4)') " == simulation volume                : ", dx*dy*dz
           write(*,'(a,es12.4)') " == superparticle factor             : ", fsup
           !write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
-          write(*,'(a,i12)')    " == type of source distribution      : ", quelltyp
           write(*,'(a,l6)')     " == far_field_if_periodic            : ", include_far_field_if_periodic
           write(*,'(a,l6)')     " == do_restore_particles             : ", do_restore_particles
           write(*,*)
@@ -377,13 +376,20 @@ MODULE output
         integer :: nip(0:nspecies-1)
         real(KIND=8) :: mass(0:nspecies-1)
         real(KIND=8) :: charge(0:nspecies-1)
-        real(KIND=8) :: t_src(0:nspecies-1)
+        real(KIND=8) :: src_t(0:nspecies-1)
         logical :: physical_particle(0:nspecies-1)
         character(255) :: name(0:nspecies-1)
+        real(KIND=8) :: src_x0(0:nspecies-1,3)
+        real(KIND=8) :: src_e1(0:nspecies-1,3)
+        real(KIND=8) :: src_e2(0:nspecies-1,3)
+        real(KIND=8) :: src_e3(0:nspecies-1,3)
+        integer :: src_type(0:nspecies-1)
+        integer :: src_bnd(0:nspecies-1)
+
         integer :: ispecies,ns
 
         namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,mirror_box_layers,periodicity
-        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,t_src
+        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type
 
         integer, parameter :: fid = 666
 
@@ -408,7 +414,6 @@ MODULE output
             END DO
             write(fid,NML=geometry)
 
-
             ns=nspecies
             DO ispecies=0,ns-1
                 name(ispecies)=trim(species(ispecies)%name)
@@ -417,10 +422,15 @@ MODULE output
                 physical_particle(ispecies)=species(ispecies)%physical_particle
                 nfp(ispecies)=species(ispecies)%nfp
                 nip(ispecies)=species(ispecies)%nip
-                t_src(ispecies)=species(ispecies)%t_src
+                src_t(ispecies)=species(ispecies)%src_t
+                src_x0(ispecies,1:3)=species(ispecies)%src_x0
+                src_e1(ispecies,1:3)=species(ispecies)%src_e1
+                src_e2(ispecies,1:3)=species(ispecies)%src_e2
+                src_e3(ispecies,1:3)=species(ispecies)%src_e3
+                src_type(ispecies)=species(ispecies)%src_type
+                src_bnd(ispecies)=species(ispecies)%src_bnd
             END DO
             write(fid,NML=species_nml)
-            write(fid,NML=source_nml)
             write(fid,NML=walk_para_smpss)
             close(fid)
 

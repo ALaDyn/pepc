@@ -116,20 +116,12 @@ module variables
   type(t_species), allocatable :: species(:)
   integer :: nspecies    ! number of species
 
-  !source
-  real(KIND=8) :: x0_src(3)
-  real(KIND=8) :: e1_src(3),e2_src(3),e3_src(3)
-  integer :: quelltyp
-  integer :: src_boundary     ! if quelltyp==0 or 3 (surface sources) the boundary has to be specified (x0,e1,e2,e3 will be ignored)
-                              ! if quelltyp==1 or 2 (volume sources) this value will be set to 0 and ignored
-
   integer :: spiegelladung=0
 
   real(KIND=8),allocatable :: probe_start_x(:), probe_start_y(:), probe_start_z(:)
   real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)
 
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
-  namelist /source_nml/ x0_src,e1_src,e2_src,e3_src,quelltyp,src_boundary
   namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval, vtk_interval,spiegelladung
   namelist /walk_para_smpss/ chunk_size_default
 

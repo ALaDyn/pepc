@@ -73,7 +73,6 @@ program pepc
     call set_parameters()
     call init_species()
     call init_boundaries()
-    call init_source()
 
     call init_rng()
     call init_periodicity()
@@ -130,6 +129,7 @@ program pepc
 
         ! Remove particles that left the simulation domain and reflux particles
         call hits_on_boundaries(particles)
+        call check_for_leakage(particles)
         timer(5) = get_time()
 
         IF (spiegelladung==1) THEN

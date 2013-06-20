@@ -41,7 +41,7 @@ module module_species_types
 
       !> Data structure for storing interaction-specific particle data
       type t_species
-         real(KIND=8) :: t_src               !< source temperature (eV)
+         real(KIND=8) :: src_t               !< source temperature (eV)
          real*8 :: m                         !< mass
          real*8 :: q                         !< charge
          integer :: indx                     !< index (should be the same as in the species array)
@@ -49,6 +49,11 @@ module module_species_types
          logical :: physical_particle=.true. !< physical particle (true) or probe, wallparticle, ...(false)
          integer :: nfp=0                    !< number of influxed particles per timestep (in addition to refluxed particles that hit an absorbing boundary)
          integer :: nip=0                    !< initial number of particles (irrelevant when resuming)
+
+         integer :: src_type
+         real(KIND=8) :: src_x0(3)
+         real(KIND=8) :: src_e1(3),src_e2(3),src_e3(3)
+         integer :: src_bnd
       end type t_species
 
 

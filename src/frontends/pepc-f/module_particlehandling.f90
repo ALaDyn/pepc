@@ -20,7 +20,7 @@ module particlehandling
         type(t_particle), allocatable :: p_hits_logical_sheath(:,:,:)
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
         real*8 :: xp(3)
-        real(KIND=8) v_new(3),v_perp(3),mu,sigma,x_ran(3),ran,ran1,ran2,t1(3),t2(3)
+        real(KIND=8) v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),v_ran(1)
 
 
         IF (ANY(boundaries(1:nb)%type==4)) allocate(p_hits_logical_sheath(0:nspecies-1,nb,np),stat=rc)
@@ -48,25 +48,25 @@ module particlehandling
                         np = np-1
                         ib = 0
                         rp = rp - 1
-                    ELSE IF (boundaries(ib)%type==5) THEN                              !immediate half-Maxwellian refluxing perpendicular to surface
-                        !v_old=p(rp)%data%v
-                        !v_perp=dotproduct(boundaries(ib)%n,v_old)*boundaries(ib)%n
-                        !p(rp)%data%v=p(rp)%data%v-v_perp
-                        !sigma=sqrt(species(p(rp)%data%species)%t_src*e/(p(rp)%data%m/fsup))
-                        !mu=0.0
-                        !call random_gauss_list(v_ran,mu,sigma)
-                        !v_ran(1)=abs(v_ran(1))
-                        !v_perp=v_ran(1)*boundaries(ib)%n
-                        !p(rp)%data%v=p(rp)%data%v+v_perp
-                        !xp = p(rp)%x - boundaries(ib)%x0
-                        !ran=rnd_num()
-                        !x_ran=v_perp*ran*dt
-                        !p(rp)%x = p(rp)%x - dotproduct(xp,boundaries(ib)%n)*boundaries(ib)%n + x_ran
-                        !ib=0
+                    ELSE IF (boundaries(ib)%type==5) THEN   !immediate half-Maxwellian refluxing normal to surface, tangential v conserved
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%t_src*e/(p(rp)%data%m/fsup))
-                        call random_gauss_list(v_new(2:3),mu,sigma)
-                        call random_gaussian_flux(v_new(1),sigma)
+                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        call get_intersect(p(rp)%x-p(rp)%data%v*dt, p(rp)%x, boundaries(ib), xi)
+                        p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
+                        call random_gauss_list(v_ran,mu,sigma)
+                        v_ran(1) = abs(v_ran(1))
+                        p(rp)%data%v = p(rp)%data%v + boundaries(ib)%n*v_ran(1)
+                        ran = rnd_num()
+                        p(rp)%x = xi + dt*ran*p(rp)%data%v
+                        ib=0
+                    ELSE IF (boundaries(ib)%type==6) THEN  !immediate half-Maxwellian refluxing normal to surface, tangential v resampled
+                        mu=0.0_8
+                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        call get_intersect(p(rp)%x-p(rp)%data%v*dt, p(rp)%x, boundaries(ib), xi)
+                        call random_gauss_list(v_new(1:3),mu,sigma)
+                        v_new(1) = abs(v_new(1))
+                        !call random_gauss_list(v_new(2:3),mu,sigma)
+                        !call random_gaussian_flux(v_new(1),sigma)
                         t1=boundaries(ib)%e1/sqrt(dotproduct(boundaries(ib)%e1,boundaries(ib)%e1))
                         t2(1)=boundaries(ib)%n(2)*t1(3) - boundaries(ib)%n(3)*t1(2)
                         t2(2)=boundaries(ib)%n(3)*t1(1) - boundaries(ib)%n(1)*t1(3)
@@ -75,12 +75,8 @@ module particlehandling
                         p(rp)%data%v(1) = boundaries(ib)%n(1)*v_new(1) + t1(1)*v_new(2) + t2(1)*v_new(3)
                         p(rp)%data%v(2) = boundaries(ib)%n(2)*v_new(1) + t1(2)*v_new(2) + t2(2)*v_new(3)
                         p(rp)%data%v(3) = boundaries(ib)%n(3)*v_new(1) + t1(3)*v_new(2) + t2(3)*v_new(3)
-
-                        ran=rnd_num()
-                        ran1=rnd_num()
-                        ran2=rnd_num()
-                        p(rp)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 + ran2*boundaries(ib)%e2
-                        p(rp)%x = p(rp)%x + boundaries(ib)%n*v_new(1)*dt*ran
+                        ran = rnd_num()
+                        p(rp)%x = xi + dt*ran*p(rp)%data%v
                         ib=0
                     ELSE IF (boundaries(ib)%type==2) THEN                              !Periodic BC
                         p(rp)%x = p(rp)%x + boundaries(ib)%n*boundaries(ib)%dist       !Particle re-enters at opposite boundary
@@ -231,19 +227,19 @@ module particlehandling
 
 !======================================================================================
 
-    SUBROUTINE recycling(p,treflux,treflux_next_ts)
+    SUBROUTINE recycling(p,treflux)
 
         implicit none
         include 'mpif.h'
 
         type(t_particle), allocatable, intent(inout) :: p(:)
         integer, intent(in) :: treflux(0:,:)
-        integer, intent(inout) :: treflux_next_ts(0:,:)
         integer :: reflux(0:nspecies-1,1:nb)
         integer :: rc,ispecies,ib,new_particles
 
 
         reflux=0
+        new_particles=0
 
         DO ispecies=0,nspecies-1
             DO ib=1,nb
@@ -292,32 +288,36 @@ module particlehandling
         type(t_particle), allocatable                :: p_new(:)
 
 
-        IF (new_particles==0) return
-
         allocate(p_new(new_particles),stat=rc)
-        call reallocate_particles(p,np, np+new_particles)
 
-        DO ip=1, new_particles
-            p_new(ip)%label       = next_label
-            next_label            = next_label + 1
-            p_new(ip)%data%q      = species(ispecies)%q*fsup
-            p_new(ip)%data%m      = species(ispecies)%m*fsup
+        IF (new_particles==0) THEN
+            deallocate(p_new)
+            return
+        ELSE
+            call reallocate_particles(p,np, np+new_particles)
 
-            p_new(ip)%results%e   = 0.0_8
-            p_new(ip)%results%pot = 0.0_8
-            p_new(ip)%work        = 1.0_8
-            p_new(ip)%data%species= ispecies
+            DO ip=1, new_particles
+                p_new(ip)%label       = next_label
+                next_label            = next_label + 1
+                p_new(ip)%data%q      = species(ispecies)%q*fsup
+                p_new(ip)%data%m      = species(ispecies)%m*fsup
 
-            p_new(ip)%data%B(1)=Bx
-            p_new(ip)%data%B(2)=By
-            p_new(ip)%data%B(3)=Bz
-        END DO
-        call source(p_new,quelltyp)
+                p_new(ip)%results%e   = 0.0_8
+                p_new(ip)%results%pot = 0.0_8
+                p_new(ip)%work        = 1.0_8
+                p_new(ip)%data%species= ispecies
 
-        p(np+1:np+new_particles)=p_new(:)
-        np = np + new_particles
+                p_new(ip)%data%B(1)=Bx
+                p_new(ip)%data%B(2)=By
+                p_new(ip)%data%B(3)=Bz
+            END DO
+            call source(p_new)
 
-        deallocate(p_new)
+            p(np+1:np+new_particles)=p_new(:)
+            np = np + new_particles
+
+            deallocate(p_new)
+        END IF
 
     END SUBROUTINE reflux_particles
 
@@ -412,7 +412,7 @@ module particlehandling
         integer      :: rc
 
         integer      :: hits(0:nspecies-1,1:nb),thits(0:nspecies-1,1:nb)
-        integer      :: reflux(0:nspecies-1,1:nb),treflux(0:nspecies-1,1:nb),treflux_next_ts(0:nspecies-1,1:nb)
+        integer      :: reflux(0:nspecies-1,1:nb),treflux(0:nspecies-1,1:nb)
         integer      :: ispecies,ib
 
 
@@ -420,7 +420,6 @@ module particlehandling
         reflux=0
         thits=0
         treflux=0
-        treflux_next_ts=0
 
         if(root) write(*,'(a)') " == [hits_on_boundaries] count hits and recycle "
 
@@ -436,7 +435,7 @@ module particlehandling
         END DO
 
 
-        call recycling(p,treflux,treflux_next_ts)
+        call recycling(p,treflux)
 
         call charge_wall(p,thits)
 
@@ -455,16 +454,16 @@ module particlehandling
         include 'mpif.h'
 
         type(t_particle), allocatable, intent(inout) :: p(:)
-        type(t_particle) :: p1(1)
+        type(t_particle), allocatable :: p1(:)
 
         integer      :: rc
-
         integer      :: ip,nlp,tnlp,n
 
         nlp=0
         tnlp=0
 
         n=size(p)
+        allocate(p1(1),stat=rc)
 
         DO ip=1,n
             IF (p(ip)%x(1)>=0. .AND. p(ip)%x(1)<=dx .AND. p(ip)%x(2)>=0. .AND. &
@@ -477,9 +476,9 @@ module particlehandling
                 !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle position: ", p(ip)%x
                 !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": old particle position: ", p(ip)%x - dt*p(ip)%data%v
 
-                p1(1)=p(ip)
-                call source(p1,quelltyp)
-                p(ip)=p1(1)
+                !p1(1)=p(ip)
+                !call source(p1)
+                !p(ip)=p1(1)
             END IF
         END DO
 
@@ -493,7 +492,7 @@ module particlehandling
     SUBROUTINE init_particles(p)
         implicit none
     
-        type(t_particle), intent(inout) :: p(:)
+        type(t_particle), intent(inout), allocatable :: p(:)
         integer :: ip,ispecies,i,j
 
         open(1234,file=trim(input_file))
@@ -554,7 +553,7 @@ module particlehandling
             p(ip)%work        = 1.0_8
         END DO
 
-        call source(p,quelltyp)
+        call source(p)
         
 
         next_label = SUM(tnpps)+1
@@ -562,6 +561,7 @@ module particlehandling
     END SUBROUTINE init_particles
 
 !======================================================================================
+
     subroutine redistribute_wall_particles(p)
         implicit none
 
@@ -582,38 +582,22 @@ module particlehandling
 
     end subroutine redistribute_wall_particles
 
-!======================================================================================
-
-    SUBROUTINE source(p,i)
-        type(t_particle), intent(inout) :: p(:)
-        integer, intent(in)                           :: i
-
-        quelle: SELECT case(i)
-            case(0)
-                call source_berberich(p) 
-            case(1)
-                call source_emmert(p)
-            case(2)
-                call source_bissel_johnson(p)
-            case(3)  !test case with uniform plasma
-                call source_uniform_gaussian_plasma(p)
-            case default
-                !do nothing
-        END SELECT quelle
-
-    END SUBROUTINE
 
 !======================================================================================
 
-    SUBROUTINE source_berberich(p)
-        type(t_particle), intent(inout) :: p(:)
+    SUBROUTINE source(p)
+        type(t_particle),intent(inout),allocatable :: p(:)
         real               :: ran,ran1,ran2
         integer            :: n,ip,ib
         real*8             :: mu,sigma
-
+        real(KIND=8)       :: t1(3),t2(3),n1(3),e1(3)
 
         mu=0.0
-        n=size(p) 
+        IF (allocated(p)) THEN
+            n=size(p)
+        ELSE
+            n=0
+        END IF
         DO ip=1, n
             IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
                 IF (p(ip)%data%species==0) THEN
@@ -627,157 +611,60 @@ module particlehandling
                     END DO
                 END IF
             ELSE
-                sigma=sqrt(species(p(ip)%data%species)%t_src*e/(p(ip)%data%m/fsup))
-                call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
-                call random_gaussian_flux(p(ip)%data%v(1),sigma)
-                ran=rnd_num()
-                ran1=rnd_num()
-                ran2=rnd_num()
-                p(ip)%x = (boundaries(src_boundary)%x0 + ran1*boundaries(src_boundary)%e1 + ran2*boundaries(src_boundary)%e2)
-                p(ip)%x = p(ip)%x + boundaries(src_boundary)%n*dotproduct(boundaries(src_boundary)%n,p(ip)%data%v)*dt*ran
-
-
-
-                !If treated in guding centre approximation, electrons just need other startign values in
-                !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
-                IF (guiding_centre_electrons) THEN
-                    call transform_electrons_to_gc(p)
-                END IF
-            END IF
-
-        END DO     
-    END SUBROUTINE
-
-
-!======================================================================================
-
-    SUBROUTINE source_emmert(p)
-        type(t_particle), intent(inout) :: p(:)
-        real               :: ran,ran1,ran2
-        integer            :: n,ip,ib
-        real*8             :: mu,sigma
-
-
-        mu=0.0
-        n=size(p) 
-        DO ip=1, n
-            IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
-                IF (p(ip)%data%species==0) THEN
-                    p(ip)%data%v = 0.0_8
-                    DO ib=1,nb
-                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                            ran1=rnd_num()
-                            ran2=rnd_num()
-                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                        END IF
-                    END DO
-                END IF
-            ELSE
-                sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
-
-                IF (p(ip)%data%species==2) THEN    !ions
+                sigma=sqrt(species(p(ip)%data%species)%src_t*e / (p(ip)%data%m/fsup))
+                IF (species(p(ip)%data%species)%src_type==0) THEN
+                    call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
+                    call random_gaussian_flux(p(ip)%data%v(1),sigma)
+                    e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
+                    n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
+                    t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+                    t2=t2/sqrt(dotproduct(t2,t2))
+                    p(ip)%data%v(1) = n1(1)*p(ip)%data%v(1) + t1(1)*p(ip)%data%v(2) + t2(1)*p(ip)%data%v(3) ! this gives the maxwellian flux
+                    p(ip)%data%v(2) = n1(2)*p(ip)%data%v(1) + t1(2)*p(ip)%data%v(2) + t2(2)*p(ip)%data%v(3) ! along n1 and gaussian
+                    p(ip)%data%v(3) = n1(3)*p(ip)%data%v(1) + t1(3)*p(ip)%data%v(2) + t2(3)*p(ip)%data%v(3) ! distribution along t1, t2
+                    ran=rnd_num()
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = boundaries(species(p(ip)%data%species)%src_bnd)%x0 + &
+                              ran1*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
+                              ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
+                    p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
+                              dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
+                ELSE IF (species(p(ip)%data%species)%src_type==1) THEN
                     call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
                     call random_gaussian_flux(p(ip)%data%v(1),sigma)
                     ran=rnd_num()
                     IF (ran>0.5) p(ip)%data%v(1)=-p(ip)%data%v(1)
-                ELSE IF (p(ip)%data%species==1) THEN   !electrons
+                    ran=rnd_num()
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = species(p(ip)%data%species)%src_x0 + &
+                              ran * species(p(ip)%data%species)%src_e1 + &
+                              ran1 * species(p(ip)%data%species)%src_e2 + &
+                              ran2 * species(p(ip)%data%species)%src_e3
+                ELSE IF (species(p(ip)%data%species)%src_type==2) THEN
                     call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
-                END IF
-
-                ran=rnd_num()
-                ran1=rnd_num()
-                ran2=rnd_num()
-                p(ip)%x=x0_src + ran*e1_src + ran1*e2_src + ran2*e3_src
-
-                !If treated in guding centre approximation, electrons just need other startign values in
-                !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
-                IF (guiding_centre_electrons) THEN
-                    call transform_electrons_to_gc(p)
+                    ran=rnd_num()
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = species(p(ip)%data%species)%src_x0 + &
+                              ran * species(p(ip)%data%species)%src_e1 + &
+                              ran1 * species(p(ip)%data%species)%src_e2 + &
+                              ran2 * species(p(ip)%data%species)%src_e3
                 END IF
             END IF
         END DO
+
+        !If treated in guding centre approximation, electrons just need other startign values in
+        !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
+        IF (guiding_centre_electrons) THEN
+            call transform_electrons_to_gc(p)
+        END IF
     END SUBROUTINE
 
-!======================================================================================
-
-    SUBROUTINE source_bissel_johnson(p)
-        type(t_particle), intent(inout) :: p(:)
-        integer            :: n,ip,ib
-        real*8             :: mu,sigma
-        real               :: ran1,ran2,ran
-
-        mu=0.0
-        n=size(p)
-        DO ip=1, n
-            IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
-                IF (p(ip)%data%species==0) THEN
-                    p(ip)%data%v = 0.0_8
-                    DO ib=1,nb
-                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                            ran1=rnd_num()
-                            ran2=rnd_num()
-                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                        END IF
-                    END DO
-                END IF
-            ELSE
-                sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
-                call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
-
-                ran=rnd_num()
-                ran1=rnd_num()
-                ran2=rnd_num()
-                p(ip)%x=x0_src + ran*e1_src + ran1*e2_src + ran2*e3_src
-
-
-                !If treated in guding centre approximation, electrons just need other startign values in
-                !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
-                IF (guiding_centre_electrons) THEN
-                    call transform_electrons_to_gc(p)
-                END IF
-            END IF
-        END DO
-    END SUBROUTINE
-
-!======================================================================================
-
-    SUBROUTINE source_uniform_gaussian_plasma(p)
-        type(t_particle), intent(inout) :: p(:)
-        integer            :: n,ip,ib
-        real*8             :: mu,sigma
-        real               :: ran1,ran2,ran
-
-        mu=0.0
-        n=size(p)
-        DO ip=1, n
-            IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
-                IF (p(ip)%data%species==0) THEN
-                    p(ip)%data%v = 0.0_8
-                    DO ib=1,nb
-                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                            ran1=rnd_num()
-                            ran2=rnd_num()
-                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                        END IF
-                    END DO
-                END IF
-                sigma=sqrt(species(p(ip)%data%species)%t_src*e / (p(ip)%data%m/fsup))
-
-                ran=rnd_num()
-                ran1=rnd_num()
-                ran2=rnd_num()
-                p(ip)%x=x0_src + ran*e1_src + ran1*e2_src + ran2*e3_src
-
-                call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
-
-                !If treated in guding centre approximation, electrons just need other starting values in
-                !the Boris scheme (see Benjamin Berberichs Diss (pp. 44-56)
-                IF (guiding_centre_electrons) THEN
-                    call transform_electrons_to_gc(p)
-                END IF
-            END IF
-        END DO
-    END SUBROUTINE
 
 !======================================================================================
 

@@ -53,7 +53,6 @@ module module_initialization
       Bz              = 0.
       nt              = 20
       dt              = 1e-3
-      quelltyp        = 0
       fsup            = 1859.
       dx              = 0.
       dy              = 0.
@@ -61,56 +60,7 @@ module module_initialization
 
   end subroutine set_default_parameters
 
-!======================================================================================
 
-    subroutine init_source()
-        implicit none
-
-        integer :: fid=12
-
-        x0_src=0.
-        e1_src=0.
-        e2_src=0.
-        e3_src=0.
-        quelltyp=0
-        src_boundary=0
-
-
-        IF(root) write(*,'(a,a)') " == reading parameter file, section source: ", trim(input_file)
-        open(fid,file=trim(input_file))
-        read(fid,NML=source_nml)
-        close(fid)
-
-        IF ((quelltyp==0)) THEN !surface source
-            x0_src=0.
-            e1_src=0.
-            e2_src=0.
-            e3_src=0.
-            IF ((src_boundary<=0).or.(src_boundary>nb)) THEN
-                IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
-                STOP
-            ELSE
-                IF(boundaries(src_boundary)%type==2) THEN
-                    IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
-                    STOP
-                END IF
-                IF (root) write(*,'(a,i3,a,i3)') "Boundary ",src_boundary," chosen as surface source of type ",quelltyp
-            END IF
-        ELSE IF ((quelltyp==1).or.(quelltyp==2).or.(quelltyp==3)) THEN
-            src_boundary=0
-            IF (root) write(*,'(a,i2,a)') " == Volume source of type ",quelltyp," set. Parameters:"
-            IF (root) write(*,'(a,3(1pe14.5E3))') " == x0: ",x0_src
-            IF (root) write(*,'(a,3(1pe14.5E3))') " == e1: ",e1_src
-            IF (root) write(*,'(a,3(1pe14.5E3))') " == e2: ",e2_src
-            IF (root) write(*,'(a,3(1pe14.5E3))') " == e3: ",e3_src
-        ELSE
-            IF (root) write(*,'(a,i3,a)') " Source cannot be set. Type ",quelltyp," not available."
-            STOP
-        END IF
-
-
-
-    end subroutine init_source
 !======================================================================================
 
    subroutine init()
