@@ -79,10 +79,10 @@ workflow_setup = 0
 &libpepc
  debug_level = 2049
  np_mult = -300
+ num_threads = 4
 /
 
 &walk_para_pthreads
- num_walk_threads         = 4
  max_particles_per_thread = 2000
  !interaction_list_length_factor = 8
 /

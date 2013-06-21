@@ -29,13 +29,13 @@ ispecial = 15
 
 &libpepc
 
+ num_threads = 8
 
 /
 
 
 &walk_para_pthreads
 
- num_walk_threads = 8
 ! max_particles_per_thread = 2000
 
 

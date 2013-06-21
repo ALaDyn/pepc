@@ -83,6 +83,7 @@
       weighted = 1                                                                     
 
       curve_type=0  ! Morton curve
+      num_threads =4
       /
 
 &calc_force_coulomb
@@ -90,6 +91,5 @@
 /
 
 &walk_para_pthreads
-       num_walk_threads =4
       /
 

@@ -44,9 +44,9 @@ itime_in = 5
 
 ! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
  curve_type = 1
+ num_threads = 4
   /
 
 &tree_walk_nml
- num_walk_threads = 4
  max_particles_per_thread = 2000
   /

@@ -31,10 +31,10 @@
  debug_level = 0
  weighted = 0
  interaction_list_length_factor = 4
+ num_threads         = 16
  /
 
 &walk_para_pthreads
- num_walk_threads         = 16
  max_particles_per_thread = 2000
 /
 

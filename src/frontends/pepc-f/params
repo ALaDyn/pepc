@@ -92,7 +92,6 @@ opposite_bnd(6)=5
 
 &walk_para_pthreads
 max_particles_per_thread = 1000
-num_walk_threads = 3
 /
 &walk_para_smpss
 chunk_size_default = 21
@@ -111,4 +110,5 @@ interaction_list_length_factor = 8
 np_mult = -150
 debug_level = 0
 force_cubic_domain = .true.
+num_threads = 3
 /

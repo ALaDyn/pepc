@@ -101,10 +101,10 @@ include_far_field_if_periodic = .false.
  curve_type = 1
  
  interaction_list_length_factor = 8
+ num_threads = 48
 /
 
 &walk_para_pthreads
- num_walk_threads = 48
  max_particles_per_thread = 100
 /
 

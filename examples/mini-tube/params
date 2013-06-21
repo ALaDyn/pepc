@@ -43,6 +43,7 @@ eps2 = 1e-4
 /
 
 &libpepc
+ num_threads = 2
  debug_level = 0
  np_mult = -50
 
@@ -63,7 +64,6 @@ chunk_size_default = 21
 /
 
 &walk_para_pthreads
- num_walk_threads = 2
  max_particles_per_thread = 1000
 /
 

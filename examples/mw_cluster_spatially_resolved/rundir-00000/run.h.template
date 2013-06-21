@@ -78,10 +78,10 @@ workflow_setup = 3
  debug_level = 0
  np_mult = -300
  interaction_list_length_factor = 2
+ num_threads = 16
 /
 
 &walk_para_pthreads
- num_walk_threads         = 16
  max_particles_per_thread = 250
 /
 
