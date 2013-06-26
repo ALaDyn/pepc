@@ -46,9 +46,6 @@ module variables
 
   ! control variables
   integer :: nt               ! number of timesteps
-  integer :: tnp              ! total number of particles (all species)
-  integer*8 :: npart          ! total number of particles, needed as int8 for checkpoints
-  integer :: np               ! local number of particles (all species)
   integer :: diag_interval=0  ! interval for writing probe data
   integer :: vtk_interval=0   ! interval for writing vtk output
   integer :: checkp_interval=0! interval for setting checkpoints

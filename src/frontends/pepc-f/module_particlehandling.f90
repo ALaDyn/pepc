@@ -23,9 +23,9 @@ module particlehandling
         real(KIND=8) v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),v_ran(1)
 
 
-        IF (ANY(boundaries(1:nb)%type==4)) allocate(p_hits_logical_sheath(0:nspecies-1,nb,np),stat=rc)
+        IF (ANY(boundaries(1:nb)%type==4)) allocate(p_hits_logical_sheath(0:nspecies-1,nb,sum(npps)),stat=rc)
 
-        rp=np
+        rp=sum(npps)
         ib=1
         DO WHILE (rp >= 1)
             ib = 1
@@ -37,15 +37,15 @@ module particlehandling
                     hits(p(rp)%data%species,ib)=hits(p(rp)%data%species,ib)+1
                     IF (boundaries(ib)%type==3) THEN                                   !Open BC
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
-                        p(rp) = p(np)
-                        np = np - 1
+                        npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
+                        p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1
                     ELSE IF (boundaries(ib)%type==4) THEN                              !logical sheath
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
                         p_hits_logical_sheath(p(rp)%data%species,ib,hits(p(rp)%data%species,ib)) = p(rp)
-                        p(rp) = p(np)
-                        np = np-1
+                        npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
+                        p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1
                     ELSE IF (boundaries(ib)%type==5) THEN   !immediate half-Maxwellian refluxing normal to surface, tangential v conserved
@@ -53,8 +53,9 @@ module particlehandling
                         sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
                         call get_intersect(p(rp)%x-p(rp)%data%v*dt, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
-                        call random_gauss_list(v_ran,mu,sigma)
-                        v_ran(1) = abs(v_ran(1))
+                        !call random_gauss_list(v_ran,mu,sigma)
+                        !v_ran(1) = abs(v_ran(1))
+                        call random_gaussian_flux(v_ran(1),sigma)
                         p(rp)%data%v = p(rp)%data%v + boundaries(ib)%n*v_ran(1)
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
@@ -88,8 +89,8 @@ module particlehandling
                         ib = 0
                     ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
-                        p(rp) = p(np)
-                        np = np - 1
+                        npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
+                        p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1
                     END IF
@@ -99,10 +100,12 @@ module particlehandling
             rp = rp-1
         END DO
 
+
+
         IF (ANY(boundaries(1:nb)%type==4)) call treat_logical_sheath_boundaries(p,hits,reflux,p_hits_logical_sheath)
         IF (ANY(boundaries(1:nb)%type==4)) deallocate(p_hits_logical_sheath)
 
-        call reallocate_particles(p,np, np)
+        call reallocate_particles(p,sum(npps), sum(npps))
 
     END SUBROUTINE
 
@@ -117,8 +120,8 @@ module particlehandling
 
         integer ib,ispecies,i,ip,rc
         integer :: thits(0:nspecies-1,nb,0:n_ranks-1),displs(0:n_ranks-1)
-        real*8 :: v_perp_logical_sheath(0:nspecies-1,nb,np)
-        real*8 :: t_v_perp_logical_sheath(0:nspecies-1,nb,tnp)
+        real*8 :: v_perp_logical_sheath(0:nspecies-1,nb,sum(npps))
+        real*8 :: t_v_perp_logical_sheath(0:nspecies-1,nb,sum(tnpps))
         real*8,allocatable :: v_perp_temp(:)
         real*8 :: vcut_el(nb)
         integer :: ihits,ehits
@@ -212,11 +215,11 @@ module particlehandling
         DO ip=1,hits(ispecies,ib)
             v_perp=-dotproduct(p_hits_logical_sheath(ispecies,ib,ip)%data%v,boundaries(ib)%n)
             IF (v_perp <= vcut_el) THEN !reflect electrons to get ambipolar flux
-                np=np+1
-                p(np)=p_hits_logical_sheath(ispecies,ib,ip)
-                xp = p(np)%x - boundaries(ib)%x0
-                p(np)%x = p(np)%x - 2.*dotproduct(xp,boundaries(ib)%n)*boundaries(ib)%n
-                p(np)%data%v = p(np)%data%v - 2.*dotproduct(p(np)%data%v,boundaries(ib)%n)*boundaries(ib)%n
+                npps(ispecies) = npps(ispecies) + 1
+                p(sum(npps))=p_hits_logical_sheath(ispecies,ib,ip)
+                xp = p(sum(npps))%x - boundaries(ib)%x0
+                p(sum(npps))%x = p(sum(npps))%x - 2.*dotproduct(xp,boundaries(ib)%n)*boundaries(ib)%n
+                p(sum(npps))%data%v = p(sum(npps))%data%v - 2.*dotproduct(p(sum(npps))%data%v,boundaries(ib)%n)*boundaries(ib)%n
                 hits(ispecies,ib) = hits(ispecies,ib) - 1
                 IF (reflux(ispecies,ib)>0) reflux(ispecies,ib) = reflux(ispecies,ib) - 1
             END IF
@@ -249,7 +252,7 @@ module particlehandling
                         reflux(ispecies,ib) = reflux(ispecies,ib) + MOD(treflux(ispecies,ib), n_ranks)
                     END IF
 
-                    call reflux_particles(p,reflux(ispecies,ib),ispecies,ib)
+                    call reflux_particles(p,reflux(ispecies,ib),ispecies)
                     call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
                 END IF
 
@@ -266,7 +269,7 @@ module particlehandling
                         new_particles = new_particles + MOD((species(ispecies)%nfp), n_ranks)
                     END IF
 
-                    call reflux_particles(p,new_particles,ispecies,0)
+                    call reflux_particles(p,new_particles,ispecies)
                     call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
                 END IF
             END IF
@@ -276,12 +279,12 @@ module particlehandling
 
 !======================================================================================
 
-    SUBROUTINE reflux_particles(p,new_particles,ispecies,ib)
+    SUBROUTINE reflux_particles(p,new_particles,ispecies)
 
         implicit none
 
         type(t_particle), allocatable, intent(inout) :: p(:)
-        integer, intent(in) :: new_particles,ispecies,ib
+        integer, intent(in) :: new_particles,ispecies
 
         integer rc,ip
         type(t_particle), allocatable                :: p_new(:)
@@ -293,7 +296,7 @@ module particlehandling
             deallocate(p_new)
             return
         ELSE
-            call reallocate_particles(p,np, np+new_particles)
+            call reallocate_particles(p,sum(npps), sum(npps)+new_particles)
 
             DO ip=1, new_particles
                 p_new(ip)%label       = next_label
@@ -312,8 +315,8 @@ module particlehandling
             END DO
             call source(p_new)
 
-            p(np+1:np+new_particles)=p_new(:)
-            np = np + new_particles
+            p(sum(npps)+1:sum(npps)+new_particles)=p_new(:)
+            npps(ispecies) = npps(ispecies) + new_particles
 
             deallocate(p_new)
         END IF
@@ -343,7 +346,7 @@ module particlehandling
             boundaries(ib)%q_tot = boundaries(ib)%q_tot + dq(ib)
         END DO
 
-        DO ip=1, np                                            ! charge wall by adding charge to the wall particles
+        DO ip=1, sum(npps)                                            ! charge wall by adding charge to the wall particles
             IF (p(ip)%data%species/=0) CYCLE
             DO ib=1,nb
                 call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit)
@@ -388,15 +391,18 @@ module particlehandling
         implicit none
 
         type(t_particle), allocatable, intent(inout) :: p(:)
-        integer :: ip,n,ispecies
+        integer :: ip,ispecies
 
-        n=size(p)
 
         npps=0
-        DO ip=1,n
+        DO ip=1,size(p)
            ispecies = p(ip)%data%species
            IF (ispecies >= 0) npps(ispecies) = npps(ispecies) + 1
         END DO
+
+
+
+
 
     END SUBROUTINE get_number_of_particles
 
@@ -438,10 +444,7 @@ module particlehandling
 
         call charge_wall(p,thits)
 
-        call get_number_of_particles(p)
-
         call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        tnp=SUM(tnpps)
 
         call set_recycling_output_values(thits,treflux)
 
@@ -573,7 +576,7 @@ module particlehandling
         integer :: ip,ib
         logical :: hit
 
-        DO ip=1, np
+        DO ip=1, sum(npps)
             IF (p(ip)%data%species/=0) CYCLE
             DO ib=1,nb
                 IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
@@ -694,7 +697,7 @@ module particlehandling
                 omega_c=p(ip)%data%q*b/p(ip)%data%m
 
                 IF (b<0.0000001) THEN
-                    write(*,*) '##### vanishing B-Field for particle:', ip,np,my_rank,p(ip)%label
+                    write(*,*) '##### vanishing B-Field for particle:', ip,sum(npps),my_rank,p(ip)%label
                 ELSE
                     !Parallel velocity components
                     vpar(1) = (p(ip)%data%b(1)/b**2) * (p(ip)%data%b(1)*p(ip)%data%v(1) + p(ip)%data%b(2)*p(ip)%data%v(2) + p(ip)%data%b(3)*p(ip)%data%v(3))

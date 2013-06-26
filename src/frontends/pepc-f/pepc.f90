@@ -68,7 +68,6 @@ program pepc
 
     call init_files()
 
-
     call set_default_parameters()
     call set_parameters()
     call init_species()
@@ -83,6 +82,7 @@ program pepc
     else
         call init()
     end if
+    call get_number_of_particles(particles)
 
     call init_output_arrays()
     call write_parameters()
@@ -95,11 +95,10 @@ program pepc
     !get initial field configuration
     call pepc_particleresults_clear(particles)
     call pepc_grow_tree(particles)
-    np = size(particles, kind=kind(np))
     call pepc_traverse_tree(particles)
     if (diags) call pepc_tree_diagnostics()
     if (do_restore_particles) call pepc_restore_particles(particles)
-    np = size(particles, kind=kind(np))
+    call get_number_of_particles(particles)
     call pepc_timber_tree()
 
 
@@ -131,6 +130,7 @@ program pepc
         call hits_on_boundaries(particles)
         call check_for_leakage(particles)
         timer(5) = get_time()
+
 
         IF (spiegelladung==1) THEN
             allocate(all_particles(size(particles)+sum(npps(1:2))),stat=rc)
@@ -198,7 +198,7 @@ program pepc
         !diagnostics
         if (diags) call pepc_tree_diagnostics()
         !if (do_restore_particles) call pepc_restore_particles(particles)
-        np = size(particles, kind=kind(np))
+        IF (spiegelladung/=0)call get_number_of_particles(particles)
         if (interaction_partner_diags) call get_interaction_partners(5)
 
 

@@ -86,9 +86,7 @@ module module_initialization
             END IF
         END DO
 
-        tnp= SUM(tnpps)
-        np = SUM(npps)
-        allocate(particles(np), stat=rc)
+        allocate(particles(sum(npps)), stat=rc)
         if(rc.ne.0) write(*,*) " === particle allocation error!"
 
         call init_particles(particles)
@@ -109,6 +107,8 @@ module module_initialization
     include 'mpif.h'
 
     integer, parameter :: fid = 12
+    integer*8 :: npart
+
 
     IF (do_resume) THEN
         startstep=resume_step       !resume step is read in read_args (from filename, maybe not the best idea...)
@@ -118,7 +118,6 @@ module module_initialization
         if (root) write(*,*)"=================================================="
 
         call read_particles_mpiio(startstep,MPI_COMM_WORLD,my_rank,n_ranks,step,npart,particles,filename)
-        np=size(particles, kind=kind(np))
     ELSE
         startstep=0
         step=0
@@ -180,7 +179,7 @@ module module_initialization
     npps=0
     tnpps=0
 
-    DO ip=1,np
+    DO ip=1,size(particles)
         npps(particles(ip)%data%species)=npps(particles(ip)%data%species)+1
     END DO
 
@@ -191,11 +190,10 @@ module module_initialization
         IF (root) write(*,*) "You can't change the number of Wallparticles when resuming"
         STOP
     END IF
-    tnp=sum(tnpps)
 
     q_loc=0.
     q_glob=0.
-    DO ip=1, np                                            ! calculate charge by adding up charges of wallparticles after resume
+    DO ip=1, size(particles)            ! calculate charge by adding up charges of wallparticles after resume
         IF (particles(ip)%data%species/=0) CYCLE
         DO ib=1,nb
             call check_hit(particles(ip)%x(1),particles(ip)%x(2),particles(ip)%x(3),boundaries(ib),hit)
@@ -212,7 +210,7 @@ module module_initialization
 
     global_max_label = 0
     local_max_label  = 0
-    DO ip=1,np
+    DO ip=1,size(particles)
         if (particles(ip)%label > local_max_label) local_max_label = particles(ip)%label
     END DO
     call MPI_ALLREDUCE(local_max_label, global_max_label, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)

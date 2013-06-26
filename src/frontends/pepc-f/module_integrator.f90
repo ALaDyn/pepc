@@ -32,7 +32,7 @@ MODULE integrator
             fact=dt
         END IF
 
-        DO ip=1, np
+        DO ip=1, size(p)
             IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
                 beta=p(ip)%data%q / p(ip)%data%m *fact*0.5     ! charge/mass constant needed in Boris-algorithm
                 !   first half-accn <-> first part of Boris-algorithm
@@ -85,7 +85,7 @@ MODULE integrator
         if(root) write(*,'(a)') " == [standard_integrator] calculate velocities "
 
 
-        DO ip=1, np
+        DO ip=1, size(p)
             IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
                 p(ip)%data%v = p(ip)%data%v + fact * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * fc
             END IF
@@ -109,7 +109,7 @@ MODULE integrator
         fact = dt
         if(root) write(*,'(a)') " == [pusher] push particles "
 
-        DO ip=1, np
+        DO ip=1, size(p)
             IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
                 p(ip)%x      = p(ip)%x      + fact * p(ip)%data%v    
             END IF

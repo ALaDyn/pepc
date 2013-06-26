@@ -43,7 +43,7 @@ MODULE output
         real(KIND=8) :: v_th
 
 
-        v_mean=get_v_mean(particles,np,ispecies)
+        v_mean=get_v_mean(particles,ispecies)
         v_th=sqrt(2*species(ispecies)%src_t*e/species(ispecies)%m)
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity (1,2,3) [m/s]     : ",v_mean
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity/v_th (1,2,3)      : ",v_mean/v_th
@@ -102,10 +102,10 @@ MODULE output
         real(KIND=8) :: v2_mean(3),ekin(3),epot
 
 
-        v2_mean=get_v2_mean(particles,np,ispecies)
+        v2_mean=get_v2_mean(particles,ispecies)
         ekin=v2_mean*0.5*species(ispecies)%m/e
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average kinetic energy (1,2,3) [eV]: ",ekin
-        epot=get_epot(particles,np,ispecies)
+        epot=get_epot(particles,ispecies)
         if(root) write(filehandle,'(a,(1pe16.7E3))') "Average potential energy [eV]      : ",epot
 
 
@@ -228,7 +228,7 @@ MODULE output
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a)')"=================================== General info ==============================================="
         IF(root) write(filehandle,'(a)')"================================================================================================"
-        IF(root) write(filehandle,'(a,i16)')    " == Total number of particles            :", tnp
+        IF(root) write(filehandle,'(a,i16)')    " == Total number of particles            :", sum(tnpps)
 
         thits_out=0
         treflux_out=0
@@ -316,6 +316,8 @@ MODULE output
     
         time = dt* step
 
+        if(root) write(*,'(a,i6)') " == [write_particles] vtk output at timestep",step
+
         n=size(p)
 
         if (step .eq. 0) then
@@ -349,7 +351,6 @@ MODULE output
 
         tb = get_time()
 
-        if(root) write(*,'(a,i6)') " == [write_particles] vtk output at timestep",step
 
     end subroutine write_particles  
 
@@ -357,7 +358,6 @@ MODULE output
 
     subroutine set_checkpoint()
         use module_checkpoint
-        use module_mirror_boxes, only: mirror_box_layers,periodicity
 
         implicit none
         include 'mpif.h'
@@ -387,13 +387,18 @@ MODULE output
         integer :: src_bnd(0:nspecies-1)
 
         integer :: ispecies,ns
+        integer*8 :: npart
 
-        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,mirror_box_layers,periodicity
+
+        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
         namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type
 
         integer, parameter :: fid = 666
 
-        npart=tnp
+        if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
+
+
+        npart=sum(tnpps)
         call write_particles_mpiio(MPI_COMM_WORLD,my_rank,step,npart,particles,filename)
 
         if (root) then
@@ -436,7 +441,6 @@ MODULE output
 
         endif
 
-        if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
 
     end subroutine
 

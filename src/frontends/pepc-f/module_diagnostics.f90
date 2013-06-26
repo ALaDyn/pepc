@@ -16,12 +16,12 @@ MODULE diagnostics
     CONTAINS
 !===============================================================================
 
-    function get_epot(p,nparticles,ispecies)
+    function get_epot(p,ispecies)
         implicit none
         include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
-        integer, intent(in) :: ispecies,nparticles
+        integer, intent(in) :: ispecies
         real(KIND=8) :: get_epot
 
         integer :: ip,rc
@@ -30,7 +30,7 @@ MODULE diagnostics
         esum=0.0
         tesum=0.0
 
-        DO ip=1,nparticles
+        DO ip=1,size(p)
             IF(p(ip)%data%species==ispecies) THEN
                 esum=esum+0.5*p(ip)%results%pot*fc*species(ispecies)%q/e
             END IF
@@ -107,12 +107,12 @@ MODULE diagnostics
 
 !===============================================================================
 
-    function get_v2_mean(p,nparticles,ispecies)
+    function get_v2_mean(p,ispecies)
         implicit none
         include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
-        integer, intent(in) :: ispecies,nparticles
+        integer, intent(in) :: ispecies
         real(KIND=8),dimension(3) :: get_v2_mean
 
         integer :: ip,rc
@@ -121,7 +121,7 @@ MODULE diagnostics
         v2sum=0.0
         tv2sum=0.0
 
-        DO ip=1,nparticles
+        DO ip=1,size(p)
             IF(p(ip)%data%species==ispecies) THEN
                 v2sum=v2sum+p(ip)%data%v*p(ip)%data%v
             END IF
@@ -137,12 +137,12 @@ MODULE diagnostics
 
 !===============================================================================
 
-    function get_v_mean(p,nparticles,ispecies)
+    function get_v_mean(p,ispecies)
         implicit none
         include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
-        integer, intent(in) :: ispecies,nparticles
+        integer, intent(in) :: ispecies
         real(KIND=8),dimension(3) :: get_v_mean
 
         integer :: ip,rc
@@ -151,7 +151,7 @@ MODULE diagnostics
         vsum=0.0
         tvsum=0.0
 
-        DO ip=1,nparticles
+        DO ip=1,size(p)
             IF(p(ip)%data%species==ispecies) THEN
                 vsum=vsum+p(ip)%data%v
             END IF
