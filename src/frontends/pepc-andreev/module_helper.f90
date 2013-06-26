@@ -69,7 +69,7 @@ module helper
     dt                = 0.5e-3
     particle_output   = .true.
     domain_output     = .true.
-    diag_interval     = 10    
+    diag_interval     = 5    
  
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
@@ -124,8 +124,7 @@ module helper
         p(ip)%data%m      =  unit_me
         p(ip)%work        =  1.0
         ! rescale units
-        p(ip)%x = p(ip)%x * 1.e6 / unit_abohr_in_m ! micron --> aB
-        p(ip)%data%v = p(ip)%data%v / p(ip)%data%m / unit_c ! m*c -> simunits
+        p(ip)%data%v = p(ip)%data%v * unit_c ! p=P_andreev*m*c -> simunits, v
       end do  
       close(filehandle)
 
@@ -141,8 +140,7 @@ module helper
         p(ip)%data%m      =  unit_mp
         p(ip)%work        =  1.0
         ! rescale units
-        p(ip)%x      = p(ip)%x * 1.e6 / unit_abohr_in_m ! micron --> aB
-        p(ip)%data%v = p(ip)%data%v / p(ip)%data%m / unit_c ! m*c -> simunits
+        p(ip)%data%v = p(ip)%data%v * unit_c ! p=P_andreev*m*c -> simunits, v
       end do  
       close(filehandle)
     else

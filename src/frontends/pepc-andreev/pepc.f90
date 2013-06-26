@@ -39,7 +39,7 @@ program pepc
   logical :: doDiag
       
   ! initialize pepc library and MPI
-  call pepc_initialize("pepc-essential", my_rank, n_ranks, .true.)
+  call pepc_initialize("pepc-andreev", my_rank, n_ranks, .true.)
 
   root = my_rank.eq.0
 
