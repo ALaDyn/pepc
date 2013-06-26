@@ -96,12 +96,14 @@ subroutine frontend_prepare()
   a_i       = (4.*pi/3. * ni/Vplas)**(-1./3.)
   physGamma = (qi*qi) / (a_i * unit_kB*Te)
 
-  if (lambdaD_e > 0.) eps = eps * lambdaD_e
+  !if (lambdaD_e > 0.) eps = eps * lambdaD_e
+  eps = eps * a_ii
+
   if (V0_eV .ne. 0.)  eps = force_const * qe*qi / (V0_eV / unit_Ryd_in_eV)
 
   V0_eV = (force_const * qe*qi / eps) * unit_Ryd_in_eV
 
-  eps2 = eps**2.
+  eps2 = eps*eps
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !!!!!!!!!!!!!!!  parameters (laser)            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
