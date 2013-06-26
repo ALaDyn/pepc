@@ -116,8 +116,8 @@ module helper
       open(filehandle, file=trim(file_el), STATUS='OLD', POSITION = 'REWIND', ACTION='READ')
       do ip=1,nel
         read(filehandle, *)   p(ip)%x(1:2), p(ip)%data%v(1:2)
-        p(ip)%x(3) = 0.
-        p(ip)%v(3) = 0.
+        p(ip)%x(3)      = 0.
+        p(ip)%data%v(3) = 0.
         ! other stuff
         p(ip)%label       = -ip
         p(ip)%data%q      =  unit_qe
@@ -125,7 +125,7 @@ module helper
         p(ip)%work        =  1.0
         ! rescale units
         p(ip)%x = p(ip)%x * 1.e6 / unit_abohr_in_m ! micron --> aB
-        p(ip)%v = p(ip)%v / p(ip)%data%m / unit_c ! m*c -> simunits
+        p(ip)%data%v = p(ip)%data%v / p(ip)%data%m / unit_c ! m*c -> simunits
       end do  
       close(filehandle)
 
@@ -133,15 +133,15 @@ module helper
       open(filehandle, file=trim(file_ion), STATUS='OLD', POSITION = 'REWIND', ACTION='READ')
       do ip=nel+1,nel+nion
         read(filehandle, *)   p(ip)%x(1:2), p(ip)%data%v(1:2)
-        p(ip)%x(3) = 0.
-        p(ip)%v(3) = 0.
+        p(ip)%x(3)        = 0.
+        p(ip)%data%v(3)   = 0.
         ! other stuff
         p(ip)%label       =  ip-nel 
         p(ip)%data%q      =  unit_qp
         p(ip)%data%m      =  unit_mp
         p(ip)%work        =  1.0
         ! rescale units
-        p(ip)%data%x = p(ip)%data%x * 1.e6 / unit_abohr_in_m ! micron --> aB
+        p(ip)%x      = p(ip)%x * 1.e6 / unit_abohr_in_m ! micron --> aB
         p(ip)%data%v = p(ip)%data%v / p(ip)%data%m / unit_c ! m*c -> simunits
       end do  
       close(filehandle)
