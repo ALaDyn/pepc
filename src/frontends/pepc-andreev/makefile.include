@@ -1,0 +1,18 @@
+FILES_L   = pepc.f90 module_helper.f90 module_units.f90
+
+FILES_L_U = module_vtk_helpers.f90 module_directsum.f90
+            
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-andreev/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+BACKEND = log2d
+#BACKEND = coulomb
+BACKENDTYPE = XYZQVM
+
+#WALK = smpss
+#WALK = pthreads_blocking
+WALK = pthreads
