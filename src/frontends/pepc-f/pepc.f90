@@ -97,7 +97,6 @@ program pepc
     call pepc_grow_tree(particles)
     call pepc_traverse_tree(particles)
     if (diags) call pepc_tree_diagnostics()
-    if (do_restore_particles) call pepc_restore_particles(particles)
     call get_number_of_particles(particles)
     call pepc_timber_tree()
 
@@ -197,7 +196,6 @@ program pepc
 
         !diagnostics
         if (diags) call pepc_tree_diagnostics()
-        !if (do_restore_particles) call pepc_restore_particles(particles)
         IF (spiegelladung/=0)call get_number_of_particles(particles)
         if (interaction_partner_diags) call get_interaction_partners(5)
 

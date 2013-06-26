@@ -267,7 +267,6 @@ MODULE output
           write(*,'(a,es12.4)') " == superparticle factor             : ", fsup
           !write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
           write(*,'(a,l6)')     " == far_field_if_periodic            : ", include_far_field_if_periodic
-          write(*,'(a,l6)')     " == do_restore_particles             : ", do_restore_particles
           write(*,*)
           write(*,*) "========== Magnetic Field ========="
           write(*,'(a,f12.4)')  " == Bx                               : ", Bx

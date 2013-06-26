@@ -1,7 +1,7 @@
 module module_cmdline
   implicit none
 
-  logical :: do_resume, input_specified,do_restore_particles
+  logical :: do_resume, input_specified
   character(len=255) :: resume_file,input_file
   integer :: resume_step
 
@@ -24,7 +24,6 @@ module module_cmdline
       file_exists=.false.
       arg_is_val=.false.
       input_specified=.false.
-      do_restore_particles=.true.
 
       if (command_argument_count()==0) then
         write (*,*)
@@ -85,8 +84,6 @@ module module_cmdline
               write (*,*)
               stop
             end if
-          case ('--no-particle-restore')
-            do_restore_particles=.false.
           case default
             write (*,*)
             write (*,*) "*******************************************"
@@ -107,10 +104,6 @@ module module_cmdline
         stop
       end if
 
-      !write(*,*) "input:",trim(input_file)
-      !write(*,*) "resume?:",do_resume
-      !write(*,*) "resume_file:", trim(resume_file)
-      !write(*,*) "resume_step:", resume_step
 
     end subroutine read_args
 
@@ -127,7 +120,6 @@ module module_cmdline
       print '(a)', '  -r(--resume) resumefile   resume run from specified checkpoint'
       print '(a)', '                            the .mpi file has to be selected'
       print '(a)', '  -h, --help                print usage information and exit'
-      print '(a)', '  --no-particle-restore     do not call pepc_restore_particles'
     end subroutine print_help
 
 !==============================================================
