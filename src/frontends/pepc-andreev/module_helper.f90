@@ -34,6 +34,8 @@ module helper
   integer, parameter :: t_user_directsum   = t_userdefined_first + 3
   integer, parameter :: t_user_particleio  = t_userdefined_first + 4
   
+  integer(kind_dim), parameter :: dim = 2
+  
   ! MPI variables
   integer(kind_pe) :: my_rank, n_ranks
   logical :: root
@@ -85,13 +87,14 @@ module helper
 
     if(root) then
       write(*,'(a,i12)')       " == number of time steps      : ", nt
-      write(*,'(a,es12.4)')    " == time step                 : ", dt
+      write(*,'(a,es12.4)')    " == time step (fs)            : ", dt
+      write(*,'(a,es12.4)')    " == final time (fs)           : ", dt*nt
       write(*,'(a,i12)')       " == diag & IO interval        : ", diag_interval
       write(*,'(a,l12)')       " == particle output           : ", particle_output
       write(*,'(a,l12)')       " == domain output             : ", domain_output
     end if
 
-    call pepc_prepare(2_kind_dim)
+    call pepc_prepare(dim)
   end subroutine set_parameter
 
 
@@ -115,32 +118,28 @@ module helper
       !call system("sed -i 's/\([0-9]\)-/\1 -/g' " // trim(file_el))
       open(filehandle, file=trim(file_el), STATUS='OLD', POSITION = 'REWIND', ACTION='READ')
       do ip=1,nel
-        read(filehandle, *)   p(ip)%x(1:2), p(ip)%data%v(1:2)
-        p(ip)%x(3)      = 0.
-        p(ip)%data%v(3) = 0.
+        read(filehandle, *)   p(ip)%x(1:dim), p(ip)%data%v(1:dim)
+        p(ip)%x(dim+1:)      = 0.
+        p(ip)%data%v(dim+1:) = 0.
         ! other stuff
         p(ip)%label       = -ip
         p(ip)%data%q      =  unit_qe
         p(ip)%data%m      =  unit_me
         p(ip)%work        =  1.0
-        ! rescale units
-        p(ip)%data%v = p(ip)%data%v * unit_c ! p=P_andreev*m*c -> simunits, v
       end do  
       close(filehandle)
 
       !call system("sed -i 's/\([0-9]\)-/\1 -/g' " // trim(file_ion))
       open(filehandle, file=trim(file_ion), STATUS='OLD', POSITION = 'REWIND', ACTION='READ')
       do ip=nel+1,nel+nion
-        read(filehandle, *)   p(ip)%x(1:2), p(ip)%data%v(1:2)
-        p(ip)%x(3)        = 0.
-        p(ip)%data%v(3)   = 0.
+        read(filehandle, *)   p(ip)%x(1:dim), p(ip)%data%v(1:dim)
+        p(ip)%x(dim+1:)        = 0.
+        p(ip)%data%v(dim+1:)   = 0.
         ! other stuff
         p(ip)%label       =  ip-nel 
         p(ip)%data%q      =  unit_qp
         p(ip)%data%m      =  unit_mp
         p(ip)%work        =  1.0
-        ! rescale units
-        p(ip)%data%v = p(ip)%data%v * unit_c ! p=P_andreev*m*c -> simunits, v
       end do  
       close(filehandle)
     else
@@ -156,17 +155,18 @@ module helper
     
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle) :: ip
-    real*8  :: acc(1:3), gam
+    real*8  :: force(1:3), gam
 
     if(root) write(*,'(a)') " == [pusher] push particles "
 
     do ip=1, size(p, kind=kind_particle)
-      acc(1:2) = p(ip)%data%q * p(ip)%results%e(1:2) / p(ip)%data%m
-      acc(3)   = 0.
+      ! v represents momentum p/mc = gamma*v/c
+      force(1:dim)  = p(ip)%data%q/unit_4piepsilon0 * p(ip)%results%e(1:dim)
+      force(dim+1:) = 0.
+      p(ip)%data%v  = p(ip)%data%v + dt * force / ( p(ip)%data%m * unit_c )
       
-      p(ip)%data%v = p(ip)%data%v + dt * acc
-      gam          = sqrt( 1.0 + ( dot_product(p(ip)%data%v, p(ip)%data%v) ) / unit_c2 )
-      p(ip)%x      = p(ip)%x + p(ip)%data%v / gam * dt
+      gam           = sqrt( 1.0 + dot_product(p(ip)%data%v, p(ip)%data%v) )
+      p(ip)%x       = p(ip)%x + p(ip)%data%v * unit_c / gam * dt 
     end do
   end subroutine push_particles
 
@@ -199,13 +199,13 @@ module helper
     
     call timer_start(t_user_particleio)
     vtk_step = vtk_step_of_step(step)
-    call vtk_write_particles("particles", MPI_COMM_WORLD, step, dt * step, vtk_step, p, vtk_coulomb_results)
+    call vtk_write_particles("particles", MPI_COMM_WORLD, step, dt * step, vtk_step, p, vtk_results)
     call timer_stop(t_user_particleio)
     if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", timer_read(t_user_particleio)
 
     contains
 
-    subroutine vtk_coulomb_results(d, r, vtkf)
+    subroutine vtk_results(d, r, vtkf)
       use module_vtk
       use module_interaction_specific_types
       implicit none

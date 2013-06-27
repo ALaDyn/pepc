@@ -40,12 +40,11 @@ module module_units
       real, public, parameter :: unit_qe            =      -1.                    !< electron charge
       real, public, parameter :: unit_kB            =       1.
       ! natural constants and conversion factors (from http://physics.nist.gov/cuu/Constants/index.html)
-      real, public, parameter :: unit_mp_over_me    =    1836.15267247            !< mass ratio between electron and proton
+      real, public, parameter :: unit_mp_over_me    =     100.            !< mass ratio between electron and proton
       ! derived units
       real, public, parameter :: unit_4piepsilon0   =       4.*pi*unit_epsilon0   !< 4*pi*epsilon0
       real, public, parameter :: unit_c             =          299792458./1.e-9*1.e-6 !< speed of light (microns per ns)
       real, public, parameter :: unit_c2            =           unit_c*unit_c     !< (speed of light)^2
-      real, public, parameter :: unit_hbarc         =           unit_hbar*unit_c  !< hbar*c
       real, public, parameter :: unit_qp            = -unit_qe                    !< proton charge
       real, public, parameter :: unit_mp            =  unit_mp_over_me*unit_me    !< proton mass
 
