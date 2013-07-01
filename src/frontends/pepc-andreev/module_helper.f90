@@ -58,6 +58,7 @@ module helper
       
     use module_pepc
     use module_interaction_specific, only : theta2, eps2
+    use treevars, only : num_threads, np_mult
     implicit none
       
     integer, parameter :: fid = 12
@@ -67,12 +68,15 @@ module helper
     namelist /pepcandreev/ nt, dt, particle_output, domain_output, diag_interval
     
     ! set default parameter values
-    nt                = 500
-    dt                = 0.5e-3
+    nt                = 2500
+    dt                = 0.5e-11
     particle_output   = .true.
     domain_output     = .true.
-    diag_interval     = 5    
+    diag_interval     = 25    
  
+    num_threads = 8
+    np_mult = -500
+
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
@@ -126,6 +130,8 @@ module helper
         p(ip)%data%q      =  unit_qe
         p(ip)%data%m      =  unit_me
         p(ip)%work        =  1.0
+        
+        p(ip)%x = p(ip)%x / unit_length_in_micron
       end do  
       close(filehandle)
 
@@ -140,6 +146,8 @@ module helper
         p(ip)%data%q      =  unit_qp
         p(ip)%data%m      =  unit_mp
         p(ip)%work        =  1.0
+
+        p(ip)%x = p(ip)%x / unit_length_in_micron
       end do  
       close(filehandle)
     else
