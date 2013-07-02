@@ -163,7 +163,7 @@ module module_checkpoint
             ! Redefine file view, now with our custom type
             call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
             ! Write particle data
-            call MPI_FILE_WRITE_ORDERED(fh, dp(:), size(dp,kind=kind_particle), MPI_TYPE_particle, status, ierr)
+            call MPI_FILE_WRITE_ORDERED(fh, dp(:), size(dp,kind=kind_default), MPI_TYPE_particle, status, ierr)
             ! Take care before closing
             call MPI_FILE_SYNC(fh,ierr)
             call MPI_FILE_CLOSE(fh,ierr)
