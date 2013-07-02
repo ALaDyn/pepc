@@ -112,6 +112,8 @@ module module_pepc
       ! Get the processor ID of the main thread
       main_thread_processor_id = get_my_core()
 
+      call MPI_FILE_SET_ERRHANDLER(MPI_FILE_NULL, MPI_ERRORS_ARE_FATAL, ierr)
+
       if (my_rank == 0 .and. pepc_initializes_mpi) then
         ! verbose startup-output
         write(*,'(a)') "   ____    ____    ____    ____        "
