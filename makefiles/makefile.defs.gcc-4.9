@@ -26,8 +26,8 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g 
   LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
 else
-  FFLAGS   = -Wall -O5 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
-  CFLAGS   = -Wall -O5 -g
+  FFLAGS   = -Wall -O3 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
+  CFLAGS   = -Wall -O3 -g
   LDFLAGS   = -pthread -g -O5 $(INLINING) -fwhole-program  
   CPPFLAGS += -DNDEBUG
 #-Wl,--threads

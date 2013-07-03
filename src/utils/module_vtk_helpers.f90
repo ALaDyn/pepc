@@ -40,7 +40,7 @@ module module_vtk_helpers
   !>
   !> Writes particles to a VTK file
   !>
-  subroutine vtk_write_particles(fname, mpi_comm, step, time, vtk_step, p, helper_func)
+  subroutine vtk_write_particles(fname, mpi_comm, step, time, vtk_step, p, helper_func, coord_scale)
     use module_vtk
     use module_pepc_types
     use module_interaction_specific_types
@@ -67,6 +67,7 @@ module module_vtk_helpers
     end interface
 
     optional :: helper_func
+    real*8, intent(in), optional :: coord_scale
 
     integer(kind_particle) :: i, np
     integer(kind_pe) :: mpi_rank, mpi_size
@@ -81,7 +82,7 @@ module module_vtk_helpers
     call vtk%create_parallel(fname, step, mpi_rank, mpi_size, time, vtk_step)
       call vtk%write_headers(np, 0_kind_particle)
       call vtk%startpoints()
-        call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
+        call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3), coord_scale)
       call vtk%finishpoints()
       call vtk%startpointdata()
         call vtk%write_data_array("work", p(:)%work)
@@ -103,7 +104,7 @@ module module_vtk_helpers
   !>
   !> Writes a collection of nodes into vtk files as points
   !>
-  subroutine vtk_write_nodes_as_points(fname, mpi_comm, step, tsim, vtk_step, t, nodes, node_vbox, helper_func)
+  subroutine vtk_write_nodes_as_points(fname, mpi_comm, step, tsim, vtk_step, t, nodes, node_vbox, helper_func, coord_scale)
     use treevars
     use module_vtk
     use module_mirror_boxes
@@ -123,6 +124,7 @@ module module_vtk_helpers
     type(t_tree), intent(in) :: t
     integer(kind_node), dimension(:), intent(in) :: nodes
     real*8, dimension(:,:), intent(in), optional :: node_vbox
+    real*8, intent(in), optional :: coord_scale
 
     interface
       subroutine helper_func(d, vtkf)
@@ -182,7 +184,7 @@ module module_vtk_helpers
     call vtk%create_parallel(fname, step, mpi_rank, mpi_size, tsim, vtk_step)
       call vtk%write_headers(num_nodes, 0_kind_node)
       call vtk%startpoints()
-        call vtk%write_data_array("xyz", bcocx, bcocy, bcocz)
+        call vtk%write_data_array("xyz", bcocx, bcocy, bcocz, coord_scale)
       call vtk%finishpoints()
       call vtk%startpointdata()
         call vtk%write_data_array("processor", bowner)
@@ -212,7 +214,7 @@ module module_vtk_helpers
   !>
   !> Writes a collection of nodes into vtk files as boxes
   !>
-  subroutine vtk_write_nodes_as_boxes(fname, mpi_comm, step, tsim, vtk_step, t, nodes, node_vbox, helper_func)
+  subroutine vtk_write_nodes_as_boxes(fname, mpi_comm, step, tsim, vtk_step, t, nodes, node_vbox, helper_func, coord_scale)
     use treevars
     use module_vtk
     use module_spacefilling
@@ -233,6 +235,7 @@ module module_vtk_helpers
     type(t_tree), intent(in) :: t
     integer(kind_node), dimension(:), intent(in) :: nodes
     real*8, dimension(:,:), intent(in), optional :: node_vbox
+    real*8, intent(in), optional :: coord_scale
 
     interface
       subroutine helper_func(d, vtkf)
@@ -321,7 +324,7 @@ module module_vtk_helpers
     call vtk%create_parallel(fname, step, mpi_rank, mpi_size, tsim, vtk_step)
       call vtk%write_headers(num_nodes*8, num_nodes)
       call vtk%startpoints()
-        call vtk%write_data_array("corners", bcornersx, bcornersy, bcornersz)
+        call vtk%write_data_array("corners", bcornersx, bcornersy, bcornersz, coord_scale)
       call vtk%finishpoints()
       call vtk%startpointdata()
         ! no point data here
@@ -418,7 +421,7 @@ module module_vtk_helpers
   !>
   !> Writes the tree leaves into a vtk file.
   !>
-  subroutine vtk_write_leaves(step, tsim, vtk_step, t_, helper_func)
+  subroutine vtk_write_leaves(step, tsim, vtk_step, t_, helper_func, coord_scale)
     use module_pepc, only: global_tree
     use module_pepc_types, only: t_tree_node, kind_node
     use module_tree, only: t_tree, tree_allocated
@@ -429,6 +432,7 @@ module module_vtk_helpers
     integer, intent(in) :: vtk_step
     real*8, intent(in) :: tsim
     type(t_tree), optional, target, intent(in) :: t_
+    real*8, intent(in), optional :: coord_scale
 
     interface
       subroutine helper_func(d, vtkf)
@@ -462,7 +466,8 @@ module module_vtk_helpers
     call collect_leaves(t, t%node_root)
     DEBUG_ASSERT(i == t%nleaf_me)
 
-    call vtk_write_nodes_as_boxes("leaves", t%comm_env%comm, step, tsim, vtk_step, t, leaves, helper_func = helper_func)
+    call vtk_write_nodes_as_boxes("leaves", t%comm_env%comm, step, tsim, vtk_step, t, leaves, &
+      helper_func = helper_func, coord_scale = coord_scale)
 
     deallocate(leaves)
 
@@ -506,7 +511,7 @@ module module_vtk_helpers
   !>
   !> Writes the tree branches structure into a vtk file.
   !>
-  subroutine vtk_write_branches(step, tsim, vtk_step, t_, helper_func)
+  subroutine vtk_write_branches(step, tsim, vtk_step, t_, helper_func, coord_scale)
     use module_pepc, only: global_tree
     use module_pepc_types, only: t_tree_node, kind_node
     use module_tree, only: t_tree, tree_allocated
@@ -517,6 +522,7 @@ module module_vtk_helpers
     integer, intent(in) :: vtk_step
     real*8, intent(in) :: tsim
     type(t_tree), optional, target, intent(in) :: t_
+    real*8, intent(in), optional :: coord_scale
 
     interface
       subroutine helper_func(d, vtkf)
@@ -552,13 +558,13 @@ module module_vtk_helpers
       DEBUG_ASSERT(i == t%nbranch)
 
       call vtk_write_nodes_as_boxes("branches", t%comm_env%comm, step, tsim, vtk_step, t, branch_nodes, &
-        helper_func = helper_func)
+        helper_func = helper_func, coord_scale = coord_scale)
 
       deallocate(branch_nodes)
     else
       allocate(branch_nodes(0))
       call vtk_write_nodes_as_boxes("branches", t%comm_env%comm, step, tsim, vtk_step, t, branch_nodes, &
-        helper_func = helper_func)
+        helper_func = helper_func, coord_scale = coord_scale)
       deallocate(branch_nodes)
     end if
 
@@ -599,7 +605,7 @@ module module_vtk_helpers
   !>
   !> Writes the space filling curve into a parallel set of vtk files
   !>
-  subroutine vtk_write_spacecurve(step, tsim, vtk_step, particles)
+  subroutine vtk_write_spacecurve(step, tsim, vtk_step, particles, coord_scale)
     use treevars, only: MPI_COMM_lpepc
     use module_vtk
     use module_pepc_types
@@ -611,6 +617,7 @@ module module_vtk_helpers
     integer, intent(in) :: vtk_step
     real*8, intent(in) :: tsim
     type(t_particle), intent(in) :: particles(:)
+    real*8, intent(in), optional :: coord_scale
 
     type(vtkfile_unstructured_grid) :: vtk
     integer(kind_particle) :: i, npp
@@ -623,7 +630,7 @@ module module_vtk_helpers
     call vtk%create_parallel("spacecurve", step, mpi_rank, mpi_size, tsim, vtk_step)
       call vtk%write_headers(npp, 1_kind_particle)
         call vtk%startpoints()
-          call vtk%write_data_array("xyz", particles(:)%x(1), particles(:)%x(2), particles(:)%x(3))
+          call vtk%write_data_array("xyz", particles(:)%x(1), particles(:)%x(2), particles(:)%x(3), coord_scale)
         call vtk%finishpoints()
         call vtk%startpointdata()
           ! no point data here

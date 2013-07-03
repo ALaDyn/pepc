@@ -33,11 +33,11 @@ module module_interaction_specific_types
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
-         real*8 :: phi
          real*8 :: q
          real*8 :: v(3)
          real*8 :: m
 #ifdef BEM2D
+         real*8 :: phi
          real*8 :: ra(2)
          real*8 :: rb(2)
          integer :: source_kind
@@ -46,7 +46,7 @@ module module_interaction_specific_types
 #ifdef BEM2D
       integer, private, parameter :: nprops_particle_data = 7
 #else
-      integer, private, parameter :: nprops_particle_data = 4
+      integer, private, parameter :: nprops_particle_data = 3
 #endif
 
       !> Data structure for shipping results
@@ -127,18 +127,18 @@ module module_interaction_specific_types
 
         ! register particle data type
 #ifdef BEM2D
-        blocklengths(1:nprops_particle_data) = [1, 1, 3, 1, 2, 2, 1]
+        blocklengths(1:nprops_particle_data) = [1, 3, 1, 1, 2, 2, 1]
         types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_INTEGER]
 #else
-        blocklengths(1:nprops_particle_data) = [1, 1, 3, 1]
-        types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_particle_data) = [1, 3, 1]
+        types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
 #endif
         call MPI_GET_ADDRESS( dummy_particle_data, address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%phi, address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%q, address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%v, address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%m, address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%q, address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%v, address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%m, address(3), ierr )
 #ifdef BEM2D
+        call MPI_GET_ADDRESS( dummy_particle_data%phi, address(4), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%ra, address(5), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%rb, address(6), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%source_kind, address(7), ierr )

@@ -43,6 +43,8 @@ module helper
   ! time variables
   real*8 :: dt
   integer :: step
+  ! interaction cutoff parameter
+  real*8 :: eps
 
   ! control variables
   integer :: nt                   ! number of timesteps
@@ -65,20 +67,25 @@ module helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    namelist /pepcandreev/ nt, dt, particle_output, domain_output, diag_interval
+    namelist /pepcandreev/ nt, dt, particle_output, domain_output, diag_interval, eps
     
     ! set default parameter values
-    nt                = 2500
-    dt                = 0.5e-11
+    nt                = 5000
+    dt                = 0.2 ! here, dt is still in fs
     particle_output   = .true.
     domain_output     = .true.
-    diag_interval     = 25    
+    diag_interval     = 25
+    eps               = 1.e-5 ! in microns
+    theta2            = 0.36
  
     num_threads = 8
     np_mult = -500
 
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
+    
+    dt   =  dt / unit_time_fs_per_simunit ! now, dt is in sim units
+    eps2 = (eps/unit_length_micron_per_simunit)**2
 
     if (read_para_file) then
       if(root) write(*,'(a)') " == reading parameter file, section pepcandreev: ", para_file
@@ -91,8 +98,8 @@ module helper
 
     if(root) then
       write(*,'(a,i12)')       " == number of time steps      : ", nt
-      write(*,'(a,es12.4)')    " == time step (fs)            : ", dt
-      write(*,'(a,es12.4)')    " == final time (fs)           : ", dt*nt
+      write(*,'(a,es12.4)')    " == time step (fs)            : ", dt*unit_time_fs_per_simunit
+      write(*,'(a,es12.4)')    " == final time (ns)           : ", dt*nt*unit_time_fs_per_simunit
       write(*,'(a,i12)')       " == diag & IO interval        : ", diag_interval
       write(*,'(a,l12)')       " == particle output           : ", particle_output
       write(*,'(a,l12)')       " == domain output             : ", domain_output
@@ -131,7 +138,7 @@ module helper
         p(ip)%data%m      =  unit_me
         p(ip)%work        =  1.0
         
-        p(ip)%x = p(ip)%x / unit_length_in_micron
+        p(ip)%x = p(ip)%x / unit_length_micron_per_simunit
       end do  
       close(filehandle)
 
@@ -146,8 +153,8 @@ module helper
         p(ip)%data%q      =  unit_qp
         p(ip)%data%m      =  unit_mp
         p(ip)%work        =  1.0
-
-        p(ip)%x = p(ip)%x / unit_length_in_micron
+        
+        p(ip)%x = p(ip)%x / unit_length_micron_per_simunit
       end do  
       close(filehandle)
     else
@@ -174,7 +181,7 @@ module helper
       p(ip)%data%v  = p(ip)%data%v + dt * force / ( p(ip)%data%m * unit_c )
       
       gam           = sqrt( 1.0 + dot_product(p(ip)%data%v, p(ip)%data%v) )
-      p(ip)%x       = p(ip)%x + p(ip)%data%v * unit_c / gam * dt 
+      p(ip)%x       = p(ip)%x + p(ip)%data%v * unit_c / gam * dt
     end do
   end subroutine push_particles
 
@@ -207,7 +214,7 @@ module helper
     
     call timer_start(t_user_particleio)
     vtk_step = vtk_step_of_step(step)
-    call vtk_write_particles("particles", MPI_COMM_WORLD, step, dt * step, vtk_step, p, vtk_results)
+    call vtk_write_particles("particles", MPI_COMM_WORLD, step, dt*step*unit_time_fs_per_simunit, vtk_step, p, vtk_results, unit_length_micron_per_simunit)
     call timer_stop(t_user_particleio)
     if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", timer_read(t_user_particleio)
 
@@ -238,9 +245,9 @@ module helper
   
     ! output of tree diagnostics
     vtk_step = vtk_step_of_step(step)
-    call vtk_write_branches(step,  dt * step, vtk_step)
-    call vtk_write_leaves(step, dt * step, vtk_step)
-    call vtk_write_spacecurve(step, dt * step, vtk_step, p)
+    call vtk_write_branches(step,  dt*step*unit_time_fs_per_simunit, vtk_step, coord_scale=unit_length_micron_per_simunit)
+    call vtk_write_leaves(step, dt*step*unit_time_fs_per_simunit, vtk_step, coord_scale=unit_length_micron_per_simunit)
+    call vtk_write_spacecurve(step, dt*step*unit_time_fs_per_simunit, vtk_step, p, coord_scale=unit_length_micron_per_simunit)
   end subroutine write_domain
   
 end module

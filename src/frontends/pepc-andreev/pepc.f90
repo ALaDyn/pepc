@@ -55,7 +55,7 @@ program pepc
     if(root) then
       write(*,*) " "
       write(*,'(a,i12)')    " ====== computing step       :", step
-      write(*,'(a,es12.4)') " ====== simulation time (fs) :", step * dt * unit_time_in_fs
+      write(*,'(a,es12.4)') " ====== simulation time (fs) :", step*dt*unit_time_fs_per_simunit
     end if
     
     call timer_start(t_user_step)
