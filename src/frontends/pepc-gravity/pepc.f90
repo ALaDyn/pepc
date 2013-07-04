@@ -46,8 +46,8 @@ program pepc
 
   call set_parameter()
   
-  !call init_particles(particles)
-  call read_particles(particles)
+  call init_particles(particles)
+  !call read_particles(particles)
 
   timer(2) = get_time()
 
