@@ -29,15 +29,14 @@ program pepc
   use helper
   implicit none
   
-  integer(kind_particle), parameter :: numparts = 296568
-  !integer(kind_particle), parameter :: numparts = 2500
+  integer :: step
+
+  !integer(kind_particle), parameter :: numparts = 296568
+  integer(kind_particle), parameter :: numparts = 25
   
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
 
-  ! control variable
-  logical :: doDiag
-      
   ! initialize pepc library and MPI
   call pepc_initialize("pepc-andreev", my_rank, n_ranks, .true.)
 
@@ -60,25 +59,32 @@ program pepc
     
     call timer_start(t_user_step)
     
-    doDiag = MOD(step, diag_interval) .eq. 0
-    
     call pepc_particleresults_clear(particles)
     call pepc_grow_tree(particles)
     if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
     call pepc_traverse_tree(particles)
     if(root) write(*,'(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
 
-    if(doDiag .and. domain_output) call write_domain(particles)
-    
     if (dbg(DBG_STATS)) call pepc_statistics(step)
     call pepc_timber_tree()
     
-    if(doDiag .and. particle_output) call write_particles(particles)
-        
-    call push_particles(particles)    
+    if (step > 0) then
+      ! first half step to synchronize velocities with positions
+      call update_velocities(particles, dt/2.)
+    end if
+    
+    ! do diagnostics etc here
+    if ((particle_output_interval>0) .and. (mod(step, particle_output_interval)==0)) call write_particles(particles, step)
+    if ((domain_output_interval>0) .and. (mod(step, domain_output_interval)==0)) call write_domain(particles, step)
+    call diagnose_energy(particles, step)
+    
+    ! second half step: velocities are one half step ahead again
+    call update_velocities(particles, dt/2.)
+    ! full step for positions: now positions are one half step ahead
+    call push_particles(particles, dt)    
     
     call timer_stop(t_user_step)
-    if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer_read(t_user_step)
+    if(root) write(*,'(a,es12.4)') " == time in step [s]: ", timer_read(t_user_step)
 
     call timings_GatherAndOutput(step, 0, 0 == step)
     

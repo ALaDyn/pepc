@@ -42,15 +42,13 @@ module helper
 
   ! time variables
   real*8 :: dt
-  integer :: step
   ! interaction cutoff parameter
   real*8 :: eps
 
   ! control variables
   integer :: nt                   ! number of timesteps
-  logical :: particle_output      ! turn vtk output on/off
-  logical :: domain_output        ! turn vtk output on/off
-  integer :: diag_interval        ! number of timesteps between all diagnostics and IO
+  integer :: particle_output_interval      ! turn vtk output on/off
+  integer :: domain_output_interval        ! turn vtk output on/off
   
   integer, parameter :: particle_direct = -1 ! number of particle for direct summation
 
@@ -67,16 +65,15 @@ module helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    namelist /pepcandreev/ nt, dt, particle_output, domain_output, diag_interval, eps
+    namelist /pepcandreev/ nt, dt, particle_output_interval, domain_output_interval, eps
     
     ! set default parameter values
-    nt                = 5000
-    dt                = 0.2 ! here, dt is still in fs
-    particle_output   = .true.
-    domain_output     = .true.
-    diag_interval     = 25
-    eps               = 1.e-5 ! in microns
-    theta2            = 0.36
+    nt                        = 5000
+    dt                        = 0.2 ! here, dt is still in fs
+    particle_output_interval  = 25
+    domain_output_interval    =  0
+    eps                       = 1.e-5 ! in microns
+    theta2                    = 0.36
  
     num_threads = 8
     np_mult = -500
@@ -100,9 +97,8 @@ module helper
       write(*,'(a,i12)')       " == number of time steps      : ", nt
       write(*,'(a,es12.4)')    " == time step (fs)            : ", dt*unit_time_fs_per_simunit
       write(*,'(a,es12.4)')    " == final time (ns)           : ", dt*nt*unit_time_fs_per_simunit
-      write(*,'(a,i12)')       " == diag & IO interval        : ", diag_interval
-      write(*,'(a,l12)')       " == particle output           : ", particle_output
-      write(*,'(a,l12)')       " == domain output             : ", domain_output
+      write(*,'(a,l12)')       " == particle output interval  : ", particle_output_interval
+      write(*,'(a,l12)')       " == domain output interval    : ", domain_output_interval
     end if
 
     call pepc_prepare(dim)
@@ -164,24 +160,42 @@ module helper
   end subroutine read_particles
 
     
-  subroutine push_particles(p)
+  subroutine update_velocities(p, dt)
     use module_mirror_boxes
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
+    real*8, intent(in) :: dt
     integer(kind_particle) :: ip
-    real*8  :: force(1:3), gam
+    real*8  :: force(1:3)
 
-    if(root) write(*,'(a)') " == [pusher] push particles "
+    if(root) write(*,'(a)') " == [pusher] update velocities "
 
     do ip=1, size(p, kind=kind_particle)
       ! v represents momentum p/mc = gamma*v/c
       force(1:dim)  = p(ip)%data%q/unit_4piepsilon0 * p(ip)%results%e(1:dim)
       force(dim+1:) = 0.
       p(ip)%data%v  = p(ip)%data%v + dt * force / ( p(ip)%data%m * unit_c )
-      
-      gam           = sqrt( 1.0 + dot_product(p(ip)%data%v, p(ip)%data%v) )
-      p(ip)%x       = p(ip)%x + p(ip)%data%v * unit_c / gam * dt
+    end do
+  end subroutine update_velocities
+
+    
+  subroutine push_particles(p, dt)
+    use module_mirror_boxes
+    implicit none
+    
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    real*8, intent(in) :: dt
+    integer(kind_particle) :: ip
+    real*8  :: gam
+
+    if(root) write(*,'(a)') " == [pusher] push particles "
+
+    do ip=1, size(p, kind=kind_particle)
+      ! v represents momentum p/mc = gamma*v/c
+      ! gamma = sqrt(1+ (p/mc)^2)
+      gam     = sqrt( 1.0 + dot_product(p(ip)%data%v, p(ip)%data%v) )
+      p(ip)%x = p(ip)%x + p(ip)%data%v * unit_c / gam * dt
     end do
   end subroutine push_particles
 
@@ -194,7 +208,7 @@ module helper
 
     if (step .eq. 0) then
       vtk_step = VTK_STEP_FIRST
-    else if (nt - 1 - step < diag_interval ) then
+    else if (step == nt - 1) then
       vtk_step = VTK_STEP_LAST
     else
       vtk_step = VTK_STEP_NORMAL
@@ -202,13 +216,14 @@ module helper
   end function vtk_step_of_step
 
 
-  subroutine write_particles(p)
+  subroutine write_particles(p, step)
     use module_vtk_helpers
     implicit none
 
     include 'mpif.h'
     
     type(t_particle), intent(in) :: p(:)
+    integer, intent(in) :: step
 
     integer :: vtk_step
     
@@ -216,7 +231,7 @@ module helper
     vtk_step = vtk_step_of_step(step)
     call vtk_write_particles("particles", MPI_COMM_WORLD, step, dt*step*unit_time_fs_per_simunit, vtk_step, p, vtk_results, unit_length_micron_per_simunit)
     call timer_stop(t_user_particleio)
-    if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", timer_read(t_user_particleio)
+    if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s] : ", timer_read(t_user_particleio)
 
     contains
 
@@ -234,12 +249,13 @@ module helper
   end subroutine write_particles
 
   
-  subroutine write_domain(p)
+  subroutine write_domain(p, step)
     use module_vtk
     use module_vtk_helpers
     implicit none
   
     type(t_particle), allocatable, intent(in) :: p(:)
+    integer, intent(in) :: step
 
     integer :: vtk_step
   
@@ -249,5 +265,69 @@ module helper
     call vtk_write_leaves(step, dt*step*unit_time_fs_per_simunit, vtk_step, coord_scale=unit_length_micron_per_simunit)
     call vtk_write_spacecurve(step, dt*step*unit_time_fs_per_simunit, vtk_step, p, coord_scale=unit_length_micron_per_simunit)
   end subroutine write_domain
+  
+  
+  subroutine diagnose_energy(p, step)
+    implicit none
+    
+    type(t_particle), intent(in) :: p(:)
+    integer, intent(in) :: step
+    
+    integer, parameter :: E_KIN_E = 1
+    integer, parameter :: E_POT_E = 2
+    integer, parameter :: E_TOT_E = 3
+    integer, parameter :: E_KIN_I = 4
+    integer, parameter :: E_POT_I = 5
+    integer, parameter :: E_TOT_I = 6
+    integer, parameter :: E_KIN   = 7
+    integer, parameter :: E_POT   = 8
+    integer, parameter :: E_TOT   = 9
+    
+    integer, parameter :: file_energies = 42
+    
+    real*8 :: energies(9)
+    integer(kind_particle) :: ip
+    real*8 :: gam, ekin, epot
+    
+    if(root) write(*,'(a)') " == [energy] diagnose energies"
+
+    energies = 0.
+    
+    do ip=1, size(p, kind=kind_particle)
+      ! v represents momentum p/mc = gamma*v/c
+      ! gamma = sqrt(1 + (p/mc)^2)
+      gam  = sqrt( 1.0 + dot_product(p(ip)%data%v, p(ip)%data%v) )
+      ekin = (gam-1._8) * p(ip)%data%m*unit_c2
+      epot = p(ip)%data%q * p(ip)%results%pot / 2._8
+      
+      if (p(ip)%label > 0) then
+        energies(E_KIN_I) = energies(E_KIN_I) + ekin
+        energies(E_POT_I) = energies(E_POT_I) + epot
+      else if (p(ip)%label < 0) then
+          energies(E_KIN_E) = energies(E_KIN_E) + ekin
+          energies(E_POT_E) = energies(E_POT_E) + epot
+      else
+        write(*,*) "unexpected species in energy computation"
+      endif
+    end do
+    
+    energies(E_TOT_E) = energies(E_KIN_E) + energies(E_POT_E)
+    energies(E_TOT_I) = energies(E_KIN_I) + energies(E_POT_I)
+    energies(E_KIN  ) = energies(E_KIN_E) + energies(E_KIN_I)
+    energies(E_POT  ) = energies(E_POT_E) + energies(E_POT_I)
+    energies(E_TOT  ) = energies(E_TOT_E) + energies(E_TOT_I)
+
+    if (step == 0) then
+      open(unit=file_energies, file='energy.dat', status='unknown', position='rewind',action='write')
+      write(file_energies, '("#",a8,x,a10,  9(x,a16))') 'step', 'time (fs)', 'E_kin(e)', 'E_pot(e)', 'E_tot(e)', 'E_kin(i)', 'E_pot(i)', 'E_tot(i)', 'E_kin', 'E_pot', 'E_tot'
+    else
+      open(unit=file_energies, file='energy.dat', status='old', position='append',action='write')
+    endif
+    
+    write(file_energies,   '( x ,I8,x,f10.4,9(x,g16.10))') step, dt*step*unit_time_fs_per_simunit, energies
+    
+    close(file_energies)
+    
+  end subroutine diagnose_energy
   
 end module
