@@ -17,7 +17,8 @@ def ky_of_fieldblob(fn):
 
 def spectrum_of_fieldblob(fname):
   y  = fb.field_of_fieldblob(fname)
-  yc = y[256 - 25: 256 + 25]
+  nx = fb.nx_of_fieldblob(fname)
+  yc = y[nx / 2 - nx / 20: nx / 2 + nx / 20]
   
   return np.mean(np.abs(np.fft.rfft(yc, axis = 1))**2, axis = 0)
 
@@ -52,6 +53,7 @@ if __name__ == '__main__':
   gamma = -1.0 * np.ones(nmodes + 1)
   mask = np.where(np.logical_and(t >= tstart, t <= tend))
   tfit = t[mask]
+  naccepted = 0
   for ik in range(1, nmodes + 1):
     xifit = xi[ik][mask]
     ximin = xifit[0]
@@ -59,6 +61,7 @@ if __name__ == '__main__':
     p = lsfit(tfit, xifit, expmodel, [ 1.0, 0.01, 0.0 ], maxfev = 10000)[0]
     if ((ximax - ximin) > 100.0 * ximin):
       print 'p[', ik, ']: ', p
+      naccepted += 1
       gamma[ik] = p[1]
       ax.plot(k[ik] * np.ones_like(tfit), tfit, expmodel(tfit, p), 'k--', 
         linewidth = 1.5 * mpl.rcParams['lines.linewidth'])
@@ -87,6 +90,28 @@ if __name__ == '__main__':
 
   plt.savefig('modes_' + field + '.png')
   plt.savefig('modes_' + field + '.pdf')
+
+  mpl.rcParams['text.usetex']=True
+  mpl.rcParams['text.latex.unicode']=True
+
+  plt.figure()
+  cmap2 = mpl.cm.get_cmap('Set1')
+  iaccepted = 0
+  for ik in range(1, nmodes + 1):
+    if (gamma[ik] >= 0.0):
+      plt.semilogy(t, xi[ik], '-',
+        color = cmap2(float(iaccepted) / float(naccepted)),
+        label = "$m = {0}$".format(ik))
+      iaccepted += 1
+
+  plt.legend(loc = 'best', prop = { 'size': 'small' })
+  plt.xlabel(r"$\omega_{p,e} \, t$")
+
+  mpl.rcParams['text.usetex']=False
+  mpl.rcParams['text.latex.unicode']=False
+
+  plt.savefig('modes_log_' + field + '.png')
+  plt.savefig('modes_log_' + field + '.pdf')
 
   plt.figure()
   plt.semilogy(k[np.where(gamma > 0.0)], gamma[np.where(gamma > 0.0)], 'k.')

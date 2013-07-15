@@ -9,11 +9,11 @@ import numpy as np
 #
 
 def FIELDBLOB_HEADER_DTYPE(endianness): return np.dtype([
-  ('magic',  '{e}i4'.format(e = endianness),   (1,)),
-  ('n',      '{e}i4'.format(e = endianness),   (2,)),
+  ('magic',  '{e}i4'.format(e = endianness), (1,)),
+  ('n',      '{e}i4'.format(e = endianness), (2,)),
   ('offset', '{e}f8'.format(e = endianness), (2,)),
   ('extent', '{e}f8'.format(e = endianness), (2,)),
-  ('nt'    , '{e}i4'.format(e = endianness),   (1,)),
+  ('nt'    , '{e}i4'.format(e = endianness), (1,)),
   ('t'     , '{e}f8'.format(e = endianness), (1,)),
   ('B0'    , '{e}f8'.format(e = endianness), (1,)),
   ('vte'   , '{e}f8'.format(e = endianness), (1,)),

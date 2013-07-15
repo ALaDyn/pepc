@@ -34,7 +34,7 @@ if __name__ == '__main__':
   ax2.legend(loc = 'best')
   ax2.set_ylabel('E (a.u.)')
 
-  ax2.set_xlabel('omega_{p,e}t')
+  ax2.set_xlabel('omega_{p,e} t')
 
   fig.savefig('energy.png')
   fig.savefig('energy.pdf')
