@@ -80,7 +80,7 @@ module module_vtk_helpers
     np = size(p)
 
     call vtk%create_parallel(fname, step, mpi_rank, mpi_size, time, vtk_step)
-      call vtk%write_headers(np, 0_kind_particle)
+      call vtk%write_headers(np, np)
       call vtk%startpoints()
         call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3), coord_scale)
       call vtk%finishpoints()
@@ -95,7 +95,14 @@ module module_vtk_helpers
           call vtk_write_particle_data_results(p(:)%data, p(:)%results, vtk)
         end if
       call vtk%finishpointdata()
-      call vtk%dont_write_cells()
+      call vtk%startcells()
+        call vtk%write_data_array("connectivity", [(i, i=0,np-1)])
+        call vtk%write_data_array("offsets", [(i,i=1,np)])
+        call vtk%write_data_array("types", [(VTK_VERTEX,i=1,np)])
+      call vtk%finishcells()
+      call vtk%startcelldata()
+       ! no cell data here as cells correspond to points anyway, in case of problems use PointDataToCellData Filter in Paraview
+      call vtk%finishcelldata()
       call vtk%write_final()
     call vtk%close()
   end subroutine vtk_write_particles
@@ -202,7 +209,14 @@ module module_vtk_helpers
           call vtk_write_node_interaction_data(bdata, vtk)
         end if
       call vtk%finishpointdata()
-      call vtk%dont_write_cells()
+      call vtk%startcells()
+        call vtk%write_data_array("connectivity", [(i, i=0,num_nodes-1)])
+        call vtk%write_data_array("offsets", [(i,i=1,num_nodes)])
+        call vtk%write_data_array("types", [(VTK_VERTEX,i=1,num_nodes)])
+      call vtk%finishcells()
+      call vtk%startcelldata()
+       ! no cell data here as cells correspond to points anyway, in case of problems use PointDataToCellData Filter in Paraview
+      call vtk%finishcelldata()
       call vtk%write_final()
     call vtk%close()
 
