@@ -24,15 +24,16 @@ program pepc
   use module_pepc_types
   use module_timings
   use module_debug
-  
   ! frontend helper routines
-  use helper
+  use pepca_helper
+  use pepca_integrator
+  use pepca_diagnostics
   implicit none
   
   integer :: step
 
-  !integer(kind_particle), parameter :: numparts = 296568
-  integer(kind_particle), parameter :: numparts = 25
+  integer(kind_particle), parameter :: numparts = 296568
+  !integer(kind_particle), parameter :: numparts = 2500
   
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
@@ -74,9 +75,10 @@ program pepc
     end if
     
     ! do diagnostics etc here
-    if ((particle_output_interval>0) .and. (mod(step, particle_output_interval)==0)) call write_particles(particles, step)
-    if ((domain_output_interval>0) .and. (mod(step, domain_output_interval)==0)) call write_domain(particles, step)
-    call diagnose_energy(particles, step)
+    if ((particle_output_interval>0) .and. ((mod(step, particle_output_interval)==0) .or. (step==nt-1))) call write_particles(particles, step, dt*step*unit_time_fs_per_simunit)
+    if ((particle_output_interval>0) .and. ((mod(step, particle_output_interval)==0) .or. (step==nt-1))) call write_densities(particles, step, dt*step*unit_time_fs_per_simunit)
+    if ((domain_output_interval  >0) .and. ((mod(step, domain_output_interval)  ==0) .or. (step==nt-1))) call write_domain(   particles, step, dt*step*unit_time_fs_per_simunit)
+    call diagnose_energy(particles, step, dt*step*unit_time_fs_per_simunit)
     
     ! second half step: velocities are one half step ahead again
     call update_velocities(particles, dt/2.)

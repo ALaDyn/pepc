@@ -34,6 +34,7 @@ module module_vtk_helpers
   public vtk_write_spacecurve
 
   public vtk_write_field_on_grid
+  public vtk_write_densities_on_grid
 
   contains
 
@@ -663,12 +664,13 @@ module module_vtk_helpers
 
 
   !>
-  !> Writes field values on a regular rectangular grid to VTK.
+  !> Writes scalar and vector field values on a regular rectangular grid to VTK.
   !>
   subroutine vtk_write_field_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
-                    scalarvalues, scalarname, vectorvalues, vectorname, my_rank, num_pe, comm)
+                    scalarvalues, scalarname, vectorvalues, vectorname, mpi_comm)
     use module_vtk
     implicit none
+    include 'mpif.h'
     character(*), intent(in) :: filename, scalarname, vectorname
     integer, intent(in) :: step
     integer, intent(in) :: vtk_step
@@ -676,17 +678,22 @@ module module_vtk_helpers
     integer, dimension(2,3), intent(in) :: globaldims, mydims
     real*8, intent(in) :: xcoords(:), ycoords(:), zcoords(:)
     real*8, intent(in) :: scalarvalues(:, :, :), vectorvalues(:,:,:,:)
-    integer, intent(in) :: comm, my_rank, num_pe
+    integer, intent(in) :: mpi_comm
+
+    integer :: mpi_rank, mpi_size, ierr
     integer :: nx, ny, nz
 
     type(vtkfile_rectilinear_grid) :: vtk
+    
+    call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
+    call MPI_Comm_size(mpi_comm, mpi_size, ierr)
 
     nx = mydims(2,1) - mydims(1,1) + 1
     ny = mydims(2,2) - mydims(1,2) + 1
     nz = mydims(2,3) - mydims(1,3) + 1
 
-    call vtk%create_parallel(trim(filename), step, my_rank, num_pe, tsim, vtk_step)
-      call vtk%set_communicator(comm)
+    call vtk%create_parallel(trim(filename), step, mpi_rank, mpi_size, tsim, vtk_step)
+      call vtk%set_communicator(mpi_comm)
       call vtk%write_headers(globaldims, mydims)
         call vtk%startcoordinates()
           call vtk%write_data_array("x_coordinate", xcoords)
@@ -696,6 +703,57 @@ module module_vtk_helpers
         call vtk%startpointdata()
           call vtk%write_data_array(scalarname, nx, ny, nz, scalarvalues)
           call vtk%write_data_array(vectorname, nx, ny, nz, vectorvalues(:,:,:,1), vectorvalues(:,:,:,2), vectorvalues(:,:,:,3))
+          ! no point data here
+        call vtk%finishpointdata()
+        call vtk%startcelldata()
+          ! no cell data here
+        call vtk%finishcelldata()
+      call vtk%write_final()
+    call vtk%close()
+  end subroutine
+
+
+  !>
+  !> Writes two scalar fields on a regular rectangular grid to VTK.
+  !>
+  subroutine vtk_write_densities_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
+                    dens1, name1, dens2, name2, mpi_comm, coord_scale)
+    use module_vtk
+    implicit none
+    include 'mpif.h'
+    character(*), intent(in) :: filename, name1, name2
+    integer, intent(in) :: step
+    integer, intent(in) :: vtk_step
+    real*8, intent(in) :: tsim
+    integer, dimension(2,3), intent(in) :: globaldims, mydims
+    real*8, intent(in) :: xcoords(:), ycoords(:), zcoords(:)
+    real*8, intent(in) :: dens1(:,:,:), dens2(:,:,:)
+    integer, intent(in) :: mpi_comm
+    real*8, intent(in), optional :: coord_scale
+    
+    integer :: mpi_rank, mpi_size, ierr
+    integer :: nx, ny, nz
+
+    type(vtkfile_rectilinear_grid) :: vtk
+    
+    call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
+    call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+
+    nx = mydims(2,1) - mydims(1,1) + 1
+    ny = mydims(2,2) - mydims(1,2) + 1
+    nz = mydims(2,3) - mydims(1,3) + 1
+
+    call vtk%create_parallel(trim(filename), step, mpi_rank, mpi_size, tsim, vtk_step)
+      call vtk%set_communicator(mpi_comm)
+      call vtk%write_headers(globaldims, mydims)
+        call vtk%startcoordinates()
+          call vtk%write_data_array("x_coordinate", xcoords, coord_scale)
+          call vtk%write_data_array("y_coordinate", ycoords, coord_scale)
+          call vtk%write_data_array("z_coordinate", zcoords, coord_scale)
+        call vtk%finishcoordinates()
+        call vtk%startpointdata()
+          call vtk%write_data_array(name1, nx, ny, nz, dens1)
+          call vtk%write_data_array(name2, nx, ny, nz, dens2)
           ! no point data here
         call vtk%finishpointdata()
         call vtk%startcelldata()
