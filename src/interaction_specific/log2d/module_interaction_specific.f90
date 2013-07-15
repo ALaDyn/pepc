@@ -74,13 +74,13 @@ module module_interaction_specific
     type(t_particle_data), intent(in) :: p
     type(t_tree_node_interaction_data), intent(out) :: m
 
-    complex(kind = 8), parameter :: omega0(pMultipole) = 0, &
-                                    ic = (0, 1)
+    complex(kind = 8), parameter :: omega0(pMultipole) = 0
+#ifdef BEM2D
+    complex(kind = 8), parameter :: ic = (0, 1)
     complex(kind = 8) :: za, zb, zc, t, omega(pMultipole), tu, n
     real*8 :: l
     integer :: k
     
-#ifdef BEM2D
     if (p%source_kind == CALC_FORCE_SOURCE_KIND_PARTICULAR) then
       m= t_tree_node_interaction_data(x, p%q, abs(p%q), omega0, 0.)
     else
@@ -361,7 +361,6 @@ module module_interaction_specific
   subroutine calc_force_per_particle(particles)
     use module_debug, only : pepc_status
     use module_pepc_types
-    use treevars, only : me
     use module_fmm_periodicity
     use module_mirror_boxes
     implicit none
