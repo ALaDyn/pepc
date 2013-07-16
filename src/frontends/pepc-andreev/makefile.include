@@ -5,7 +5,7 @@ FILES_L   = pepc.f90              \
             module_globals.f90    \
             module_diagnostics.f90
 
-FILES_L_U = module_vtk_helpers.f90
+FILES_L_U = module_vtk_helpers.f90 module_vtk.f90
             
 
 SRC        += $(FILES_L)

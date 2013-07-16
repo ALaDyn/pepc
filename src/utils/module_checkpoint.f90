@@ -39,7 +39,7 @@ module module_checkpoint
 
       contains
 
-          subroutine write_particles_ascii(my_rank, itime, dp, filename)
+          subroutine write_particles_ascii(my_rank, itime, dp, filename_out)
             use module_pepc_types
             use module_utils
             use module_pepc, only : pepc_write_parameters
@@ -48,14 +48,15 @@ module module_checkpoint
             integer(kind_pe), intent(in) :: my_rank
             integer(kind_default), intent(in) :: itime
             type(t_particle), intent(in), dimension(:) :: dp
-            character(*), intent(out) :: filename
+            character(*), optional, intent(out) :: filename_out
             logical :: firstcall  = .true.
             character(50) :: dir
             integer(kind_particle) :: i
+            character(100) :: filename
 
             dir = trim(directory)//"/ascii/"
             write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(dir), itime, my_rank
-            call pepc_status("DUMP PARTICLES ASCII: "//filename)
+            call pepc_status("DUMP PARTICLES ASCII: "//trim(filename))
 
             if (firstcall) then
               call create_directory(trim(directory))
@@ -74,6 +75,10 @@ module module_checkpoint
               open(filehandle,file=trim(filename),STATUS='UNKNOWN', POSITION = 'REWIND')
               call pepc_write_parameters(filehandle)
               close(filehandle)
+            endif
+            
+            if (present(filename_out)) then
+              filename_out = trim(filename)
             endif
           end subroutine
 

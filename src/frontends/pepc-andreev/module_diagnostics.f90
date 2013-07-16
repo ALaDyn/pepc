@@ -26,7 +26,8 @@ module pepca_diagnostics
   private
   save
     
-    public write_particles
+    public write_particles_vtk
+    public write_particles_ascii
     public gather_and_write_densities
     public write_domain
     public diagnose_energy
@@ -50,7 +51,7 @@ module pepca_diagnostics
   end function vtk_step_of_step
 
 
-  subroutine write_particles(p, step, realtime)
+  subroutine write_particles_vtk(p, step, realtime)
     use module_vtk_helpers
     use module_pepc_types
     use pepca_units
@@ -80,7 +81,40 @@ module pepca_diagnostics
       
       call vtk_write_particle_data_results(d, r, vtkf)
     end subroutine
-  end subroutine write_particles
+  end subroutine write_particles_vtk
+
+
+  subroutine write_particles_ascii(my_rank, itime, p)
+    use module_pepc_types
+    use module_utils
+    use pepca_units
+    implicit none
+    integer(kind_pe), intent(in) :: my_rank
+    integer(kind_default), intent(in) :: itime
+    type(t_particle), intent(in), dimension(:) :: p
+    logical :: firstcall  = .true.
+    character(50) :: dir
+    integer(kind_particle) :: i
+    character(100) :: filename
+    character(12), parameter :: directory = './particles'
+    integer, parameter :: filehandle = 43
+
+    dir = trim(directory)//"/ascii/"
+    write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(dir), itime, my_rank
+
+    if (firstcall) then
+      call create_directory(trim(directory))
+      call create_directory(trim(dir))
+      firstcall = .false.
+    endif
+
+    open(filehandle, file=trim(filename), STATUS='REPLACE')
+    do i=1, size(p,kind=kind(i))
+      write(filehandle,'(6(f8.3,x),f3.0)') p(i)%x(1:3)*unit_length_micron_per_simunit, p(i)%data%v(1:3), p(i)%data%q
+    end do
+    close(filehandle)
+
+  end subroutine
 
 
   subroutine gather_and_write_densities(p, step, realtime)

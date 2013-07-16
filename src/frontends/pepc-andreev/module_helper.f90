@@ -32,6 +32,7 @@ module pepca_helper
   integer, parameter :: t_user_total       = t_userdefined_first
   integer, parameter :: t_user_init        = t_userdefined_first + 1
   integer, parameter :: t_user_step        = t_userdefined_first + 2
+  integer, parameter :: t_user_diag        = t_userdefined_first + 3
   
   ! MPI variables
   integer(kind_pe) :: my_rank, n_ranks
