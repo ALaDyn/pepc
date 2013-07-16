@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2012 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -64,7 +64,7 @@ module pepca_helper
     namelist /pepcandreev/ nt, dt, particle_output_interval, domain_output_interval, eps
     
     ! set default parameter values
-    nt                        = 5000
+    nt                        = 7500
     dt                        = 0.2 ! here, dt is still in fs
     particle_output_interval  = 25
     domain_output_interval    =  0

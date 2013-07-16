@@ -715,6 +715,8 @@ module module_vtk_helpers
 
   !>
   !> Writes two scalar fields on a regular rectangular grid to VTK.
+  !> dens1 and dens2 are intepreted as cell data instead as point data as above
+  !> accordingly, size(densX) = size([xcoords, ycoords, zcoords])-1
   !>
   subroutine vtk_write_densities_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
                     dens1, name1, dens2, name2, mpi_comm, coord_scale)
@@ -752,12 +754,11 @@ module module_vtk_helpers
           call vtk%write_data_array("z_coordinate", zcoords, coord_scale)
         call vtk%finishcoordinates()
         call vtk%startpointdata()
-          call vtk%write_data_array(name1, nx, ny, nz, dens1)
-          call vtk%write_data_array(name2, nx, ny, nz, dens2)
           ! no point data here
         call vtk%finishpointdata()
         call vtk%startcelldata()
-          ! no cell data here
+          call vtk%write_data_array(name1, nx-1, ny-1, nz-1, dens1)
+          call vtk%write_data_array(name2, nx-1, ny-1, nz-1, dens2)
         call vtk%finishcelldata()
       call vtk%write_final()
     call vtk%close()

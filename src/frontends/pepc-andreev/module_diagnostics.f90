@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2012 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -27,7 +27,7 @@ module pepca_diagnostics
   save
     
     public write_particles
-    public write_densities
+    public gather_and_write_densities
     public write_domain
     public diagnose_energy
 
@@ -83,7 +83,7 @@ module pepca_diagnostics
   end subroutine write_particles
 
 
-  subroutine write_densities(p, step, realtime)
+  subroutine gather_and_write_densities(p, step, realtime)
     use module_vtk_helpers
     use module_pepc_types
     use pepca_units
@@ -104,24 +104,24 @@ module pepca_diagnostics
     integer :: vtk_step, i, g
     integer :: cell(3)
     integer(kind_particle) :: ip
-    integer, dimension(2,3) :: globaldims, mydims
+    integer, dimension(2,3) :: dims
     type(t_coordarray) :: grid(3)
     real*8, allocatable :: dens_el(:,:,:), dens_ion(:,:,:)
     integer(kind_default) :: ierr
+    real*8 :: cell_volume
     
     vtk_step = vtk_step_of_step(step)
     
     allocate (dens_el(Ngrid(1), Ngrid(2), Ngrid(3)), dens_ion(Ngrid(1), Ngrid(2), Ngrid(3)))
-    dens_el  = 0.
-    dens_ion = 0.
-    globaldims(1, :) = 1
-    globaldims(2, :) = Ngrid(1:3)
-    mydims = globaldims
+    dens_el    = 0.
+    dens_ion   = 0.
+    dims(1, :) = 1
+    dims(2, :) = Ngrid(1:3)+1
     
     do g=1,3
-      allocate(grid(g)%coords(Ngrid(g)))
-      do i=1,Ngrid(g)
-        grid(g)%coords(i) = global_tree%bounding_box%boxmin(g) + global_tree%bounding_box%boxsize(g)/max((Ngrid(g)-1),1)*(i-1)
+      allocate(grid(g)%coords(Ngrid(g)+1))
+      do i=0,Ngrid(g)
+        grid(g)%coords(i+1) = global_tree%bounding_box%boxmin(g) + global_tree%bounding_box%boxsize(g)/Ngrid(g)*i
       end do
     end do
 
@@ -135,14 +135,25 @@ module pepca_diagnostics
       endif
     end do
     
-    call MPI_REDUCE(MPI_IN_PLACE, dens_el,  size(dens_el,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    call MPI_REDUCE(MPI_IN_PLACE, dens_ion, size(dens_ion, kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
 
     if (root) then
       ! we perform this output on a single rank to prevent having to think about the reduction above
-      call vtk_write_densities_on_grid("densities", step, realtime, vtk_step, globaldims, mydims, &
-        grid(1)%coords, grid(2)%coords, grid(3)%coords, dens_el,  'n_el', dens_ion, 'n_ion', MPI_COMM_SELF, &
-        coord_scale=unit_length_micron_per_simunit)
+      call MPI_REDUCE(MPI_IN_PLACE, dens_el,  size(dens_el,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      call MPI_REDUCE(MPI_IN_PLACE, dens_ion, size(dens_ion, kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      
+      ! compute real physical densities, i.e. particles per micron**2(3)
+      cell_volume = product((global_tree%bounding_box%boxsize(1:dim) * unit_length_micron_per_simunit) / Ngrid(1:dim))
+      dens_el(:,:,:)  = dens_el /cell_volume
+      dens_ion(:,:,:) = dens_ion/cell_volume
+      
+      call vtk_write_densities_on_grid("densities", step, realtime, vtk_step, dims, dims, &
+        grid(1)%coords, grid(2)%coords, grid(3)%coords, &
+        dens_el,  'n_el' , &
+        dens_ion, 'n_ion', &
+        MPI_COMM_SELF, coord_scale=unit_length_micron_per_simunit)
+    else
+      call MPI_REDUCE(dens_el,  dens_el,  size(dens_el,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      call MPI_REDUCE(dens_ion, dens_ion, size(dens_ion, kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
     endif
 
     do g=1,3
@@ -150,7 +161,7 @@ module pepca_diagnostics
     end do
     deallocate (dens_el, dens_ion)
 
-  end subroutine write_densities
+  end subroutine gather_and_write_densities
 
 
   subroutine write_domain(p, step, realtime)

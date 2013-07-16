@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2012 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -76,7 +76,7 @@ program pepc
     
     ! do diagnostics etc here
     if ((particle_output_interval>0) .and. ((mod(step, particle_output_interval)==0) .or. (step==nt-1))) call write_particles(particles, step, dt*step*unit_time_fs_per_simunit)
-    if ((particle_output_interval>0) .and. ((mod(step, particle_output_interval)==0) .or. (step==nt-1))) call write_densities(particles, step, dt*step*unit_time_fs_per_simunit)
+    if ((particle_output_interval>0) .and. ((mod(step, particle_output_interval)==0) .or. (step==nt-1))) call gather_and_write_densities(particles, step, dt*step*unit_time_fs_per_simunit)
     if ((domain_output_interval  >0) .and. ((mod(step, domain_output_interval)  ==0) .or. (step==nt-1))) call write_domain(   particles, step, dt*step*unit_time_fs_per_simunit)
     call diagnose_energy(particles, step, dt*step*unit_time_fs_per_simunit)
     
