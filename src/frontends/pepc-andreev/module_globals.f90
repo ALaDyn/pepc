@@ -31,6 +31,19 @@ module pepca_globals
   ! grid for density output
   integer :: Ngrid(3) = [500, 1000, 1]
 
+  ! MPI variables
+  integer(kind_pe) :: my_rank, n_ranks
   logical :: root
+
+  ! time variables
+  real*8 :: dt       !< timestep (initially in fs, later in simunits)
+  integer :: nt      !< number of timesteps
+
+  ! interaction cutoff parameter
+  real*8 :: eps
+
+  ! control variables
+  integer :: particle_output_interval      !< turn vtk output on/off
+  integer :: domain_output_interval        !< turn vtk output on/off
 
 end module

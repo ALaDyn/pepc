@@ -28,6 +28,7 @@ program pepc
   use pepca_helper
   use pepca_integrator
   use pepca_diagnostics
+  use pepca_globals
   implicit none
   
   integer :: step
@@ -49,13 +50,13 @@ program pepc
   call read_particles(particles, 'E_phase_space.dat', numparts, 'I_phase_space.dat', numparts)
   call timer_stop(t_user_init)
 
-  if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer_read(t_user_init)
+  if(root) write(*,'(a,f12.4," s")') ' === init time [s]: ', timer_read(t_user_init)
  
   do step=0, nt - 1
     if(root) then
       write(*,*) " "
-      write(*,'(a,i12)')    " ====== computing step       :", step
-      write(*,'(a,f12.4)') " ====== simulation time (fs) :", step*dt*unit_time_fs_per_simunit
+      write(*,'(a,i12,"/",i0)')   ' ====== computing step       :', step, nt-1
+      write(*,'(a,f12.4)') ' ====== simulation time (fs) :', step*dt*unit_time_fs_per_simunit
     end if
     
     call timer_start(t_user_step)
@@ -103,9 +104,9 @@ program pepc
   call timer_stop(t_user_total)
 
   if(root) then
-    write(*,*)            " "
-    write(*,'(a)')        " ===== finished pepc simulation"
-    write(*,'(a,es12.4)') " ===== total run time [s]: ", timer_read(t_user_total)
+    write(*,*)            ' '
+    write(*,'(a)')        ' ===== finished pepc simulation'
+    write(*,'(a,es12.4, " s")') ' ===== total run time    : ', timer_read(t_user_total)
   end if
 
   ! cleanup pepc and MPI

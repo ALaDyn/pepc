@@ -33,20 +33,6 @@ module pepca_helper
   integer, parameter :: t_user_init        = t_userdefined_first + 1
   integer, parameter :: t_user_step        = t_userdefined_first + 2
   integer, parameter :: t_user_diag        = t_userdefined_first + 3
-  
-  ! MPI variables
-  integer(kind_pe) :: my_rank, n_ranks
-
-  ! time variables
-  real*8 :: dt
-  ! interaction cutoff parameter
-  real*8 :: eps
-
-  ! control variables
-  integer :: nt                   ! number of timesteps
-  integer :: particle_output_interval      ! turn vtk output on/off
-  integer :: domain_output_interval        ! turn vtk output on/off
-  
 
   contains
 
@@ -62,10 +48,10 @@ module pepca_helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    namelist /pepcandreev/ nt, dt, particle_output_interval, domain_output_interval, eps
+    namelist /pepcandreev/ nt, dt, particle_output_interval, domain_output_interval, eps, Ngrid
     
     ! set default parameter values
-    nt                        = 7500
+    nt                        = 20000
     dt                        = 0.2 ! here, dt is still in fs
     particle_output_interval  = 25
     domain_output_interval    =  0
@@ -82,12 +68,12 @@ module pepca_helper
     eps2 = (eps/unit_length_micron_per_simunit)**2
 
     if (read_para_file) then
-      if(root) write(*,'(a)') " == reading parameter file, section pepcandreev: ", para_file
+      if(root) write(*,'(a)') ' == reading parameter file, section pepcandreev: ', para_file
       open(fid,file=para_file)
       read(fid,NML=pepcandreev)
       close(fid)
     else
-      if(root) write(*,*) " == no param file, using default parameter "
+      if(root) write(*,*) ' == no param file, using default parameters '
     end if    
 
     if(root) then
