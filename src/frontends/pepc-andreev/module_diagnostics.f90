@@ -221,12 +221,15 @@ module pepca_diagnostics
   
   subroutine diagnose_energy(p, step, realtime)
     use module_pepc_types
+    use pepca_globals, only: root
     use pepca_units
     implicit none
+    include 'mpif.h'
     
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
     integer, intent(in) :: step
+    integer(kind_default) :: ierr
     
     integer, parameter :: E_KIN_E = 1
     integer, parameter :: E_POT_E = 2
@@ -270,16 +273,23 @@ module pepca_diagnostics
     energies(E_POT  ) = energies(E_POT_E) + energies(E_POT_I)
     energies(E_TOT  ) = energies(E_TOT_E) + energies(E_TOT_I)
 
-    if (step == 0) then
-      open(unit=file_energies, file='energy.dat', status='unknown', position='rewind',action='write')
-      write(file_energies, '("#",a8,x,a10,  9(x,a16))') 'step', 'time (fs)', 'E_kin(e)', 'E_pot(e)', 'E_tot(e)', 'E_kin(i)', 'E_pot(i)', 'E_tot(i)', 'E_kin', 'E_pot', 'E_tot'
+    if (root) then
+      ! we perform this output on a single rank to prevent having to think about the reduction above
+      call MPI_REDUCE(MPI_IN_PLACE, energies,  size(energies,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+    
+      if (step == 0) then
+        open(unit=file_energies, file='energy.dat', status='unknown', position='rewind',action='write')
+        write(file_energies, '("#",a8,x,a10,  9(x,a16))') 'step', 'time (fs)', 'E_kin(e)', 'E_pot(e)', 'E_tot(e)', 'E_kin(i)', 'E_pot(i)', 'E_tot(i)', 'E_kin', 'E_pot', 'E_tot'
+      else
+        open(unit=file_energies, file='energy.dat', status='old', position='append',action='write')
+      endif
+    
+      write(file_energies,   '( x ,I8,x,f10.4,9(x,g16.10))') step, realtime, energies
+    
+      close(file_energies)
     else
-      open(unit=file_energies, file='energy.dat', status='old', position='append',action='write')
+      call MPI_REDUCE(energies, energies,  size(energies,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
     endif
-    
-    write(file_energies,   '( x ,I8,x,f10.4,9(x,g16.10))') step, realtime, energies
-    
-    close(file_energies)
     
   end subroutine diagnose_energy
   
