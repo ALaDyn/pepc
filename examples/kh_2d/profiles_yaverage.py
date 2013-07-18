@@ -11,59 +11,79 @@ import fieldblob as fb
 import pubmpl
 
 def print_usage():
-  print "Usage: nice_yaverage.py nt"
+  print 'Usage: nice_yaverage.py nt'
+
+def calc_ylim(y):
+  a = np.min(y)
+  b = np.max(y)
+  c = 0.1 * (b - a)
+  return (a - c, b + c)
 
 if __name__ == '__main__':
   if (len(sys.argv) < 2):
     print_usage()
     sys.exit(1)
   else:
-    groups = { "density": ["ne", "ni"], "velocity": ["vey", "viy"], "elfield": ["ex"] }
-    labels = { "ne": "electrons", "ni": "ions", 
-      "vey": "electrons", "viy": "ions" }
-    ylabels = { "density": r"$n_\sigma$", "velocity": r"$v_{y,\sigma} / v_{\mathrm{th},e}$",
-      'elfield': r'$E_x$' }
-    linestyle = { 'ne': 'k-', 'ni': 'k:', 'vey': 'k-', 'viy': 'k:', 'ex': 'k-' }
-
     nt = int(sys.argv[1])
 
-    pubmpl.set_params(relwidth = 1.0, aspect_ratio = 1.0)
-    fig, axs = plt.subplots(len(groups), sharex = True)
-    axs[-1].set_xlabel(r'$x / \lambda_D$')
+    pubmpl.set_params(relwidth = 1.0)
+    #fig, (axrho, axe, axve, axvi) = plt.subplots(4, sharex = True)
+    #axvi.set_xlabel(r'$x$')
+    fig, (axrho, axe) = plt.subplots(2, sharex = True)
+    axe.set_xlabel(r'$x$')
 
-    for igroup, group in enumerate(['density', 'elfield', 'velocity']):
-      axs[igroup].set_ylabel(ylabels[group])
+    ### plot 1) charge density ###
+    fname = 'fields/ni_' + '{0:06d}'.format(nt) + '.bin'
+    rhoi = fb.qi_of_fieldblob(fname) * fb.field_of_fieldblob(fname)
+    fname = 'fields/ne_' + '{0:06d}'.format(nt) + '.bin'
+    rhoe = fb.qe_of_fieldblob(fname) * fb.field_of_fieldblob(fname)
+    rho = rhoi + rhoe
 
-      for member in groups[group]:
-        fname = 'fields/' + member + '_' + '{0:06d}'.format(nt) + '.bin'
-        n   = fb.n_of_fieldblob(fname)
-        t   = fb.t_of_fieldblob(fname)
-        y   = fb.field_of_fieldblob(fname)
-        if (member == 'ne'): y *= np.abs(fb.qe_of_fieldblob(fname))
-        elif (member == 'ni'): y *= np.abs(fb.qi_of_fieldblob(fname))
+    rhomean = np.mean(rho, axis = 1)
+    x = fb.xaxis_of_fieldblob(fname)
 
-        ymean = np.mean(y, axis = 1)
-        offset = fb.offset_of_fieldblob(fname)
-        extent = fb.extent_of_fieldblob(fname)
-        dx = extent / n
+    axrho.set_title(r'$t = ' + '{0:3.2f}'.format(fb.t_of_fieldblob(fname)) + r'$')
+    axrho.set_ylabel(r'$\rho$')
+    axrho.set_ylim(calc_ylim(rhomean))
+    axrho.get_yaxis().get_major_locator().set_params(nbins = 5)
+    
+    axrho.plot(x, rhomean, 'k-')
 
-        x = np.linspace(
-          offset[0] + 0.5 * dx[0],
-          offset[0] + extent[0] - 0.5 * dx[0],
-          num = ymean.shape[0]
-        )
+    ### plot 2) el. field ###
+    fname = 'fields/ex_' + '{0:06d}'.format(nt) + '.bin'
+    ex = fb.field_of_fieldblob(fname)
+    exmean = np.mean(ex, axis = 1)
 
-        if (member in labels.keys()):
-          axs[igroup].plot(x, ymean, linestyle[member], label = labels[member])
-        else:
-          axs[igroup].plot(x, ymean, linestyle[member])
-        axs[igroup].set_xlim(offset[0], offset[0] + extent[0])
+    axe.set_ylabel(r'$E_x$')
+    axe.set_ylim(calc_ylim(exmean))
+    axe.get_yaxis().get_major_locator().set_params(nbins = 5)
 
-      axs[igroup].legend(loc = 'best')
+    axe.plot(x, exmean, 'k-')
 
-    axs[0].set_title(r'$\omega_{p,e} \times t = ' + '{0:3.2f}'.format(fb.t_of_fieldblob(fname)) + r'$')
-    #plt.tight_layout(pad = 0.4, rect = [0.0, 0.0, 0.5, 1.0])
-    plt.tight_layout(pad = 0.4)
+    ### plot 3) vey ###
+#    fname = 'fields/vey_' + '{0:06d}'.format(nt) + '.bin'
+#    ve = fb.field_of_fieldblob(fname)
+#    vemean = np.mean(ve, axis = 1)
+#
+#    axve.set_ylabel(r'$v_\mathrm{e}$')
+#    axve.set_ylim(calc_ylim(vemean))
+#    axve.get_yaxis().get_major_locator().set_params(nbins = 5)
+#
+#    axve.plot(x, vemean, 'k-')
+#
+    ### plot 4) vey ###
+#    fname = 'fields/viy_' + '{0:06d}'.format(nt) + '.bin'
+#    vi = fb.field_of_fieldblob(fname)
+#    vimean = np.mean(vi, axis = 1)
+#
+#    axvi.set_xlim(np.min(x), np.max(x))
+#    axvi.set_ylabel(r'$v_\mathrm{i}$')
+#    axvi.set_ylim(calc_ylim(vimean))
+#    axvi.get_yaxis().get_major_locator().set_params(nbins = 5)
+#    
+#    axvi.plot(x, vimean, 'k-')
+
+    plt.tight_layout(pad = 0.0)
 
     fig.savefig('profiles_' + '{0:06d}'.format(nt) + '.png')
     fig.savefig('profiles_' + '{0:06d}'.format(nt) + '.pdf')

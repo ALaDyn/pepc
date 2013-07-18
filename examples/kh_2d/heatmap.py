@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
   nt = int(sys.argv[1])
 
-  pubmpl.set_params(relwidth = 1.0, aspect_ratio = 32.0 / 37.0)
+  pubmpl.set_params(relwidth = 1.0, aspect_ratio = 30.0 / 37.0)
   fig, ((axne, axni), (axpot, axey)) = plt.subplots(2, 2, sharex = True, sharey = True)
 
   for field in ('ne', 'ni', 'potential', 'ey'):
@@ -63,10 +63,14 @@ if __name__ == '__main__':
     )
 
     if (field in ('potential', 'ey')):
-      ax.set_xlabel(r'$x / \lambda_{D,e}$')
+      ax.set_xlabel(r'$x$')
     if (field in ('ne', 'potential')):
-      ax.set_ylabel(r'$y / \lambda_{D,e}$')
+      ax.set_ylabel(r'$y$')
 
-  plt.tight_layout(pad = 0.4, w_pad = 0.0)
+  fig.text(0.5,0.98,r'$t = ' + 
+    '{0:3.2f}'.format(fb.t_of_fieldblob(fname)) + r'$',
+    horizontalalignment='center',verticalalignment='top')
+
+  plt.tight_layout(pad = 0.4, w_pad = 0.0, h_pad = 0.0, rect = (0, 0, 1, 0.95))
   fig.savefig('heatmap_' + '{0:06d}'.format(nt) + '.png', dpi = 72.27)
   fig.savefig('heatmap_' + '{0:06d}'.format(nt) + '.pdf', dpi = 320)

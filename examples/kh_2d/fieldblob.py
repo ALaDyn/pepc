@@ -111,3 +111,8 @@ def field_of_fieldblob(fname):
   y = np.reshape(y, (n[0], n[1]), 'F')
   return y
     
+def xaxis_of_fieldblob(fname):
+  nx = nx_of_fieldblob(fname)
+  ox = offsetx_of_fieldblob(fname)
+  lx = extentx_of_fieldblob(fname)
+  return np.linspace(ox, ox + lx, nx)

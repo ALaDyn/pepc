@@ -12,6 +12,7 @@ def set_params(relwidth = 0.9, labelsize_pt = 10, ticksize_pt = 8, columnwidth_p
   plt.rcParams.update({
     'backend': 'ps',
     'lines.linewidth': 0.5,
+    'lines.markersize': 0.5,
     'font.size': labelsize_pt,
     'axes.titlesize': labelsize_pt,
     'axes.labelsize': labelsize_pt,
