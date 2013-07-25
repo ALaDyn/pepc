@@ -36,6 +36,10 @@ module module_spacefilling
         module procedure key_to_coord, key_to_veccoord
       end interface key_to_coord
 
+      interface is_ancestor_of
+        module procedure is_ancestor_of, is_ancestor_of_withlevel
+      end interface is_ancestor_of
+
       interface is_ancestor_of_particle
         module procedure is_ancestor_of_particle_nolevel, is_ancestor_of_particle_withlevel
       end interface is_ancestor_of_particle
@@ -85,31 +89,6 @@ module module_spacefilling
         
 
         !>
-        !> returns a list of child numbers of `key` with respect to root
-        !> i.e. starting from root, which children have to be traversed
-        !> to reach key
-        !>
-        subroutine child_number_list_from_key(key, childnumbers)
-          integer(kind_key), intent(in) :: key
-          integer(kind_byte), allocatable, intent(out) :: childnumbers(:)
-          
-          integer(kind_level) :: level
-          integer(kind_key) :: k
-          
-          level = level_from_key(key)
-          allocate(childnumbers(level))
-          
-          k = key
-          do while(level > 0)
-            childnumbers(level) = child_number_from_key(k)
-            k = parent_key_from_key(k)
-            level=level-1_kind_level
-          end do
-          
-        end subroutine child_number_list_from_key
-
-
-        !>
         !> returns `key` shifted up (negative argument) or down by a number
         !> of levels
         !>
@@ -140,6 +119,37 @@ module module_spacefilling
 
 
         !>
+        !> checks whether `ka` is an ancestor of `kc`
+        !>
+        pure function is_ancestor_of(ka, kc)
+          implicit none
+          logical :: is_ancestor_of
+          integer(kind_key), intent(in) :: ka, kc
+
+          integer(kind_level) :: la, lc
+
+          la = level_from_key(ka)
+          lc = level_from_key(kc)
+          is_ancestor_of = is_ancestor_of_withlevel(ka, la, kc, lc)
+        end function
+
+
+        !>
+        !> checks whether `ka` is an ancestor of `kc`, respective levels are `la` and `lc`
+        !>
+        pure function is_ancestor_of_withlevel(ka, la, kc, lc)
+          implicit none
+          logical :: is_ancestor_of_withlevel
+          integer(kind_key), intent(in) :: ka, kc
+          integer(kind_level), intent(in) :: la, lc
+
+          is_ancestor_of_withlevel = kc >= ka
+          if (.not. is_ancestor_of_withlevel) return
+          is_ancestor_of_withlevel = ka == shift_key_by_level(kc, la - lc)
+        end function
+
+
+        !>
         !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key) 
         !>
         pure function is_ancestor_of_particle_nolevel(key_c,key_a)
@@ -148,8 +158,10 @@ module module_spacefilling
           logical :: is_ancestor_of_particle_nolevel
           integer(kind_key), intent(in) :: key_a, key_c
  
-          is_ancestor_of_particle_nolevel = &
-            (shift_key_by_level(key_c, level_from_key(key_a) - nlev) == key_a)
+          integer(kind_level) :: level_a
+
+          level_a = level_from_key(key_a)
+          is_ancestor_of_particle_nolevel = is_ancestor_of_withlevel(key_a, level_a, key_c, nlev)
         end function
 
 
@@ -163,8 +175,9 @@ module module_spacefilling
           integer(kind_key), intent(in) :: key_a, key_c
           integer(kind_level), intent(in) :: level_a
  
-          is_ancestor_of_particle_withlevel = (shift_key_by_level(key_c, level_a - nlev) == key_a)
+          is_ancestor_of_particle_withlevel = is_ancestor_of_withlevel(key_a, level_a, key_c, nlev)
         end function
+
 
         !>
         !> calculates keys from local particles (faster than per-particle call to coord_to_key())

@@ -389,9 +389,8 @@ module module_tree
     !> and returns the node-index in `n`
     !>
     function tree_traverse_to_key(t, k, n)
-      use module_spacefilling, only: child_number_list_from_key
-      use module_tree_node, only: tree_node_children_available, &
-        tree_node_get_num_preceding_children, NODE_INVALID
+      use module_spacefilling, only: level_from_key, is_ancestor_of
+      use module_tree_node, only: tree_node_children_available, NODE_INVALID
       use module_debug
       implicit none
 
@@ -400,46 +399,31 @@ module module_tree
       integer(kind_key), intent(in) :: k !< key to look up
       integer(kind_node), intent(out) :: n
       
-      integer(kind_byte), allocatable :: cn(:)
-      integer(kind_level) :: i
-      integer(kind_byte) :: nchild
-      integer :: c
+      integer(kind_level) :: l, kl
       
       DEBUG_ASSERT(tree_allocated(t))
-      tree_traverse_to_key = .false.
-
+      kl = level_from_key(k)
       n = t%node_root
       
-      call child_number_list_from_key(k,cn)
-      
-      do i=1,size(cn,kind=kind(i))
-        ! check if node actially has children and the child we are interested in is among them
-        if (tree_node_children_available(t%nodes(n)) .and. (btest(t%nodes(n)%childcode,cn(i)))) then
-          ! we simply shift the childcode to the left and add zeros from the right until only the interesting bits are left
-          nchild = tree_node_get_num_preceding_children(t%nodes(n), cn(i))
+      ! for every level `l` from root + 1 to the target level
+      do l = level_from_key(TREE_KEY_ROOT) + 1_kind_level, kl
+        ! enter the list of nodes on level `l`
+        n = t%nodes(n)%first_child
 
-          c = 0
-          n = t%nodes(n)%first_child ! zeroth child
-          
-          do
-            if ((c >= nchild) .or. (n==NODE_INVALID)) exit
-            c = c+1
-            n = t%nodes(n)%next_sibling
-          end do
-        else
-          n = NODE_INVALID
-          exit
-        endif
+        ! traverse the list until we reach its end (n == NODE_INVALID) or ...
+        do while (n /= NODE_INVALID)
+          if (is_ancestor_of(t%nodes(n)%key, l, k, kl)) exit ! ... we find the ancestor at level `l`
+          n = t%nodes(n)%next_sibling
+        end do
+
+        if (n == NODE_INVALID) exit ! abort search early if end of list reached
       end do
-      
-      deallocate(cn)
       
       tree_traverse_to_key = n /= NODE_INVALID
       
       if (tree_traverse_to_key) then
         DEBUG_ASSERT_MSG(k == t%nodes(n)%key, '(" : requested key=",o18, " but found key=", o18)', k, t%nodes(n)%key)
       endif
-      
     end function tree_traverse_to_key
 
 

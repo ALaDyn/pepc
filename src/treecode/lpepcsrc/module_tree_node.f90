@@ -42,7 +42,6 @@ module module_tree_node
     public tree_node_is_root
     public tree_node_children_available
     public tree_node_get_num_children
-    public tree_node_get_num_preceding_children
     public tree_node_has_child
     public tree_node_pack
     public tree_node_unpack
@@ -109,20 +108,6 @@ module module_tree_node
       tree_node_is_leaf = (0 == n%childcode)
     end function tree_node_is_leaf
 
-
-    !>
-    !> returns the number of children between (including) first_child 
-    !> and (including) child `c` below `n`
-    !>
-    function tree_node_get_num_preceding_children(n, c)
-      implicit none
-      type(t_tree_node), intent(in) :: n
-      integer(kind_byte), intent(in) :: c
-      integer(kind_byte) :: tree_node_get_num_preceding_children
-      
-      tree_node_get_num_preceding_children = int(popcnt(ishft(n%childcode, bit_size(n%childcode)-(c+1))),kind(tree_node_get_num_preceding_children))-1_kind_byte
-    end function
-      
 
     !>
     !> checks whether `n` is a root node
