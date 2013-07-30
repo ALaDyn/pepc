@@ -681,16 +681,11 @@ module module_vtk_helpers
     integer, intent(in) :: mpi_comm
 
     integer :: mpi_rank, mpi_size, ierr
-    integer :: nx, ny, nz
 
     type(vtkfile_rectilinear_grid) :: vtk
     
     call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
     call MPI_Comm_size(mpi_comm, mpi_size, ierr)
-
-    nx = mydims(2,1) - mydims(1,1) + 1
-    ny = mydims(2,2) - mydims(1,2) + 1
-    nz = mydims(2,3) - mydims(1,3) + 1
 
     call vtk%create_parallel(trim(filename), step, mpi_rank, mpi_size, tsim, vtk_step)
       call vtk%set_communicator(mpi_comm)
@@ -701,8 +696,8 @@ module module_vtk_helpers
           call vtk%write_data_array("z_coordinate", zcoords)
         call vtk%finishcoordinates()
         call vtk%startpointdata()
-          call vtk%write_data_array(scalarname, nx, ny, nz, scalarvalues)
-          call vtk%write_data_array(vectorname, nx, ny, nz, vectorvalues(:,:,:,1), vectorvalues(:,:,:,2), vectorvalues(:,:,:,3))
+          call vtk%write_data_array(scalarname, scalarvalues)
+          call vtk%write_data_array(vectorname, vectorvalues(:,:,:,1), vectorvalues(:,:,:,2), vectorvalues(:,:,:,3))
           ! no point data here
         call vtk%finishpointdata()
         call vtk%startcelldata()
@@ -734,16 +729,11 @@ module module_vtk_helpers
     real*8, intent(in), optional :: coord_scale
     
     integer :: mpi_rank, mpi_size, ierr
-    integer :: nx, ny, nz
 
     type(vtkfile_rectilinear_grid) :: vtk
     
     call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
     call MPI_Comm_size(mpi_comm, mpi_size, ierr)
-
-    nx = mydims(2,1) - mydims(1,1) + 1
-    ny = mydims(2,2) - mydims(1,2) + 1
-    nz = mydims(2,3) - mydims(1,3) + 1
 
     call vtk%create_parallel(trim(filename), step, mpi_rank, mpi_size, tsim, vtk_step)
       call vtk%set_communicator(mpi_comm)
@@ -757,10 +747,11 @@ module module_vtk_helpers
           ! no point data here
         call vtk%finishpointdata()
         call vtk%startcelldata()
-          call vtk%write_data_array(name1, nx-1, ny-1, nz-1, dens1)
-          call vtk%write_data_array(name2, nx-1, ny-1, nz-1, dens2)
+          call vtk%write_data_array(name1, dens1)
+          call vtk%write_data_array(name2, dens2)
         call vtk%finishcelldata()
       call vtk%write_final()
     call vtk%close()
   end subroutine
+
 end module module_vtk_helpers

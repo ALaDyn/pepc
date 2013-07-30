@@ -450,34 +450,36 @@ module module_vtk
      end subroutine vtkfile_write_data_array_Real8_3
 
 
-     subroutine vtkfile_write_data_array_Real8_1_field3(vtk, name, ndatax, ndatay, ndataz, data)
+     subroutine vtkfile_write_data_array_Real8_1_field3(vtk, name, data)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
-        integer :: ndatax, ndatay, ndataz, i,j,k
-        real*8 :: data(ndatax,ndatay,ndataz)
+        integer :: ndata(1:3), i,j,k
+        real*8 :: data(:,:,:)
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 1, "Float64")
+        
+        ndata = shape(data, kind=kind(ndata))
 
         if (vtk%binary) then
-          numbytes = ndatax*ndatay*ndataz*1*8
+          numbytes = product(ndata)*1*8
           call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
           call base64%start(vtk%filehandle, bigendian)
-          do k=1,ndataz
-            do j=1,ndatay
-              do i=1,ndatax
+          do k=1,ndata(3)
+            do j=1,ndata(2)
+              do i=1,ndata(1)
                 call base64%encode(data(i,j,k))
               end do
             end do
           end do
           call base64%finish()
         else
-          do k=1,ndataz
-            do j=1,ndatay
-              do i=1,ndatax
+          do k=1,ndata(3)
+            do j=1,ndata(2)
+              do i=1,ndata(1)
                 write(vtk%filehandle, '(G14.6)') data(i,j,k)
               end do
             end do
@@ -487,25 +489,27 @@ module module_vtk
       end subroutine vtkfile_write_data_array_Real8_1_field3
 
 
-     subroutine vtkfile_write_data_array_Real8_3_field3(vtk, name, ndatax, ndatay, ndataz, data1, data2, data3)
+     subroutine vtkfile_write_data_array_Real8_3_field3(vtk, name, data1, data2, data3)
         implicit none
         class(vtkfile) :: vtk
         character(*) :: name
-        integer :: ndatax, ndatay, ndataz, i, j, k
-        real*8 :: data1(ndatax,ndatay,ndataz), data2(ndatax,ndatay,ndataz), data3(ndatax,ndatay,ndataz)
+        integer :: ndata(1:3), i, j, k
+        real*8 :: data1(:,:,:), data2(:,:,:), data3(:,:,:)
         integer*4 :: numbytes
         type(base64_encoder) :: base64
         call vtk%write_data_array_header(name, 3, "Float64")
 
+        ndata = shape(data1, kind=kind(ndata))
+
         if (vtk%binary) then
-          numbytes = ndatax*ndatay*ndataz*3*8
+          numbytes = product(ndata)*3*8
           call base64%start(vtk%filehandle, bigendian)
           call base64%encode(numbytes)
           call base64%finish()
           call base64%start(vtk%filehandle, bigendian)
-          do k=1,ndataz
-            do j=1,ndatay
-              do i=1,ndatax
+          do k=1,ndata(3)
+            do j=1,ndata(2)
+              do i=1,ndata(1)
                 call base64%encode(data1(i,j,k))
                 call base64%encode(data2(i,j,k))
                 call base64%encode(data3(i,j,k))
@@ -514,9 +518,9 @@ module module_vtk
           end do
           call base64%finish()
         else
-          do k=1,ndataz
-            do j=1,ndatay
-              do i=1,ndatax
+          do k=1,ndata(3)
+            do j=1,ndata(2)
+              do i=1,ndata(1)
                 write(vtk%filehandle, '(3G14.6)') data1(i,j,k), data2(i,j,k), data3(i,j,k)
               end do
             end do

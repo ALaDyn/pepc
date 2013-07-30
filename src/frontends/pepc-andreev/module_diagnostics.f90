@@ -149,18 +149,19 @@ module pepca_diagnostics
     allocate (dens_el(Ngrid(1), Ngrid(2), Ngrid(3)), dens_ion(Ngrid(1), Ngrid(2), Ngrid(3)))
     dens_el    = 0.
     dens_ion   = 0.
-    dims(1, :) = 1
-    dims(2, :) = Ngrid(1:3)+1
+    dims(:, :) = 0
+    dims(2, 1:dim) = Ngrid(1:dim)
     
     do g=1,3
-      allocate(grid(g)%coords(Ngrid(g)+1))
-      do i=0,Ngrid(g)
-        grid(g)%coords(i+1) = global_tree%bounding_box%boxmin(g) + global_tree%bounding_box%boxsize(g)/Ngrid(g)*i
+      allocate(grid(g)%coords(dims(1,g):dims(2,g)))
+      do i=dims(1,g),dims(2,g)
+        grid(g)%coords(i) = global_tree%bounding_box%boxmin(g) + global_tree%bounding_box%boxsize(g)/Ngrid(g)*i
       end do
     end do
 
+    cell(dim:) = 1
     do ip = 1, size(p,kind=kind_particle)
-      cell(1:3) = nint((Ngrid(1:3)-1)*(p(ip)%x(1:3) - global_tree%bounding_box%boxmin(1:3)) / global_tree%bounding_box%boxsize(1:3)) + 1
+      cell(1:dim) = nint((Ngrid(1:dim)-1)*(p(ip)%x(1:dim) - global_tree%bounding_box%boxmin(1:dim)) / global_tree%bounding_box%boxsize(1:dim)) + 1
       
       if (p(ip)%label < 0) then
         dens_el( cell(1), cell(2), cell(3)) = dens_el( cell(1), cell(2), cell(3)) + 1.

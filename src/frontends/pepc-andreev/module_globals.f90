@@ -29,7 +29,7 @@ module pepca_globals
   integer(kind_dim), parameter :: dim = 2
   
   ! grid for density output
-  integer :: Ngrid(3) = [500, 1000, 1]
+  integer :: Ngrid(1:3) = [500, 1000, 1]
 
   ! MPI variables
   integer(kind_pe) :: my_rank, n_ranks
