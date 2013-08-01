@@ -35,6 +35,7 @@ program pepc
   use pfm_helper
   use pfm_encap
   use pfm_feval
+  use pfm_pepc_helper
   
   implicit none
 
@@ -57,12 +58,14 @@ program pepc
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
 
-  ! Take care of communication stuff, set up PFASST and PMG
-  call init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
-  ! initialize pepc library and MPI
-  call pepc_initialize('pepc-a-pfasst', my_rank, n_ranks, .false., comm=MPI_COMM_SPACE)
+  debug_level = 1
 
-!TODO  call setup_solver(workspace, pmg_comm, pmg_nml, pf_nml%nlevels, pf_nml%res_tol)
+  ! Take care of communication stuff, set up PFASST and PMG
+  call init_mpi(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+  ! initialize pepc library and MPI
+  call pepc_initialize('pepc-a-pfasst', my_rank, n_ranks, .false., db_level_in=1, comm=MPI_COMM_SPACE)
+
+  call setup_solver(workspace, pf_nml%nlevels)
 
   ! Set up PFASST object
   call pf_mpi_create(tcomm, MPI_COMM_TIME)
@@ -70,7 +73,7 @@ program pepc
 
   call array3d_encap_create(encap)
   call pf_imex_create(sweeper, eval_f1, eval_f2, comp_f2)
-!TODO  call fill_pfasst_object(pf, encap, sweeper, pf_nml, workspace)
+  call fill_pfasst_object(pf, encap, sweeper, pf_nml, workspace)
 
   call pf_mpi_setup(tcomm, pf)
   call pf_pfasst_setup(pf)
@@ -105,6 +108,7 @@ program pepc
   call pf_imex_destroy(sweeper)
   call pf_pfasst_destroy(pf)
   call pf_mpi_destroy(tcomm)
+  call pfh_pepc_finalize(workspace, pf_nml%nlevels)
   call pepc_finalize()
   call MPI_Finalize( mpi_err )
 

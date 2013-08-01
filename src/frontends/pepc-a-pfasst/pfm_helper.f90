@@ -24,7 +24,7 @@ contains
     !! Init MPI communication, split into TIME and SPACE communicators
     !!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+    subroutine init_mpi(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
         use module_pepc_types
         use pf_mod_mpi
         implicit none
@@ -70,7 +70,7 @@ contains
 
         if (mpi_rank == 0) write(*,*) 'All right, I can use',mpi_size,'processors and these will be split up into',pf_nml%num_space_instances,'instances with',mpi_size_space,'processors each.'
 
-    end subroutine init_pfasst
+    end subroutine init_mpi
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -78,7 +78,7 @@ contains
     !! Fill PFASST object pf (generated earlier), mostly with read-in or derived parameters
     !!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine fill_pfasst_object(pf, encap_, Wsweeper, pf_nml, wk)
+    subroutine fill_pfasst_object(pf, encap, sweeper, pf_nml, wk)
         use pfasst, only : pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK
         use pfm_encap, only : pf_encap_t, app_data_t
         use pfm_transfer, only : interpolate, restrict
@@ -87,9 +87,9 @@ contains
 
         type(pf_pfasst_t), intent(inout) :: pf
         type(pf_nml_t), intent(inout) :: pf_nml
-        type(pf_encap_t), target, intent(in) :: encap_
+        type(pf_encap_t), target, intent(in) :: encap
         type(app_data_t), pointer, intent(in) :: wk(:)
-        type(pf_sweeper_t), target, intent(in) :: Wsweeper
+        type(pf_sweeper_t), target, intent(in) :: sweeper
 
         integer :: i
 
@@ -103,8 +103,8 @@ contains
 
             pf%levels(i)%interpolate => interpolate
             pf%levels(i)%restrict    => restrict
-            pf%levels(i)%encap       => encap_
-            pf%levels(i)%sweeper     => Wsweeper
+            pf%levels(i)%encap       => encap
+            pf%levels(i)%sweeper     => sweeper
 
             pf%levels(i)%ctx = c_loc(wk(i))
 
@@ -186,25 +186,27 @@ contains
                 write(*,*) 'Error, nlevels is too large, must be lower than ',max_nlevels
                 call MPI_ABORT(MPI_COMM_WORLD, 0, ierr)
             end if
-
+ 
             allocate(pf_namelist%nsweeps(nlevels), pf_namelist%nnodes(nlevels)) ! use exact nlevels here
-
-            pf_namelist%niter = niter
-            pf_namelist%num_space_instances = num_space_instances
-            pf_namelist%echo_timings = echo_timings
-            pf_namelist%echo_errors = echo_errors
-            pf_namelist%te = te
-            pf_namelist%nsteps = nsteps
-            pf_namelist%res_tol = res_tol
-            pf_namelist%color_space_div = color_space_div
-            pf_namelist%color_time_div = color_time_div
-
-            pf_namelist%nsweeps = nsweeps(1:nlevels)
-            pf_namelist%nnodes = nnodes(1:nlevels)
+            pf_namelist%nsweeps(:) = nsweeps(1:nlevels)
+            pf_namelist%nnodes(:)  = nnodes(1:nlevels)
 
             deallocate(nsweeps, nnodes)
-
+        else
+            allocate(pf_namelist%nsweeps(nlevels), pf_namelist%nnodes(nlevels)) ! use exact nlevels here
+            pf_namelist%nsweeps = 5
+            pf_namelist%nnodes = 5
         end if
+
+        pf_namelist%niter = niter
+        pf_namelist%num_space_instances = num_space_instances
+        pf_namelist%echo_timings = echo_timings
+        pf_namelist%echo_errors = echo_errors
+        pf_namelist%te = te
+        pf_namelist%nsteps = nsteps
+        pf_namelist%res_tol = res_tol
+        pf_namelist%color_space_div = color_space_div
+        pf_namelist%color_time_div = color_time_div
 
     end subroutine read_in_pf_params
 
