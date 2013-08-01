@@ -1,25 +1,17 @@
-module encap
+module pfm_encap
   use iso_c_binding
   use pfasst
   use module_pepc_types
+  use module_debug
   implicit none
 
   ! Data encapsulation: 3d array for pmg + solver parameters which will be filled in encap_create using ctx
   type :: app_data_t
    ! TODO: fill with content here (particles and parameters)
-   !  real(pfdp), dimension(:,:,:), allocatable :: array
+   type(t_particle), dimension(:), pointer :: particles
    integer :: nvar
-   !  integer :: m_start, m_end, n_start, n_end, o_start, o_end, xmin, xmax, ymin, ymax, zmin, zmax, stencil_size, m, n, o, nvar, order, periodic_integer
-   !  real(pfdp) :: h, tol, lambda
-   !  real(pfdp), dimension(:), allocatable :: stencil_lap, stencil_mass
-   !  logical :: use_mass
-   !  integer, dimension(:), allocatable :: xoff, yoff, zoff
-   !  real(pfdp) :: omega
-   !  integer :: nu1, nu2, maxiter, echo_pmg, pnodes
-   !  real(pfdp), dimension(:,:), allocatable :: pmat
+   real*8 :: theta
    integer(kind_pe) :: mpi_rank
-   !  type(pmg_comm_t) :: pmg_comm
-   !  type(c_ptr) :: mem_in_ptr, mem_out_ptr ! need (really!) both pointers as app_data_t only points to this structure (may overwrite it)
   end type app_data_t
 
 contains
@@ -49,6 +41,7 @@ contains
 
     type(app_data_t), pointer :: q,wk
 
+    call pepc_status('|----> encap_create()')
     call c_f_pointer(levelctx,wk)
 
     allocate(q)
@@ -68,6 +61,7 @@ contains
 
     type(app_data_t), pointer :: q
 
+    call pepc_status('|----> encap_destroy()')
     call c_f_pointer(ptr, q)
 
     ! TODO
@@ -85,6 +79,7 @@ contains
 
     type(app_data_t), pointer :: q
 
+    call pepc_status('|----> encap_setval()')
     call c_f_pointer(ptr,q)
     !TODO
     !q%array = val
@@ -99,6 +94,7 @@ contains
 
     type(app_data_t), pointer :: dst, src
 
+    call pepc_status('|----> encap_copy()')
     call c_f_pointer(dstptr,dst) ! TODO: do we actually need this? direct c_ptr copy? - No: shared pointers would be deallocated twice then, This would only work for moving data
     call c_f_pointer(srcptr,src)
 
@@ -115,6 +111,7 @@ contains
 
     type(app_data_t), pointer :: q
 
+    call pepc_status('|----> encap_pack()')
     call c_f_pointer(ptr, q)
 
     ! TODO
@@ -130,6 +127,7 @@ contains
 
     type(app_data_t), pointer :: q
 
+    call pepc_status('|----> encap_unpack()')
     call c_f_pointer(ptr, q)
 
     !TODO
@@ -146,6 +144,7 @@ contains
 
     type(app_data_t), pointer :: x,y
 
+    call pepc_status('|----> encap_axpy()')
     call c_f_pointer(xptr, x)
     call c_f_pointer(yptr, y)
 
@@ -163,6 +162,7 @@ contains
 
     type(app_data_t), pointer :: q
 
+    call pepc_status('|----> encap_norm()')
     call c_f_pointer(ptr, q)
 
     ! TODO
@@ -171,4 +171,4 @@ contains
 
   end function encap_norm
 
-end module encap
+end module pfm_encap

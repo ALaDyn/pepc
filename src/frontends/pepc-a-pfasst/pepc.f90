@@ -31,15 +31,24 @@ program pepc
   use pepca_globals
 
   use pfasst
-  use pf_helper
+  use pf_mod_imex
+  use pfm_helper
+  use pfm_encap
+  use pfm_feval
   
   implicit none
-  
+
   integer :: step
   
   ! variables for pfasst
-  integer(kind_default):: MPI_COMM_SPACE, MPI_COMM_TIME
+  integer(kind_default):: MPI_COMM_SPACE, MPI_COMM_TIME, mpi_err
+  type(pf_pfasst_t) :: pf
   type(pf_nml_t) :: pf_nml
+  type(pf_comm_t) :: tcomm
+  type(pf_encap_t), target :: encap
+  type(pf_sweeper_t), target :: sweeper
+  type(app_data_t), pointer :: workspace(:)
+  type(app_data_t), target :: y0, yend
   
 
   !integer(kind_particle), parameter :: numparts = 296568
@@ -51,8 +60,57 @@ program pepc
   ! Take care of communication stuff, set up PFASST and PMG
   call init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
   ! initialize pepc library and MPI
-  call pepc_initialize("pepc-a-pfasst", my_rank, n_ranks, .false., comm=MPI_COMM_SPACE)
+  call pepc_initialize('pepc-a-pfasst', my_rank, n_ranks, .false., comm=MPI_COMM_SPACE)
 
+!TODO  call setup_solver(workspace, pmg_comm, pmg_nml, pf_nml%nlevels, pf_nml%res_tol)
+
+  ! Set up PFASST object
+  call pf_mpi_create(tcomm, MPI_COMM_TIME)
+  call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
+
+  call array3d_encap_create(encap)
+  call pf_imex_create(sweeper, eval_f1, eval_f2, comp_f2)
+!TODO  call fill_pfasst_object(pf, encap, sweeper, pf_nml, workspace)
+
+  call pf_mpi_setup(tcomm, pf)
+  call pf_pfasst_setup(pf)
+
+  !TODO: Add user-defined calls
+  !if (pf_nml%echo_errors) then
+  !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, echo_stats)
+  !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, gather_stats)
+  !    do l = 1, pf_nml%nlevels
+  !        !call pf_add_hook(pf, l, PF_POST_SWEEP, echo_residual)
+  !    end do
+  !end if
+
+  ! Initial conditions
+  call feval_init(y0, yend, 0.0_pfdp, pf%levels(pf_nml%nlevels)%ctx)
+  ! call pf_logger_attach(pf)
+
+  ! Here we go
+  call pf_pfasst_run(pf, c_loc(y0), pf_nml%te/pf_nml%nsteps, pf_nml%te, pf_nml%nsteps, c_loc(yend))
+
+  ! Call PMG's dumping routine
+  call MPI_BARRIER(MPI_COMM_WORLD,mpi_err)
+  if (pf_nml%echo_errors) then
+      pf%state%iter = 0
+      if (pf%rank == pf%comm%nproc-1) then
+!            call dump_grid(yend,pf%state%iter)
+      end if
+  end if
+
+  ! Remove everything (hopefully)
+  call feval_finalize(y0,yend)
+  call pf_imex_destroy(sweeper)
+  call pf_pfasst_destroy(pf)
+  call pf_mpi_destroy(tcomm)
+  call pepc_finalize()
+  call MPI_Finalize( mpi_err )
+
+
+  stop 0
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   root = my_rank.eq.0
 
   call timer_start(t_user_total)

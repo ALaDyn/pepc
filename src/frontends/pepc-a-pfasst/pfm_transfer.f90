@@ -1,7 +1,8 @@
 !> Transfer (interpolate, restrict) routines.                                                                           
-module transfer
+module pfm_transfer
+  use module_debug
   use iso_c_binding
-  use encap
+  use pfm_encap
   implicit none
   private
   save
@@ -18,6 +19,8 @@ contains
 
       type(app_data_t), pointer :: qF, qG
 
+      call pepc_status('|--> interpolate()')
+
       call c_f_pointer(qFp,qF)
       call c_f_pointer(qGp,qG)
 
@@ -32,6 +35,8 @@ contains
 
       type(app_data_t), pointer :: qF, qG
 
+      call pepc_status('|--> restrict()')
+
       call c_f_pointer(qFp,qF)
       call c_f_pointer(qGp,qG)
 
@@ -40,5 +45,5 @@ contains
    end subroutine restrict
 
 
-end module transfer
+end module pfm_transfer
 

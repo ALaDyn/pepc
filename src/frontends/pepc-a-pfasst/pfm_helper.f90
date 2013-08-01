@@ -1,4 +1,5 @@
-module pf_helper
+module pfm_helper
+  use module_debug
   implicit none
   
     type pf_nml_t
@@ -33,6 +34,8 @@ contains
         
         integer :: mpi_err, color
         integer(kind_pe) :: mpi_size, mpi_rank, mpi_size_space
+
+        call pepc_status('|--> init_pfasst()')
 
         ! Global MPI initialization
         call MPI_Init( mpi_err )
@@ -77,8 +80,8 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine fill_pfasst_object(pf, encap_, Wsweeper, pf_nml, wk)
         use pfasst, only : pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK
-        use encap, only : pf_encap_t, app_data_t
-        use transfer, only : interpolate, restrict
+        use pfm_encap, only : pf_encap_t, app_data_t
+        use pfm_transfer, only : interpolate, restrict
         use iso_c_binding, only : c_loc
         implicit none
 
@@ -89,6 +92,8 @@ contains
         type(pf_sweeper_t), target, intent(in) :: Wsweeper
 
         integer :: i
+
+        call pepc_status('|--> fill_pfasst_object()')
 
         do i = 1, pf%nlevels
 
@@ -152,6 +157,8 @@ contains
         integer :: ierr
         integer, parameter :: para_file_id = 10
 
+        call pepc_status('|--> read_in_pf_params()')
+
         ! rank 0 reads in first command line argument
         available = .false.
         if (rank .eq. 0) then
@@ -202,4 +209,4 @@ contains
     end subroutine read_in_pf_params
 
 
-end module pf_helper
+end module pfm_helper
