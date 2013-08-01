@@ -31,10 +31,16 @@ program pepc
   use pepca_globals
 
   use pfasst
+  use pf_helper
   
   implicit none
   
   integer :: step
+  
+  ! variables for pfasst
+  integer(kind_default):: MPI_COMM_SPACE, MPI_COMM_TIME
+  type(pf_nml_t) :: pf_nml
+  
 
   !integer(kind_particle), parameter :: numparts = 296568
   integer(kind_particle), parameter :: numparts = 2500
@@ -42,8 +48,10 @@ program pepc
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
 
+  ! Take care of communication stuff, set up PFASST and PMG
+  call init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
   ! initialize pepc library and MPI
-  call pepc_initialize("pepc-andreev", my_rank, n_ranks, .true.)
+  call pepc_initialize("pepc-a-pfasst", my_rank, n_ranks, .false., comm=MPI_COMM_SPACE)
 
   root = my_rank.eq.0
 

@@ -3,7 +3,10 @@ FILES_L   = pepc.f90               \
             module_units.f90       \
             module_integrator.f90  \
             module_globals.f90     \
-            module_diagnostics.f90
+            module_diagnostics.f90 \
+            pf_helper.f90          \
+            encap.f90              \
+            transfer.f90
             
 
 FILES_L_U = module_vtk_helpers.f90 module_vtk.f90
@@ -24,6 +27,4 @@ BACKEND = log2d
 #BACKEND = coulomb
 BACKENDTYPE = XYZQVM
 
-#WALK = smpss
-#WALK = pthreads_blocking
 WALK = pthreads
