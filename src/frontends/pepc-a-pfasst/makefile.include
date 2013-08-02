@@ -7,8 +7,7 @@ FILES_L   = pepc.f90               \
             pfm_helper.f90         \
             pfm_encap.f90          \
             pfm_transfer.f90       \
-            pfm_feval.f90          \
-            pfm_pepc_helper.f90
+            pfm_feval.f90
             
 
 FILES_L_U = module_vtk_helpers.f90 module_vtk.f90
@@ -21,7 +20,7 @@ SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
 # additions for libPFASST
-LDLIBS += $(FRONTENDDIR)/pepc-a-pfasst/libpfasst/build/libpfasst.a
+LDLIBS += $(FRONTENDDIR)/pepc-a-pfasst/libpfasst/build/*.o
 FFLAGS += -I$(FRONTENDDIR)/pepc-a-pfasst/libpfasst/build/
 
 

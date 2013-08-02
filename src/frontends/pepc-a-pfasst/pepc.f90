@@ -48,8 +48,8 @@ program pepc
   type(pf_comm_t) :: tcomm
   type(pf_encap_t), target :: encap
   type(pf_sweeper_t), target :: sweeper
-  type(app_data_t), pointer :: workspace(:)
-  type(app_data_t), target :: y0, yend
+  type(app_params_t), pointer :: level_params(:)
+  type(app_data_t), pointer :: y0, yend
   
 
   !integer(kind_particle), parameter :: numparts = 296568
@@ -61,19 +61,19 @@ program pepc
   debug_level = 1
 
   ! Take care of communication stuff, set up PFASST and PMG
-  call init_mpi(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+  call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+
   ! initialize pepc library and MPI
   call pepc_initialize('pepc-a-pfasst', my_rank, n_ranks, .false., db_level_in=1, comm=MPI_COMM_SPACE)
-
-  call setup_solver(workspace, pf_nml%nlevels)
 
   ! Set up PFASST object
   call pf_mpi_create(tcomm, MPI_COMM_TIME)
   call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
 
-  call array3d_encap_create(encap)
+  call pfm_encap_create(encap)
   call pf_imex_create(sweeper, eval_f1, eval_f2, comp_f2)
-  call fill_pfasst_object(pf, encap, sweeper, pf_nml, workspace)
+  call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts)
+  call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
   call pf_mpi_setup(tcomm, pf)
   call pf_pfasst_setup(pf)
@@ -88,11 +88,11 @@ program pepc
   !end if
 
   ! Initial conditions
-  call feval_init(y0, yend, 0.0_pfdp, pf%levels(pf_nml%nlevels)%ctx)
+  call feval_init(y0, yend, pf_nml%nlevels, pf%levels(pf_nml%nlevels)%ctx, encap%ctx)
   ! call pf_logger_attach(pf)
 
-  ! Here we go
-  call pf_pfasst_run(pf, c_loc(y0), pf_nml%te/pf_nml%nsteps, pf_nml%te, pf_nml%nsteps, c_loc(yend))
+  ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution
+  call pf_pfasst_run(pf, c_loc(y0), pf_nml%te/pf_nml%nsteps, pf_nml%te, pf_nml%nsteps, c_loc(yend)) ! FIXME: compute dt inside
 
   ! Call PMG's dumping routine
   call MPI_BARRIER(MPI_COMM_WORLD,mpi_err)
@@ -108,7 +108,7 @@ program pepc
   call pf_imex_destroy(sweeper)
   call pf_pfasst_destroy(pf)
   call pf_mpi_destroy(tcomm)
-  call pfh_pepc_finalize(workspace, pf_nml%nlevels)
+  call pfm_finalize_solver_level_params(level_params, pf_nml%nlevels)
   call pepc_finalize()
   call MPI_Finalize( mpi_err )
 

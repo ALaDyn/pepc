@@ -1,30 +1,37 @@
 module pfm_helper
   use module_debug
   implicit none
+  private
+  save
+    
+    public pf_nml_t
+    public pfm_init_pfasst
+    public pfm_fill_pfasst_object
+    public pfm_setup_solver_level_params
+    public pfm_finalize_solver_level_params
   
+    integer, parameter :: max_nlevels = 20
+
     type pf_nml_t
-        ! Attention: defaults are overridden by settings in readn_inpf_params
-        integer :: niter = 1
-        integer :: nlevels = 2
-        integer :: num_space_instances = 1
-        logical :: color_space_div = .true.
-        logical :: color_time_div = .false.
-        logical :: echo_errors = .true.
-        logical :: echo_timings = .true.
+        ! defaults are defined by settings in read_in_pf_params
+        integer :: niter
+        integer :: nlevels
+        integer :: num_space_instances
+        logical :: color_space_div
+        logical :: color_time_div
+        logical :: echo_errors
+        logical :: echo_timings
         real(kind=8) :: te, res_tol
         integer :: nsteps
-        integer, dimension(:), allocatable :: nsweeps, nnodes
+        integer, dimension(max_nlevels) :: nsweeps
+        integer, dimension(max_nlevels) :: nnodes
     end type pf_nml_t
-
+    
 contains
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!
-    !! Init MPI communication, split into TIME and SPACE communicators
-    !!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine init_mpi(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+    !> Read params from file, init MPI communication, split into TIME and SPACE communicators
+    subroutine pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
         use module_pepc_types
         use pf_mod_mpi
         implicit none
@@ -68,27 +75,63 @@ contains
 
         call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, mpi_rank, MPI_COMM_TIME, mpi_err)       
 
-        if (mpi_rank == 0) write(*,*) 'All right, I can use',mpi_size,'processors and these will be split up into',pf_nml%num_space_instances,'instances with',mpi_size_space,'processors each.'
+        if (mpi_rank == 0) write(*,*) 'All right, I can use ',mpi_size,&
+                                      ' processors and these will be split up into ',pf_nml%num_space_instances,&
+                                      ' instances with ',mpi_size_space,' processors each.'
 
-    end subroutine init_mpi
+    end subroutine pfm_init_pfasst
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!
-    !! Fill PFASST object pf (generated earlier), mostly with read-in or derived parameters
-    !!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine fill_pfasst_object(pf, encap, sweeper, pf_nml, wk)
+    !> Sets up parameters on each level and defines initial RHS (as "old" u value)
+    subroutine pfm_setup_solver_level_params(level_params, nlevels, numparts)
+        use pf_mod_mpi
+        use pfm_encap
+        implicit none
+        
+        type(app_params_t), pointer, intent(inout) :: level_params(:)
+        integer, intent(in) :: nlevels
+        integer(kind_particle), intent(in) :: numparts
+        
+        integer :: i
+
+        allocate(level_params(nlevels))
+
+        do i = 1, nlevels
+          associate (F=>level_params(i))
+            ! TODO
+            F%npart = numparts
+            F%theta = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
+          end associate
+        end do
+
+    end subroutine pfm_setup_solver_level_params
+    
+    
+    !> Finalizes solver parameters data structure
+    subroutine pfm_finalize_solver_level_params(level_params, nlevels)
+        use pfm_encap
+        implicit none
+
+        type(app_params_t), intent(inout), pointer :: level_params(:)
+        integer, intent(in) :: nlevels
+
+        ! nothing to deallocate her for now
+
+    end subroutine pfm_finalize_solver_level_params    
+
+
+    !> Fill PFASST object pf (generated earlier), mostly with read-in or derived parameters
+    subroutine pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
         use pfasst, only : pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK
-        use pfm_encap, only : pf_encap_t, app_data_t
+        use pfm_encap, only : pf_encap_t, app_params_t
         use pfm_transfer, only : interpolate, restrict
-        use iso_c_binding, only : c_loc
+        use iso_c_binding, only : c_loc, c_null_ptr
         implicit none
 
         type(pf_pfasst_t), intent(inout) :: pf
         type(pf_nml_t), intent(inout) :: pf_nml
         type(pf_encap_t), target, intent(in) :: encap
-        type(app_data_t), pointer, intent(in) :: wk(:)
+        type(app_params_t), pointer, intent(in) :: level_params(:)
         type(pf_sweeper_t), target, intent(in) :: sweeper
 
         integer :: i
@@ -97,38 +140,32 @@ contains
 
         do i = 1, pf%nlevels
 
-            pf%levels(i)%nnodes    = pf_nml%nnodes(i)
-            pf%levels(i)%nsweeps   = pf_nml%nsweeps(i)
-            pf%levels(i)%nvars     = wk(i)%nvar
+            pf%levels(i)%ctx         = c_loc(level_params(i))
+
+            pf%levels(i)%nnodes      = pf_nml%nnodes(i)
+            pf%levels(i)%nsweeps     = pf_nml%nsweeps(i)
+            pf%levels(i)%nvars       = 2*3*level_params(i)%npart ! FIXME we have got 3 position and velocity variables per particle
 
             pf%levels(i)%interpolate => interpolate
             pf%levels(i)%restrict    => restrict
             pf%levels(i)%encap       => encap
             pf%levels(i)%sweeper     => sweeper
 
-            pf%levels(i)%ctx = c_loc(wk(i))
-
-            pf%levels(i)%Finterp = .true.
+            pf%levels(i)%Finterp     = .true.
 
         end do
 
         pf%niters       = pf_nml%niter
         pf%qtype        = 1
-        pf%echo_timings = pf_nml%echo_timings .and. (wk(pf%nlevels)%mpi_rank == 0)
+        pf%echo_timings = pf_nml%echo_timings! TODO .and. (wk(pf%nlevels)%mpi_rank == 0)
         pf%window       = PF_WINDOW_BLOCK
         pf%rel_res_tol  = pf_nml%res_tol
         pf%abs_res_tol  = pf_nml%res_tol
 
-        deallocate(pf_nml%nsweeps, pf_nml%nnodes)
-
-    end subroutine fill_pfasst_object
+    end subroutine pfm_fill_pfasst_object
 
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!
-    !! Simple read-in routine, using the first command line argument
-    !!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !> Simple read-in routine, using the first command line argument
     subroutine read_in_pf_params(pf_namelist, rank, comm)
         use pf_mod_mpi
         implicit none
@@ -136,19 +173,18 @@ contains
         type(pf_nml_t), intent(out) :: pf_namelist
         integer, intent(in) :: rank, comm
 
-        integer, parameter :: max_nlevels = 20
-
-        integer :: niter = 1
-        integer :: nlevels = max_nlevels
+        integer :: niter               = 3
+        integer :: nlevels             = 1!max_nlevels
         integer :: num_space_instances = 1
-        logical :: echo_errors = .true.
-        logical :: echo_timings = .true.
-        logical :: color_space_div = .true.
-        logical :: color_time_div = .false.
-        real(kind=8) :: te = 0.
-        real(kind=8) :: res_tol = 0d0
-        integer :: nsteps = 0
-        integer, dimension(:), allocatable :: nsweeps, nnodes
+        logical :: echo_errors         = .true.
+        logical :: echo_timings        = .true.
+        logical :: color_space_div     = .true.
+        logical :: color_time_div      = .false.
+        real(kind=8) :: te             = 5.
+        real(kind=8) :: res_tol        = 0d0
+        integer :: nsteps              = 5
+        integer, dimension(max_nlevels) :: nsweeps = 1
+        integer, dimension(max_nlevels) :: nnodes  = 5
 
         namelist /pf_nml/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, te, nsteps, nsweeps, res_tol, color_space_div, color_time_div
 
@@ -173,8 +209,6 @@ contains
         call MPI_BCAST( available, 1, MPI_LOGICAL, 0, comm, ierr )
         if (available) then
 
-            allocate(nsweeps(nlevels), nnodes(nlevels)) ! use max_nlevels here only
-
             call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, comm, ierr )
             open(para_file_id,file=trim(file_name),action='read')
             rewind(para_file_id)
@@ -183,30 +217,23 @@ contains
 
             pf_namelist%nlevels = nlevels
             if (nlevels .gt. max_nlevels) then
-                write(*,*) 'Error, nlevels is too large, must be lower than ',max_nlevels
+                write(*,*) 'Error, nlevels is too large, must be lower than ', max_nlevels
                 call MPI_ABORT(MPI_COMM_WORLD, 0, ierr)
             end if
  
-            allocate(pf_namelist%nsweeps(nlevels), pf_namelist%nnodes(nlevels)) ! use exact nlevels here
-            pf_namelist%nsweeps(:) = nsweeps(1:nlevels)
-            pf_namelist%nnodes(:)  = nnodes(1:nlevels)
-
-            deallocate(nsweeps, nnodes)
-        else
-            allocate(pf_namelist%nsweeps(nlevels), pf_namelist%nnodes(nlevels)) ! use exact nlevels here
-            pf_namelist%nsweeps = 5
-            pf_namelist%nnodes = 5
         end if
 
-        pf_namelist%niter = niter
+        pf_namelist%niter               = niter
         pf_namelist%num_space_instances = num_space_instances
-        pf_namelist%echo_timings = echo_timings
-        pf_namelist%echo_errors = echo_errors
-        pf_namelist%te = te
-        pf_namelist%nsteps = nsteps
-        pf_namelist%res_tol = res_tol
-        pf_namelist%color_space_div = color_space_div
-        pf_namelist%color_time_div = color_time_div
+        pf_namelist%echo_timings        = echo_timings
+        pf_namelist%echo_errors         = echo_errors
+        pf_namelist%te                  = te
+        pf_namelist%nsteps              = nsteps
+        pf_namelist%res_tol             = res_tol
+        pf_namelist%color_space_div     = color_space_div
+        pf_namelist%color_time_div      = color_time_div
+        pf_namelist%nsweeps(1:nlevels)  = nsweeps(1:nlevels)
+        pf_namelist%nnodes(1:nlevels)   = nnodes(1:nlevels)
 
     end subroutine read_in_pf_params
 

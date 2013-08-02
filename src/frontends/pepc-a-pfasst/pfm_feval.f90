@@ -7,25 +7,29 @@ module pfm_feval
 contains
 
     !> Initialize feval, i.e. transfer initial u to PFASST data object
-    subroutine feval_init(y0, yend, t, ctx)
+    subroutine feval_init(y0, yend, nlevels, levelctx, encapctx)
         use iso_c_binding
         implicit none
 
-        type(app_data_t), intent(out) :: y0, yend
-        real(pfdp), intent(in) :: t
-        type(c_ptr), intent(in) :: ctx
-
-        type(app_data_t), pointer :: wk
+        type(app_data_t), pointer, intent(inout) :: y0, yend
+        integer, intent(in) :: nlevels
+        type(c_ptr), intent(in) :: levelctx, encapctx
+        
+        type(c_ptr) :: y0_C, yend_c
+        
+        type(app_params_t), pointer :: params
 
         call pepc_status('|------> feval_init()')
-        call c_f_pointer(ctx,wk)
 
-       !TODO
-       ! allocate(y0%array(F%m_start+F%xmin:F%m_end+F%xmax,F%n_start+F%ymin:F%n_end+F%ymax,F%o_start+F%zmin:F%o_end+F%zmax))
-       ! allocate(yend%array(F%m_start+F%xmin:F%m_end+F%xmax,F%n_start+F%ymin:F%n_end+F%ymax,F%o_start+F%zmin:F%o_end+F%zmax))
-        !y0%array = 0.0_pfdp
-        !yend%array = 0.0_pfdp
+        call c_f_pointer(levelctx, params)
 
+        call encap_create(  y0_c, nlevels, -1, 2*3*params%npart, [-1], levelctx, encapctx)
+        call encap_create(yend_c, nlevels, -1, 2*3*params%npart, [-1], levelctx, encapctx)
+        
+        call c_f_pointer(  y0_c, y0)
+        call c_f_pointer(yend_c, yend)
+        
+        !TODO set initial values for particle positions and velocities in y0
         !call exact(y0,t)
 
     end subroutine feval_init
@@ -86,7 +90,7 @@ contains
     end subroutine mult_by_stencil
 
 
-      ! Evaluate the explicit function at y, t.
+    !> Evaluates the explicit function at y, t.
     subroutine eval_f1(yptr, t, level, ctx, f1ptr)
         implicit none
         type(c_ptr), intent(in), value :: yptr, f1ptr, ctx
