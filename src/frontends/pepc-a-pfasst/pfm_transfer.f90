@@ -12,7 +12,7 @@ module pfm_transfer
 
 contains
 
-
+   !> Interpolate coarse (qGp) to fine (qFp) nodes
    subroutine interpolate(qFp, qGp, levelF, ctxF, levelG, ctxG)
       type(c_ptr), intent(in), value :: qFp, qGp, ctxF, ctxG
       integer,     intent(in)        :: levelF, levelG
@@ -24,12 +24,14 @@ contains
       call c_f_pointer(qFp,qF)
       call c_f_pointer(qGp,qG)
 
-      ! TODO: Interpolate coarse (qG) to fine (qF) nodes (or copy if nothing has to be done)
+      ! FIXME: we just copy here, i.e. no coarsening in space for now
+      qF%particles(:) = qG%particles
 
    end subroutine interpolate
 
 
-  subroutine restrict(qFp, qGp, levelF, ctxF, levelG, ctxG)
+   !> Restriction from qFp  to qGp
+   subroutine restrict(qFp, qGp, levelF, ctxF, levelG, ctxG)
       type(c_ptr), intent(in), value :: qFp, qGp, ctxF, ctxG
       integer,     intent(in)        :: levelF, levelG
 
@@ -40,7 +42,8 @@ contains
       call c_f_pointer(qFp,qF)
       call c_f_pointer(qGp,qG)
 
-      ! TODO: restriction by point injection form qF to qG (or nothing if nothing has to be done)
+      ! FIXME: we just copy here, i.e. no coarsening in space for now
+      qG%particles(:) = qF%particles
 
    end subroutine restrict
 

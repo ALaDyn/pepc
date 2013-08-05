@@ -9,6 +9,7 @@ contains
     !> Initialize feval, i.e. transfer initial u to PFASST data object
     subroutine feval_init(y0, yend, nlevels, levelctx, encapctx)
         use iso_c_binding
+        use pepca_helper, only: read_particles
         implicit none
 
         type(app_data_t), pointer, intent(inout) :: y0, yend
@@ -23,42 +24,28 @@ contains
 
         call c_f_pointer(levelctx, params)
 
-        call encap_create(  y0_c, nlevels, -1, 2*3*params%npart, [-1], levelctx, encapctx)
-        call encap_create(yend_c, nlevels, -1, 2*3*params%npart, [-1], levelctx, encapctx)
+        call encap_create(  y0_c, nlevels, -1, 3*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! 3 coordinates per particle
+        call encap_create(yend_c, nlevels, -1, 3*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! 3 coordinates per particle
         
         call c_f_pointer(  y0_c, y0)
         call c_f_pointer(yend_c, yend)
         
-        !TODO set initial values for particle positions and velocities in y0
-        !call exact(y0,t)
+        ! set initial values for particle positions and velocities in y0
+         call read_particles(y0%particles, 'E_phase_space.dat', params%n_el, 'I_phase_space.dat', params%n_ion)
 
     end subroutine feval_init
-
-
-    !> Eval. exact solution of PDE
-    subroutine exact(y,t)
-        implicit none
-
-        type(app_data_t), intent(inout) :: y
-        real(pfdp), intent(in) :: t
-
-        call pepc_status('|------> exact()')
-        !TODO
-        ! y%array(i,j,k) = sin(pi*(i+1)*F%h)*sin(pi*(j+1)*F%h)*sin(pi*(k+1)*F%h)*cos(t)
-
-    end subroutine exact
 
 
     !> End feval
     subroutine feval_finalize(y0, yend)
         implicit none
 
-        type(app_data_t), intent(inout) :: y0, yend
+        type(app_data_t), pointer, intent(inout) :: y0, yend
 
         call pepc_status('|------> feval_finalize()')
-        ! TODO
-        !deallocate(y0%array)
-        !deallocate(yend%array)
+
+        call encap_destroy(c_loc(y0))
+        call encap_destroy(c_loc(yend))
 
     end subroutine feval_finalize
 

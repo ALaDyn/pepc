@@ -68,15 +68,15 @@ module pepca_helper
     eps2 = (eps/unit_length_micron_per_simunit)**2
 
     if (read_para_file) then
-      if(root) write(*,'(a)') ' == reading parameter file, section pepcandreev: ', para_file
+      if(root_space) write(*,'(a)') ' == reading parameter file, section pepcandreev: ', para_file
       open(fid,file=para_file)
       read(fid,NML=pepcandreev)
       close(fid)
     else
-      if(root) write(*,*) ' == no param file, using default parameters '
+      if(root_space) write(*,*) ' == no param file, using default parameters '
     end if    
 
-    if(root) then
+    if(root_space) then
       write(*,'(a,i12)')       " == number of time steps      : ", nt
       write(*,'(a,es12.4)')    " == time step (fs)            : ", dt*unit_time_fs_per_simunit
       write(*,'(a,es12.4)')    " == final time (ns)           : ", dt*nt*unit_time_fs_per_simunit
@@ -93,17 +93,16 @@ module pepca_helper
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle), intent(in) :: nel, nion
+    integer, intent(in) :: nel, nion
     character(*), intent(in) :: file_el, file_ion
     
     integer, parameter :: filehandle = 47
     integer(kind_particle) :: ip
 
-    if(root) then
+    if(root_space) then
       write(*,'(a, 2(x,a))') " == [load] reading particles from files", file_el, file_ion
     
       ! we read all particles the root rank
-      allocate(p(nel + nion))
 
       ! Script for file preprocessing: sed -i 's/\([0-9]\)-/\1 -/g' filename
       !call system("sed -i 's/\([0-9]\)-/\1 -/g' " // trim(file_el))
@@ -137,8 +136,6 @@ module pepca_helper
         p(ip)%x = p(ip)%x / unit_length_micron_per_simunit
       end do  
       close(filehandle)
-    else
-      allocate(p(0))
     endif
 
   end subroutine read_particles

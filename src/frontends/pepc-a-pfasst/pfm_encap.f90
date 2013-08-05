@@ -6,16 +6,16 @@ module pfm_encap
   implicit none
 
   !> data type for level-dependent application parameters
+  !> if any parameters are added here, they also have to be included in #pfm_setup_solver_level_params
   type :: app_params_t
-   integer :: npart
-   real*8 :: theta
+    integer :: n_el, n_ion
+    real*8 :: theta
   end type
 
-  ! Data encapsulation: data and parameters which will be filled in encap_create using ctx
+  !> Data encapsulation: data and parameters which will be filled in encap_create using ctx
   type :: app_data_t
-   ! TODO: fill with content here (particles and parameters)
-   type(t_particle), dimension(:), allocatable :: particles
-   type(app_params_t) :: params
+    type(t_particle), dimension(:), allocatable :: particles
+    type(app_params_t) :: params
   end type app_data_t
 
 contains
@@ -39,8 +39,6 @@ contains
     
     if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=0x",Z8.8)') trim(name), ptr_val(ptr)
   end subroutine
-    
-    
 
 
   !> Fill pf_encap_t with pointers to encapsulation functions
@@ -60,7 +58,7 @@ contains
 
   !> Allocate/create solution (spatial data set) for the given level.
   !> This is called for each SDC node.
-  subroutine encap_create(sol, level, kind, nvars, shape, levelctx, encapctx) ! FIXME: the type of encapctx could be pf_encap_t, shouldn't it?
+  subroutine encap_create(sol, level, kind, nvars, shape, levelctx, encapctx)
     type(c_ptr),       intent(inout)     :: sol
     integer,           intent(in)        :: level, nvars, shape(:)
     integer,           intent(in)        :: kind
@@ -73,12 +71,12 @@ contains
 
     call c_f_pointer(levelctx, p)
 
-    DEBUG_ASSERT(nvars==2*3*p%npart)
+    DEBUG_ASSERT(nvars==3*(p%n_el+p%n_ion)) ! 3 coordinates per particle
 
     allocate(q)
     q%params = p
     
-    allocate(q%particles(q%params%npart))
+    allocate(q%particles(q%params%n_el+q%params%n_ion))
     sol = c_loc(q)
     
     call ptr_print('sol', sol)
@@ -115,7 +113,7 @@ contains
     call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
-    do i=1,q%params%npart
+    do i=1,q%params%n_el+q%params%n_ion
       q%particles(i)%x(:)      = val
       q%particles(i)%data%v(:) = val
     end do
@@ -133,7 +131,7 @@ contains
     call pepc_status('|----> encap_copy()')
     call ptr_print('src', dstptr)
     call ptr_print('dst', srcptr)
-    call c_f_pointer(dstptr,dst) ! FIXME: do we actually need this? direct c_ptr copy? - No: shared pointers would be deallocated twice then, This would only work for moving data
+    call c_f_pointer(dstptr,dst)
     call c_f_pointer(srcptr,src)
 
     dst = src
@@ -154,10 +152,8 @@ contains
     call c_f_pointer(ptr, q)
 
     j = 1
-    do i=1,q%params%npart
+    do i=1,q%params%n_el+q%params%n_ion
       z(j:j+2) = q%particles(i)%x(1:3)
-      j = j+3
-      z(j:j+2) = q%particles(i)%data%v(1:3)
       j = j+3
     end do
 
@@ -179,10 +175,8 @@ contains
     call c_f_pointer(ptr, q)
 
     j = 1
-    do i=1,q%params%npart
+    do i=1,q%params%n_el+q%params%n_ion
       q%particles(i)%x(1:3)      = z(j:j+2)
-      j = j+3
-      q%particles(i)%data%v(1:3) = z(j:j+2)
       j = j+3
     end do
     
@@ -206,10 +200,11 @@ contains
     call c_f_pointer(xptr, x)
     call c_f_pointer(yptr, y)
     
-    DEBUG_ASSERT(x%params%npart==y%params%npart)
+    DEBUG_ASSERT(x%params%n_el ==y%params%n_el)
+    DEBUG_ASSERT(x%params%n_ion==y%params%n_ion)
 
     ! FIXME: how does this look like for velocities and positions separately?
-    do i=1,x%params%npart
+    do i=1,x%params%n_el+x%params%n_ion
       y%particles(i)%x(:)      = a * x%particles(i)%x(:)      + y%particles(i)%x(:)
       y%particles(i)%data%v(:) = a * x%particles(i)%data%v(:) + y%particles(i)%data%v(:)
     end do

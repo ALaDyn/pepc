@@ -63,21 +63,38 @@ program pepc
   call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
 
   ! initialize pepc library and MPI
-  call pepc_initialize('pepc-a-pfasst', my_rank, n_ranks, .false., db_level_in=1, comm=MPI_COMM_SPACE)
+  call pepc_initialize('pepc-a-pfasst', rank_space, nrank_space, .false., db_level_in=DBG_STATUS, comm=MPI_COMM_SPACE)
+  root_space = rank_space.eq.0
 
   ! Set up PFASST object
   call pf_mpi_create(tcomm, MPI_COMM_TIME)
   call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
 
   call pfm_encap_create(encap)
+  
+      ! TODO: include notes by Matt on Verlet-stuff:
+      !The interface for the Verlet SDC stuff that we use for LIBPFASST is very similar to the plain explicit, implicit, or IMEX stuff.  You create a 'sweeper' and let the Verlet module attach itself to the sweeper.  The Verlet sweeper requires a function pointer to an 'acceleration' function whose signature is
+      !
+      !  interface
+      !     subroutine pf_acceleration_p(x, t, level, ctx, a)
+      !       import c_ptr, c_int, pfdp
+      !       type(c_ptr),    intent(in), value :: x, a, ctx
+      !       real(pfdp),     intent(in)        :: t
+      !       integer(c_int), intent(in)        :: level
+      !     end subroutine pf_acceleration_p
+      !  end interface
+      ! 
+      !Note here that we're assuming that acceleration is only a function of x, and that \ddot{x} = a.
+      !
+      !In your main the code will look exactly the same except that your sweeper (of type pf_sweeper_t) would be initialized as 'verlet_create(sweeper, ...)' instead of, eg, 'imex_create(sweeper, ...)'.
   call pf_imex_create(sweeper, eval_f1, eval_f2, comp_f2)
-  call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts)
+  call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts) ! numparts is per species, so total number of particles will be 2*numparts
   call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
   call pf_mpi_setup(tcomm, pf)
   call pf_pfasst_setup(pf)
 
-  !TODO: Add user-defined calls
+  !FIXME: Add user-defined calls, e.g. diagnostics, here
   !if (pf_nml%echo_errors) then
   !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, echo_stats)
   !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, gather_stats)
@@ -86,6 +103,7 @@ program pepc
   !    end do
   !end if
 
+  call set_parameter() ! FIXME: this function sets parameters (timestep, etc) which should be used in subsequent calls
   ! Initial conditions
   call feval_init(y0, yend, pf_nml%nlevels, pf%levels(pf_nml%nlevels)%ctx, encap%ctx)
   ! call pf_logger_attach(pf)
@@ -113,76 +131,58 @@ program pepc
 
 
   stop 0
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  root = my_rank.eq.0
+!!!!!!!!!!!!!!!! original PEPC-A !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  call timer_start(t_user_total)
-  call timer_start(t_user_init)
-  call set_parameter()
-  call read_particles(particles, 'E_phase_space.dat', numparts, 'I_phase_space.dat', numparts)
-  call timer_stop(t_user_init)
+  associate (my_rank => rank_space, root => root_space)
 
-  if(root) write(*,'(a,f12.4," s")') ' === init time [s]: ', timer_read(t_user_init)
- 
-  do step=0, nt - 1
-    if(root) then
-      write(*,*) " "
-      write(*,'(a,i12,"/",i0)')   ' ====== computing step       :', step, nt-1
-      write(*,'(a,f12.4)') ' ====== simulation time (fs) :', step*dt*unit_time_fs_per_simunit
-    end if
-    
-    call timer_start(t_user_step)
-    
-    call pepc_particleresults_clear(particles)
-    call pepc_grow_tree(particles)
-    if(root) write(*,'(a,f12.2," s")') ' ====== tree grow time   :', timer_read(t_fields_tree)
-    call pepc_traverse_tree(particles)
-    if(root) write(*,'(a,f12.2," s")') ' ====== tree walk time   :', timer_read(t_fields_passes)
+    do step=0, nt - 1
+      if(root) then
+        write(*,*) " "
+        write(*,'(a,i12,"/",i0)')   ' ====== computing step       :', step, nt-1
+        write(*,'(a,f12.4)') ' ====== simulation time (fs) :', step*dt*unit_time_fs_per_simunit
+      end if
 
-    if (dbg(DBG_STATS)) call pepc_statistics(step)
-    call pepc_timber_tree()
-    
-    if (step > 0) then
-      ! first half step to synchronize velocities with positions
+      call timer_start(t_user_step)
+
+      call pepc_particleresults_clear(particles)
+      call pepc_grow_tree(particles)
+      if(root) write(*,'(a,f12.2," s")') ' ====== tree grow time   :', timer_read(t_fields_tree)
+      call pepc_traverse_tree(particles)
+      if(root) write(*,'(a,f12.2," s")') ' ====== tree walk time   :', timer_read(t_fields_passes)
+
+      if (dbg(DBG_STATS)) call pepc_statistics(step)
+      call pepc_timber_tree()
+
+      if (step > 0) then
+        ! first half step to synchronize velocities with positions
+        call update_velocities(particles, dt/2.)
+      end if
+
+      ! do diagnostics etc here
+      call timer_start(t_user_diag)
+      if ((particle_output_interval>0) .and. ((mod(step, particle_output_interval)==0) .or. (step==nt-1))) then
+        call write_particles_vtk(particles, step, dt*step*unit_time_fs_per_simunit)
+        call write_particles_ascii(my_rank, step, particles)
+        call gather_and_write_densities(particles, step, dt*step*unit_time_fs_per_simunit)
+      endif
+      if ((domain_output_interval  >0) .and. ((mod(step, domain_output_interval)  ==0) .or. (step==nt-1))) call write_domain(   particles, step, dt*step*unit_time_fs_per_simunit)
+      call diagnose_energy(particles, step, dt*step*unit_time_fs_per_simunit)
+      call timer_stop(t_user_diag)
+      if(root) write(*,'(a,f12.2," s")') ' ====== diagnostics time :', timer_read(t_user_diag)
+
+      ! second half step: velocities are one half step ahead again
       call update_velocities(particles, dt/2.)
-    end if
-    
-    ! do diagnostics etc here
-    call timer_start(t_user_diag)
-    if ((particle_output_interval>0) .and. ((mod(step, particle_output_interval)==0) .or. (step==nt-1))) then
-      call write_particles_vtk(particles, step, dt*step*unit_time_fs_per_simunit)
-      call write_particles_ascii(my_rank, step, particles)
-      call gather_and_write_densities(particles, step, dt*step*unit_time_fs_per_simunit)
-    endif
-    if ((domain_output_interval  >0) .and. ((mod(step, domain_output_interval)  ==0) .or. (step==nt-1))) call write_domain(   particles, step, dt*step*unit_time_fs_per_simunit)
-    call diagnose_energy(particles, step, dt*step*unit_time_fs_per_simunit)
-    call timer_stop(t_user_diag)
-    if(root) write(*,'(a,f12.2," s")') ' ====== diagnostics time :', timer_read(t_user_diag)
-    
-    ! second half step: velocities are one half step ahead again
-    call update_velocities(particles, dt/2.)
-    ! full step for positions: now positions are one half step ahead
-    call push_particles(particles, dt)    
-    
-    call timer_stop(t_user_step)
-    if(root) write(*,'(a,f12.2," s")') ' == time in step: ', timer_read(t_user_step)
+      ! full step for positions: now positions are one half step ahead
+      call push_particles(particles, dt)    
 
-    call timings_GatherAndOutput(step, 0, 0 == step)
-    
-  end do 
+      call timer_stop(t_user_step)
+      if(root) write(*,'(a,f12.2," s")') ' == time in step: ', timer_read(t_user_step)
+
+      call timings_GatherAndOutput(step, 0, 0 == step)
+
+    end do 
+
+  end associate
  
-  deallocate(particles)
-
-  call timer_stop(t_user_total)
-
-  if(root) then
-    write(*,*)            ' '
-    write(*,'(a)')        ' ===== finished pepc simulation'
-    write(*,'(a,es12.4, " s")') ' ===== total run time    : ', timer_read(t_user_total)
-  end if
-
-  ! cleanup pepc and MPI
-  call pepc_finalize()
-
 end program pepc
 

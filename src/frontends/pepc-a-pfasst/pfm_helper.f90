@@ -98,8 +98,9 @@ contains
 
         do i = 1, nlevels
           associate (F=>level_params(i))
-            ! TODO
-            F%npart = numparts
+            ! add any parameters from app_params_t here
+            F%n_el  = numparts ! FIXME: currently, we read all particles on the root rank of MPI_COMM_SPACE; thus, particle numbers should be zero on all others
+            F%n_ion = numparts
             F%theta = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
           end associate
         end do
@@ -144,7 +145,7 @@ contains
 
             pf%levels(i)%nnodes      = pf_nml%nnodes(i)
             pf%levels(i)%nsweeps     = pf_nml%nsweeps(i)
-            pf%levels(i)%nvars       = 2*3*level_params(i)%npart ! FIXME we have got 3 position and velocity variables per particle
+            pf%levels(i)%nvars       = 3*(level_params(i)%n_el+level_params(i)%n_ion) ! 3 coordinates per particle
 
             pf%levels(i)%interpolate => interpolate
             pf%levels(i)%restrict    => restrict
@@ -157,7 +158,7 @@ contains
 
         pf%niters       = pf_nml%niter
         pf%qtype        = 1
-        pf%echo_timings = pf_nml%echo_timings! TODO .and. (wk(pf%nlevels)%mpi_rank == 0)
+        pf%echo_timings = pf_nml%echo_timings! FIXME .and. (wk(pf%nlevels)%mpi_rank == 0)
         pf%window       = PF_WINDOW_BLOCK
         pf%rel_res_tol  = pf_nml%res_tol
         pf%abs_res_tol  = pf_nml%res_tol

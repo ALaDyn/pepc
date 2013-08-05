@@ -121,7 +121,7 @@ module pepca_diagnostics
     use module_vtk_helpers
     use module_pepc_types
     use pepca_units
-    use pepca_globals
+    use pepca_globals, only : root => root_space, Ngrid, dim
     use module_pepc, only: global_tree
     implicit none
 
@@ -222,7 +222,7 @@ module pepca_diagnostics
   
   subroutine diagnose_energy(p, step, realtime)
     use module_pepc_types
-    use pepca_globals, only: root
+    use pepca_globals, only: root => root_space
     use pepca_units
     implicit none
     include 'mpif.h'

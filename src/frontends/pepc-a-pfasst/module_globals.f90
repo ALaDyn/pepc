@@ -32,8 +32,8 @@ module pepca_globals
   integer :: Ngrid(1:3) = [500, 1000, 1]
 
   ! MPI variables
-  integer(kind_pe) :: my_rank, n_ranks
-  logical :: root
+  integer(kind_pe) :: rank_space, nrank_space
+  logical :: root_space
 
   ! time variables
   real*8 :: dt       !< timestep (initially in fs, later in simunits)
