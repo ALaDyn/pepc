@@ -35,7 +35,6 @@ program pepc
   use pfm_helper
   use pfm_encap
   use pfm_feval
-  use pfm_pepc_helper
   
   implicit none
 
@@ -58,7 +57,7 @@ program pepc
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
 
-  debug_level = 1
+  debug_level = DBG_STATUS
 
   ! Take care of communication stuff, set up PFASST and PMG
   call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
@@ -92,7 +91,7 @@ program pepc
   ! call pf_logger_attach(pf)
 
   ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution
-  call pf_pfasst_run(pf, c_loc(y0), pf_nml%te/pf_nml%nsteps, pf_nml%te, pf_nml%nsteps, c_loc(yend)) ! FIXME: compute dt inside
+  call pf_pfasst_run(pf, c_loc(y0), pf_nml%te/pf_nml%nsteps, pf_nml%te, c_loc(yend))
 
   ! Call PMG's dumping routine
   call MPI_BARRIER(MPI_COMM_WORLD,mpi_err)

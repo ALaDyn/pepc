@@ -11,14 +11,37 @@ module pfm_encap
    real*8 :: theta
   end type
 
-  ! Data encapsulation: 3d array for pmg + solver parameters which will be filled in encap_create using ctx
+  ! Data encapsulation: data and parameters which will be filled in encap_create using ctx
   type :: app_data_t
    ! TODO: fill with content here (particles and parameters)
-   type(t_particle), dimension(:), pointer :: particles
+   type(t_particle), dimension(:), allocatable :: particles
    type(app_params_t) :: params
   end type app_data_t
 
 contains
+
+  !> internal helper for getting a pointer value (i.e. the address of the pointee)
+  function ptr_val(ptr)
+    use iso_c_binding, only : c_ptr
+    implicit none
+    type(c_ptr), intent(in) :: ptr
+    integer :: ptr_val
+    
+    ptr_val = transfer (ptr, ptr_val)
+  end function
+  
+  !> internal helper for printing a pointer value (i.e. the address of the pointee)
+  subroutine ptr_print(name, ptr)
+    use iso_c_binding, only : c_ptr
+    implicit none
+    character(*), intent(in) :: name
+    type(c_ptr), intent(in) :: ptr
+    
+    if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=0x",Z8.8)') trim(name), ptr_val(ptr)
+  end subroutine
+    
+    
+
 
   !> Fill pf_encap_t with pointers to encapsulation functions
   subroutine pfm_encap_create(encap)
@@ -57,6 +80,8 @@ contains
     
     allocate(q%particles(q%params%npart))
     sol = c_loc(q)
+    
+    call ptr_print('sol', sol)
 
   end subroutine encap_create
 
@@ -68,6 +93,7 @@ contains
     type(app_data_t), pointer :: q
 
     call pepc_status('|----> encap_destroy()')
+    call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
     deallocate(q%particles)
@@ -86,7 +112,8 @@ contains
     integer(kind_particle) :: i
 
     call pepc_status('|----> encap_setval()')
-    call c_f_pointer(ptr,q)
+    call ptr_print('ptr', ptr)
+    call c_f_pointer(ptr, q)
 
     do i=1,q%params%npart
       q%particles(i)%x(:)      = val
@@ -104,6 +131,8 @@ contains
     type(app_data_t), pointer :: dst, src
 
     call pepc_status('|----> encap_copy()')
+    call ptr_print('src', dstptr)
+    call ptr_print('dst', srcptr)
     call c_f_pointer(dstptr,dst) ! FIXME: do we actually need this? direct c_ptr copy? - No: shared pointers would be deallocated twice then, This would only work for moving data
     call c_f_pointer(srcptr,src)
 
@@ -121,6 +150,7 @@ contains
     integer(kind_particle) :: i, j
 
     call pepc_status('|----> encap_pack()')
+    call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
     j = 1
@@ -145,6 +175,7 @@ contains
     integer(kind_particle) :: i, j
 
     call pepc_status('|----> encap_unpack()')
+    call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
     j = 1
@@ -170,6 +201,8 @@ contains
     integer(kind_particle) :: i
 
     call pepc_status('|----> encap_axpy()')
+    call ptr_print('xptr', xptr)
+    call ptr_print('yptr', yptr)
     call c_f_pointer(xptr, x)
     call c_f_pointer(yptr, y)
     
@@ -193,6 +226,7 @@ contains
     type(app_data_t), pointer :: q
 
     call pepc_status('|----> encap_norm()')
+    call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
     ! TODO
