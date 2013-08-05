@@ -71,23 +71,7 @@ program pepc
   call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
 
   call pfm_encap_create(encap)
-  
-      ! TODO: include notes by Matt on Verlet-stuff:
-      !The interface for the Verlet SDC stuff that we use for LIBPFASST is very similar to the plain explicit, implicit, or IMEX stuff.  You create a 'sweeper' and let the Verlet module attach itself to the sweeper.  The Verlet sweeper requires a function pointer to an 'acceleration' function whose signature is
-      !
-      !  interface
-      !     subroutine pf_acceleration_p(x, t, level, ctx, a)
-      !       import c_ptr, c_int, pfdp
-      !       type(c_ptr),    intent(in), value :: x, a, ctx
-      !       real(pfdp),     intent(in)        :: t
-      !       integer(c_int), intent(in)        :: level
-      !     end subroutine pf_acceleration_p
-      !  end interface
-      ! 
-      !Note here that we're assuming that acceleration is only a function of x, and that \ddot{x} = a.
-      !
-      !In your main the code will look exactly the same except that your sweeper (of type pf_sweeper_t) would be initialized as 'verlet_create(sweeper, ...)' instead of, eg, 'imex_create(sweeper, ...)'.
-  call pf_imex_create(sweeper, eval_f1, eval_f2, comp_f2)
+  call pf_verlet_create(sweeper, eval_acceleration)
   call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts) ! numparts is per species, so total number of particles will be 2*numparts
   call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
@@ -111,14 +95,14 @@ program pepc
   ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution
   call pf_pfasst_run(pf, c_loc(y0), pf_nml%te/pf_nml%nsteps, pf_nml%te, c_loc(yend))
 
-  ! Call PMG's dumping routine
-  call MPI_BARRIER(MPI_COMM_WORLD,mpi_err)
-  if (pf_nml%echo_errors) then
-      pf%state%iter = 0
-      if (pf%rank == pf%comm%nproc-1) then
+!  ! FIXME: Call PMG's dumping routine
+!  call MPI_BARRIER(MPI_COMM_WORLD,mpi_err)
+!  if (pf_nml%echo_errors) then
+!      pf%state%iter = 0
+!      if (pf%rank == pf%comm%nproc-1) then
 !            call dump_grid(yend,pf%state%iter)
-      end if
-  end if
+!      end if
+!  end if
 
   ! Remove everything (hopefully)
   call feval_finalize(y0,yend)
