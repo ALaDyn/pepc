@@ -254,7 +254,7 @@ module module_pepc
       use module_walk, only: tree_walk_prepare
       use module_interaction_specific, only: calc_force_prepare
       use module_mirror_boxes, only: calc_neighbour_boxes
-      use pthreads_stuff, only: pthreads_init
+      use pthreads_stuff, only: pthreads_init, set_prefetching
       use module_tree_communicator, only: tree_communicator_prepare
       use module_debug
       implicit none
@@ -262,6 +262,7 @@ module module_pepc
       integer(kind_dim), optional, intent(in) :: idim
 
       ERROR_ON_FAIL(pthreads_init())
+      ERROR_ON_FAIL(set_prefetching())
       call treevars_prepare(idim)
       call calc_neighbour_boxes() ! initialize mirror boxes
       call calc_force_prepare() ! prepare interaction-specific routines

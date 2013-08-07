@@ -42,6 +42,13 @@ module pthreads_stuff
     end function
   end interface
 
+  interface  
+    integer(c_int) function set_prefetching() bind(C, name='set_prefetching')
+      use, intrinsic :: iso_c_binding
+      implicit none
+    end function
+  end interface
+
 
   interface
     integer(c_int) function pthreads_init() bind(C, name='pthreads_init')
