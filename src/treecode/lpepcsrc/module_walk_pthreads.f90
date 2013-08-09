@@ -748,7 +748,7 @@ module module_walk
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
     real*8 :: dist2, delta(3), shifted_particle_position(3)
-    logical :: is_leaf, is_related
+    logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
     real*8 :: t_post_request
 
@@ -776,29 +776,22 @@ module module_walk
       ! but this does not always work (i.e. if theta > 0.7 or if keys and/or coordinates have
       ! been modified due to 'duplicate keys'-error)
       is_leaf = tree_node_is_leaf(walk_node)
-      is_related = (in_central_box) .and. is_ancestor_of_particle(particle%key, walk_node%key, walk_node%level)
 
-      if (.not. is_related) then
-        ! walk_node is not a relative, distance vector is needed for interaction
-        ! and/or MAC evaluation
-        delta = shifted_particle_position - walk_node%interaction_data%coc ! Separation vector
-        dist2 = DOT_PRODUCT(delta, delta)
-        if (is_leaf) then ! leaves cannot be resolved further so interact
+      delta = shifted_particle_position - walk_node%interaction_data%coc ! Separation vector
+      dist2 = DOT_PRODUCT(delta, delta)
+
+      if (is_leaf) then
+        if (dist2 > 0.0_8) then ! not self, interact
           call interact()
-        else ! for twigs, evaluate MAC
-          num_mac_evaluations = num_mac_evaluations + 1
-          if (mac(particle, walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC OK: interact
-            call interact()
-          else ! MAC fails: resolve
-            call resolve()
-          end if
-        end if
-      else
-        ! this is a relative, possibly the particle itself
-        if (.not. is_leaf) then ! this is an ancestor, resolve further
-          call resolve()
-        else ! no self interaction, but count for consistency
+        else ! self, count as interaction partner, otherwise ignore
           partner_leaves = partner_leaves + walk_node%leaves
+        end if
+      else ! not a leaf, evaluate MAC
+        num_mac_evaluations = num_mac_evaluations + 1
+        if (mac(particle, walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
+          call interact()
+        else ! MAC negative, resolve
+          call resolve()
         end if
       end if
     end do ! (while (todo_list_pop(walk_key)))

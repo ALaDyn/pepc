@@ -130,28 +130,26 @@ module module_walk
 
       integer(kind_node) :: s, ns
       real*8 :: d2, d(3)
-      logical :: is_leaf, is_related
+      logical :: is_leaf
 
       is_leaf = tree_node_is_leaf(t%nodes(n))
-      is_related = in_central_box .and. is_ancestor_of_particle(p%key, t%nodes(n)%key, t%nodes(n)%level)
 
-      if (.not. (is_leaf .or. is_related)) then ! A twig that is not an ancestor
-        d = (p%x - vbox) - t%nodes(n)%interaction_data%coc
-        d2 = dot_product(d, d)
+      d = (p%x - vbox) - t%nodes(n)%interaction_data%coc
+      d2 = dot_product(d, d)
+
+      if (is_leaf) then
+        if (d2 > 0.0_8) then ! not self, interact
+          goto 1
+        else ! self, count as interaction partner, otherwise ignore
+          goto 2
+        end if
+      else ! not a leaf, evaluate MAC
         mac_evaluations_local = mac_evaluations_local + 1.0_8
         if (mac(p, t%nodes(n)%interaction_data, d2, b2(t%nodes(n)%level))) then ! MAC OK: interact
-          go to 1 ! interact
+          goto 1
         else ! MAC fails: resolve
-          go to 3 ! resolve
+          goto 3
         end if
-      else if (is_leaf .and. (.not. is_related)) then ! Always interact with leaves
-        d = (p%x - vbox) - t%nodes(n)%interaction_data%coc
-        d2 = dot_product(d, d)
-        go to 1 ! interact
-      else if ((.not. is_leaf) .and. is_related) then ! This is a parent: resolve
-        go to 3 ! resolve
-      else if (is_leaf .and. is_related) then ! self
-        go to 2 ! ignore, but count
       end if
 
       DEBUG_ASSERT_MSG(.false., *, "The block of ifs above should be exhaustive!")
