@@ -159,7 +159,7 @@ module pepca_diagnostics
       end do
     end do
 
-    cell(dim:) = 1
+    cell(dim+1:) = 1
     do ip = 1, size(p,kind=kind_particle)
       cell(1:dim) = nint((Ngrid(1:dim)-1)*(p(ip)%x(1:dim) - global_tree%bounding_box%boxmin(1:dim)) / global_tree%bounding_box%boxsize(1:dim)) + 1
       

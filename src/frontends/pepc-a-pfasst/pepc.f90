@@ -31,7 +31,7 @@ program pepc
   use pepca_globals
 
   use pfasst
-  use pf_mod_imex
+  use pf_mod_verlet
   use pfm_helper
   use pfm_encap
   use pfm_feval
