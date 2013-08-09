@@ -19,7 +19,7 @@ MAKE     = gmake
 AR       = ar
 ARFLAGS  = -rs
 
-CPP      = cpp
+CPP      = /usr/bin/cpp
 CPPFLAGS = -P -C -DLITTLEENDIAN -DSVNREVISION="\"$(SVNREVISION)\"" -D__TOS_BGQ__
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qkeepparm -qflttrap -qnosmp -qxflag=dvz -Q! -qnounwind -qnounroll
