@@ -1,0 +1,63 @@
+ HELP = "\
+\# Makefile for gcc 4.8 (self-compiled via the following commands)\n\
+\# \n\
+\# svn checkout svn://gcc.gnu.org/svn/gcc/trunk workspace/gcc\n\
+\# cd workspace/gcc\n\
+\# ./configure --prefix=/home5/m.winkel/programs/gcc/ -enable-gold=yes --enable-lto --disable-checking --enable-languages=c,c++,fortran --enable-multiarch --enable-shared --enable-threads=posix --without-included-gettext --with-system-zlib --with-tune=generic\n\
+\# make -j 6\n\
+\# make install\n\
+\# export PATH=${HOME}/programs/gcc/bin:${PATH}\n\
+\# export I_MPI_CC=gcc\n\
+\# export I_MPI_F90=gfortran\n\
+"
+
+
+MACH     = linux_gcc-4.8
+
+DEBUG    = 1
+OMP      = 1
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+
+INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg 
+# -flto
+#-fwhopr
+
+FCPRE    = 
+FC       = mpif90
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -pg -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -pg -g -gdwarf-3
+  LDFLAGS  =       -O0 -pg -g -gdwarf-3
+else
+  FFLAGS   = -Wall -O5 -pg    -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
+  CFLAGS   = -Wall -O5 -pg
+  LDFLAGS   = -pthread -pg -O5 $(INLINING) -fwhole-program  
+#-Wl,--threads
+#-fuse-linker-plugin
+endif
+
+ifeq ($(OMP), 1)
+  FFLAGS   += -fopenmp
+  LDFLAGS  += -fopenmp 
+else
+endif
+
+CCPRE    = 
+CC       = mpicc
+
+LDPRE    = 
+LD       = mpif90
+LDLIBS   = 
+
+RM       = rm -rf
+
+
