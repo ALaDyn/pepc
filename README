@@ -38,16 +38,31 @@ along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 
 ============================================================
 
-1. COMPILATION
+1. REQUIREMENTS
+
+ - A reasonably modern Fortran compiler with support for
+   Fortran 2003 object orientation, e.g.:
+    - GCC >= 4.6
+    - Intel >= 12.1
+    - IBM XL Fortran >= 12
+ - A C compiler and a C preprocessor with support for
+   variadic macros.
+ - An MPI library with support for MPI_THREAD_MULTIPLE.
+   PEPC will complain about missing support at run time.
+ - Support for POSIX threads (pthreads).
+
+============================================================
+
+2. COMPILATION
 
 For compiling this program, the machine-dependent compiler 
 names and flags have to be set in a definition file called
 'makefile.defs' in the root directory.
 
 Several exemplary definitions are available in the subdirectory
-./makefiles. For example, an JUGENE you can simply call
+./makefiles. For example, an JUQUEEN you can simply call
 
-"ln -sf ./makefiles/makefile.defs.jugene ./makefile.defs"
+"ln -sf ./makefiles/makefile.defs.juqueen_xlf ./makefile.defs"
 
 from the root directory to create a symbolic link the the 
 appropriate definitions. Some makefile.defs contain
@@ -103,7 +118,7 @@ the respective sourcecode to find out what they are doing.
 
 ============================================================
 
-2. RUNNING THE PROGRAM
+3. RUNNING THE PROGRAM
 
 The directory "examples/" contains several subdirectories
 with setups for different frontends. E.g., to use the
@@ -117,7 +132,7 @@ which are explained therein.
 
 ============================================================
 
-3. DOCUMENTATION
+4. DOCUMENTATION
 
 Rudimentary doxygen documentation is available by calling
 
@@ -128,7 +143,7 @@ from the root directory. A users guide is in preparation.
 
 ============================================================
 
-4. DIRECTORY STRUCTURE / ADDING OWN FUNCTIONALITY
+5. DIRECTORY STRUCTURE / ADDING OWN FUNCTIONALITY
 
 Inside the ./src/ directory, you will find four subdirectories:
  - treecode: PEPC kernel, everything that is necessary for
