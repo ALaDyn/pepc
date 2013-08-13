@@ -520,18 +520,13 @@ module module_tree_grow
           end if
         end do
 
+        ! a node has to be created from scratch
         if (parent_nodes(nparent) == NODE_INVALID) then
-          ! a node has te be created from scratch
-          parent_node%childcode    = 1 ! we have to set some value > 0 here, to pretend that this is not a leaf node (used in tree_node_is_leaf() in tree_insert_node() )
-          parent_node%owner        = t%comm_env%rank ! dito for owner - this one has to be valid to keep the nXX_me-counters in tree_insert_node) correct
-          parent_node%key          = parent_key(nparent)
-          parent_node%parent       = NODE_INVALID ! these are not touched in shift_nodes_up
-          parent_node%next_sibling = NODE_INVALID ! these are not touched in shift_nodes_up
-          
+          call tree_node_from_children(t, parent_node, sorted_sub_nodes(groupstart:groupend))
           call tree_insert_node(t, parent_node, parent_nodes(nparent))
+        else
+          call tree_node_from_children(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend))
         end if
-
-        call shift_nodes_up(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend), t%comm_env%rank)
         call tree_node_connect_children(t, parent_nodes(nparent), sorted_sub_nodes(groupstart:groupend))
 
         ! go on with next group
@@ -625,11 +620,11 @@ module module_tree_grow
     !> Inserts the keys in `ki` below the key `k`.
     !>
     recursive subroutine insert_helper(t, k, l, ki, pi)
-      use module_tree, only: t_tree, tree_insert_node, tree_node_connect_children
+      use module_tree, only: t_tree, tree_insert_node, tree_insert_node_at_index, &
+        tree_provision_node, tree_node_connect_children
       use module_pepc_types, only: t_tree_node, kind_node
       use module_tree_node
       use module_spacefilling, only: child_key_from_parent_key, is_ancestor_of_particle
-      use module_interaction_specific, only: multipole_from_particle
       implicit none
 
       type(t_tree), intent(inout) :: t !< tree in which to find the nodes
@@ -654,22 +649,7 @@ module module_tree_grow
         ! do nothing
       else if (si == 1) then ! we have arrived at a leaf
         if (ki(1)%idx /= 0) then ! boundary particles have idx == 0, do not really need to be inserted
-          ! TODO: put the following in tree_node_from_particle
-          this_node%childcode    = 0
-          this_node%flags_global = 0
-          this_node%flags_local  = ibset(this_node%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
-          this_node%request_posted = .false.
-          this_node%owner        = t%comm_env%rank
-          this_node%key          = k
-          this_node%level        = l
-          this_node%leaves       = 1
-          this_node%descendants  = 0
-          this_node%parent       = NODE_INVALID
-          this_node%first_child  = NODE_INVALID
-          this_node%next_sibling = NODE_INVALID
-          call timer_resume(t_props_leaves)
-          call multipole_from_particle(p(ki(1)%idx)%x, p(ki(1)%idx)%data, this_node%interaction_data)
-          call timer_stop(t_props_leaves)
+          call tree_node_from_particle(t, this_node, p(ki(1)%idx), k)
           call tree_insert_node(t, this_node, inserted_node_idx)
           p(ki(1)%idx)%node_leaf = inserted_node_idx
         end if
@@ -679,13 +659,7 @@ module module_tree_grow
           DEBUG_ERROR_NO_HEADER('(I6,x,O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=1,si ) )
         end if
 
-        this_node%childcode    = 1 ! we have to set some value > 0 here, to pretend that this is not a leaf node (used in tree_node_is_leaf() in tree_insert_node() )
-        this_node%owner        = t%comm_env%rank ! dito for owner - this one has to be valid to keep the nXX_me-counters in tree_insert_node) correct
-        this_node%key          = k
-        this_node%parent       = NODE_INVALID ! these are not touched in shift_nodes_up
-        this_node%next_sibling = NODE_INVALID ! these are not touched in shift_nodes_up
-
-        call tree_insert_node(t, this_node, inserted_node_idx)
+        inserted_node_idx = tree_provision_node(t)
 
         nchild = 0
         pstart = lbound(ki, dim = 1, kind = kind(pstart))
@@ -711,7 +685,8 @@ module module_tree_grow
           DEBUG_ERROR_NO_HEADER('(I6,x,I22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=pend + 1, ubound(ki, dim = 1) ) )
         end if
 
-        call shift_nodes_up(t, t%nodes(inserted_node_idx), child_nodes(1:nchild), t%comm_env%rank)
+        call tree_node_from_children(t, this_node, child_nodes(1:nchild))
+        call tree_insert_node_at_index(t, inserted_node_idx, this_node)
         ! wire up pointers
         call tree_node_connect_children(t, inserted_node_idx, child_nodes(1:nchild))
       end if
@@ -724,9 +699,45 @@ module module_tree_grow
 
 
   !>
+  !> populates a tree node with information from a single particle
+  !>
+  subroutine tree_node_from_particle(t, n, p, k)
+    use module_pepc_types, only: t_particle, t_tree_node
+    use module_tree, only: t_tree
+    use module_tree_node
+    use module_interaction_specific, only: multipole_from_particle
+    use module_spacefilling, only: level_from_key
+    use module_timings
+    implicit none
+
+    type(t_tree), intent(inout) :: t
+    type(t_tree_node), intent(out) :: n
+    type(t_particle), intent(in) :: p
+    integer(kind_key), intent(in) :: k
+
+    n%childcode    = 0
+    n%flags_global = 0
+    n%flags_local  = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
+    n%request_posted = .false.
+    n%owner        = t%comm_env%rank
+    n%key          = k
+    n%level        = level_from_key(k)
+    n%leaves       = 1
+    n%descendants  = 0
+    n%parent       = NODE_INVALID
+    n%first_child  = NODE_INVALID
+    n%next_sibling = NODE_INVALID
+
+    call timer_resume(t_props_leaves)
+    call multipole_from_particle(p%x, p%data, n%interaction_data)
+    call timer_stop(t_props_leaves)
+  end subroutine tree_node_from_particle
+
+
+  !>
   !> accumulates properties of child nodes to parent node
   !>
-  subroutine shift_nodes_up(t, parent, children, parent_owner)
+  subroutine tree_node_from_children(t, parent, children)
     use module_pepc_types, only: t_tree_node, kind_node
     use module_interaction_specific_types, only: t_tree_node_interaction_data
     use module_tree_node
@@ -739,7 +750,6 @@ module module_tree_grow
     type(t_tree), intent(inout) :: t !< tree in which to find the nodes
     type(t_tree_node), intent(inout) :: parent !< parent node
     integer(kind_node), intent(in) :: children(:) !< child nodes
-    integer(kind_pe), intent(in) :: parent_owner !< communication rank that owns the parent
 
     type(t_tree_node_interaction_data) :: interaction_data(1:8)
     integer(kind_key) :: parent_keys(1:8)
@@ -794,7 +804,7 @@ module module_tree_grow
     parent%request_posted = .false.
     parent%leaves       = nleaves
     parent%descendants  = ndescendants
-    parent%owner        = parent_owner
+    parent%owner        = t%comm_env%rank
     ! parent%parent       = NODE_INVALID ! may not be overwritten since this is not a children-dependent information
     parent%first_child  = NODE_INVALID 
     ! parent%next_sibling = NODE_INVALID ! dito
@@ -802,5 +812,5 @@ module module_tree_grow
 
     call shift_multipoles_up(parent%interaction_data, interaction_data(1:nchild))
 
-  end subroutine shift_nodes_up
+  end subroutine tree_node_from_children
 end module module_tree_grow

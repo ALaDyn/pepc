@@ -106,14 +106,15 @@ module module_tree
 
     public tree_create
     public tree_allocated
+    public tree_provision_node
     public tree_insert_node
+    public tree_insert_node_at_index
     public tree_traverse_to_key
     public tree_node_connect_children
     public tree_check
     public tree_dump
     public tree_stats
     public tree_destroy
-    public tree_nodelist_add
 
     contains
 
@@ -128,6 +129,7 @@ module module_tree
     !> is used.
     !>
     subroutine tree_create(t, nl, n, comm, comm_env)
+      use module_tree_node, only: NODE_INVALID
       use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult, nlev
       use module_interaction_specific, only: get_number_of_interactions_per_particle
       use module_comm_env, only: comm_env_dup, comm_env_mirror
@@ -182,8 +184,8 @@ module module_tree
       DEBUG_ASSERT(.not. associated(t%nodes))
       t%nodes_maxentries = max(maxaddress, 2_kind_node**15)
       allocate(t%nodes(1:t%nodes_maxentries))
-      call tree_nodelist_clear(t)
-
+      t%nodes_nentries   = 0_kind_node
+      t%node_root        = NODE_INVALID
 
       if (maxaddress <= t%npart_me ) then
         DEBUG_ERROR('("maxaddress = ", I0, " <= t%npart_me = ", I0, ".", / , "You should increase np_mult.")', maxaddress, t%npart_me)
@@ -206,6 +208,7 @@ module module_tree
     !> destroy a tree, freeing all memory used
     !>
     subroutine tree_destroy(t)
+      use module_tree_node, only: NODE_INVALID
       use module_domains, only: decomposition_allocated, decomposition_destroy
       use module_comm_env, only: comm_env_destroy
       use module_debug
@@ -223,54 +226,14 @@ module module_tree
       end if
 
       DEBUG_ASSERT(associated(t%nodes))
-      call tree_nodelist_clear(t)
+      t%nodes_nentries   = 0_kind_node
+      t%node_root        = NODE_INVALID
       t%nodes_maxentries = 0_kind_node
       deallocate(t%nodes)
       
       DEBUG_ASSERT(allocated(t%boxlength2))
       deallocate(t%boxlength2)
     end subroutine tree_destroy
-
-
-    !>
-    !> empties the node list in `t`
-    !>
-    subroutine tree_nodelist_clear(t)
-      use module_debug
-      use module_tree_node, only: NODE_INVALID
-      implicit none
-      type(t_tree), intent(inout) :: t
-
-      t%nodes_nentries   = 0_kind_node
-      t%node_root        = NODE_INVALID
-    end subroutine
-
-
-    !>
-    !> Add an entry (`k`, `v`) to the node list `t%nodes`.
-    !> If present, `entry_pointer` points to the inserted value `v`.
-    !>
-    subroutine tree_nodelist_add(t, v, entry_pointer)
-      use treevars
-      use module_debug
-      implicit none
-
-      type(t_tree), intent(inout) :: t
-      type(t_tree_node), intent(in) :: v
-      integer(kind_node), intent(out), optional :: entry_pointer
-
-      DEBUG_ASSERT(associated(t%nodes))
-      if (t%nodes_nentries >= t%nodes_maxentries) then
-        DEBUG_ERROR('("Node array full. # Entries: ", I0,"/",I0)', t%nodes_nentries, t%nodes_maxentries)
-      end if
-
-      t%nodes_nentries = t%nodes_nentries + 1_kind_node
-      t%nodes(t%nodes_nentries) = v
-
-      if (present(entry_pointer)) then
-        entry_pointer = t%nodes_nentries
-      end if
-    end subroutine tree_nodelist_add
 
 
     !>
@@ -357,22 +320,43 @@ module module_tree
 
 
     !>
-    !> inserts the tree node `n` into the tree `t`.
+    !> reserves storage for a single tree node.
     !>
-    !> returns `.true.` if successfull, `.false.` if `n` exists in `t` allready.
+    !> the index at which to insert the tree node later on is returned 
+    !> in `entry_pointer`.
     !>
-    subroutine tree_insert_node(t, n, preexisting_node)
+    function tree_provision_node(t)
+      use module_debug
+      implicit none
+
+      integer(kind_node) :: tree_provision_node
+      type(t_tree), intent(inout) :: t
+
+      DEBUG_ASSERT(tree_allocated(t))
+      if (t%nodes_nentries >= t%nodes_maxentries) then
+        DEBUG_ERROR('("Node array full. # Entries: ", I0,"/",I0)', t%nodes_nentries, t%nodes_maxentries)
+      end if
+
+      t%nodes_nentries = t%nodes_nentries + 1_kind_node
+      tree_provision_node = t%nodes_nentries
+    end function tree_provision_node
+
+
+    !>
+    !> inserts the node `n` into the tree `t` at the position `i` that was
+    !> previously provisioned using `tree_provision_node`.
+    !>
+    subroutine tree_insert_node_at_index(t, i, n)
       use module_pepc_types, only: t_tree_node, kind_node
       use module_tree_node, only: tree_node_is_leaf
       use module_debug
       implicit none
 
-      type(t_tree), intent(inout) :: t !< Tree into which to insert the node
-      type(t_tree_node), intent(in) :: n !< The tree node to insert
-      integer(kind_node), optional, intent(out) :: preexisting_node !< points to preexisting node
+      type(t_tree), intent(inout) :: t
+      integer(kind_node), intent(in) :: i
+      type(t_tree_node), intent(in) :: n
 
       DEBUG_ASSERT(tree_allocated(t))
-      call tree_nodelist_add(t, n, preexisting_node)
       ! keep count of leaves / twigs
       if (tree_node_is_leaf(n)) then
         t%nleaf =  t%nleaf + 1
@@ -381,6 +365,29 @@ module module_tree
         t%ntwig =  t%ntwig + 1
         if (n%owner == t%comm_env%rank) t%ntwig_me = t%ntwig_me + 1
       end if
+
+      t%nodes(i) = n
+    end subroutine tree_insert_node_at_index
+
+
+    !>
+    !> inserts the tree node `n` into the tree `t`.
+    !>
+    subroutine tree_insert_node(t, n, entry_pointer)
+      use module_pepc_types, only: t_tree_node, kind_node
+      use module_debug
+      implicit none
+
+      type(t_tree), intent(inout) :: t !< Tree into which to insert the node
+      type(t_tree_node), intent(in) :: n !< The tree node to insert
+      integer(kind_node), optional, intent(out) :: entry_pointer !< where the node was inserted
+
+      integer(kind_node) :: i
+
+      DEBUG_ASSERT(tree_allocated(t))
+      i = tree_provision_node(t)
+      call tree_insert_node_at_index(t, i, n)
+      if (present(entry_pointer)) entry_pointer = i
     end subroutine tree_insert_node
 
 
@@ -457,7 +464,6 @@ module module_tree
       
       t%nodes(c(nc))%parent       = n
       t%nodes(c(nc))%next_sibling = NODE_INVALID
-
     end subroutine tree_node_connect_children
 
 
