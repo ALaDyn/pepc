@@ -522,16 +522,16 @@ module module_tree_grow
 
         ! a node has to be created from scratch
         if (parent_nodes(nparent) == NODE_INVALID) then
-          call tree_node_from_children(t, parent_node, sorted_sub_nodes(groupstart:groupend))
+          call tree_node_create_from_children(t, parent_node, sorted_sub_nodes(groupstart:groupend))
           call tree_insert_node(t, parent_node, parent_nodes(nparent))
         else
-          call tree_node_from_children(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend))
+          call tree_node_update_from_children(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend))
         end if
         call tree_node_connect_children(t, parent_nodes(nparent), sorted_sub_nodes(groupstart:groupend))
 
         ! go on with next group
         i = i + 1
-        end do
+      end do
     end do ! loop over levels
 
     deallocate(key_level)
@@ -649,7 +649,7 @@ module module_tree_grow
         ! do nothing
       else if (si == 1) then ! we have arrived at a leaf
         if (ki(1)%idx /= 0) then ! boundary particles have idx == 0, do not really need to be inserted
-          call tree_node_from_particle(t, this_node, p(ki(1)%idx), k)
+          call tree_node_create_from_particle(t, this_node, p(ki(1)%idx), k)
           call tree_insert_node(t, this_node, inserted_node_idx)
           p(ki(1)%idx)%node_leaf = inserted_node_idx
         end if
@@ -685,7 +685,7 @@ module module_tree_grow
           DEBUG_ERROR_NO_HEADER('(I6,x,I22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=pend + 1, ubound(ki, dim = 1) ) )
         end if
 
-        call tree_node_from_children(t, this_node, child_nodes(1:nchild))
+        call tree_node_create_from_children(t, this_node, child_nodes(1:nchild))
         call tree_insert_node_at_index(t, inserted_node_idx, this_node)
         ! wire up pointers
         call tree_node_connect_children(t, inserted_node_idx, child_nodes(1:nchild))
@@ -701,7 +701,7 @@ module module_tree_grow
   !>
   !> populates a tree node with information from a single particle
   !>
-  subroutine tree_node_from_particle(t, n, p, k)
+  subroutine tree_node_create_from_particle(t, n, p, k)
     use module_pepc_types, only: t_particle, t_tree_node
     use module_tree, only: t_tree
     use module_tree_node
@@ -731,13 +731,36 @@ module module_tree_grow
     call timer_resume(t_props_leaves)
     call multipole_from_particle(p%x, p%data, n%interaction_data)
     call timer_stop(t_props_leaves)
-  end subroutine tree_node_from_particle
+  end subroutine tree_node_create_from_particle
+
+  
+  !>
+  !> accumulates properties of child nodes to parent node.
+  !> initialises links to NODE_INVALID.
+  !>
+  subroutine tree_node_create_from_children(t, parent, children)
+    use module_tree, only: t_tree
+    use module_pepc_types, only: t_tree_node, kind_node
+    use module_tree_node, only: NODE_INVALID
+    implicit none
+
+    type(t_tree), intent(inout) :: t !< tree in which to find the nodes
+    type(t_tree_node), intent(inout) :: parent !< parent node
+    integer(kind_node), intent(in) :: children(:) !< child nodes
+
+    parent%parent       = NODE_INVALID
+    parent%next_sibling = NODE_INVALID
+    parent%first_child  = NODE_INVALID 
+
+    call tree_node_update_from_children(t, parent, children)
+  end subroutine tree_node_create_from_children
 
 
   !>
-  !> accumulates properties of child nodes to parent node
+  !> accumulates properties of child nodes to parent node.
+  !> leaves links to node's relatives untouched
   !>
-  subroutine tree_node_from_children(t, parent, children)
+  subroutine tree_node_update_from_children(t, parent, children)
     use module_pepc_types, only: t_tree_node, kind_node
     use module_interaction_specific_types, only: t_tree_node_interaction_data
     use module_tree_node
@@ -805,12 +828,9 @@ module module_tree_grow
     parent%leaves       = nleaves
     parent%descendants  = ndescendants
     parent%owner        = t%comm_env%rank
-    ! parent%parent       = NODE_INVALID ! may not be overwritten since this is not a children-dependent information
-    parent%first_child  = NODE_INVALID 
-    ! parent%next_sibling = NODE_INVALID ! dito
     parent%level        = level_from_key( parent_keys(1) )
 
     call shift_multipoles_up(parent%interaction_data, interaction_data(1:nchild))
 
-  end subroutine tree_node_from_children
+  end subroutine tree_node_update_from_children
 end module module_tree_grow
