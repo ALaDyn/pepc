@@ -119,10 +119,13 @@ module module_directsum
 
                       delta = received(j)%x - lattice_vect(neighbour_boxes(:,ibox)) - local_nodes(i)%coc
 
+                      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
                       if (all(abs(delta) < spatial_interaction_cutoff)) then
+                      #endif
                           call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)), .true.)
+                      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
                       endif
-
+                      #endif
                     end do
 
                 end do

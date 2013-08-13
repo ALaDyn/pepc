@@ -123,7 +123,9 @@ module module_walk
       use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
         tree_node_get_first_child, tree_node_get_next_sibling
       use pthreads_stuff, only: pthreads_sched_yield
+      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
       use module_mirror_boxes, only: spatial_interaction_cutoff
+      #endif
       implicit none
 
       integer(kind_node), intent(in) :: n
@@ -156,10 +158,14 @@ module module_walk
       return
 
       ! interact
+      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
 1     if (all(abs(d) < spatial_interaction_cutoff)) then
+      #endif
         call calc_force_per_interaction(p, t%nodes(n)%interaction_data, n, d, d2, vbox, is_leaf)
         interactions_local = interactions_local + 1.0_8
+      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
       end if
+      #endif
       ! count partner
 2     ni = ni + t%nodes(n)%leaves
       return

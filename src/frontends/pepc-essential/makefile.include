@@ -9,6 +9,8 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-essential/, $(FILES_L))
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
+CPPFLAGS += -DNO_SPATIAL_INTERACTION_CUTOFF
+
 BACKENDTYPE = XYZQVM
 
 #WALK = smpss

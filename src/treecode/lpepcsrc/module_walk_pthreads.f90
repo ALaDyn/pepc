@@ -728,7 +728,9 @@ module module_walk
     use module_interaction_specific
     use module_spacefilling, only : is_ancestor_of_particle
     use module_debug
+    #ifndef NO_SPATIAL_INTERACTION_CUTOFF
     use module_mirror_boxes, only : spatial_interaction_cutoff
+    #endif
     use module_atomic_ops
     use module_pepc_types
     implicit none
@@ -813,11 +815,15 @@ module module_walk
       implicit none
 
       ! interact
+      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
       ! Check cutoff
       if (all(abs(delta) < spatial_interaction_cutoff)) then
+      #endif
         call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox, is_leaf)
         num_interactions = num_interactions + 1
+      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
       end if
+      #endif
       ! Interaction was considered, count partner leaves
       partner_leaves = partner_leaves + walk_node%leaves
     end subroutine interact
