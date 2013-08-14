@@ -31,7 +31,7 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 
 makefile.deps: 
 	@echo "==== creating dependencies"
-	@$(F90MODDEPS) -o makefile.deps --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "" $(filter %.f90, $(SRC)) >> compile.log
+	@$(F90MODDEPS) -o makefile.deps --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "" $(FSRC) >> compile.log
 
 include makefile.deps
 
