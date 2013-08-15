@@ -120,15 +120,13 @@ the respective sourcecode to find out what they are doing.
 
 3. RUNNING THE PROGRAM
 
-The directory "examples/" contains several subdirectories
-with setups for different frontends. E.g., to use the
-pepc-mini frontend, do
-
-$ cd examples/mini-tube
-$ ./run.sh
-
-The file "params" contains some user-adjustable parameters
-which are explained therein.
+Usually, the frontend's source directories contain a sample
+input deck for the frontends. For running pepc-essential
+it is for example called "params". It contains user-adjustable
+parameters and can be fed to the executable as first command
+line parameter:
+$ cd bin
+$ mpirun -np 32 pepc-essential ../src/frontneds/pepc/essential/params
 
 ============================================================
 
