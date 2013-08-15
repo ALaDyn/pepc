@@ -45,7 +45,7 @@ readme:
 	cat README | less
 
 all:
-	-$(MAKE) $(MFLAGS) $(ALLFRONTENDS)
+	-for f in $(ALLFRONTENDS); do $(MAKE) $(MFLAGS) $$f; done
 	@echo ""
 	-$(MAKE) $(MFLAGS) allresult
 
