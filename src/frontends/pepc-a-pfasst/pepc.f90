@@ -30,11 +30,13 @@ program pepc
   use pepca_diagnostics
   use pepca_globals
 
-  use pfasst
-  use pf_mod_verlet
+  use pf_mod_verlet, only: pf_verlet_create, pf_verlet_destroy
   use pfm_helper
   use pfm_encap
   use pfm_feval
+  use pf_mod_comm_mpi, only: pf_mpi_create, pf_mpi_destroy, pf_mpi_setup
+  use pf_mod_pfasst, only: pf_pfasst_create, pf_pfasst_setup, pf_pfasst_destroy
+  use pf_mod_parallel, only: pf_pfasst_run
   
   implicit none
 
@@ -70,7 +72,7 @@ program pepc
   call pf_mpi_create(tcomm, MPI_COMM_TIME)
   call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
 
-  call pfm_encap_create(encap)
+  call pfm_encap_init(encap)
   call pf_verlet_create(sweeper, eval_acceleration)
   call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts, dim, MPI_COMM_SPACE) ! numparts is per species, so total number of particles will be 2*numparts
   call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
@@ -106,7 +108,7 @@ program pepc
 
   ! Remove everything (hopefully)
   call feval_finalize(y0,yend)
-  call pf_imex_destroy(sweeper)
+  call pf_verlet_destroy(sweeper)
   call pf_pfasst_destroy(pf)
   call pf_mpi_destroy(tcomm)
   call pfm_finalize_solver_level_params(level_params, pf_nml%nlevels)

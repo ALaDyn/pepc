@@ -127,7 +127,7 @@ contains
 
     !> Fill PFASST object pf (generated earlier), mostly with read-in or derived parameters
     subroutine pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
-        use pfasst, only : pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK
+        use pf_mod_dtype, only: pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK
         use pfm_encap, only : pf_encap_t, app_params_t
         use pfm_transfer, only : interpolate, restrict
         use iso_c_binding, only : c_loc, c_null_ptr

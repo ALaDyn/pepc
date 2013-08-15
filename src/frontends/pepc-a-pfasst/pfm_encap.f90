@@ -1,8 +1,8 @@
 module pfm_encap
   use iso_c_binding
-  use pfasst
   use module_pepc_types
   use module_debug
+  use pf_mod_dtype
   implicit none
 
   !> data type for level-dependent application parameters
@@ -44,7 +44,7 @@ contains
 
 
   !> Fill pf_encap_t with pointers to encapsulation functions
-  subroutine pfm_encap_create(encap)
+  subroutine pfm_encap_init(encap)
     type(pf_encap_t), intent(out) :: encap
 
     encap%create  => encap_create
@@ -55,7 +55,7 @@ contains
     encap%unpack  => encap_unpack
     encap%axpy    => encap_axpy
     encap%norm    => encap_norm
-  end subroutine pfm_encap_create
+  end subroutine pfm_encap_init
 
 
   !> Allocate/create solution (spatial data set) for the given level.
@@ -254,8 +254,6 @@ contains
        DEBUG_ERROR(*, 'Invalid flags')
     end select
     
-    ! FIXME: how does this look like for velocities and positions separately?
-
   end subroutine encap_axpy
 
 

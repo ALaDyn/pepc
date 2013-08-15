@@ -1,5 +1,5 @@
 module pf_mod_verlet
-  use pfasst
+  use pf_mod_dtype
   implicit none
   integer, parameter, private :: npieces = 1
 

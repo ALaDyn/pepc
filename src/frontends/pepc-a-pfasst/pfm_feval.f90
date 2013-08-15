@@ -60,7 +60,6 @@ contains
     !> is only a function of x, and that \ddot{x} = a.
     subroutine eval_acceleration(xptr, t, level, ctx, aptr)
       use module_pepc
-      use pepca_globals, only : dim
       use iso_c_binding, only : c_ptr, c_int, c_f_pointer
       use module_debug, only : dbg, DBG_STATS, pepc_status
       use pepca_units
@@ -94,8 +93,8 @@ contains
       do i=1,size(x%particles, kind=kind(i)) ! FIXME: tis is far too ugly
         a%particles(i)   = x%particles(i)
         ! acceleration from force from field
-        a%particles(i)%x(1:dim)  = a%particles(i)%data%q/unit_4piepsilon0 * a%particles(i)%results%e(1:dim) / ( a%particles(i)%data%m * unit_c )
-        a%particles(i)%x(dim+1:) = 0
+        a%particles(i)%x(1:a%params%dim)  = a%particles(i)%data%q/unit_4piepsilon0 * a%particles(i)%results%e(1:a%params%dim) / ( a%particles(i)%data%m * unit_c )
+        a%particles(i)%x(a%params%dim+1:) = 0
       end do
 
     end subroutine eval_acceleration
