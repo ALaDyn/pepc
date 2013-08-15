@@ -880,28 +880,25 @@ module module_walk
 
 
     function todo_list_push_children(node) result(res)
+      use treevars, only: idim
       use module_pepc_types, only: kind_node
-      use module_tree_node, only: tree_node_get_num_children, tree_node_get_first_child, tree_node_get_next_sibling
+      use module_tree_node, only: tree_node_get_first_child, tree_node_get_next_sibling
       use module_debug
       implicit none
 
       logical :: res, dummy
       integer(kind_node), intent(in) :: node
-      integer :: ic, nc
 
-      nc = tree_node_get_num_children(walk_tree%nodes(node))
-
-      if (todo_list_entries + nc > todo_list_length) then
-        DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle%label, todo_list_length)
-        res = .false.
-      else
-        todo_list_entries = todo_list_entries + nc
-        dummy = tree_node_get_first_child(walk_tree%nodes(node), todo_list(todo_list_entries - 1))
-        do ic = 2, nc
-          dummy = tree_node_get_next_sibling(walk_tree%nodes(todo_list(todo_list_entries - ic + 1)), todo_list(todo_list_entries - ic))
+      ! check for enough space on todo_list
+      res = (todo_list_entries + 2**idim <= todo_list_length)
+      if (res) then
+        dummy = tree_node_get_first_child(walk_tree%nodes(node), todo_list(todo_list_entries))
+        todo_list_entries = todo_list_entries + 1
+        do while (tree_node_get_next_sibling(walk_tree%nodes(todo_list(todo_list_entries - 1)), todo_list(todo_list_entries))) 
+          todo_list_entries = todo_list_entries + 1
         end do
-
-        res = .true.
+      else
+        DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle%label, todo_list_length)
       end if
     end function
 

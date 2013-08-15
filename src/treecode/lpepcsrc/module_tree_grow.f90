@@ -522,10 +522,10 @@ module module_tree_grow
 
         ! a node has to be created from scratch
         if (parent_nodes(nparent) == NODE_INVALID) then
-          call tree_node_create_from_children(t, parent_node, sorted_sub_nodes(groupstart:groupend))
+          call tree_node_create_from_children(t, parent_node, sorted_sub_nodes(groupstart:groupend), current_parent_key)
           call tree_insert_node(t, parent_node, parent_nodes(nparent))
         else
-          call tree_node_update_from_children(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend))
+          call tree_node_update_from_children(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend), current_parent_key)
         end if
         call tree_node_connect_children(t, parent_nodes(nparent), sorted_sub_nodes(groupstart:groupend))
 
@@ -684,8 +684,7 @@ module module_tree_grow
           DEBUG_WARNING_ALL('("Problem with tree: Could not distribute particles among children of ", I0, ". Remaining particles ",I0,"..",I0,"  [i, key, label, x, y, z]:")', k, pend + 1, ubound(ki, dim = 1) )
           DEBUG_ERROR_NO_HEADER('(I6,x,I22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=pend + 1, ubound(ki, dim = 1) ) )
         end if
-
-        call tree_node_create_from_children(t, this_node, child_nodes(1:nchild))
+        call tree_node_create_from_children(t, this_node, child_nodes(1:nchild), k)
         call tree_insert_node_at_index(t, inserted_node_idx, this_node)
         ! wire up pointers
         call tree_node_connect_children(t, inserted_node_idx, child_nodes(1:nchild))
@@ -715,7 +714,6 @@ module module_tree_grow
     type(t_particle), intent(in) :: p
     integer(kind_key), intent(in) :: k
 
-    n%childcode    = 0
     n%flags_global = 0
     n%flags_local  = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
     n%request_posted = .false.
@@ -738,7 +736,7 @@ module module_tree_grow
   !> accumulates properties of child nodes to parent node.
   !> initialises links to NODE_INVALID.
   !>
-  subroutine tree_node_create_from_children(t, parent, children)
+  subroutine tree_node_create_from_children(t, parent, children, k)
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node, kind_node
     use module_tree_node, only: NODE_INVALID
@@ -747,12 +745,13 @@ module module_tree_grow
     type(t_tree), intent(inout) :: t !< tree in which to find the nodes
     type(t_tree_node), intent(inout) :: parent !< parent node
     integer(kind_node), intent(in) :: children(:) !< child nodes
+    integer(kind_key), intent(in) :: k !< node key
 
     parent%parent       = NODE_INVALID
     parent%next_sibling = NODE_INVALID
     parent%first_child  = NODE_INVALID 
 
-    call tree_node_update_from_children(t, parent, children)
+    call tree_node_update_from_children(t, parent, children, k)
   end subroutine tree_node_create_from_children
 
 
@@ -760,7 +759,7 @@ module module_tree_grow
   !> accumulates properties of child nodes to parent node.
   !> leaves links to node's relatives untouched
   !>
-  subroutine tree_node_update_from_children(t, parent, children)
+  subroutine tree_node_update_from_children(t, parent, children, k)
     use module_pepc_types, only: t_tree_node, kind_node
     use module_interaction_specific_types, only: t_tree_node_interaction_data
     use module_tree_node
@@ -773,64 +772,50 @@ module module_tree_grow
     type(t_tree), intent(inout) :: t !< tree in which to find the nodes
     type(t_tree_node), intent(inout) :: parent !< parent node
     integer(kind_node), intent(in) :: children(:) !< child nodes
+    integer(kind_key), intent(in) :: k !< node key
 
-    type(t_tree_node_interaction_data) :: interaction_data(1:8)
-    integer(kind_key) :: parent_keys(1:8)
+    type(t_tree_node_interaction_data) :: interaction_data(8)
     integer(kind_node) :: nchild, i
-    integer(kind_node) :: nleaves
-    integer(kind_node) :: ndescendants
-    integer(kind_byte) :: flags_local, flags_global, childcode
     type(t_tree_node), pointer :: child
 
     nchild = size(children, kind=kind(nchild))
 
-    childcode    = 0
-    flags_global = 0
-    flags_local  = 0
-    nleaves      = 0
-    ndescendants = nchild
-    
-    do i = 1, nchild
-      child => t%nodes(children(i))
+    parent%key          = k
+    parent%request_posted = .false.
+    parent%level        = level_from_key(k)
+    parent%owner        = t%comm_env%rank
 
-      parent_keys(i) = parent_key_from_key(child%key)
-      interaction_data(i) = child%interaction_data
-
-      ! set bits for available children
-      childcode = ibset(childcode, child_number_from_key(child%key))
-      ! parents of nodes with local contributions also contain local contributions
-      if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
-        flags_local = ibset(flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
-      endif
-      ! parents of nodes with remote contributions also contain remote contributions
-      if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)) then
-        flags_local = ibset(flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
-      endif
-      ! parents of branch and fill nodes will also be fill nodes
-      if (btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE) .or. btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
-        flags_global = ibset(flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
-      endif
-      nleaves      = nleaves      + child%leaves
-      ndescendants = ndescendants + child%descendants
-    end do
-
-    ! check if all keys fit to the same parent
-    DEBUG_ASSERT_MSG(all(parent_keys(2:nchild) == parent_keys(1)), *, "Error in shift nodes up: not all supplied children contribute to the same parent node")
+    parent%flags_global = 0
+    parent%flags_local  = 0
+    parent%leaves       = 0
+    parent%descendants  = nchild
 
     ! Set children_HERE flag parent since we just built it from its children
-    flags_local = ibset(flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
+    parent%flags_local = ibset(parent%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
 
-    parent%key          = parent_keys(1)
-    parent%childcode    = childcode
-    parent%flags_global = flags_global
-    parent%flags_local  = flags_local
-    parent%request_posted = .false.
-    parent%leaves       = nleaves
-    parent%descendants  = ndescendants
-    parent%owner        = t%comm_env%rank
-    parent%level        = level_from_key( parent_keys(1) )
+    do i = 1, nchild
+      child => t%nodes(children(i))
+      interaction_data(i) = child%interaction_data
+
+      ! parents of nodes with local contributions also contain local contributions
+      if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
+        parent%flags_local = ibset(parent%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
+      end if
+
+      ! parents of nodes with remote contributions also contain remote contributions
+      if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)) then
+        parent%flags_local = ibset(parent%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
+      end if
+
+      ! parents of branch and fill nodes will also be fill nodes
+      if (btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE) .or. btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
+        parent%flags_global = ibset(parent%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
+      end if
+
+      parent%leaves      = parent%leaves      + child%leaves
+      parent%descendants = parent%descendants + child%descendants
+    end do
 
     call shift_multipoles_up(parent%interaction_data, interaction_data(1:nchild))
-
   end subroutine tree_node_update_from_children
 end module module_tree_grow

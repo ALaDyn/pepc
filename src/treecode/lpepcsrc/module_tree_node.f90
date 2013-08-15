@@ -41,8 +41,6 @@ module module_tree_node
     public tree_node_is_leaf
     public tree_node_is_root
     public tree_node_children_available
-    public tree_node_get_num_children
-    public tree_node_has_child
     public tree_node_pack
     public tree_node_unpack
 
@@ -105,7 +103,7 @@ module module_tree_node
       type(t_tree_node), intent(in) :: n
       logical :: tree_node_is_leaf
 
-      tree_node_is_leaf = (0 == n%childcode)
+      tree_node_is_leaf = (0 == n%descendants)
     end function tree_node_is_leaf
 
 
@@ -118,7 +116,7 @@ module module_tree_node
 
       logical :: tree_node_is_root
 
-      tree_node_is_root = n%level == 0
+      tree_node_is_root = (0 == n%level)
     end function tree_node_is_root
 
 
@@ -135,35 +133,6 @@ module module_tree_node
     end function tree_node_children_available
 
 
-    !>
-    !> Returns `.true.` if tree node `n` has a child with number `i`.
-    !>
-    !> Child number as defined by `child_number_from_key()`.
-    !>
-    function tree_node_has_child(n, i)
-      implicit none
-
-      logical :: tree_node_has_child
-      type(t_tree_node), intent(in) :: n
-      integer, intent(in) :: i
-
-      tree_node_has_child = btest(n%childcode, i)
-    end function tree_node_has_child
-
-
-    !>
-    !> returns the number of children of node `n`
-    !>
-    function tree_node_get_num_children(n) result(res)
-      implicit none
-
-      integer :: res
-      type(t_tree_node), intent(in) :: n
-
-      res = popcnt(n%childcode)
-    end function
-
-
     subroutine tree_node_pack(n, p)
       use module_pepc_types, only: t_tree_node_package
       implicit none
@@ -172,7 +141,6 @@ module module_tree_node
       type(t_tree_node_package), intent(out) :: p
 
       p%key              = n%key
-      p%childcode        = n%childcode
       p%flags_global     = n%flags_global
       p%level            = n%level
       p%owner            = n%owner
@@ -181,7 +149,6 @@ module module_tree_node
       p%parent           = NODE_INVALID ! this is to be filled by answer_request()
       p%first_child      = n%first_child
       p%interaction_data = n%interaction_data
-      
     end subroutine tree_node_pack
 
 
@@ -193,7 +160,6 @@ module module_tree_node
       type(t_tree_node), intent(out) :: n
 
       n%key              = p%key
-      n%childcode        = p%childcode
       n%flags_global     = p%flags_global
       n%level            = p%level
       n%flags_local      = 0_kind_byte
@@ -205,8 +171,5 @@ module module_tree_node
       n%next_sibling     = NODE_INVALID
       n%request_posted   = .false.
       n%interaction_data = p%interaction_data
-      
     end subroutine tree_node_unpack
-
-
 end module module_tree_node

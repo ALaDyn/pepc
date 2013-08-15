@@ -74,25 +74,23 @@ module module_pepc_types
       !> Data structure for tree nodes
       type, public :: t_tree_node
         integer(kind_key) :: key
-        integer(kind_byte) :: childcode
         integer(kind_byte) :: flags_global !< flags which are globally valid (and have to be shipped to other ranks)
-        integer(kind_level) :: level
         integer(kind_byte) :: flags_local  !< flags which are only locally valid (may not be shipped)
+        logical(kind_byte) :: request_posted !< is set to .true. after a request for child data has been put onto the request list
+        integer(kind_level) :: level
         integer(kind_pe) :: owner
         integer(kind_node) :: leaves       !< total number of leaf nodes below this node
         integer(kind_node) :: descendants  !< total number of descendants (tree nodes and leaves) below this node
         integer(kind_node) :: parent
         integer(kind_node) :: first_child
         integer(kind_node) :: next_sibling
-        logical(kind_byte) :: request_posted !< is set to .true. after a request for child data has been put onto the request list
         type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node
  
       !> Data structure for shipping tree nodes
-      integer, private, parameter :: nprops_tree_node_package = 11
+      integer, private, parameter :: nprops_tree_node_package = 10
       type, public :: t_tree_node_package
         integer(kind_key) :: key
-        integer(kind_byte) :: childcode
         integer(kind_byte) :: flags_global
         integer(kind_level) :: level ! an integer*1 is sufficient. we place it here, to avoid excessive padding
         integer(kind_byte) :: dummy ! manual padding - so we know what exactly is happening here
@@ -156,21 +154,20 @@ module module_pepc_types
         call MPI_TYPE_COMMIT( MPI_TYPE_particle, ierr)
 
         ! register tree_node type
-        blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        types(1:nprops_tree_node_package)         = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
+        blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        types(1:nprops_tree_node_package)         = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
           MPI_KIND_PE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_tree_node_interaction_data]
         call MPI_GET_ADDRESS( dummy_tree_node_package,                  address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%key,              address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%childcode,        address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%flags_global,     address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%level,            address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%dummy,            address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%owner,            address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%leaves,           address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%descendants,      address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%parent,           address(9), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%first_child,      address(10), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(11), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%flags_global,     address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%level,            address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%dummy,            address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%owner,            address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%leaves,           address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%descendants,      address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%parent,           address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%first_child,      address(9), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(10), ierr )
         displacements(1:nprops_tree_node_package) = int(address(1:nprops_tree_node_package) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_package, blocklengths, displacements, types, MPI_TYPE_tree_node_package, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package, ierr )

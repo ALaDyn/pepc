@@ -580,7 +580,7 @@ module module_tree
       ! output node storage
       write(debug_ipefile,'(/a)') 'Node Storage'
 
-      write(debug_ipefile,'(141x,a48)') &
+      write(debug_ipefile,'(106x,a48)') &
                   '       REQUEST_POSTED                  ', &
                   '       |     HAS_REMOTE_CONTRIBUTIONS  ', &
                   '       |     |HAS_LOCAL_CONTRIBUTIONS  ', &
@@ -590,40 +590,36 @@ module module_tree
                   '       |     ||||       |IS_BRANCH_NODE', &
                   '       |     ||||       ||             '
 
-      write(debug_ipefile,'(3(x,a10),3(x,a22),3(x,a10),x,a10,4x,3(a8,x),a8,/,150("-"),a35)') &
+      write(debug_ipefile,'(3(x,a10),x,a22,3(x,a10),x,a10,x,a10,4x,3(a8,x),/,115("-"),a26)') &
                    'node', &
                    'owner', &
                    'level', &
                    'key_8', &
-                   'key_10', &
-                   'parent_8', &
                    'parent_node', &
                    'first_child', &
                    'next_sibling', &
                    'leaves', &
+                   'dscndnts', &
                    'flags  |', &
                    'l1  ||||', &
                    'g     ||', &
-                   'childcod', &
-                   '-------V-----VVVV-------VV-76543210'
+                   '-------V-----VVVV-------VV'
 
       ! loop over valid enries in node storage
       do i = 1,t%nodes_nentries
-        write (debug_ipefile,'(3(x,i10),x,o22,x,i22,x,o22,3(x,i10),x,i10,4x,l8,".",2(b8.8,"."),b8.8)') &
+        write (debug_ipefile,'(3(x,i10),x,o22,3(x,i10),2(x,i10),4x,l8,2(".",b8.8))') &
                 i, &
                 t%nodes(i)%owner, &
                 level_from_key(t%nodes(i)%key), &
                 t%nodes(i)%key, &
-                t%nodes(i)%key, &
-                parent_key_from_key(t%nodes(i)%key), &
                 t%nodes(i)%parent, &
                 t%nodes(i)%first_child, &
                 t%nodes(i)%next_sibling, &
                 t%nodes(i)%leaves, &
+                t%nodes(i)%descendants, &
                 t%nodes(i)%request_posted, &
                 t%nodes(i)%flags_local, &
-                t%nodes(i)%flags_global, &
-                t%nodes(i)%childcode
+                t%nodes(i)%flags_global
       end do
 
       write (debug_ipefile,'(///a)') 'Tree structure'
