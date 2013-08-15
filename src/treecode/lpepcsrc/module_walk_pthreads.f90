@@ -880,7 +880,6 @@ module module_walk
 
 
     function todo_list_push_children(node) result(res)
-      use treevars, only: idim
       use module_pepc_types, only: kind_node
       use module_tree_node, only: tree_node_get_first_child, tree_node_get_next_sibling
       use module_debug
@@ -890,7 +889,7 @@ module module_walk
       integer(kind_node), intent(in) :: node
 
       ! check for enough space on todo_list
-      res = (todo_list_entries + 2**idim <= todo_list_length)
+      res = (todo_list_entries + 8 <= todo_list_length)
       if (res) then
         dummy = tree_node_get_first_child(walk_tree%nodes(node), todo_list(todo_list_entries))
         todo_list_entries = todo_list_entries + 1
