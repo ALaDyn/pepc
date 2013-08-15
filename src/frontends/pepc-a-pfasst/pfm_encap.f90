@@ -9,7 +9,9 @@ module pfm_encap
   !> if any parameters are added here, they also have to be included in #pfm_setup_solver_level_params
   type :: app_params_t
     integer :: n_el, n_ion
+    integer :: dim
     real*8 :: theta
+    integer(kind_default) :: comm
   end type
 
   !> Data encapsulation: data and parameters which will be filled in encap_create using ctx
@@ -71,7 +73,7 @@ contains
 
     call c_f_pointer(levelctx, p)
 
-    DEBUG_ASSERT(nvars==3*(p%n_el+p%n_ion)) ! 3 coordinates per particle
+    DEBUG_ASSERT(nvars==2*p%dim*(p%n_el+p%n_ion)) ! dim coordinates and momenta per particle
 
     allocate(q)
     q%params = p
@@ -108,15 +110,35 @@ contains
 
     type(app_data_t), pointer :: q
     integer(kind_particle) :: i
+    integer :: which
 
     call pepc_status('|----> encap_setval()')
     call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
-    do i=1,q%params%n_el+q%params%n_ion
-      q%particles(i)%x(:)      = val
-      q%particles(i)%data%v(:) = val
-    end do
+    which = 0
+    if (present(flags)) which = flags
+
+    select case (which)
+    case (0)
+      ! set value for x and v
+      do i=1,q%params%n_el+q%params%n_ion
+        q%particles(i)%x(:)      = val
+        q%particles(i)%data%v(:) = val
+      end do
+    case (1)
+      ! set value for v
+      do i=1,q%params%n_el+q%params%n_ion
+        q%particles(i)%data%v(:) = val
+      end do
+    case (2)
+      ! set value for x
+      do i=1,q%params%n_el+q%params%n_ion
+        q%particles(i)%x(:)      = val
+      end do
+    case default
+       DEBUG_ERROR(*, 'Invalid flags')
+    end select
 
   end subroutine encap_setval
 
@@ -153,8 +175,10 @@ contains
 
     j = 1
     do i=1,q%params%n_el+q%params%n_ion
-      z(j:j+2) = q%particles(i)%x(1:3)
-      j = j+3
+      z(j:j+q%params%dim-1) = q%particles(i)%x(1:q%params%dim)
+      j = j+q%params%dim
+      z(j:j+q%params%dim-1) = q%particles(i)%data%v(1:q%params%dim)
+      j = j+q%params%dim
     end do
 
     DEBUG_ASSERT(j==size(z)+1)
@@ -176,8 +200,10 @@ contains
 
     j = 1
     do i=1,q%params%n_el+q%params%n_ion
-      q%particles(i)%x(1:3)      = z(j:j+2)
-      j = j+3
+      q%particles(i)%x(1:q%params%dim) = z(j:j+q%params%dim-1)
+      j = j+q%params%dim
+      q%particles(i)%data%v(1:q%params%dim) = z(j:j+q%params%dim-1)
+      j = j+q%params%dim
     end do
     
     DEBUG_ASSERT(j==size(z)+1)
@@ -193,6 +219,7 @@ contains
 
     type(app_data_t), pointer :: x, y
     integer(kind_particle) :: i
+    integer :: which
 
     call pepc_status('|----> encap_axpy()')
     call ptr_print('xptr', xptr)
@@ -203,11 +230,31 @@ contains
     DEBUG_ASSERT(x%params%n_el ==y%params%n_el)
     DEBUG_ASSERT(x%params%n_ion==y%params%n_ion)
 
+    which = 0
+    if (present(flags)) which = flags
+    select case (which)
+    case (0)
+      do i=1,x%params%n_el+x%params%n_ion
+        y%particles(i)%x(:)      = a * x%particles(i)%x(:)      + y%particles(i)%x(:)
+        y%particles(i)%data%v(:) = a * x%particles(i)%data%v(:) + y%particles(i)%data%v(:)
+      end do
+    case (1)
+      do i=1,x%params%n_el+x%params%n_ion
+        y%particles(i)%data%v(:) = a * x%particles(i)%data%v(:) + y%particles(i)%data%v(:)
+      end do
+    case (2)
+      do i=1,x%params%n_el+x%params%n_ion
+        y%particles(i)%x(:)      = a * x%particles(i)%x(:)      + y%particles(i)%x(:)
+      end do
+    case (12)
+      do i=1,x%params%n_el+x%params%n_ion
+        y%particles(i)%x(:)      = a * x%particles(i)%data%v(:) + y%particles(i)%x(:)
+      end do
+    case default
+       DEBUG_ERROR(*, 'Invalid flags')
+    end select
+    
     ! FIXME: how does this look like for velocities and positions separately?
-    do i=1,x%params%n_el+x%params%n_ion
-      y%particles(i)%x(:)      = a * x%particles(i)%x(:)      + y%particles(i)%x(:)
-      y%particles(i)%data%v(:) = a * x%particles(i)%data%v(:) + y%particles(i)%data%v(:)
-    end do
 
   end subroutine encap_axpy
 
@@ -216,18 +263,24 @@ contains
   function encap_norm(ptr) result (norm)
     use pf_mod_mpi
     type(c_ptr), intent(in), value :: ptr
-    real(pfdp) :: norm
+    real(pfdp) :: norm, norm_loc
 
     type(app_data_t), pointer :: q
+    integer(kind_particle) :: i
+    integer(kind_Default) :: ierr
 
     call pepc_status('|----> encap_norm()')
     call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
     ! TODO
-    !norm_loc = maxval(abs(q%array(F%m_start:F%m_end,F%n_start:F%n_end,F%o_start:F%o_end)))
-    !call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, F%pmg_comm%mpi_comm, ierr )
-    norm = 1.
+    norm_loc = 0.
+    
+    do i=1,q%params%n_el+q%params%n_ion
+      norm_loc = maxval([norm_loc, maxval(q%particles(i)%x(:)), maxval(q%particles(i)%data%v(:))])
+    end do
+
+    call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, q%params%comm, ierr )
 
   end function encap_norm
 

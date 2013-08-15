@@ -29,8 +29,8 @@ contains
 
       call c_f_pointer(levelctx, params)
 
-      call encap_create(  y0_c, nlevels, -1, 3*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! 3 coordinates per particle
-      call encap_create(yend_c, nlevels, -1, 3*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! 3 coordinates per particle
+      call encap_create(  y0_c, nlevels, -1, 2*params%dim*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim coordinates and momenta per particle
+      call encap_create(yend_c, nlevels, -1, 2*params%dim*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim coordinates and momenta per particle
 
       call c_f_pointer(  y0_c, y0)
       call c_f_pointer(yend_c, yend)

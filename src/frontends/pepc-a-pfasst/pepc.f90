@@ -72,7 +72,7 @@ program pepc
 
   call pfm_encap_create(encap)
   call pf_verlet_create(sweeper, eval_acceleration)
-  call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts) ! numparts is per species, so total number of particles will be 2*numparts
+  call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts, dim, MPI_COMM_SPACE) ! numparts is per species, so total number of particles will be 2*numparts
   call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
   call pf_mpi_setup(tcomm, pf)

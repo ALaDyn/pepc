@@ -83,7 +83,7 @@ contains
 
 
     !> Sets up parameters on each level and defines initial RHS (as "old" u value)
-    subroutine pfm_setup_solver_level_params(level_params, nlevels, numparts)
+    subroutine pfm_setup_solver_level_params(level_params, nlevels, numparts, dim, comm)
         use pf_mod_mpi
         use pfm_encap
         implicit none
@@ -91,6 +91,8 @@ contains
         type(app_params_t), pointer, intent(inout) :: level_params(:)
         integer, intent(in) :: nlevels
         integer(kind_particle), intent(in) :: numparts
+        integer(kind_dim), intent(in) :: dim
+        integer(kind_Default), intent(in) :: comm
         
         integer :: i
 
@@ -102,6 +104,8 @@ contains
             F%n_el  = numparts ! FIXME: currently, we read all particles on the root rank of MPI_COMM_SPACE; thus, particle numbers should be zero on all others
             F%n_ion = numparts
             F%theta = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
+            F%dim   = dim
+            F%comm  = comm
           end associate
         end do
 
@@ -145,7 +149,7 @@ contains
 
             pf%levels(i)%nnodes      = pf_nml%nnodes(i)
             pf%levels(i)%nsweeps     = pf_nml%nsweeps(i)
-            pf%levels(i)%nvars       = 3*(level_params(i)%n_el+level_params(i)%n_ion) ! 3 coordinates per particle
+            pf%levels(i)%nvars       = 2*level_params(i)%dim*(level_params(i)%n_el+level_params(i)%n_ion) ! dim coordinates and momenta per particle
 
             pf%levels(i)%interpolate => interpolate
             pf%levels(i)%restrict    => restrict
