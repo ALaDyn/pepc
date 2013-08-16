@@ -29,8 +29,8 @@ contains
 
       call c_f_pointer(levelctx, params)
 
-      call encap_create(  y0_c, nlevels, -1, 2*params%dim*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim coordinates and momenta per particle
-      call encap_create(yend_c, nlevels, -1, 2*params%dim*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim coordinates and momenta per particle
+      call encap_create(  y0_c, nlevels, -1, (2*params%dim+1)*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim*(coordinates and momenta)+masses per particle
+      call encap_create(yend_c, nlevels, -1, (2*params%dim+1)*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim*(coordinates and momenta)+masses per particle
 
       call c_f_pointer(  y0_c, y0)
       call c_f_pointer(yend_c, yend)
@@ -95,6 +95,8 @@ contains
         ! acceleration from force from field
         a%particles(i)%x(1:a%params%dim)  = a%particles(i)%data%q/unit_4piepsilon0 * a%particles(i)%results%e(1:a%params%dim) / ( a%particles(i)%data%m * unit_c )
         a%particles(i)%x(a%params%dim+1:) = 0
+        
+        a%particles(i)%data%v(:) = a%particles(i)%x(:)
       end do
 
     end subroutine eval_acceleration

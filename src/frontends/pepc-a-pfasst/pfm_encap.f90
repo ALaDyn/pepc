@@ -73,7 +73,7 @@ contains
 
     call c_f_pointer(levelctx, p)
 
-    DEBUG_ASSERT(nvars==2*p%dim*(p%n_el+p%n_ion)) ! dim coordinates and momenta per particle
+    DEBUG_ASSERT(nvars==(2*p%dim+1)*(p%n_el+p%n_ion)) ! dim*(coordinates and momenta)+masses per particle
 
     allocate(q)
     q%params = p
@@ -113,6 +113,7 @@ contains
     integer :: which
 
     call pepc_status('|----> encap_setval()')
+    if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=",I0)') 'flags', flags
     call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
@@ -149,14 +150,43 @@ contains
     integer,     intent(in), optional :: flags
 
     type(app_data_t), pointer :: dst, src
+    integer(kind_particle) :: i
+    integer :: which
 
     call pepc_status('|----> encap_copy()')
-    call ptr_print('src', dstptr)
-    call ptr_print('dst', srcptr)
+    if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=",I0)') 'flags', flags
+    call ptr_print('dst', dstptr)
+    call ptr_print('src', srcptr)
     call c_f_pointer(dstptr,dst)
     call c_f_pointer(srcptr,src)
 
-    dst = src
+    DEBUG_ASSERT(src%params%n_el ==dst%params%n_el )
+    DEBUG_ASSERT(src%params%n_ion==dst%params%n_ion)
+
+    which = 0
+    if (present(flags)) which = flags
+
+    select case (which)
+    case (0)
+      ! copy value for x and v
+      do i=1,src%params%n_el+src%params%n_ion
+       dst%particles(i)%x      = src%particles(i)%x
+       dst%particles(i)%data%v = src%particles(i)%data%v
+      end do
+    case (1)
+      ! copy value for v
+      do i=1,src%params%n_el+src%params%n_ion
+       dst%particles(i)%data%v = src%particles(i)%data%v
+      end do
+    case (2)
+      ! copy value for x (and mass)
+      do i=1,src%params%n_el+src%params%n_ion
+       dst%particles(i)%x      = src%particles(i)%x
+       dst%particles(i)%data%m = src%particles(i)%data%m
+      end do
+    case default
+       DEBUG_ERROR(*, 'Invalid flags')
+    end select
 
   end subroutine encap_copy
 
@@ -179,6 +209,8 @@ contains
       j = j+q%params%dim
       z(j:j+q%params%dim-1) = q%particles(i)%data%v(1:q%params%dim)
       j = j+q%params%dim
+      z(j)                  = q%particles(i)%data%m
+      j = j+1
     end do
 
     DEBUG_ASSERT(j==size(z)+1)
@@ -204,6 +236,8 @@ contains
       j = j+q%params%dim
       q%particles(i)%data%v(1:q%params%dim) = z(j:j+q%params%dim-1)
       j = j+q%params%dim
+      q%particles(i)%data%m = z(j)
+      j = j+1
     end do
     
     DEBUG_ASSERT(j==size(z)+1)
@@ -222,6 +256,7 @@ contains
     integer :: which
 
     call pepc_status('|----> encap_axpy()')
+    if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=",I0)') 'flags', flags
     call ptr_print('xptr', xptr)
     call ptr_print('yptr', yptr)
     call c_f_pointer(xptr, x)

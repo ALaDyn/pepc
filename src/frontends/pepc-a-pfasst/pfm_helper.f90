@@ -149,7 +149,7 @@ contains
 
             pf%levels(i)%nnodes      = pf_nml%nnodes(i)
             pf%levels(i)%nsweeps     = pf_nml%nsweeps(i)
-            pf%levels(i)%nvars       = 2*level_params(i)%dim*(level_params(i)%n_el+level_params(i)%n_ion) ! dim coordinates and momenta per particle
+            pf%levels(i)%nvars       = (2*level_params(i)%dim+1)*(level_params(i)%n_el+level_params(i)%n_ion) ! dim*(coordinates and momenta)+masses per particle
 
             pf%levels(i)%interpolate => interpolate
             pf%levels(i)%restrict    => restrict
