@@ -428,7 +428,8 @@ module module_tree_communicator
       call tree_node_pack(t%nodes(n), children_to_send(nchild))
       ! we set the parent for the entries correctly for insertion on the receiver side. request%parent is a valid node index there.
       children_to_send(nchild)%parent = req(2)
-      if (.not. tree_node_get_next_sibling(t%nodes(n), n)) then; exit; end if
+      n = tree_node_get_next_sibling(t%nodes(n))
+      if (n == NODE_INVALID) exit
     end do
     
     call send_data(t, children_to_send, nchild, ipe_sender)
@@ -515,15 +516,15 @@ module module_tree_communicator
           ! check MAC
           if (.not. (mac(request%particle, n_ptr%interaction_data, dist2, t%boxlength2(n_ptr%level)) .or. tree_node_is_leaf(n_ptr))) then
             ! resolve the node
-            if (tree_node_get_first_child(n_ptr, s)) then
-              call eager_collect_traverse(s)
-            end if
+            s = tree_node_get_first_child(n_ptr)
+            if (s /= NODE_INVALID) call eager_collect_traverse(s)
           else
             ! according to the MAC, the node does not have to be resolved any further (or it is a leaf) - there is nothing to do here
           end if
           
           ! traverse to next sibling
-          if (.not. tree_node_get_next_sibling(n_ptr, n)) then; exit; end if
+          n = tree_node_get_next_sibling(n_ptr)
+          if (n == NODE_INVALID) exit
         end do          
       end subroutine
     

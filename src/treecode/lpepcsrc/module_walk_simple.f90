@@ -182,13 +182,13 @@ module module_walk
         end do
       end if
 
-      if (tree_node_get_first_child(t%nodes(n), ns)) then
+      ns = tree_node_get_first_child(t%nodes(n))
+      if (ns /= NODE_INVALID) then
         do
           s = ns
           call tree_walk_single(s)
-          if (.not. tree_node_get_next_sibling(t%nodes(s), ns)) then
-            exit
-          end if
+          ns = tree_node_get_next_sibling(t%nodes(s))
+          if (ns == NODE_INVALID) exit
         end do
       else
         DEBUG_ERROR(*, "walk_simple: unexpectedly, this twig had no children")

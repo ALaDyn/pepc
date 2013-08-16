@@ -507,15 +507,16 @@ module module_vtk_helpers
           if (tree_node_is_leaf(n)) then
             i = i + 1
             leaves(i) = nidx
-          else if (tree_node_get_first_child(n, s)) &
-            then
-            do
-              call collect_leaves(t, s)
-              if (.not. tree_node_get_next_sibling(t%nodes(s), ns)) then
-                exit
-              end if
-              s = ns
-            end do
+          else
+            s = tree_node_get_first_child(n)
+            if (s /= NODE_INVALID) then
+              do
+                call collect_leaves(t, s)
+                ns = tree_node_get_next_sibling(t%nodes(s))
+                if (ns == NODE_INVALID) exit
+                s = ns
+              end do
+            end if
           end if
         end if
       end associate
@@ -603,14 +604,16 @@ module module_vtk_helpers
         if (btest(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
           i = i + 1
           branch_nodes(i) = nidx
-        else if (tree_node_get_first_child(n, s)) then
-          do
-            call collect_branches(t, s)
-            if (.not. tree_node_get_next_sibling(t%nodes(s), ns)) then
-              exit
-            end if
-            s = ns
-          end do
+        else 
+          s = tree_node_get_first_child(n)
+          if (s /= NODE_INVALID) then
+            do
+              call collect_branches(t, s)
+              ns = tree_node_get_next_sibling(t%nodes(s))
+              if (ns == NODE_INVALID) exit
+              s = ns
+            end do
+          end if
         end if
       end associate
     end subroutine collect_branches

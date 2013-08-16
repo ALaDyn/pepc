@@ -53,22 +53,20 @@ module module_tree_node
     !> points to the child.
     !> Otherwise, `.false.` is returned and `fc` points to `null()`.
     !>
-    function tree_node_get_first_child(p, fc)
+    function tree_node_get_first_child(p) result(fc)
       use module_pepc_types, only: t_tree_node, kind_node
-      use module_spacefilling, only: child_key_from_parent_key
-      use module_debug
+      use module_atomic_ops
       implicit none
 
-      logical :: tree_node_get_first_child
+      integer(kind_node) :: fc
       type(t_tree_node), intent(in) :: p
-      integer(kind_node), intent(out) :: fc
 
       if (tree_node_children_available(p)) then
+        call atomic_read_barrier()
         fc = p%first_child
       else
         fc = NODE_INVALID
-      endif
-      tree_node_get_first_child = (fc .ne. NODE_INVALID)
+      end if
     end function tree_node_get_first_child
 
 
@@ -81,17 +79,14 @@ module module_tree_node
     !>
     !> In this context, "next" is defined by the ordering of the node keys.
     !>
-    function tree_node_get_next_sibling(n, s)
+    function tree_node_get_next_sibling(n) result(s)
       use module_pepc_types, only: t_tree_node, kind_node
-      use module_debug
       implicit none
 
-      logical :: tree_node_get_next_sibling
+      integer(kind_node) :: s
       type(t_tree_node), intent(in) :: n
-      integer(kind_node), intent(out) :: s
 
       s = n%next_sibling
-      tree_node_get_next_sibling = (s .ne. NODE_INVALID)
     end function tree_node_get_next_sibling
 
 

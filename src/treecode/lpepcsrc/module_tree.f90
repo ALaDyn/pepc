@@ -397,7 +397,8 @@ module module_tree
     !>
     function tree_traverse_to_key(t, k, n)
       use module_spacefilling, only: level_from_key, is_ancestor_of
-      use module_tree_node, only: tree_node_children_available, NODE_INVALID
+      use module_tree_node, only: NODE_INVALID, tree_node_get_first_child, &
+        tree_node_get_next_sibling
       use module_debug
       implicit none
 
@@ -415,12 +416,12 @@ module module_tree
       ! for every level `l` from root + 1 to the target level
       do l = level_from_key(TREE_KEY_ROOT) + 1_kind_level, kl
         ! enter the list of nodes on level `l`
-        n = t%nodes(n)%first_child
+        n = tree_node_get_first_child(t%nodes(n))
 
         ! traverse the list until we reach its end (n == NODE_INVALID) or ...
         do while (n /= NODE_INVALID)
           if (is_ancestor_of(t%nodes(n)%key, l, k, kl)) exit ! ... we find the ancestor at level `l`
-          n = t%nodes(n)%next_sibling
+          n = tree_node_get_next_sibling(t%nodes(n))
         end do
 
         if (n == NODE_INVALID) exit ! abort search early if end of list reached
@@ -543,12 +544,12 @@ module module_tree
           end if
         end if
 
-        if (tree_node_get_first_child(n, s)) then
+        s = tree_node_get_first_child(n)
+        if (s /= NODE_INVALID) then
           do
             call tree_check_helper(s)
-            if (.not. tree_node_get_next_sibling(t%nodes(s), ns)) then
-              exit
-            end if
+            ns = tree_node_get_next_sibling(t%nodes(s))
+            if (ns == NODE_INVALID) exit
             s = ns
           end do
         end if

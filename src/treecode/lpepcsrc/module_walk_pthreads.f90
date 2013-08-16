@@ -832,13 +832,14 @@ module module_walk
     subroutine resolve()
       implicit none
 
+      integer(kind_node) :: n
+
       ! resolve
-      if ( tree_node_children_available(walk_node) ) then
+      n = tree_node_get_first_child(walk_node)
+      if (n /= NODE_INVALID) then
         ! children for twig are present
-  
         ! --> resolve cell & put all children in front of todo_list
-        call atomic_read_barrier()
-        if (.not. todo_list_push_children(walk_node_idx)) then
+        if (.not. todo_list_push_siblings(n)) then
           ! the todo_list is full --> put parent back onto defer_list
           call defer_list_push(walk_node_idx)
         end if
@@ -879,22 +880,23 @@ module module_walk
     end function
 
 
-    function todo_list_push_children(node) result(res)
-      use module_pepc_types, only: kind_node
-      use module_tree_node, only: tree_node_get_first_child, tree_node_get_next_sibling
-      use module_debug
+    function todo_list_push_siblings(node) result(res)
       implicit none
 
-      logical :: res, dummy
       integer(kind_node), intent(in) :: node
+
+      integer(kind_node) :: n
+      logical :: res
 
       ! check for enough space on todo_list
       res = (todo_list_entries + 8 <= todo_list_length)
       if (res) then
-        dummy = tree_node_get_first_child(walk_tree%nodes(node), todo_list(todo_list_entries))
-        todo_list_entries = todo_list_entries + 1
-        do while (tree_node_get_next_sibling(walk_tree%nodes(todo_list(todo_list_entries - 1)), todo_list(todo_list_entries))) 
+        n = node
+        do
+          todo_list(todo_list_entries) = n
           todo_list_entries = todo_list_entries + 1
+          n = tree_node_get_next_sibling(walk_tree%nodes(n))
+          if (n == NODE_INVALID) exit
         end do
       else
         DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle%label, todo_list_length)
@@ -903,7 +905,6 @@ module module_walk
 
 
     subroutine defer_list_push(node)
-      use module_pepc_types, only: kind_node
       implicit none
 
       integer(kind_node), intent(in) :: node
@@ -914,18 +915,19 @@ module module_walk
 
 
     subroutine defer_list_parse_and_compact()
-      use module_tree_node, only: tree_node_children_available
       implicit none
+
+      integer(kind_node) :: n
       integer :: iold
 
       defer_list_entries_new = 0
       iold = 1
       do
-        if (iold > defer_list_entries_old) then; return; end if
-        if ( tree_node_children_available(walk_tree%nodes(defer_list_old(iold)))) then
-          call atomic_read_barrier()
+        if (iold > defer_list_entries_old) return
+        n = tree_node_get_first_child(walk_tree%nodes(defer_list_old(iold)))
+        if (n /= NODE_INVALID) then
           ! children for deferred node have arrived --> put children onto todo_list
-          if (.not. todo_list_push_children(defer_list_old(iold))) then; exit; end if
+          if (.not. todo_list_push_siblings(n)) exit
         else
           ! children for deferred node are still unavailable - put onto defer_list_new (do not use defer_list_push for performance reasons)
           defer_list_entries_new                 = defer_list_entries_new + 1
@@ -935,7 +937,7 @@ module module_walk
       end do
 
       do
-        if (iold > defer_list_entries_old) then; return; end if
+        if (iold > defer_list_entries_old) return
         defer_list_entries_new                 = defer_list_entries_new + 1
         defer_list_new(defer_list_entries_new) = defer_list_old(iold)
         iold = iold + 1
