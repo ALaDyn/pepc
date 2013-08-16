@@ -14,12 +14,12 @@ contains
     !> Initialize feval, i.e. transfer initial u to PFASST data object
     subroutine feval_init(y0, yend, nlevels, levelctx, encapctx)
       use iso_c_binding
-      use pepca_helper, only: read_particles
+      use pepca_helper, only: generate_particles
       implicit none
 
       type(app_data_t), pointer, intent(inout) :: y0, yend
       integer, intent(in) :: nlevels
-      type(c_ptr), intent(in) :: levelctx, encapctx
+      type(c_ptr), intent(inout) :: levelctx, encapctx
 
       type(c_ptr) :: y0_C, yend_c
 
@@ -30,13 +30,15 @@ contains
       call c_f_pointer(levelctx, params)
 
       call encap_create(  y0_c, nlevels, -1, (2*params%dim+1)*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim*(coordinates and momenta)+masses per particle
+      encapctx = y0_c ! FIXME we will use this pointer to get easy access to particle properties
       call encap_create(yend_c, nlevels, -1, (2*params%dim+1)*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim*(coordinates and momenta)+masses per particle
 
       call c_f_pointer(  y0_c, y0)
       call c_f_pointer(yend_c, yend)
 
       ! set initial values for particle positions and velocities in y0
-       call read_particles(y0%particles, 'E_phase_space.dat', params%n_el, 'I_phase_space.dat', params%n_ion)
+       !call read_particles(y0%particles, 'E_phase_space.dat', params%n_el, 'I_phase_space.dat', params%n_ion)
+       call generate_particles(y0%particles, params%n_el, params%n_ion)
 
     end subroutine feval_init
 
@@ -72,7 +74,9 @@ contains
       integer(kind_particle) :: i
       
       call pepc_status('|------> eval_acceleration()')
-      
+      call ptr_print('x', xptr)
+      call ptr_print('a', aptr)
+     
       call c_f_pointer(xptr, x)
       call c_f_pointer(aptr, a)
 

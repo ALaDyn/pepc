@@ -73,9 +73,13 @@ program pepc
   call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
 
   call pfm_encap_init(encap)
+  call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts/nrank_space, dim, MPI_COMM_SPACE) ! numparts is per species, so total number of particles will be 2*numparts
   call pf_verlet_create(sweeper, eval_acceleration)
-  call pfm_setup_solver_level_params(level_params, pf_nml%nlevels, numparts, dim, MPI_COMM_SPACE) ! numparts is per species, so total number of particles will be 2*numparts
   call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
+
+  call set_parameter() ! FIXME: this function sets parameters (timestep, etc) which should be used in subsequent calls
+  ! Initial conditions
+  call feval_init(y0, yend, pf_nml%nlevels, pf%levels(pf_nml%nlevels)%ctx, encap%ctx)
 
   call pf_mpi_setup(tcomm, pf)
   call pf_pfasst_setup(pf)
@@ -89,9 +93,6 @@ program pepc
   !    end do
   !end if
 
-  call set_parameter() ! FIXME: this function sets parameters (timestep, etc) which should be used in subsequent calls
-  ! Initial conditions
-  call feval_init(y0, yend, pf_nml%nlevels, pf%levels(pf_nml%nlevels)%ctx, encap%ctx)
   ! call pf_logger_attach(pf)
 
   ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution

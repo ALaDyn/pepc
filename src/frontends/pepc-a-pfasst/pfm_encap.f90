@@ -47,6 +47,7 @@ contains
   subroutine pfm_encap_init(encap)
     type(pf_encap_t), intent(out) :: encap
 
+    encap%ctx     =  c_null_ptr
     encap%create  => encap_create
     encap%destroy => encap_destroy
     encap%setval  => encap_setval
@@ -68,6 +69,7 @@ contains
 
     type(app_data_t), pointer :: q
     type(app_params_t), pointer :: p
+    type(app_data_t), pointer :: y0
     
     call pepc_status('|----> encap_create()')
 
@@ -79,6 +81,12 @@ contains
     q%params = p
     
     allocate(q%particles(q%params%n_el+q%params%n_ion))
+    
+    if (c_associated(encapctx)) then
+      call c_f_pointer(encapctx, y0)
+      q = y0 ! FIXME: rude way of initializing particle properties
+    endif
+    
     sol = c_loc(q)
     
     call ptr_print('sol', sol)
@@ -113,7 +121,8 @@ contains
     integer :: which
 
     call pepc_status('|----> encap_setval()')
-    if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=",I0)') 'flags', flags
+    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",I0)') 'flags', flags
+    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",g0)') 'val', val
     call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
@@ -154,7 +163,7 @@ contains
     integer :: which
 
     call pepc_status('|----> encap_copy()')
-    if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=",I0)') 'flags', flags
+    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",I0)') 'flags', flags
     call ptr_print('dst', dstptr)
     call ptr_print('src', srcptr)
     call c_f_pointer(dstptr,dst)
@@ -179,10 +188,9 @@ contains
        dst%particles(i)%data%v = src%particles(i)%data%v
       end do
     case (2)
-      ! copy value for x (and mass)
+      ! copy value for x
       do i=1,src%params%n_el+src%params%n_ion
        dst%particles(i)%x      = src%particles(i)%x
-       dst%particles(i)%data%m = src%particles(i)%data%m
       end do
     case default
        DEBUG_ERROR(*, 'Invalid flags')
@@ -256,7 +264,8 @@ contains
     integer :: which
 
     call pepc_status('|----> encap_axpy()')
-    if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=",I0)') 'flags', flags
+    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",I0)') 'flags', flags
+    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",g0)') 'a', a
     call ptr_print('xptr', xptr)
     call ptr_print('yptr', yptr)
     call c_f_pointer(xptr, x)

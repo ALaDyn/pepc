@@ -36,8 +36,12 @@ contains
         use pf_mod_mpi
         implicit none
 
+        ! "Multiple threads may call MPI, with no restrictions." - MPI-2.2, p. 385
+        integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE
+
         type(pf_nml_t), intent(inout) :: pf_nml
         integer(kind_default), intent(out) :: MPI_COMM_SPACE, MPI_COMM_TIME
+        integer(kind_default) :: provided
         
         integer :: mpi_err, color
         integer(kind_pe) :: mpi_size, mpi_rank, mpi_size_space
@@ -45,9 +49,16 @@ contains
         call pepc_status('|--> init_pfasst()')
 
         ! Global MPI initialization
-        call MPI_Init( mpi_err )
+        call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, mpi_err)
         call MPI_Comm_size( MPI_COMM_WORLD, mpi_size, mpi_err )
         call MPI_Comm_rank( MPI_COMM_WORLD, mpi_rank, mpi_err )
+
+        if ((provided < MPI_THREAD_LEVEL) .and. (mpi_rank == 0)) then
+          !inform the user about possible issues concerning MPI thread safety
+          write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
+                         MPI_THREAD_LEVEL, provided
+          write(*,'(a/)') "Initializing with provided level of multithreading. This can lead to incorrect results or crashes."
+        end if
 
         call read_in_pf_params(pf_nml, mpi_rank, MPI_COMM_WORLD)
 

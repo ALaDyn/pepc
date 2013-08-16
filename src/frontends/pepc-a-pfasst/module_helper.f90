@@ -139,6 +139,124 @@ module pepca_helper
     endif
 
   end subroutine read_particles
+
   
+  subroutine generate_particles(p, nel, nion)
+    use pepca_globals
+    implicit none
+    
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    integer, intent(in) :: nel, nion
+    
+    real*8 :: pos(1:3), vel(1:3)
+    integer :: i,j,k,l
+
+    ! stupid parallel random number generation
+    if(root_space) write(*,'(a, 2(x,a))') " == [generate] generating particles"
+      
+    pos = 0
+    vel = 0
+    l   = 0
+    do i=0,nrank_space-1
+      do j=1,nel+nion
+        l = l+1
+        do k=1,dim
+          pos(k) = par_rand()
+          vel(k) = par_rand()
+        end do
+
+        if (i==rank_space) then
+          p(j)%x(1:dim)      = pos(1:dim)
+          p(j)%data%v(1:dim) = vel(1:dim)
+          if (j<=nel) then
+            p(j)%label       = -l
+            p(j)%data%q      =  unit_qe
+            p(j)%data%m      =  unit_me
+          else
+            p(j)%label       = -l
+            p(j)%data%q      =  unit_qe
+            p(j)%data%m      =  unit_me
+          endif
+
+          p(j)%work          =  1.0
+        endif
+      end do      
+    end do
+
+  end subroutine generate_particles
+  
+  !>
+  !> portable random number generator, see numerical recipes
+  !> check for the random numbers:
+  !> the first numbers should be 0.2853809, 0.2533582 and 0.0934685
+  !> the parameter iseed is optional
+  !>
+  function par_rand(iseed)
+    implicit none
+    real :: par_rand
+    integer, intent(in), optional :: iseed
+    
+    integer, parameter :: IM1  = 2147483563
+    integer, parameter :: IM2  = 2147483399
+    real,    parameter :: AM   = 1.0/IM1
+    integer, parameter :: IMM1 = IM1-1
+    integer, parameter :: IA1  = 40014
+    integer, parameter :: IA2  = 40692
+    integer, parameter :: IQ1  = 53668
+    integer, parameter :: IQ2  = 52774
+    integer, parameter :: IR1  = 12211
+    integer, parameter :: IR2  = 3791
+    integer, parameter :: NTAB = 32
+    integer, parameter :: NDIV = 1+IMM1/NTAB
+    real,    parameter :: eps_ = 1.2e-7 ! epsilon(eps_)
+    real,    parameter :: RNMX = 1.0 - eps_
+    
+    integer :: j, k
+    integer, volatile, save :: idum  = -1
+    integer, volatile, save :: idum2 =  123456789
+    integer, volatile, save :: iy    =  0
+    integer, volatile, save :: iv(NTAB)
+    
+    
+    if (idum <=0 .or. present(iseed)) then
+       if (present(iseed)) then
+          idum = iseed
+       else
+          if (-idum < 1) then
+             idum = 1
+          else
+             idum = -idum
+          endif
+       endif
+       
+       idum2 = idum
+       
+       do j = NTAB+7,0,-1
+          k = idum/IQ1
+          idum = IA1 * (idum-k*IQ1) - k*IR1
+          if (idum < 0 ) idum = idum + IM1
+          
+          if (j<NTAB) iv(j+1) = idum
+          
+       end do
+       iy = iv(1)
+    end if
+    
+    k = idum/IQ1
+    idum = IA1 * (idum-k*IQ1) - k*IR1
+    if (idum < 0) idum = idum + IM1
+    
+    k = idum2/IQ2
+    idum2 = IA2 * (idum2-k*IQ2) - k*IR2
+    if (idum2 < 0) idum2 = idum2 + IM2
+    
+    j = iy/NDIV + 1
+    iy = iv(j)-idum2
+    iv(j) = idum
+    
+    if (iy < 1) iy = iy + IMM1
+    par_rand = AM*iy
+    if (par_rand > RNMX) par_rand = RNMX
+  end function par_rand
   
 end module
