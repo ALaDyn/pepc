@@ -25,7 +25,8 @@ contains
       call c_f_pointer(qGp,qG)
 
       ! FIXME: we just copy here, i.e. no coarsening in space for now
-      qF%particles(:) = qG%particles
+      qF%x(:,:) = qG%x(:,:)
+      qF%v(:,:) = qG%v(:,:)
 
    end subroutine interpolate
 
@@ -43,7 +44,8 @@ contains
       call c_f_pointer(qGp,qG)
 
       ! FIXME: we just copy here, i.e. no coarsening in space for now
-      qG%particles(:) = qF%particles
+      qG%x(:,:) = qF%x(:,:)
+      qG%v(:,:) = qF%v(:,:)
 
    end subroutine restrict
 

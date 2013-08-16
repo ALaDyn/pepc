@@ -12,16 +12,70 @@ module pfm_encap
     integer :: dim
     real*8 :: theta
     integer(kind_default) :: comm
+    type(t_particle), pointer :: particles(:)
   end type
 
   !> Data encapsulation: data and parameters which will be filled in encap_create using ctx
   type :: app_data_t
-    type(t_particle), dimension(:), allocatable :: particles
+    real*8, dimension(:,:), allocatable :: x
+    real*8, dimension(:,:), allocatable :: v
     type(app_params_t) :: params
   end type app_data_t
 
 contains
 
+  subroutine particles_to_encap(ptrenc, p)
+    use module_pepc_types, only: t_particle
+    implicit none
+    type(c_ptr), intent(in) :: ptrenc
+    type(t_particle), intent(in) :: p(:)
+    
+    integer(kind_particle) :: i
+    type(app_data_t), pointer :: enc
+
+    call pepc_status('|----> particles_to_encap()')
+    call ptr_print('ptrenc', ptrenc)
+    
+    call c_f_pointer(ptrenc, enc)
+    
+    DEBUG_ASSERT(enc%params%n_el+enc%params%n_ion==size(p))
+
+    do i=1,size(p)
+      enc%x(1:enc%params%dim, i) = p(i)%x(     1:enc%params%dim)
+      enc%v(1:enc%params%dim, i) = p(i)%data%v(1:enc%params%dim)
+    end do
+    
+  end subroutine
+
+  subroutine encap_to_particles(p, ptrenc, levelctx)
+    use module_pepc_types, only: t_particle
+    implicit none
+    type(t_particle), intent(out) :: p(:)
+    type(c_ptr), intent(in) :: ptrenc
+    type(c_ptr), intent(in) :: levelctx
+
+    integer(kind_particle) :: i
+    type(app_data_t), pointer :: enc
+    type(app_params_t), pointer :: levelparams
+
+    call pepc_status('|----> encap_to_particles()')
+    call ptr_print('ptrenc', ptrenc)
+    call ptr_print('levelctx', levelctx)
+    
+    call c_f_pointer(ptrenc, enc)
+    call c_f_pointer(levelctx, levelparams)
+    
+    DEBUG_ASSERT(enc%params%n_el+enc%params%n_ion==size(p))
+    DEBUG_ASSERT(enc%params%n_el+enc%params%n_ion==size(levelparams%particles))
+
+    do i=1,size(p)
+      p(i) = levelparams%particles(i) ! FIXME: here we set coordinates and velocities but overwrite them again in the next lines
+      p(i)%x(     1:enc%params%dim) = enc%x(1:enc%params%dim, i)
+      p(i)%data%v(1:enc%params%dim) = enc%v(1:enc%params%dim, i) 
+    end do
+    
+  end subroutine
+    
   !> internal helper for getting a pointer value (i.e. the address of the pointee)
   function ptr_val(ptr)
     use iso_c_binding, only : c_ptr
@@ -75,17 +129,13 @@ contains
 
     call c_f_pointer(levelctx, p)
 
-    DEBUG_ASSERT(nvars==(2*p%dim+1)*(p%n_el+p%n_ion)) ! dim*(coordinates and momenta)+masses per particle
+    DEBUG_ASSERT(nvars==(2*p%dim)*(p%n_el+p%n_ion)) ! dim*(coordinates and momenta) per particle
 
     allocate(q)
     q%params = p
     
-    allocate(q%particles(q%params%n_el+q%params%n_ion))
-    
-    if (c_associated(encapctx)) then
-      call c_f_pointer(encapctx, y0)
-      q = y0 ! FIXME: rude way of initializing particle properties
-    endif
+    allocate(q%x(q%params%dim,q%params%n_el+q%params%n_ion))
+    allocate(q%v(q%params%dim,q%params%n_el+q%params%n_ion))
     
     sol = c_loc(q)
     
@@ -104,7 +154,8 @@ contains
     call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
-    deallocate(q%particles)
+    deallocate(q%x)
+    deallocate(q%v)
     deallocate(q)
 
   end subroutine encap_destroy
@@ -133,18 +184,18 @@ contains
     case (0)
       ! set value for x and v
       do i=1,q%params%n_el+q%params%n_ion
-        q%particles(i)%x(:)      = val
-        q%particles(i)%data%v(:) = val
+        q%x(:,i) = val
+        q%v(:,i) = val
       end do
     case (1)
       ! set value for v
       do i=1,q%params%n_el+q%params%n_ion
-        q%particles(i)%data%v(:) = val
+        q%v(:,i) = val
       end do
     case (2)
       ! set value for x
       do i=1,q%params%n_el+q%params%n_ion
-        q%particles(i)%x(:)      = val
+        q%x(:,i) = val
       end do
     case default
        DEBUG_ERROR(*, 'Invalid flags')
@@ -179,18 +230,18 @@ contains
     case (0)
       ! copy value for x and v
       do i=1,src%params%n_el+src%params%n_ion
-       dst%particles(i)%x      = src%particles(i)%x
-       dst%particles(i)%data%v = src%particles(i)%data%v
+       dst%x(:,i) = src%x(:,i)
+       dst%v(:,i) = src%v(:,i)
       end do
     case (1)
       ! copy value for v
       do i=1,src%params%n_el+src%params%n_ion
-       dst%particles(i)%data%v = src%particles(i)%data%v
+       dst%v(:,i) = src%v(:,i)
       end do
     case (2)
       ! copy value for x
       do i=1,src%params%n_el+src%params%n_ion
-       dst%particles(i)%x      = src%particles(i)%x
+       dst%x(:,i) = src%x(:,i)
       end do
     case default
        DEBUG_ERROR(*, 'Invalid flags')
@@ -213,12 +264,10 @@ contains
 
     j = 1
     do i=1,q%params%n_el+q%params%n_ion
-      z(j:j+q%params%dim-1) = q%particles(i)%x(1:q%params%dim)
+      z(j:j+q%params%dim-1) = q%x(1:q%params%dim, i)
       j = j+q%params%dim
-      z(j:j+q%params%dim-1) = q%particles(i)%data%v(1:q%params%dim)
+      z(j:j+q%params%dim-1) = q%v(1:q%params%dim, i)
       j = j+q%params%dim
-      z(j)                  = q%particles(i)%data%m
-      j = j+1
     end do
 
     DEBUG_ASSERT(j==size(z)+1)
@@ -240,12 +289,10 @@ contains
 
     j = 1
     do i=1,q%params%n_el+q%params%n_ion
-      q%particles(i)%x(1:q%params%dim) = z(j:j+q%params%dim-1)
+      q%x(1:q%params%dim, i) = z(j:j+q%params%dim-1)
       j = j+q%params%dim
-      q%particles(i)%data%v(1:q%params%dim) = z(j:j+q%params%dim-1)
+      q%v(1:q%params%dim, i) = z(j:j+q%params%dim-1)
       j = j+q%params%dim
-      q%particles(i)%data%m = z(j)
-      j = j+1
     end do
     
     DEBUG_ASSERT(j==size(z)+1)
@@ -279,20 +326,20 @@ contains
     select case (which)
     case (0)
       do i=1,x%params%n_el+x%params%n_ion
-        y%particles(i)%x(:)      = a * x%particles(i)%x(:)      + y%particles(i)%x(:)
-        y%particles(i)%data%v(:) = a * x%particles(i)%data%v(:) + y%particles(i)%data%v(:)
+        y%x(:,i) = a * x%x(:,i) + y%x(:,i)
+        y%v(:,i) = a * x%v(:,i) + y%v(:,i)
       end do
     case (1)
       do i=1,x%params%n_el+x%params%n_ion
-        y%particles(i)%data%v(:) = a * x%particles(i)%data%v(:) + y%particles(i)%data%v(:)
+        y%v(:,i) = a * x%v(:,i) + y%v(:,i)
       end do
     case (2)
       do i=1,x%params%n_el+x%params%n_ion
-        y%particles(i)%x(:)      = a * x%particles(i)%x(:)      + y%particles(i)%x(:)
+        y%x(:,i) = a * x%x(:,i) + y%x(:,i)
       end do
     case (12)
       do i=1,x%params%n_el+x%params%n_ion
-        y%particles(i)%x(:)      = a * x%particles(i)%data%v(:) + y%particles(i)%x(:)
+        y%x(:,i) = a * x%v(:,i) + y%x(:,i)
       end do
     case default
        DEBUG_ERROR(*, 'Invalid flags')
@@ -315,11 +362,9 @@ contains
     call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
-    ! TODO
     norm_loc = 0.
-    
     do i=1,q%params%n_el+q%params%n_ion
-      norm_loc = maxval([norm_loc, maxval(q%particles(i)%x(:)), maxval(q%particles(i)%data%v(:))])
+      norm_loc = maxval([norm_loc, maxval(q%x(:,i)), maxval(q%v(:,i))])
     end do
 
     call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, q%params%comm, ierr )

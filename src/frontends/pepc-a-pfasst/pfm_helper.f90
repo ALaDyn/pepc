@@ -94,18 +94,25 @@ contains
 
 
     !> Sets up parameters on each level and defines initial RHS (as "old" u value)
-    subroutine pfm_setup_solver_level_params(level_params, nlevels, numparts, dim, comm)
+    subroutine pfm_setup_solver_level_params(particles, level_params, nlevels, numparts, dim, comm)
         use pf_mod_mpi
         use pfm_encap
+        use pepca_helper, only: generate_particles
         implicit none
         
         type(app_params_t), pointer, intent(inout) :: level_params(:)
         integer, intent(in) :: nlevels
         integer(kind_particle), intent(in) :: numparts
         integer(kind_dim), intent(in) :: dim
-        integer(kind_Default), intent(in) :: comm
+        integer(kind_default), intent(in) :: comm
+        type(t_particle), allocatable, target, intent(out) :: particles(:)
         
         integer :: i
+
+        allocate(particles(2*numparts))
+        ! set initial values for particle positions and velocities in y0
+        !call read_particles(y0%particles, 'E_phase_space.dat', numparts, 'I_phase_space.dat', numparts)
+        call generate_particles(particles, numparts, numparts)
 
         allocate(level_params(nlevels))
 
@@ -117,6 +124,7 @@ contains
             F%theta = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
             F%dim   = dim
             F%comm  = comm
+            F%particles => particles ! we will use this pointer to get easy access to particle properties, this is wrong - we have to use the levelctx instead
           end associate
         end do
 
@@ -160,7 +168,7 @@ contains
 
             pf%levels(i)%nnodes      = pf_nml%nnodes(i)
             pf%levels(i)%nsweeps     = pf_nml%nsweeps(i)
-            pf%levels(i)%nvars       = (2*level_params(i)%dim+1)*(level_params(i)%n_el+level_params(i)%n_ion) ! dim*(coordinates and momenta)+masses per particle
+            pf%levels(i)%nvars       = (2*level_params(i)%dim)*(level_params(i)%n_el+level_params(i)%n_ion) ! dim*(coordinates and momenta) per particle
 
             pf%levels(i)%interpolate => interpolate
             pf%levels(i)%restrict    => restrict

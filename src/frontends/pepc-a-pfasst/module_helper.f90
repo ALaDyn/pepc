@@ -93,7 +93,7 @@ module pepca_helper
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer, intent(in) :: nel, nion
+    integer(kind_particle), intent(in) :: nel, nion
     character(*), intent(in) :: file_el, file_ion
     
     integer, parameter :: filehandle = 47
@@ -146,10 +146,12 @@ module pepca_helper
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer, intent(in) :: nel, nion
+    integer(kind_particle), intent(in) :: nel, nion
     
     real*8 :: pos(1:3), vel(1:3)
-    integer :: i,j,k,l
+    integer(kind_particle) :: j, l
+    integer(kind_pe) :: i
+    integer(kind_dim) :: k
 
     ! stupid parallel random number generation
     if(root_space) write(*,'(a, 2(x,a))') " == [generate] generating particles"
