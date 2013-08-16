@@ -783,15 +783,31 @@ module module_walk
       dist2 = DOT_PRODUCT(delta, delta)
 
       if (is_leaf) then
+        partner_leaves = partner_leaves + 1
+
+        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+        if (any(abs(delta) >= spatial_interaction_cutoff)) continue
+        #endif
+
         if (dist2 > 0.0_8) then ! not self, interact
-          call interact()
+          call calc_force_per_interaction_with_leaf(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
         else ! self, count as interaction partner, otherwise ignore
-          partner_leaves = partner_leaves + walk_node%leaves
+          call calc_force_per_interaction_with_self(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
         end if
+
+        num_interactions = num_interactions + 1
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
+
         if (mac(particle, walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
-          call interact()
+          partner_leaves = partner_leaves + walk_node%leaves
+
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          if (any(abs(delta) >= spatial_interaction_cutoff)) continue
+          #endif
+
+          call calc_force_per_interaction_with_twig(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+          num_interactions = num_interactions + 1
         else ! MAC negative, resolve
           call resolve()
         end if
@@ -810,24 +826,6 @@ module module_walk
     end if
 
     contains
-
-    subroutine interact()
-      implicit none
-
-      ! interact
-      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-      ! Check cutoff
-      if (all(abs(delta) < spatial_interaction_cutoff)) then
-      #endif
-        call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox, is_leaf)
-        num_interactions = num_interactions + 1
-      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-      end if
-      #endif
-      ! Interaction was considered, count partner leaves
-      partner_leaves = partner_leaves + walk_node%leaves
-    end subroutine interact
-
 
     subroutine resolve()
       implicit none

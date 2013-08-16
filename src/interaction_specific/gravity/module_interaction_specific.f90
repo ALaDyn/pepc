@@ -66,7 +66,9 @@ module module_interaction_specific
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
-      public calc_force_per_interaction
+      public calc_force_per_interaction_with_self
+      public calc_force_per_interaction_with_leaf
+      public calc_force_per_interaction_with_twig
       public calc_force_per_particle
       public mac
       public particleresults_clear
@@ -298,7 +300,7 @@ module module_interaction_specific
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction(particle, node, key, delta, dist2, vbox, node_is_leaf)
+        subroutine calc_force_per_interaction_with_self(particle, node, key, delta, dist2, vbox)
           use module_pepc_types
           use treevars
           use module_coulomb_kernels
@@ -307,43 +309,43 @@ module module_interaction_specific
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_key), intent(in) :: key
           type(t_particle), intent(inout) :: particle
-          logical, intent(in) :: node_is_leaf
           real*8, intent(in) :: vbox(3), delta(3), dist2
 
+        end subroutine
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_interaction_with_leaf(particle, node, key, delta, dist2, vbox)
+          use module_pepc_types
+          use treevars
+          use module_coulomb_kernels
+          implicit none
+
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer(kind_key), intent(in) :: key
+          type(t_particle), intent(inout) :: particle
+          real*8, intent(in) :: vbox(3), delta(3), dist2
 
           real*8 :: exyz(3), phic
 
           select case (force_law)
             case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-
-                if (node_is_leaf) then
-                  call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
-                else
-                  call calc_force_coulomb_2D(       node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
-                end if
+                call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
                 exyz(3) = 0.
-
             case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-
-                if (node_is_leaf) then
-                    call calc_force_coulomb_3D_direct(node, delta, dist2 + eps2, exyz, phic)
-                else
-                    call calc_force_coulomb_3D(       node, delta, dist2 + eps2, exyz, phic)
-                end if
-
+                call calc_force_coulomb_3D_direct(node, delta, dist2 + eps2, exyz, phic)
             case (4)  ! LJ potential for quiet start
                 call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
-
             case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
                       !  and Kelbg for particle-particle interaction
-
-                if (node_is_leaf) then
-                    ! It's a leaf, do direct summation with kelbg
-                    call calc_force_kelbg_3D_direct(particle, node, delta, dist2, kelbg_invsqrttemp, exyz, phic)
-                else
-                    ! It's a twig, do ME with coulomb
-                    call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
-                end if
+                call calc_force_kelbg_3D_direct(particle, node, delta, dist2, kelbg_invsqrttemp, exyz, phic)
 ! START CHRISTAN SALMAGNE; ADDED FOR DEBUGGING
             case (6)  !  used to save interaction partners
                 no_interaction_partners(particle%label)=no_interaction_partners(particle%label)+1
@@ -358,8 +360,57 @@ module module_interaction_specific
           particle%results%e         = particle%results%e    + exyz
           particle%results%pot       = particle%results%pot  + phic
           particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
+        end subroutine
 
-        end subroutine calc_force_per_interaction
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_interaction_with_twig(particle, node, key, delta, dist2, vbox)
+          use module_pepc_types
+          use treevars
+          use module_coulomb_kernels
+          implicit none
+
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer(kind_key), intent(in) :: key
+          type(t_particle), intent(inout) :: particle
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+
+          real*8 :: exyz(3), phic
+
+          select case (force_law)
+            case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
+                call calc_force_coulomb_2D(       node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
+                exyz(3) = 0.
+            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
+                call calc_force_coulomb_3D(       node, delta, dist2 + eps2, exyz, phic)
+            case (4)  ! LJ potential for quiet start
+                call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
+            case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
+                      !  and Kelbg for particle-particle interaction
+                call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
+! START CHRISTAN SALMAGNE; ADDED FOR DEBUGGING
+            case (6)  !  used to save interaction partners
+                no_interaction_partners(particle%label)=no_interaction_partners(particle%label)+1
+                interaction_keylist(particle%label,no_interaction_partners(particle%label))=key
+                interaction_vbox(particle%label,no_interaction_partners(particle%label),1:3)=vbox(1:3)
+! END CS
+            case default
+              exyz = 0.
+              phic = 0.
+          end select
+
+          particle%results%e         = particle%results%e    + exyz
+          particle%results%pot       = particle%results%pot  + phic
+          particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
+        end subroutine
+
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>

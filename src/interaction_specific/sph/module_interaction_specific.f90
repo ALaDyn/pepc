@@ -42,7 +42,9 @@ module module_interaction_specific
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
-      public calc_force_per_interaction
+      public calc_force_per_interaction_with_self
+      public calc_force_per_interaction_with_leaf
+      public calc_force_per_interaction_with_twig
       public calc_force_per_particle
       public mac
       public particleresults_clear
@@ -248,7 +250,7 @@ module module_interaction_specific
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        subroutine calc_force_per_interaction(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
+        subroutine calc_force_per_interaction_with_self(particle, node, node_idx, delta, dist2, vbox)
           use module_pepc_types
           use treevars
           implicit none
@@ -256,7 +258,24 @@ module module_interaction_specific
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_node), intent(in) :: node_idx
           type(t_particle), intent(inout) :: particle
-          logical, intent(in) :: node_is_leaf
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+        end subroutine
+
+
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer(kind_node), intent(in) :: node_idx
+          type(t_particle), intent(inout) :: particle
           real*8, intent(in) :: vbox(3), delta(3), dist2
 
           select case (force_law)
@@ -264,7 +283,31 @@ module module_interaction_specific
                 call update_nn_list(particle, node_idx, delta, dist2)
                 particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
           end select
-        end subroutine calc_force_per_interaction
+        end subroutine
+
+
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer(kind_node), intent(in) :: node_idx
+          type(t_particle), intent(inout) :: particle
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+
+          select case (force_law)
+            case (5)
+                call update_nn_list(particle, node_idx, delta, dist2)
+                particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
+          end select
+        end subroutine
 
 
         !>

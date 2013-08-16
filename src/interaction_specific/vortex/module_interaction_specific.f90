@@ -43,7 +43,9 @@ module module_interaction_specific
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
-      public calc_force_per_interaction
+      public calc_force_per_interaction_with_self
+      public calc_force_per_interaction_with_leaf
+      public calc_force_per_interaction_with_twig
       public calc_force_per_particle
       public mac
       public particleresults_clear
@@ -302,7 +304,7 @@ module module_interaction_specific
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        subroutine calc_force_per_interaction(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
+        subroutine calc_force_per_interaction_with_self(particle, node, node_idx, delta, dist2, vbox)
           use module_pepc_types
           use treevars
           implicit none
@@ -311,7 +313,25 @@ module module_interaction_specific
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_node), intent(in) :: node_idx
           type(t_particle), intent(inout) :: particle
-          logical, intent(in) :: node_is_leaf
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+        end subroutine
+
+
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
+          use module_pepc_types
+          use treevars
+          implicit none
+          include 'mpif.h'
+
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer(kind_node), intent(in) :: node_idx
+          type(t_particle), intent(inout) :: particle
           real*8, intent(in) :: vbox(3), delta(3), dist2
 
           integer :: ierr
@@ -322,61 +342,73 @@ module module_interaction_specific
           div = 0.
 
           select case (force_law)
-
             case (21)  !  use 2nd order Gaussian kernel, transposed scheme
-
-                if (node_is_leaf) then
-                    ! It's a leaf, do direct summation without ME stuff
-                    call calc_2nd_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div)
-                else
-                    ! TODO: ME 2nd order classical scheme
-                    write(*,*) 'ME not implemented for Gaussian kernels, aborting ...'
-                    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-                end if
-
+                call calc_2nd_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div)
             case (22)  !  use 2nd order algebraic kernel, transposed scheme
-
-                if (node_is_leaf) then
-                    ! It's a leaf, do direct summation without ME stuff
-                    call calc_2nd_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div)
-                else
-                    ! It's not a leaf, do ME
-                    call calc_2nd_algebraic_transposed(particle, node, delta, dist2, u, af)
-                end if
-
+                call calc_2nd_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div)
             case (61)  ! use 6th order algebraic kernel, classical scheme
-
-                if (node_is_leaf) then
-                    ! It's a leaf, do direct summation without ME stuff
-                    call calc_6th_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
-                else
-                    ! TODO: ME 6th order classical scheme
-                    write(*,*) 'ME not implemented for Gaussian kernels, aborting ...'
-                    call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-                end if
-
+                call calc_6th_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
             case (62)  ! use 6th order algebraic kernel, transposed scheme
-
-                if (node_is_leaf) then
-                    ! It's a leaf, do direct summation without ME stuff
-                    call calc_6th_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
-                else
-                    ! It's not a leaf, do ME
-                    call calc_6th_algebraic_transposed(particle, node, delta, dist2, u, af)
-                end if
-
+                call calc_6th_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
             case default
-
                 write(*,*) 'What force law is this?',force_law
                 call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-
           end select
 
           particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
           particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
           particle%results%div       = particle%results%div        + div
           particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
-        end subroutine calc_force_per_interaction
+        end subroutine
+
+
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
+          use module_pepc_types
+          use treevars
+          implicit none
+          include 'mpif.h'
+
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer(kind_node), intent(in) :: node_idx
+          type(t_particle), intent(inout) :: particle
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+
+          integer :: ierr
+          real*8 :: u(3), af(3), div
+
+          u = 0.
+          af = 0.
+          div = 0.
+
+          select case (force_law)
+            case (21)  !  use 2nd order Gaussian kernel, transposed scheme
+                ! TODO: ME 2nd order classical scheme
+                write(*,*) 'ME not implemented for Gaussian kernels, aborting ...'
+                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            case (22)  !  use 2nd order algebraic kernel, transposed scheme
+                call calc_2nd_algebraic_transposed(particle, node, delta, dist2, u, af)
+            case (61)  ! use 6th order algebraic kernel, classical scheme
+                ! TODO: ME 6th order classical scheme
+                write(*,*) 'ME not implemented for Gaussian kernels, aborting ...'
+                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            case (62)  ! use 6th order algebraic kernel, transposed scheme
+                call calc_6th_algebraic_transposed(particle, node, delta, dist2, u, af)
+            case default
+                write(*,*) 'What force law is this?',force_law
+                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+          end select
+
+          particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
+          particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
+          particle%results%div       = particle%results%div        + div
+          particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
+        end subroutine
 
 
         !>

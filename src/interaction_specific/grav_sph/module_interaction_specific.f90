@@ -51,7 +51,9 @@ module module_interaction_specific
   public multipole_from_particle
   public shift_multipoles_up
   public results_add
-  public calc_force_per_interaction
+  public calc_force_per_interaction_with_self
+  public calc_force_per_interaction_with_leaf
+  public calc_force_per_interaction_with_twig
   public calc_force_per_particle
   public mac
   public particleresults_clear
@@ -333,7 +335,7 @@ contains
   !> calculated fields, and for being able to call several
   !> (different) force calculation routines
   !>
-  subroutine calc_force_per_interaction(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
+  subroutine calc_force_per_interaction_with_self(particle, node, node_idx, delta, dist2, vbox)
     use module_pepc_types
     use treevars
     implicit none
@@ -341,57 +343,100 @@ contains
     type(t_tree_node_interaction_data), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
     type(t_particle), intent(inout) :: particle
-    logical, intent(in) :: node_is_leaf
+    real*8, intent(in) :: vbox(3), delta(3), dist2
+  end subroutine
+
+
+  !>
+  !> Force calculation wrapper.
+  !> This function is thought for pre- and postprocessing of
+  !> calculated fields, and for being able to call several
+  !> (different) force calculation routines
+  !>
+  subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
+    use module_pepc_types
+    use treevars
+    implicit none
+
+    type(t_tree_node_interaction_data), intent(in) :: node
+    integer(kind_node), intent(in) :: node_idx
+    type(t_particle), intent(inout) :: particle
     real*8, intent(in) :: vbox(3), delta(3), dist2
     
     real*8 :: exyz(3), phic
     
-    
     select case (force_law)
     case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-
-       if (node_is_leaf) then
-          ! It's a leaf, do direct summation
-          call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
-       else
-          ! It's a twig, do ME
-          call calc_force_coulomb_2D(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
-       end if
+       call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
        exyz(3) = 0.
 
        particle%results%e         = particle%results%e    + exyz
        particle%results%pot       = particle%results%pot  + phic
-
     case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-
-       if (node_is_leaf) then
-          ! It's a leaf, do direct summation
-          call calc_force_coulomb_3D_direct(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
-       else
-          ! It's a twig, do ME
-          call calc_force_coulomb_3D(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
-       end if
+       call calc_force_coulomb_3D_direct(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
 
        particle%results%e         = particle%results%e    + exyz
        particle%results%pot       = particle%results%pot  + phic
-
     case (4)  ! LJ potential for quiet start
        call calc_force_LJ(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
        exyz(3) = 0.
 
        particle%results%e         = particle%results%e    + exyz
        particle%results%pot       = particle%results%pot  + phic
-
     case (5)
        call update_nn_list(particle, node, node_idx, delta, dist2)
-
     case default
        write(*,*) "value of force_law is not allowed in calc_force_per_interaction:", force_law
-
     end select
 
     particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION          
-  end subroutine calc_force_per_interaction
+  end subroutine
+
+
+  !>
+  !> Force calculation wrapper.
+  !> This function is thought for pre- and postprocessing of
+  !> calculated fields, and for being able to call several
+  !> (different) force calculation routines
+  !>
+  subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
+    use module_pepc_types
+    use treevars
+    implicit none
+
+    type(t_tree_node_interaction_data), intent(in) :: node
+    integer(kind_node), intent(in) :: node_idx
+    type(t_particle), intent(inout) :: particle
+    real*8, intent(in) :: vbox(3), delta(3), dist2
+    
+    real*8 :: exyz(3), phic
+    
+    select case (force_law)
+    case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
+       call calc_force_coulomb_2D(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
+       exyz(3) = 0.
+
+       particle%results%e         = particle%results%e    + exyz
+       particle%results%pot       = particle%results%pot  + phic
+    case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
+       call calc_force_coulomb_3D(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+
+       particle%results%e         = particle%results%e    + exyz
+       particle%results%pot       = particle%results%pot  + phic
+    case (4)  ! LJ potential for quiet start
+       call calc_force_LJ(node, delta, dist2, exyz(1), exyz(2), exyz(3), phic)
+       exyz(3) = 0.
+
+       particle%results%e         = particle%results%e    + exyz
+       particle%results%pot       = particle%results%pot  + phic
+    case (5)
+       call update_nn_list(particle, node, node_idx, delta, dist2)
+    case default
+       write(*,*) "value of force_law is not allowed in calc_force_per_interaction:", force_law
+    end select
+
+    particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION          
+  end subroutine
 
 
   !>

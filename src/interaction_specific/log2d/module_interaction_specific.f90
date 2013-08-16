@@ -47,8 +47,9 @@ module module_interaction_specific
   public multipole_from_particle
   public shift_multipoles_up
   public results_add
-  public calc_force_per_interaction
-  public calc_force_per_interaction_self
+  public calc_force_per_interaction_with_self
+  public calc_force_per_interaction_with_leaf
+  public calc_force_per_interaction_with_twig
   public calc_force_per_particle
   public mac
   public particleresults_clear
@@ -318,40 +319,77 @@ module module_interaction_specific
 
   !>
   !> Force calculation wrapper.
-  !> This function is thought for pre- and postprocessing of
-  !> calculated fields, and for being able to call several
-  !> (different) force calculation routines
   !>
-  subroutine calc_force_per_interaction(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
+  subroutine calc_force_per_interaction_with_self(p, node, node_idx, delta, dist2, vbox)
     use module_pepc_types
     implicit none
 
+    type(t_particle), intent(inout) :: p
     type(t_tree_node_interaction_data), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
+    real*8, intent(in) :: delta(3), dist2, vbox(3)
+
+#ifdef BEM2D
+    real*8, parameter :: pi = 3.1415926535897932385_8
+
+    real*8 :: R
+
+    associate (ra => p%data%ra, rb => p%data%rb)
+      R = 0.5_8 * sqrt(dot_product(rb - ra, rb - ra))
+      p%results%pot = p%results%pot + 2.0_8 * p%data%q * R * (1.0_8 - log(R)) - pi * p%data%phi
+    end associate
+#endif
+  end subroutine
+
+
+  !>
+  !> Force calculation wrapper.
+  !>
+  subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
+    use module_pepc_types
+    implicit none
+
     type(t_particle), intent(inout) :: particle
-    logical, intent(in) :: node_is_leaf
-    real*8, intent(in) :: vbox(3), delta(3), dist2
+    type(t_tree_node_interaction_data), intent(in) :: node
+    integer(kind_node), intent(in) :: node_idx
+    real*8, intent(in) :: delta(3), dist2, vbox(3)
 
     real*8 :: exy(2), phic
 
-    !  compute 2D-Coulomb fields and potential of particle p with node
-
+    ! compute 2D-Coulomb fields and potential of particle p with node
 #ifdef BEM2D
     call calc_force_log_2D(node, delta(1:2), exy(1), exy(2), phic)
 #else
-    if (node_is_leaf) then
-      ! It's a leaf, do direct summation
-      call calc_force_log_2D_direct(node, delta(1:2), exy(1), exy(2), phic)
-    else
-      ! It's a twig, do ME
-      call calc_force_log_2D(node, delta(1:2), exy(1), exy(2), phic)
-    end if
+    call calc_force_log_2D_direct(node, delta(1:2), exy(1), exy(2), phic)
 #endif
 
     particle%results%e         = particle%results%e    + exy
     particle%results%pot       = particle%results%pot  + phic
     particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-  end subroutine calc_force_per_interaction
+  end subroutine
+
+
+  !>
+  !> Force calculation wrapper.
+  !>
+  subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
+    use module_pepc_types
+    implicit none
+
+    type(t_particle), intent(inout) :: particle
+    type(t_tree_node_interaction_data), intent(in) :: node
+    integer(kind_node), intent(in) :: node_idx
+    real*8, intent(in) :: delta(3), dist2, vbox(3)
+
+    real*8 :: exy(2), phic
+
+    ! compute 2D-Coulomb fields and potential of particle p with node
+    call calc_force_log_2D(node, delta(1:2), exy(1), exy(2), phic)
+
+    particle%results%e         = particle%results%e    + exy
+    particle%results%pot       = particle%results%pot  + phic
+    particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
+  end subroutine
 
 
   !>
@@ -375,7 +413,6 @@ module module_interaction_specific
     potnearfield = 0.
 
     if ((do_periodic) .and. (include_far_field_if_periodic)) then
-
         do p = 1, size(particles, kind = kind(p))
           call fmm_periodicity_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
@@ -385,7 +422,6 @@ module module_interaction_specific
           particles(p)%results%e     = particles(p)%results%e     + e_lattice
           particles(p)%results%pot   = particles(p)%results%pot   + phi_lattice
         end do
-
     end if
 
     call pepc_status('CALC FORCE PER PARTICLE DONE')
@@ -457,50 +493,28 @@ module module_interaction_specific
   !> E = - grad Phi = q / ||r - r0||^2 (x - x0, y - y0)
   !>
   subroutine calc_force_log_2D_direct(t, d, ex, ey, phi)
-      use module_pepc_types
-      use treevars
-      implicit none
-
-      type(t_tree_node_interaction_data), intent(in) :: t
-      real*8, intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
-      real*8, intent(out) :: ex, ey, phi
-
-      real*8 :: dx, dy, d2, rd2, charge
-
-      dx = d(1)
-      dy = d(2)
-
-      d2  = dot_product(d, d) + eps2
-      !d2  = dist2
-      rd2 = 1./d2
-
-      charge = t%charge
-
-      phi = - 0.5 * charge * log(d2)
-
-      ex = charge * dx * rd2
-      ey = charge * dy * rd2
-  end subroutine calc_force_log_2D_direct
-
-
-!  subroutine calc_force_per_interaction_self(p, n, k)
-  subroutine calc_force_per_interaction_self(p)
     use module_pepc_types
+    use treevars
     implicit none
 
-    type(t_particle), intent(inout) :: p
-    !type(t_tree_node_interaction_data), intent(in) :: n
-    !integer(kind_key), intent(in) :: k
+    type(t_tree_node_interaction_data), intent(in) :: t
+    real*8, intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
+    real*8, intent(out) :: ex, ey, phi
 
-#ifdef BEM2D
-    real*8, parameter :: pi = 3.1415926535897932385_8
+    real*8 :: dx, dy, d2, rd2, charge
 
-    real*8 :: R
+    dx = d(1)
+    dy = d(2)
 
-    associate (ra => p%data%ra, rb => p%data%rb)
-      R = 0.5_8 * sqrt(dot_product(rb - ra, rb - ra))
-      p%results%pot = p%results%pot + 2.0_8 * p%data%q * R * (1.0_8 - log(R)) - pi * p%data%phi
-    end associate
-#endif
-  end subroutine calc_force_per_interaction_self
+    d2  = dot_product(d, d) + eps2
+    !d2  = dist2
+    rd2 = 1./d2
+
+    charge = t%charge
+
+    phi = - 0.5 * charge * log(d2)
+
+    ex = charge * dx * rd2
+    ey = charge * dy * rd2
+  end subroutine calc_force_log_2D_direct
 end module module_interaction_specific

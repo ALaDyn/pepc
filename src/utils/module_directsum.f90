@@ -113,16 +113,18 @@ module module_directsum
 
                     do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
                       ! if we use our own particles, test for equality; exclude particle itself if we are in central box
-                      if (currank == 0) then
-                        if ((ibox == num_neighbour_boxes) .and. (testidx(j) == i)) continue
-                      end if
-
                       delta = received(j)%x - lattice_vect(neighbour_boxes(:,ibox)) - local_nodes(i)%coc
-
                       #ifndef NO_SPATIAL_INTERACTION_CUTOFF
                       if (all(abs(delta) < spatial_interaction_cutoff)) then
                       #endif
-                          call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)), .true.)
+                        if (currank == 0) then
+                          if ((ibox == num_neighbour_boxes) .and. (testidx(j) == i)) then
+                            call calc_force_per_interaction_with_self(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
+                            continue
+                          end if
+                        end if
+
+                        call calc_force_per_interaction_with_leaf(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
                       #ifndef NO_SPATIAL_INTERACTION_CUTOFF
                       endif
                       #endif

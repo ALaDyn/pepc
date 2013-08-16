@@ -118,10 +118,10 @@ module module_walk
     recursive subroutine tree_walk_single(n)
       use module_atomic_ops, only: atomic_read_barrier
       use module_spacefilling, only: is_ancestor_of_particle
-      use module_interaction_specific, only: mac, calc_force_per_interaction
+      use module_interaction_specific
       use module_tree_communicator, only: tree_node_fetch_children
       use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
-        tree_node_get_first_child, tree_node_get_next_sibling
+        tree_node_get_first_child, tree_node_get_next_sibling, NODE_INVALID
       use pthreads_stuff, only: pthreads_sched_yield
       #ifndef NO_SPATIAL_INTERACTION_CUTOFF
       use module_mirror_boxes, only: spatial_interaction_cutoff
@@ -140,60 +140,48 @@ module module_walk
       d2 = dot_product(d, d)
 
       if (is_leaf) then
-        if (d2 > 0.0_8) then ! not self, interact
-          goto 1
-        else ! self, count as interaction partner, otherwise ignore
-          goto 2
+        ni = ni + 1
+        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+        if (any(abs(d) >= spatial_interaction_cutoff)) return
+        #endif
+        interactions_local = interactions_local + 1.0_8
+        if (d2 > 0.0_8) then ! not self
+          call calc_force_per_interaction_with_leaf(p, t%nodes(n)%interaction_data, n, d, d2, vbox)
+        else ! self
+          call calc_force_per_interaction_with_self(p, t%nodes(n)%interaction_data, n, d, d2, vbox)
         end if
       else ! not a leaf, evaluate MAC
         mac_evaluations_local = mac_evaluations_local + 1.0_8
         if (mac(p, t%nodes(n)%interaction_data, d2, b2(t%nodes(n)%level))) then ! MAC OK: interact
-          goto 1
+          ni = ni + t%nodes(n)%leaves
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          if (any(abs(d) >= spatial_interaction_cutoff)) return
+          #endif
+          interactions_local = interactions_local + 1.0_8
+          call calc_force_per_interaction_with_twig(p, t%nodes(n)%interaction_data, n, d, d2, vbox)
         else ! MAC fails: resolve
-          goto 3
+          if (.not. tree_node_children_available(t%nodes(n))) then
+            call tree_node_fetch_children(t, t%nodes(n), n)
+            do ! loop and yield until children have been fetched
+              ERROR_ON_FAIL(pthreads_sched_yield())
+              if (tree_node_children_available(t%nodes(n))) exit
+            end do
+            call atomic_read_barrier()
+          end if
+
+          ns = tree_node_get_first_child(t%nodes(n))
+          if (ns /= NODE_INVALID) then
+            do
+              s = ns
+              call tree_walk_single(s)
+              ns = tree_node_get_next_sibling(t%nodes(s))
+              if (ns == NODE_INVALID) exit
+            end do
+          else
+            DEBUG_ERROR(*, "walk_simple: unexpectedly, this twig had no children")
+          end if
         end if
       end if
-
-      DEBUG_ASSERT_MSG(.false., *, "The block of ifs above should be exhaustive!")
-      return
-
-      ! interact
-      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-1     if (all(abs(d) < spatial_interaction_cutoff)) then
-      #endif
-        call calc_force_per_interaction(p, t%nodes(n)%interaction_data, n, d, d2, vbox, is_leaf)
-        interactions_local = interactions_local + 1.0_8
-      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-      end if
-      #endif
-      ! count partner
-2     ni = ni + t%nodes(n)%leaves
-      return
-
-      ! resolve
-3     if (.not. tree_node_children_available(t%nodes(n))) then
-        call tree_node_fetch_children(t, t%nodes(n), n)
-        do
-          ERROR_ON_FAIL(pthreads_sched_yield())
-          if (tree_node_children_available(t%nodes(n))) then
-            call atomic_read_barrier()
-            exit
-          end if
-        end do
-      end if
-
-      ns = tree_node_get_first_child(t%nodes(n))
-      if (ns /= NODE_INVALID) then
-        do
-          s = ns
-          call tree_walk_single(s)
-          ns = tree_node_get_next_sibling(t%nodes(s))
-          if (ns == NODE_INVALID) exit
-        end do
-      else
-        DEBUG_ERROR(*, "walk_simple: unexpectedly, this twig had no children")
-      end if
-      return
     end subroutine tree_walk_single
   end subroutine tree_walk
 end module module_walk
