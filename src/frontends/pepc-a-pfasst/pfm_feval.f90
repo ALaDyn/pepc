@@ -16,6 +16,7 @@ contains
     subroutine feval_init(y0, yend, nlevels, levelctx, encapctx) ! FIXME: shouldnt we call this function once per level?
       use iso_c_binding
       use module_pepc_types, only: t_particle
+      use pepca_diagnostics
       implicit none
 
       type(app_data_t), pointer, intent(inout) :: y0, yend
@@ -37,6 +38,10 @@ contains
       call c_f_pointer(yend_c, yend)
      
       call particles_to_encap(y0_c, params%particles)
+      
+      ! compute initial energies for later comparison
+      call diagnose_energy(params%particles, params%initial_energies, 0, 0.0_8, params%comm, params%root) 
+      
     end subroutine feval_init
 
 
@@ -88,8 +93,7 @@ contains
       ! prepare and run PEPC
       allocate(particles(a%params%nparts))
       call encap_to_particles(particles, xptr, ctx)
-      call pepc_particleresults_clear(particles)
-      call eval_force(particles, levelctx%directforce, step, levelctx%comm)
+      call eval_force(particles, levelctx%directforce, step, levelctx%comm, clearresults=.true.)
       
       ! compute accelerations from fields
       do i=1,size(particles, kind=kind(i))
@@ -104,7 +108,7 @@ contains
 
     
     !> invoke pepc or direct sum
-    subroutine eval_force(particles, directforce, step, comm)
+    subroutine eval_force(particles, directforce, step, comm, clearresults)
       use module_debug
       use module_pepc
       implicit none
@@ -112,6 +116,11 @@ contains
       logical, intent(in) :: directforce
       integer, intent(in) :: step
       integer(kind_default), intent(in) :: comm
+      logical, intent(in) :: clearresults
+
+      if (clearresults) then
+          call pepc_particleresults_clear(particles)
+      endif
       
       if (directforce) then
         call compute_force_direct(particles, comm)

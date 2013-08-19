@@ -4,7 +4,7 @@
   numparts = 2500
   
   ! initial particle setup
-  ! 0 --> randomly filled cube
+  ! 0 --> randomly filled 10x10x10 micron cube / square (depending on compile time parameter dim)
   ! 1 --> read numparts particles from files 'E_phase_space.dat' and 'I_phase_space.dat'
   particle_config = 0
 
@@ -22,14 +22,16 @@
   domain_output_interval   = 0
   
   ! Plummer potential screening length in microns
-  eps = 1.e-5
+  eps = 1.e-2
   
   ! number of grid cells in each spatial direction for particle density output
   Ngrid = 500 1000 1
 /
 
 &pfasst
-  tend    = 1
+  ! physical simulation end time (in fs)
+  tend    = 1.
+  
   nsteps  = 1 
   niter   = 1
   nlevels = 1

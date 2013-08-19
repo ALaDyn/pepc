@@ -3,6 +3,7 @@ module pfm_encap
   use module_pepc_types
   use module_debug
   use pf_mod_dtype
+  use pepca_diagnostics, only : E_MAXIDX
   implicit none
 
   !> data type for level-dependent application parameters
@@ -13,7 +14,9 @@ module pfm_encap
     real*8 :: theta
     logical :: directforce
     integer(kind_default) :: comm
+    logical :: root
     type(t_particle), pointer :: particles(:)
+    real*8 :: initial_energies(E_MAXIDX)
   end type
 
   !> Data encapsulation: data and parameters which will be filled in encap_create using ctx

@@ -162,6 +162,8 @@ module pepca_helper
     if(nml%rank==0) then
       write(*,'(a,i12)')       ' == number of particles per spec : ', nml%numparts
       write(*,'(a,i12)')       ' == number of time steps         : ', nml%nt
+      write(*,'(a,es12.4)')    ' == time step (simunits)         : ', nml%dt
+      write(*,'(a,es12.4)')    ' == final time (simunits)        : ', nml%dt*nml%nt
       write(*,'(a,es12.4)')    ' == time step (fs)               : ', nml%dt*unit_time_fs_per_simunit
       write(*,'(a,es12.4)')    ' == final time (ns)              : ', nml%dt*nml%nt*unit_time_fs_per_simunit
       write(*,'(a,l12)')       ' == particle output interval     : ', nml%particle_output_interval
@@ -227,6 +229,7 @@ module pepca_helper
 
   
   subroutine generate_particles(p, nel, nion, rank, nrank)
+    use pepca_units
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
@@ -253,7 +256,7 @@ module pepca_helper
         end do
 
         if (i==rank) then
-          p(j)%x(1:dim)      = pos(1:dim)
+          p(j)%x(1:dim)      = pos(1:dim) / unit_length_micron_per_simunit
           p(j)%data%v(1:dim) = vel(1:dim)
           if (j<=nel) then
             p(j)%label       = -l

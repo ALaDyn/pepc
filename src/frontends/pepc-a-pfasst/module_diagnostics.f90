@@ -32,6 +32,17 @@ module pepca_diagnostics
     public write_domain
     public diagnose_energy
 
+    integer, public, parameter :: E_KIN_E = 1
+    integer, public, parameter :: E_POT_E = 2
+    integer, public, parameter :: E_TOT_E = 3
+    integer, public, parameter :: E_KIN_I = 4
+    integer, public, parameter :: E_POT_I = 5
+    integer, public, parameter :: E_TOT_I = 6
+    integer, public, parameter :: E_KIN   = 7
+    integer, public, parameter :: E_POT   = 8
+    integer, public, parameter :: E_TOT   = 9
+    integer, public, parameter :: E_MAXIDX = E_TOT
+
   contains
 
   integer function vtk_step_of_step(step, nt) result(vtk_step)
@@ -165,9 +176,9 @@ module pepca_diagnostics
     do ip = 1, size(p,kind=kind_particle)
       cell(1:dim) = nint((Ngrid(1:dim)-1)*(p(ip)%x(1:dim) - global_tree%bounding_box%boxmin(1:dim)) / global_tree%bounding_box%boxsize(1:dim)) + 1
       
-      if (p(ip)%label < 0) then
+      if (p(ip)%data%q < 0) then
         dens_el( cell(1), cell(2), cell(3)) = dens_el( cell(1), cell(2), cell(3)) + 1.
-      else if (p(ip)%label > 0) then
+      else if (p(ip)%data%q > 0) then
         dens_ion(cell(1), cell(2), cell(3)) = dens_ion(cell(1), cell(2), cell(3)) + 1.
       endif
     end do
@@ -222,34 +233,28 @@ module pepca_diagnostics
   end subroutine write_domain
   
   
-  subroutine diagnose_energy(p, step, realtime, rank)
+  subroutine diagnose_energy(p, energies, step, realtime, comm, do_dump)
     use module_pepc_types
     use pepca_units
+    use module_debug
     implicit none
     include 'mpif.h'
     
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
     integer, intent(in) :: step
-    integer(kind_pe), intent(in) :: rank
+    integer(kind_default), intent(in) :: comm
+    logical, intent(in) :: do_dump
     integer(kind_default) :: ierr
-    
-    integer, parameter :: E_KIN_E = 1
-    integer, parameter :: E_POT_E = 2
-    integer, parameter :: E_TOT_E = 3
-    integer, parameter :: E_KIN_I = 4
-    integer, parameter :: E_POT_I = 5
-    integer, parameter :: E_TOT_I = 6
-    integer, parameter :: E_KIN   = 7
-    integer, parameter :: E_POT   = 8
-    integer, parameter :: E_TOT   = 9
+    real*8 :: energies(E_MAXIDX)
     
     integer, parameter :: file_energies = 42
     
-    real*8 :: energies(9)
     integer(kind_particle) :: ip
     real*8 :: gam, ekin, epot
     
+    call pepc_status('------------- diagnose_energy')
+
     energies = 0.
     
     do ip=1, size(p, kind=kind_particle)
@@ -259,14 +264,14 @@ module pepca_diagnostics
       ekin = (gam-1._8) * p(ip)%data%m*unit_c2
       epot = p(ip)%data%q * p(ip)%results%pot / 2._8
       
-      if (p(ip)%label > 0) then
+      if (p(ip)%data%q > 0) then
         energies(E_KIN_I) = energies(E_KIN_I) + ekin
         energies(E_POT_I) = energies(E_POT_I) + epot
-      else if (p(ip)%label < 0) then
+      else if (p(ip)%data%q < 0) then
           energies(E_KIN_E) = energies(E_KIN_E) + ekin
           energies(E_POT_E) = energies(E_POT_E) + epot
       else
-        write(*,*) "unexpected species in energy computation"
+        write(*,*) 'unexpected species in energy computation'
       endif
     end do
     
@@ -276,10 +281,10 @@ module pepca_diagnostics
     energies(E_POT  ) = energies(E_POT_E) + energies(E_POT_I)
     energies(E_TOT  ) = energies(E_TOT_E) + energies(E_TOT_I)
 
-    if (rank==0) then
       ! we perform this output on a single rank to prevent having to think about the reduction above
-      call MPI_REDUCE(MPI_IN_PLACE, energies,  size(energies,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-    
+      call MPI_ALLREDUCE(MPI_IN_PLACE, energies,  size(energies,  kind=kind_default), MPI_REAL8, MPI_SUM, comm, ierr)
+
+    if (do_dump) then
       if (step == 0) then
         open(unit=file_energies, file='energy.dat', status='unknown', position='rewind',action='write')
         write(file_energies, '("#",a8,x,a10,  9(x,a16))') 'step', 'time (fs)', 'E_kin(e)', 'E_pot(e)', 'E_tot(e)', 'E_kin(i)', 'E_pot(i)', 'E_tot(i)', 'E_kin', 'E_pot', 'E_tot'
@@ -290,10 +295,7 @@ module pepca_diagnostics
       write(file_energies,   '( x ,I8,x,f10.4,9(x,g16.10))') step, realtime, energies
     
       close(file_energies)
-    else
-      call MPI_REDUCE(energies, energies,  size(energies,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
     endif
-    
   end subroutine diagnose_energy
   
 end module

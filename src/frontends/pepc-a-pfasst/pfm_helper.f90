@@ -119,6 +119,7 @@ module pfm_helper
             F%directforce = nml%directforce ! TODO: use value from pepc namelist
             F%dim    = dim
             F%comm   = comm
+            F%root   = nml%rank == 0
             F%particles => particles ! we will use this pointer to get easy access to particle properties, this is wrong - we have to use the levelctx instead
           end associate
         end do
@@ -199,6 +200,7 @@ module pfm_helper
     !> Simple read-in routine, using the first command line argument
     subroutine read_in_pf_params(pf_namelist, rank, comm)
         use pf_mod_mpi
+        use pepca_units
         implicit none
         
         type(pf_nml_t), intent(out) :: pf_namelist
@@ -231,7 +233,7 @@ module pfm_helper
         echo_timings        = pf_namelist%color_time_div
         color_space_div     = pf_namelist%echo_errors
         color_time_div      = pf_namelist%echo_timings
-        tend    = pf_namelist%tend
+        tend    = pf_namelist%tend / unit_time_fs_per_simunit ! now, tend is in sim units
         res_tol = pf_namelist%res_tol
         nsteps  = pf_namelist%nsteps
         nsweeps = pf_namelist%nsweeps
