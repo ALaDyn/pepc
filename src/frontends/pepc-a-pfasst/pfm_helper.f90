@@ -157,7 +157,7 @@ module pfm_helper
         use pf_mod_dtype, only: pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK
         use pfm_encap, only : pf_encap_t, app_params_t
         use pfm_transfer, only : interpolate, restrict
-        use iso_c_binding, only : c_loc, c_null_ptr
+        use iso_c_binding !, only : c_loc, c_null_ptr ! had to remove this as compile fix for Michael
         implicit none
 
         type(pf_pfasst_t), intent(inout) :: pf
