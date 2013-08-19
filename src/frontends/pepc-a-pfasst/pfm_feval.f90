@@ -37,7 +37,6 @@ contains
       call c_f_pointer(yend_c, yend)
      
       call particles_to_encap(y0_c, params%particles)
-
     end subroutine feval_init
 
 
@@ -51,7 +50,6 @@ contains
 
       call encap_destroy(c_loc(y0))
       call encap_destroy(c_loc(yend))
-
     end subroutine feval_finalize
 
 
@@ -102,7 +100,6 @@ contains
       end do
       
       deallocate(particles)
-
     end subroutine eval_acceleration
 
     
@@ -125,7 +122,6 @@ contains
         if (dbg(DBG_STATS)) call pepc_statistics(step)
         call pepc_timber_tree()
       endif
-      
     end subroutine
        
 
