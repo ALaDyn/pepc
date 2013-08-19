@@ -33,7 +33,7 @@ module pepca_integrator
     subroutine update_velocities(p, dt)
       use module_pepc_types
       use pepca_units
-      use pepca_globals, only: dim
+      use pepca_helper, only: dim
       implicit none
 
       type(t_particle), allocatable, intent(inout) :: p(:)

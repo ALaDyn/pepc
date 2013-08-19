@@ -34,12 +34,12 @@ module pepca_diagnostics
 
   contains
 
-  integer function vtk_step_of_step(step) result(vtk_step)
+  integer function vtk_step_of_step(step, nt) result(vtk_step)
     use module_vtk
     use pepca_helper
     implicit none
 
-    integer, intent(in) :: step
+    integer, intent(in) :: step, nt
 
     if (step .eq. 0) then
       vtk_step = VTK_STEP_FIRST
@@ -51,7 +51,7 @@ module pepca_diagnostics
   end function vtk_step_of_step
 
 
-  subroutine write_particles_vtk(p, step, realtime)
+  subroutine write_particles_vtk(p, step, nt, realtime)
     use module_vtk_helpers
     use module_pepc_types
     use pepca_units
@@ -61,11 +61,11 @@ module pepca_diagnostics
     
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
-    integer, intent(in) :: step
+    integer, intent(in) :: step, nt
 
     integer :: vtk_step
     
-    vtk_step = vtk_step_of_step(step)
+    vtk_step = vtk_step_of_step(step, nt)
     call vtk_write_particles("particles", MPI_COMM_WORLD, step, realtime, vtk_step, p, vtk_results, unit_length_micron_per_simunit)
 
     contains
@@ -117,19 +117,21 @@ module pepca_diagnostics
   end subroutine
 
 
-  subroutine gather_and_write_densities(p, step, realtime)
+  subroutine gather_and_write_densities(p, Ngrid, step, nt, realtime, rank)
     use module_vtk_helpers
     use module_pepc_types
     use pepca_units
-    use pepca_globals, only : root => root_space, Ngrid, dim
     use module_pepc, only: global_tree
+    use pepca_helper, only: dim
     implicit none
 
     include 'mpif.h'
     
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
-    integer, intent(in) :: step
+    integer, intent(in) :: step, nt
+    integer, intent(in) :: Ngrid(1:3)
+    integer(kind_pe), intent(in) :: rank
     
     type t_coordarray
       real*8, pointer :: coords(:)
@@ -144,7 +146,7 @@ module pepca_diagnostics
     integer(kind_default) :: ierr
     real*8 :: cell_volume
     
-    vtk_step = vtk_step_of_step(step)
+    vtk_step = vtk_step_of_step(step, nt)
     
     allocate (dens_el(Ngrid(1), Ngrid(2), Ngrid(3)), dens_ion(Ngrid(1), Ngrid(2), Ngrid(3)))
     dens_el    = 0.
@@ -171,7 +173,7 @@ module pepca_diagnostics
     end do
     
 
-    if (root) then
+    if (rank==0) then
       ! we perform this output on a single rank to prevent having to think about the reduction above
       call MPI_REDUCE(MPI_IN_PLACE, dens_el,  size(dens_el,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       call MPI_REDUCE(MPI_IN_PLACE, dens_ion, size(dens_ion, kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
@@ -199,7 +201,7 @@ module pepca_diagnostics
   end subroutine gather_and_write_densities
 
 
-  subroutine write_domain(p, step, realtime)
+  subroutine write_domain(p, step, nt, realtime)
     use module_vtk
     use module_vtk_helpers
     use module_pepc_types
@@ -208,21 +210,20 @@ module pepca_diagnostics
   
     type(t_particle), allocatable, intent(in) :: p(:)
     real*8, intent(in) :: realtime
-    integer, intent(in) :: step
+    integer, intent(in) :: step, nt
 
     integer :: vtk_step
   
     ! output of tree diagnostics
-    vtk_step = vtk_step_of_step(step)
+    vtk_step = vtk_step_of_step(step, nt)
     call vtk_write_branches(  step, realtime, vtk_step,    coord_scale=unit_length_micron_per_simunit)
     call vtk_write_leaves(    step, realtime, vtk_step,    coord_scale=unit_length_micron_per_simunit)
     call vtk_write_spacecurve(step, realtime, vtk_step, p, coord_scale=unit_length_micron_per_simunit)
   end subroutine write_domain
   
   
-  subroutine diagnose_energy(p, step, realtime)
+  subroutine diagnose_energy(p, step, realtime, rank)
     use module_pepc_types
-    use pepca_globals, only: root => root_space
     use pepca_units
     implicit none
     include 'mpif.h'
@@ -230,6 +231,7 @@ module pepca_diagnostics
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
     integer, intent(in) :: step
+    integer(kind_pe), intent(in) :: rank
     integer(kind_default) :: ierr
     
     integer, parameter :: E_KIN_E = 1
@@ -274,7 +276,7 @@ module pepca_diagnostics
     energies(E_POT  ) = energies(E_POT_E) + energies(E_POT_I)
     energies(E_TOT  ) = energies(E_TOT_E) + energies(E_TOT_I)
 
-    if (root) then
+    if (rank==0) then
       ! we perform this output on a single rank to prevent having to think about the reduction above
       call MPI_REDUCE(MPI_IN_PLACE, energies,  size(energies,  kind=kind_default), MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
     

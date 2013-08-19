@@ -12,19 +12,20 @@ module pfm_helper
   
     integer, parameter :: max_nlevels = 20
 
+    !> pfasst parameter collection
     type pf_nml_t
-        ! defaults are defined by settings in read_in_pf_params
-        integer :: niter
-        integer :: nlevels
-        integer :: num_space_instances
-        logical :: color_space_div
-        logical :: color_time_div
-        logical :: echo_errors
-        logical :: echo_timings
-        real(kind=8) :: te, res_tol
-        integer :: nsteps
-        integer, dimension(max_nlevels) :: nsweeps
-        integer, dimension(max_nlevels) :: nnodes
+        integer :: niter                = 3
+        integer :: nlevels              = 1!max_nlevels
+        integer :: num_space_instances  = 1
+        logical :: color_space_div      = .true.
+        logical :: color_time_div       = .true.
+        logical :: echo_errors          = .true.
+        logical :: echo_timings         = .false.
+        real(kind=8) :: te              = 5.
+        real(kind=8) :: res_tol         = 0d0
+        integer :: nsteps               = 1
+        integer, dimension(max_nlevels) :: nsweeps = 1
+        integer, dimension(max_nlevels) :: nnodes  = 3
     end type pf_nml_t
     
 contains
@@ -87,9 +88,8 @@ contains
         call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, mpi_rank, MPI_COMM_TIME, mpi_err)       
 
         if (mpi_rank == 0) write(*,*) 'All right, I can use ',mpi_size,&
-                                      ' processors and these will be split up into ',pf_nml%num_space_instances,&
+                                      ' processors in total. These will be split up into ',pf_nml%num_space_instances,&
                                       ' instances with ',mpi_size_space,' processors each.'
-
     end subroutine pfm_init_pfasst
 
 
@@ -97,7 +97,6 @@ contains
     subroutine pfm_setup_solver_level_params(particles, level_params, nlevels, numparts, dim, comm)
         use pf_mod_mpi
         use pfm_encap
-        use pepca_helper, only: generate_particles
         implicit none
         
         type(app_params_t), pointer, intent(inout) :: level_params(:)
@@ -105,21 +104,16 @@ contains
         integer(kind_particle), intent(in) :: numparts
         integer(kind_dim), intent(in) :: dim
         integer(kind_default), intent(in) :: comm
-        type(t_particle), allocatable, target, intent(out) :: particles(:)
+        type(t_particle), allocatable, target, intent(in) :: particles(:)
         
         integer :: i
-
-        allocate(particles(2*numparts))
-        ! set initial values for particle positions and velocities in y0
-        !call read_particles(y0%particles, 'E_phase_space.dat', numparts, 'I_phase_space.dat', numparts)
-        call generate_particles(particles, numparts, numparts)
 
         allocate(level_params(nlevels))
 
         do i = 1, nlevels
           associate (F=>level_params(i))
             ! add any parameters from app_params_t here
-            F%n_el  = numparts ! FIXME: currently, we read all particles on the root rank of MPI_COMM_SPACE; thus, particle numbers should be zero on all others
+            F%n_el  = numparts
             F%n_ion = numparts
             F%theta = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
             F%dim   = dim
@@ -127,7 +121,6 @@ contains
             F%particles => particles ! we will use this pointer to get easy access to particle properties, this is wrong - we have to use the levelctx instead
           end associate
         end do
-
     end subroutine pfm_setup_solver_level_params
     
     
@@ -139,8 +132,22 @@ contains
         type(app_params_t), intent(inout), pointer :: level_params(:)
         integer, intent(in) :: nlevels
 
-        ! nothing to deallocate her for now
+        integer :: i
 
+        ! not really anything to do here for now
+        do i = 1, nlevels
+          associate (F=>level_params(i))
+            ! add any parameters from app_params_t here
+            F%n_el  = -1
+            F%n_ion = -1
+            F%theta = -1
+            F%dim   = -1
+            F%comm  = -1
+            nullify(F%particles)
+          end associate
+        end do
+
+        deallocate(level_params)
     end subroutine pfm_finalize_solver_level_params    
 
 
@@ -185,7 +192,6 @@ contains
         pf%window       = PF_WINDOW_BLOCK
         pf%rel_res_tol  = pf_nml%res_tol
         pf%abs_res_tol  = pf_nml%res_tol
-
     end subroutine pfm_fill_pfasst_object
 
 
@@ -197,18 +203,18 @@ contains
         type(pf_nml_t), intent(out) :: pf_namelist
         integer, intent(in) :: rank, comm
 
-        integer :: niter               = 3
-        integer :: nlevels             = 1!max_nlevels
-        integer :: num_space_instances = 1
-        logical :: echo_errors         = .true.
-        logical :: echo_timings        = .true.
-        logical :: color_space_div     = .true.
-        logical :: color_time_div      = .false.
-        real(kind=8) :: te             = 5.
-        real(kind=8) :: res_tol        = 0d0
-        integer :: nsteps              = 5
-        integer, dimension(max_nlevels) :: nsweeps = 1
-        integer, dimension(max_nlevels) :: nnodes  = 5
+        integer :: niter
+        integer :: nlevels
+        integer :: num_space_instances
+        logical :: echo_errors
+        logical :: echo_timings
+        logical :: color_space_div
+        logical :: color_time_div
+        real(kind=8) :: te
+        real(kind=8) :: res_tol
+        integer :: nsteps
+        integer, dimension(max_nlevels) :: nsweeps
+        integer, dimension(max_nlevels) :: nnodes
 
         namelist /pf_nml/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, te, nsteps, nsweeps, res_tol, color_space_div, color_time_div
 
@@ -216,6 +222,19 @@ contains
         character(len=255) :: file_name
         integer :: ierr
         integer, parameter :: para_file_id = 10
+
+        niter               = pf_namelist%niter
+        nlevels             = pf_namelist%nlevels
+        num_space_instances = pf_namelist%num_space_instances
+        echo_errors         = pf_namelist%color_space_div
+        echo_timings        = pf_namelist%color_time_div
+        color_space_div     = pf_namelist%echo_errors
+        color_time_div      = pf_namelist%echo_timings
+        te      = pf_namelist%te
+        res_tol = pf_namelist%res_tol
+        nsteps  = pf_namelist%nsteps
+        nsweeps = pf_namelist%nsweeps
+        nnodes  = pf_namelist%nnodes
 
         call pepc_status('|--> read_in_pf_params()')
 
@@ -248,18 +267,17 @@ contains
         end if
 
         pf_namelist%niter               = niter
+        pf_namelist%nlevels             = nlevels
         pf_namelist%num_space_instances = num_space_instances
-        pf_namelist%echo_timings        = echo_timings
-        pf_namelist%echo_errors         = echo_errors
-        pf_namelist%te                  = te
-        pf_namelist%nsteps              = nsteps
-        pf_namelist%res_tol             = res_tol
         pf_namelist%color_space_div     = color_space_div
         pf_namelist%color_time_div      = color_time_div
+        pf_namelist%echo_errors         = echo_errors
+        pf_namelist%echo_timings        = echo_timings
+        pf_namelist%te                  = te
+        pf_namelist%res_tol             = res_tol
+        pf_namelist%nsteps              = nsteps
         pf_namelist%nsweeps(1:nlevels)  = nsweeps(1:nlevels)
         pf_namelist%nnodes(1:nlevels)   = nnodes(1:nlevels)
-
     end subroutine read_in_pf_params
-
 
 end module pfm_helper

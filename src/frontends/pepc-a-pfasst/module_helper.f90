@@ -25,81 +25,159 @@ module pepca_helper
   use module_pepc_types
   use module_timings
   use pepca_units
-  use pepca_globals
   implicit none
+  private
+  save
 
   ! timing variables
-  integer, parameter :: t_user_total       = t_userdefined_first
-  integer, parameter :: t_user_init        = t_userdefined_first + 1
-  integer, parameter :: t_user_step        = t_userdefined_first + 2
-  integer, parameter :: t_user_diag        = t_userdefined_first + 3
+  integer, public, parameter :: t_user_total       = t_userdefined_first
+  integer, public, parameter :: t_user_init        = t_userdefined_first + 1
+  integer, public, parameter :: t_user_step        = t_userdefined_first + 2
+  integer, public, parameter :: t_user_diag        = t_userdefined_first + 3
+  
+  public pepca_init
+  public pepca_nml_t
+
+  ! dimension of space
+  integer(kind_dim), public, parameter :: dim = 2
+
+  !> parameter collection for pepca
+  type pepca_nml_t
+    ! grid for density output
+    integer :: Ngrid(1:3) = [500, 1000, 1]
+    ! MPI variables
+    integer(kind_pe) :: rank, nrank
+    ! time variables
+    real*8 :: dt   = 0.2    !< timestep (initially in fs, later in simunits)
+    integer :: nt  = 20000     !< number of timesteps
+    ! configuration variables
+    integer :: particle_config = 0
+    integer(kind_particle) :: numparts = 2500 !296568
+    ! control variables
+    integer :: particle_output_interval = 0     !< turn vtk output on/off
+    integer :: domain_output_interval =  0       !< turn vtk output on/off
+  end type
 
   contains
+  
+  subroutine pepca_init(nml, particles)
+    implicit none
+    type(pepca_nml_t), intent(inout) :: nml
+    type(t_particle), allocatable, target, intent(out) :: particles(:)
+    
+    call set_parameter(nml)
+    call setup_particles(particles, nml)
+    
+  end subroutine
+  
+  
+  !> set initial values for particle positions and velocities in y0
+  subroutine setup_particles(particles, nml)
+    use module_debug
+    implicit none
+    type(pepca_nml_t), intent(in) :: nml
+    type(t_particle), allocatable, target, intent(out) :: particles(:)
+    
+    allocate(particles(2*nml%numparts))
+    
+    select case (nml%particle_config)
+    
+      case (0)
+        call generate_particles(particles, nml%numparts, nml%numparts, nml%rank, nml%nrank)
+      case (1)
+        call read_particles(particles, 'E_phase_space.dat', nml%numparts, 'I_phase_space.dat', nml%numparts, nml%rank)
+      case default
+        DEBUG_ERROR(*, 'setup_particles() - invalid value for particle_config:', nml%particle_config)
+    end select
+    
+  end subroutine
+  
+  
 
-  subroutine set_parameter()
-      
+  subroutine set_parameter(nml)
     use module_pepc
     use module_interaction_specific, only : theta2, eps2
     use treevars, only : num_threads, np_mult
-    use pepca_globals
     implicit none
-      
+    
+    type(pepca_nml_t), intent(inout) :: nml
+
     integer, parameter :: fid = 12
     character(255)     :: para_file
     logical            :: read_para_file
 
-    namelist /pepcandreev/ nt, dt, particle_output_interval, domain_output_interval, eps, Ngrid
+    integer :: Ngrid(1:3)
+    real*8  :: dt
+    integer :: nt
+    integer :: particle_config
+    integer(kind_particle) :: numparts
+    integer :: particle_output_interval
+    integer :: domain_output_interval
+
+    real*8 :: eps = 1.e-5 ! interaction cutoff parameter
+
+    namelist /pepcandreev/ nt, dt, particle_output_interval, domain_output_interval, eps, Ngrid, particle_config, numparts
     
-    ! set default parameter values
-    nt                        = 20000
-    dt                        = 0.2 ! here, dt is still in fs
-    particle_output_interval  = 25
-    domain_output_interval    =  0
-    eps                       = 1.e-5 ! in microns
-    theta2                    = 0.36
- 
-    num_threads = 8
-    np_mult = -500
+    ! frontend parameters
+    Ngrid           = nml%Ngrid
+    dt              = nml%dt
+    nt              = nml%nt
+    particle_config = nml%particle_config
+    numparts        = nml%numparts
+    particle_output_interval = nml%particle_output_interval
+    domain_output_interval   = nml%domain_output_interval
 
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
     
-    dt   =  dt / unit_time_fs_per_simunit ! now, dt is in sim units
+    ! frontend parameters
+    nml%Ngrid           = Ngrid
+    nml%dt              = dt / unit_time_fs_per_simunit ! now, dt is in sim units
+    nml%nt              = nt
+    nml%particle_config = particle_config
+    nml%numparts        = numparts
+    nml%particle_output_interval = particle_output_interval
+    nml%domain_output_interval = domain_output_interval
+    ! pepc parameters
+    theta2      = 0.36
+    num_threads = 8
+    np_mult     = -500
     eps2 = (eps/unit_length_micron_per_simunit)**2
 
     if (read_para_file) then
-      if(root_space) write(*,'(a)') ' == reading parameter file, section pepcandreev: ', para_file
+      if(nml%rank==0) write(*,'(a)') ' == reading parameter file, section pepcandreev: ', para_file
       open(fid,file=para_file)
       read(fid,NML=pepcandreev)
       close(fid)
     else
-      if(root_space) write(*,*) ' == no param file, using default parameters '
+      if(nml%rank==0) write(*,*) ' == no param file, using default parameters '
     end if    
 
-    if(root_space) then
-      write(*,'(a,i12)')       " == number of time steps      : ", nt
-      write(*,'(a,es12.4)')    " == time step (fs)            : ", dt*unit_time_fs_per_simunit
-      write(*,'(a,es12.4)')    " == final time (ns)           : ", dt*nt*unit_time_fs_per_simunit
-      write(*,'(a,l12)')       " == particle output interval  : ", particle_output_interval
-      write(*,'(a,l12)')       " == domain output interval    : ", domain_output_interval
+    if(nml%rank==0) then
+      write(*,'(a,i12)')       " == number of time steps      : ", nml%nt
+      write(*,'(a,es12.4)')    " == time step (fs)            : ", nml%dt*unit_time_fs_per_simunit
+      write(*,'(a,es12.4)')    " == final time (ns)           : ", nml%dt*nml%nt*unit_time_fs_per_simunit
+      write(*,'(a,l12)')       " == particle output interval  : ", nml%particle_output_interval
+      write(*,'(a,l12)')       " == domain output interval    : ", nml%domain_output_interval
     end if
 
     call pepc_prepare(dim)
   end subroutine set_parameter
 
 
-  subroutine read_particles(p, file_el, nel, file_ion, nion)
-    use pepca_globals
+  subroutine read_particles(p, file_el, nel, file_ion, nion, rank)
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle), intent(in) :: nel, nion
     character(*), intent(in) :: file_el, file_ion
+    integer(kind_pe), intent(in) :: rank
     
     integer, parameter :: filehandle = 47
     integer(kind_particle) :: ip
 
-    if(root_space) then
+    ! FIXME: currently, we read all particles on the root rank of MPI_COMM_SPACE; thus, particle numbers should be zero on all others
+    if(rank==0) then
       write(*,'(a, 2(x,a))') " == [load] reading particles from files", file_el, file_ion
     
       ! we read all particles the root rank
@@ -141,12 +219,12 @@ module pepca_helper
   end subroutine read_particles
 
   
-  subroutine generate_particles(p, nel, nion)
-    use pepca_globals
+  subroutine generate_particles(p, nel, nion, rank, nrank)
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle), intent(in) :: nel, nion
+    integer(kind_pe), intent(in) :: rank, nrank
     
     real*8 :: pos(1:3), vel(1:3)
     integer(kind_particle) :: j, l
@@ -154,12 +232,12 @@ module pepca_helper
     integer(kind_dim) :: k
 
     ! stupid parallel random number generation
-    if(root_space) write(*,'(a, 2(x,a))') " == [generate] generating particles"
+    if(rank==0) write(*,'(a, 2(x,a))') " == [generate] generating particles"
       
     pos = 0
     vel = 0
     l   = 0
-    do i=0,nrank_space-1
+    do i=0,nrank-1
       do j=1,nel+nion
         l = l+1
         do k=1,dim
@@ -167,7 +245,7 @@ module pepca_helper
           vel(k) = par_rand()
         end do
 
-        if (i==rank_space) then
+        if (i==rank) then
           p(j)%x(1:dim)      = pos(1:dim)
           p(j)%data%v(1:dim) = vel(1:dim)
           if (j<=nel) then

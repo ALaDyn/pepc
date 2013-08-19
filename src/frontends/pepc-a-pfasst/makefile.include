@@ -2,7 +2,6 @@ FILES_L   = pepc.f90               \
             module_helper.f90      \
             module_units.f90       \
             module_integrator.f90  \
-            module_globals.f90     \
             module_diagnostics.f90 \
             pfm_helper.f90         \
             pfm_encap.f90          \

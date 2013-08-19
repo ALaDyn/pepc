@@ -44,7 +44,6 @@ contains
       enc%x(1:enc%params%dim, i) = p(i)%x(     1:enc%params%dim)
       enc%v(1:enc%params%dim, i) = p(i)%data%v(1:enc%params%dim)
     end do
-    
   end subroutine
 
   subroutine encap_to_particles(p, ptrenc, levelctx)
@@ -73,7 +72,6 @@ contains
       p(i)%x(     1:enc%params%dim) = enc%x(1:enc%params%dim, i)
       p(i)%data%v(1:enc%params%dim) = enc%v(1:enc%params%dim, i) 
     end do
-    
   end subroutine
     
   !> internal helper for getting a pointer value (i.e. the address of the pointee)
