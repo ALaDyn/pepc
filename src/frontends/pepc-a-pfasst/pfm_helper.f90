@@ -28,7 +28,7 @@ module pfm_helper
         integer, dimension(max_nlevels) :: nnodes  = 3
     end type pf_nml_t
     
-contains
+  contains
 
 
     !> Read params from file, init MPI communication, split into TIME and SPACE communicators
@@ -58,7 +58,7 @@ contains
           !inform the user about possible issues concerning MPI thread safety
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
                          MPI_THREAD_LEVEL, provided
-          write(*,'(a/)') "Initializing with provided level of multithreading. This can lead to incorrect results or crashes."
+          write(*,'(a/)') 'Initializing with provided level of multithreading. This can lead to incorrect results or crashes.'
         end if
 
         call read_in_pf_params(pf_nml, mpi_rank, MPI_COMM_WORLD)
@@ -94,11 +94,13 @@ contains
 
 
     !> Sets up parameters on each level and defines initial RHS (as "old" u value)
-    subroutine pfm_setup_solver_level_params(particles, level_params, nlevels, dim, comm)
+    subroutine pfm_setup_solver_level_params(particles, level_params, nlevels, nml, dim, comm)
         use pf_mod_mpi
         use pfm_encap
+        use pepca_helper, only: pepca_nml_t
         implicit none
         
+        type(pepca_nml_t), intent(in) :: nml
         type(app_params_t), pointer, intent(inout) :: level_params(:)
         integer, intent(in) :: nlevels
         integer(kind_dim), intent(in) :: dim
@@ -114,7 +116,7 @@ contains
             ! add any parameters from app_params_t here
             F%nparts = size(particles)
             F%theta  = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
-            F%directforce = .false. ! TODO: use value from pepc namelist
+            F%directforce = nml%directforce ! TODO: use value from pepc namelist
             F%dim    = dim
             F%comm   = comm
             F%particles => particles ! we will use this pointer to get easy access to particle properties, this is wrong - we have to use the levelctx instead

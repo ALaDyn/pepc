@@ -13,7 +13,7 @@ module pfm_feval
 contains
 
     !> Initialize feval, i.e. transfer initial u to PFASST data object
-    subroutine feval_init(y0, yend, nlevels, levelctx, encapctx) ! TODO: shouldnt we call this function once per level?
+    subroutine feval_init(y0, yend, nlevels, levelctx, encapctx) ! FIXME: shouldnt we call this function once per level?
       use iso_c_binding
       use module_pepc_types, only: t_particle
       implicit none
@@ -91,7 +91,7 @@ contains
       allocate(particles(a%params%nparts))
       call encap_to_particles(particles, xptr, ctx)
       call pepc_particleresults_clear(particles)
-      call eval_force(particles, levelctx%directforce, step)
+      call eval_force(particles, levelctx%directforce, step, levelctx%comm)
       
       ! compute accelerations from fields
       do i=1,size(particles, kind=kind(i))
@@ -107,16 +107,17 @@ contains
 
     
     !> invoke pepc or direct sum
-    subroutine eval_force(particles, directforce, step)
+    subroutine eval_force(particles, directforce, step, comm)
       use module_debug
       use module_pepc
       implicit none
       type(t_particle), allocatable, target, intent(inout) :: particles(:)
       logical, intent(in) :: directforce
       integer, intent(in) :: step
+      integer(kind_default), intent(in) :: comm
       
       if (directforce) then
-        ! TODO: implement directforce
+        call compute_force_direct(particles, comm)
       else
         call pepc_grow_tree(particles)
         call pepc_traverse_tree(particles)
@@ -128,4 +129,26 @@ contains
     end subroutine
        
 
+    subroutine compute_force_direct(particles, comm)
+      use module_pepc_types
+      use module_timings
+      use module_directsum
+      use module_debug, only : pepc_status
+      use module_interaction_specific_types, only: t_particle_results
+      implicit none
+      type(t_particle), intent(inout) :: particles(:) !< input particle data, initializes %x, %data appropriately (and optionally set %label) before calling this function
+      integer(kind_default), intent(in) :: comm
+
+      integer(kind_particle) :: i
+      type(t_particle_results), allocatable :: directresults(:)
+
+      call pepc_status('DIRECTSUM')
+
+      call timer_start(t_all)
+      call directforce(particles, [(i,i=1,size(particles,kind=kind_particle))], size(particles,kind=kind_particle), directresults, comm)
+      particles(:)%results = directresults(:)
+      deallocate(directresults)
+      call timer_stop(t_all)
+    end subroutine
+    
 end module pfm_feval
