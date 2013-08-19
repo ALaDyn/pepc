@@ -8,7 +8,7 @@ module pfm_encap
   !> data type for level-dependent application parameters
   !> if any parameters are added here, they also have to be included in #pfm_setup_solver_level_params
   type :: app_params_t
-    integer :: n_el, n_ion
+    integer :: nparts
     integer :: dim
     real*8 :: theta
     integer(kind_default) :: comm
@@ -38,7 +38,7 @@ contains
     
     call c_f_pointer(ptrenc, enc)
     
-    DEBUG_ASSERT(enc%params%n_el+enc%params%n_ion==size(p))
+    DEBUG_ASSERT(enc%params%nparts==size(p))
 
     do i=1,size(p)
       enc%x(1:enc%params%dim, i) = p(i)%x(     1:enc%params%dim)
@@ -64,8 +64,8 @@ contains
     call c_f_pointer(ptrenc, enc)
     call c_f_pointer(levelctx, levelparams)
     
-    DEBUG_ASSERT(enc%params%n_el+enc%params%n_ion==size(p))
-    DEBUG_ASSERT(enc%params%n_el+enc%params%n_ion==size(levelparams%particles))
+    DEBUG_ASSERT(enc%params%nparts==size(p))
+    DEBUG_ASSERT(enc%params%nparts==size(levelparams%particles))
 
     do i=1,size(p)
       p(i) = levelparams%particles(i) ! FIXME: here we set coordinates and velocities but overwrite them again in the next lines
@@ -127,13 +127,13 @@ contains
 
     call c_f_pointer(levelctx, p)
 
-    DEBUG_ASSERT(nvars==(2*p%dim)*(p%n_el+p%n_ion)) ! dim*(coordinates and momenta) per particle
+    DEBUG_ASSERT(nvars==(2*p%dim)*(p%nparts)) ! dim*(coordinates and momenta) per particle
 
     allocate(q)
     q%params = p
     
-    allocate(q%x(q%params%dim,q%params%n_el+q%params%n_ion))
-    allocate(q%v(q%params%dim,q%params%n_el+q%params%n_ion))
+    allocate(q%x(q%params%dim,q%params%nparts))
+    allocate(q%v(q%params%dim,q%params%nparts))
     
     sol = c_loc(q)
     
@@ -181,18 +181,18 @@ contains
     select case (which)
     case (0)
       ! set value for x and v
-      do i=1,q%params%n_el+q%params%n_ion
+      do i=1,q%params%nparts
         q%x(:,i) = val
         q%v(:,i) = val
       end do
     case (1)
       ! set value for v
-      do i=1,q%params%n_el+q%params%n_ion
+      do i=1,q%params%nparts
         q%v(:,i) = val
       end do
     case (2)
       ! set value for x
-      do i=1,q%params%n_el+q%params%n_ion
+      do i=1,q%params%nparts
         q%x(:,i) = val
       end do
     case default
@@ -218,8 +218,7 @@ contains
     call c_f_pointer(dstptr,dst)
     call c_f_pointer(srcptr,src)
 
-    DEBUG_ASSERT(src%params%n_el ==dst%params%n_el )
-    DEBUG_ASSERT(src%params%n_ion==dst%params%n_ion)
+    DEBUG_ASSERT(src%params%nparts==dst%params%nparts)
 
     which = 0
     if (present(flags)) which = flags
@@ -227,18 +226,18 @@ contains
     select case (which)
     case (0)
       ! copy value for x and v
-      do i=1,src%params%n_el+src%params%n_ion
+      do i=1,src%params%nparts
        dst%x(:,i) = src%x(:,i)
        dst%v(:,i) = src%v(:,i)
       end do
     case (1)
       ! copy value for v
-      do i=1,src%params%n_el+src%params%n_ion
+      do i=1,src%params%nparts
        dst%v(:,i) = src%v(:,i)
       end do
     case (2)
       ! copy value for x
-      do i=1,src%params%n_el+src%params%n_ion
+      do i=1,src%params%nparts
        dst%x(:,i) = src%x(:,i)
       end do
     case default
@@ -261,7 +260,7 @@ contains
     call c_f_pointer(ptr, q)
 
     j = 1
-    do i=1,q%params%n_el+q%params%n_ion
+    do i=1,q%params%nparts
       z(j:j+q%params%dim-1) = q%x(1:q%params%dim, i)
       j = j+q%params%dim
       z(j:j+q%params%dim-1) = q%v(1:q%params%dim, i)
@@ -286,7 +285,7 @@ contains
     call c_f_pointer(ptr, q)
 
     j = 1
-    do i=1,q%params%n_el+q%params%n_ion
+    do i=1,q%params%nparts
       q%x(1:q%params%dim, i) = z(j:j+q%params%dim-1)
       j = j+q%params%dim
       q%v(1:q%params%dim, i) = z(j:j+q%params%dim-1)
@@ -316,27 +315,26 @@ contains
     call c_f_pointer(xptr, x)
     call c_f_pointer(yptr, y)
     
-    DEBUG_ASSERT(x%params%n_el ==y%params%n_el)
-    DEBUG_ASSERT(x%params%n_ion==y%params%n_ion)
+    DEBUG_ASSERT(x%params%nparts==y%params%nparts)
 
     which = 0
     if (present(flags)) which = flags
     select case (which)
     case (0)
-      do i=1,x%params%n_el+x%params%n_ion
+      do i=1,x%params%nparts
         y%x(:,i) = a * x%x(:,i) + y%x(:,i)
         y%v(:,i) = a * x%v(:,i) + y%v(:,i)
       end do
     case (1)
-      do i=1,x%params%n_el+x%params%n_ion
+      do i=1,x%params%nparts
         y%v(:,i) = a * x%v(:,i) + y%v(:,i)
       end do
     case (2)
-      do i=1,x%params%n_el+x%params%n_ion
+      do i=1,x%params%nparts
         y%x(:,i) = a * x%x(:,i) + y%x(:,i)
       end do
     case (12)
-      do i=1,x%params%n_el+x%params%n_ion
+      do i=1,x%params%nparts
         y%x(:,i) = a * x%v(:,i) + y%x(:,i)
       end do
     case default
@@ -361,7 +359,7 @@ contains
     call c_f_pointer(ptr, q)
 
     norm_loc = 0.
-    do i=1,q%params%n_el+q%params%n_ion
+    do i=1,q%params%nparts
       norm_loc = maxval([norm_loc, maxval(q%x(:,i)), maxval(q%v(:,i))])
     end do
 

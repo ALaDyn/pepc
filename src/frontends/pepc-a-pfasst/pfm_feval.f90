@@ -29,8 +29,8 @@ contains
 
       call c_f_pointer(levelctx, params)
 
-      call encap_create(  y0_c, nlevels, -1, (2*params%dim)*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim*(coordinates and momenta) per particle
-      call encap_create(yend_c, nlevels, -1, (2*params%dim)*(params%n_el+params%n_ion), [-1], levelctx, encapctx) ! dim*(coordinates and momenta) per particle
+      call encap_create(  y0_c, nlevels, -1, (2*params%dim)*params%nparts, [-1], levelctx, encapctx) ! dim*(coordinates and momenta) per particle
+      call encap_create(yend_c, nlevels, -1, (2*params%dim)*params%nparts, [-1], levelctx, encapctx) ! dim*(coordinates and momenta) per particle
 
       call c_f_pointer(  y0_c, y0)
       call c_f_pointer(yend_c, yend)
@@ -68,7 +68,7 @@ contains
       integer(c_int), intent(in)        :: level
       
       type(t_particle), allocatable :: particles(:)
-      type(app_data_t), pointer :: a
+      type(app_data_t), pointer :: a,x
       integer(kind_particle) :: i
       
       call pepc_status('|------> eval_acceleration()')
@@ -76,9 +76,12 @@ contains
       call ptr_print('a', aptr)
      
       call c_f_pointer(aptr, a)
+      call c_f_pointer(xptr, x)
+      
+      DEBUG_ASSERT(a%params%nparts==x%params%nparts)
       
       ! prepare and run PEPC
-      allocate(particles(a%params%n_el+a%params%n_ion))
+      allocate(particles(a%params%nparts))
       call encap_to_particles(particles, xptr, ctx)   ! TODO: ctx might be a level context instead of an encap context...
       call pepc_particleresults_clear(particles)
       call pepc_grow_tree(particles)

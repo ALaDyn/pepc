@@ -21,7 +21,7 @@ module pfm_helper
         logical :: color_time_div       = .true.
         logical :: echo_errors          = .true.
         logical :: echo_timings         = .false.
-        real(kind=8) :: te              = 5.
+        real(kind=8) :: tend            = 1.
         real(kind=8) :: res_tol         = 0d0
         integer :: nsteps               = 1
         integer, dimension(max_nlevels) :: nsweeps = 1
@@ -94,14 +94,13 @@ contains
 
 
     !> Sets up parameters on each level and defines initial RHS (as "old" u value)
-    subroutine pfm_setup_solver_level_params(particles, level_params, nlevels, numparts, dim, comm)
+    subroutine pfm_setup_solver_level_params(particles, level_params, nlevels, dim, comm)
         use pf_mod_mpi
         use pfm_encap
         implicit none
         
         type(app_params_t), pointer, intent(inout) :: level_params(:)
         integer, intent(in) :: nlevels
-        integer(kind_particle), intent(in) :: numparts
         integer(kind_dim), intent(in) :: dim
         integer(kind_default), intent(in) :: comm
         type(t_particle), allocatable, target, intent(in) :: particles(:)
@@ -113,11 +112,10 @@ contains
         do i = 1, nlevels
           associate (F=>level_params(i))
             ! add any parameters from app_params_t here
-            F%n_el  = numparts
-            F%n_ion = numparts
-            F%theta = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
-            F%dim   = dim
-            F%comm  = comm
+            F%nparts = size(particles)
+            F%theta  = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
+            F%dim    = dim
+            F%comm   = comm
             F%particles => particles ! we will use this pointer to get easy access to particle properties, this is wrong - we have to use the levelctx instead
           end associate
         end do
@@ -138,11 +136,10 @@ contains
         do i = 1, nlevels
           associate (F=>level_params(i))
             ! add any parameters from app_params_t here
-            F%n_el  = -1
-            F%n_ion = -1
-            F%theta = -1
-            F%dim   = -1
-            F%comm  = -1
+            F%nparts = -1
+            F%theta  = -1
+            F%dim    = -1
+            F%comm   = -1
             nullify(F%particles)
           end associate
         end do
@@ -175,7 +172,7 @@ contains
 
             pf%levels(i)%nnodes      = pf_nml%nnodes(i)
             pf%levels(i)%nsweeps     = pf_nml%nsweeps(i)
-            pf%levels(i)%nvars       = (2*level_params(i)%dim)*(level_params(i)%n_el+level_params(i)%n_ion) ! dim*(coordinates and momenta) per particle
+            pf%levels(i)%nvars       = (2*level_params(i)%dim)*level_params(i)%nparts ! dim*(coordinates and momenta) per particle
 
             pf%levels(i)%interpolate => interpolate
             pf%levels(i)%restrict    => restrict
@@ -210,13 +207,13 @@ contains
         logical :: echo_timings
         logical :: color_space_div
         logical :: color_time_div
-        real(kind=8) :: te
+        real(kind=8) :: tend
         real(kind=8) :: res_tol
         integer :: nsteps
         integer, dimension(max_nlevels) :: nsweeps
         integer, dimension(max_nlevels) :: nnodes
 
-        namelist /pf_nml/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, te, nsteps, nsweeps, res_tol, color_space_div, color_time_div
+        namelist /pf_nml/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div
 
         logical :: available
         character(len=255) :: file_name
@@ -230,7 +227,7 @@ contains
         echo_timings        = pf_namelist%color_time_div
         color_space_div     = pf_namelist%echo_errors
         color_time_div      = pf_namelist%echo_timings
-        te      = pf_namelist%te
+        tend    = pf_namelist%tend
         res_tol = pf_namelist%res_tol
         nsteps  = pf_namelist%nsteps
         nsweeps = pf_namelist%nsweeps
@@ -273,7 +270,7 @@ contains
         pf_namelist%color_time_div      = color_time_div
         pf_namelist%echo_errors         = echo_errors
         pf_namelist%echo_timings        = echo_timings
-        pf_namelist%te                  = te
+        pf_namelist%tend                = tend
         pf_namelist%res_tol             = res_tol
         pf_namelist%nsteps              = nsteps
         pf_namelist%nsweeps(1:nlevels)  = nsweeps(1:nlevels)

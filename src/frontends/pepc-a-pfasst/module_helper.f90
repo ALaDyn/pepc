@@ -48,24 +48,27 @@ module pepca_helper
     ! MPI variables
     integer(kind_pe) :: rank, nrank
     ! time variables
-    real*8 :: dt   = 0.2    !< timestep (initially in fs, later in simunits)
-    integer :: nt  = 20000     !< number of timesteps
+    real*8  :: dt  !< timestep (in simunits), set via pfasst parameters
+    integer :: nt  !< number of timesteps, set via pfasst parameters
     ! configuration variables
     integer :: particle_config = 0
+    ! number of particles per species and rank
     integer(kind_particle) :: numparts = 2500 !296568
     ! control variables
     integer :: particle_output_interval = 0     !< turn vtk output on/off
-    integer :: domain_output_interval =  0       !< turn vtk output on/off
+    integer :: domain_output_interval   = 0     !< turn vtk output on/off
   end type
 
   contains
   
-  subroutine pepca_init(nml, particles)
+  subroutine pepca_init(nml, particles, dt, nt)
     implicit none
     type(pepca_nml_t), intent(inout) :: nml
     type(t_particle), allocatable, target, intent(out) :: particles(:)
+    real*8, intent(in)  :: dt
+    integer, intent(in) :: nt
     
-    call set_parameter(nml)
+    call set_parameter(nml, dt, nt)
     call setup_particles(particles, nml)
     
   end subroutine
@@ -94,21 +97,21 @@ module pepca_helper
   
   
 
-  subroutine set_parameter(nml)
+  subroutine set_parameter(nml, dt, nt)
     use module_pepc
     use module_interaction_specific, only : theta2, eps2
     use treevars, only : num_threads, np_mult
     implicit none
     
     type(pepca_nml_t), intent(inout) :: nml
+    real*8, intent(in)  :: dt
+    integer, intent(in) :: nt
 
     integer, parameter :: fid = 12
     character(255)     :: para_file
     logical            :: read_para_file
 
     integer :: Ngrid(1:3)
-    real*8  :: dt
-    integer :: nt
     integer :: particle_config
     integer(kind_particle) :: numparts
     integer :: particle_output_interval
@@ -116,12 +119,10 @@ module pepca_helper
 
     real*8 :: eps = 1.e-5 ! interaction cutoff parameter
 
-    namelist /pepcandreev/ nt, dt, particle_output_interval, domain_output_interval, eps, Ngrid, particle_config, numparts
+    namelist /pepcandreev/ particle_output_interval, domain_output_interval, eps, Ngrid, particle_config, numparts
     
     ! frontend parameters
     Ngrid           = nml%Ngrid
-    dt              = nml%dt
-    nt              = nml%nt
     particle_config = nml%particle_config
     numparts        = nml%numparts
     particle_output_interval = nml%particle_output_interval
@@ -132,12 +133,14 @@ module pepca_helper
     
     ! frontend parameters
     nml%Ngrid           = Ngrid
-    nml%dt              = dt / unit_time_fs_per_simunit ! now, dt is in sim units
-    nml%nt              = nt
     nml%particle_config = particle_config
-    nml%numparts        = numparts
+    nml%numparts        = numparts/nml%nrank
+    if (mod(numparts, nml%nrank) <= nml%rank) nml%numparts = nml%numparts + 1
     nml%particle_output_interval = particle_output_interval
     nml%domain_output_interval = domain_output_interval
+    ! derived from pfasst parameters
+    nml%dt              = dt 
+    nml%nt              = nt
     ! pepc parameters
     theta2      = 0.36
     num_threads = 8
