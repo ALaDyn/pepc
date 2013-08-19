@@ -1,0 +1,83 @@
+&pepcapfasst
+
+  ! total number of particles per species (electrons, ions) - overall total number of particles will be 2*numparts
+  numparts = 2500
+  
+  ! initial particle setup
+  ! 0 --> randomly filled cube
+  ! 1 --> read numparts particles from files 'E_phase_space.dat' and 'I_phase_space.dat'
+  particle_config = 0
+
+  ! choice of integrator  
+  ! true  --> use pfasst-verlet integrator
+  ! false --> use default verlet integrator
+  use_pfasst = .true.
+  
+  ! true  --> evaluate forces directly: O(N**2) but exact
+  ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
+  directforce = .false.
+
+  ! timestep interval for particle and tree output to vtk (and ascii for particles)
+  particle_output_interval = 0
+  domain_output_interval   = 0
+  
+  ! Plummer potential screening length in microns
+  eps = 1.e-5
+  
+  ! number of grid cells in each spatial direction for particle density output
+  Ngrid = 500 1000 1
+/
+
+&pfasst
+  tend    = 1
+  nsteps  = 1 
+  niter   = 1
+  nlevels = 1
+  nsweeps = 1
+  nnodes  = 3
+  
+  res_tol = 0.
+  
+  num_space_instances = 1
+  color_space_div     = .true
+  color_time_div      = .true
+  
+  echo_timings        = .true
+  echo_errors         = .true.
+/
+
+&libpepc
+ ! number of additional threads
+ num_threads = 8
+ ! debug level bitmask
+ ! 0 --> no debug output
+ ! 1 --> print status
+ ! see module_debug.f90 for more options
+ debug_level = 1
+
+ ! load balancing
+ ! 0 --> no load balancing
+ ! 1 --> load balancing active
+ weighted = 1
+
+ ! type of space-filling curve
+ ! 0 --> Z-curve
+ ! 1 --> Hilbert-curve
+ curve_type = 1
+ 
+ ! internal memory allocation parameters
+ np_mult = 1.0
+ interaction_list_length_factor = 4
+/
+
+
+&calc_force_log2d
+  ! default barnes-hut mac
+  mac_select = 0
+  ! mac theta = 0.6  
+  theta2 = 0.36
+/
+
+&walk_para_pthreads
+  max_particles_per_thread = 500
+/

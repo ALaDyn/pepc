@@ -29,12 +29,6 @@ module pepca_helper
   private
   save
 
-  ! timing variables
-  integer, public, parameter :: t_user_total       = t_userdefined_first
-  integer, public, parameter :: t_user_init        = t_userdefined_first + 1
-  integer, public, parameter :: t_user_step        = t_userdefined_first + 2
-  integer, public, parameter :: t_user_diag        = t_userdefined_first + 3
-  
   public pepca_init
   public pepca_nml_t
 
@@ -57,6 +51,10 @@ module pepca_helper
     ! control variables
     integer :: particle_output_interval = 0     !< turn vtk output on/off
     integer :: domain_output_interval   = 0     !< turn vtk output on/off
+    ! use direct force instead of PEPC
+    logical :: directforce = .false.
+    ! use PFASST
+    logical :: use_pfasst = .true.
   end type
 
   contains
@@ -116,10 +114,11 @@ module pepca_helper
     integer(kind_particle) :: numparts
     integer :: particle_output_interval
     integer :: domain_output_interval
+    logical :: directforce, use_pfasst
 
     real*8 :: eps = 1.e-5 ! interaction cutoff parameter
 
-    namelist /pepcandreev/ particle_output_interval, domain_output_interval, eps, Ngrid, particle_config, numparts
+    namelist /pepcapfasst/ particle_output_interval, domain_output_interval, eps, Ngrid, particle_config, numparts, directforce, use_pfasst
     
     ! frontend parameters
     Ngrid           = nml%Ngrid
@@ -127,19 +126,32 @@ module pepca_helper
     numparts        = nml%numparts
     particle_output_interval = nml%particle_output_interval
     domain_output_interval   = nml%domain_output_interval
+    directforce     = nml%directforce
+    use_pfasst      = nml%use_pfasst
 
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
     
+    if (read_para_file) then
+      if(nml%rank==0) write(*,'(a)') ' == reading parameter file, section pepcapfasst: ', para_file
+      open(fid,file=para_file)
+      read(fid,NML=pepcapfasst)
+      close(fid)
+    else
+      if(nml%rank==0) write(*,*) ' == no param file, using default parameters '
+    end if    
+
     ! frontend parameters
     nml%Ngrid           = Ngrid
     nml%particle_config = particle_config
     nml%numparts        = numparts/nml%nrank
-    if (mod(numparts, nml%nrank) <= nml%rank) nml%numparts = nml%numparts + 1
+    if (mod(numparts, nml%nrank) < nml%rank) nml%numparts = nml%numparts + 1
     nml%particle_output_interval = particle_output_interval
     nml%domain_output_interval = domain_output_interval
+    nml%directforce     = directforce
+    nml%use_pfasst      = use_pfasst
     ! derived from pfasst parameters
-    nml%dt              = dt 
+    nml%dt              = dt
     nml%nt              = nt
     ! pepc parameters
     theta2      = 0.36
@@ -147,21 +159,13 @@ module pepca_helper
     np_mult     = -500
     eps2 = (eps/unit_length_micron_per_simunit)**2
 
-    if (read_para_file) then
-      if(nml%rank==0) write(*,'(a)') ' == reading parameter file, section pepcandreev: ', para_file
-      open(fid,file=para_file)
-      read(fid,NML=pepcandreev)
-      close(fid)
-    else
-      if(nml%rank==0) write(*,*) ' == no param file, using default parameters '
-    end if    
-
     if(nml%rank==0) then
-      write(*,'(a,i12)')       " == number of time steps      : ", nml%nt
-      write(*,'(a,es12.4)')    " == time step (fs)            : ", nml%dt*unit_time_fs_per_simunit
-      write(*,'(a,es12.4)')    " == final time (ns)           : ", nml%dt*nml%nt*unit_time_fs_per_simunit
-      write(*,'(a,l12)')       " == particle output interval  : ", nml%particle_output_interval
-      write(*,'(a,l12)')       " == domain output interval    : ", nml%domain_output_interval
+      write(*,'(a,i12)')       ' == number of particles per spec : ', nml%numparts
+      write(*,'(a,i12)')       ' == number of time steps         : ', nml%nt
+      write(*,'(a,es12.4)')    ' == time step (fs)               : ', nml%dt*unit_time_fs_per_simunit
+      write(*,'(a,es12.4)')    ' == final time (ns)              : ', nml%dt*nml%nt*unit_time_fs_per_simunit
+      write(*,'(a,l12)')       ' == particle output interval     : ', nml%particle_output_interval
+      write(*,'(a,l12)')       ' == domain output interval       : ', nml%domain_output_interval
     end if
 
     call pepc_prepare(dim)
@@ -181,7 +185,7 @@ module pepca_helper
 
     ! FIXME: currently, we read all particles on the root rank of MPI_COMM_SPACE; thus, particle numbers should be zero on all others
     if(rank==0) then
-      write(*,'(a, 2(x,a))') " == [load] reading particles from files", file_el, file_ion
+      write(*,'(a, 2(x,a))') ' == [load] reading particles from files', file_el, file_ion
     
       ! we read all particles the root rank
 

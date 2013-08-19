@@ -11,6 +11,7 @@ module pfm_encap
     integer :: nparts
     integer :: dim
     real*8 :: theta
+    logical :: directforce
     integer(kind_default) :: comm
     type(t_particle), pointer :: particles(:)
   end type

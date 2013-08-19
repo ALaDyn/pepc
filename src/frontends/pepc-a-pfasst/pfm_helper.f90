@@ -14,7 +14,7 @@ module pfm_helper
 
     !> pfasst parameter collection
     type pf_nml_t
-        integer :: niter                = 3
+        integer :: niter                = 1
         integer :: nlevels              = 1!max_nlevels
         integer :: num_space_instances  = 1
         logical :: color_space_div      = .true.
@@ -114,6 +114,7 @@ contains
             ! add any parameters from app_params_t here
             F%nparts = size(particles)
             F%theta  = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
+            F%directforce = .false. ! TODO: use value from pepc namelist
             F%dim    = dim
             F%comm   = comm
             F%particles => particles ! we will use this pointer to get easy access to particle properties, this is wrong - we have to use the levelctx instead
@@ -138,6 +139,7 @@ contains
             ! add any parameters from app_params_t here
             F%nparts = -1
             F%theta  = -1
+            F%directforce = .false.
             F%dim    = -1
             F%comm   = -1
             nullify(F%particles)
@@ -213,7 +215,7 @@ contains
         integer, dimension(max_nlevels) :: nsweeps
         integer, dimension(max_nlevels) :: nnodes
 
-        namelist /pf_nml/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div
+        namelist /pfasst/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div
 
         logical :: available
         character(len=255) :: file_name
@@ -252,7 +254,7 @@ contains
             call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, comm, ierr )
             open(para_file_id,file=trim(file_name),action='read')
             rewind(para_file_id)
-            read(para_file_id, NML=pf_nml)
+            read(para_file_id, NML=pfasst)
             close(para_file_id)
 
             pf_namelist%nlevels = nlevels

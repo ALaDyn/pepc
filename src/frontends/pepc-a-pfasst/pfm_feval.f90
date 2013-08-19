@@ -8,6 +8,7 @@ module pfm_feval
     public feval_init
     public feval_finalize
     public eval_acceleration
+    public eval_force
 
 contains
 
@@ -69,26 +70,28 @@ contains
       
       type(t_particle), allocatable :: particles(:)
       type(app_data_t), pointer :: a,x
+      type(app_params_t), pointer :: levelctx
       integer(kind_particle) :: i
+      integer, save :: step =0
       
       call pepc_status('|------> eval_acceleration()')
       call ptr_print('x', xptr)
       call ptr_print('a', aptr)
+      call ptr_print('ctx', ctx)
      
       call c_f_pointer(aptr, a)
       call c_f_pointer(xptr, x)
+      call c_f_pointer(ctx, levelctx)
+      
+      step = step + 1
       
       DEBUG_ASSERT(a%params%nparts==x%params%nparts)
       
       ! prepare and run PEPC
       allocate(particles(a%params%nparts))
-      call encap_to_particles(particles, xptr, ctx)   ! TODO: ctx might be a level context instead of an encap context...
+      call encap_to_particles(particles, xptr, ctx)
       call pepc_particleresults_clear(particles)
-      call pepc_grow_tree(particles)
-      call pepc_traverse_tree(particles)
-      call pepc_restore_particles(particles)
-      !FIXME if (dbg(DBG_STATS)) call pepc_statistics(step)
-      call pepc_timber_tree()
+      call eval_force(particles, levelctx%directforce, step)
       
       ! compute accelerations from fields
       do i=1,size(particles, kind=kind(i))
@@ -101,6 +104,28 @@ contains
       deallocate(particles)
 
     end subroutine eval_acceleration
+
+    
+    !> invoke pepc or direct sum
+    subroutine eval_force(particles, directforce, step)
+      use module_debug
+      use module_pepc
+      implicit none
+      type(t_particle), allocatable, target, intent(inout) :: particles(:)
+      logical, intent(in) :: directforce
+      integer, intent(in) :: step
+      
+      if (directforce) then
+        ! TODO: implement directforce
+      else
+        call pepc_grow_tree(particles)
+        call pepc_traverse_tree(particles)
+        call pepc_restore_particles(particles)
+        if (dbg(DBG_STATS)) call pepc_statistics(step)
+        call pepc_timber_tree()
+      endif
+      
+    end subroutine
        
 
 end module pfm_feval
