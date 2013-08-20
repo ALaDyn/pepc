@@ -266,8 +266,8 @@ module pepca_helper
             p(j)%data%m      =  unit_me
           else
             p(j)%label       = -l
-            p(j)%data%q      =  unit_qe
-            p(j)%data%m      =  unit_me
+            p(j)%data%q      =  unit_qp
+            p(j)%data%m      =  unit_mp
           endif
 
           p(j)%work          =  1.0
