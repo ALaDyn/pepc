@@ -156,7 +156,9 @@ program pepc
   endif
 
   call pepc_finalize()
-  call MPI_Finalize( mpi_err )
+  call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)
+  call MPI_COMM_FREE(MPI_COMM_SPACE, mpi_err)
+  call MPI_FINALIZE( mpi_err )
  
 end program pepc
 
