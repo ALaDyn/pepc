@@ -10,7 +10,7 @@ module pfm_feval
     public eval_acceleration
     public eval_force
 
-contains
+  contains
 
     !> Initialize feval, i.e. transfer initial u to PFASST data object
     subroutine feval_init(y0, yend, nlevels, levelctx, encapctx) ! FIXME: shouldnt we call this function once per level?

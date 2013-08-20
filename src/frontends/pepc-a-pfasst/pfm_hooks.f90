@@ -24,7 +24,7 @@ contains
 
     type(t_particle), allocatable, target :: particles(:)
     type(app_params_t), pointer :: levelctx
-    real*8 :: energies(E_MAXIDX)
+    real*8 :: energies(E_MAXIDX), delen
     real(pfdp) ::  t
     
     call pepc_status('------------- track_energy_hook')
@@ -42,6 +42,12 @@ contains
     
     call diagnose_energy(particles, energies, state%step+1, t, levelctx%comm, levelctx%root)
     
+    delen = abs(energies(E_TOT)-levelctx%initial_energies(E_TOT))/abs(levelctx%initial_energies(E_TOT))
+    
+    if (levelctx%root) then
+      write(*, '(" step: ",i5," t=", es10.3," iter: ",i3," dH: ",es14.7)') state%step+1, t,state%iter, delen
+    endif
+
     
   end subroutine 
  

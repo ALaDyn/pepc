@@ -24,6 +24,7 @@ program pepc
   use module_pepc_types
   use module_timings
   use module_debug
+  use module_checkpoint
   ! frontend helper routines
   use pepca_helper
   use pepca_integrator
@@ -44,6 +45,7 @@ program pepc
 
   type(pepca_nml_t) :: pepca_nml
   integer :: step
+  character(100) :: filename
   
   ! variables for pfasst
   integer(kind_default):: MPI_COMM_SPACE, MPI_COMM_TIME, mpi_err
@@ -74,7 +76,7 @@ program pepc
       call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
 
       call pfm_encap_init(encap)
-      call pfm_setup_solver_level_params(particles, level_params, pf_nml%nlevels, pepca_nml, dim, MPI_COMM_SPACE) ! numparts is per species, so total number of particles will be 2*numparts
+      call pfm_setup_solver_level_params(particles, level_params, pf_nml%nlevels, pepca_nml, dim, MPI_COMM_SPACE)
       call pf_verlet_create(sweeper, eval_acceleration)
       call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
@@ -116,12 +118,11 @@ program pepc
       call pf_verlet_destroy(sweeper)
       call pfm_finalize_solver_level_params(level_params, pf_nml%nlevels)
    else ! use PEPC
-      associate (my_rank => pepca_nml%rank, &
-                 domain_output_interval => pepca_nml%domain_output_interval, &
-                 particle_output_interval => pepca_nml%particle_output_interval, &
-                 Ngrid => pepca_nml%Ngrid, dt => pepca_nml%dt, nt => pepca_nml%nt)
-        do step=0, pepca_nml%nt-1
-          if(my_rank==0) then
+      associate (Ngrid => pepca_nml%Ngrid, &
+                    dt => pepca_nml%dt,    &
+                    nt => pepca_nml%nt)
+        do step=0,nt-1
+          if(pepca_nml%rank==0) then
             write(*,*) " "
             write(*,'(a,i12,"/",i0)')   ' ====== computing step       :', step, nt-1
             write(*,'(a,f12.4)')        ' ====== simulation time (fs) :', step*dt*unit_time_fs_per_simunit
@@ -129,20 +130,19 @@ program pepc
 
           call eval_force(particles, pepca_nml%directforce, step, MPI_COMM_SPACE, clearresults=.true.)
             
-
           if (step > 0) then
             ! first half step to synchronize velocities with positions
             call update_velocities(particles, dt/2.)
           end if
 
           ! do diagnostics etc here
-          if ((particle_output_interval>0) .and. ((mod(step, particle_output_interval)==0) .or. (step==nt-1))) then
-            call write_particles_vtk(particles, step, nt, dt*step*unit_time_fs_per_simunit)
-            call write_particles_ascii(my_rank, step, particles)
-            call gather_and_write_densities(particles, Ngrid, step, nt, dt*step*unit_time_fs_per_simunit, my_rank)
-          endif
-          if ((domain_output_interval  >0) .and. ((mod(step, domain_output_interval)  ==0) .or. (step==nt-1))) call write_domain(   particles, step, nt, dt*step*unit_time_fs_per_simunit)
-          call diagnose_energy(particles, energies, step, dt*step*unit_time_fs_per_simunit, MPI_COMM_SPACE, my_rank==0)
+          if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_VTK), step, nt)) call write_particles_vtk(particles, step, nt, dt*step*unit_time_fs_per_simunit, MPI_COMM_SPACE)
+          if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_ASC), step, nt)) call write_particles_ascii(pepca_nml%rank, step, particles, filename)
+          if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_MPI), step, nt)) call write_particles_mpiio(MPI_COMM_SPACE, pepca_nml%rank, step, pepca_nml%numparts_total, particles, filename)
+          if (dumpnow(pepca_nml%output_interval(OI_DENSITIES_VTK), step, nt)) call gather_and_write_densities(particles, Ngrid, step, nt, dt*step*unit_time_fs_per_simunit, pepca_nml%rank)
+          if (dumpnow(pepca_nml%output_interval(OI_DOMAIN_VTK   ), step, nt)) call write_domain(particles, step, nt, dt*step*unit_time_fs_per_simunit)
+          
+          call diagnose_energy(particles, energies, step, dt*step*unit_time_fs_per_simunit, MPI_COMM_SPACE, pepca_nml%rank==0)
 
           ! second half step: velocities are one half step ahead again
           call update_velocities(particles, dt/2.)

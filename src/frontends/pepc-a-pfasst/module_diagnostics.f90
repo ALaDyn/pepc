@@ -27,10 +27,10 @@ module pepca_diagnostics
   save
     
     public write_particles_vtk
-    public write_particles_ascii
     public gather_and_write_densities
     public write_domain
     public diagnose_energy
+    public dumpnow
 
     integer, public, parameter :: E_KIN_E = 1
     integer, public, parameter :: E_POT_E = 2
@@ -44,6 +44,15 @@ module pepca_diagnostics
     integer, public, parameter :: E_MAXIDX = E_TOT
 
   contains
+  
+  logical function dumpnow(stepmod, step, nt)
+    implicit none
+    integer, intent(in) :: stepmod, step, nt
+    
+    dumpnow =        (stepmod>0) \
+              .and. ((mod(step, stepmod)==0) .or. (step==nt-1))
+  end function
+  
 
   integer function vtk_step_of_step(step, nt) result(vtk_step)
     use module_vtk
@@ -52,7 +61,7 @@ module pepca_diagnostics
 
     integer, intent(in) :: step, nt
 
-    if (step .eq. 0) then
+    if (step == 0) then
       vtk_step = VTK_STEP_FIRST
     else if (step == nt - 1) then
       vtk_step = VTK_STEP_LAST
@@ -62,7 +71,7 @@ module pepca_diagnostics
   end function vtk_step_of_step
 
 
-  subroutine write_particles_vtk(p, step, nt, realtime)
+  subroutine write_particles_vtk(p, step, nt, realtime, comm)
     use module_vtk_helpers
     use module_pepc_types
     use pepca_units
@@ -73,11 +82,12 @@ module pepca_diagnostics
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
     integer, intent(in) :: step, nt
+    integer(kind_default), intent(in) :: comm
 
     integer :: vtk_step
     
     vtk_step = vtk_step_of_step(step, nt)
-    call vtk_write_particles("particles", MPI_COMM_WORLD, step, realtime, vtk_step, p, vtk_results, unit_length_micron_per_simunit)
+    call vtk_write_particles("particles", comm, step, realtime, vtk_step, p, vtk_results, unit_length_micron_per_simunit)
 
     contains
 
@@ -93,39 +103,6 @@ module pepca_diagnostics
       call vtk_write_particle_data_results(d, r, vtkf)
     end subroutine
   end subroutine write_particles_vtk
-
-
-  subroutine write_particles_ascii(my_rank, itime, p)
-    use module_pepc_types
-    use module_utils
-    use pepca_units
-    implicit none
-    integer(kind_pe), intent(in) :: my_rank
-    integer(kind_default), intent(in) :: itime
-    type(t_particle), intent(in), dimension(:) :: p
-    logical :: firstcall  = .true.
-    character(50) :: dir
-    integer(kind_particle) :: i
-    character(100) :: filename
-    character(12), parameter :: directory = './particles'
-    integer, parameter :: filehandle = 43
-
-    dir = trim(directory)//"/ascii/"
-    write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(dir), itime, my_rank
-
-    if (firstcall) then
-      call create_directory(trim(directory))
-      call create_directory(trim(dir))
-      firstcall = .false.
-    endif
-
-    open(filehandle, file=trim(filename), STATUS='REPLACE')
-    do i=1, size(p,kind=kind(i))
-      write(filehandle,'(6(f8.3,x),f3.0)') p(i)%x(1:3)*unit_length_micron_per_simunit, p(i)%data%v(1:3), p(i)%data%q
-    end do
-    close(filehandle)
-
-  end subroutine
 
 
   subroutine gather_and_write_densities(p, Ngrid, step, nt, realtime, rank)

@@ -37,6 +37,13 @@ module pepca_helper
   ! side lengths of particle box for particle_config = 0
   real*8 :: boxdims(3) = [10, 10, 10]
 
+  integer, public, parameter :: OI_PARTICLES_VTK = 1
+  integer, public, parameter :: OI_PARTICLES_ASC = 2
+  integer, public, parameter :: OI_PARTICLES_MPI = 3
+  integer, public, parameter :: OI_DENSITIES_VTK = 4
+  integer, public, parameter :: OI_DOMAIN_VTK    = 5
+  integer, public, parameter :: OI_MAXIDX = OI_DOMAIN_VTK
+
   !> parameter collection for pepca
   type pepca_nml_t
     ! grid for density output
@@ -48,11 +55,12 @@ module pepca_helper
     integer :: nt  !< number of timesteps, set via pfasst parameters
     ! configuration variables
     integer :: particle_config = 0
-    ! number of particles per species and rank
-    integer(kind_particle) :: numparts = 2500 !296568
-    ! control variables
-    integer :: particle_output_interval = 0     !< turn vtk output on/off
-    integer :: domain_output_interval   = 0     !< turn vtk output on/off
+    ! total number of particles per species
+    integer(kind_particle) :: numparts_total = 2500 !296568
+    ! number of particles per species and rank, will be set automatically later
+    integer(kind_particle) :: numparts
+    ! output control intervals - set to 0 to deactivate output, see above for meaning of the fields
+    integer :: output_interval(OI_MAXIDX) = [1, 1, 1, 1, 1]
     ! use direct force instead of PEPC
     logical :: directforce = .false.
     ! use PFASST
@@ -113,23 +121,21 @@ module pepca_helper
 
     integer :: Ngrid(1:3)
     integer :: particle_config
-    integer(kind_particle) :: numparts
-    integer :: particle_output_interval
-    integer :: domain_output_interval
+    integer(kind_particle) :: numparts_total
     logical :: directforce, use_pfasst
+    integer :: output_interval(OI_MAXIDX)
 
     real*8 :: eps = 1.e-5 ! interaction cutoff parameter
 
-    namelist /pepcapfasst/ particle_output_interval, domain_output_interval, eps, Ngrid, particle_config, numparts, directforce, use_pfasst
+    namelist /pepcapfasst/ eps, Ngrid, particle_config, numparts_total, directforce, use_pfasst, output_interval
     
     ! frontend parameters
     Ngrid           = nml%Ngrid
     particle_config = nml%particle_config
-    numparts        = nml%numparts
-    particle_output_interval = nml%particle_output_interval
-    domain_output_interval   = nml%domain_output_interval
+    numparts_total  = nml%numparts_total
     directforce     = nml%directforce
     use_pfasst      = nml%use_pfasst
+    output_interval = nml%output_interval
 
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
@@ -146,12 +152,11 @@ module pepca_helper
     ! frontend parameters
     nml%Ngrid           = Ngrid
     nml%particle_config = particle_config
-    nml%numparts        = numparts/nml%nrank
-    if (mod(numparts, nml%nrank) < nml%rank) nml%numparts = nml%numparts + 1
-    nml%particle_output_interval = particle_output_interval
-    nml%domain_output_interval = domain_output_interval
+    nml%numparts        = numparts_total/nml%nrank
+    if (mod(numparts_total, nml%nrank) < nml%rank) nml%numparts = nml%numparts + 1
     nml%directforce     = directforce
     nml%use_pfasst      = use_pfasst
+    nml%output_interval = output_interval
     ! derived from pfasst parameters
     nml%dt              = dt
     nml%nt              = nt
@@ -162,14 +167,13 @@ module pepca_helper
     eps2 = (eps/unit_length_micron_per_simunit)**2
 
     if(nml%rank==0) then
-      write(*,'(a,i12)')       ' == number of particles per spec : ', nml%numparts
-      write(*,'(a,i12)')       ' == number of time steps         : ', nml%nt
-      write(*,'(a,es12.4)')    ' == time step (simunits)         : ', nml%dt
-      write(*,'(a,es12.4)')    ' == final time (simunits)        : ', nml%dt*nml%nt
-      write(*,'(a,es12.4)')    ' == time step (fs)               : ', nml%dt*unit_time_fs_per_simunit
-      write(*,'(a,es12.4)')    ' == final time (ns)              : ', nml%dt*nml%nt*unit_time_fs_per_simunit
-      write(*,'(a,l12)')       ' == particle output interval     : ', nml%particle_output_interval
-      write(*,'(a,l12)')       ' == domain output interval       : ', nml%domain_output_interval
+      write(*,'(a,i12)')       ' == total  of particles per spec          : ', nml%numparts
+      write(*,'(a,i12)')       ' == number of particles per spec and rank : ', nml%numparts
+      write(*,'(a,i12)')       ' == number of time steps                  : ', nml%nt
+      write(*,'(a,es12.4)')    ' == time step (simunits)                  : ', nml%dt
+      write(*,'(a,es12.4)')    ' == final time (simunits)                 : ', nml%dt*nml%nt
+      write(*,'(a,es12.4)')    ' == time step (fs)                        : ', nml%dt*unit_time_fs_per_simunit
+      write(*,'(a,es12.4)')    ' == final time (ns)                       : ', nml%dt*nml%nt*unit_time_fs_per_simunit
     end if
 
     call pepc_prepare(dim)
