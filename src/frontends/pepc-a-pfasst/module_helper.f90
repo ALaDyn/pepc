@@ -34,6 +34,8 @@ module pepca_helper
 
   ! dimension of space
   integer(kind_dim), public, parameter :: dim = 2
+  ! side lengths of particle box for particle_config = 0
+  real*8 :: boxdims(3) = [10, 10, 10]
 
   !> parameter collection for pepca
   type pepca_nml_t
@@ -242,7 +244,7 @@ module pepca_helper
     integer(kind_dim) :: k
 
     ! stupid parallel random number generation
-    if(rank==0) write(*,'(a, 2(x,a))') " == [generate] generating particles"
+    if(rank==0) write(*,'(a, 2(x,a))') ' == [generate] generating particles'
       
     pos = 0
     vel = 0
@@ -251,7 +253,7 @@ module pepca_helper
       do j=1,nel+nion
         l = l+1
         do k=1,dim
-          pos(k) = par_rand()
+          pos(k) = par_rand() * boxdims(k)
           vel(k) = par_rand()
         end do
 
