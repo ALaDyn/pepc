@@ -120,13 +120,13 @@ module module_checkpoint
           end subroutine
 
 
-          subroutine write_particles_mpiio(comm, my_rank, itime, n_total, dp, filename)
+          subroutine write_particles_mpiio(comm, itime, n_total, dp, filename)
             use module_pepc_types
             use module_debug
             use module_utils
             use module_pepc, only : pepc_write_parameters
             implicit none
-            integer(kind_pe), intent(in) :: my_rank
+            integer(kind_pe) :: my_rank
             integer(kind_default), intent(in) :: itime
             integer*8, intent(in) :: n_total
             integer, intent(in) :: comm
@@ -136,15 +136,24 @@ module module_checkpoint
             integer(KIND=MPI_OFFSET_KIND) :: disp
             logical :: firstcall  = .true.
             character(50) :: dir
+            integer(kind_particle) :: n_totsum
 
             dir = trim(directory)//"/mpi/"
             write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime
             call pepc_status("DUMP PARTICLES MPI: "//filename)
+            
+            call MPI_COMM_RANK( MPI_COMM_WORLD, my_rank, ierr )
 
             if (firstcall) then
               call create_directory(trim(directory))
               call create_directory(trim(dir))
               firstcall = .false.
+            endif
+
+            n_totsum = size(dp, kind=kind(n_totsum))
+            call MPI_ALLREDUCE(MPI_IN_PLACE, n_totsum,  1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr)
+            if (n_totsum .ne. n_total) then
+              DEBUG_ERROR('("Invalid total particle number: sum(nparticles_local) = ", I0, " but the data file says n_total = ", I0)', n_totsum, n_total)
             endif
 
             call MPI_FILE_OPEN(comm,filename,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
@@ -182,36 +191,36 @@ module module_checkpoint
           end subroutine
 
 
-          subroutine read_particles_mpiio(itime_in, comm, my_rank, n_cpu, itime, n_total, dp, filename)
+          subroutine read_particles_mpiio(itime_in, comm, itime, n_total, dp, filename, nparticles_local)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
             implicit none
-            integer(kind_pe), intent(in) :: my_rank, n_cpu
             integer(kind_default) :: itime_in
             integer(kind_default), intent(out) :: itime
-            integer*8, intent(out) :: n_total
+            integer(kind_particle), intent(out) :: n_total
             integer, intent(in) :: comm
             character(*), intent(out) :: filename
             type(t_particle), allocatable :: dp(:)
+            integer(kind_default), optional, intent(in) :: nparticles_local ! this has to be kind_default - not kind_particle as it is parameter to MPI functions
 
             character(50) :: dir
 
             dir = trim(directory)//"/mpi/"
             write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime_in
 
-            call read_particles_mpiio_from_filename(comm, my_rank, n_cpu, itime, n_total, dp, filename)
+            call read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local)
 
             filename = trim(filename)//".h"
           end subroutine
 
 
-          subroutine read_particles_mpiio_from_filename(comm, my_rank, n_cpu, itime, n_total, dp, filename)
+          subroutine read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
             implicit none
-            integer(kind_pe), intent(in) :: my_rank, n_cpu
+            integer(kind_pe) :: my_rank, n_cpu
             integer(kind_default), intent(out) :: itime
             integer(kind_default) :: np_local ! this has to be default - not kind_particle as it is parameter to MPI functions
             integer(kind_particle), intent(out) :: n_total
@@ -221,9 +230,14 @@ module module_checkpoint
             type(t_particle), allocatable :: dp(:)
             integer(kind_default) :: fh, ierr, status(MPI_STATUS_SIZE)
             integer(kind_particle) :: remain
+            integer(kind_default), optional, intent(in) :: nparticles_local ! this has to be kind_default - not kind_particle as it is parameter to MPI functions
+            integer(kind_particle) :: n_totsum
 
 
             call pepc_status("READ PARTICLES MPI: "//filename)
+            
+            call MPI_COMM_SIZE( MPI_COMM_WORLD, n_cpu,   ierr )
+            call MPI_COMM_RANK( MPI_COMM_WORLD, my_rank, ierr )
 
             call MPI_FILE_OPEN(comm,trim(filename),MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierr)
 
@@ -236,9 +250,19 @@ module module_checkpoint
             call MPI_FILE_READ(fh, n_total, 1, MPI_INTEGER8, status, ierr) ! # particles
             call MPI_FILE_READ(fh, itime,   1, MPI_INTEGER,  status, ierr) ! Last successful timestep (new ts)
 
-            np_local = int(n_total/n_cpu, kind(np_local))
-            remain = n_total-np_local*n_cpu
-            if ((remain > 0) .and. (my_rank < remain)) np_local = np_local+1
+            if (present(nparticles_local)) then
+              np_local = nparticles_local
+              n_totsum = int(np_local, kind=kind(n_totsum))
+              call MPI_ALLREDUCE(MPI_IN_PLACE, n_totsum,  1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr)
+              
+              if (n_totsum .ne. n_total) then
+                DEBUG_ERROR('("Invalid total particle number: sum(nparticles_local) = ", I0, " but the data file says n_total = ", I0)', n_totsum, n_total)
+              endif
+            else
+              np_local = int(n_total/n_cpu, kind(np_local))
+              remain = n_total-np_local*n_cpu
+              if ((remain > 0) .and. (my_rank < remain)) np_local = np_local+1
+            endif
 
             if (allocated(dp)) deallocate(dp)
             allocate(dp(1:np_local))

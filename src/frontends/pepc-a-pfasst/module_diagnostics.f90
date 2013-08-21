@@ -31,6 +31,8 @@ module pepca_diagnostics
     public write_domain
     public diagnose_energy
     public dumpnow
+    public compare_particles_to_checkpoint
+    public compare_particles_to_particles
 
     integer, public, parameter :: E_KIN_E = 1
     integer, public, parameter :: E_POT_E = 2
@@ -258,8 +260,8 @@ module pepca_diagnostics
     energies(E_POT  ) = energies(E_POT_E) + energies(E_POT_I)
     energies(E_TOT  ) = energies(E_TOT_E) + energies(E_TOT_I)
 
-      ! we perform this output on a single rank to prevent having to think about the reduction above
-      call MPI_ALLREDUCE(MPI_IN_PLACE, energies,  size(energies,  kind=kind_default), MPI_REAL8, MPI_SUM, comm, ierr)
+    ! we perform this output on a single rank to prevent having to think about the reduction above
+    call MPI_ALLREDUCE(MPI_IN_PLACE, energies,  size(energies,  kind=kind_default), MPI_REAL8, MPI_SUM, comm, ierr)
 
     if (do_dump) then
       if (step == 0) then
@@ -274,5 +276,38 @@ module pepca_diagnostics
       close(file_energies)
     endif
   end subroutine diagnose_energy
+  
+  
+  subroutine compare_particles_to_checkpoint(particles, itime_in, comm)
+    use module_pepc_types
+    use module_checkpoint
+    use module_debug
+    implicit none
+    type(t_particle), intent(in) :: particles(:)
+    integer(kind_default), intent(in) :: itime_in
+    integer(kind_default), intent(in) :: comm
+
+    type(t_particle), allocatable :: particles_ref(:)
+    integer(kind_default) :: itime
+    integer(kind_particle) :: n_total
+    character(100) :: filename
+    
+    call pepc_status('------------- compare_particles_to_checkpoint')
+
+    call read_particles_mpiio(itime_in, comm, itime, n_total, particles_ref, filename, size(particles))
+    call compare_particles_to_particles(particles, particles_ref)
+    
+  end subroutine
+
+  
+  subroutine compare_particles_to_particles(particles, particles_ref)
+    use module_debug
+    use module_pepc_types
+    implicit none
+    type(t_particle), intent(in) :: particles(:), particles_ref(:)
+    
+    call pepc_status('------------- compare_particles_to_particles')
+
+  end subroutine
   
 end module

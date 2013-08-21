@@ -51,8 +51,8 @@ module pfm_helper
 
         ! Global MPI initialization
         call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, mpi_err)
-        call MPI_Comm_size( MPI_COMM_WORLD, mpi_size, mpi_err )
-        call MPI_Comm_rank( MPI_COMM_WORLD, mpi_rank, mpi_err )
+        call MPI_COMM_SIZE( MPI_COMM_WORLD, mpi_size, mpi_err )
+        call MPI_COMM_RANK( MPI_COMM_WORLD, mpi_rank, mpi_err )
 
         if ((provided < MPI_THREAD_LEVEL) .and. (mpi_rank == 0)) then
           !inform the user about possible issues concerning MPI thread safety

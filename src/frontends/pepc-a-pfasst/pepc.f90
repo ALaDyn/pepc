@@ -138,7 +138,7 @@ program pepc
           ! do diagnostics etc here
           if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_VTK), step, nt)) call write_particles_vtk(particles, step, nt, dt*step*unit_time_fs_per_simunit, MPI_COMM_SPACE)
           if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_ASC), step, nt)) call write_particles_ascii(pepca_nml%rank, step, particles, filename)
-          if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_MPI), step, nt)) call write_particles_mpiio(MPI_COMM_SPACE, pepca_nml%rank, step, pepca_nml%numparts_total, particles, filename)
+          if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_MPI), step, nt)) call write_particles_mpiio(MPI_COMM_SPACE, step, 2*pepca_nml%numparts_total, particles, filename)
           if (dumpnow(pepca_nml%output_interval(OI_DENSITIES_VTK), step, nt)) call gather_and_write_densities(particles, Ngrid, step, nt, dt*step*unit_time_fs_per_simunit, pepca_nml%rank)
           if (dumpnow(pepca_nml%output_interval(OI_DOMAIN_VTK   ), step, nt)) call write_domain(particles, step, nt, dt*step*unit_time_fs_per_simunit)
           
