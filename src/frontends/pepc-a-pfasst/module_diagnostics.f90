@@ -278,7 +278,7 @@ module pepca_diagnostics
   end subroutine diagnose_energy
   
   
-  subroutine compare_particles_to_checkpoint(particles, itime_in, comm)
+  subroutine compare_particles_to_checkpoint(particles, itime_in, comm, xerr, verr)
     use module_pepc_types
     use module_checkpoint
     use module_debug
@@ -286,6 +286,7 @@ module pepca_diagnostics
     type(t_particle), intent(in) :: particles(:)
     integer(kind_default), intent(in) :: itime_in
     integer(kind_default), intent(in) :: comm
+    real*8, intent(out) :: xerr, verr
 
     type(t_particle), allocatable :: particles_ref(:)
     integer(kind_default) :: itime
@@ -295,18 +296,31 @@ module pepca_diagnostics
     call pepc_status('------------- compare_particles_to_checkpoint')
 
     call read_particles_mpiio(itime_in, comm, itime, n_total, particles_ref, filename, size(particles))
-    call compare_particles_to_particles(particles, particles_ref)
+    call compare_particles_to_particles(particles, particles_ref, xerr, verr)
     
   end subroutine
 
   
-  subroutine compare_particles_to_particles(particles, particles_ref)
+  subroutine compare_particles_to_particles(particles, particles_ref, xerr, verr)
     use module_debug
     use module_pepc_types
     implicit none
     type(t_particle), intent(in) :: particles(:), particles_ref(:)
+    real*8, intent(out) :: xerr, verr
+    
+    integer(kind_particle) :: i
     
     call pepc_status('------------- compare_particles_to_particles')
+    
+    DEBUG_ASSERT(size(particles) == size(particles_ref))
+    
+    xerr = 0
+    verr = 0
+    
+    do i=1,size(particles, kind=kind_particle)
+      xerr = max(xerr, maxval(abs(particles(i)%x     -particles_ref(i)%x)))
+      verr = max(verr, maxval(abs(particles(i)%data%v-particles_ref(i)%data%v)))
+    end do
 
   end subroutine
   
