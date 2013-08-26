@@ -318,8 +318,8 @@ module pepca_diagnostics
     verr = 0
     
     do i=1,size(particles, kind=kind_particle)
-      xerr = max(xerr, maxval(abs(particles(i)%x     -particles_ref(i)%x)))
-      verr = max(verr, maxval(abs(particles(i)%data%v-particles_ref(i)%data%v)))
+      xerr = max(xerr, maxval(abs((particles(i)%x     -particles_ref(i)%x     )/particles_ref(i)%x     )))
+      verr = max(verr, maxval(abs((particles(i)%data%v-particles_ref(i)%data%v)/particles_ref(i)%data%v)))
     end do
 
   end subroutine
