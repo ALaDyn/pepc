@@ -191,7 +191,7 @@ module module_checkpoint
           end subroutine
 
 
-          subroutine read_particles_mpiio(itime_in, comm, itime, n_total, dp, filename, nparticles_local)
+          subroutine read_particles_mpiio(itime_in, comm, itime, n_total, dp, filename, nparticles_local, file_exists)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
@@ -203,22 +203,24 @@ module module_checkpoint
             character(*), intent(out) :: filename
             type(t_particle), allocatable :: dp(:)
             integer(kind_default), optional, intent(in) :: nparticles_local ! this has to be kind_default - not kind_particle as it is parameter to MPI functions
+            logical, optional, intent(out) :: file_exists
 
             character(50) :: dir
 
             dir = trim(directory)//"/mpi/"
             write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime_in
 
-            call read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local)
+            call read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local, file_exists)
 
             filename = trim(filename)//".h"
           end subroutine
 
 
-          subroutine read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local)
+          subroutine read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local, file_exists)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
+            use module_utils, only : utils_file_exists => file_exists
             implicit none
             integer(kind_pe) :: my_rank, n_cpu
             integer(kind_default), intent(out) :: itime
@@ -226,6 +228,8 @@ module module_checkpoint
             integer(kind_particle), intent(out) :: n_total
             integer(kind_default), intent(in) :: comm
             character(*), intent(in) :: filename
+            logical, optional, intent(out) :: file_exists
+
             character(255) :: filename2
             type(t_particle), allocatable :: dp(:)
             integer(kind_default) :: fh, ierr, status(MPI_STATUS_SIZE)
@@ -238,45 +242,57 @@ module module_checkpoint
             
             call MPI_COMM_SIZE( MPI_COMM_WORLD, n_cpu,   ierr )
             call MPI_COMM_RANK( MPI_COMM_WORLD, my_rank, ierr )
+            
+            if (utils_file_exists(trim(filename))) then
+            
+              if (present(file_exists)) file_exists = .true.
 
-            call MPI_FILE_OPEN(comm,trim(filename),MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierr)
+              call MPI_FILE_OPEN(comm,trim(filename),MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierr)
 
-            if (ierr .ne. MPI_SUCCESS) then
-              DEBUG_ERROR(*,'read_particles_mpiio_from_file(): file open failed', my_rank, ierr, filename)
-            end if
+              if (ierr .ne. MPI_SUCCESS) then
+                DEBUG_ERROR(*,'read_particles_mpiio_from_file(): file open failed', my_rank, ierr, filename)
+              end if
 
-            ! Set file view to BYTE for header, only rank 0 writes it
-            call MPI_FILE_SET_VIEW(fh, 0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
-            call MPI_FILE_READ(fh, n_total, 1, MPI_INTEGER8, status, ierr) ! # particles
-            call MPI_FILE_READ(fh, itime,   1, MPI_INTEGER,  status, ierr) ! Last successful timestep (new ts)
+              ! Set file view to BYTE for header, only rank 0 writes it
+              call MPI_FILE_SET_VIEW(fh, 0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
+              call MPI_FILE_READ(fh, n_total, 1, MPI_INTEGER8, status, ierr) ! # particles
+              call MPI_FILE_READ(fh, itime,   1, MPI_INTEGER,  status, ierr) ! Last successful timestep (new ts)
 
-            if (present(nparticles_local)) then
-              np_local = nparticles_local
-              n_totsum = int(np_local, kind=kind(n_totsum))
-              call MPI_ALLREDUCE(MPI_IN_PLACE, n_totsum,  1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr)
-              
-              if (n_totsum .ne. n_total) then
-                DEBUG_ERROR('("Invalid total particle number: sum(nparticles_local) = ", I0, " but the data file says n_total = ", I0)', n_totsum, n_total)
+              if (present(nparticles_local)) then
+                np_local = nparticles_local
+                n_totsum = int(np_local, kind=kind(n_totsum))
+                call MPI_ALLREDUCE(MPI_IN_PLACE, n_totsum,  1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr)
+
+                if (n_totsum .ne. n_total) then
+                  DEBUG_ERROR('("Invalid total particle number: sum(nparticles_local) = ", I0, " but the data file says n_total = ", I0)', n_totsum, n_total)
+                endif
+              else
+                np_local = int(n_total/n_cpu, kind(np_local))
+                remain = n_total-np_local*n_cpu
+                if ((remain > 0) .and. (my_rank < remain)) np_local = np_local+1
               endif
+
+              if (allocated(dp)) deallocate(dp)
+              allocate(dp(1:np_local))
+
+              ! Redefine file view, now with our custom type
+              call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
+              ! Read particle data
+              call MPI_FILE_READ_ORDERED(fh, dp, np_local, MPI_TYPE_particle, status, ierr)
+              ! Close file
+              call MPI_FILE_CLOSE(fh,ierr)
+
+              filename2 = trim(filename)//".h"
+              open(filehandle, file=trim(filename2),action='read')
+              call pepc_read_parameters(filehandle)
+              close(filehandle)
+              
             else
-              np_local = int(n_total/n_cpu, kind(np_local))
-              remain = n_total-np_local*n_cpu
-              if ((remain > 0) .and. (my_rank < remain)) np_local = np_local+1
+              if (present(file_exists)) then
+                file_exists = .false.
+              else
+                DEBUG_ERROR('("read_particles_mpiio_from_filename(filename=", a, ") - file does not exist")', trim(filename))
+              endif
             endif
-
-            if (allocated(dp)) deallocate(dp)
-            allocate(dp(1:np_local))
-
-            ! Redefine file view, now with our custom type
-            call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
-            ! Read particle data
-            call MPI_FILE_READ_ORDERED(fh, dp, np_local, MPI_TYPE_particle, status, ierr)
-            ! Close file
-            call MPI_FILE_CLOSE(fh,ierr)
-
-            filename2 = trim(filename)//".h"
-            open(filehandle, file=trim(filename2),action='read')
-            call pepc_read_parameters(filehandle)
-            close(filehandle)
           end subroutine
 end module module_checkpoint

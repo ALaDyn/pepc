@@ -34,6 +34,7 @@ module module_utils
   end interface
 
   public create_directory
+  public file_exists
   public MPI_IN_PLACE_test
 
   contains
@@ -46,6 +47,15 @@ module module_utils
 
     call create_directory_c(dirname//c_null_char)
   end subroutine
+  
+  !> check if file exists
+  logical function file_exists(filename)
+    implicit none
+    character(*), intent(in) :: filename
+
+    inquire(file=trim(filename), exist=file_exists)
+  end function
+    
 
 
   !> checks if MPI_IN_PLACE might be damaged and aborts the application if necessary
