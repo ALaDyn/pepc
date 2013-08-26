@@ -22,7 +22,8 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 
 %.o: %.f90
 	@echo "== compiling F90 file :" $<
-	@perl -p -e 's/^[ \t]*\n/!\n/' $< | $(CPP) $(CPPFLAGS) -include pepc_debug.h - > pp_$< 2>> compile.log
+	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
+	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
 	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
 
 %.o: %.c
