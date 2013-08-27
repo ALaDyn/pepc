@@ -15,7 +15,7 @@
   
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
-  directforce = .true.
+  directforce = .false.
 
   ! timestep intervals for dumping routines
   ! 0 --> dumping disabled for this output

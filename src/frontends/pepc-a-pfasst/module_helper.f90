@@ -270,11 +270,11 @@ module pepca_helper
           p(j)%data%v(1:dim) = vel(1:dim)
           if (j<=nel) then
             p(j)%label       = -l
-            p(j)%data%q      =  unit_qe*0
+            p(j)%data%q      =  unit_qe
             p(j)%data%m      =  unit_me
           else
             p(j)%label       = -l
-            p(j)%data%q      =  unit_qp*0
+            p(j)%data%q      =  unit_qp
             p(j)%data%m      =  unit_mp
           endif
 
