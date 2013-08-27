@@ -153,7 +153,7 @@ module module_checkpoint
             n_totsum = size(dp, kind=kind(n_totsum))
             call MPI_ALLREDUCE(MPI_IN_PLACE, n_totsum,  1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr)
             if (n_totsum .ne. n_total) then
-              DEBUG_ERROR('("Invalid total particle number: sum(nparticles_local) = ", I0, " but the data file says n_total = ", I0)', n_totsum, n_total)
+              DEBUG_ERROR('("Invalid total particle number: sum(nparticles_local) = ", I0, " but n_total = ", I0)', n_totsum, n_total)
             endif
 
             call MPI_FILE_OPEN(comm,filename,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
