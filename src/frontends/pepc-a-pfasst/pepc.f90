@@ -87,7 +87,10 @@ program pepc
       call pf_pfasst_setup(pf)
 
       ! Add user-defined calls, e.g. diagnostics, here
-      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_SWEEP, track_energy_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, track_energy_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, compare_checkpoint_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, compare_checkpoint_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
 
       !if (pf_nml%echo_errors) then
       !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, echo_stats)
@@ -121,10 +124,10 @@ program pepc
       associate (Ngrid => pepca_nml%Ngrid, &
                     dt => pepca_nml%dt,    &
                     nt => pepca_nml%nt)
-        do step=0,nt-1
+        do step=0,nt
           if(pepca_nml%rank==0) then
             write(*,*) " "
-            write(*,'(a,i12,"/",i0)')   ' ====== computing step       :', step, nt-1
+            write(*,'(a,i12,"/",i0)')   ' ====== computing step       :', step, nt
             write(*,'(a,f12.4)')        ' ====== simulation time (fs) :', step*dt*unit_time_fs_per_simunit
           end if
 

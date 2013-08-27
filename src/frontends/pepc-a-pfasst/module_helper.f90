@@ -152,6 +152,7 @@ module pepca_helper
     ! frontend parameters
     nml%Ngrid           = Ngrid
     nml%particle_config = particle_config
+    nml%numparts_total  = numparts_total
     nml%numparts        = numparts_total/nml%nrank
     if (mod(numparts_total, nml%nrank) < nml%rank) nml%numparts = nml%numparts + 1
     nml%directforce     = directforce
@@ -262,15 +263,18 @@ module pepca_helper
         end do
 
         if (i==rank) then
+          p(j)%x(:)      = 0.
+          p(j)%data%v(:) = 0.
+          
           p(j)%x(1:dim)      = pos(1:dim) / unit_length_micron_per_simunit
           p(j)%data%v(1:dim) = vel(1:dim)
           if (j<=nel) then
             p(j)%label       = -l
-            p(j)%data%q      =  unit_qe
+            p(j)%data%q      =  unit_qe*0
             p(j)%data%m      =  unit_me
           else
             p(j)%label       = -l
-            p(j)%data%q      =  unit_qp
+            p(j)%data%q      =  unit_qp*0
             p(j)%data%m      =  unit_mp
           endif
 

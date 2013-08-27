@@ -98,7 +98,7 @@ module pfm_feval
       ! compute accelerations from fields
       do i=1,size(particles, kind=kind(i))
         ! acceleration from force from field
-        a%x(1:a%params%dim, i) = particles(i)%data%q/unit_4piepsilon0 * particles(i)%results%e(1:a%params%dim) / ( particles(i)%data%m * unit_c )
+        a%x(1:a%params%dim, i) = particles(i)%data%q/unit_4piepsilon0 * particles(i)%results%e(1:a%params%dim) / particles(i)%data%m
         a%x(a%params%dim+1:,i) = 0
         a%v(:,:) = a%x(:,:)
       end do

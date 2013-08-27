@@ -42,10 +42,9 @@ module pepca_integrator
       real*8  :: force(1:3)
 
       do ip=1, size(p, kind=kind_particle)
-        ! v represents momentum p/mc = gamma*v/c
         force(1:dim)  = p(ip)%data%q/unit_4piepsilon0 * p(ip)%results%e(1:dim)
         force(dim+1:) = 0.
-        p(ip)%data%v  = p(ip)%data%v + dt * force / ( p(ip)%data%m * unit_c )
+        p(ip)%data%v  = p(ip)%data%v + dt * force / p(ip)%data%m
       end do
     end subroutine update_velocities
 
@@ -58,13 +57,9 @@ module pepca_integrator
       type(t_particle), allocatable, intent(inout) :: p(:)
       real*8, intent(in) :: dt
       integer(kind_particle) :: ip
-      real*8  :: gam
 
       do ip=1, size(p, kind=kind_particle)
-        ! v represents momentum p/mc = gamma*v/c
-        ! gamma = sqrt(1+ (p/mc)^2)
-        gam     = sqrt( 1.0 + dot_product(p(ip)%data%v, p(ip)%data%v) )
-        p(ip)%x = p(ip)%x + p(ip)%data%v * unit_c / gam * dt
+        p(ip)%x = p(ip)%x + p(ip)%data%v * dt
       end do
     end subroutine push_particles
 

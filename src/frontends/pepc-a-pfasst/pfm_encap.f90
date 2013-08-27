@@ -74,7 +74,9 @@ contains
     do i=1,size(p)
       p(i) = levelparams%particles(i) ! FIXME: here we set coordinates and velocities but overwrite them again in the next lines
       p(i)%x(     1:enc%params%dim) = enc%x(1:enc%params%dim, i)
+      p(i)%x(enc%params%dim+1:)     = 0.
       p(i)%data%v(1:enc%params%dim) = enc%v(1:enc%params%dim, i) 
+      p(i)%x(enc%params%dim+1:)     = 0.
     end do
   end subroutine
     

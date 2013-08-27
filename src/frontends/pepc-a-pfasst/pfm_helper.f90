@@ -155,7 +155,7 @@ module pfm_helper
 
     !> Fill PFASST object pf (generated earlier), mostly with read-in or derived parameters
     subroutine pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
-        use pf_mod_dtype, only: pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK
+        use pf_mod_dtype, only: pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK, SDC_GAUSS_LOBATTO
         use pfm_encap, only : pf_encap_t, app_params_t
         use pfm_transfer, only : interpolate, restrict
         use iso_c_binding !, only : c_loc, c_null_ptr ! had to remove this as compile fix for Michael
@@ -189,7 +189,7 @@ module pfm_helper
         end do
 
         pf%niters       = pf_nml%niter
-        pf%qtype        = 1
+        pf%qtype        = SDC_GAUSS_LOBATTO
         pf%echo_timings = pf_nml%echo_timings! FIXME .and. (wk(pf%nlevels)%mpi_rank == 0)
         pf%window       = PF_WINDOW_BLOCK
         pf%rel_res_tol  = pf_nml%res_tol

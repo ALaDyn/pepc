@@ -51,8 +51,8 @@ module pepca_diagnostics
     implicit none
     integer, intent(in) :: stepmod, step, nt
     
-    dumpnow =        (stepmod>0) \
-              .and. ((mod(step, stepmod)==0) .or. (step==nt-1))
+    dumpnow =        (stepmod>0) &
+              .and. ((mod(step, stepmod)==0) .or. (step==nt))
   end function
   
 
@@ -65,7 +65,7 @@ module pepca_diagnostics
 
     if (step == 0) then
       vtk_step = VTK_STEP_FIRST
-    else if (step == nt - 1) then
+    else if (step == nt ) then
       vtk_step = VTK_STEP_LAST
     else
       vtk_step = VTK_STEP_NORMAL
@@ -240,7 +240,7 @@ module pepca_diagnostics
       ! v represents momentum p/mc = gamma*v/c
       ! gamma = sqrt(1 + (p/mc)^2)
       gam  = sqrt( 1.0 + dot_product(p(ip)%data%v, p(ip)%data%v) )
-      ekin = (gam-1._8) * p(ip)%data%m*unit_c2
+      ekin = (gam-1._8) * p(ip)%data%m
       epot = p(ip)%data%q * p(ip)%results%pot / 2._8
       
       if (p(ip)%data%q > 0) then
@@ -250,7 +250,7 @@ module pepca_diagnostics
           energies(E_KIN_E) = energies(E_KIN_E) + ekin
           energies(E_POT_E) = energies(E_POT_E) + epot
       else
-        write(*,*) 'unexpected species in energy computation'
+        !write(*,*) 'unexpected species in energy computation'
       endif
     end do
     
@@ -299,7 +299,7 @@ module pepca_diagnostics
     call read_particles_mpiio(itime_in, comm, itime, n_total, particles_ref, filename, size(particles), success)
     
     if (.not. success) then
-      DEBUG_ERROR('("trying to read checkpoint with itime=", I0, " --> filename =", a," but the file does not exist. Please run the executable with use_pfasst=.false. in params to generate reference data first.")', itime, trim(filename))
+      DEBUG_ERROR('("trying to read checkpoint with itime=", I0, " --> filename =", a," but the file does not exist. Please run the executable with use_pfasst=.false. in params to generate reference data first.")', itime_in, trim(filename))
     else
       call compare_particles_to_particles(particles, particles_ref, xerr, verr)
     endif

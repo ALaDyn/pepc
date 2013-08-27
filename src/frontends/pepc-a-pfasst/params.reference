@@ -11,7 +11,7 @@
   ! choice of integrator  
   ! true  --> use pfasst-verlet integrator
   ! false --> use default verlet integrator
-  use_pfasst = .true.
+  use_pfasst = .false.
   
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
