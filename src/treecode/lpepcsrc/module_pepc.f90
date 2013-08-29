@@ -130,7 +130,7 @@ module module_pepc
                        SVNREVISION, frontendname, n_cpu
       endif
 
-      if (provided < MPI_THREAD_LEVEL) then 
+      if (my_rank == 0 .and. provided < MPI_THREAD_LEVEL) then 
         !inform the user about possible issues concerning MPI thread safety
         if (pepc_initializes_mpi) then
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
