@@ -19,7 +19,7 @@ CPP      = cpp -Uvector
 CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" -ffreestanding
                                                        # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
-INLINING = -fkeep-inline-functions -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects -fuse-linker-plugin
+INLINING = -fkeep-inline-functions -findirect-inlining -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects -fuse-linker-plugin
 
 ifeq ($(DEBUG), 1)
   FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all
