@@ -6,6 +6,7 @@ HELP = "\
 
 MACH     = IBM-BGQ-juqueen
 
+GPROF      = 0
 DEBUG      = 0
 VAMPIR     = 0
 SION       = 0
@@ -48,6 +49,12 @@ endif
 ifeq ($(HPCTOOLKT), 1)
   LDPRE    = hpclink
   LDFLAGS += -qnoipa
+endif
+
+ifeq ($(GPROF), 1)
+  FFLAGS  += -pg
+  CFLAGS  += -pg
+  LDFLAGS += -pg
 endif
 
 FC       = mpixlf90_r

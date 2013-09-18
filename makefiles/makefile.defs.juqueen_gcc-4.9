@@ -4,6 +4,7 @@ HELP = "\
 
 MACH     = gcc-4.9
 
+GPROF    = 0
 DEBUG    = 0
 OMP      = 1
 
@@ -39,11 +40,15 @@ endif
 LDFLAGS += -u walk_worker_thread -u run_communication_loop
 FFLAGS += -u walk_worker_thread -u run_communication_loop
 
-
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
   LDFLAGS  += -fopenmp 
-else
+endif
+
+ifeq ($(GPROF), 1)
+  FFLAGS  += -pg
+  CFLAGS  += -pg
+  LDFLAGS += -pg
 endif
 
 FCPRE    = 
