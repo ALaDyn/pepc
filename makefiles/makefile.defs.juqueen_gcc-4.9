@@ -2,18 +2,32 @@ HELP = "\
 \# Makefile for gcc 4.9 (self-compiled)\n\
 "
 
-MACH     = gcc-4.9
+MACH      = gcc-4.9
 
-GPROF    = 0
-DEBUG    = 0
-OMP      = 1
+GPROF     = 0
+DEBUG     = 0
+OMP       = 1
+VAMPIR    = 0
+# for HPCTOOLKIT usage see end of this file
+# do not name the following variable to HPCTOOLKIT since this is already used externally
+HPCTOOLKT = 0
+SCOREP    = 0
+SCALASCA  = 0
 
-RANLIB   = ranlib
+MAKE      = make
+RANLIB    = ranlib
+AR        = ar
+ARFLAGS   = -rs
+RM        = rm -rf
 
-MAKE     = make
+FCPRE     = 
+CCPRE     = 
+LDPRE     = 
 
-AR       = ar
-ARFLAGS  = -rs
+FC        = mpigfortran
+CC        = mpigcc
+LD        = mpigcc
+LDLIBS    = -lgfortran -lm
 
 # GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
 CPP      = cpp -Uvector
@@ -45,22 +59,47 @@ ifeq ($(OMP), 1)
   LDFLAGS  += -fopenmp 
 endif
 
-ifeq ($(GPROF), 1)
-  FFLAGS  += -pg
-  CFLAGS  += -pg
-  LDFLAGS += -pg
+ifeq ($(VAMPIR), 1)
+  FCPRE    = bgvtf90 -vt:f90
+  CCPRE    = bgvtcc  -vt:cc
+  LDPRE    = bgvtf90 -vt:f90
 endif
 
-FCPRE    = 
-FC       = mpigfortran
+ifeq ($(HPCTOOLKT), 1)
+  LDPRE    = hpclink
+  FFLAGS  += -g -gdwarf-3 -gstrict-dwarf
+  CFLAGS  += -g -gdwarf-3 -gstrict-dwarf
+  LDFLAGS += -g -gdwarf-3 -gstrict-dwarf -Wl,-lc -Wl,-lnss_files -Wl,-lnss_dns -Wl,-lresolv
+endif
 
-CCPRE    = 
-CC       = mpigcc
+ifeq ($(GPROF), 1)
+  FFLAGS  += -pg -g
+  CFLAGS  += -pg -g
+  LDFLAGS += -pg -g
+endif
 
-LDPRE    = 
-LD       = mpigcc
-LDLIBS   = -lgfortran -lm
+ifeq ($(SCOREP), 1)
+  FCPRE += scorep
+  CCPRE += scorep
+  LDPRE += scorep
+endif
 
-RM       = rm -rf
+ifeq ($(SCALASCA), 1)
+  FCPRE += scalasca -instrument
+  CCPRE += scalasca -instrument
+  LDPRE += scalasca -instrument
+endif
 
+# HPCTOOLKIT USAGE
+# Call 
+# $>  module load UNITE hpctoolkit papi
+# Before compiling and execution. You should include those modules into your ~/.bashrc to also have them on the compute nodes.
+# After (re)compiling the application (e.g. pepc-mini) start it with
+# $>  runjob --envs  HPCRUN_EVENT_LIST="WALLCLOCK@10000" HPCRUN_TRACE=1 --label : ./pepc-mini ./params
+# Then generate the structure info (on the frontend node) using
+# $>  hpcstruct  ./pepc-mini
+# Build the measurement database from the measurements:
+# $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
+# 
+#
 
