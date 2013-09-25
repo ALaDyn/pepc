@@ -47,7 +47,7 @@ module helper
         call GET_COMMAND_ARGUMENT(2, file_out)
     end if
     if (file_out=="vtk") vtk=.true.
-    call read_particles_mpiio_from_filename(MPI_COMM_WORLD,my_rank,n_ranks,step,npart,particles,file_in)
+    call read_particles_mpiio_from_filename(MPI_COMM_WORLD,step,npart,particles,file_in)
     np=size(particles, kind=kind(np))
 
     if (vtk) then

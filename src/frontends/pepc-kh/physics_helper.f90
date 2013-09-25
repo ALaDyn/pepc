@@ -58,8 +58,7 @@ contains
 
       if (time_pars%nresume > 0) then
         call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%mpi_comm, &
-          pepc_pars%pepc_comm%mpi_rank, pepc_pars%pepc_comm%mpi_size, dummy_nresume, &
-          pepc_pars%np, p, dummy_file_name)
+          dummy_nresume, pepc_pars%np, p, dummy_file_name)
 
         if (dummy_nresume .ne. time_pars%nresume) then
           DEBUG_ERROR(*, "Resume timestep mismatch, parameter file says: ", time_pars%nresume, " checkpoint file says: ", dummy_nresume)

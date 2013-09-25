@@ -87,7 +87,7 @@ module plummer
 
     ub = lb + np ! This rank only needs to store particles in [lb, ub)
 
-    halftnp = tnp/2 + MOD(tnp, 2)
+    halftnp = tnp/2 + MOD(tnp, 2_kind_particle)
 
     call pranset(seed)
 

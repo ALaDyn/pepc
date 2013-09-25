@@ -398,7 +398,7 @@ MODULE output
 
 
         npart=sum(tnpps)
-        call write_particles_mpiio(MPI_COMM_WORLD,my_rank,step,npart,particles,filename)
+        call write_particles_mpiio(MPI_COMM_WORLD,step,npart,particles,filename)
 
         if (root) then
             open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')

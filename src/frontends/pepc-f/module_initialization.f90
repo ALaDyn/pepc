@@ -117,7 +117,7 @@ module module_initialization
         if (root) write(*,*)"Restarting from checkpoint at timestep",startstep
         if (root) write(*,*)"=================================================="
 
-        call read_particles_mpiio(startstep,MPI_COMM_WORLD,my_rank,n_ranks,step,npart,particles,filename)
+        call read_particles_mpiio(startstep,MPI_COMM_WORLD,step,npart,particles,filename)
     ELSE
         startstep=0
         step=0

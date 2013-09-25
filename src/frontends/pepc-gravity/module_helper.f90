@@ -151,7 +151,7 @@ module helper
 
     ! Determine the range of bodies, i.e., [lb, ub), to be put on this rank.
     np = tnp / n_ranks
-    extra = MOD (tnp, n_ranks)
+    extra = MOD (tnp, 1_kind_particle*n_ranks)
     if (my_rank < extra) then 
       np = np + 1
       lb = np * my_rank
@@ -204,7 +204,7 @@ module helper
     
     ! set initially number of local particles
     np = tnp / n_ranks
-    if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, n_ranks)
+    if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, 1_kind_particle*n_ranks)
 
     allocate(particles(np), stat=rc)
     if(rc.ne.0) write(*,*) " === particle allocation error!"

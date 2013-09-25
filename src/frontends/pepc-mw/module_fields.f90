@@ -369,7 +369,7 @@ module module_fields
 
        call vtk_write_field_on_grid("laser", itime, trun*unit_t0_in_fs, vtk_step, &
                     globaldims, mydims, xcoords, ycoords, zcoords, pot, "phipon", efield, "epon", &
-                    my_rank, n_cpu, MPI_COMM_PEPC)
+                    MPI_COMM_PEPC)
 
        deallocate(efield)
        deallocate(pot)
