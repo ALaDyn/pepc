@@ -2,6 +2,7 @@ HELP = "\
 \# Makefile for JuRoPa3 with Intel MIC using ifort/icc\n\
 \# recommended commands\n\
 source /usr/local/intel/Composer/composerxe/bin/compilervars.sh intel64\n\
+source  /usr/local/etc/mic/intel_mic_env\n\
 "
 
 MACH     = JUROPA3_MIC_intel
@@ -22,7 +23,11 @@ OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inl
 
 FFLAGS = -mmic -warn all -reentrancy threaded -openmp
 CFLAGS = -mmic
-LDFLAGS = -mmic -warn all -reentrancy threaded -openmp
+LDFLAGS = -mmic -warn all -reentrancy threaded -openmp -Qoption,link,"-rpath=/usr/local/intel/Composer/composerxe/lib/mic"
+
+# tell the openPA configure script that we are cross-compiling
+# see http://software.intel.com/en-us/forums/topic/391645 for details
+OPENPA_CONFIGFLAGS="--host=blackfin"
 
 ifeq ($(OPTLEV), -1)
   FFLAGS   += -g -pg -O0
