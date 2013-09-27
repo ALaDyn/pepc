@@ -1,17 +1,8 @@
-ifeq ($(WALK), pthreads)
-FILES_TC  = module_walk_pthreads.f90
-endif
 
-ifeq ($(WALK), pthreads_blocking)
-FILES_TC  = module_walk_pthreads_blocking.f90
-endif
+FILES_TC = module_walk_$(WALK).f90
 
 ifeq ($(WALK), smpss)
-FILES_TC  = module_walk_smpss_utils.f90 module_walk_smpss.f90
-endif
-
-ifeq ($(WALK), simple)
-FILES_TC  = module_walk_simple.f90
+FILES_TC += module_walk_smpss_utils.f90
 endif
 
 include $(OPADIR)/makefile.include
