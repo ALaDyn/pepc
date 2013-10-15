@@ -86,10 +86,10 @@ contains
     ! compare particle data to checkpoint of some previous run
     ! currently we are more or less aligning leap-frog steps to sdc nodes (at least wrt their number)
     select case (state%hook)
-      case (PF_PRE_STEP)
+      case (PF_PRE_ITERATION)
         call encap_to_particles(particles, level%qend, ctx)
         itime_in = (level%nnodes-1)*(state%step  )
-      case (PF_POST_STEP)
+      case (PF_POST_ITERATION)
         call encap_to_particles(particles, level%qend, ctx)
         itime_in = (level%nnodes-1)*(state%step+1)
       case default
@@ -138,10 +138,10 @@ contains
     allocate(particles(levelctx%nparts))
 
     select case (state%hook)
-      case (PF_PRE_STEP)
+      case (PF_PRE_ITERATION)
         call encap_to_particles(particles, level%qend, ctx)
         itime = (level%nnodes-1)*(state%step  )
-      case (PF_POST_STEP)
+      case (PF_POST_ITERATION)
         call encap_to_particles(particles, level%qend, ctx)
         itime = (level%nnodes-1)*(state%step+1)
       case default

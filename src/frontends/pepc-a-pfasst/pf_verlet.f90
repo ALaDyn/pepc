@@ -35,14 +35,14 @@ contains
 
     type(pf_verlet_t), pointer :: verlet
 
-    call c_f_pointer(F%sweeper%ctx, verlet)
+    call c_f_pointer(F%sweeper%sweeperctx, verlet)
     call start_timer(pf, TLEVEL+F%level-1)
 
     !
     ! compute integrals and add fas correction
     !
 
-    call F%encap%create(fq_int, F%level, SDC_KIND_INTEGRAL, F%nvars, F%shape, F%ctx, F%encap%ctx)
+    call F%encap%create(fq_int, F%level, SDC_KIND_INTEGRAL, F%nvars, F%shape, F%levelctx, F%encap%encapctx)
     call F%encap%setval(fq_int, 0.0_pfdp)
 
     dtsq = dt*dt
@@ -63,7 +63,7 @@ contains
 
     call F%encap%unpack(F%Q(1), F%q0)
 
-    call verlet%acceleration(F%Q(1), t0, F%level, F%ctx, F%F(1,1))
+    call verlet%acceleration(F%Q(1), t0, F%level, F%levelctx, F%F(1,1))
 
     t = t0
     dtsdc = dt * (F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1))
@@ -85,7 +85,7 @@ contains
        call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%S(m), 2)  !  Add integration term for p
        call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%Q(m), 2)  !  Start m+1 with value from m
 
-       call verlet%acceleration(F%Q(m+1), t, F%level, F%ctx, F%F(m+1,1)) !  Update function values
+       call verlet%acceleration(F%Q(m+1), t, F%level, F%levelctx, F%F(m+1,1)) !  Update function values
 
        !  Update velocity term (trapezoid rule)
        call F%encap%axpy(fq_int,dtmhalf,F%F(m,1),1);
@@ -111,8 +111,8 @@ contains
     integer,          intent(in)    :: m
     type(pf_level_t), intent(inout) :: F
     type(pf_verlet_t), pointer :: verlet
-    call c_f_pointer(F%sweeper%ctx, verlet)
-    call verlet%acceleration(F%Q(m), t, F%level, F%ctx, F%F(m,1))
+    call c_f_pointer(F%sweeper%sweeperctx, verlet)
+    call verlet%acceleration(F%Q(m), t, F%level, F%levelctx, F%F(m,1))
   end subroutine verlet_evaluate
 
 
@@ -222,13 +222,13 @@ contains
     sweeper%evaluate    => verlet_evaluate
     sweeper%initialize  => verlet_initialize
     sweeper%integrate   => verlet_integrate
-    sweeper%ctx = c_loc(verlet)
+    sweeper%sweeperctx  =  c_loc(verlet)
   end subroutine pf_verlet_create
 
   subroutine pf_verlet_destroy(sweeper)
     type(pf_sweeper_t), intent(inout) :: sweeper
     type(pf_verlet_t), pointer :: verlet
-    call c_f_pointer(sweeper%ctx, verlet)
+    call c_f_pointer(sweeper%sweeperctx, verlet)
     deallocate(verlet)
   end subroutine pf_verlet_destroy
 

@@ -173,7 +173,7 @@ module pfm_helper
 
         do i = 1, pf%nlevels
 
-            pf%levels(i)%ctx         = c_loc(level_params(i))
+            pf%levels(i)%levelctx    = c_loc(level_params(i))
 
             pf%levels(i)%nnodes      = pf_nml%nnodes(i)
             pf%levels(i)%nsweeps     = pf_nml%nsweeps(i)

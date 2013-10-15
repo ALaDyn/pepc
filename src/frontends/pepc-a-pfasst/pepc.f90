@@ -81,16 +81,16 @@ program pepc
       call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
       ! Initial conditions for pfasst
-      call feval_init(y0, yend, pf_nml%nlevels, pf%levels(pf_nml%nlevels)%ctx, encap%ctx)
+      call feval_init(y0, yend, pf_nml%nlevels, pf%levels(pf_nml%nlevels)%levelctx, encap%encapctx)
 
       call pf_mpi_setup(tcomm, pf)
       call pf_pfasst_setup(pf)
 
       ! Add user-defined calls, e.g. diagnostics, here
-      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, track_energy_hook)
-      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, compare_checkpoint_hook)
-      call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, compare_checkpoint_hook)
-      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, track_energy_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, compare_checkpoint_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_ITERATION, compare_checkpoint_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, dump_particles_hook)
 
       !if (pf_nml%echo_errors) then
       !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, echo_stats)

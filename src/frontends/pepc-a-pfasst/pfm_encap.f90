@@ -105,7 +105,7 @@ contains
   subroutine pfm_encap_init(encap)
     type(pf_encap_t), intent(out) :: encap
 
-    encap%ctx     =  c_null_ptr
+    encap%encapctx = c_null_ptr
     encap%create  => encap_create
     encap%destroy => encap_destroy
     encap%setval  => encap_setval
