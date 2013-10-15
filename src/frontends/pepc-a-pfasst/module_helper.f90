@@ -154,7 +154,7 @@ module pepca_helper
     nml%particle_config = particle_config
     nml%numparts_total  = numparts_total
     nml%numparts        = numparts_total/nml%nrank
-    if (mod(numparts_total, nml%nrank) < nml%rank) nml%numparts = nml%numparts + 1
+    if (mod(numparts_total, nml%nrank) > nml%rank) nml%numparts = nml%numparts + 1
     nml%directforce     = directforce
     nml%use_pfasst      = use_pfasst
     nml%output_interval = output_interval
