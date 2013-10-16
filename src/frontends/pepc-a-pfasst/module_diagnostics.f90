@@ -299,7 +299,9 @@ module pepca_diagnostics
     call read_particles_mpiio(itime_in, comm, itime, n_total, particles_ref, filename, size(particles), success)
     
     if (.not. success) then
-      DEBUG_ERROR('("trying to read checkpoint with itime=", I0, " --> filename =", a," but the file does not exist. Please run the executable with use_pfasst=.false. in params to generate reference data first.")', itime_in, trim(filename))
+      DEBUG_WARNING('("trying to read checkpoint with itime=", I0, " --> filename =", a," but the file does not exist. Please run the executable with use_pfasst=.false. in params to generate reference data first.")', itime_in, trim(filename))
+      xerr = -1.
+      verr = -1.
     else
       call compare_particles_to_particles(particles, particles_ref, xerr, verr)
     endif

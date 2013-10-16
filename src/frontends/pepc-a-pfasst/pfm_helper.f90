@@ -233,7 +233,7 @@ module pfm_helper
         echo_timings        = pf_namelist%color_time_div
         color_space_div     = pf_namelist%echo_errors
         color_time_div      = pf_namelist%echo_timings
-        tend    = pf_namelist%tend / unit_time_fs_per_simunit ! now, tend is in sim units
+        tend    = pf_namelist%tend
         res_tol = pf_namelist%res_tol
         nsteps  = pf_namelist%nsteps
         nsweeps = pf_namelist%nsweeps
@@ -276,7 +276,7 @@ module pfm_helper
         pf_namelist%color_time_div      = color_time_div
         pf_namelist%echo_errors         = echo_errors
         pf_namelist%echo_timings        = echo_timings
-        pf_namelist%tend                = tend
+        pf_namelist%tend                = tend / unit_time_fs_per_simunit ! now, tend is in sim units
         pf_namelist%res_tol             = res_tol
         pf_namelist%nsteps              = nsteps
         pf_namelist%nsweeps(1:nlevels)  = nsweeps(1:nlevels)

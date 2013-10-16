@@ -31,7 +31,7 @@ contains
 
     call pepc_status('------------- track_energy_hook')
     
-    t = state%t0+state%dt
+    t = state%t0+state%dt ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
     
     call c_f_pointer(ctx, levelctx)
     
@@ -47,7 +47,7 @@ contains
     delen = abs(energies(E_TOT)-levelctx%initial_energies(E_TOT))/abs(levelctx%initial_energies(E_TOT))
     
     if (levelctx%root) then
-      write(*, '(" step: ",i5," t=", es10.3," iter: ",i3," dH: ",es14.7)') state%step+1, t,state%iter, delen
+      write(*, '(" hook: ",i3," step: ",i5, " t=", es10.3," iter: ",i3," dH: ",es14.7)') state%hook, state%step+1, t,state%iter, delen
     endif
 
   end subroutine
@@ -63,6 +63,7 @@ contains
     use module_pepc_types
     use pepca_diagnostics
     use module_debug
+    use pepca_units, only: unit_time_as_per_simunit
     implicit none
     type(pf_pfasst_t), intent(inout) :: pf
     type(pf_level_t),  intent(inout) :: level
@@ -77,30 +78,28 @@ contains
 
     call pepc_status('------------- track_energy_hook')
     
-    t = state%t0+state%dt
-    
     call c_f_pointer(ctx, levelctx)
     
     allocate(particles(levelctx%nparts))
-
-    ! compare particle data to checkpoint of some previous run
-    ! currently we are more or less aligning leap-frog steps to sdc nodes (at least wrt their number)
+    
+    ! compare particle data to checkpoint of some previous run - we use the actual physical simulation time to identify the appropriate checkpoint
     select case (state%hook)
       case (PF_PRE_ITERATION)
         call encap_to_particles(particles, level%qend, ctx)
-        itime_in = (level%nnodes-1)*(state%step  )
+        t = state%t0 ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
       case (PF_POST_ITERATION)
         call encap_to_particles(particles, level%qend, ctx)
-        itime_in = (level%nnodes-1)*(state%step+1)
+        t = state%t0+state%dt ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
       case default
         DEBUG_ERROR(*,'wrong hook')
     end select
     
+    itime_in = aint(t*unit_time_as_per_simunit) ! compare pepc.f90, line 144: dumpstep = ...
     call compare_particles_to_checkpoint(particles, itime_in, levelctx%comm, xerr, verr)
 
     if (levelctx%root) then
-      write(*,'(" step: ",i5," t=", es10.3, " iter: ",i3," Ex: ",es14.7," Ev: ",es14.7)') &
-               state%step+1, t,state%iter, xerr, verr
+      write(*,'(" hook: ",i3," step: ",i5," t=", es10.3, " iter: ",i3," Ex: ",es14.7," Ev: ",es14.7)') &
+               state%hook, state%step+1, t,state%iter, xerr, verr
     endif
     
   end subroutine

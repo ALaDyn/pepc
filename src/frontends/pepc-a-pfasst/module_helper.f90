@@ -174,7 +174,7 @@ module pepca_helper
       write(*,'(a,es12.4)')    ' == time step (simunits)                  : ', nml%dt
       write(*,'(a,es12.4)')    ' == final time (simunits)                 : ', nml%dt*nml%nt
       write(*,'(a,es12.4)')    ' == time step (fs)                        : ', nml%dt*unit_time_fs_per_simunit
-      write(*,'(a,es12.4)')    ' == final time (ns)                       : ', nml%dt*nml%nt*unit_time_fs_per_simunit
+      write(*,'(a,es12.4)')    ' == final time (fs)                       : ', nml%dt*nml%nt*unit_time_fs_per_simunit
     end if
 
     call pepc_prepare(dim)

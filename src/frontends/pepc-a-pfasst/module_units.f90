@@ -45,7 +45,9 @@ module pepca_units
       real*8, public, parameter :: unit_length_m_per_simunit      = 5.29177249e-11                    !< simulation unit length in m
       real*8, public, parameter :: unit_length_micron_per_simunit = unit_length_m_per_simunit/1.e-6   !< simulation unit length in microns
       real*8, public, parameter :: unit_time_s_per_simunit        = 4.8377687E-17                     !< simulation unit time in seconds
-      real*8, public, parameter :: unit_time_fs_per_simunit       = unit_time_s_per_simunit/1.e-15    !< simulation unit time in femotseconds
+      real*8, public, parameter :: unit_time_as_per_simunit       = unit_time_s_per_simunit/1.e-18    !< simulation unit time in attoseconds
+      real*8, public, parameter :: unit_time_fs_per_simunit       = unit_time_s_per_simunit/1.e-15    !< simulation unit time in femtoseconds
+      real*8, public, parameter :: unit_time_ps_per_simunit       = unit_time_s_per_simunit/1.e-12    !< simulation unit time in picoseconds
       real*8, public, parameter :: unit_time_ns_per_simunit       = unit_time_s_per_simunit/1.e-9     !< simulation unit time in nanoseconds
 
 !      contains
