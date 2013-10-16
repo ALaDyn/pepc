@@ -26,7 +26,8 @@
   !                 | | |--------- PARTICLES_MPI
   !                 | | | |---------  DENSITIES_VTK
   !                 | | | | |--------- DOMAIN_VTK
-  output_interval = 1 1 1 1 0
+  !                 | | | | | |--------- VERIFY PARTICLES
+  output_interval = 1 0 1 0 0 0
   
   ! Plummer potential screening length in microns
   eps = 1.e-2
@@ -37,9 +38,9 @@
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 10.
+  tend    = 1000.
   
-  nsteps  = 100 
+  nsteps  = 10000 
   niter   = 1
   nlevels = 1
   nsweeps = 1

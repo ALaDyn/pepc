@@ -37,12 +37,13 @@ module pepca_helper
   ! side lengths of particle box for particle_config = 0
   real*8 :: boxdims(3) = [10, 10, 10]
 
-  integer, public, parameter :: OI_PARTICLES_VTK = 1
-  integer, public, parameter :: OI_PARTICLES_ASC = 2
-  integer, public, parameter :: OI_PARTICLES_MPI = 3
-  integer, public, parameter :: OI_DENSITIES_VTK = 4
-  integer, public, parameter :: OI_DOMAIN_VTK    = 5
-  integer, public, parameter :: OI_MAXIDX = OI_DOMAIN_VTK
+  integer, public, parameter :: OI_PARTICLES_VTK    = 1
+  integer, public, parameter :: OI_PARTICLES_ASC    = 2
+  integer, public, parameter :: OI_PARTICLES_MPI    = 3
+  integer, public, parameter :: OI_DENSITIES_VTK    = 4
+  integer, public, parameter :: OI_DOMAIN_VTK       = 5
+  integer, public, parameter :: OI_VERIFY_PARTICLES = 6
+  integer, public, parameter :: OI_MAXIDX = OI_VERIFY_PARTICLES
 
   !> parameter collection for pepca
   type pepca_nml_t
@@ -50,6 +51,7 @@ module pepca_helper
     integer :: Ngrid(1:3) = [500, 1000, 1]
     ! MPI variables
     integer(kind_pe) :: rank, nrank
+    integer(kind_default) :: comm
     ! time variables
     real*8  :: dt  !< timestep (in simunits), set via pfasst parameters
     integer :: nt  !< number of timesteps, set via pfasst parameters
@@ -60,7 +62,7 @@ module pepca_helper
     ! number of particles per species and rank, will be set automatically later
     integer(kind_particle) :: numparts
     ! output control intervals - set to 0 to deactivate output, see above for meaning of the fields
-    integer :: output_interval(OI_MAXIDX) = [1, 1, 1, 1, 1]
+    integer :: output_interval(OI_MAXIDX) = [1, 1, 1, 1, 1, 0]
     ! use direct force instead of PEPC
     logical :: directforce = .false.
     ! use PFASST
@@ -89,14 +91,11 @@ module pepca_helper
     type(pepca_nml_t), intent(in) :: nml
     type(t_particle), allocatable, target, intent(out) :: particles(:)
     
-    allocate(particles(2*nml%numparts))
-    
     select case (nml%particle_config)
-    
       case (0)
-        call generate_particles(particles, nml%numparts, nml%numparts, nml%rank, nml%nrank)
+        call generate_particles(particles, nml%numparts, nml%numparts, nml%comm)
       case (1)
-        call read_particles(particles, 'E_phase_space.dat', nml%numparts, 'I_phase_space.dat', nml%numparts, nml%rank)
+        call read_particles(particles, 'E_phase_space.dat', nml%numparts, 'I_phase_space.dat', nml%numparts, nml%comm)
       case default
         DEBUG_ERROR(*, 'setup_particles() - invalid value for particle_config:', nml%particle_config)
     end select
@@ -107,6 +106,7 @@ module pepca_helper
 
   subroutine set_parameter(nml, dt, nt)
     use module_pepc
+    use module_debug
     use module_interaction_specific, only : theta2, eps2
     use treevars, only : num_threads, np_mult
     implicit none
@@ -158,6 +158,11 @@ module pepca_helper
     nml%directforce     = directforce
     nml%use_pfasst      = use_pfasst
     nml%output_interval = output_interval
+    
+    if (nml%output_interval(OI_PARTICLES_MPI)>0 .and. nml%output_interval(OI_VERIFY_PARTICLES)>0) then
+      DEBUG_WARNING(*, 'You activated particle output and verification in the same run. This will overwrite reference data after comparison and is usually not what you want to do.')
+    endif
+    
     ! derived from pfasst parameters
     nml%dt              = dt
     nml%nt              = nt
@@ -168,7 +173,7 @@ module pepca_helper
     eps2 = (eps/unit_length_micron_per_simunit)**2
 
     if(nml%rank==0) then
-      write(*,'(a,i12)')       ' == total  of particles per spec          : ', nml%numparts
+      write(*,'(a,i12)')       ' == total  of particles per spec          : ', nml%numparts_total
       write(*,'(a,i12)')       ' == number of particles per spec and rank : ', nml%numparts
       write(*,'(a,i12)')       ' == number of time steps                  : ', nml%nt
       write(*,'(a,es12.4)')    ' == time step (simunits)                  : ', nml%dt
@@ -181,16 +186,21 @@ module pepca_helper
   end subroutine set_parameter
 
 
-  subroutine read_particles(p, file_el, nel, file_ion, nion, rank)
+  subroutine read_particles(p, file_el, nel, file_ion, nion, comm)
     implicit none
     
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle), intent(in) :: nel, nion
     character(*), intent(in) :: file_el, file_ion
-    integer(kind_pe), intent(in) :: rank
+    integer(kind_default), intent(in) :: comm
     
+    integer(kind_pe) :: rank
     integer, parameter :: filehandle = 47
     integer(kind_particle) :: ip
+    integer(kind_default) :: ierr
+
+    allocate(p(nel+nion))
+    call MPI_COMM_RANK(comm, rank, ierr)
 
     ! FIXME: currently, we read all particles on the root rank of MPI_COMM_SPACE; thus, particle numbers should be zero on all others
     if(rank==0) then
@@ -235,52 +245,59 @@ module pepca_helper
   end subroutine read_particles
 
   
-  subroutine generate_particles(p, nel, nion, rank, nrank)
+  subroutine generate_particles(p, nel, nion, comm)
     use pepca_units
     implicit none
+    include 'mpif.h'
     
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle), intent(in) :: nel, nion
-    integer(kind_pe), intent(in) :: rank, nrank
-    
+    integer(kind_default), intent(in) :: comm
+
+    integer(kind_pe) :: rank, nrank
+    integer(kind_default) :: ierr
     real*8 :: pos(1:3), vel(1:3)
-    integer(kind_particle) :: j, l
-    integer(kind_pe) :: i
+    integer(kind_particle) :: i,l
     integer(kind_dim) :: k
+
+    integer(kind_particle) :: nel_tot, npart_left, npart_tot
+
+    allocate(p(nel+nion))
+    call MPI_COMM_RANK(comm,  rank, ierr)
+    call MPI_COMM_SIZE(comm, nrank, ierr)
+    
+    call MPI_ALLREDUCE(nel,        nel_tot,  1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr)
+    call MPI_ALLREDUCE(nel+nion, npart_tot,  1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr)
+    call MPI_EXSCAN(   nel+nion, npart_left, 1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr) 
 
     ! stupid parallel random number generation
     if(rank==0) write(*,'(a, 2(x,a))') ' == [generate] generating particles'
-      
-    pos = 0
-    vel = 0
+    
     l   = 0
-    do i=0,nrank-1
-      do j=1,nel+nion
-        l = l+1
-        do k=1,dim
-          pos(k) = par_rand() * boxdims(k)
-          vel(k) = par_rand()
-        end do
+    do i=1,npart_tot
+      do k=1,dim
+        pos(k) = par_rand() * boxdims(k)
+        vel(k) = par_rand()
+      end do
 
-        if (i==rank) then
-          p(j)%x(:)      = 0.
-          p(j)%data%v(:) = 0.
-          
-          p(j)%x(1:dim)      = pos(1:dim) / unit_length_micron_per_simunit
-          p(j)%data%v(1:dim) = vel(1:dim)
-          if (j<=nel) then
-            p(j)%label       = -l
-            p(j)%data%q      =  unit_qe
-            p(j)%data%m      =  unit_me
-          else
-            p(j)%label       = -l
-            p(j)%data%q      =  unit_qp
-            p(j)%data%m      =  unit_mp
-          endif
+      if ((i>npart_left) .and. (l<nel+nion)) then
+        l = l + 1
+        p(l)%x(:)          = 0.
+        p(l)%data%v(:)     = 0.
+        p(l)%x(1:dim)      = pos(1:dim) / unit_length_micron_per_simunit
+        p(l)%data%v(1:dim) = vel(1:dim)
+        p(l)%label         = i
+        p(l)%work          =  1.0
 
-          p(j)%work          =  1.0
+        if (i<=nel_tot) then ! first half of all particles are electrons, second half ions
+          p(l)%data%q      =  unit_qe
+          p(l)%data%m      =  unit_me
+        else
+          p(l)%data%q      =  unit_qp
+          p(l)%data%m      =  unit_mp
         endif
-      end do      
+
+      endif
     end do
 
   end subroutine generate_particles

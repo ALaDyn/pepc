@@ -13,6 +13,7 @@ contains
   subroutine track_energy_hook(pf, level, state, ctx)
     use pf_mod_dtype
     use pfm_encap
+    use pf_mod_hooks
     use iso_c_binding
     use pfm_feval
     use module_pepc_types
@@ -47,7 +48,7 @@ contains
     delen = abs(energies(E_TOT)-levelctx%initial_energies(E_TOT))/abs(levelctx%initial_energies(E_TOT))
     
     if (levelctx%root) then
-      write(*, '(" hook: ",i3," step: ",i5, " t=", es10.3," iter: ",i3," dH: ",es14.7)') state%hook, state%step+1, t,state%iter, delen
+      write(*, '(a,"| step: ",i5, " t=", es10.3," iter: ",i3," dH: ",es14.7)') hook_names(state%hook), state%step+1, t,state%iter, delen
     endif
 
   end subroutine
@@ -97,8 +98,8 @@ contains
     call compare_particles_to_checkpoint(particles, get_checkpoint_id(t), levelctx%comm, xerr, verr)
 
     if (levelctx%root) then
-      write(*,'(" hook: ",i3," step: ",i5," t=", es10.3, " iter: ",i3," Ex: ",es14.7," Ev: ",es14.7)') &
-               state%hook, state%step+1, t,state%iter, xerr, verr
+      write(*,'(a,"| step: ",i5," t=", es10.3, " iter: ",i3," Ex: ",es14.7," Ev: ",es14.7)') &
+               hook_names(state%hook), state%step+1, t,state%iter, xerr, verr
     endif
     
   end subroutine

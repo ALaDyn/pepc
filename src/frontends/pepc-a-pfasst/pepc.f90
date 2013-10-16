@@ -64,7 +64,8 @@ program pepc
   ! Take care of communication stuff
   call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
   ! initialize pepc library and MPI
-  call pepc_initialize('pepc-a-pfasst', pepca_nml%rank, pepca_nml%nrank, .false., db_level_in=DBG_STATUS, comm=MPI_COMM_SPACE)
+  pepca_nml%comm=MPI_COMM_SPACE
+  call pepc_initialize('pepc-a-pfasst', pepca_nml%rank, pepca_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepca_nml%comm)
   ! frontend parameter initialization, particle configuration etc.
   call pepca_init(pepca_nml, particles, dt=pf_nml%tend/pf_nml%nsteps/(pf_nml%nnodes(1)-1), nt=pf_nml%nsteps*(pf_nml%nnodes(1)-1))  ! FIXME: is the first level really the finest?
   ! initial potential will be needed for energy computation
@@ -141,9 +142,18 @@ program pepc
           ! do diagnostics etc here
           if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_VTK), step, nt)) call write_particles_vtk(particles, step, nt, dt*step*unit_time_fs_per_simunit, MPI_COMM_SPACE)
           if (dumpnow(pepca_nml%output_interval(OI_DOMAIN_VTK   ), step, nt)) call write_domain(particles, step, nt, dt*step*unit_time_fs_per_simunit)
+
           dumpstep = get_checkpoint_id(dt*step)
-          if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_ASC), step, nt)) call write_particles_ascii(pepca_nml%rank, dumpstep, particles, filename)
+          if (dumpnow(pepca_nml%output_interval(OI_VERIFY_PARTICLES), step, nt)) then
+            block
+              real*8 :: xerr, verr
+              call compare_particles_to_checkpoint(particles, dumpstep, MPI_COMM_SPACE, xerr, verr)
+              if(pepca_nml%rank==0) write(*,'(" step: ",i5," t=", es10.3, " Ex: ",es14.7," Ev: ",es14.7)') step, step*dt, xerr, verr
+            end block
+          end if
           if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_MPI), step, nt)) call write_particles_mpiio(MPI_COMM_SPACE, dumpstep, 2*pepca_nml%numparts_total, particles, filename)
+
+          if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_ASC), step, nt)) call write_particles_ascii(pepca_nml%rank, dumpstep, particles, filename)
           if (dumpnow(pepca_nml%output_interval(OI_DENSITIES_VTK), step, nt)) call gather_and_write_densities(particles, Ngrid, dumpstep, nt, dt*step*unit_time_fs_per_simunit, pepca_nml%rank)
           
           call diagnose_energy(particles, energies, step, dt*step*unit_time_fs_per_simunit, MPI_COMM_SPACE, pepca_nml%rank==0)

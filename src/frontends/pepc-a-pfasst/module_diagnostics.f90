@@ -312,20 +312,23 @@ module pepca_diagnostics
       xerr = -1.
       verr = -1.
     else
-      call compare_particles_to_particles(particles, particles_ref, xerr, verr)
+      call compare_particles_to_particles(particles, particles_ref, comm, xerr, verr)
     endif
     
   end subroutine
 
   
-  subroutine compare_particles_to_particles(particles, particles_ref, xerr, verr)
+  subroutine compare_particles_to_particles(particles, particles_ref, comm, xerr, verr)
     use module_debug
     use module_pepc_types
     implicit none
+    include 'mpif.h'
     type(t_particle), intent(in) :: particles(:), particles_ref(:)
+    integer(kind_default), intent(in) :: comm
     real*8, intent(out) :: xerr, verr
     
     integer(kind_particle) :: i
+    integer(kind_default) :: ierr
     
     call pepc_status('------------- compare_particles_to_particles')
     
@@ -338,6 +341,9 @@ module pepca_diagnostics
       xerr = max(xerr, maxval(abs((particles(i)%x     -particles_ref(i)%x     )/particles_ref(i)%x     )))
       verr = max(verr, maxval(abs((particles(i)%data%v-particles_ref(i)%data%v)/particles_ref(i)%data%v)))
     end do
+    
+    call MPI_ALLREDUCE(MPI_IN_PLACE, xerr, 1, MPI_REAL8, MPI_MAX, comm, ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE, verr, 1, MPI_REAL8, MPI_MAX, comm, ierr)
 
   end subroutine
   
