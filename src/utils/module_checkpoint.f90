@@ -55,7 +55,7 @@ module module_checkpoint
             character(100) :: filename
 
             dir = trim(directory)//"/ascii/"
-            write(filename,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(dir), itime, my_rank
+            write(filename,'(a,"particle_",i12.12,"_",i6.6,".dat")') trim(dir), itime, my_rank
             call pepc_status("DUMP PARTICLES ASCII: "//trim(filename))
 
             if (firstcall) then
@@ -98,7 +98,7 @@ module module_checkpoint
             character(50) :: dir
 
             dir = trim(directory)//"/binary/"
-            write(filename,'(a,"particle_",i6.6,"_",i6.6,".bin")') trim(dir), itime, my_rank
+            write(filename,'(a,"particle_",i12.12,"_",i6.6,".bin")') trim(dir), itime, my_rank
             call pepc_status("DUMP PARTICLES BINARY: "//filename)
 
             if (firstcall) then
@@ -139,7 +139,7 @@ module module_checkpoint
             integer(kind_particle) :: n_totsum
 
             dir = trim(directory)//"/mpi/"
-            write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime
+            write(filename,'(a,"particle_",i12.12,".mpi")') trim(dir), itime
             call pepc_status("DUMP PARTICLES MPI: "//filename)
             
             call MPI_COMM_RANK( MPI_COMM_WORLD, my_rank, ierr )
@@ -208,7 +208,7 @@ module module_checkpoint
             character(50) :: dir
 
             dir = trim(directory)//"/mpi/"
-            write(filename,'(a,"particle_",i6.6,".mpi")') trim(dir), itime_in
+            write(filename,'(a,"particle_",i12.12,".mpi")') trim(dir), itime_in
 
             call read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local, file_exists)
 
