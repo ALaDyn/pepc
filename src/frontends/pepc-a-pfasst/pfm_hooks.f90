@@ -86,9 +86,10 @@ contains
       case (PF_PRE_ITERATION)
         call encap_to_particles(particles, level%qend, ctx)
         t = state%t0 ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
+        if (state%iter > 1) t = t + state%dt
       case (PF_POST_ITERATION)
         call encap_to_particles(particles, level%qend, ctx)
-        t = state%t0+state%dt ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
+        t = state%t0 + state%dt ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
       case default
         DEBUG_ERROR(*,'wrong hook')
     end select

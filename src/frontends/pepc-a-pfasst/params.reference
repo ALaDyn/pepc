@@ -37,9 +37,9 @@
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 1.
+  tend    = 10.
   
-  nsteps  = 5 
+  nsteps  = 100 
   niter   = 1
   nlevels = 1
   nsweeps = 1
