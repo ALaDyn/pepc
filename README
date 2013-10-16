@@ -60,7 +60,7 @@ names and flags have to be set in a definition file called
 'makefile.defs' in the root directory.
 
 Several exemplary definitions are available in the subdirectory
-./makefiles. For example, an JUQUEEN you can simply call
+./makefiles. For example, on JUQUEEN you can simply call
 
 "ln -sf ./makefiles/makefile.defs.juqueen_xlf ./makefile.defs"
 

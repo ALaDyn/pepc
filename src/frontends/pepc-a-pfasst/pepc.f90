@@ -141,7 +141,7 @@ program pepc
           ! do diagnostics etc here
           if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_VTK), step, nt)) call write_particles_vtk(particles, step, nt, dt*step*unit_time_fs_per_simunit, MPI_COMM_SPACE)
           if (dumpnow(pepca_nml%output_interval(OI_DOMAIN_VTK   ), step, nt)) call write_domain(particles, step, nt, dt*step*unit_time_fs_per_simunit)
-          dumpstep = aint(dt*step*unit_time_as_per_simunit) ! compare pfm_hooks.f90, line 97: itime_in = ... ; we use actual physical simulation time in filename to identify checkpoints
+          dumpstep = get_checkpoint_id(dt*step)
           if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_ASC), step, nt)) call write_particles_ascii(pepca_nml%rank, dumpstep, particles, filename)
           if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_MPI), step, nt)) call write_particles_mpiio(MPI_COMM_SPACE, dumpstep, 2*pepca_nml%numparts_total, particles, filename)
           if (dumpnow(pepca_nml%output_interval(OI_DENSITIES_VTK), step, nt)) call gather_and_write_densities(particles, Ngrid, dumpstep, nt, dt*step*unit_time_fs_per_simunit, pepca_nml%rank)

@@ -33,6 +33,7 @@ module pepca_diagnostics
     public dumpnow
     public compare_particles_to_checkpoint
     public compare_particles_to_particles
+    public get_checkpoint_id
 
     integer, public, parameter :: E_KIN_E = 1
     integer, public, parameter :: E_POT_E = 2
@@ -53,6 +54,14 @@ module pepca_diagnostics
     
     dumpnow =        (stepmod>0) &
               .and. ((mod(step, stepmod)==0) .or. (step==nt))
+  end function
+  
+  integer function get_checkpoint_id(physical_time)
+    use pepca_units
+    implicit none
+    real*8, intent(in) :: physical_time
+    
+    get_checkpoint_id = aint(physical_time*unit_time_as_per_simunit)
   end function
   
 

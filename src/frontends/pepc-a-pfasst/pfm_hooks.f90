@@ -63,7 +63,7 @@ contains
     use module_pepc_types
     use pepca_diagnostics
     use module_debug
-    use pepca_units, only: unit_time_as_per_simunit
+    use pepca_diagnostics, only: get_checkpoint_id
     implicit none
     type(pf_pfasst_t), intent(inout) :: pf
     type(pf_level_t),  intent(inout) :: level
@@ -74,7 +74,6 @@ contains
     type(app_params_t), pointer :: levelctx
     real*8 :: xerr, verr
     real(pfdp) ::  t
-    integer(kind_default) :: itime_in
 
     call pepc_status('------------- track_energy_hook')
     
@@ -94,8 +93,7 @@ contains
         DEBUG_ERROR(*,'wrong hook')
     end select
     
-    itime_in = aint(t*unit_time_as_per_simunit) ! compare pepc.f90, line 144: dumpstep = ...
-    call compare_particles_to_checkpoint(particles, itime_in, levelctx%comm, xerr, verr)
+    call compare_particles_to_checkpoint(particles, get_checkpoint_id(t), levelctx%comm, xerr, verr)
 
     if (levelctx%root) then
       write(*,'(" hook: ",i3," step: ",i5," t=", es10.3, " iter: ",i3," Ex: ",es14.7," Ev: ",es14.7)') &
@@ -124,7 +122,6 @@ contains
 
     type(t_particle), allocatable, target :: particles(:)
     type(app_params_t), pointer :: levelctx
-    real*8 :: xerr, verr
     real(pfdp) ::  t
     integer(kind_default) :: itime
 
