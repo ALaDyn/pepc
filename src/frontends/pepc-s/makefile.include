@@ -1,4 +1,4 @@
-FILES_S   = pepc-s.f90 main.f90 fcs_fconfig.h
+FILES_S   = pepc-s.f90 program.f90 fcs_fconfig.h
 FILES_S_U = 
 
 SRC        += $(FILES_S)
