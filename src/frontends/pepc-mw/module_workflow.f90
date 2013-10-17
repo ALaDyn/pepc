@@ -367,7 +367,7 @@ module module_workflow
               if      (time_fs <= t_pulse_fs) then       ! initial laser pulse
                 beam_config_in = origbeamconfig
                 call laser_setup()
-                integrator_scheme = INTEGRATOR_SCHEME_NVE
+                integrator_scheme = INTEGRATOR_SCHEME_NVE_IONS_FROZEN
                 stage = 1
 
               else                                 ! laser switched off

@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2012 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -22,7 +22,7 @@
 ! ==============================================================
 !
 !
-!                  PEPC-MW
+!                  PEPC-COLLFREQ
 !
 !    Parallel Efficient Parallel Coulomb-solver
 !
@@ -154,6 +154,8 @@ program pepc
 
    ! periodic particle dump
    call write_particles(particles, .true.)
+
+   call write_particles_vtk(particles)
 
    ! Velocity and position update - explicit schemes only
    call integrator(particles, integrator_scheme)

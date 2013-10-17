@@ -28,6 +28,7 @@ module module_diagnostics
     private
 
     public write_particles
+    public write_particles_vtk
     public read_particles
     public compute_force_direct
 
@@ -153,6 +154,64 @@ contains
 
     end subroutine read_particles
 
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    integer function vtk_step_of_step(step) result(vtk_step)
+      use module_vtk
+      use physvars
+      implicit none
+
+      integer, intent(in) :: step
+
+      if (step .eq. 0) then
+        vtk_step = VTK_STEP_FIRST
+      else if (trun+idump_vtk*dt>tend ) then
+        vtk_step = VTK_STEP_LAST
+      else
+        vtk_step = VTK_STEP_NORMAL
+      endif
+    end function vtk_step_of_step
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine write_particles_vtk(p)
+      use module_pepc_types
+      use module_vtk_helpers
+      use physvars
+      use module_units
+      implicit none
+
+      include 'mpif.h'
+
+      type(t_particle), intent(in) :: p(:)
+
+      integer :: vtk_step
+
+      vtk_step = vtk_step_of_step(itime)
+      call vtk_write_particles("particles", MPI_COMM_WORLD, itime, trun*unit_t0_in_fs, vtk_step, p, vtk_results)
+
+      contains
+
+      subroutine vtk_results(d, r, vtkf)
+        use module_vtk
+        use module_interaction_specific_types
+        implicit none
+
+        type(t_particle_data), intent(in) :: d(:)
+        type(t_particle_results), intent(in) :: r(:)
+        type(vtkfile_unstructured_grid), intent(inout) :: vtkf
+
+        call vtk_write_particle_data_results(d, r, vtkf)
+      end subroutine
+    end subroutine write_particles_vtk
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

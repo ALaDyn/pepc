@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2012 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -74,7 +74,7 @@ module helper
     
     ! set default parameter values
     tnp               = 10000
-    nt                = 0
+    nt                = 25
     dt                = 1e-2
     particle_test     = .false.
     particle_output   = .false.

@@ -9,7 +9,8 @@ FILES      = module_units.f90 physvars.f90 module_io.f90 module_laser.f90 \
 
 FILES_U    = module_checkpoint.f90 \
              module_velocity_setup.f90 \
-             module_directsum.f90
+             module_directsum.f90 \
+             module_vtk_helpers.f90
 
 SRC        += $(FILES)
 SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-collfreq/, $(FILES))
