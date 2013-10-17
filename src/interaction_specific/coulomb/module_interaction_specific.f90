@@ -248,12 +248,11 @@ module module_interaction_specific
       !>
       !> generic Multipole Acceptance Criterion
       !>
-      function mac(particle, node, dist2, boxlength2)
+      function mac(node, dist2, boxlength2)
         implicit none
 
         logical :: mac
         type(t_tree_node_interaction_data), intent(in) :: node
-        type(t_particle), intent(in) :: particle
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
 

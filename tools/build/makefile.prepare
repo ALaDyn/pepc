@@ -26,6 +26,7 @@ prepare: $(SRC)
 	@echo "WORKDIR=$(WORKDIR)"         >> $(MAKEENVS)
 	@echo "LDLIBS=$(LDLIBS)"           >> $(MAKEENVS)
 	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
+	@echo "CPPFLAGS_BACKEND=$(CPPFLAGS_BACKEND)" >> $(MAKEENVS)
 	@cp makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(WORKDIR)
 	@ln -sf makefile.build $(WORKDIR)/makefile
 	@cp $(FRONTENDDIR)/$(FRONTEND)/makefile.include $(WORKDIR)/makefile.include.frontend

@@ -152,7 +152,7 @@ module module_walk
         end if
       else ! not a leaf, evaluate MAC
         mac_evaluations_local = mac_evaluations_local + 1.0_8
-        if (mac(p, t%nodes(n)%interaction_data, d2, b2(t%nodes(n)%level))) then ! MAC OK: interact
+        if (mac(IF_MAC_NEEDS_PARTICLE(p) t%nodes(n)%interaction_data, d2, b2(t%nodes(n)%level))) then ! MAC OK: interact
           ni = ni + t%nodes(n)%leaves
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
           if (any(abs(d) >= spatial_interaction_cutoff)) return

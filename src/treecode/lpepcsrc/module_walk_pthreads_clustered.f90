@@ -905,8 +905,7 @@ module module_walk
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
 
-        !FIXME: what the hell do we need the particle for?
-        if (mac(cluster%orig_particles(1)%p, walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
+        if (mac(walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
           partner_leaves = partner_leaves + walk_node%leaves
 
           !FIXME: restructure this: the branches have to be outside this loop
@@ -959,9 +958,9 @@ module module_walk
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
         ! eager requests
-        ! FIXME: what the hell do we need the particle for?
         call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, cluster%orig_particles(1)%p, cluster%cluster_centre) ! fetch children from remote
-        ! simpel requests
+        ! simple requests
+        ! FIXME: the particle has to be given here for technical reasons, see documentation of tree_node_fetch_children for details
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1

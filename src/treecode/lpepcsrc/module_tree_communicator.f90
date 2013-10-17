@@ -516,7 +516,7 @@ module module_tree_communicator
           dist2 = dot_product(delta, delta)
 
           ! check MAC
-          if (.not. (mac(request%particle, n_ptr%interaction_data, dist2, t%boxlength2(n_ptr%level)) .or. tree_node_is_leaf(n_ptr))) then
+          if (.not. (mac(IF_MAC_NEEDS_PARTICLE(request%particle) n_ptr%interaction_data, dist2, t%boxlength2(n_ptr%level)) .or. tree_node_is_leaf(n_ptr))) then
             ! resolve the node
             s = tree_node_get_first_child(n_ptr)
             if (s /= NODE_INVALID) call eager_collect_traverse(s)

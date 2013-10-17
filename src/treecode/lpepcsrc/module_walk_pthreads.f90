@@ -799,7 +799,7 @@ module module_walk
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
 
-        if (mac(particle, walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
+        if (mac(IF_MAC_NEEDS_PARTICLE(particle) walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
           partner_leaves = partner_leaves + walk_node%leaves
 
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
@@ -847,7 +847,7 @@ module module_walk
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
         ! eager requests
         call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle, shifted_particle_position) ! fetch children from remote
-        ! simpel requests
+        ! simple requests
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1
