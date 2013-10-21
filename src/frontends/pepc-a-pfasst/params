@@ -13,20 +13,17 @@
   ! false --> use default verlet integrator
   use_pfasst = .true.
   
-  ! true  --> evaluate forces directly: O(N**2) but exact
-  ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
-  directforce = .true.
-
   ! timestep intervals for dumping routines
   ! 0 --> dumping disabled for this output
   ! n --> dump output every nth step
   ! data fields:
   !                 |--------- PARTICLES_VTK
   !                 | |--------- PARTICLES_ASC
-  !                 | | |--------- PARTICLES_MPI
+  !                 | | |--------- PARTICLES_MPI (CREATE REFERENCE DATA)
   !                 | | | |---------  DENSITIES_VTK
   !                 | | | | |--------- DOMAIN_VTK
-  output_interval = 1 0 1 0 0
+  !                 | | | | | |--------- VERIFY PARTICLES (COMPARE TO REFERENCE DATA)
+  output_interval = 0 0 0 0 0 1
   
   ! Plummer potential screening length in microns
   eps = 1.e-2
@@ -37,21 +34,28 @@
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 100.
+  tend    = 1000.
   
-  nsteps  = 20
-  niter   = 5
+  nsteps  = 10000 
+  niter   = 1
   nlevels = 1
+  
+  ! level parameters (one entry per level and line)
   nsweeps = 1
   nnodes  = 3
+  ! true  --> evaluate forces directly: O(N**2) but exact
+  ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
+  directforce = .true.
+  ! multipole acceptance parameter
+  theta   = 0.3
   
   res_tol = 0.
   
   num_space_instances = 1
-  color_space_div     = .true
-  color_time_div      = .true
+  color_space_div     = .true.
+  color_time_div      = .true.
   
-  echo_timings        = .true
+  echo_timings        = .true.
   echo_errors         = .true.
 /
 
@@ -79,14 +83,9 @@
  interaction_list_length_factor = 4
 /
 
-
-&calc_force_log2d
-  ! default barnes-hut mac
-  mac_select = 0
-  ! mac theta = 0.6  
-  theta2 = 0.36
-/
-
 &walk_para_pthreads
   max_particles_per_thread = 500
+/
+
+&calc_force_log2d
 /

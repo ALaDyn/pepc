@@ -138,9 +138,9 @@ module pepca_helper
     theta2      = 0.36
     num_threads = 8
     np_mult     = -500
-    eps2 = (eps/unit_length_micron_per_simunit)**2
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
+    eps2 = (eps/unit_length_micron_per_simunit)**2
     
     if (read_para_file) then
       if(nml%rank==0) write(*,'(a)') ' == reading parameter file, section pepcapfasst: ', para_file

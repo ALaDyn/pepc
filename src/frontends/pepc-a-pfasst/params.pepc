@@ -23,7 +23,7 @@
   !                 | | | |---------  DENSITIES_VTK
   !                 | | | | |--------- DOMAIN_VTK
   !                 | | | | | |--------- VERIFY PARTICLES (COMPARE TO REFERENCE DATA)
-  output_interval = 0 0 1 0 0 0
+  output_interval = 0 0 0 0 0 1
   
   ! Plummer potential screening length in microns
   eps = 1.e-2
