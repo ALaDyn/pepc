@@ -54,7 +54,7 @@ program pepc
   type(pf_comm_t) :: tcomm
   type(pf_encap_t), target :: encap
   type(pf_sweeper_t), target :: sweeper
-  type(app_params_t), pointer :: level_params(:)
+  type(level_params_t), pointer :: level_params(:)
   type(app_data_t), pointer :: y0, yend
   
   ! particle data (position, velocity, mass, charge)
@@ -67,22 +67,23 @@ program pepc
   pepca_nml%comm=MPI_COMM_SPACE
   call pepc_initialize('pepc-a-pfasst', pepca_nml%rank, pepca_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepca_nml%comm)
   ! frontend parameter initialization, particle configuration etc.
-  call pepca_init(pepca_nml, particles, dt=pf_nml%tend/pf_nml%nsteps/(pf_nml%nnodes(1)-1), nt=pf_nml%nsteps*(pf_nml%nnodes(1)-1))  ! FIXME: is the first level really the finest?
+  call pepca_init(pepca_nml, particles, dt=pf_nml%tend/pf_nml%nsteps/(pf_nml%nnodes(pf_nml%nlevels)-1), nt=pf_nml%nsteps*(pf_nml%nnodes(pf_nml%nlevels)-1))  ! we use the finest (i.e. highest) level here
+  ! prepare table with level-dependent parameters
+  call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepca_nml%rank, MPI_COMM_SPACE)
   ! initial potential will be needed for energy computation
-  call eval_force(particles, pepca_nml%directforce, 0, MPI_COMM_SPACE, clearresults=.true.)
+  call eval_force(particles, level_params(pf_nml%nlevels), step=0, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
   if (pepca_nml%use_pfasst) then
       ! Set up PFASST object
       call pf_mpi_create(tcomm, MPI_COMM_TIME)
       call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
 
-      call pfm_encap_init(encap)
-      call pfm_setup_solver_level_params(particles, level_params, pf_nml%nlevels, pepca_nml, dim, MPI_COMM_SPACE)
+      call pfm_encap_init(encap, particles)
       call pf_verlet_create(sweeper, eval_acceleration)
       call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
       ! Initial conditions for pfasst
-      call feval_init(y0, yend, pf_nml%nlevels, pf%levels(pf_nml%nlevels)%levelctx, encap%encapctx)
+      call feval_init(y0, yend, pf_nml%nlevels, pf%levels(pf_nml%nlevels)%levelctx, encap%encapctx, particles)
 
       call pf_mpi_setup(tcomm, pf)
       call pf_pfasst_setup(pf)
@@ -132,7 +133,7 @@ program pepc
             write(*,'(a,f12.4)')        ' ====== simulation time (fs) :', step*dt*unit_time_fs_per_simunit
           end if
 
-          call eval_force(particles, pepca_nml%directforce, step, MPI_COMM_SPACE, clearresults=.true.)
+          call eval_force(particles, level_params(pf_nml%nlevels), step, MPI_COMM_SPACE, clearresults=.true.)
             
           if (step > 0) then
             ! first half step to synchronize velocities with positions

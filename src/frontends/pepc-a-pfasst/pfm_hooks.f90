@@ -18,6 +18,7 @@ contains
     use pfm_feval
     use module_pepc_types
     use pepca_diagnostics
+    use pepca_units
     use module_debug
     implicit none
     type(pf_pfasst_t), intent(inout) :: pf
@@ -26,7 +27,7 @@ contains
     type(c_ptr),       intent(in)    :: ctx
 
     type(t_particle), allocatable, target :: particles(:)
-    type(app_params_t), pointer :: levelctx
+    type(level_params_t), pointer :: levelctx
     real*8 :: energies(E_MAXIDX), delen
     real(pfdp) ::  t
 
@@ -41,14 +42,15 @@ contains
     
     ! for potential energy we will need the potential, i.e. have to call pepc again...
     ! FIXME: this is not very fortunate, should join this with acceleration function in pfm_feval
-    call eval_force(particles, levelctx%directforce, state%step, levelctx%comm, clearresults=.true.)
+    call eval_force(particles, levelctx, state%step, levelctx%comm, clearresults=.true.)
     
     call diagnose_energy(particles, energies, state%step+1, t, levelctx%comm, levelctx%root)
     
     delen = abs(energies(E_TOT)-levelctx%initial_energies(E_TOT))/abs(levelctx%initial_energies(E_TOT))
     
     if (levelctx%root) then
-      write(*, '(a,"| step: ",i5, " t=", es10.3," iter: ",i3," dH: ",es14.7)') hook_names(state%hook), state%step+1, t,state%iter, delen
+      write(*, '(a,"| step: ",i5, " t=", es10.3," iter: ",i3," dH: ",es14.7)') &
+                 hook_names(state%hook), state%step+1, t*unit_time_fs_per_simunit,state%iter, delen
     endif
 
   end subroutine
@@ -63,6 +65,7 @@ contains
     use pfm_feval
     use module_pepc_types
     use pepca_diagnostics
+    use pepca_units
     use module_debug
     use pepca_diagnostics, only: get_checkpoint_id
     implicit none
@@ -72,7 +75,7 @@ contains
     type(c_ptr),       intent(in)    :: ctx
 
     type(t_particle), allocatable, target :: particles(:)
-    type(app_params_t), pointer :: levelctx
+    type(level_params_t), pointer :: levelctx
     real*8 :: xerr, verr
     real(pfdp) ::  t
 
@@ -99,7 +102,7 @@ contains
 
     if (levelctx%root) then
       write(*,'(a,"| step: ",i5," t=", es10.3, " iter: ",i3," Ex: ",es14.7," Ev: ",es14.7)') &
-               hook_names(state%hook), state%step+1, t,state%iter, xerr, verr
+               hook_names(state%hook), state%step+1, t*unit_time_fs_per_simunit,state%iter, xerr, verr
     endif
     
   end subroutine
@@ -123,7 +126,7 @@ contains
     type(c_ptr),       intent(in)    :: ctx
 
     type(t_particle), allocatable, target :: particles(:)
-    type(app_params_t), pointer :: levelctx
+    type(level_params_t), pointer :: levelctx
     real(pfdp) ::  t
     integer(kind_default) :: itime
 

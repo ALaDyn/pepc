@@ -63,8 +63,6 @@ module pepca_helper
     integer(kind_particle) :: numparts
     ! output control intervals - set to 0 to deactivate output, see above for meaning of the fields
     integer :: output_interval(OI_MAXIDX) = [1, 1, 1, 1, 1, 0]
-    ! use direct force instead of PEPC
-    logical :: directforce = .false.
     ! use PFASST
     logical :: use_pfasst = .true.
   end type
@@ -122,21 +120,25 @@ module pepca_helper
     integer :: Ngrid(1:3)
     integer :: particle_config
     integer(kind_particle) :: numparts_total
-    logical :: directforce, use_pfasst
+    logical :: use_pfasst
     integer :: output_interval(OI_MAXIDX)
 
     real*8 :: eps = 1.e-5 ! interaction cutoff parameter
 
-    namelist /pepcapfasst/ eps, Ngrid, particle_config, numparts_total, directforce, use_pfasst, output_interval
+    namelist /pepcapfasst/ eps, Ngrid, particle_config, numparts_total, use_pfasst, output_interval
     
     ! frontend parameters
     Ngrid           = nml%Ngrid
     particle_config = nml%particle_config
     numparts_total  = nml%numparts_total
-    directforce     = nml%directforce
     use_pfasst      = nml%use_pfasst
     output_interval = nml%output_interval
 
+    ! pepc parameters
+    theta2      = 0.36
+    num_threads = 8
+    np_mult     = -500
+    eps2 = (eps/unit_length_micron_per_simunit)**2
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
     
@@ -155,7 +157,6 @@ module pepca_helper
     nml%numparts_total  = numparts_total
     nml%numparts        = numparts_total/nml%nrank
     if (mod(numparts_total, nml%nrank) > nml%rank) nml%numparts = nml%numparts + 1
-    nml%directforce     = directforce
     nml%use_pfasst      = use_pfasst
     nml%output_interval = output_interval
     
@@ -164,13 +165,8 @@ module pepca_helper
     endif
     
     ! derived from pfasst parameters
-    nml%dt              = dt
-    nml%nt              = nt
-    ! pepc parameters
-    theta2      = 0.36
-    num_threads = 8
-    np_mult     = -500
-    eps2 = (eps/unit_length_micron_per_simunit)**2
+    nml%dt      = dt
+    nml%nt      = nt
 
     if(nml%rank==0) then
       write(*,'(a,i12)')       ' == total  of particles per spec          : ', nml%numparts_total

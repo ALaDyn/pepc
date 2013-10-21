@@ -26,6 +26,8 @@ module pfm_helper
         integer :: nsteps               = 1
         integer, dimension(max_nlevels) :: nsweeps = 1
         integer, dimension(max_nlevels) :: nnodes  = 3
+        real*8, dimension(max_nlevels)  :: theta = 0.3
+        logical, dimension(max_nlevels) :: directforce = .false.
     end type pf_nml_t
     
   contains
@@ -94,33 +96,32 @@ module pfm_helper
 
 
     !> Sets up parameters on each level and defines initial RHS (as "old" u value)
-    subroutine pfm_setup_solver_level_params(particles, level_params, nlevels, nml, dim, comm)
+    subroutine pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, rank, comm)
         use pf_mod_mpi
         use pfm_encap
         use pepca_helper, only: pepca_nml_t
         implicit none
         
-        type(pepca_nml_t), intent(in) :: nml
-        type(app_params_t), pointer, intent(inout) :: level_params(:)
-        integer, intent(in) :: nlevels
+        integer, intent(in) :: rank
+        type(pf_nml_t), intent(in) :: pf_nml
+        type(level_params_t), pointer, intent(inout) :: level_params(:)
         integer(kind_dim), intent(in) :: dim
         integer(kind_default), intent(in) :: comm
         type(t_particle), allocatable, target, intent(in) :: particles(:)
         
         integer :: i
 
-        allocate(level_params(nlevels))
+        allocate(level_params(pf_nml%nlevels))
 
-        do i = 1, nlevels
-          associate (F=>level_params(i))
-            ! add any parameters from app_params_t here
-            F%nparts = size(particles)
-            F%theta  = 0.3 + 0.4*(i-1)/max((nlevels-1), 1)
-            F%directforce = nml%directforce ! TODO: use value from pepc namelist
-            F%dim    = dim
-            F%comm   = comm
-            F%root   = nml%rank == 0
-            F%particles => particles ! we will use this pointer to get easy access to particle properties, this is wrong - we have to use the levelctx instead
+        do i = 1, pf_nml%nlevels
+          associate (lp=>level_params(i))
+            ! add any parameters from level_params_t here
+            lp%nparts = size(particles)
+            lp%theta  = pf_nml%theta(i)
+            lp%directforce = pf_nml%directforce(i)
+            lp%dim    = dim
+            lp%comm   = comm
+            lp%root   = rank == 0
           end associate
         end do
     end subroutine pfm_setup_solver_level_params
@@ -131,21 +132,20 @@ module pfm_helper
         use pfm_encap
         implicit none
 
-        type(app_params_t), intent(inout), pointer :: level_params(:)
+        type(level_params_t), intent(inout), pointer :: level_params(:)
         integer, intent(in) :: nlevels
 
         integer :: i
 
         ! not really anything to do here for now
         do i = 1, nlevels
-          associate (F=>level_params(i))
-            ! add any parameters from app_params_t here
-            F%nparts = -1
-            F%theta  = -1
-            F%directforce = .false.
-            F%dim    = -1
-            F%comm   = -1
-            nullify(F%particles)
+          associate (lp=>level_params(i))
+            ! add any parameters from level_params_t here
+            lp%nparts = -1
+            lp%theta  = -1
+            lp%directforce = .false.
+            lp%dim    = -1
+            lp%comm   = -1
           end associate
         end do
 
@@ -156,7 +156,7 @@ module pfm_helper
     !> Fill PFASST object pf (generated earlier), mostly with read-in or derived parameters
     subroutine pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
         use pf_mod_dtype, only: pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK, SDC_GAUSS_LOBATTO
-        use pfm_encap, only : pf_encap_t, app_params_t
+        use pfm_encap, only : pf_encap_t, level_params_t
         use pfm_transfer, only : interpolate, restrict
         use iso_c_binding !, only : c_loc, c_null_ptr ! had to remove this as compile fix for Michael
         implicit none
@@ -164,7 +164,7 @@ module pfm_helper
         type(pf_pfasst_t), intent(inout) :: pf
         type(pf_nml_t), intent(inout) :: pf_nml
         type(pf_encap_t), target, intent(in) :: encap
-        type(app_params_t), pointer, intent(in) :: level_params(:)
+        type(level_params_t), pointer, intent(in) :: level_params(:)
         type(pf_sweeper_t), target, intent(in) :: sweeper
 
         integer :: i
@@ -218,8 +218,10 @@ module pfm_helper
         integer :: nsteps
         integer, dimension(max_nlevels) :: nsweeps
         integer, dimension(max_nlevels) :: nnodes
+        real*8, dimension(max_nlevels) :: theta
+        logical, dimension(max_nlevels) :: directforce
 
-        namelist /pfasst/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div
+        namelist /pfasst/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div, theta, directforce
 
         logical :: available
         character(len=255) :: file_name
@@ -233,11 +235,13 @@ module pfm_helper
         echo_timings        = pf_namelist%color_time_div
         color_space_div     = pf_namelist%echo_errors
         color_time_div      = pf_namelist%echo_timings
-        tend    = pf_namelist%tend
-        res_tol = pf_namelist%res_tol
-        nsteps  = pf_namelist%nsteps
-        nsweeps = pf_namelist%nsweeps
-        nnodes  = pf_namelist%nnodes
+        tend                = pf_namelist%tend
+        res_tol             = pf_namelist%res_tol
+        nsteps              = pf_namelist%nsteps
+        nsweeps             = pf_namelist%nsweeps
+        nnodes              = pf_namelist%nnodes
+        theta               = pf_namelist%theta
+        directforce         = pf_namelist%directforce
 
         call pepc_status('|--> read_in_pf_params()')
 
@@ -269,18 +273,20 @@ module pfm_helper
  
         end if
 
-        pf_namelist%niter               = niter
-        pf_namelist%nlevels             = nlevels
-        pf_namelist%num_space_instances = num_space_instances
-        pf_namelist%color_space_div     = color_space_div
-        pf_namelist%color_time_div      = color_time_div
-        pf_namelist%echo_errors         = echo_errors
-        pf_namelist%echo_timings        = echo_timings
-        pf_namelist%tend                = tend / unit_time_fs_per_simunit ! now, tend is in sim units
-        pf_namelist%res_tol             = res_tol
-        pf_namelist%nsteps              = nsteps
-        pf_namelist%nsweeps(1:nlevels)  = nsweeps(1:nlevels)
-        pf_namelist%nnodes(1:nlevels)   = nnodes(1:nlevels)
+        pf_namelist%niter                  = niter
+        pf_namelist%nlevels                = nlevels
+        pf_namelist%num_space_instances    = num_space_instances
+        pf_namelist%color_space_div        = color_space_div
+        pf_namelist%color_time_div         = color_time_div
+        pf_namelist%echo_errors            = echo_errors
+        pf_namelist%echo_timings           = echo_timings
+        pf_namelist%tend                   = tend / unit_time_fs_per_simunit ! now, tend is in sim units
+        pf_namelist%res_tol                = res_tol
+        pf_namelist%nsteps                 = nsteps
+        pf_namelist%nsweeps(1:nlevels)     = nsweeps(1:nlevels)
+        pf_namelist%nnodes(1:nlevels)      = nnodes(1:nlevels)
+        pf_namelist%theta(1:nlevels)       = theta(1:nlevels)
+        pf_namelist%directforce(1:nlevels) = directforce(1:nlevels)
     end subroutine read_in_pf_params
 
 end module pfm_helper

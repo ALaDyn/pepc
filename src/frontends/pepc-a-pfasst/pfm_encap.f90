@@ -8,14 +8,13 @@ module pfm_encap
 
   !> data type for level-dependent application parameters
   !> if any parameters are added here, they also have to be included in #pfm_setup_solver_level_params
-  type :: app_params_t
+  type :: level_params_t
     integer :: nparts
     integer :: dim
     real*8 :: theta
     logical :: directforce
     integer(kind_default) :: comm
     logical :: root
-    type(t_particle), pointer :: particles(:)
     real*8 :: initial_energies(E_MAXIDX)
   end type
 
@@ -23,7 +22,8 @@ module pfm_encap
   type :: app_data_t
     real*8, dimension(:,:), allocatable :: x
     real*8, dimension(:,:), allocatable :: v
-    type(app_params_t) :: params
+    type(level_params_t) :: params
+    type(t_particle), pointer :: particles(:) !< this is a pointer to blueprint particles: x and v are stored in app_data_t structure, all other properties are stores here, see encap_to_particles() for details
   end type app_data_t
 
 contains
@@ -59,7 +59,7 @@ contains
 
     integer(kind_particle) :: i
     type(app_data_t), pointer :: enc
-    type(app_params_t), pointer :: levelparams
+    type(level_params_t), pointer :: levelparams
 
     call pepc_status('|----> encap_to_particles()')
     call ptr_print('ptrenc', ptrenc)
@@ -69,10 +69,10 @@ contains
     call c_f_pointer(levelctx, levelparams)
     
     DEBUG_ASSERT(enc%params%nparts==size(p))
-    DEBUG_ASSERT(enc%params%nparts==size(levelparams%particles))
+    DEBUG_ASSERT(enc%params%nparts==size(enc%particles))
 
     do i=1,size(p)
-      p(i) = levelparams%particles(i) ! FIXME: here we set coordinates and velocities but overwrite them again in the next lines
+      p(i)                          = enc%particles(i) ! FIXME: here we set coordinates and velocities but overwrite them again in the next lines
       p(i)%x(     1:enc%params%dim) = enc%x(1:enc%params%dim, i)
       p(i)%x(enc%params%dim+1:)     = 0.
       p(i)%data%v(1:enc%params%dim) = enc%v(1:enc%params%dim, i) 
@@ -102,10 +102,13 @@ contains
 
 
   !> Fill pf_encap_t with pointers to encapsulation functions
-  subroutine pfm_encap_init(encap)
+  subroutine pfm_encap_init(encap, particles)
+    use module_pepc_types, only: t_particle
+    implicit none
     type(pf_encap_t), intent(out) :: encap
+    type(t_particle), target, intent(inout) :: particles(:)
 
-    encap%encapctx = c_null_ptr
+    encap%encapctx = c_loc(particles) !< this is a pointer to blueprint particles: x and v are stored in app_data_t structure, all other properties are stores here, see encap_to_particles() for details
     encap%create  => encap_create
     encap%destroy => encap_destroy
     encap%setval  => encap_setval
@@ -120,13 +123,14 @@ contains
   !> Allocate/create solution (spatial data set) for the given level.
   !> This is called for each SDC node.
   subroutine encap_create(sol, level, kind, nvars, shape, levelctx, encapctx)
+    implicit none
     type(c_ptr),       intent(inout)     :: sol
     integer,           intent(in)        :: level, nvars, shape(:)
     integer,           intent(in)        :: kind
     type(c_ptr),       intent(in), value :: levelctx, encapctx
 
     type(app_data_t), pointer :: q
-    type(app_params_t), pointer :: p
+    type(level_params_t), pointer :: p
     type(app_data_t), pointer :: y0
     
     call pepc_status('|----> encap_create()')
@@ -137,6 +141,7 @@ contains
 
     allocate(q)
     q%params = p
+    call c_f_pointer(encapctx, q%particles, shape=[q%params%nparts])
     
     allocate(q%x(q%params%dim,q%params%nparts))
     allocate(q%v(q%params%dim,q%params%nparts))
@@ -150,6 +155,7 @@ contains
 
   !> Deallocate/destroy solution.
   subroutine encap_destroy(ptr)
+    implicit none
     type(c_ptr), intent(in), value :: ptr
 
     type(app_data_t), pointer :: q
@@ -167,6 +173,7 @@ contains
 
   !> Set solution value.
   subroutine encap_setval(ptr, val, flags)
+    implicit none
     type(c_ptr), intent(in), value    :: ptr
     real(pfdp),  intent(in)           :: val
     integer,     intent(in), optional :: flags
@@ -210,6 +217,7 @@ contains
 
   !> Copy solution value on one level.
   subroutine encap_copy(dstptr, srcptr, flags)
+    implicit none
     type(c_ptr), intent(in), value    :: dstptr, srcptr
     integer,     intent(in), optional :: flags
 
@@ -255,6 +263,7 @@ contains
 
   !> Pack solution q into a flat array.
   subroutine encap_pack(z, ptr)
+    implicit none
     type(c_ptr), intent(in), value  :: ptr
     real(pfdp),  intent(out)        :: z(:)  !FIXME: an alternative with a frontend-defined MPI type would be very nice - this will avoid packing completely :-)
 
@@ -280,6 +289,7 @@ contains
 
   !> Unpack solution from a flat array.
   subroutine encap_unpack(ptr, z)
+    implicit none
     type(c_ptr), intent(in), value :: ptr
     real(pfdp),  intent(in)        :: z(:)  !FIXME: an alternative with a frontend-defined MPI type would be very nice - this will avoid packing completely :-)
 
@@ -305,6 +315,7 @@ contains
 
   !> Compute y = a x + y where a is a scalar and x and y are solutions on the same level.
   subroutine encap_axpy(yptr, a, xptr, flags)
+    implicit none
     type(c_ptr), intent(in), value    :: xptr, yptr
     real(pfdp),  intent(in)           :: a
     integer,     intent(in), optional :: flags
@@ -353,6 +364,7 @@ contains
   !> Compute norm of solution
   function encap_norm(ptr) result (norm)
     use pf_mod_mpi
+    implicit none
     type(c_ptr), intent(in), value :: ptr
     real(pfdp) :: norm, norm_loc
 

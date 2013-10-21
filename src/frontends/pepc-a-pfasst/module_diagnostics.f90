@@ -259,7 +259,7 @@ module pepca_diagnostics
           energies(E_KIN_E) = energies(E_KIN_E) + ekin
           energies(E_POT_E) = energies(E_POT_E) + epot
       else
-        !write(*,*) 'unexpected species in energy computation'
+        write(*,*) 'unexpected species in energy computation'
       endif
     end do
     

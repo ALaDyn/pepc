@@ -13,7 +13,7 @@ module pfm_feval
   contains
 
     !> Initialize feval, i.e. transfer initial u to PFASST data object
-    subroutine feval_init(y0, yend, nlevels, levelctx, encapctx) ! FIXME: shouldnt we call this function once per level?
+    subroutine feval_init(y0, yend, nlevels, levelctx, encapctx, particles) ! FIXME: shouldnt we call this function once per level?
       use iso_c_binding
       use module_pepc_types, only: t_particle
       use pepca_diagnostics
@@ -22,10 +22,11 @@ module pfm_feval
       type(app_data_t), pointer, intent(inout) :: y0, yend
       integer, intent(in) :: nlevels
       type(c_ptr), intent(inout) :: levelctx, encapctx
+      type(t_particle), intent(in), pointer :: particles(:)
  
       type(c_ptr) :: y0_C, yend_c
 
-      type(app_params_t), pointer :: params
+      type(level_params_t), pointer :: params
 
       call pepc_status('|------> feval_init()')
 
@@ -37,10 +38,10 @@ module pfm_feval
       call c_f_pointer(  y0_c, y0)
       call c_f_pointer(yend_c, yend)
      
-      call particles_to_encap(y0_c, params%particles)
+      call particles_to_encap(y0_c, particles)
       
       ! compute initial energies for later comparison
-      call diagnose_energy(params%particles, params%initial_energies, 0, 0.0_8, params%comm, params%root) 
+      call diagnose_energy(particles, params%initial_energies, 0, 0.0_8, params%comm, params%root) 
       
     end subroutine feval_init
 
@@ -73,7 +74,7 @@ module pfm_feval
       
       type(t_particle), allocatable :: particles(:)
       type(app_data_t), pointer :: a,x
-      type(app_params_t), pointer :: levelctx
+      type(level_params_t), pointer :: levelctx
       integer(kind_particle) :: i
       integer, save :: step =0
       
@@ -93,7 +94,7 @@ module pfm_feval
       ! prepare and run PEPC
       allocate(particles(a%params%nparts))
       call encap_to_particles(particles, xptr, ctx)
-      call eval_force(particles, levelctx%directforce, step, levelctx%comm, clearresults=.true.)
+      call eval_force(particles, levelctx, step, levelctx%comm, clearresults=.true.)
       
       ! compute accelerations from fields
       do i=1,size(particles, kind=kind(i))
@@ -108,12 +109,13 @@ module pfm_feval
 
     
     !> invoke pepc or direct sum
-    subroutine eval_force(particles, directforce, step, comm, clearresults)
+    subroutine eval_force(particles, level_params, step, comm, clearresults)
       use module_debug
       use module_pepc
+      use module_interaction_specific, only : intspec_theta2 => theta2
       implicit none
       type(t_particle), allocatable, target, intent(inout) :: particles(:)
-      logical, intent(in) :: directforce
+      type(level_params_t), intent(in) :: level_params
       integer, intent(in) :: step
       integer(kind_default), intent(in) :: comm
       logical, intent(in) :: clearresults
@@ -122,9 +124,10 @@ module pfm_feval
           call pepc_particleresults_clear(particles)
       endif
       
-      if (directforce) then
+      if (level_params%directforce) then
         call compute_force_direct(particles, comm)
       else
+        intspec_theta2 = level_params%theta * level_params%theta
         call pepc_grow_tree(particles)
         call pepc_traverse_tree(particles)
         call pepc_restore_particles(particles)
