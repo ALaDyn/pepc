@@ -45,6 +45,10 @@ module pepca_diagnostics
     integer, public, parameter :: E_POT   = 8
     integer, public, parameter :: E_TOT   = 9
     integer, public, parameter :: E_MAXIDX = E_TOT
+    
+    integer, public, parameter :: NORM_MAXIMUM = 1
+    integer, public, parameter :: NORM_L2      = 2
+    integer, public, parameter :: norm         = NORM_L2
 
   contains
   
@@ -305,7 +309,7 @@ module pepca_diagnostics
     
     call pepc_status('------------- compare_particles_to_checkpoint')
 
-    call read_particles_mpiio(itime_in, comm, itime, n_total, particles_ref, filename, size(particles), success)
+    call read_particles_mpiio(itime_in, comm, itime, n_total, particles_ref, filename, size(particles), file_exists=success, noparams=.true.)
     
     if (.not. success) then
       DEBUG_WARNING('("trying to read checkpoint with itime=", I0, " --> filename =", a," but the file does not exist. Please run the executable with use_pfasst=.false. in params to generate reference data first.")', itime_in, trim(filename))
@@ -329,22 +333,66 @@ module pepca_diagnostics
     
     integer(kind_particle) :: i
     integer(kind_default) :: ierr
+    real*8 :: xsum2, vsum2, mydiff(3)
     
     call pepc_status('------------- compare_particles_to_particles')
     
     DEBUG_ASSERT(size(particles) == size(particles_ref))
     
-    xerr = 0
-    verr = 0
+    xerr  = 0
+    verr  = 0
+    xsum2 = 0
+    vsum2 = 0
     
-    do i=1,size(particles, kind=kind_particle)
-      xerr = max(xerr, maxval(abs((particles(i)%x     -particles_ref(i)%x     )/particles_ref(i)%x     )))
-      verr = max(verr, maxval(abs((particles(i)%data%v-particles_ref(i)%data%v)/particles_ref(i)%data%v)))
-    end do
+    select case (norm)
+
+      case (NORM_MAXIMUM)
+        do i=1,size(particles, kind=kind_particle)
+          xerr = max(xerr, maxval(abs((particles(i)%x     -particles_ref(i)%x     )/particles_ref(i)%x     )))
+          verr = max(verr, maxval(abs((particles(i)%data%v-particles_ref(i)%data%v)/particles_ref(i)%data%v)))
+        end do
     
-    call MPI_ALLREDUCE(MPI_IN_PLACE, xerr, 1, MPI_REAL8, MPI_MAX, comm, ierr)
-    call MPI_ALLREDUCE(MPI_IN_PLACE, verr, 1, MPI_REAL8, MPI_MAX, comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, xerr, 1, MPI_REAL8, MPI_MAX, comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, verr, 1, MPI_REAL8, MPI_MAX, comm, ierr)
+
+      case (NORM_L2)
+        do i=1,size(particles, kind=kind_particle)
+          xsum2 = xsum2 + dot_product(particles_ref(i)%x,     particles_ref(i)%x)
+          vsum2 = vsum2 + dot_product(particles_ref(i)%data%v,particles_ref(i)%data%v)
+        
+          mydiff = particles(i)%x-particles_ref(i)%x
+          xerr = xerr + dot_product(mydiff, mydiff)
+
+          mydiff = particles(i)%data%v-particles_ref(i)%data%v
+          verr = verr + dot_product(mydiff, mydiff)
+        end do
+    
+        call MPI_ALLREDUCE(MPI_IN_PLACE, xerr,  1, MPI_REAL8, MPI_SUM, comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, verr,  1, MPI_REAL8, MPI_SUM, comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, xsum2, 1, MPI_REAL8, MPI_SUM, comm, ierr)
+        call MPI_ALLREDUCE(MPI_IN_PLACE, vsum2, 1, MPI_REAL8, MPI_SUM, comm, ierr)
+        
+        xerr = sqrt(xerr) / sqrt(xsum2)
+        verr = sqrt(verr) / sqrt(vsum2)
+      
+      case default
+        DEBUG_ERROR(*, 'Invalid norm selected')
+    end select
 
   end subroutine
   
 end module
+
+
+
+
+
+
+
+
+
+
+
+
+
+

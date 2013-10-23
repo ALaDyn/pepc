@@ -191,7 +191,7 @@ module module_checkpoint
           end subroutine
 
 
-          subroutine read_particles_mpiio(itime_in, comm, itime, n_total, dp, filename, nparticles_local, file_exists)
+          subroutine read_particles_mpiio(itime_in, comm, itime, n_total, dp, filename, nparticles_local, file_exists, noparams)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
@@ -204,19 +204,20 @@ module module_checkpoint
             type(t_particle), allocatable :: dp(:)
             integer(kind_default), optional, intent(in) :: nparticles_local ! this has to be kind_default - not kind_particle as it is parameter to MPI functions
             logical, optional, intent(out) :: file_exists
+            logical, optional, intent(in) :: noparams
 
             character(50) :: dir
 
             dir = trim(directory)//"/mpi/"
             write(filename,'(a,"particle_",i12.12,".mpi")') trim(dir), itime_in
 
-            call read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local, file_exists)
+            call read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local, file_exists, noparams)
 
             filename = trim(filename)//".h"
           end subroutine
 
 
-          subroutine read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local, file_exists)
+          subroutine read_particles_mpiio_from_filename(comm, itime, n_total, dp, filename, nparticles_local, file_exists, noparams)
             use module_pepc_types
             use module_debug
             use module_pepc, only : pepc_read_parameters
@@ -229,6 +230,7 @@ module module_checkpoint
             integer(kind_default), intent(in) :: comm
             character(*), intent(in) :: filename
             logical, optional, intent(out) :: file_exists
+            logical, optional, intent(in) :: noparams
 
             character(255) :: filename2
             type(t_particle), allocatable :: dp(:)
@@ -236,6 +238,10 @@ module module_checkpoint
             integer(kind_particle) :: remain
             integer(kind_default), optional, intent(in) :: nparticles_local ! this has to be kind_default - not kind_particle as it is parameter to MPI functions
             integer(kind_particle) :: n_totsum
+            logical :: noparams_
+            
+            noparams_ = .false.
+            if (present(noparams)) noparams_ = noparams
 
 
             call pepc_status("READ PARTICLES MPI: "//filename)
@@ -282,11 +288,12 @@ module module_checkpoint
               ! Close file
               call MPI_FILE_CLOSE(fh,ierr)
 
-              filename2 = trim(filename)//".h"
-              open(filehandle, file=trim(filename2),action='read')
-              call pepc_read_parameters(filehandle)
-              close(filehandle)
-              
+              if (.not. noparams_) then
+                filename2 = trim(filename)//".h"
+                open(filehandle, file=trim(filename2),action='read')
+                call pepc_read_parameters(filehandle)
+                close(filehandle)
+              endif
             else
               if (present(file_exists)) then
                 file_exists = .false.

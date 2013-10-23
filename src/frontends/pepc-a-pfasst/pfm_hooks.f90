@@ -5,7 +5,7 @@ module pfm_hooks
   
   public track_energy_hook
   public compare_checkpoint_hook
-  public dump_particles_hook
+  public dump_particles_vtk_hook
   
 contains
 
@@ -87,7 +87,7 @@ contains
     
     ! compare particle data to checkpoint of some previous run - we use the actual physical simulation time to identify the appropriate checkpoint
     select case (state%hook)
-      case (PF_PRE_ITERATION)
+      case (PF_PRE_STEP)
         call encap_to_particles(particles, level%qend, ctx)
         t = state%t0 ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
         if (state%iter > 1) t = t + state%dt
@@ -109,7 +109,7 @@ contains
 
     
   !> particle output
-  subroutine dump_particles_hook(pf, level, state, ctx)
+  subroutine dump_particles_vtk_hook(pf, level, state, ctx)
     use pf_mod_dtype
     use pf_mod_hooks
     use pfm_encap
