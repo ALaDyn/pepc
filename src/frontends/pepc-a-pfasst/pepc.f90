@@ -43,7 +43,6 @@ program pepc
   
   implicit none
 
-  type(pepca_nml_t) :: pepca_nml
   integer :: step, dumpstep
   character(100) :: filename
   
@@ -92,7 +91,7 @@ program pepc
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, track_energy_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, compare_checkpoint_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, compare_checkpoint_hook)
-      !call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_vtk_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
 
       !if (pf_nml%echo_errors) then
       !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, echo_stats)

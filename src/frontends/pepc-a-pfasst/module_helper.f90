@@ -67,6 +67,8 @@ module pepca_helper
     logical :: use_pfasst = .true.
   end type
 
+  type(pepca_nml_t), public :: pepca_nml
+
   contains
   
   subroutine pepca_init(nml, particles, dt, nt)
