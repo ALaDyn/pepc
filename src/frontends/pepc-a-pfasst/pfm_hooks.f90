@@ -82,7 +82,7 @@ contains
     
     if (.not. dumpnow(pepca_nml%output_interval(OI_VERIFY_PARTICLES), state%step, state%nsteps)) return
 
-    call pepc_status('------------- track_energy_hook')
+    call pepc_status('------------- compare_checkpoint_hook')
     
     call c_f_pointer(ctx, levelctx)
     

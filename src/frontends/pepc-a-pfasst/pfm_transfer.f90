@@ -13,9 +13,10 @@ module pfm_transfer
 contains
 
    !> Interpolate coarse (qGp) to fine (qFp) nodes
-   subroutine interpolate(qFp, qGp, levelF, ctxF, levelG, ctxG)
+   subroutine interpolate(qFp, qGp, levelF, ctxF, levelG, ctxG, t)
       type(c_ptr), intent(in), value :: qFp, qGp, ctxF, ctxG
       integer,     intent(in)        :: levelF, levelG
+      real(pfdp),  intent(in) :: t
 
       type(app_data_t), pointer :: qF, qG
 
@@ -32,9 +33,10 @@ contains
 
 
    !> Restriction from qFp  to qGp
-   subroutine restrict(qFp, qGp, levelF, ctxF, levelG, ctxG)
+   subroutine restrict(qFp, qGp, levelF, ctxF, levelG, ctxG, t)
       type(c_ptr), intent(in), value :: qFp, qGp, ctxF, ctxG
       integer,     intent(in)        :: levelF, levelG
+      real(pfdp),  intent(in) :: t
 
       type(app_data_t), pointer :: qF, qG
 
