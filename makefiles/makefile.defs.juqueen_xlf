@@ -33,7 +33,7 @@ LD        = mpixlf90_r
 LDLIBS    = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
 
 CPP       = /usr/bin/cpp
-CPPFLAGS  = -P -C -DLITTLEENDIAN -DSVNREVISION="\"$(SVNREVISION)\"" -D__TOS_BGQ__
+CPPFLAGS  = -P -C -DLITTLEENDIAN -DSVNREVISION="\"$(SVNREVISION)\"" -D__TOS_BGQ__ -D__IBMCPP__
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qkeepparm -qflttrap -qnosmp -qxflag=dvz -Q! -qnounwind -qnounroll
 OPTIMIZATIONFLAGS       = -O5 -qhot -qipa=level=2 -qlibmpi -qinline -qinfo=all -qstrict \

@@ -150,9 +150,29 @@ module module_debug
      !>
      subroutine debug_mpi_abort()
        use treevars, only : MPI_COMM_lpepc
+       #if defined(__ICC) || defined(__INTEL_COMPILER)
+         use ifcore
+       #endif
        implicit none
        include 'mpif.h'
        integer(kind_default) :: ierr
+       
+       ! starting from GCC version 4.8, a backtrace() subroutine is provided by gfortran
+       #if defined(__GNUC__)
+         #define GCC_VERSION (__GNUC__ * 10000 \
+                            + __GNUC_MINOR__ * 100 \
+                            + __GNUC_PATCHLEVEL__)
+         #if GCC_VERSION >= 40800
+           ! http://gcc.gnu.org/onlinedocs/gfortran/BACKTRACE.html
+           call backtrace()
+         #endif
+       #elif defined(__ICC) || defined(__INTEL_COMPILER)
+         ! http://software.intel.com/sites/products/documentation/hpc/composerxe/en-us/2011Update/fortran/lin/lref_for/source_files/rftrace.htm
+         call tracebackqq("stacktrace", -1)
+       #elif defined(__IBMC__) || defined(__IBMCPP__)
+         ! http://publib.boulder.ibm.com/infocenter/comphelp/v8v101/index.jsp?topic=%2Fcom.ibm.xlf101a.doc%2Fxlflr%2Fsup-xltrbk.htm
+         call xl__trbk()
+       #endif
 
        call MPI_ABORT(MPI_COMM_lpepc, 1, ierr)
      end subroutine
