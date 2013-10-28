@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -40,12 +40,12 @@ program pepc
   use pf_mod_pfasst, only: pf_pfasst_create, pf_pfasst_setup, pf_pfasst_destroy
   use pf_mod_parallel, only: pf_pfasst_run
   use pf_mod_hooks
-  
+
   implicit none
 
   integer :: step, dumpstep
   character(100) :: filename
-  
+
   ! variables for pfasst
   integer(kind_default):: MPI_COMM_SPACE, MPI_COMM_TIME, mpi_err
   type(pf_pfasst_t) :: pf
@@ -55,7 +55,7 @@ program pepc
   type(pf_sweeper_t), target :: sweeper
   type(level_params_t), pointer :: level_params(:)
   type(app_data_t), pointer :: y0, yend
-  
+
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable, target :: particles(:)
   real*8 :: energies(E_MAXIDX)
@@ -133,7 +133,7 @@ program pepc
           end if
 
           call eval_force(particles, level_params(pf_nml%nlevels), step, MPI_COMM_SPACE, clearresults=.true.)
-            
+
           if (step > 0) then
             ! first half step to synchronize velocities with positions
             call update_velocities(particles, dt/2.)
@@ -155,17 +155,17 @@ program pepc
 
           if (dumpnow(pepca_nml%output_interval(OI_PARTICLES_ASC), step, nt)) call write_particles_ascii(pepca_nml%rank, dumpstep, particles, filename)
           if (dumpnow(pepca_nml%output_interval(OI_DENSITIES_VTK), step, nt)) call gather_and_write_densities(particles, Ngrid, dumpstep, nt, dt*step*unit_time_fs_per_simunit, pepca_nml%rank)
-          
+
           call diagnose_energy(particles, energies, step, dt*step*unit_time_fs_per_simunit, MPI_COMM_SPACE, pepca_nml%rank==0)
 
           ! second half step: velocities are one half step ahead again
           call update_velocities(particles, dt/2.)
           ! full step for positions: now positions are one half step ahead
-          call push_particles(particles, dt)    
+          call push_particles(particles, dt)
 
           call timings_GatherAndOutput(step, 0, 0==step)
 
-        end do 
+        end do
       end associate
   endif
 
@@ -173,6 +173,6 @@ program pepc
   call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)
   call MPI_COMM_FREE(MPI_COMM_SPACE, mpi_err)
   call MPI_FINALIZE( mpi_err )
- 
+
 end program pepc
 
