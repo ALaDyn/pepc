@@ -47,6 +47,9 @@ else
   CPPFLAGS += -DNDEBUG
 endif
 
+# ensure that the BG-Perosnailty features are used correctly
+CFLAGS += -D__TOS_BGQ__
+
 # solve the following issue with lto:
 #`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
 #`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
