@@ -91,6 +91,14 @@ int pthreads_uninit()
 }
 
 #if defined(__TOS_BGQ__)
+  #if defined(__GNUC__)
+    #define cntlz8(x) (__builtin_ctzl(x))
+    #define popcnt8(x) (__builtin_popcountl(x))
+  #elif defined(__IBMC__) || defined(__IBMCPP__)
+    #define cntlz8(x) (__cntlz8(x))
+    #define popcnt8(x) (__popcnt8(x))
+  #endif
+
 void* thread_helper(pthread_with_type_t* thread)
 {
     const int reserved = 4;
@@ -104,7 +112,7 @@ void* thread_helper(pthread_with_type_t* thread)
     int count, selected = -1;
 
     if (thread->thread_type == THREAD_TYPE_COMMUNICATOR) {
-      first = __cntlz8(accessible); // identify first accessible hardware thread
+      first = cntlz8(accessible); // identify first accessible hardware thread
 
       if (thread->counter == 1) {
         // first communicator goes on the free hardware thread of the first core
@@ -116,8 +124,8 @@ void* thread_helper(pthread_with_type_t* thread)
         printf("WARNING: No placement policy for communicator thread no. %d implemented!\n", thread->counter);
       }
     } else if (thread->thread_type == THREAD_TYPE_WORKER) {
-      first = __cntlz8(accessible); // identify first accessible hardware thread
-      count = __popcnt8(accessible) - reserved; // number of accessible threads minus reserved first core
+      first = cntlz8(accessible); // identify first accessible hardware thread
+      count = popcnt8(accessible) - reserved; // number of accessible threads minus reserved first core
 
       if (count > 0) {
         selected = first + reserved  // skip first core
