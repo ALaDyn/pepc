@@ -31,9 +31,9 @@ INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -fi
 #-fwhopr
 
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Wall -O0 -pg -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
-  CFLAGS   = -Wall -O0 -pg -g -gdwarf-3
-  LDFLAGS  =       -O0 -pg -g -gdwarf-3
+  FFLAGS   = -Wall -O0 -pg -g -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -pg -g 
+  LDFLAGS  =       -O0 -pg -g 
 else
   FFLAGS   = -Wall -O5 -pg    -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
   CFLAGS   = -Wall -O5 -pg

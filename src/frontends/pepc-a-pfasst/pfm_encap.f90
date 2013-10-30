@@ -108,7 +108,7 @@ contains
     type(pf_encap_t), intent(out) :: encap
     type(t_particle), target, intent(inout) :: particles(:)
 
-    encap%encapctx = c_loc(particles) !< this is a pointer to blueprint particles: x and v are stored in app_data_t structure, all other properties are stores here, see encap_to_particles() for details
+    encap%encapctx = c_loc(particles(1)) !< this is a pointer to blueprint particles: x and v are stored in app_data_t structure, all other properties are stores here, see encap_to_particles() for details
     encap%create  => encap_create
     encap%destroy => encap_destroy
     encap%setval  => encap_setval
