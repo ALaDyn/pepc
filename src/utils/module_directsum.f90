@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -89,12 +89,12 @@ module module_directsum
           do i=1,ntest
             received(i) = particles(testidx(i))
           end do
-           
+
           call particleresults_clear(received)
 
           ! we copy all local particles into a node array to be able to feed them to calc_force_per_interaction
           allocate(local_nodes(size(particles)))
-          
+
           do i=1,size(particles)
             call multipole_from_particle(particles(i)%x, particles(i)%data, local_nodes(i))
           end do
@@ -107,7 +107,7 @@ module module_directsum
 
             t1 = MPI_WTIME()
 
-            !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
+            !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta, ibox)
             do j=1,nreceived
                 do i=1,size(particles)
 
@@ -120,7 +120,7 @@ module module_directsum
                         if (currank == 0) then
                           if ((ibox == num_neighbour_boxes) .and. (testidx(j) == i)) then
                             call calc_force_per_interaction_with_self(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
-                            continue
+                            cycle
                           end if
                         end if
 
