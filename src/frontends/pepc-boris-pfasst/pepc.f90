@@ -58,7 +58,7 @@ program pepc
   call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
   ! initialize pepc library and MPI
   pepcboris_nml%comm=MPI_COMM_SPACE
-  call pepc_initialize('pepc-a-pfasst', pepcboris_nml%rank, pepcboris_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepcboris_nml%comm)
+  call pepc_initialize('pepc-boris-pfasst', pepcboris_nml%rank, pepcboris_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepcboris_nml%comm)
   ! this is not an MPI-parallel application
   if (pepcboris_nml%nrank > 1) then
     DEBUG_ERROR(*, "This is not an MPI-parallel application")
@@ -70,7 +70,7 @@ program pepc
   ! prepare table with level-dependent parameters
   call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepcboris_nml%rank, MPI_COMM_SPACE)
   ! initial potential will be needed for energy computation
-  call eval_force(particles, level_params(pf_nml%nlevels), step=0, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
+  call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step=0, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
   if (pepcboris_nml%use_pfasst) then
       ! Set up PFASST object
@@ -100,7 +100,7 @@ program pepc
       call pf_verlet_destroy(sweeper)
       call pfm_finalize_solver_level_params(level_params, pf_nml%nlevels)
    else ! use PEPC's own verlet integrator
-      associate (dt => pepcboris_nml%dt,    &
+      associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
         do step=0,nt
           if(pepcboris_nml%rank==0) then
@@ -109,17 +109,17 @@ program pepc
             write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
           end if
 
-          call eval_force(particles, level_params(pf_nml%nlevels), step, MPI_COMM_SPACE, clearresults=.true.)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
 
           ! do diagnostics etc here
           block
             integer(kind_particle) :: p
             do p=1,size(particles,kind=kind(p))
-              write(*,*) step*dt, p, particles(p)%x, particles(p)%data%v
+              write(47,*) step*dt, p, particles(p)%x, particles(p)%data%v
             end do
           end block
 
-          ! update positions and velocities ! FIXME: do we need an initial half step somwhere
+          ! update positions and velocities ! FIXME: do we need an initial half step somewhere
           call push_particles_boris(pepcboris_nml, particles, dt)
 
           call timings_GatherAndOutput(step, 0, 0==step)

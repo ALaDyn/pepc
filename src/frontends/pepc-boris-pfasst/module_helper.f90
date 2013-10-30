@@ -38,8 +38,10 @@ module pepcboris_helper
   integer, public, parameter :: PARAMS_Y0 = 2
   integer, public, parameter :: PARAMS_Z0 = 3
   integer, public, parameter :: PARAMS_B0 = 4
-  integer, public, parameter :: PARAMS_E0 = 5
-  integer, public, parameter :: PARAMS_MAXIDX = PARAMS_E0
+  integer, public, parameter :: PARAMS_EPSILON = 5
+  integer, public, parameter :: PARAMS_OMEGA0X = 6
+  integer, public, parameter :: PARAMS_OMEGA0Y = 7
+  integer, public, parameter :: PARAMS_MAXIDX = PARAMS_OMEGA0Y
 
   !> parameter collection for pepcboris
   type pepcboris_nml_t
