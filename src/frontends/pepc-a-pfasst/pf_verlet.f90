@@ -88,11 +88,18 @@ contains
        call verlet%acceleration(F%Q(m+1), t, F%level, F%levelctx, F%F(m+1,1)) !  Update function values
 
        !  Update velocity term (trapezoid rule)
-       call F%encap%axpy(fq_int,dtmhalf,F%F(m,1),1);
-       call F%encap%axpy(fq_int,dtmhalf,F%F(m+1,1),1);
-       call F%encap%axpy(fq_int,1.0_pfdp,F%S(m),1);
-       call F%encap%copy(F%Q(m+1), fq_int,1)           !  Add integration term for q
-       call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%Q(m),1) !  Start m+1 with value from m
+       ! call F%encap%axpy(fq_int,dtmhalf,F%F(m,1),1);
+       ! call F%encap%axpy(fq_int,dtmhalf,F%F(m+1,1),1);
+       ! call F%encap%axpy(fq_int,1.0_pfdp,F%S(m),1);
+       ! call F%encap%copy(F%Q(m+1), fq_int,1)           !  Add integration term for q
+       ! call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%Q(m),1) !  Start m+1 with value from m
+
+       ! Call boris solver for updated velocity term
+       call F%encap%boris(F%Q(m+1),                 ! Output: updated velocity at m+1 
+                          F%Q(m),                   ! old velocity at previous node m
+                          F%F(m+1,1),               ! current E-field at m+1, using already updated positions
+                          F%F(m,1),                 ! current E-field at previous node m
+                          F%S(m),dtsdc(m))          ! mod. right-hand side (i.e. integral for q) + \Delta\tau
 
     end do
 
@@ -112,6 +119,7 @@ contains
     type(pf_level_t), intent(inout) :: F
     type(pf_verlet_t), pointer :: verlet
     call c_f_pointer(F%sweeper%sweeperctx, verlet)
+    ! FIXME: need to do the full rhs here, not only E-field!
     call verlet%acceleration(F%Q(m), t, F%level, F%levelctx, F%F(m,1))
   end subroutine verlet_evaluate
 
@@ -197,6 +205,8 @@ contains
     real(pfdp) :: dtsdc(1:F%nnodes-1)
     integer :: n, m
 
+    ! FIXME: need to do the full rhs here, not only E-field:
+    ! get E-field via fSDC, compute full rhs
     dtsdc = dt * (F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1))
     do n = 1, F%nnodes-1
        call F%encap%setval(fintSDC(n), 0.0_pfdp)
