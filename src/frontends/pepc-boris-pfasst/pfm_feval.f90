@@ -7,8 +7,10 @@ module pfm_feval
 
     public feval_init
     public feval_finalize
-    public eval_acceleration
+    public calc_Efield
     public eval_force
+    public build_rhs
+    public impl_solver
 
   contains
 
@@ -58,49 +60,48 @@ module pfm_feval
     !> Use pepc to compute accelerations
     !> note here that we're assuming that acceleration
     !> is only a function of x, and that \ddot{x} = a.
-    subroutine eval_acceleration(xptr, t, level, ctx, aptr)
+    subroutine calc_Efield(xptr, t, level, ctx, Eptr)
       use module_pepc
       use iso_c_binding, only : c_ptr, c_int, c_f_pointer
       use module_debug, only : dbg, DBG_STATS, pepc_status
       implicit none
-      type(c_ptr),    intent(in), value :: xptr, aptr, ctx
+      type(c_ptr),    intent(in), value :: xptr, Eptr, ctx
       real(pfdp),     intent(in)        :: t
       integer(c_int), intent(in)        :: level
 
       type(t_particle), allocatable :: particles(:)
-      type(app_data_t), pointer :: a,x
+      type(app_data_t), pointer :: E,x
       type(level_params_t), pointer :: levelctx
       integer(kind_particle) :: i
       integer, save :: step =0
 
-      call pepc_status('|------> eval_acceleration()')
+      call pepc_status('|------> calc_Efield()')
       call ptr_print('x', xptr)
-      call ptr_print('a', aptr)
+      call ptr_print('E', Eptr)
       call ptr_print('ctx', ctx)
 
-      call c_f_pointer(aptr, a)
+      call c_f_pointer(Eptr, E)
       call c_f_pointer(xptr, x)
       call c_f_pointer(ctx, levelctx)
 
       step = step + 1
 
-      DEBUG_ASSERT(a%params%nparts==x%params%nparts)
+      DEBUG_ASSERT(E%params%nparts==x%params%nparts)
 
       ! prepare and run PEPC
-      allocate(particles(a%params%nparts))
+      allocate(particles(E%params%nparts))
       call encap_to_particles(particles, xptr, ctx)
       call eval_force(particles, levelctx, step, levelctx%comm, clearresults=.true.)
 
-      ! compute accelerations from fields
+      ! just copy results to E variable (yes, it's weird that we have x- and v-components.. don't ask, won't tell)
       do i=1,size(particles, kind=kind(i))
-        ! acceleration from force from field
-        a%x(1:a%params%dim, i) = particles(i)%data%q * particles(i)%results%e(1:a%params%dim) / particles(i)%data%m
-        a%x(a%params%dim+1:,i) = 0
-        a%v(:,:) = a%x(:,:)
+        E%x(1:E%params%dim, i) = particles(i)%results%e(1:E%params%dim)
+        E%x(E%params%dim+1:,i) = 0
+        E%v(:,:) = E%x(:,:)
       end do
 
       deallocate(particles)
-    end subroutine eval_acceleration
+    end subroutine calc_Efield
 
 
     !> invoke pepc or direct sum
@@ -129,6 +130,29 @@ module pfm_feval
         if (dbg(DBG_STATS)) call pepc_statistics(step)
         call pepc_timber_tree()
       endif
+    end subroutine
+
+    !> compile full right-hand side using the E-field and particle data
+    subroutine build_rhs(Eptr, level, ctx, rhsptr)
+      use module_pepc
+      use iso_c_binding, only : c_ptr, c_int, c_f_pointer
+      use module_debug, only : dbg, DBG_STATS, pepc_status
+      implicit none
+      type(c_ptr),    intent(in), value :: Eptr, rhsptr, ctx
+      integer(c_int), intent(in)        :: level
+      ! FIXME
+    end subroutine
+
+    !> solve for the updated velocity, e.g. using the Boris solver
+    subroutine impl_solver(v, level, ctx, v_old, E_old, E_new, SDCint, dt)
+      use module_pepc
+      use iso_c_binding, only : c_ptr, c_int, c_f_pointer
+      use module_debug, only : dbg, DBG_STATS, pepc_status
+      implicit none
+      type(c_ptr),    intent(in), value :: v, v_old, E_old, E_new, SDCint, ctx
+      integer(c_int), intent(in)        :: level
+      real(pfdp),     intent(in)        :: dt
+      ! FIXME
     end subroutine
 
 

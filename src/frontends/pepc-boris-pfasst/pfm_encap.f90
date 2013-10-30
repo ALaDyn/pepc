@@ -106,15 +106,15 @@ contains
     type(pf_encap_t), intent(out) :: encap
     type(t_particle), target, intent(inout) :: particles(:)
 
-    encap%encapctx = c_loc(particles(1)) !< this is a pointer to blueprint particles: x and v are stored in app_data_t structure, all other properties are stores here, see encap_to_particles() for details
-    encap%create  => encap_create
-    encap%destroy => encap_destroy
-    encap%setval  => encap_setval
-    encap%copy    => encap_copy
-    encap%pack    => encap_pack
-    encap%unpack  => encap_unpack
-    encap%axpy    => encap_axpy
-    encap%norm    => encap_norm
+    encap%encapctx  = c_loc(particles(1)) !< this is a pointer to blueprint particles: x and v are stored in app_data_t structure, all other properties are stores here, see encap_to_particles() for details
+    encap%create    => encap_create
+    encap%destroy   => encap_destroy
+    encap%setval    => encap_setval
+    encap%copy      => encap_copy
+    encap%pack      => encap_pack
+    encap%unpack    => encap_unpack
+    encap%axpy      => encap_axpy
+    encap%norm      => encap_norm
   end subroutine pfm_encap_init
 
 
