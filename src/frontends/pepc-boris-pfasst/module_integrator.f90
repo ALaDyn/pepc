@@ -21,7 +21,7 @@
 !>
 !> trajectory integration routines
 !>
-module pepca_integrator
+module pepcboris_integrator
   implicit none
   private
 
@@ -31,10 +31,10 @@ module pepca_integrator
 
    subroutine push_particles_boris(nml, p, dt)
       use module_pepc_types
-      use pepca_helper
+      use pepcboris_helper
       implicit none
 
-      type(pepca_nml_t), intent(in) :: nml
+      type(pepcboris_nml_t), intent(in) :: nml
       real*8, intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
 

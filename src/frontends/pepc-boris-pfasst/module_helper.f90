@@ -21,15 +21,15 @@
 !>
 !> helper module
 !>
-module pepca_helper
+module pepcboris_helper
   use module_pepc_types
   use module_timings
   implicit none
   private
   save
 
-  public pepca_init
-  public pepca_nml_t
+  public pepcboris_init
+  public pepcboris_nml_t
 
   ! dimension of space
   integer(kind_dim), public, parameter :: dim = 3
@@ -41,8 +41,8 @@ module pepca_helper
   integer, public, parameter :: PARAMS_E0 = 5
   integer, public, parameter :: PARAMS_MAXIDX = PARAMS_E0
 
-  !> parameter collection for pepca
-  type pepca_nml_t
+  !> parameter collection for pepcboris
+  type pepcboris_nml_t
     ! MPI variables
     integer(kind_pe) :: rank, nrank
     integer(kind_default) :: comm
@@ -58,13 +58,13 @@ module pepca_helper
     logical :: use_pfasst = .false.
   end type
 
-  type(pepca_nml_t), public :: pepca_nml
+  type(pepcboris_nml_t), public :: pepcboris_nml
 
   contains
 
-  subroutine pepca_init(nml, particles, dt, nt)
+  subroutine pepcboris_init(nml, particles, dt, nt)
     implicit none
-    type(pepca_nml_t), intent(inout) :: nml
+    type(pepcboris_nml_t), intent(inout) :: nml
     type(t_particle), allocatable, target, intent(out) :: particles(:)
     real*8, intent(in)  :: dt
     integer, intent(in) :: nt
@@ -80,7 +80,7 @@ module pepca_helper
     use module_debug
     use module_mirror_boxes
     implicit none
-    type(pepca_nml_t), intent(inout) :: nml
+    type(pepcboris_nml_t), intent(inout) :: nml
     type(t_particle), allocatable, target, intent(out) :: particles(:)
 
     select case (nml%particle_config)
@@ -109,7 +109,7 @@ module pepca_helper
     use treevars, only : num_threads, np_mult
     implicit none
 
-    type(pepca_nml_t), intent(inout) :: nml
+    type(pepcboris_nml_t), intent(inout) :: nml
     real*8, intent(in)  :: dt
     integer, intent(in) :: nt
 
@@ -121,7 +121,7 @@ module pepca_helper
     logical :: use_pfasst
     real*8 :: setup_params(PARAMS_MAXIDX)
 
-    namelist /pepcapfasst/ particle_config, setup_params, use_pfasst
+    namelist /pepcborispfasst/ particle_config, setup_params, use_pfasst
 
     ! frontend parameters
     particle_config = nml%particle_config
@@ -136,9 +136,9 @@ module pepca_helper
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
     if (read_para_file) then
-      if(nml%rank==0) write(*,'(a)') ' == reading parameter file, section pepcapfasst: ', para_file
+      if(nml%rank==0) write(*,'(a)') ' == reading parameter file, section pepcborispfasst: ', para_file
       open(fid,file=para_file)
-      read(fid,NML=pepcapfasst)
+      read(fid,NML=pepcborispfasst)
       close(fid)
     else
       if(nml%rank==0) write(*,*) ' == no param file, using default parameters '

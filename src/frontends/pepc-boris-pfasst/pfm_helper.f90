@@ -99,7 +99,7 @@ module pfm_helper
     subroutine pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, rank, comm)
         use pf_mod_mpi
         use pfm_encap
-        use pepca_helper, only: pepca_nml_t
+        use pepcboris_helper, only: pepcboris_nml_t
         implicit none
 
         integer, intent(in) :: rank

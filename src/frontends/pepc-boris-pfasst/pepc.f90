@@ -25,8 +25,8 @@ program pepc
   use module_timings
   use module_debug
   ! frontend helper routines
-  use pepca_helper
-  use pepca_integrator
+  use pepcboris_helper
+  use pepcboris_integrator
 
   use pf_mod_verlet, only: pf_verlet_create, pf_verlet_destroy
   use pfm_helper
@@ -57,22 +57,22 @@ program pepc
   ! Take care of communication stuff
   call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
   ! initialize pepc library and MPI
-  pepca_nml%comm=MPI_COMM_SPACE
-  call pepc_initialize('pepc-a-pfasst', pepca_nml%rank, pepca_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepca_nml%comm)
+  pepcboris_nml%comm=MPI_COMM_SPACE
+  call pepc_initialize('pepc-a-pfasst', pepcboris_nml%rank, pepcboris_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepcboris_nml%comm)
   ! this is not an MPI-parallel application
-  if (pepca_nml%nrank > 1) then
+  if (pepcboris_nml%nrank > 1) then
     DEBUG_ERROR(*, "This is not an MPI-parallel application")
   endif
   ! frontend parameter initialization, particle configuration etc.
-  call pepca_init(pepca_nml, particles, dt=pf_nml%tend/pf_nml%nsteps/(pf_nml%nnodes(pf_nml%nlevels)-1), nt=pf_nml%nsteps*(pf_nml%nnodes(pf_nml%nlevels)-1))  ! we use the finest (i.e. highest) level here
+  call pepcboris_init(pepcboris_nml, particles, dt=pf_nml%tend/pf_nml%nsteps/(pf_nml%nnodes(pf_nml%nlevels)-1), nt=pf_nml%nsteps*(pf_nml%nnodes(pf_nml%nlevels)-1))  ! we use the finest (i.e. highest) level here
   ! commit all internal pepc variables
   call pepc_prepare(dim)
   ! prepare table with level-dependent parameters
-  call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepca_nml%rank, MPI_COMM_SPACE)
+  call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepcboris_nml%rank, MPI_COMM_SPACE)
   ! initial potential will be needed for energy computation
   call eval_force(particles, level_params(pf_nml%nlevels), step=0, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
-  if (pepca_nml%use_pfasst) then
+  if (pepcboris_nml%use_pfasst) then
       ! Set up PFASST object
       call pf_mpi_create(tcomm, MPI_COMM_TIME)
       call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
@@ -100,10 +100,10 @@ program pepc
       call pf_verlet_destroy(sweeper)
       call pfm_finalize_solver_level_params(level_params, pf_nml%nlevels)
    else ! use PEPC's own verlet integrator
-      associate (dt => pepca_nml%dt,    &
-                 nt => pepca_nml%nt)
+      associate (dt => pepcboris_nml%dt,    &
+                 nt => pepcboris_nml%nt)
         do step=0,nt
-          if(pepca_nml%rank==0) then
+          if(pepcboris_nml%rank==0) then
             write(*,*) " "
             write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
             write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
@@ -120,7 +120,7 @@ program pepc
           end block
 
           ! update positions and velocities ! FIXME: do we need an initial half step somwhere
-          call push_particles_boris(pepca_nml, particles, dt)
+          call push_particles_boris(pepcboris_nml, particles, dt)
 
           call timings_GatherAndOutput(step, 0, 0==step)
 
