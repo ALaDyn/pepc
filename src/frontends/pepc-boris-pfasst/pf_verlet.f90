@@ -4,16 +4,16 @@ module pf_mod_verlet
   integer, parameter, private :: npieces = 1
 
   interface
-     subroutine pf_acceleration_p(x, t, level, ctx, a)
+     subroutine pf_calc_Efield_p(x, t, level, ctx, a)
        import c_ptr, c_int, pfdp
        type(c_ptr),    intent(in), value :: x, a, ctx
        real(pfdp),     intent(in)        :: t
        integer(c_int), intent(in)        :: level
-     end subroutine pf_acceleration_p
+     end subroutine pf_calc_Efield_p
   end interface
 
   type :: pf_verlet_t
-     procedure(pf_acceleration_p), pointer, nopass :: acceleration
+     procedure(pf_calc_Efield_p), pointer, nopass :: calc_Efield
   end type pf_verlet_t
 
 contains
@@ -45,6 +45,7 @@ contains
     call F%encap%create(fq_int, F%level, SDC_KIND_INTEGRAL, F%nvars, F%shape, F%levelctx, F%encap%encapctx)
     call F%encap%setval(fq_int, 0.0_pfdp)
 
+    ! FIXME: need to substitute F (which is now the Efield) with the full rhs
     dtsq = dt*dt
     do m = 1, F%nnodes-1
        call F%encap%setval(F%S(m), 0.0_pfdp)
@@ -63,7 +64,7 @@ contains
 
     call F%encap%unpack(F%Q(1), F%q0)
 
-    call verlet%acceleration(F%Q(1), t0, F%level, F%levelctx, F%F(1,1))
+    call verlet%calc_Efield(F%Q(1),t0,F%level, F%levelctx, F%F(1,1))
 
     t = t0
     dtsdc = dt * (F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1))
@@ -85,14 +86,14 @@ contains
        call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%S(m), 2)  !  Add integration term for p
        call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%Q(m), 2)  !  Start m+1 with value from m
 
-       call verlet%acceleration(F%Q(m+1), t, F%level, F%levelctx, F%F(m+1,1)) !  Update function values
+       call verlet%calc_Efield(F%Q(m+1), t, F%level, F%levelctx, F%F(m+1,1))
 
-       !  Update velocity term (trapezoid rule)
-       call F%encap%axpy(fq_int,dtmhalf,F%F(m,1),1);
-       call F%encap%axpy(fq_int,dtmhalf,F%F(m+1,1),1);
-       call F%encap%axpy(fq_int,1.0_pfdp,F%S(m),1);
-       call F%encap%copy(F%Q(m+1), fq_int,1)           !  Add integration term for q
-       call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%Q(m),1) !  Start m+1 with value from m
+       ! Call boris solver for updated velocity term
+       call F%encap%boris(F%Q(m+1),                 ! Output: updated velocity at m+1 
+                          F%Q(m),                   ! old velocity at previous node m
+                          F%F(m+1,1),               ! current E-field at m+1, using already updated positions
+                          F%F(m,1),                 ! current E-field at previous node m
+                          F%S(m),dtsdc(m))          ! mod. right-hand side (i.e. integral for q) + \Delta\tau
 
     end do
 
@@ -112,7 +113,8 @@ contains
     type(pf_level_t), intent(inout) :: F
     type(pf_verlet_t), pointer :: verlet
     call c_f_pointer(F%sweeper%sweeperctx, verlet)
-    call verlet%acceleration(F%Q(m), t, F%level, F%levelctx, F%F(m,1))
+    call verlet%calc_Efield(F%Q(m), t, F%level, F%levelctx, F%F(m,1))
+    ! Note: this is the E-field, not the full RHS and this is ok (will need this function for spread, interpolate and restrict)
   end subroutine verlet_evaluate
 
 
@@ -196,7 +198,7 @@ contains
 
     real(pfdp) :: dtsdc(1:F%nnodes-1)
     integer :: n, m
-
+    ! FIXME: need to use the full RHS here, not the E-field
     dtsdc = dt * (F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1))
     do n = 1, F%nnodes-1
        call F%encap%setval(fintSDC(n), 0.0_pfdp)
@@ -211,12 +213,12 @@ contains
   !
   ! Create Verlet sweeper
   !
-  subroutine pf_verlet_create(sweeper, acceleration)
+  subroutine pf_verlet_create(sweeper, calc_Efield)
     type(pf_sweeper_t), intent(inout) :: sweeper
-    procedure(pf_acceleration_p)      :: acceleration
+    procedure(pf_calc_Efield_p)      :: calc_Efield
     type(pf_verlet_t), pointer :: verlet
     allocate(verlet)
-    verlet%acceleration => acceleration
+    verlet%calc_Efield => calc_Efield
     sweeper%npieces = 1
     sweeper%sweep       => verlet_sweep
     sweeper%evaluate    => verlet_evaluate
