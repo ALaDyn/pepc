@@ -891,7 +891,7 @@ module module_walk
           pdist2 = DOT_PRODUCT(pdelta, pdelta)
         
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(pdelta) >= spatial_interaction_cutoff)) continue
+          if (any(abs(pdelta) >= spatial_interaction_cutoff)) cycle
           #endif
 
           if (pdist2 > 0.0_8) then ! not self, interact
@@ -914,7 +914,7 @@ module module_walk
             pdist2 = DOT_PRODUCT(pdelta, pdelta)
 
             #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-            if (any(abs(delta) >= spatial_interaction_cutoff)) continue
+            if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
             #endif
 
             call calc_force_per_interaction_with_twig(cluster%orig_particles(ipart)%p, walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)

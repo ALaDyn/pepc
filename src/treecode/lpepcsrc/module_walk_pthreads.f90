@@ -786,7 +786,7 @@ module module_walk
         partner_leaves = partner_leaves + 1
 
         #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-        if (any(abs(delta) >= spatial_interaction_cutoff)) continue
+        if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
         #endif
 
         if (dist2 > 0.0_8) then ! not self, interact
@@ -803,7 +803,7 @@ module module_walk
           partner_leaves = partner_leaves + walk_node%leaves
 
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(delta) >= spatial_interaction_cutoff)) continue
+          if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
           #endif
 
           call calc_force_per_interaction_with_twig(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
