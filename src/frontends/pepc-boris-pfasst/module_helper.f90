@@ -55,7 +55,7 @@ module pepca_helper
     ! number of particles per species and rank, will be set automatically later
     integer(kind_particle) :: numparts
     ! use PFASST
-    logical :: use_pfasst = .true.
+    logical :: use_pfasst = .false.
   end type
 
   type(pepca_nml_t), public :: pepca_nml

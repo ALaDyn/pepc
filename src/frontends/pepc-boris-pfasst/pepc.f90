@@ -90,27 +90,8 @@ program pepc
       ! Add user-defined calls, e.g. diagnostics, here
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
 
-      !if (pf_nml%echo_errors) then
-      !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, echo_stats)
-      !    call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, gather_stats)
-      !    do l = 1, pf_nml%nlevels
-      !        !call pf_add_hook(pf, l, PF_POST_SWEEP, echo_residual)
-      !    end do
-      !end if
-
-      ! call pf_logger_attach(pf)
-
       ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution
       call pf_pfasst_run(pf, c_loc(y0), pf_nml%tend/pf_nml%nsteps, pf_nml%tend, nsteps=pf_nml%nsteps, qend=c_loc(yend))
-
-    !  ! FIXME: Call dumping routine
-    !  call MPI_BARRIER(MPI_COMM_WORLD,mpi_err)
-    !  if (pf_nml%echo_errors) then
-    !      pf%state%iter = 0
-    !      if (pf%rank == pf%comm%nproc-1) then
-    !            call dump_grid(yend,pf%state%iter)
-    !      end if
-    !  end if
 
       ! Remove everything (hopefully)
       call pf_mpi_destroy(tcomm)
@@ -130,11 +111,6 @@ program pepc
 
           call eval_force(particles, level_params(pf_nml%nlevels), step, MPI_COMM_SPACE, clearresults=.true.)
 
-          if (step > 0) then
-            ! first half step to synchronize velocities with positions
-            call update_velocities(particles, dt/2.)
-          end if
-
           ! do diagnostics etc here
           block
             integer(kind_particle) :: p
@@ -143,10 +119,8 @@ program pepc
             end do
           end block
 
-          ! second half step: velocities are one half step ahead again
-          call update_velocities(particles, dt/2.)
-          ! full step for positions: now positions are one half step ahead
-          call push_particles(particles, dt)
+          ! update positions and velocities ! FIXME: do we need an initial half step somwhere
+          call push_particles_boris(pepca_nml, particles, dt)
 
           call timings_GatherAndOutput(step, 0, 0==step)
 
