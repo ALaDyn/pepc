@@ -99,7 +99,7 @@ module pfm_feval
       do i=1,size(particles, kind=kind(i))
         E%x(1:E%params%dim, i) = particles(i)%results%e(1:E%params%dim)
         E%x(E%params%dim+1:,i) = 0
-        E%v(:,:) = E%x(:,:)
+        E%v(:,i) = E%x(:,i)
       end do
 
       deallocate(particles)
@@ -139,34 +139,39 @@ module pfm_feval
     end subroutine
 
     !> compile full right-hand side using the E-field and particle data
-    subroutine build_rhs(Eptr, level, ctx, rhsptr)
+    subroutine build_rhs(Eptr, Qptr, level, ctx, rhsptr)
       use module_pepc
       use iso_c_binding, only : c_ptr, c_int, c_f_pointer
       use module_debug, only : dbg, DBG_STATS, pepc_status
+      use pepcboris_helper
       implicit none
-      type(c_ptr),    intent(in), value :: Eptr, rhsptr, ctx
+      type(c_ptr),    intent(in), value :: Eptr, rhsptr, ctx, Qptr
       integer(c_int), intent(in)        :: level
+      real*8 :: B0(3)
 
       type(t_particle), allocatable :: particles(:)
-      type(app_data_t), pointer :: E,rhs
+      type(app_data_t), pointer :: E,rhs,Q
       type(level_params_t), pointer :: levelctx
       integer(kind_particle) :: i
 
       call pepc_status('|------> buld_rhs()')
       call ptr_print('rhs', rhsptr)
       call ptr_print('E', Eptr)
+      call ptr_print('Q', Qptr)
       call ptr_print('ctx', ctx)
 
       call c_f_pointer(Eptr, E)
+      call c_f_pointer(Qptr, Q)
       call c_f_pointer(rhsptr, rhs)
       call c_f_pointer(ctx, levelctx)
 
       DEBUG_ASSERT(E%params%nparts==rhs%params%nparts)
       DEBUG_ASSERT(E%params%dim==rhs%params%dim)
 
+      B0 = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_B0)]
+
       do i=1,size(particles, kind=kind(i))
-        ! FIXME: do we need some units here (see pepc-a-pfasst: unit_4piepsilon0)
-        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*(E%x(1:E%params%dim,i) + cross_product()) / particles(i)%data%m
+        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*(E%x(1:E%params%dim,i) + cross_product(Q%v(:,i),B0)) / particles(i)%data%m
         rhs%x(rhs%params%dim+1:,i) = 0
         rhs%v(:,:) = rhs%x(:,:)
       end do

@@ -13,9 +13,9 @@ module pf_mod_verlet
   end interface
 
   interface
-     subroutine pf_build_rhs_p(E, level, ctx, rhs)
+     subroutine pf_build_rhs_p(E, Q, level, ctx, rhs)
        import c_ptr, c_int, pfdp
-       type(c_ptr),    intent(in), value :: E, rhs, ctx
+       type(c_ptr),    intent(in), value :: E, Q, rhs, ctx
        integer(c_int), intent(in)        :: level
      end subroutine pf_build_rhs_p
   end interface
@@ -72,8 +72,8 @@ contains
     do m = 1, F%nnodes-1
        call F%encap%setval(F%S(m), 0.0_pfdp)
        do n = 1, F%nnodes
-          call verlet%build_rhs(F%F(n,1), F%level, F%levelctx, rhs)
-          call F%encap%axpy(F%S(m), dt*F%smat(m,n,1), rhs, 1)
+          call verlet%build_rhs(F%F(n,1), F%Q(n), F%level, F%levelctx, rhs)
+          call F%encap%axpy(F%S(m), dt  *F%smat(m,n,1), rhs, 1)
           call F%encap%axpy(F%S(m), dtsq*F%smat(m,n,2), rhs, 2)
        end do
        if (associated(F%tau)) then
@@ -100,7 +100,7 @@ contains
 
        !  Lower triangular verlet to old new
        do n = 1, m
-          call verlet%build_rhs(F%F(n,1), F%level, F%levelctx, rhs)
+          call verlet%build_rhs(F%F(n,1), F%Q(n), F%level, F%levelctx, rhs)
           call F%encap%axpy(fq_int, dtsq*F%smat(m,n,3), rhs, 2)
        end do
 
@@ -113,8 +113,8 @@ contains
        call verlet%calc_Efield(F%Q(m+1), t, F%level, F%levelctx, F%F(m+1,1))
 
        ! Call implicit solver for updated velocity term
-       call verlet%impl_solver(F%Q(m+1), &                ! Output: updated velocity at m+1 
-                               F%level, &                 ! current level 
+       call verlet%impl_solver(F%Q(m+1), &                ! Output: updated velocity at m+1
+                               F%level, &                 ! current level
                                F%levelctx, &              ! level context
                                F%Q(m), &                  ! old velocity at previous node m
                                F%F(m+1,1), &              ! current E-field at m+1, using already updated positions
@@ -238,7 +238,7 @@ contains
     do n = 1, F%nnodes-1
        call F%encap%setval(fintSDC(n), 0.0_pfdp)
        do m = 1, F%nnodes
-          call verlet%build_rhs(fSDC(m,1), F%level, F%levelctx, rhs)
+          call verlet%build_rhs(fSDC(m,1), qSDC(m), F%level, F%levelctx, rhs)
           call F%encap%axpy(fintSDC(n), dt*F%s0mat(n,m), rhs, 1)
           call F%encap%axpy(fintSDC(n), dt*dt*F%smat(n,m,4), rhs, 2)
        end do
