@@ -11,7 +11,7 @@
   ! choice of integrator  
   ! true  --> use pfasst-verlet-boris integrator
   ! false --> use default verlet-boris integrator
-  use_pfasst = .false.
+  use_pfasst = .true.
 /
 
 &pfasst

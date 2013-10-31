@@ -228,7 +228,7 @@ module pfm_feval
         beta   = particles(i)%data%q / (2._8 * particles(i)%data%m) * dt
         Emean(:)  = (E_old%v(1:3,i) + E_new%v(1:3,i)) / 2._8
         ! first half step with electric field
-        uminus(:) = v_old%v(1:3,i) + dt / 2._8 * ( particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(1:3,i) )
+        uminus(:) = v_old%v(1:3,i) + 0.5D0 * ( dt * particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(1:3,i) )
         ! gamma factor
         !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
         gam    = 1._8
@@ -238,7 +238,7 @@ module pfm_feval
         s      = 2._8 * t / (1._8 + dot_product(t, t))
         uplus  = uminus + cross_product(uprime, s)
         ! second half step with electric field
-        v%v(1:3,i) = uplus(:) + dt / 2._8 * ( particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(1:3,i) )
+        v%v(1:3,i) = uplus(:) + 0.5D0 * ( dt * particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(1:3,i) )
 
       end do
 
