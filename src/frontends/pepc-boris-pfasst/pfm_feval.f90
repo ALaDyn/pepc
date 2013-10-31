@@ -146,7 +146,34 @@ module pfm_feval
       implicit none
       type(c_ptr),    intent(in), value :: Eptr, rhsptr, ctx
       integer(c_int), intent(in)        :: level
-      ! FIXME
+
+      type(t_particle), allocatable :: particles(:)
+      type(app_data_t), pointer :: E,rhs
+      type(level_params_t), pointer :: levelctx
+      integer(kind_particle) :: i
+
+      call pepc_status('|------> buld_rhs()')
+      call ptr_print('rhs', rhsptr)
+      call ptr_print('E', Eptr)
+      call ptr_print('ctx', ctx)
+
+      call c_f_pointer(Eptr, E)
+      call c_f_pointer(rhsptr, rhs)
+      call c_f_pointer(ctx, levelctx)
+
+      DEBUG_ASSERT(E%params%nparts==rhs%params%nparts)
+      DEBUG_ASSERT(E%params%dim==rhs%params%dim)
+
+      do i=1,size(particles, kind=kind(i))
+        ! FIXME: do we need some units here (see pepc-a-pfasst: unit_4piepsilon0)
+        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*(E%x(1:E%params%dim,i) + cross_product()) / particles(i)%data%m
+        rhs%x(rhs%params%dim+1:,i) = 0
+        rhs%v(:,:) = rhs%x(:,:)
+      end do
+
+      deallocate(particles)
+
+
     end subroutine
 
     !> solve for the updated velocity, e.g. using the Boris solver
@@ -205,4 +232,16 @@ module pfm_feval
         end associate
       end do
     end subroutine
+
+    pure function cross_product(a, b)
+      implicit none
+
+      real*8, dimension(3), intent(in) :: a, b
+      real*8, dimension(3) :: cross_product
+
+      cross_product(1) = a(2) * b(3) - a(3) * b(2)
+      cross_product(2) = a(3) * b(1) - a(1) * b(3)
+      cross_product(3) = a(1) * b(2) - b(2) * a(1)
+    end function cross_product
+
 end module pfm_feval

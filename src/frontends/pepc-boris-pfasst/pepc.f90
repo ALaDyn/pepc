@@ -78,7 +78,7 @@ program pepc
       call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
 
       call pfm_encap_init(encap, particles)
-      call pf_verlet_create(sweeper, calc_Efield, build_rhs, impl_solver) ! FIXME
+      call pf_verlet_create(sweeper, calc_Efield, build_rhs, impl_solver)
       call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
       ! Initial conditions for pfasst
