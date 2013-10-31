@@ -6,7 +6,7 @@
   
   ! physics parameters
   !              X0  Y0  Z0   B0   EPSILON OMEGA0X OMEGA0Y
-  setup_params = 1.0 0.0 1.0 2.5  -1.0    1.0     1.0
+  setup_params = 0.0 0.0 1.0 0.0  -1.0    1.0     1.0
 
   ! choice of integrator  
   ! true  --> use pfasst-verlet-boris integrator
@@ -16,10 +16,10 @@
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 200.
+  tend    = 20.
   
-  nsteps  = 2048
-  niter   = 3
+  nsteps  = 1024
+  niter   = 1
   nlevels = 1
   
   ! level parameters (one entry per level and line)

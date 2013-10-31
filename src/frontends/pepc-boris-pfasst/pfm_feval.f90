@@ -174,9 +174,9 @@ module pfm_feval
       B0 = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_B0)]
 
       do i=1,size(particles, kind=kind(i))
-        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*(E%x(1:E%params%dim,i) + cross_product(Q%v(:,i),B0)) / particles(i)%data%m
+        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*(E%x(1:E%params%dim,i) + cross_product(Q%v(1:Q%params%dim,i),B0)) / particles(i)%data%m
         rhs%x(rhs%params%dim+1:,i) = 0
-        rhs%v(:,:) = rhs%x(:,:)
+        rhs%v(:,i) = rhs%x(:,i)
       end do
 
       deallocate(particles)

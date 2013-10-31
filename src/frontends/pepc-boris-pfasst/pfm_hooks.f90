@@ -50,7 +50,7 @@ contains
 
     ! do diagnostics etc here
     do p=1,size(particles,kind=kind(p))
-      write(*,*) t, p, particles(p)%x, particles(p)%data%v
+      write(48,*) t, p, particles(p)%x, particles(p)%data%v
     end do
   end subroutine
 end module pfm_hooks

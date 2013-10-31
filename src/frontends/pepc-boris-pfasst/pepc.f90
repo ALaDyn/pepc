@@ -52,7 +52,7 @@ program pepc
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable, target :: particles(:)
-  integer :: step
+  integer :: step, i
 
   ! Take care of communication stuff
   call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
@@ -111,13 +111,9 @@ program pepc
 
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
 
-          ! do diagnostics etc here
-          block
-            integer(kind_particle) :: p
-            do p=1,size(particles,kind=kind(p))
-              write(47,*) step*dt, p, particles(p)%x, particles(p)%data%v
+            do i=1,size(particles,kind=kind(i))
+              write(47,*) step*dt, i, particles(i)%x, particles(i)%data%v
             end do
-          end block
 
           ! update positions and velocities ! FIXME: do we need an initial half step somewhere
           call push_particles_boris(pepcboris_nml, particles, dt)

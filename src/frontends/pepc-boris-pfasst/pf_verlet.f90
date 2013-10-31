@@ -92,7 +92,6 @@ contains
     t = t0
     dtsdc = dt * (F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1))
     do m = 1, F%nnodes-1
-
        t = t + dtsdc(m)
        dtmhalf = 0.5d0*dtsdc(m)
 
