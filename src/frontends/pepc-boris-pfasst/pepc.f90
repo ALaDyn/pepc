@@ -112,13 +112,13 @@ program pepc
 
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
 
+          do i=1,size(particles,kind=kind(i))
+            write(47,*) step*dt, i, particles(i)%x, particles(i)%data%v
+          end do
+
           ! update positions and velocities ! FIXME: do we need an initial half step somewhere?
           call update_velocities_boris(particles, dt)
           call push_particles(particles, dt)
-
-            do i=1,size(particles,kind=kind(i))
-              write(47,*) step*dt, i, particles(i)%x, particles(i)%data%v
-            end do
 
 !          call timings_GatherAndOutput(step, 0, 0==step)
 

@@ -223,12 +223,11 @@ module pfm_feval
       call encap_to_particles(particles, E_newptr, ctx)
 
       do i = 1,size(particles, kind=kind(i))
-
          ! charge/mass*time-constant
         beta   = particles(i)%data%q / (2._8 * particles(i)%data%m) * dt
         Emean(:)  = (E_old%v(:,i) + E_new%v(:,i)) / 2._8
         ! first half step with electric field
-        uminus(:) = v_old%v(:,i) + 0.5D0 * ( dt * particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(:,i) ) !FIXME use beta here
+        uminus(:) = v_old%v(:,i) + beta * Emean(:) + SDCint%v(:,i) / 2._8
         ! gamma factor
         !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
         gam    = 1._8
@@ -238,8 +237,7 @@ module pfm_feval
         s      = 2._8 * t / (1._8 + dot_product(t, t))
         uplus  = cross_prod_plus(uprime, s, uminus)
         ! second half step with electric field
-        v%v(1:3,i) = uplus(:) + 0.5D0 * ( dt * particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(:,i) ) !FIXME use beta here
-
+        v%v(:,i) = uplus(:) + beta * Emean(:) + SDCint%v(:,i) / 2._8
       end do
 
       deallocate(particles)
