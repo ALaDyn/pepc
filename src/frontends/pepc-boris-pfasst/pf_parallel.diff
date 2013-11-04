@@ -1,0 +1,27 @@
+diff --git a/src/pf_parallel.f90 b/src/pf_parallel.f90
+index cf41311..69848ab 100644
+--- a/src/pf_parallel.f90
++++ b/src/pf_parallel.f90
+@@ -347,12 +350,16 @@ contains
+ 
+        ! in block mode, jump to next block if we've reached the max iteration count
+        if (pf%window == PF_WINDOW_BLOCK .and. pf%state%iter >= pf%niters) then
++
++          call call_hooks(pf, -1, PF_POST_STEP)
++
+           pf%state%step = pf%state%step + pf%comm%nproc
+           pf%state%t0   = pf%state%step * dt
+ 
+@@ -370,8 +377,10 @@ contains
+        end if
+ 
+        ! predictor, if requested
+-       if (pf%state%status == PF_STATUS_PREDICTOR) &
+-            call pf_predictor(pf, pf%state%t0, dt)
++       if (pf%state%status == PF_STATUS_PREDICTOR) then
++          call pf_predictor(pf, pf%state%t0, dt)
++          call call_hooks(pf, -1, PF_PRE_STEP)
++       endif
+ 
+        !
+        ! perform fine sweeps

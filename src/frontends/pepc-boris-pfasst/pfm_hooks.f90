@@ -28,6 +28,8 @@ contains
     real(pfdp) ::  t
     integer(kind_particle) :: p
 
+    type(c_ptr) :: encaptmp
+
     call pepc_status('------------- dump_particles_hook')
 
     t = state%t0+state%dt
@@ -40,6 +42,12 @@ contains
       case (PF_POST_STEP)
         call encap_to_particles(particles, level%qend, ctx)
         t = state%t0 + state%dt ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
+      case (PF_PRE_STEP)
+        call encap_create(encaptmp, level%level, -1, level%nvars, level%shape, ctx, level%encap%encapctx)
+        call encap_unpack(encaptmp, level%q0)
+        call encap_to_particles(particles, encaptmp, ctx) ! FIXME: this should be q0
+        call encap_destroy(encaptmp)
+        t = state%t0 ! yes, this is OK, t0 is automatically updated during each step
       case default
         DEBUG_ERROR(*,'wrong hook')
     end select
