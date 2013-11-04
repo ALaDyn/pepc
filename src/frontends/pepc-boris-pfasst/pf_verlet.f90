@@ -48,7 +48,7 @@ contains
     type(pf_level_t),  intent(inout) :: F
 
     integer     :: m, n
-    real(pfdp)  :: t,dtmhalf,dtsq
+    real(pfdp)  :: t,dtsq
     real(pfdp)  :: dtsdc(1:F%nnodes-1)
     type(c_ptr) :: fq_int, rhs
 
@@ -93,8 +93,6 @@ contains
     dtsdc = dt * (F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1))
     do m = 1, F%nnodes-1
        t = t + dtsdc(m)
-       dtmhalf = 0.5d0*dtsdc(m)
-
        call F%encap%setval(fq_int, 0.0_pfdp)
 
        !  Lower triangular verlet to old new
@@ -104,7 +102,7 @@ contains
        end do
 
        !  Update position term (trapezoid rule)
-       call F%encap%copy(F%Q(m+1), fq_int,2)
+       call F%encap%copy(F%Q(m+1), fq_int, 2)
        call F%encap%axpy(F%Q(m+1), dtsdc(m), F%Q(1), 12) !  Add the dt*v_0 term
        call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%S(m), 2)  !  Add integration term for p
        call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%Q(m), 2)  !  Start m+1 with value from m

@@ -30,17 +30,23 @@ module pepcboris_helper
 
   public pepcboris_init
   public pepcboris_nml_t
+  public get_magnetic_field
+  public cross_prod
+  public cross_prod_plus
 
   ! dimension of space
   integer(kind_dim), public, parameter :: dim = 3
 
-  integer, public, parameter :: PARAMS_X0 = 1
-  integer, public, parameter :: PARAMS_Y0 = 2
-  integer, public, parameter :: PARAMS_Z0 = 3
-  integer, public, parameter :: PARAMS_B0 = 4
-  integer, public, parameter :: PARAMS_EPSILON = 5
-  integer, public, parameter :: PARAMS_OMEGA0X = 6
-  integer, public, parameter :: PARAMS_OMEGA0Y = 7
+  integer, public, parameter :: PARAMS_X0  = 1
+  integer, public, parameter :: PARAMS_Y0  = 2
+  integer, public, parameter :: PARAMS_Z0  = 3
+  integer, public, parameter :: PARAMS_VX0 = 4
+  integer, public, parameter :: PARAMS_VY0 = 5
+  integer, public, parameter :: PARAMS_VZ0 = 6
+  integer, public, parameter :: PARAMS_B0  = 7
+  integer, public, parameter :: PARAMS_EPSILON = 8
+  integer, public, parameter :: PARAMS_OMEGA0X = 9
+  integer, public, parameter :: PARAMS_OMEGA0Y = 10
   integer, public, parameter :: PARAMS_MAXIDX = PARAMS_OMEGA0Y
 
   !> parameter collection for pepcboris
@@ -76,6 +82,29 @@ module pepcboris_helper
 
   end subroutine
 
+  !> computes a x b
+  pure function cross_prod(a, b)
+    implicit none
+
+    real*8, dimension(3), intent(in) :: a, b
+    real*8, dimension(3) :: cross_prod
+
+    cross_prod(1) = a(2) * b(3) - a(3) * b(2)
+    cross_prod(2) = a(3) * b(1) - a(1) * b(3)
+    cross_prod(3) = a(1) * b(2) - b(2) * a(1)
+  end function cross_prod
+
+  !> computes a x b + c
+  pure function cross_prod_plus(a, b, c)
+    implicit none
+
+    real*8, dimension(3), intent(in) :: a, b, c
+    real*8, dimension(3) :: cross_prod_plus
+
+    cross_prod_plus(1) = a(2) * b(3) - a(3) * b(2) + c(1)
+    cross_prod_plus(2) = a(3) * b(1) - a(1) * b(3) + c(2)
+    cross_prod_plus(3) = a(1) * b(2) - b(2) * a(1) + c(3)
+  end function cross_prod_plus
 
   !> set initial values for particle positions and velocities in y0
   subroutine setup_particles(particles, nml)
@@ -90,10 +119,10 @@ module pepcboris_helper
         ! single particle at specified position
         nml%numparts = 1
         allocate(particles(1))
-        particles(1)%x = nml%setup_params(PARAMS_X0:PARAMS_Z0)
+        particles(1)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0)
         particles(1)%data%q = 1.
         particles(1)%data%m = 1.
-        particles(1)%data%v = 0.
+        particles(1)%data%v = nml%setup_params(PARAMS_VX0:PARAMS_VZ0)
         particles(1)%label  = 1
         particles(1)%work   = 1.
       case default
@@ -102,7 +131,12 @@ module pepcboris_helper
 
   end subroutine
 
+  function get_magnetic_field()
+    implicit none
+    real*8, dimension(3) :: get_magnetic_field
 
+    get_magnetic_field = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_B0)]
+  end function
 
   subroutine set_parameter(nml, dt, nt)
     use module_pepc

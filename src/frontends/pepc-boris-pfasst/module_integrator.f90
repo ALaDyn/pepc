@@ -25,16 +25,31 @@ module pepcboris_integrator
   implicit none
   private
 
-    public push_particles_boris
+    public update_velocities_boris
+    public push_particles
 
   contains
 
-   subroutine push_particles_boris(nml, p, dt)
+    subroutine push_particles(p, dt)
+      use module_pepc_types
+      implicit none
+      type(t_particle), intent(inout) :: p(:)
+      real*8, intent(in) :: dt
+      real*8 :: gam
+      integer(kind_particle) :: ip
+
+      do ip = 1, size(p, kind=kind_particle)
+        ! gam = sqrt(1._8 + dot_product(p(ip)%data%v * p(ip)%data%v) / unit_c2)
+        gam = 1._8
+        p(ip)%x = p(ip)%x + p(ip)%data%v / gam * dt
+      end do
+   end subroutine
+
+   subroutine update_velocities_boris(p, dt)
       use module_pepc_types
       use pepcboris_helper
       implicit none
 
-      type(pepcboris_nml_t), intent(in) :: nml
       real*8, intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
 
@@ -44,9 +59,9 @@ module pepcboris_integrator
 
       real*8, dimension(3) :: B0
 
-      B0 = [0.0_8, 0.0_8, nml%setup_params(PARAMS_B0)]
+      B0 = get_magnetic_field()
 
-      do ip = 1, size(p)
+      do ip = 1, size(p, kind=kind_particle)
         ! charge/mass*time-constant
         beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
         ! first half step with electric field
@@ -56,30 +71,14 @@ module pepcboris_integrator
         gam    = 1._8
         ! rotation with magnetic field
         t      = beta/gam * B0
-        uprime = uminus + cross_product(uminus, t)
+        uprime = cross_prod_plus(uminus, t, uminus)
         s      = 2._8 * t / (1._8 + dot_product(t, t))
-        uplus  = uminus + cross_product(uprime, s)
+        uplus  = cross_prod_plus(uprime, s, uminus)
         ! second half step with electric field
         p(ip)%data%v(:) = uplus(:) + beta * p(ip)%results%e(:)
-        ! gam = sqrt(1._8 + dot_product(p(ip)%data%v * p(ip)%data%v) / unit_c2)
-        gam = 1._8
-        p(ip)%x = p(ip)%x + p(ip)%data%v / gam * dt
       end do
 
-      contains
-
-      pure function cross_product(a, b)
-        implicit none
-
-        real*8, dimension(3), intent(in) :: a, b
-        real*8, dimension(3) :: cross_product
-
-        cross_product(1) = a(2) * b(3) - a(3) * b(2)
-        cross_product(2) = a(3) * b(1) - a(1) * b(3)
-        cross_product(3) = a(1) * b(2) - b(2) * a(1)
-      end function cross_product
-
-   end subroutine push_particles_boris
+   end subroutine update_velocities_boris
 
 
 end module

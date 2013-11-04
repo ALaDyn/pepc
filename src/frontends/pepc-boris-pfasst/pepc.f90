@@ -102,6 +102,7 @@ program pepc
    else ! use PEPC's own verlet integrator
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
+
         do step=0,nt
           if(pepcboris_nml%rank==0) then
             write(*,*) " "
@@ -111,14 +112,15 @@ program pepc
 
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
 
+          ! update positions and velocities ! FIXME: do we need an initial half step somewhere?
+          call update_velocities_boris(particles, dt)
+          call push_particles(particles, dt)
+
             do i=1,size(particles,kind=kind(i))
               write(47,*) step*dt, i, particles(i)%x, particles(i)%data%v
             end do
 
-          ! update positions and velocities ! FIXME: do we need an initial half step somewhere
-          call push_particles_boris(pepcboris_nml, particles, dt)
-
-          call timings_GatherAndOutput(step, 0, 0==step)
+!          call timings_GatherAndOutput(step, 0, 0==step)
 
         end do
       end associate

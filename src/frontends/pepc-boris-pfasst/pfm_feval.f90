@@ -171,10 +171,10 @@ module pfm_feval
       allocate(particles(E%params%nparts))
       call encap_to_particles(particles, Eptr, ctx)
 
-      B0 = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_B0)]
+      B0 = get_magnetic_field()
 
       do i=1,size(particles, kind=kind(i))
-        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*(E%x(1:E%params%dim,i) + cross_product(Q%v(1:Q%params%dim,i),B0)) / particles(i)%data%m
+        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*cross_prod_plus(Q%v(1:Q%params%dim,i),B0,E%x(1:E%params%dim,i)) / particles(i)%data%m
         rhs%x(rhs%params%dim+1:,i) = 0
         rhs%v(:,i) = rhs%x(:,i)
       end do
@@ -217,7 +217,7 @@ module pfm_feval
       call c_f_pointer(SDCintptr, SDCint)
       call c_f_pointer(ctx, levelctx)
 
-      B0 = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_B0)]
+      B0 = get_magnetic_field()
 
       allocate(particles(E_new%params%nparts))
       call encap_to_particles(particles, E_newptr, ctx)
@@ -226,19 +226,19 @@ module pfm_feval
 
          ! charge/mass*time-constant
         beta   = particles(i)%data%q / (2._8 * particles(i)%data%m) * dt
-        Emean(:)  = (E_old%v(1:3,i) + E_new%v(1:3,i)) / 2._8
+        Emean(:)  = (E_old%v(:,i) + E_new%v(:,i)) / 2._8
         ! first half step with electric field
-        uminus(:) = v_old%v(1:3,i) + 0.5D0 * ( dt * particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(1:3,i) )
+        uminus(:) = v_old%v(:,i) + 0.5D0 * ( dt * particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(:,i) ) !FIXME use beta here
         ! gamma factor
         !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
         gam    = 1._8
         ! rotation with magnetic field
         t      = beta/gam * B0
-        uprime = uminus + cross_product(uminus, t)
+        uprime = cross_prod_plus(uminus, t, uminus)
         s      = 2._8 * t / (1._8 + dot_product(t, t))
-        uplus  = uminus + cross_product(uprime, s)
+        uplus  = cross_prod_plus(uprime, s, uminus)
         ! second half step with electric field
-        v%v(1:3,i) = uplus(:) + 0.5D0 * ( dt * particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(1:3,i) )
+        v%v(1:3,i) = uplus(:) + 0.5D0 * ( dt * particles(i)%data%q / particles(i)%data%m * Emean(:) + SDCint%v(:,i) ) !FIXME use beta here
 
       end do
 
@@ -290,16 +290,5 @@ module pfm_feval
         end associate
       end do
     end subroutine
-
-    pure function cross_product(a, b)
-      implicit none
-
-      real*8, dimension(3), intent(in) :: a, b
-      real*8, dimension(3) :: cross_product
-
-      cross_product(1) = a(2) * b(3) - a(3) * b(2)
-      cross_product(2) = a(3) * b(1) - a(1) * b(3)
-      cross_product(3) = a(1) * b(2) - b(2) * a(1)
-    end function cross_product
 
 end module pfm_feval
