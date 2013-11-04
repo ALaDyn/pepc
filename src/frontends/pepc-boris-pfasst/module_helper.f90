@@ -43,11 +43,9 @@ module pepcboris_helper
   integer, public, parameter :: PARAMS_VX0 = 4
   integer, public, parameter :: PARAMS_VY0 = 5
   integer, public, parameter :: PARAMS_VZ0 = 6
-  integer, public, parameter :: PARAMS_B0  = 7
-  integer, public, parameter :: PARAMS_EPSILON = 8
-  integer, public, parameter :: PARAMS_OMEGA0X = 9
-  integer, public, parameter :: PARAMS_OMEGA0Y = 10
-  integer, public, parameter :: PARAMS_MAXIDX = PARAMS_OMEGA0Y
+  integer, public, parameter :: PARAMS_OMEGAE = 7
+  integer, public, parameter :: PARAMS_OMEGAB = 8
+  integer, public, parameter :: PARAMS_MAXIDX = PARAMS_OMEGAB
 
   !> parameter collection for pepcboris
   type pepcboris_nml_t
@@ -135,7 +133,7 @@ module pepcboris_helper
     implicit none
     real*8, dimension(3) :: get_magnetic_field
 
-    get_magnetic_field = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_B0)]
+    get_magnetic_field = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_OMEGAB)] ! FIXME * m/Q
   end function
 
   subroutine set_parameter(nml, dt, nt)

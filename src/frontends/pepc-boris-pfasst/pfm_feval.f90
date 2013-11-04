@@ -274,17 +274,15 @@ module pfm_feval
       type(t_particle), target, intent(inout) :: particles(:)
       type(pepcboris_nml_t), intent(in) :: nml
       integer(kind_particle) :: p
-      real*8 :: w(3), eqm
+      real*8, parameter :: w(3) = [1._8, 1._8, -2._8]
+      real*8 :: prefact, w2
 
-      w(1) = nml%setup_params(PARAMS_OMEGA0X)**2
-      w(2) = nml%setup_params(PARAMS_OMEGA0Y)**2
-      w(3) = -(w(1)+w(2))
+      w2 = nml%setup_params(PARAMS_OMEGAE)**2
 
       do p=1,size(particles,kind=kind(p))
         associate(pt => particles(p))
-          eqm = nml%setup_params(PARAMS_EPSILON)*pt%data%m/pt%data%q
-          pt%results%e   = pt%results%e   - eqm   * w*pt%x
-          pt%results%pot = pt%results%pot + eqm/2 * dot_product(w,pt%x*pt%x)
+          pt%results%e   = pt%results%e   + w2 * w*pt%x
+          pt%results%pot = pt%results%pot - w2*pt%data%m/pt%data%q/2. * dot_product(w,pt%x*pt%x)
         end associate
       end do
     end subroutine
