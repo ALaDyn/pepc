@@ -45,7 +45,7 @@ contains
       case (PF_PRE_STEP)
         call encap_create(encaptmp, level%level, -1, level%nvars, level%shape, ctx, level%encap%encapctx)
         call encap_unpack(encaptmp, level%q0)
-        call encap_to_particles(particles, encaptmp, ctx) ! FIXME: this should be q0
+        call encap_to_particles(particles, encaptmp, ctx)
         call encap_destroy(encaptmp)
         t = state%t0 ! yes, this is OK, t0 is automatically updated during each step
       case default
