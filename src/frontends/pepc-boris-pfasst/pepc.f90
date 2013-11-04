@@ -72,7 +72,8 @@ program pepc
   ! initial potential will be needed for energy computation
   call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step=0, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
-  if (pepcboris_nml%use_pfasst) then
+  select case (pepcboris_nml%workingmode)
+    case (WM_PFASST)
       ! Set up PFASST object
       call pf_mpi_create(tcomm, MPI_COMM_TIME)
       call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
@@ -100,7 +101,7 @@ program pepc
       call pf_pfasst_destroy(pf)
       call pf_verlet_destroy(sweeper)
       call pfm_finalize_solver_level_params(level_params, pf_nml%nlevels)
-   else ! use PEPC's own verlet integrator
+    case (WM_VERLET)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
 
@@ -121,7 +122,28 @@ program pepc
 
         end do
       end associate
-  endif
+    case (WM_ANALYTIC)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt)
+
+        do step=0,nt
+          if(pepcboris_nml%rank==0) then
+            write(*,*) " "
+            write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
+            write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
+          end if
+
+          do i=1,size(particles,kind=kind(i))
+            write(47,*) step*dt, i, particles(i)%x, particles(i)%data%v
+          end do
+
+          ! TODO: update velocities and positions as function of step*dt
+
+        end do
+      end associate
+    case default
+        DEBUG_ERROR(*,'Invalid working mode:', pepcboris_nml%workingmode)
+  end select
 
   call pepc_finalize()
   call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)

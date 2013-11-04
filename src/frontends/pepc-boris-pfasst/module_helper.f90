@@ -47,6 +47,10 @@ module pepcboris_helper
   integer, public, parameter :: PARAMS_OMEGAB = 8
   integer, public, parameter :: PARAMS_MAXIDX = PARAMS_OMEGAB
 
+  integer, public, parameter :: WM_PFASST   = 1
+  integer, public, parameter :: WM_VERLET   = 2
+  integer, public, parameter :: WM_ANALYTIC = 3
+
   !> parameter collection for pepcboris
   type pepcboris_nml_t
     ! MPI variables
@@ -61,7 +65,7 @@ module pepcboris_helper
     ! number of particles per species and rank, will be set automatically later
     integer(kind_particle) :: numparts
     ! use PFASST
-    logical :: use_pfasst = .false.
+    integer :: workingmode = WM_PFASST
   end type
 
   type(pepcboris_nml_t), public :: pepcboris_nml
@@ -152,15 +156,15 @@ module pepcboris_helper
     logical            :: read_para_file
 
     integer :: particle_config
-    logical :: use_pfasst
+    logical :: workingmode
     real*8 :: setup_params(PARAMS_MAXIDX)
 
-    namelist /pepcborispfasst/ particle_config, setup_params, use_pfasst
+    namelist /pepcborispfasst/ particle_config, setup_params, workingmode
 
     ! frontend parameters
     particle_config = nml%particle_config
     setup_params    = nml%setup_params
-    use_pfasst      = nml%use_pfasst
+    workingmode     = nml%workingmode
 
     ! pepc parameters
     theta2      = 0.36
@@ -181,7 +185,7 @@ module pepcboris_helper
     ! frontend parameters
     nml%particle_config = particle_config
     nml%setup_params    = setup_params
-    nml%use_pfasst      = use_pfasst
+    nml%workingmode     = workingmode
 
     ! derived from pfasst parameters
     nml%dt      = dt
