@@ -1,10 +1,10 @@
 &pepcessential
 
 ! total number of particles
-tnp = 20000
+tnp = 1010
 
 ! number of time steps
-nt = 20
+nt = 3
 
 ! time step
 dt = 0.5e-2
@@ -13,14 +13,14 @@ dt = 0.5e-2
 diag_interval = 1
 
 ! turn data and domain output on/off
-particle_output = .true.
+particle_output = .false.
 domain_output = .false.
 
 ! turn particle filtering (leaving simulation box) on/off 
 reflecting_walls = .false.
 
 ! turn direct summantion test on/off
-particle_test = .false.
+particle_test = .true.
 
 ! size of the simulation box
 plasma_dimensions = 1.0 1.0 1.0
@@ -34,11 +34,11 @@ mac_select = 0
 ! theta = 0.0
 theta2     = 0.09
 ! eps squared
-eps2 = 1e-4
+eps2 = 0.5
 /
 
 &libpepc
- num_threads = 8
+ num_threads = 2
  debug_level = 0
  np_mult = 1.0
 

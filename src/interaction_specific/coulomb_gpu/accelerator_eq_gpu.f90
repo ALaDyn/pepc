@@ -273,23 +273,23 @@ module module_accelerator
          ! flush GPU buffers at end of timestep
          if (atomic_load_int(acc%thread_status) .eq. ACC_THREAD_STATUS_FLUSH) then
             ! got signal to flush, so check if there is data to flush...
-            if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) .and. &
-                 .not. (gpu_id .eq. size(gpu))                                               &
-               ) then
-               write(*,*) 'flushing GPU - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
-               !$acc update host(e_1, e_2, e_3, pot)
-               do idx = 1,gpu_id
+            if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
+              if ( .not. (gpu_id .eq. size(gpu)) ) then
+                write(*,*) 'flushing GPU - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
+                !$acc update host(e_1, e_2, e_3, pot)
+                do idx = 1,gpu_id
                   ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                   ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
                   ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
                   ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
                   ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
-               enddo
+                enddo
+              endif
+              ! reset queue
+              gpu_id = 0
+              ! tell others we're ready again...
+              call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
             endif
-            ! reset queue
-            gpu_id = 0
-            ! tell others we're ready again...
-            call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
          endif
    
       end do

@@ -13,7 +13,7 @@ HELP = "\
 module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 "
 
-OMPSS        = 0
+OMPSS        = 1
 OMPSSCC      = oclmfc
 
 MACH     = JUDGE_oclmfc
@@ -50,7 +50,7 @@ ifeq ($(DEBUG), 1)
   LDFLAGS += -g -fcheck=all
 else
   FFLAGS  += -O3
-  CFLAGS  += -O3
+  CFLAGS  += -O3 
   LDFLAGS += -O3
 endif
 
@@ -63,9 +63,9 @@ ifeq ($(OMPSS), 1)
     CFLAGS  += -g
     LDFLAGS += -g -k# --Wn,-fcheck=all
   else
-    FFLAGS  += -k -O3 #--Wn,-O3,-finline-functions,-fwhole-program
-    CFLAGS  += -O3
-    LDFLAGS += -O3 #--Wn,-O3,-finline-functions,-fwhole-program
+    FFLAGS  += -k -O3 -g #--Wn,-O3,-finline-functions,-fwhole-program 
+    CFLAGS  += -O3 -g
+    LDFLAGS += -O3 -g #--Wn,-O3,-finline-functions,-fwhole-program
   endif
   FC += -f90=$(OMPSSCC)
   LD += -f90=$(OMPSSCC)
