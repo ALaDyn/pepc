@@ -55,8 +55,14 @@ module module_interaction_specific
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
+      interface calc_force_per_interaction
+         module procedure calc_force_per_interaction_global, calc_force_per_interaction_thread ! these stay private and are for thread-(non)-local types
+      end interface calc_force_per_interaction
       public calc_force_per_interaction
       public calc_force_per_particle
+      interface mac
+         module procedure mac_global, mac_thread ! these stay private and are for thread-(non)-local types
+      end interface mac
       public mac
       public particleresults_clear
       public calc_force_read_parameters
@@ -258,10 +264,10 @@ module module_interaction_specific
       !>
       !> generic Multipole Acceptance Criterion
       !>
-      function mac(particle, node, dist2, boxlength2)
+      function mac_global (particle, node, dist2, boxlength2)
         implicit none
 
-        logical :: mac
+        logical :: mac_global
         type(t_tree_node_interaction_data), intent(in) :: node
         type(t_particle), intent(in) :: particle
         real*8, intent(in) :: dist2
@@ -270,13 +276,38 @@ module module_interaction_specific
         select case (mac_select)
             case (0)
               ! Barnes-Hut-MAC
-              mac = (theta2 * dist2 > boxlength2)
+              mac_global = (theta2 * dist2 > boxlength2)
             case (1)
                ! Bmax-MAC
-              mac = (theta2 * dist2 > min(node%bmax**2, 3.0 * boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
+              mac_global = (theta2 * dist2 > min(node%bmax**2, 3.0 * boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
             case default
               ! N^2 code
-              mac = .false.
+              mac_global = .false.
+        end select
+      end function
+
+      !>
+      !> generic Multipole Acceptance Criterion
+      !>
+      function mac_thread(particle, node, dist2, boxlength2)
+        implicit none
+
+        logical :: mac_thread
+        type(t_tree_node_interaction_data), intent(in) :: node
+        type(t_particle_thread), intent(in) :: particle
+        real*8, intent(in) :: dist2
+        real*8, intent(in) :: boxlength2
+
+        select case (mac_select)
+            case (0)
+              ! Barnes-Hut-MAC
+              mac_thread = (theta2 * dist2 > boxlength2)
+            case (1)
+               ! Bmax-MAC
+              mac_thread = (theta2 * dist2 > min(node%bmax**2, 3.0 * boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
+            case default
+              ! N^2 code
+              mac_thread = .false.
         end select
       end function
 
@@ -301,7 +332,7 @@ module module_interaction_specific
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        subroutine calc_force_per_interaction(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
+        subroutine calc_force_per_interaction_global(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
           use module_pepc_types
           use treevars
           use module_coulomb_kernels
@@ -359,7 +390,30 @@ module module_interaction_specific
           particle%results%e         = particle%results%e    + exyz
           particle%results%pot       = particle%results%pot  + phic
           particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
-        end subroutine calc_force_per_interaction
+        end subroutine calc_force_per_interaction_global
+
+
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        subroutine calc_force_per_interaction_thread(particle, node, node_idx, delta, dist2, vbox, node_is_leaf)
+          use module_pepc_types
+          use treevars
+          use module_coulomb_kernels
+          implicit none
+
+          type(t_tree_node_interaction_data), intent(in) :: node
+          integer(kind_node), intent(in) :: node_idx
+          type(t_particle_thread), intent(inout) :: particle
+          logical, intent(in) :: node_is_leaf
+          real*8, intent(in) :: vbox(3), delta(3), dist2
+
+
+! TODO: content missing
+        end subroutine calc_force_per_interaction_thread
 
 
         !>
