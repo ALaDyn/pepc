@@ -133,14 +133,18 @@ program pepc
           complex*16, parameter :: ic = (0._8,1._8)
           real*8, parameter :: sqrttwo = sqrt(2._8)
 
+          if (.not. params(PARAMS_OMEGAB)**2 -2._8*params(PARAMS_OMEGAE)**2 > 0) then
+            DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
+          endif
+
           Omegasq = sqrt((params(PARAMS_OMEGAB)**2)/4._8 - params(PARAMS_OMEGAE)**2)
           Omegap  = params(PARAMS_OMEGAB)/2._8 + Omegasq
           Omegam  = params(PARAMS_OMEGAB)/2._8 - Omegasq
 
-          Rscrm = (params(PARAMS_VX0) + Omegap*params(PARAMS_X0)) / (Omegap - Omegam)
-          Rscrp =  params(PARAMS_X0)  - Rscrm
-          Iscrm = (params(PARAMS_VY0) + Omegap*params(PARAMS_Y0)) / (Omegap - Omegam)
-          Iscrp =  params(PARAMS_Y0)  - Iscrm
+          Rscrm = (Omegap*params(PARAMS_X0) + params(PARAMS_VY0)) / (Omegap - Omegam)
+          Iscrm = (Omegap*params(PARAMS_Y0) - params(PARAMS_VX0)) / (Omegap - Omegam)
+          Rscrp = params(PARAMS_X0) - Rscrm
+          Iscrp = params(PARAMS_Y0) - Iscrm
 
           Rp = Rscrp + ic*Iscrp
           Rm = Rscrm + ic*Iscrm
