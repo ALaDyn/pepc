@@ -30,6 +30,8 @@ module module_interaction_specific
      save
      private
 
+      public t_particle_thread
+
       real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
       real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
@@ -49,6 +51,7 @@ module module_interaction_specific
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
       ! currently, all public functions in module_interaction_specific are obligatory
+      public notify_and_wait_for_completion
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
@@ -64,6 +67,15 @@ module module_interaction_specific
       public get_number_of_interactions_per_particle
 
       contains
+
+      !>
+      !> 'barrier' to flush possible internal all accelerator caches and make sure they are finished
+      !>
+      subroutine notify_and_wait_for_completion()
+        implicit none
+        ! nothing to do here
+      end subroutine
+
 
       !>
       !> Computes multipole properties of a single particle

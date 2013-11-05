@@ -361,8 +361,8 @@ module module_walk
     use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread, THREAD_TYPE_WORKER
     use module_debug
     use module_atomic_ops, only: atomic_store_int, atomic_load_int
-    use module_accelerator, only: ACC_THREAD_STATUS_FLUSH, ACC_THREAD_STATUS_STARTED       
     use module_interaction_specific_types
+    use module_interaction_specific, only : notify_and_wait_for_completion
     use, intrinsic :: iso_c_binding
     implicit none
     include 'mpif.h'
@@ -396,11 +396,7 @@ module module_walk
     end do
 
     ! include 'barrier' to flush all accelerator caches and make sure they are finished
-    call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_FLUSH)
-    do while( atomic_load_int(acc%thread_status) .ne. ACC_THREAD_STATUS_STARTED )
-       ! busy loop while the queue is processed
-       ERROR_ON_FAIL(pthreads_sched_yield())
-    end do
+    call notify_and_wait_for_completion()
 
     if (walk_debug) then
       DEBUG_INFO(*, "PE", walk_tree%comm_env%rank, "has finished walking")

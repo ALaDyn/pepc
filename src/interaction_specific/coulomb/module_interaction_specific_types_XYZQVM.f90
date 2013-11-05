@@ -74,18 +74,18 @@ module module_interaction_specific_types
       !> This includes lists of the interaction partners
       type t_particle_thread
          real*8 :: x(1:3)      !< coordinates
-         real*8 :: work        !< work load from force sum
+         real*8, pointer :: work        !< work load from force sum
          integer*8 :: key      !< particle key, i.e. key on highgest tree level
          integer*8 :: node_leaf !< key of corresponding leaf (tree node)
          integer*8 :: label      !< particle label (only for diagnostic purposes, can be used freely by the frontend
          integer :: pid        !< particle owner
          type(t_particle_data) :: data       !< real physics (charge, etc.)
-         type(t_particle_results) :: results !< results of calc_force_etc and companions
+         type(t_particle_results), pointer :: results !< results of calc_force_etc and companions
          integer :: queued = -1
          type(t_iact_partner), allocatable :: partner(:)
          integer :: queued_l = -1
          type(t_iact_partner_l), allocatable :: partner_l(:)
-         integer :: my_idx = -1
+         integer*8 :: my_idx = -1
       end type t_particle_thread
       integer, private, parameter :: nprops_particle_thread = 10
       contains

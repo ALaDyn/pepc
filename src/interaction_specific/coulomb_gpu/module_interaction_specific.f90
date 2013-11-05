@@ -64,6 +64,7 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       ! currently, all public functions in module_interaction_specific are obligatory
+      public notify_and_wait_for_completion
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
@@ -99,6 +100,24 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       contains
 
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> 'barrier' to flush possible internal all accelerator caches and make sure they are finished
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine notify_and_wait_for_completion()
+        use module_accelerator
+        use module_debug
+        use module_atomic_ops
+        implicit none
+
+        call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_FLUSH)
+        do while( atomic_load_int(acc%thread_status) .ne. ACC_THREAD_STATUS_STARTED )
+           ! busy loop while the queue is processed
+          ERROR_ON_FAIL(pthreads_sched_yield())
+        end do
+      end subroutine
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
