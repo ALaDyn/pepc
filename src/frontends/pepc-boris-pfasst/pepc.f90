@@ -128,7 +128,7 @@ program pepc
                  params => pepcboris_nml%setup_params)
 
         block
-          complex*16 :: u, Rp, Rm
+          complex*16 :: u, udot, Rp, Rm
           real*8 :: Omegap, Omegam, Rscrm, Rscrp, Iscrm, Iscrp, Omegasq
           complex*16, parameter :: ic = (0._8,1._8)
           real*8, parameter :: sqrttwo = sqrt(2._8)
@@ -152,12 +152,20 @@ program pepc
               write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
             end if
 
-            u = Rp * exp(-ic*Omegap*step*dt) + Rm * exp(-ic*Omegam*step*dt)
+            u    =   Rp * exp(-ic*Omegap*step*dt) &
+                   + Rm * exp(-ic*Omegam*step*dt)
+            udot = -ic*Omegap*Rp * exp(-ic*Omegap*step*dt) &
+                   -ic*Omegam*Rm * exp(-ic*Omegam*step*dt)
 
             particles(1)%x(1) = real(u)
             particles(1)%x(2) = aimag(u)
             particles(1)%x(3) = params(PARAMS_Z0) * cos(sqrttwo*params(PARAMS_OMEGAE)*step*dt) + &
               params(PARAMS_VZ0)/(sqrttwo*params(PARAMS_OMEGAE)) * sin(sqrttwo*params(PARAMS_OMEGAE)*step*dt)
+
+            particles(1)%data%v(1) = real(udot)
+            particles(1)%data%v(2) = aimag(udot)
+            particles(1)%data%v(3) = -sqrttwo*params(PARAMS_OMEGAE)*params(PARAMS_Z0) * sin(sqrttwo*params(PARAMS_OMEGAE)*step*dt) + &
+              params(PARAMS_VZ0) * cos(sqrttwo*params(PARAMS_OMEGAE)*step*dt)
 
             do i=1,size(particles,kind=kind(i))
               write(49,*) step*dt, i, particles(i)%x, particles(i)%data%v
