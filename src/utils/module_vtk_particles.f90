@@ -19,6 +19,15 @@
 !
 
 module module_vtk_particles
+
+! this is a fix to get rid of I/O (type-bound procedures, really) for OMPSs
+#ifndef BASE
+      implicit none 
+ 
+      integer, public, parameter :: dummy = 0 
+end module module_vtk_particles 
+#else
+
   use module_pepc_types
   use module_vtk
   implicit none
@@ -110,3 +119,4 @@ module module_vtk_particles
     call vtkf%write_data_array("el_field", p(:)%results%e(1), p(:)%results%e(2), p(:)%results%e(3))
   end subroutine vtk_write_particles_coulomb_XYZQVM_helper
 end module module_vtk_particles
+#endif

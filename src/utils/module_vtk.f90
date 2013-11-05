@@ -19,6 +19,15 @@
 !
 
 module module_vtk
+
+! this is a fix to get rid of I/O (type-bound procedures, really) for OMPSs
+#ifndef BASE
+      implicit none 
+ 
+      integer, public, parameter :: dummy = 0 
+end module module_vtk 
+#else
+
       use module_base64
       implicit none
 
@@ -916,3 +925,4 @@ module module_vtk
         if (vtk%my_rank == 0) write(vtk%filehandle_par, '("</PCoordinates>")')
      end subroutine vtkfile_rectilinear_grid_finishcoordinates
 end module module_vtk
+#endif

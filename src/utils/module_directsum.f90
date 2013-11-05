@@ -75,10 +75,10 @@ module module_directsum
           !$ call omp_set_num_threads(num_threads)
 
           ! Inform the user that openmp is used, and with how many threads
-          !$OMP PARALLEL PRIVATE(omp_thread_num)
-          !$ omp_thread_num = OMP_GET_THREAD_NUM()
-          !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
-          !$OMP END PARALLEL
+          !OMPSS!$OMP PARALLEL PRIVATE(omp_thread_num)
+          !OMPSS!$ omp_thread_num = OMP_GET_THREAD_NUM()
+          !OMPSS!$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
+          !OMPSS!$OMP END PARALLEL
 
           ! determine right and left neighbour
           nextrank = modulo(my_rank + 1_kind_pe, n_cpu)
@@ -107,7 +107,7 @@ module module_directsum
 
             t1 = MPI_WTIME()
 
-            !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
+            !OMPSS!$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
             do j=1,nreceived
                 do i=1,size(particles)
 
@@ -125,7 +125,7 @@ module module_directsum
 
                 end do
             end do
-            !$OMP END PARALLEL DO
+            !OMPSS!$OMP END PARALLEL DO
 
             call timer_add(t_direct_force,MPI_WTIME()-t1)
 

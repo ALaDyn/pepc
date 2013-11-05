@@ -31,6 +31,11 @@ module module_base64
                                               '4','5','6','7','8','9','+','/']
     character, parameter :: finalchar = '='
 
+! this is a fix to get rid of I/O (type-bound procedures, really) for OMPSs
+#ifndef BASE
+end module module_base64
+#else
+
     type base64_encoder
       private
         integer*8 :: buffer  = 0
@@ -158,4 +163,4 @@ module module_base64
      end subroutine base64_encoder_encode_int4
 
 end module module_base64
-
+#endif

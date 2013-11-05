@@ -275,6 +275,13 @@ module helper
   end subroutine test_particles
 
   
+! this is a fix to get rid of I/O (type-bound procedures, really) for OMPSs
+#ifndef BASE
+  integer function vtk_step_of_step(step)
+    implicit none
+    integer, intent(in) :: step
+    vtk_step_of_step  = 1
+#else
   integer function vtk_step_of_step(step) result(vtk_step)
     use module_vtk
     implicit none
@@ -288,9 +295,16 @@ module helper
     else
       vtk_step = VTK_STEP_NORMAL
     endif
+#endif
   end function vtk_step_of_step
 
 
+! this is a fix to get rid of I/O (type-bound procedures, really) for OMPSs
+#ifndef BASE
+  subroutine write_particles(p)
+    implicit none
+    type(t_particle), intent(in) :: p(:)
+#else
   subroutine write_particles(p)
     use module_vtk_particles
     implicit none
@@ -320,9 +334,16 @@ module helper
       call vtk_write_particles_coulomb_XYZQVM_helper(p, vtkf)
       if(particle_test) call vtkf%write_data_array("L2 error", direct_L2(:))
     end subroutine
+#endif
   end subroutine write_particles
 
   
+! this is a fix to get rid of I/O (type-bound procedures, really) for OMPSs
+#ifndef BASE
+  subroutine write_domain(p)
+    implicit none
+    type(t_particle), allocatable, intent(in) :: p(:)
+#else
   subroutine write_domain(p)
     use module_vtk
     use module_treediags
@@ -337,6 +358,7 @@ module helper
     call write_branches_to_vtk(step,  dt * step, vtk_step)
     call write_leaves_to_vtk(step, dt * step, vtk_step)
     call write_spacecurve_to_vtk(step, dt * step, vtk_step, p)
+#endif
   end subroutine write_domain
   
 

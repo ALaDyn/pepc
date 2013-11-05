@@ -576,13 +576,13 @@ module module_fmm_framework
 
           ! calculate multipole contributions of all local particles
 
-          !$ call omp_set_num_threads(num_threads)
-          !$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles,LatticeCenter) SCHEDULE(RUNTIME) REDUCTION(+:omega_tilde)
+          !OMPSS!$ call omp_set_num_threads(num_threads)
+          !OMPSS!$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles,LatticeCenter) SCHEDULE(RUNTIME) REDUCTION(+:omega_tilde)
           do p=1,size(particles, kind=kind(p))
             call addparticle(omega_tilde, particles(p)%x, particles(p)%data%q)
           end do
-          !$OMP  END PARALLEL DO          
-          !$ call omp_set_num_threads(1)
+          !OMPSS!$OMP  END PARALLEL DO          
+          !OMPSS!$ call omp_set_num_threads(1)
           
           ! extrinsic correction via fictitious charges according to [Kudin & Scuseria, ChemPhysLet 283, 61 (1998)] on rank 0
           if (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_FICTCHARGE) then

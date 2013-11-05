@@ -22,6 +22,15 @@
 !> Helper functions for checkpointing and restarting purposes
 !>
 module module_treediags
+
+! this is a fix to get rid of I/O (type-bound procedures, really) for OMPSs
+#ifndef BASE
+      implicit none 
+ 
+      integer, public, parameter :: dummy = 0 
+end module module_treediags 
+#else
+
       implicit none
       private
 
@@ -486,3 +495,4 @@ module module_treediags
             call vtk%close()
         end subroutine
 end module module_treediags
+#endif

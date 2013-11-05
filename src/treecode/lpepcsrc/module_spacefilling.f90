@@ -188,45 +188,45 @@ module module_spacefilling
           allocate(intcoord(idim, nl))
 
           s = b%boxsize(1:idim) / 2_kind_key**nlev       ! refinement length
-!$omp parallel default(shared) private(j)
-!$omp do
+!OMPSS!$omp parallel default(shared) private(j)
+!OMPSS!$omp do
           do j = 1, nl
             intcoord(:,j) = int(( particles(j)%x(1:idim) - b%boxmin(1:idim) ) / s, kind = kind_key) ! partial keys
           end do
-!$omp end do
+!OMPSS!$omp end do
 
           ! construct particle keys
           select case (curve_type)
             case (0) ! Z-curve
-!$omp do
+!OMPSS!$omp do
               do j = 1, nl
                 particles(j)%key = intcoord_to_key_morton(intcoord(:,j))
               end do
-!$omp end do
+!OMPSS!$omp end do
 
             case (1) ! Hilbert curve (original pattern)
               select case (idim)
                 case (1) ! fallback to Z-curve
-!$omp do
+!OMPSS!$omp do
                   do j = 1, nl
                     particles(j)%key = intcoord_to_key_morton(intcoord(:,j))
                   end do
-!$omp end do
+!OMPSS!$omp end do
                 case (2) ! 2D hilbert curve
-!$omp do
+!OMPSS!$omp do
                   do j = 1, nl
                     particles(j)%key = intcoord_to_key_hilbert2D(intcoord(:,j))
                   end do
-!$omp end do
+!OMPSS!$omp end do
                 case (3) ! 3D hilbert curve
-!$omp do
+!OMPSS!$omp do
                   do j = 1, nl
                     particles(j)%key = intcoord_to_key_hilbert3D(intcoord(:,j))
                   end do
-!$omp end do
+!OMPSS!$omp end do
               end select
           end select
-!$omp end parallel
+!OMPSS!$omp end parallel
           deallocate(intcoord)
         end subroutine compute_particle_keys
 

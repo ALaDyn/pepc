@@ -1,0 +1,76 @@
+# call before compilation to activate GNU Compiler Collection instead of Intel compiler:
+#  > module unload intel
+#  > module unload parastation
+#  > module load parastation/mpi2-gcc-mt-5.0.26-1
+#  > module load GCC
+
+MOD_UNLOAD = intel parastation mkl
+MOD_LOAD   = OMPSS ompss/git-version cuda extrae
+
+HELP = "\
+\# Makefile for JUDGE using gcc and OmpSs\n\
+\# recommended module commands\n\
+module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
+"
+
+OMPSS        = 1
+OMPSSCC      = oclmfc
+
+MACH     = JUDGE_oclmfc
+
+DEBUG    = 1
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+
+FCPRE    = 
+FC       = mpif90
+
+CCPRE    = 
+CC       = mpicc
+
+LDPRE    = 
+LD       = mpif90
+LDLIBS   =
+
+FFLAGS  = -Wall -ffree-line-length-none -fopenmp -flto
+CFLAGS  = -Wall
+LDFLAGS = -pthread -fwhole-program -flto
+
+ifeq ($(DEBUG), 1)
+  FFLAGS  += -g -fcheck=all
+  CFLAGS  += -g
+  LDFLAGS += -g -fcheck=all
+else
+  FFLAGS  += -O3 -ffree-line-length-none -fopenmp -flto
+  CFLAGS  += -O3
+  LDFLAGS += -O3
+endif
+
+ifeq ($(OMPSS), 1)
+  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive
+  CFLAGS    = -Wall
+  LDFLAGS   = --Wn,-pthread,-fwhole-program
+  ifeq ($(DEBUG), 1)
+    FFLAGS  += -g -k# --Wn,-fcheck=all
+    CFLAGS  += -g
+    LDFLAGS += -g -k# --Wn,-fcheck=all
+  else
+    FFLAGS  += --Wn,-O3,-finline-functions,-fwhole-program
+    CFLAGS  += -O3
+    LDFLAGS += --Wn,-O3,-finline-functions,-fwhole-program
+  endif
+  FC += -f90=$(OMPSSCC)
+  LD += -f90=$(OMPSSCC)
+endif
+
+#FFLAGS = ""
+
+RM       = rm -rf
