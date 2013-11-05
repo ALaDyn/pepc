@@ -6,10 +6,13 @@ then
   exit -1
 fi
 
+TEMPFILE="/tmp/runall_workingmodes.$RANDOM"
+
 for i in 1 2 3;
 do
   echo "################ $i #################"
-  sed -i "s/workingmode[ *]=[ *][1234567890*]/workingmode = $i/" $1
-  grep workingmode $1
-  ./pepc-boris-pfasst $1
+  sed "s/workingmode[ *]=[ *][1234567890*]/workingmode = $i/" $1 > $TEMPFILE
+  grep workingmode $TEMPFILE
+  ./pepc-boris-pfasst $TEMPFILE
+  rm $TEMPFILE
 done
