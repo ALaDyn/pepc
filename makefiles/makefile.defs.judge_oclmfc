@@ -13,12 +13,12 @@ HELP = "\
 module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 "
 
-OMPSS        = 1
+OMPSS        = 0
 OMPSSCC      = oclmfc
 
 MACH     = JUDGE_oclmfc
 
-DEBUG    = 1
+DEBUG    = 0
 
 RANLIB   = ranlib
 
@@ -40,16 +40,16 @@ LDPRE    =
 LD       = mpif90
 LDLIBS   =
 
-FFLAGS  = -Wall -ffree-line-length-none -fopenmp -flto
+FFLAGS  = -Wall -ffree-line-length-none -fopenmp -frecursive
 CFLAGS  = -Wall
-LDFLAGS = -pthread -fwhole-program -flto
+LDFLAGS = -pthread -fopenmp -fwhole-program
 
 ifeq ($(DEBUG), 1)
   FFLAGS  += -g -fcheck=all
   CFLAGS  += -g
   LDFLAGS += -g -fcheck=all
 else
-  FFLAGS  += -O3 -ffree-line-length-none -fopenmp -flto
+  FFLAGS  += -O3
   CFLAGS  += -O3
   LDFLAGS += -O3
 endif
@@ -57,15 +57,15 @@ endif
 ifeq ($(OMPSS), 1)
   FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive
   CFLAGS    = -Wall
-  LDFLAGS   = --Wn,-pthread,-fwhole-program
+  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program
   ifeq ($(DEBUG), 1)
     FFLAGS  += -g -k# --Wn,-fcheck=all
     CFLAGS  += -g
     LDFLAGS += -g -k# --Wn,-fcheck=all
   else
-    FFLAGS  += --Wn,-O3,-finline-functions,-fwhole-program
+    FFLAGS  += -k -O3 #--Wn,-O3,-finline-functions,-fwhole-program
     CFLAGS  += -O3
-    LDFLAGS += --Wn,-O3,-finline-functions,-fwhole-program
+    LDFLAGS += -O3 #--Wn,-O3,-finline-functions,-fwhole-program
   endif
   FC += -f90=$(OMPSSCC)
   LD += -f90=$(OMPSSCC)
