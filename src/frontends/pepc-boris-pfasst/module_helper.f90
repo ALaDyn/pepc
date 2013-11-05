@@ -155,8 +155,7 @@ module pepcboris_helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    integer :: particle_config
-    logical :: workingmode
+    integer :: particle_config, workingmode
     real*8 :: setup_params(PARAMS_MAXIDX)
 
     namelist /pepcborispfasst/ particle_config, setup_params, workingmode

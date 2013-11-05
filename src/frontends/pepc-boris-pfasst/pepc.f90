@@ -124,22 +124,46 @@ program pepc
       end associate
     case (WM_ANALYTIC)
       associate (dt => pepcboris_nml%dt, &
-                 nt => pepcboris_nml%nt)
+                 nt => pepcboris_nml%nt, &
+                 params => pepcboris_nml%setup_params)
 
-        do step=0,nt
-          if(pepcboris_nml%rank==0) then
-            write(*,*) " "
-            write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
-            write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
-          end if
+        block
+          complex*16 :: u, Rp, Rm
+          real*8 :: Omegap, Omegam, Rscrm, Rscrp, Iscrm, Iscrp, Omegasq
+          complex*16, parameter :: ic = (0._8,1._8)
+          real*8, parameter :: sqrttwo = sqrt(2._8)
 
-          do i=1,size(particles,kind=kind(i))
-            write(47,*) step*dt, i, particles(i)%x, particles(i)%data%v
+          Omegasq = sqrt((params(PARAMS_OMEGAB)**2)/4._8 - params(PARAMS_OMEGAE)**2)
+          Omegap  = params(PARAMS_OMEGAB)/2._8 + Omegasq
+          Omegam  = params(PARAMS_OMEGAB)/2._8 - Omegasq
+
+          Rscrm = (params(PARAMS_VX0) + Omegap*params(PARAMS_X0)) / (Omegap - Omegam)
+          Rscrp =  params(PARAMS_X0)  - Rscrm
+          Iscrm = (params(PARAMS_VY0) + Omegap*params(PARAMS_Y0)) / (Omegap - Omegam)
+          Iscrp =  params(PARAMS_Y0)  - Iscrm
+
+          Rp = Rscrp + ic*Iscrp
+          Rm = Rscrm + ic*Iscrm
+
+          do step=0,nt
+            if(pepcboris_nml%rank==0) then
+              write(*,*) " "
+              write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
+              write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
+            end if
+
+            u = Rp * exp(-ic*Omegap*step*dt) + Rm * exp(-ic*Omegam*step*dt)
+
+            particles(1)%x(1) = real(u)
+            particles(1)%x(2) = aimag(u)
+            particles(1)%x(3) = params(PARAMS_Z0) * cos(sqrttwo*params(PARAMS_OMEGAE)*step*dt) + &
+              params(PARAMS_VZ0)/(sqrttwo*params(PARAMS_OMEGAE)) * sin(sqrttwo*params(PARAMS_OMEGAE)*step*dt)
+
+            do i=1,size(particles,kind=kind(i))
+              write(49,*) step*dt, i, particles(i)%x, particles(i)%data%v
+            end do
           end do
-
-          ! TODO: update velocities and positions as function of step*dt
-
-        end do
+        end block
       end associate
     case default
         DEBUG_ERROR(*,'Invalid working mode:', pepcboris_nml%workingmode)
