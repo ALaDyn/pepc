@@ -108,6 +108,7 @@ module module_initialization
 
     integer, parameter :: fid = 12
     integer*8 :: npart
+    real(KIND=8) :: eps=1.0e-9
 
 
     IF (do_resume) THEN
@@ -131,7 +132,9 @@ module module_initialization
     read(fid,NML=walk_para_smpss)
     close(fid)
 
-    IF (dx.eq.0. .or. dy.eq.0. .or. dz.eq.0.) THEN  !one of dx, dy, dz not set
+    !IF (dx.eq.0. .or. dy.eq.0. .or. dz.eq.0.) THEN  !one of dx, dy, dz not set
+    IF (real_equal(dx,0._8,eps) .or. real_equal(dy,0._8,eps) .or. real_equal(dz,0._8,eps)) THEN  !one of dx, dy, dz not set
+
         IF (root) write(*,*) "Geometry not set correctly. dx, dy and dz cannot be 0"
         STOP
     END IF
@@ -145,7 +148,7 @@ module module_initialization
     zmax=dz+zmin
 
     B=sqrt(Bx**2+By**2+Bz**2)
-    IF (B.ne.0.) THEN
+    IF (real_unequal(B,0._8,eps)) THEN
         r_lamor=1.
     ELSE
         r_lamor=0.

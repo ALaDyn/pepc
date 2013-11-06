@@ -144,7 +144,7 @@ module module_geometry
 
         integer :: ib
         real*8 :: test
-        real*8 :: eps=1.0e-19
+        real*8 :: eps=1.0e-9
 
         if (root) then
             do ib=1,nb
@@ -156,7 +156,8 @@ module module_geometry
                         STOP
                     end if
                     test=dotproduct(boundaries(ib)%n,boundaries(boundaries(ib)%opp_bnd)%n)
-                    if ((test<-1.-eps).or.(test>-1.+eps)) then
+                    !!if ((test<-1.-eps).or.(test>-1.+eps)) then
+                    if (.not. real_equal(test,-1._8,eps)) then
                         write(*,*)
                         write(*,'(a,i3,a,i3,a)')"Boundaries ",boundaries(ib)%indx," and ",boundaries(ib)%opp_bnd," are set as a pair of opposing boundaries, but are not parallel."
                         write(*,*)boundaries(ib)%n
@@ -330,14 +331,15 @@ module module_geometry
 
     subroutine check_boundary(wall)
         type(t_boundary), intent(inout) :: wall
-
+        real*8 :: eps=1.0e-9
         real*8 :: test(2)
         logical :: ok
 
         test(1)=dotproduct(wall%e1,wall%n)
         test(2)=dotproduct(wall%e2,wall%n)
 
-        ok= (test(1)==0) .and. (test(2)==0)
+        !ok= (test(1)==0) .and. (test(2)==0)
+        ok = (real_equal(test(1),0._8,eps)) .and. (real_equal(test(2),0._8,eps))
 
         if (ok .eqv. .false.) then
             write(*,*) "Boundary set incorrectly:"
@@ -357,7 +359,7 @@ module module_geometry
         type(t_boundary), intent(in) :: wall
         logical,intent(out) :: hit
         real*8,intent(in) :: px,py,pz
-        real*8 :: eps=1.0e-19
+        real*8 :: eps=1.0e-9
         real*8 :: y(3),a(3),b(3),lambda,mu,dist
 
         a=wall%e1
@@ -372,34 +374,44 @@ module module_geometry
 
         dist=dotproduct(wall%n,y)
 
-        if ((a(1)/=0) .and. ((b(2)/=0) .or. (b(3)/=0)))  then
-            if (b(2)/=0) then
+        !if ((a(1)/=0) .and. ((b(2)/=0) .or. (b(3)/=0)))  then
+        if (real_unequal(a(1),0._8,eps) .and. (real_unequal(b(2),0._8,eps) .or. real_unequal(b(3),0._8,eps)))  then
+            !if (b(2)/=0) then
+            if (real_unequal(b(2),0._8,eps)) then
                 mu = (y(2)/b(2) - (a(2)*y(1))/(b(2)*a(1))) / (1 - (b(1)*a(2) / (b(2)*a(1))))
                 lambda = (y(1) - (mu*b(1))) / a(1)
-            else if (b(3)/=0) then
+            !else if (b(3)/=0) then
+            else if (real_unequal(b(3),0._8,eps)) then
                 mu = (y(3)/b(3) - (a(3)*y(1))/(b(3)*a(1))) / (1 - (b(1)*a(3) / (b(3)*a(1))))
                 lambda = (y(1) - (mu*b(1))) / a(1)
             end if
-        else if ((a(2)/=0) .and. ((b(1)/=0) .or. (b(3)/=0)))  then
-            if (b(1)/=0) then
+        !else if ((a(2)/=0) .and. ((b(1)/=0) .or. (b(3)/=0)))  then
+        else if (real_unequal(a(2),0._8,eps) .and. (real_unequal(b(1),0._8,eps) .or. real_unequal(b(3),0._8,eps)))  then
+            !if (b(1)/=0) then
+            if (real_unequal(b(1),0._8,eps)) then
                 mu = (y(1)/b(1) - (a(1)*y(2))/(b(1)*a(2))) / (1 - (b(2)*a(1) / (b(1)*a(2))))
                 lambda = (y(2) - (mu*b(2))) / a(2)
-            else if (b(3)/=0) then
+            !else if (b(3)/=0) then
+            else if (real_unequal(b(3),0._8,eps)) then
                 mu = (y(3)/b(3) - (a(3)*y(2))/(b(3)*a(2))) / (1 - (b(2)*a(3) / (b(3)*a(2))))
                 lambda = (y(2) - (mu*b(2))) / a(2)
             end if
-        else if ((a(3)/=0) .and. ((b(2)/=0) .or. (b(1)/=0)))  then
-            if (b(2)/=0) then
+        !else if ((a(3)/=0) .and. ((b(2)/=0) .or. (b(1)/=0)))  then
+        else if (real_unequal(a(3),0._8,eps) .and. (real_unequal(b(2),0._8,eps) .or. real_unequal(b(1),0._8,eps)))  then
+            !if (b(2)/=0) then
+            if (real_unequal(b(2),0._8,eps)) then
                  mu = (y(2)/b(2) - (a(2)*y(3))/(b(2)*a(3))) / (1 - (b(3)*a(2) / (b(2)*a(3))))
                  lambda = (y(3) - (mu*b(3))) / a(3)
-            else if (b(1)/=0) then
+            !else if (b(1)/=0) then
+            else if (real_unequal(b(1),0._8,eps)) then
                  mu = (y(1)/b(1) - (a(1)*y(3))/(b(1)*a(3))) / (1 - (b(3)*a(1) / (b(1)*a(3))))
                 lambda = (y(3) - (mu*b(3))) / a(3)
             end if
         end if
 
         hit=.false.
-        if ((dist<eps).and.(dist>-eps)) then
+        !if ((dist<eps).and.(dist>-eps)) then
+        if (real_equal(dist,0._8,eps)) then
             !write(*,*) "Punkt liegt in der Ebene"
             if ((lambda<1.).and.(mu<1.) .and. (mu>0.) .and. (lambda>0.)) then
                 !write(*,*) "Der Punkt liegt in der Flaeche"
@@ -421,19 +433,15 @@ module module_geometry
 
         type(t_boundary), intent(in) :: wall
         real*8, intent(in), dimension(3) :: xold,xnew
-        real*8 :: n(3),x0(3),lambda,a,b
+        real*8 :: n(3),x0(3),lambda,a,b,dx(3)
         real*8, intent(out), dimension(3) :: intersect
 
         x0= wall%x0
         n = wall%n
-        a = dotproduct((xold-x0),n)
-        b = dotproduct((xnew-x0),n)
-        !IF (a < 0) THEN
-        !    write(*,*) "no intersection, xold outside of the domain"
-        !END IF
-        !IF (b > 0) THEN
-        !    write(*,*) "no intersection, xnew inside of the domain"
-        !END IF
+        dx = (xold-x0)
+        a = dotproduct(dx,n)
+        dx = (xnew-x0)
+        b = dotproduct(dx,n)
         lambda = abs(a) / (abs(a)+abs(b))
         intersect = xold + (xnew-xold)*lambda
 

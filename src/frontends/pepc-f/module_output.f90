@@ -23,8 +23,8 @@ MODULE output
         implicit none
         integer rc
 
-        allocate(thits_out(0:nspecies-1,1:nb),stat=rc)
-        allocate(treflux_out(0:nspecies-1,1:nb),stat=rc)
+        if (.not. allocated(thits_out)) allocate(thits_out(0:nspecies-1,1:nb),stat=rc)
+        if (.not. allocated(treflux_out))allocate(treflux_out(0:nspecies-1,1:nb),stat=rc)
         thits_out=0
         treflux_out=0
 
@@ -240,11 +240,13 @@ MODULE output
     SUBROUTINE set_recycling_output_values(thits,treflux)
 
         implicit none
+        integer :: rc
+        integer,intent(in) :: thits(0:,:),treflux(0:,:)
 
-        integer,intent(in)      :: thits(0:,:),treflux(0:,:)
-
-        thits_out=thits
-        treflux_out=treflux
+        if (.not. allocated(thits_out)) allocate(thits_out(0:nspecies-1,1:nb),stat=rc)
+        if (.not. allocated(treflux_out)) allocate(treflux_out(0:nspecies-1,1:nb),stat=rc)
+        thits_out(:,:) = thits
+        treflux_out(:,:) = treflux
 
 
     END SUBROUTINE set_recycling_output_values
@@ -274,7 +276,7 @@ MODULE output
           write(*,'(a,f12.4)')  " == Bz                               : ", Bz
           write(*,*)
           write(*,*) "========== Simulation Domain ========="
-          if (B.ne.0.) then
+          if (real_unequal(B,0._8,1e-9_8)) then
               write(*,'(a,12X,es10.2)')  " == dx (m)             : ", dx
               write(*,'(a,es10.2,a,es10.2)')  " == dy (gyro_radii, m) : ", dy/r_lamor,", ",dy
               write(*,'(a,es10.2,a,es10.2)')  " == dz (gyro_radii, m) : ", dz/r_lamor,", ",dz

@@ -131,6 +131,27 @@ module helper
     
   end function get_time
 
+!======================================================================================
+  logical function real_equal(a,b,epsi)
+    implicit none
+    real(KIND=8),intent(in) :: a,b,epsi
+
+    if (abs(a-b) <= epsi * max(abs(a),abs(b))) then
+       real_equal = .true.
+    else
+       real_equal = .false.
+    end if
+
+  end function real_equal
+
+!======================================================================================
+  logical function real_unequal(a,b,epsi)
+    implicit none
+    real(KIND=8),intent(in) :: a,b,epsi
+
+    real_unequal = (.not. real_equal(a,b,epsi))
+
+  end function real_unequal
 
 !======================================================================================
   logical function hit_r(p)

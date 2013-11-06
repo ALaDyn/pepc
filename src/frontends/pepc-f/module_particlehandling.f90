@@ -19,7 +19,7 @@ module particlehandling
         type(t_particle), allocatable, intent(inout) :: p(:)
         type(t_particle), allocatable :: p_hits_logical_sheath(:,:,:)
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
-        real*8 :: xp(3)
+        real*8 :: xp(3),xold(3)
         real(KIND=8) v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),v_ran(1)
 
 
@@ -51,7 +51,8 @@ module particlehandling
                     ELSE IF (boundaries(ib)%type==5) THEN   !immediate half-Maxwellian refluxing normal to surface, tangential v conserved
                         mu=0.0_8
                         sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
-                        call get_intersect(p(rp)%x-p(rp)%data%v*dt, p(rp)%x, boundaries(ib), xi)
+                        xold = p(rp)%x-p(rp)%data%v*dt
+                        call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
                         !call random_gauss_list(v_ran,mu,sigma)
                         !v_ran(1) = abs(v_ran(1))
@@ -63,7 +64,8 @@ module particlehandling
                     ELSE IF (boundaries(ib)%type==6) THEN  !immediate half-Maxwellian refluxing normal to surface, tangential v resampled
                         mu=0.0_8
                         sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
-                        call get_intersect(p(rp)%x-p(rp)%data%v*dt, p(rp)%x, boundaries(ib), xi)
+                        xold = p(rp)%x-p(rp)%data%v*dt
+                        call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(1:3),mu,sigma)
                         v_new(1) = abs(v_new(1))
                         !call random_gauss_list(v_new(2:3),mu,sigma)
@@ -119,9 +121,9 @@ module particlehandling
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
 
         integer ib,ispecies,i,ip,rc
-        integer :: thits(0:nspecies-1,nb,0:n_ranks-1),displs(0:n_ranks-1)
-        real*8 :: v_perp_logical_sheath(0:nspecies-1,nb,sum(npps))
-        real*8 :: t_v_perp_logical_sheath(0:nspecies-1,nb,sum(tnpps))
+        integer :: thits(0:n_ranks-1,0:nspecies-1,nb),displs(0:n_ranks-1)
+        real*8 :: v_perp_logical_sheath(sum(npps),0:nspecies-1,nb)
+        real*8 :: t_v_perp_logical_sheath(sum(tnpps),0:nspecies-1,nb)
         real*8,allocatable :: v_perp_temp(:)
         real*8 :: vcut_el(nb)
         integer :: ihits,ehits
@@ -133,7 +135,7 @@ module particlehandling
             IF (boundaries(ib)%type==4) THEN
                 DO ispecies = 0,nspecies-1
                     IF (species(ispecies)%physical_particle) THEN
-                        call MPI_GATHER(hits(ispecies,ib),1,MPI_INTEGER, thits(ispecies,ib,:), 1, MPI_INTEGER, 0,MPI_COMM_WORLD, rc)
+                        call MPI_GATHER(hits(ispecies,ib),1,MPI_INTEGER, thits(:,ispecies,ib), 1, MPI_INTEGER, 0,MPI_COMM_WORLD, rc)
                     END IF
                 END DO
             END IF
@@ -146,27 +148,27 @@ module particlehandling
                         IF (root) THEN
                             displs(0)=0
                             DO i=1,n_ranks-1
-                                displs(i)=displs(i-1)+thits(ispecies,ib,i-1)
+                                displs(i)=displs(i-1)+thits(i-1,ispecies,ib)
                             END DO
                         END IF
                         DO ip = 1,hits(ispecies,ib)
-                            v_perp_logical_sheath(ispecies,ib,ip)=-dotproduct(p_hits_logical_sheath(ispecies,ib,ip)%data%v &
+                            v_perp_logical_sheath(ip,ispecies,ib)=-dotproduct(p_hits_logical_sheath(ispecies,ib,ip)%data%v &
                                                                               ,boundaries(ib)%n)
                         END DO
                         IF (species(ispecies)%indx==1) THEN !sorting only for electrons
-                            call MPI_GATHERV(v_perp_logical_sheath(ispecies,ib,:),hits(ispecies,ib),&
-                                             MPI_DOUBLE_PRECISION,t_v_perp_logical_sheath(ispecies,ib,:),&
-                                             thits(ispecies,ib,:),displs,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, rc)
+                            call MPI_GATHERV(v_perp_logical_sheath(:,ispecies,ib),hits(ispecies,ib),&
+                                             MPI_DOUBLE_PRECISION,t_v_perp_logical_sheath(:,ispecies,ib),&
+                                             thits(:,ispecies,ib),displs,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD, rc)
                             IF (root) THEN
-                                allocate(v_perp_temp(sum(thits(ispecies,ib,:))),stat=rc)
-                                v_perp_temp=t_v_perp_logical_sheath(ispecies,ib,1:sum(thits(ispecies,ib,:)))
+                                allocate(v_perp_temp(sum(thits(:,ispecies,ib))),stat=rc)
+                                v_perp_temp(:) = t_v_perp_logical_sheath(1:sum(thits(:,ispecies,ib)),ispecies,ib)
                                 call QsortC(v_perp_temp)
-                                t_v_perp_logical_sheath(ispecies,ib,1:sum(thits(ispecies,ib,:)))=v_perp_temp
-                                ehits=sum(thits(ispecies,ib,:))
+                                t_v_perp_logical_sheath(1:sum(thits(:,ispecies,ib)),ispecies,ib)=v_perp_temp
+                                ehits=sum(thits(:,ispecies,ib))
                                 ihits=0
                                 DO i=0,nspecies-1
                                     IF (species(i)%physical_particle .and. species(i)%q > 0) THEN
-                                        ihits=ihits+sum(thits(i,ib,:))
+                                        ihits=ihits+sum(thits(:,i,ib))
                                     END IF
                                 END DO
                                 IF (ehits-ihits>0) THEN
