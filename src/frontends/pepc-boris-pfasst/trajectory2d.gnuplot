@@ -5,5 +5,5 @@ set output
 
 plot "fort.47" using 3:4 with lp title 'Boris classical', \
      "fort.48" using 3:4 with lp title 'Boris SDC',        \
-     "fort.49" using 3:4 with lp title 'Analytic solution'
+     "fort.49" using 3:4 with l  title 'Analytic solution'
 

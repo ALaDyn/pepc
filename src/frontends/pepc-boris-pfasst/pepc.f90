@@ -64,7 +64,7 @@ program pepc
     DEBUG_ERROR(*, "This is not an MPI-parallel application")
   endif
   ! frontend parameter initialization, particle configuration etc.
-  call pepcboris_init(pepcboris_nml, particles, dt=pf_nml%tend/pf_nml%nsteps/(pf_nml%nnodes(pf_nml%nlevels)-1), nt=pf_nml%nsteps*(pf_nml%nnodes(pf_nml%nlevels)-1))  ! we use the finest (i.e. highest) level here
+  call pepcboris_init(pepcboris_nml, particles, dt=pf_nml%tend/pf_nml%nsteps, nt=pf_nml%nsteps)  ! we use the finest (i.e. highest) level here
   ! commit all internal pepc variables
   call pepc_prepare(dim)
   ! prepare table with level-dependent parameters
@@ -133,7 +133,7 @@ program pepc
           complex*16, parameter :: ic = (0._8,1._8)
           real*8, parameter :: sqrttwo = sqrt(2._8)
 
-          if (.not. params(PARAMS_OMEGAB)**2 -2._8*params(PARAMS_OMEGAE)**2 > 0) then
+          if (.not. params(PARAMS_OMEGAB)**2 - 4._8*params(PARAMS_OMEGAE)**2 > 0) then
             DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
           endif
 
