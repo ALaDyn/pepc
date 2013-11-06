@@ -84,7 +84,6 @@ module variables
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
-  type(t_particle), allocatable :: mirror_particles(:)
   type(t_particle), allocatable :: all_particles(:)
   integer(kind_particle)        :: next_label
 

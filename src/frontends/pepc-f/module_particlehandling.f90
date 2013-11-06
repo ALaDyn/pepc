@@ -473,14 +473,17 @@ module particlehandling
                 CYCLE
             ELSE
                 nlp(p(ip)%data%species) = nlp(p(ip)%data%species) + 1
-                !write(*,'(i6,a,i16,i16)')my_rank,": label,species: ", p(ip)%label,p(ip)%data%species
-                !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle velocity: ", p(ip)%data%v
-                !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle position: ", p(ip)%x
-                !write(*,'(i6,a,3(1pe16.7E3))')my_rank,": old particle position: ", p(ip)%x - dt*p(ip)%data%v
 
-                !p1(1)=p(ip)
-                !call source(p1)
-                !p(ip)=p1(1)
+                IF (species(p(ip)%data%species)%physical_particle) THEN
+                    p1(1)=p(ip)
+                    call source(p1)
+                    p(ip)=p1(1)
+                    write(*,'(i6,a,i16,i16)')my_rank,": label,species: ", p(ip)%label,p(ip)%data%species
+                    write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle velocity: ", p(ip)%data%v
+                    write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle position: ", p(ip)%x
+                    write(*,'(i6,a,3(1pe16.7E3))')my_rank,": old particle position: ", p(ip)%x - dt*p(ip)%data%v
+                    write(*,'(a)') "Particle refluxed according to chosen source!"
+                END IF
             END IF
         END DO
 
@@ -602,6 +605,10 @@ module particlehandling
         real*8             :: mu,sigma
         real(KIND=8)       :: t1(3),t2(3),n1(3),e1(3)
 
+        logical :: init_uniform_gaussian
+
+        init_uniform_gaussian=.false.
+
         mu=0.0
         IF (allocated(p)) THEN
             n=size(p)
@@ -622,6 +629,23 @@ module particlehandling
                 END IF
             ELSE
                 sigma=sqrt(species(p(ip)%data%species)%src_t*e / (p(ip)%data%m/fsup))
+                IF (init_uniform_gaussian) THEN
+                    IF (step==0) THEN
+                        ran=rnd_num()
+                        ran1=rnd_num()
+                        ran2=rnd_num()
+                        p(ip)%x(1)=ran
+                        p(ip)%x(2)=ran1
+                        p(ip)%x(3)=ran2
+
+                        p(ip)%x(1)         = p(ip)%x(1)*dx + xmin
+                        p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
+                        p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
+
+                        call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
+                        CYCLE
+                    END IF
+                END IF
                 IF (species(p(ip)%data%species)%src_type==0) THEN
                     call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
                     call random_gaussian_flux(p(ip)%data%v(1),sigma)

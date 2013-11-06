@@ -145,17 +145,30 @@ program pepc
             END DO
         END IF
 
+        IF (spiegelladung==2) THEN
+            allocate(all_particles(size(particles)+sum(npps(0:2))),stat=rc)
+            all_particles(1:size(particles))=particles
+            imp=1
+            DO ip=1,size(particles)
+                IF (particles(ip)%data%species > 2) CYCLE
+                all_particles(size(particles)+imp) = particles(ip)
+                all_particles(size(particles)+imp)%x(1) = -all_particles(size(particles)+imp)%x(1)
+                all_particles(size(particles)+imp)%data%species = -1
+                imp = imp+1
+            END DO
+        END IF
+
         !pepc routines
         call pepc_particleresults_clear(particles)
-        IF (spiegelladung==1) call pepc_particleresults_clear(all_particles)
+        IF (spiegelladung/=0) call pepc_particleresults_clear(all_particles)
 
         !grow tree
         if(root) write(*,'(a)') " == [main loop] grow tree"
-        IF (spiegelladung/=1)call pepc_grow_tree(particles)
-        IF (spiegelladung/=1)call get_number_of_particles(particles)
-        IF (spiegelladung==1)call pepc_grow_tree(all_particles)
+        IF (spiegelladung==0)call pepc_grow_tree(particles)
+        IF (spiegelladung==0)call get_number_of_particles(particles)
+        IF (spiegelladung/=0)call pepc_grow_tree(all_particles)
 
-        IF (spiegelladung==1) THEN
+        IF (spiegelladung/=0) THEN
             call get_number_of_particles(all_particles)
             deallocate(particles)
             allocate(particles(sum(npps)),stat=rc)
@@ -173,22 +186,6 @@ program pepc
         !traverse tree
         if(root) write(*,'(a)') " == [main loop] traverse tree"
         call pepc_traverse_tree(particles)
-
-        IF (spiegelladung==2) THEN
-            allocate(mirror_particles(sum(npps(1:2))),stat=rc)
-            imp=1
-            DO ip=1,size(particles)
-                IF (species(particles(ip)%data%species)%physical_particle .eqv. .false.) CYCLE
-                mirror_particles(imp) = particles(ip)
-                mirror_particles(imp)%data%q = -mirror_particles(imp)%data%q
-                mirror_particles(imp)%x(1) = -mirror_particles(imp)%x(1) + 2*dx
-                mirror_particles(imp)%data%species = -1
-                imp = imp+1
-            END DO
-            call pepc_timber_tree()
-            call pepc_grow_tree(mirror_particles)
-            call pepc_traverse_tree(particles)
-        END IF
 
         timer(7)=get_time() !7-6: traverse_tree
         !end traverse tree
@@ -229,8 +226,8 @@ program pepc
         end if
         if(vtk_interval.ne.0) then
             if ((MOD(step,vtk_interval)==0).or.(step==nt+startstep)) THEN
-                IF (spiegelladung==1) call write_particles(all_particles)
-                IF (spiegelladung/=1) call write_particles(particles)
+                IF (spiegelladung/=0) call write_particles(all_particles)
+                IF (spiegelladung==0) call write_particles(particles)
             end if
         end if
         !end vtk and checkpoints
@@ -256,8 +253,7 @@ program pepc
         if (MOD(step-startstep,10)==0) call flush_files()
         !end output
 
-        IF (spiegelladung==1) deallocate(all_particles)
-        IF (spiegelladung==2) deallocate(mirror_particles)
+        IF (spiegelladung/=0) deallocate(all_particles)
     end do
     !END OF MAIN LOOP ====================================================================================================
 
