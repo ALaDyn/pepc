@@ -96,7 +96,7 @@ module module_accelerator
 
       ! create GPU memory
 #ifdef __OPENACC
-      !$acc data create(gpu, e_1, e_2, e_3, pot)
+      !$acc data create(gpu, e_1, e_2, e_3, pot, eps2)
 #endif
       
       do while (atomic_load_int(acc%thread_status) .lt. ACC_THREAD_STATUS_STOPPING)
@@ -143,10 +143,14 @@ module module_accelerator
                !$acc update device(gpu(gpu_id:gpu_id)) async(gpu_id)
 #endif
 
-               ! read penalty and epsilon
-               eps2 = acc%acc_queue(tmp_top)%eps
-!!!               !$acc update device(eps2) if(eps_update)   !<<< this should WORK!
-               eps_update = .false.
+               if (eps_update) then
+                  ! read penalty and epsilon
+                  eps2 = acc%acc_queue(tmp_top)%eps
+#ifdef __OPENACC
+                  !$acc update device(eps2) if(eps_update)   !<<< this should WORK!
+#endif
+                  eps_update = .false.
+               endif
 
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
 
@@ -154,6 +158,7 @@ module module_accelerator
 #ifdef __OPENACC
                !$acc parallel loop                                                                                 &       
                !$acc present(gpu(gpu_id:gpu_id))                                                                   &
+               !$acc present(eps2)                                                                                 &
                !$acc present(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))                           &
                !$acc private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)  &
                !$acc async(gpu_id)
@@ -168,7 +173,7 @@ module module_accelerator
                   dy = gpu(gpu_id)%delta2(idx)
                   dz = gpu(gpu_id)%delta3(idx)
             
-                  r  = sqrt(dist2+1e-4)!eps2) ! eps2 is added in calling routine to have plummer instead of coulomb here
+                  r  = sqrt(dist2+eps2)!1e-4)!eps2) ! eps2 is added in calling routine to have plummer instead of coulomb here
                   rd = 1.d0/r
                   rd2 = rd *rd
                   rd3 = rd *rd2
@@ -272,26 +277,28 @@ module module_accelerator
 
          ! flush GPU buffers at end of timestep
          if (atomic_load_int(acc%thread_status) .eq. ACC_THREAD_STATUS_FLUSH) then
-            ! got signal to flush, so check if there is data to flush...
+            ! got signal to flush, so check if there is data to flush - so all work done...
             if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
-              if ( .not. (gpu_id .eq. size(gpu)) ) then
-                write(*,*) 'flushing GPU - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
-                !$acc update host(e_1, e_2, e_3, pot)
-                do idx = 1,gpu_id
-                  ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
-                  ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
-                  ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
-                  ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
-                  ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
-                enddo
-              endif
-              ! reset queue
-              gpu_id = 0
-              ! tell others we're ready again...
-              call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
+               ! check if finishing all work ended up using all streams - in which case the flush will have happend
+               if ( .not. (gpu_id .eq. size(gpu)) ) then
+                  write(*,*) 'flushing GPU - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
+                  !$acc update host(e_1, e_2, e_3, pot)
+                  do idx = 1,gpu_id
+                     ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
+                     ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
+                     ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
+                     ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
+                     ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
+                  enddo
+               endif
+               ! reset queue
+               gpu_id = 0
+               ! tell others we're ready again...
+               call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
             endif
+            ! we did not flush, since there is work left to do, entering do while checking for available data
          endif
-   
+
       end do
 
       ! free GPU memory

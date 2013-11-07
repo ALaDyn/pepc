@@ -49,15 +49,15 @@ ifeq ($(DEBUG), 1)
   CFLAGS  += -g
   LDFLAGS += -g -fcheck=all
 else
-  FFLAGS  += -O3
-  CFLAGS  += -O3 
-  LDFLAGS += -O3
+  FFLAGS  += -O3 -g
+  CFLAGS  += -O3 -g
+  LDFLAGS += -O3 -g
 endif
 
 ifeq ($(OMPSS), 1)
-  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive
+  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive,-O5
   CFLAGS    = -Wall
-  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program
+  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program,-O5
   ifeq ($(DEBUG), 1)
     FFLAGS  += -g -k# --Wn,-fcheck=all
     CFLAGS  += -g
