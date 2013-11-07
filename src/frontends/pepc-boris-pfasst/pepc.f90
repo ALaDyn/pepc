@@ -73,7 +73,7 @@ program pepc
   call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step=0, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
   select case (pepcboris_nml%workingmode)
-    case (WM_PFASST)
+    case (WM_BORIS_SDC)
       ! Set up PFASST object
       call pf_mpi_create(tcomm, MPI_COMM_TIME)
       call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
@@ -101,7 +101,8 @@ program pepc
       call pf_pfasst_destroy(pf)
       call pf_verlet_destroy(sweeper)
       call pfm_finalize_solver_level_params(level_params, pf_nml%nlevels)
-    case (WM_VERLET)
+
+    case (WM_BORIS)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
 
@@ -122,6 +123,30 @@ program pepc
 
         end do
       end associate
+
+    case (WM_CYCLOTRONIC)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt)
+
+        do step=0,nt
+          if(pepcboris_nml%rank==0) then
+            write(*,*) " "
+            write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
+            write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
+          end if
+
+          do i=1,size(particles,kind=kind(i))
+            write(50,*) step*dt, i, particles(i)%x, particles(i)%data%v
+          end do
+
+          call drift_cyclotronic(particles, dt/2.)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call kick_cyclotronic(particles, dt)
+          call drift_cyclotronic(particles, dt/2.)
+
+        end do
+      end associate
+
     case (WM_ANALYTIC)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt, &

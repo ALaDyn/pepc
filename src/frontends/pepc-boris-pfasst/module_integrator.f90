@@ -25,12 +25,15 @@ module pepcboris_integrator
   implicit none
   private
 
+    ! these routines assume that x and v are lagging behind each other by one half step
     public update_velocities_boris
     public push_particles
-    public halfbackstep_velocities_boris
-    public halfforwardstep_velocities_boris
+    ! for these routines, x and v are assumed to live on full and identical time steps
     public update_velocities_velocity_verlet_boris
     public push_particles_velocity_verlet_boris
+    ! dito, cyclotronic integrator from J.Comp.Phys. 228 (2009), 2604-2615
+    public drift_cyclotronic
+    public kick_cyclotronic
 
     real*8, allocatable, public :: eold(:,:)
 
@@ -149,82 +152,51 @@ module pepcboris_integrator
 
    end subroutine update_velocities_boris
 
-   !> velocity half step back: first rotate v by q/m B0*dt/2 and then accelerate one half step back, i.e. with -dt/2
-   !> compare Birdsall/Langdon, chapter 2-4, pg. 14
-   subroutine halfbackstep_velocities_boris(p, dt)
+
+   subroutine kick_cyclotronic(p, dt)
       use module_pepc_types
-      use pepcboris_helper
       implicit none
-
-      real*8, intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
-
+      real*8, intent(in) :: dt
       integer(kind_particle) :: ip
-      real*8 :: beta, gam
-      real*8, dimension(3) :: uminus, uprime, uplus, t, s
-
-      real*8, dimension(3) :: B0
-      real*8 :: absB0, ttilda
-
-      B0 = get_magnetic_field()
-      absB0 = sqrt(dot_product(B0, B0))
 
       do ip = 1, size(p, kind=kind_particle)
-        ! charge/mass*time-constant
-        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
-        ! no initial half step with electric field
-        uminus(:) = p(ip)%data%v(:)
-        ! gamma factor
-        !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
-        gam    = 1._8
-        ! half rotation with magnetic field backwards
-        ttilda = beta/gam * absB0
-        t      = tan(atan(ttilda)/2._8) * B0 / absB0
-        uprime = cross_prod_plus(uminus, t, uminus)
-        s      = 2._8 * t / (1._8 + dot_product(t, t))
-        uplus  = cross_prod_plus(uprime, s, uminus)
-        ! second half step with electric field
-        p(ip)%data%v(:) = uplus(:) - beta * p(ip)%results%e(:)
-     end do
+        p(ip)%data%v = p(ip)%data%v + p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * dt
+      end do
+   end subroutine
 
-   end subroutine halfbackstep_velocities_boris
-
-   subroutine halfforwardstep_velocities_boris(p, dt)
+   subroutine drift_cyclotronic(p, dt)
       use module_pepc_types
       use pepcboris_helper
+      use module_debug
       implicit none
-
-      real*8, intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
-
+      real*8, intent(in) :: dt
       integer(kind_particle) :: ip
-      real*8 :: beta, gam
-      real*8, dimension(3) :: uminus, uprime, uplus, t, s
-
-      real*8, dimension(3) :: B0
-      real*8 :: absB0, ttilda
+      real*8 :: vprime(2), phi, Omega, B0(3), c, s
 
       B0 = get_magnetic_field()
-      absB0 = sqrt(dot_product(B0, B0))
+
+      if (any(abs(B0(1:2))>0.)) then
+        DEBUG_WARNING(*, 'Cyclotronic integrator does only work if B=B*e_z, but B=', B0)
+      endif
 
       do ip = 1, size(p, kind=kind_particle)
-        ! charge/mass*time-constant
-        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
-        ! initial half step with electric field
-        uminus(:) = p(ip)%data%v(:) + beta * p(ip)%results%e(:)
-        ! gamma factor
-        !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
-        gam    = 1._8
-        ! half rotation with magnetic field backwards
-        ttilda = beta/gam * absB0
-        t      = -tan(atan(ttilda)/2._8) * B0 / absB0
-        uprime = cross_prod_plus(uminus, t, uminus)
-        s      = 2._8 * t / (1._8 + dot_product(t, t))
-        uplus  = cross_prod_plus(uprime, s, uminus)
-        ! no second half step with electric field
-        p(ip)%data%v(:) = uplus(:)! + beta * p(ip)%results%e(:)
-     end do
+        Omega = p(ip)%data%q / p(ip)%data%m * B0(3)
+        phi = Omega*dt
+        c = cos(phi)
+        s = sin(phi)
 
-   end subroutine halfforwardstep_velocities_boris
+        vprime(1) =  p(ip)%data%v(1)*c + p(ip)%data%v(2)*s
+        vprime(2) = -p(ip)%data%v(1)*s + p(ip)%data%v(2)*c
+
+        p(ip)%x(1) = p(ip)%x(1) + (p(ip)%data%v(2) - vprime(2))/Omega
+        p(ip)%x(2) = p(ip)%x(2) + (vprime(1) - p(ip)%data%v(1))/Omega
+        p(ip)%x(3) = p(ip)%x(3) + p(ip)%data%v(3)*dt
+
+        p(ip)%data%v(1:2) = vprime(1:2)
+      end do
+   end subroutine
+
 
 end module
