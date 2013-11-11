@@ -8,7 +8,7 @@ fi
 
 TEMPFILE="/tmp/runall_workingmodes.$RANDOM"
 
-for i in 1 2 3 4;
+for i in 1 2 3 4 5;
 do
   echo "################ $i #################"
   sed "s/workingmode[ *]=[ *][1234567890*]/workingmode = $i/" $1 > $TEMPFILE

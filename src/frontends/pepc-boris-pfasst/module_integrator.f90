@@ -34,6 +34,10 @@ module pepcboris_integrator
     ! dito, cyclotronic integrator from J.Comp.Phys. 228 (2009), 2604-2615
     public drift_cyclotronic
     public kick_cyclotronic
+    ! dito , boris integrator as given in J.Comp.Phys. 228 (2009), 2604-2615 with the option to (de)activate the
+    ! "tan transformation"  \Delta\phi = \Omega\Delta t B0 instead of \Delta\phi = 2atan(\Omega\Delta t/2) B0
+    public drift_boris
+    public kick_boris
 
     real*8, allocatable, public :: eold(:,:)
 
@@ -195,6 +199,58 @@ module pepcboris_integrator
         p(ip)%x(3) = p(ip)%x(3) + p(ip)%data%v(3)*dt
 
         p(ip)%data%v(1:2) = vprime(1:2)
+      end do
+   end subroutine
+
+
+   subroutine kick_boris(p, dt, use_tan_approximation)
+      use module_pepc_types
+      use pepcboris_helper
+      use module_debug
+      implicit none
+      type(t_particle), intent(inout) :: p(:)
+      real*8, intent(in) :: dt
+      logical, intent(in) :: use_tan_approximation
+      integer(kind_particle) :: ip
+
+      real*8 :: vstar(3), vsstar(3), phi, Omega, B0(3), c, s
+
+      B0 = get_magnetic_field()
+
+      if (any(abs(B0(1:2))>0.)) then
+        DEBUG_WARNING(*, 'This Boris integrator does only work if B=B*e_z, but B=', B0)
+      endif
+
+      do ip = 1, size(p, kind=kind_particle)
+        Omega = p(ip)%data%q / p(ip)%data%m * B0(3)
+
+        if (use_tan_approximation) then
+          phi = Omega*dt
+        else
+          phi = 2._8*atan(Omega*dt/2._8)
+        endif
+
+        c = cos(phi)
+        s = sin(phi)
+
+        vstar = p(ip)%data%v + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._8 * dt
+        vsstar(1) =  c*vstar(1) + s*vstar(2)
+        vsstar(2) = -s*vstar(1) + c*vstar(2)
+        vsstar(3) =    vstar(3)
+        p(ip)%data%v = vsstar + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._8 * dt
+      end do
+
+   end subroutine
+
+   subroutine drift_boris(p, dt)
+      use module_pepc_types
+      implicit none
+      type(t_particle), intent(inout) :: p(:)
+      real*8, intent(in) :: dt
+      integer(kind_particle) :: ip
+
+      do ip = 1, size(p, kind=kind_particle)
+        p(ip)%x = p(ip)%x + p(ip)%data%v * dt
       end do
    end subroutine
 

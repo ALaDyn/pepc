@@ -72,6 +72,10 @@ program pepc
   ! initial potential will be needed for energy computation
   call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step=0, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
+  if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)**2 - 4._8*pepcboris_nml%setup_params(PARAMS_OMEGAE)**2 > 0) then
+    DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
+  endif
+
   select case (pepcboris_nml%workingmode)
     case (WM_BORIS_SDC)
       ! Set up PFASST object
@@ -139,10 +143,10 @@ program pepc
             write(50,*) step*dt, i, particles(i)%x, particles(i)%data%v
           end do
 
-          call drift_cyclotronic(particles, dt/2.)
+          call drift_cyclotronic(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
-          call drift_cyclotronic(particles, dt/2.)
+          call drift_cyclotronic(particles, dt/2._8)
 
         end do
       end associate
@@ -157,10 +161,6 @@ program pepc
           real*8 :: Omegap, Omegam, Rscrm, Rscrp, Iscrm, Iscrp, Omegasq
           complex*16, parameter :: ic = (0._8,1._8)
           real*8, parameter :: sqrttwo = sqrt(2._8)
-
-          if (.not. params(PARAMS_OMEGAB)**2 - 4._8*params(PARAMS_OMEGAE)**2 > 0) then
-            DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
-          endif
 
           Omegasq = sqrt((params(PARAMS_OMEGAB)**2)/4._8 - params(PARAMS_OMEGAE)**2)
           Omegap  = params(PARAMS_OMEGAB)/2._8 + Omegasq
@@ -202,6 +202,31 @@ program pepc
           end do
         end block
       end associate
+
+    case (WM_BORIS_NOTANTRANSFORMATION)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt, &
+                 params => pepcboris_nml%setup_params)
+
+        do step=0,nt
+          if(pepcboris_nml%rank==0) then
+            write(*,*) " "
+            write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
+            write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
+          end if
+
+          do i=1,size(particles,kind=kind(i))
+            write(51,*) step*dt, i, particles(i)%x, particles(i)%data%v
+          end do
+
+          call drift_boris(particles, dt/2._8)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call kick_boris(particles, dt, use_tan_approximation=.true.)
+          call drift_boris(particles, dt/2._8)
+
+        end do
+      end associate
+
     case default
         DEBUG_ERROR(*,'Invalid working mode:', pepcboris_nml%workingmode)
   end select

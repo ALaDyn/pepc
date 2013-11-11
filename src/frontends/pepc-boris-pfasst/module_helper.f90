@@ -51,6 +51,7 @@ module pepcboris_helper
   integer, public, parameter :: WM_BORIS       = 2
   integer, public, parameter :: WM_ANALYTIC    = 3
   integer, public, parameter :: WM_CYCLOTRONIC = 4
+  integer, public, parameter :: WM_BORIS_NOTANTRANSFORMATION = 5
   !> parameter collection for pepcboris
   type pepcboris_nml_t
     ! MPI variables
