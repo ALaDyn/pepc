@@ -275,7 +275,7 @@ module pfm_feval
       type(pepcboris_nml_t), intent(in) :: nml
       integer(kind_particle) :: p
       real*8, parameter :: w(3) = [1._8, 1._8, -2._8]
-      real*8 :: prefact, w2
+      real*8 :: w2
 
       w2 = nml%setup_params(PARAMS_OMEGAE)**2
 

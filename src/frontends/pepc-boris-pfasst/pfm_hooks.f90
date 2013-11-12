@@ -26,7 +26,6 @@ contains
     type(t_particle), allocatable, target :: particles(:)
     type(level_params_t), pointer :: levelctx
     real(pfdp) ::  t
-    integer(kind_particle) :: p
 
     logical, save :: did_prestep = .false.
 
@@ -62,8 +61,7 @@ contains
     endif
 
     ! do diagnostics etc here
-    do p=1,size(particles,kind=kind(p))
-      write(48,*) t, p, particles(p)%x, particles(p)%data%v
-    end do
+    call dump_particles(t, particles, 48)
+
   end subroutine
 end module pfm_hooks

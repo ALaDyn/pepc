@@ -33,6 +33,7 @@ module pepcboris_helper
   public get_magnetic_field
   public cross_prod
   public cross_prod_plus
+  public dump_particles
 
   ! dimension of space
   integer(kind_dim), public, parameter :: dim = 3
@@ -72,6 +73,19 @@ module pepcboris_helper
   type(pepcboris_nml_t), public :: pepcboris_nml
 
   contains
+
+  subroutine dump_particles(t, particles, istream)
+    use module_pepc_types
+    implicit none
+    real*8, intent(in) :: t
+    type(t_particle), intent(in) :: particles(:)
+    integer, intent(in) :: istream
+    integer(kind_particle) :: p
+
+    do p=1,size(particles,kind=kind(p))
+      write(istream,*) t, p, particles(p)%x, particles(p)%data%v
+    end do
+  end subroutine
 
   subroutine pepcboris_init(nml, particles, dt, nt)
     implicit none

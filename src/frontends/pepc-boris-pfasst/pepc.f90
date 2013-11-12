@@ -52,7 +52,7 @@ program pepc
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable, target :: particles(:)
-  integer :: step, i
+  integer :: step
 
   logical, parameter :: use_tan_approximation = .true.
 
@@ -111,45 +111,39 @@ program pepc
     case (WM_BORIS)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
-
         do step=0,nt
-          if(pepcboris_nml%rank==0) then
-            write(*,*) " "
-            write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
-            write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
-          end if
-
-          do i=1,size(particles,kind=kind(i))
-            write(47,*) step*dt, i, particles(i)%x, particles(i)%data%v
-          end do
-
+          call print_timestep(step, nt, dt)
+          call dump_particles(step*dt, particles, 47)
           call push_particles_velocity_verlet_boris(particles, dt)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt)
-
         end do
       end associate
 
     case (WM_CYCLOTRONIC)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
-
         do step=0,nt
-          if(pepcboris_nml%rank==0) then
-            write(*,*) " "
-            write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
-            write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
-          end if
-
-          do i=1,size(particles,kind=kind(i))
-            write(50,*) step*dt, i, particles(i)%x, particles(i)%data%v
-          end do
-
+          call print_timestep(step, nt, dt)
+          call dump_particles(step*dt, particles, 50)
           call drift_cyclotronic(particles, dt/2._8, use_tan_approximation)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
           call drift_cyclotronic(particles, dt/2._8, use_tan_approximation)
+        end do
+      end associate
 
+    case (WM_BORIS_NOTANTRANSFORMATION)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt, &
+                 params => pepcboris_nml%setup_params)
+        do step=0,nt
+          call print_timestep(step, nt, dt)
+          call dump_particles(step*dt, particles, 51)
+          call drift_boris(particles, dt/2._8)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call kick_boris(particles, dt, use_tan_approximation)
+          call drift_boris(particles, dt/2._8)
         end do
       end associate
 
@@ -157,7 +151,6 @@ program pepc
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt, &
                  params => pepcboris_nml%setup_params)
-
         block
           complex*16 :: u, udot, Rp, Rm
           real*8 :: Omegap, Omegam, Rscrm, Rscrp, Iscrm, Iscrp, Omegasq
@@ -177,11 +170,7 @@ program pepc
           Rm = Rscrm + ic*Iscrm
 
           do step=0,nt
-            if(pepcboris_nml%rank==0) then
-              write(*,*) " "
-              write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
-              write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
-            end if
+            call print_timestep(step, nt, dt)
 
             u    =   Rp * exp(-ic*Omegap*step*dt) &
                    + Rm * exp(-ic*Omegam*step*dt)
@@ -198,35 +187,9 @@ program pepc
             particles(1)%data%v(3) = -sqrttwo*params(PARAMS_OMEGAE)*params(PARAMS_Z0) * sin(sqrttwo*params(PARAMS_OMEGAE)*step*dt) + &
               params(PARAMS_VZ0) * cos(sqrttwo*params(PARAMS_OMEGAE)*step*dt)
 
-            do i=1,size(particles,kind=kind(i))
-              write(49,*) step*dt, i, particles(i)%x, particles(i)%data%v
-            end do
+            call dump_particles(step*dt, particles, 49)
           end do
         end block
-      end associate
-
-    case (WM_BORIS_NOTANTRANSFORMATION)
-      associate (dt => pepcboris_nml%dt, &
-                 nt => pepcboris_nml%nt, &
-                 params => pepcboris_nml%setup_params)
-
-        do step=0,nt
-          if(pepcboris_nml%rank==0) then
-            write(*,*) " "
-            write(*,'(a,i12,"/",i0)')   ' ====== computing step  :', step, nt
-            write(*,'(a,f12.4)')        ' ====== simulation time :', step*dt
-          end if
-
-          do i=1,size(particles,kind=kind(i))
-            write(51,*) step*dt, i, particles(i)%x, particles(i)%data%v
-          end do
-
-          call drift_boris(particles, dt/2._8)
-          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
-          call kick_boris(particles, dt, use_tan_approximation)
-          call drift_boris(particles, dt/2._8)
-
-        end do
       end associate
 
     case default
@@ -237,6 +200,18 @@ program pepc
   call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)
   call MPI_COMM_FREE(MPI_COMM_SPACE, mpi_err)
   call MPI_FINALIZE( mpi_err )
+
+
+  contains
+    subroutine print_timestep(step, nt, dt)
+      implicit none
+      real*8, intent(in) :: dt
+      integer, intent(in) :: step, nt
+
+      if(pepcboris_nml%rank==0) then
+        write(*,'(" == computing step",i12,"/",i0, " == simulation time: ", f 12.4)')  step, nt, step*dt
+      end if
+    end subroutine
 
 end program pepc
 
