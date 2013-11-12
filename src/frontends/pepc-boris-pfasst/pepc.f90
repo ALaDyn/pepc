@@ -111,7 +111,11 @@ program pepc
     case (WM_BORIS)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
-        do step=0,nt
+        if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1.) then
+          DEBUG_WARNING(*, 'Gyrofrequency too high or timestep too small. The gyroradius will increase linearly during simulation. Compare J. comp. Phys. 116, 386 (1995)')
+        endif
+
+        do step=1,nt
           call print_timestep(step, nt, dt)
           call push_particles_velocity_verlet_boris(particles, dt)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
@@ -120,10 +124,26 @@ program pepc
         end do
       end associate
 
+    case (WM_BORIS_LEAP_FROG)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt)
+
+        call update_velocities_boris(particles,dt/2.0)
+
+        do step=1,nt
+          call print_timestep(step, nt, dt)
+          call push_particles(particles, dt)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call update_velocities_boris(particles, dt)
+          ! ATTENTION: here, velocities are defined on timestep step+1/2, i.e. they will not comply with velocities from other schemes
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+        end do
+      end associate
+
     case (WM_CYCLOTRONIC)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
-        do step=0,nt
+        do step=1,nt
           call print_timestep(step, nt, dt)
           call drift_cyclotronic(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
@@ -137,7 +157,7 @@ program pepc
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt, &
                  params => pepcboris_nml%setup_params)
-        do step=0,nt
+        do step=1,nt
           call print_timestep(step, nt, dt)
           call drift_boris(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
@@ -169,7 +189,7 @@ program pepc
           Rp = Rscrp + ic*Iscrp
           Rm = Rscrm + ic*Iscrm
 
-          do step=0,nt
+          do step=1,nt
             call print_timestep(step, nt, dt)
 
             u    =   Rp * exp(-ic*Omegap*step*dt) &

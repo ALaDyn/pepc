@@ -125,10 +125,8 @@ module pepcboris_integrator
       use module_pepc_types
       use pepcboris_helper
       implicit none
-
       real*8, intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
-
       integer(kind_particle) :: ip
       real*8 :: beta, gam
       real*8, dimension(3) :: uminus, uprime, uplus, t, s
