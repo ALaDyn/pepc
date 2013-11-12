@@ -77,6 +77,8 @@ program pepc
   if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)**2 - 4._8*pepcboris_nml%setup_params(PARAMS_OMEGAE)**2 > 0) then
     DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
   endif
+  ! initial particle dump
+  call dump_particles(0._8, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
 
   select case (pepcboris_nml%workingmode)
     case (WM_BORIS_SDC)
@@ -96,7 +98,7 @@ program pepc
 
       ! Add user-defined calls, e.g. diagnostics, here
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
-      call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
+      !call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
 
       ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution
       call pf_pfasst_run(pf, c_loc(y0), pf_nml%tend/pf_nml%nsteps, pf_nml%tend, nsteps=pf_nml%nsteps, qend=c_loc(yend))
@@ -113,10 +115,10 @@ program pepc
                  nt => pepcboris_nml%nt)
         do step=0,nt
           call print_timestep(step, nt, dt)
-          call dump_particles(step*dt, particles, 47)
           call push_particles_velocity_verlet_boris(particles, dt)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt)
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
         end do
       end associate
 
@@ -125,11 +127,11 @@ program pepc
                  nt => pepcboris_nml%nt)
         do step=0,nt
           call print_timestep(step, nt, dt)
-          call dump_particles(step*dt, particles, 50)
           call drift_cyclotronic(particles, dt/2._8, use_tan_approximation)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
           call drift_cyclotronic(particles, dt/2._8, use_tan_approximation)
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
         end do
       end associate
 
@@ -139,11 +141,11 @@ program pepc
                  params => pepcboris_nml%setup_params)
         do step=0,nt
           call print_timestep(step, nt, dt)
-          call dump_particles(step*dt, particles, 51)
           call drift_boris(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_boris(particles, dt, use_tan_approximation)
           call drift_boris(particles, dt/2._8)
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
         end do
       end associate
 
@@ -187,7 +189,7 @@ program pepc
             particles(1)%data%v(3) = -sqrttwo*params(PARAMS_OMEGAE)*params(PARAMS_Z0) * sin(sqrttwo*params(PARAMS_OMEGAE)*step*dt) + &
               params(PARAMS_VZ0) * cos(sqrttwo*params(PARAMS_OMEGAE)*step*dt)
 
-            call dump_particles(step*dt, particles, 49)
+            call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
           end do
         end block
       end associate

@@ -9,8 +9,8 @@
   setup_params = 0.5 0.75 0.05 -3.0 5.0 -1.5 5.0    25.0
 
   ! choice of integrator  
-  ! 1 - WM_BORIS_SDC
-  ! 2 - WM_BORIS
+  ! 1 - WM_BORIS
+  ! 2 - WM_BORIS_SDC
   ! 3 - WM_ANALYTIC
   ! 4 - WM_CYCLOTRONIC
   ! 5 - WM_BORIS_NOTANTRANSFORMATION

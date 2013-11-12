@@ -61,7 +61,7 @@ contains
     endif
 
     ! do diagnostics etc here
-    call dump_particles(t, particles, 48)
+    call dump_particles(t, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
 
   end subroutine
 end module pfm_hooks

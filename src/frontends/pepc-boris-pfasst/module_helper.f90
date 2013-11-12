@@ -48,11 +48,14 @@ module pepcboris_helper
   integer, public, parameter :: PARAMS_OMEGAB = 8
   integer, public, parameter :: PARAMS_MAXIDX = PARAMS_OMEGAB
 
-  integer, public, parameter :: WM_BORIS_SDC   = 1
-  integer, public, parameter :: WM_BORIS       = 2
+  integer, public, parameter :: WM_BORIS       = 1
+  integer, public, parameter :: WM_BORIS_SDC   = 2
   integer, public, parameter :: WM_ANALYTIC    = 3
   integer, public, parameter :: WM_CYCLOTRONIC = 4
   integer, public, parameter :: WM_BORIS_NOTANTRANSFORMATION = 5
+
+  integer, public, parameter :: IFILE_SUMMAND = 46
+
   !> parameter collection for pepcboris
   type pepcboris_nml_t
     ! MPI variables
