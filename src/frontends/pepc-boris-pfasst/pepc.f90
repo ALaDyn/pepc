@@ -54,6 +54,8 @@ program pepc
   type(t_particle), allocatable, target :: particles(:)
   integer :: step, i
 
+  logical, parameter :: use_tan_approximation = .true.
+
   ! Take care of communication stuff
   call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
   ! initialize pepc library and MPI
@@ -143,10 +145,10 @@ program pepc
             write(50,*) step*dt, i, particles(i)%x, particles(i)%data%v
           end do
 
-          call drift_cyclotronic(particles, dt/2._8)
+          call drift_cyclotronic(particles, dt/2._8, use_tan_approximation)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
-          call drift_cyclotronic(particles, dt/2._8)
+          call drift_cyclotronic(particles, dt/2._8, use_tan_approximation)
 
         end do
       end associate
@@ -221,7 +223,7 @@ program pepc
 
           call drift_boris(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
-          call kick_boris(particles, dt, use_tan_approximation=.true.)
+          call kick_boris(particles, dt, use_tan_approximation)
           call drift_boris(particles, dt/2._8)
 
         end do

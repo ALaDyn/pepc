@@ -14,14 +14,14 @@
   ! 3 - WM_ANALYTIC
   ! 4 - WM_CYCLOTRONIC
   ! 5 - WM_BORIS_NOTANTRANSFORMATION
-  workingmode = 4
+  workingmode = 5
 /
 
 &pfasst
   ! physical simulation end time (in fs)
   tend    = 8.0
   
-  nsteps  = 512
+  nsteps  = 1024
   niter   = 1
   nlevels = 1
   

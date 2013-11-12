@@ -169,13 +169,14 @@ module pepcboris_integrator
       end do
    end subroutine
 
-   subroutine drift_cyclotronic(p, dt)
+   subroutine drift_cyclotronic(p, dt, use_tan_approximation)
       use module_pepc_types
       use pepcboris_helper
       use module_debug
       implicit none
       type(t_particle), intent(inout) :: p(:)
       real*8, intent(in) :: dt
+      logical, intent(in) :: use_tan_approximation
       integer(kind_particle) :: ip
       real*8 :: vprime(2), phi, Omega, B0(3), c, s
 
@@ -187,12 +188,18 @@ module pepcboris_integrator
 
       do ip = 1, size(p, kind=kind_particle)
         Omega = p(ip)%data%q / p(ip)%data%m * B0(3)
-        phi = Omega*dt
+
+        if (use_tan_approximation) then
+          phi = -Omega*dt
+        else
+          phi = -2._8*atan(Omega*dt/2._8)
+        endif
+
         c = cos(phi)
         s = sin(phi)
 
-        vprime(1) =  p(ip)%data%v(1)*c + p(ip)%data%v(2)*s
-        vprime(2) = -p(ip)%data%v(1)*s + p(ip)%data%v(2)*c
+        vprime(1) =  p(ip)%data%v(1)*c - p(ip)%data%v(2)*s
+        vprime(2) =  p(ip)%data%v(1)*s + p(ip)%data%v(2)*c
 
         p(ip)%x(1) = p(ip)%x(1) + (p(ip)%data%v(2) - vprime(2))/Omega
         p(ip)%x(2) = p(ip)%x(2) + (vprime(1) - p(ip)%data%v(1))/Omega
@@ -225,17 +232,17 @@ module pepcboris_integrator
         Omega = p(ip)%data%q / p(ip)%data%m * B0(3)
 
         if (use_tan_approximation) then
-          phi = Omega*dt
+          phi = -Omega*dt
         else
-          phi = 2._8*atan(Omega*dt/2._8)
+          phi = -2._8*atan(Omega*dt/2._8)
         endif
 
         c = cos(phi)
         s = sin(phi)
 
         vstar = p(ip)%data%v + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._8 * dt
-        vsstar(1) =  c*vstar(1) + s*vstar(2)
-        vsstar(2) = -s*vstar(1) + c*vstar(2)
+        vsstar(1) =  c*vstar(1) - s*vstar(2)
+        vsstar(2) =  s*vstar(1) + c*vstar(2)
         vsstar(3) =    vstar(3)
         p(ip)%data%v = vsstar + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._8 * dt
       end do
