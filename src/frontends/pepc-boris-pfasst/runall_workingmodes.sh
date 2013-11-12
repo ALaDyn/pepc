@@ -10,7 +10,7 @@ TEMPFILE="/tmp/runall_workingmodes.$RANDOM"
 
 for i in 1 2 3 4 5;
 do
-  echo "################ $i #################"
+  echo -e "\n\n################ $i #################"
   sed "s/workingmode[ *]=[ *][1234567890*]/workingmode = $i/" $1 > $TEMPFILE
   grep workingmode $TEMPFILE
   ./pepc-boris-pfasst $TEMPFILE

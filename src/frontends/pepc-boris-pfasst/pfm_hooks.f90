@@ -57,8 +57,10 @@ contains
     end select
 
     if (levelctx%root) then
-      write(*,'(a,"| step: ",i5," t=", es10.3, " iter: ",i3, " === dumping particles if requested...")') hook_names(state%hook), state%step+1, t,state%iter
-    endif
+      if (state%step == 0) write(*,*)
+      write(*,'(a1, a,"| step: ",i5," t=", es10.3, " iter: ",i3, " === dumping particles if requested...")',advance='no') &
+        char(13), hook_names(state%hook), state%step+1, t, state%iter
+   endif
 
     ! do diagnostics etc here
     call dump_particles(t, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)

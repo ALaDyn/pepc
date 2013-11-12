@@ -54,8 +54,6 @@ program pepc
   type(t_particle), allocatable, target :: particles(:)
   integer :: step
 
-  logical, parameter :: use_tan_approximation = .true.
-
   ! Take care of communication stuff
   call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
   ! initialize pepc library and MPI
@@ -127,10 +125,10 @@ program pepc
                  nt => pepcboris_nml%nt)
         do step=0,nt
           call print_timestep(step, nt, dt)
-          call drift_cyclotronic(particles, dt/2._8, use_tan_approximation)
+          call drift_cyclotronic(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
-          call drift_cyclotronic(particles, dt/2._8, use_tan_approximation)
+          call drift_cyclotronic(particles, dt/2._8)
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
         end do
       end associate
@@ -143,7 +141,7 @@ program pepc
           call print_timestep(step, nt, dt)
           call drift_boris(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
-          call kick_boris(particles, dt, use_tan_approximation)
+          call kick_boris(particles, dt)
           call drift_boris(particles, dt/2._8)
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
         end do
@@ -211,8 +209,11 @@ program pepc
       integer, intent(in) :: step, nt
 
       if(pepcboris_nml%rank==0) then
-        write(*,'(" == computing step",i12,"/",i0, " == simulation time: ", f 12.4)')  step, nt, step*dt
+        if (step == 0) write(*,*)
+        write(*,'(a1, " == computing step",i12,"/",i0, " == simulation time: ", f 12.4)', advance='no')  char(13), step, nt, step*dt
+        if (step == nt) write(*,*)
       end if
+
     end subroutine
 
 end program pepc
