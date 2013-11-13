@@ -31,6 +31,8 @@ module pepcboris_integrator
     ! for these routines, x and v are assumed to live on full and identical time steps
     public update_velocities_velocity_verlet_boris
     public push_particles_velocity_verlet_boris
+    public update_velocities_velocity_verlet_boris_tanalpha
+    public push_particles_velocity_verlet_boris_tanalpha
     ! dito, cyclotronic integrator from J.Comp.Phys. 228 (2009), 2604-2615
     public drift_cyclotronic
     public kick_cyclotronic
@@ -44,7 +46,83 @@ module pepcboris_integrator
   contains
 
 
-    subroutine push_particles_velocity_verlet_boris(p, dt)
+    subroutine push_particles_velocity_verlet_boris_tanalpha(p, dt)
+      use module_debug
+      use module_pepc_types
+      use pepcboris_helper
+      implicit none
+      type(t_particle), intent(inout) :: p(:)
+      real*8, intent(in) :: dt
+      integer(kind_particle) :: ip
+      real*8, dimension(3) :: B0
+      real*8 :: beta, lambda, phase
+
+      B0 = get_magnetic_field()
+      phase = pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8
+      lambda = tan(phase) / phase
+
+      if (any(abs(B0(1:2))>0.)) then
+        DEBUG_WARNING(*, 'This Boris integrator does only work if B=B*e_z, but B=', B0)
+      endif
+
+      if (.not. allocated(eold)) allocate(eold(1:3, size(p)))
+
+      do ip = 1, size(p, kind=kind_particle)
+        ! charge/mass*time-constant
+        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+
+        p(ip)%x(:) = p(ip)%x(:) + dt * ( p(ip)%data%v(:) + beta * cross_prod_plus(p(ip)%data%v, lambda*B0, p(ip)%results%e*[lambda,lambda,1._8]) )
+
+        eold(1:3, ip) = p(ip)%results%e(:)*[lambda,lambda,1._8]
+      end do
+    end subroutine
+
+   subroutine update_velocities_velocity_verlet_boris_tanalpha(p, dt)
+      use module_debug
+      use module_pepc_types
+      use pepcboris_helper
+      implicit none
+
+      real*8, intent(in) :: dt
+      type(t_particle), intent(inout) :: p(:)
+
+      integer(kind_particle) :: ip
+      real*8 :: beta, gam, lambda, phase
+      real*8, dimension(3) :: uminus, uprime, uplus, t, s
+
+      real*8, dimension(3) :: B0, Eavg
+
+      B0 = get_magnetic_field()
+      phase = pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8
+      lambda = tan(phase) / phase
+
+      if (any(abs(B0(1:2))>0.)) then
+        DEBUG_WARNING(*, 'This Boris integrator does only work if B=B*e_z, but B=', B0)
+      endif
+
+      do ip = 1, size(p, kind=kind_particle)
+        Eavg(:) = (p(ip)%results%e(:)*[lambda,lambda,1._8] + eold(:,ip)) / 2._8
+
+        ! charge/mass*time-constant
+        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+        ! first half step with electric field
+        uminus(:) = p(ip)%data%v(:) + beta * Eavg(:)
+        ! gamma factor
+        !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
+        gam    = 1._8
+        ! rotation with magnetic field
+        t      = beta/gam * B0 * lambda
+        uprime = cross_prod_plus(uminus, t, uminus)
+        s      = 2._8 * t / (1._8 + dot_product(t, t))
+        uplus  = cross_prod_plus(uprime, s, uminus)
+        ! second half step with electric field
+        p(ip)%data%v(:) = uplus(:) + beta * Eavg(:)
+      end do
+
+   end subroutine
+
+
+     subroutine push_particles_velocity_verlet_boris(p, dt)
       use module_pepc_types
       use pepcboris_helper
       implicit none
@@ -103,7 +181,7 @@ module pepcboris_integrator
         p(ip)%data%v(:) = uplus(:) + beta * Eavg(:)
       end do
 
-   end subroutine update_velocities_velocity_verlet_boris
+   end subroutine
 
 
    subroutine push_particles(p, dt)

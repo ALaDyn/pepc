@@ -52,8 +52,9 @@ module pepcboris_helper
   integer, public, parameter :: WM_BORIS_SDC   = 2
   integer, public, parameter :: WM_ANALYTIC    = 3
   integer, public, parameter :: WM_CYCLOTRONIC = 4
-  integer, public, parameter :: WM_BORIS_NOTANTRANSFORMATION = 5
-  integer, public, parameter :: WM_BORIS_LEAP_FROG = 6
+  integer, public, parameter :: WM_BORIS_PATACCHINI = 5
+  integer, public, parameter :: WM_BORIS_LEAP_FROG  = 6
+  integer, public, parameter :: WM_BORIS_TANALPHA   = 7
 
   integer, public, parameter :: IFILE_SUMMAND = 46
 

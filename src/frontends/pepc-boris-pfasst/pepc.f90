@@ -124,6 +124,22 @@ program pepc
         end do
       end associate
 
+     case (WM_BORIS_TANALPHA)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt)
+        if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1.) then
+          DEBUG_WARNING(*, 'Gyrofrequency too high or timestep too small. The gyroradius will increase linearly during simulation. Compare J. comp. Phys. 116, 386 (1995)')
+        endif
+
+        do step=1,nt
+          call print_timestep(step, nt, dt)
+          call push_particles_velocity_verlet_boris_tanalpha(particles, dt)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call update_velocities_velocity_verlet_boris_tanalpha(particles, dt)
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+        end do
+      end associate
+
     case (WM_BORIS_LEAP_FROG)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
@@ -153,7 +169,7 @@ program pepc
         end do
       end associate
 
-    case (WM_BORIS_NOTANTRANSFORMATION)
+    case (WM_BORIS_PATACCHINI)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt, &
                  params => pepcboris_nml%setup_params)
