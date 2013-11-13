@@ -25,7 +25,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+CPPFLAGS = -P -C
 
 INLINING = -fdump-ipa-inline -findirect-inlining -flto-partition=none -finline-limit=120000
 # -flto
@@ -61,4 +61,5 @@ LDLIBS   =
 
 RM       = rm -rf
 
+COMPILER = $(shell $(FC) --version | head -n 1)
 

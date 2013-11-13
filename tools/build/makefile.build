@@ -7,6 +7,12 @@ include makefile.defs
 include makefile.include.frontend
 
 CPPFLAGS += $(CPPFLAGS_BACKEND)
+CPPFLAGS += -DFFLAGS="\"$(FFLAGS)\""     \
+            -DCFLAGS="\"$(CFLAGS)\""     \
+            -DLDFLAGS="\"$(LDFLAGS)\""   \
+            -DCOMPILER="\"$(COMPILER)\"" \
+            -DSVNREVISION="\"$(SVNREVISION)\"" \
+            -DMACH="\"$(MACH)\"" \
 
 FSRC = $(filter %.f90, $(SRC))
 FOBJ = $(FSRC:%.f90=%.o)

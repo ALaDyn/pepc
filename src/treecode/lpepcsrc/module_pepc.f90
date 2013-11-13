@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -62,7 +62,7 @@ module module_pepc
     !> Initializes MPI library and data structures for treecode kernel,
     !> reads several parameters from file, that is given as first parameter
     !> to actual executable, initializes submodules
-    !> 
+    !>
     !> Call this function at program startup before any MPI calls
     !>
     subroutine pepc_initialize(frontendname, my_rank, n_cpu, init_mpi, db_level_in, comm)
@@ -98,7 +98,7 @@ module module_pepc
       else
         ! check if MPI was initialized with sufficient thread support
         call MPI_QUERY_THREAD(provided, ierr)
-      
+
         if (present(comm)) then
            call MPI_COMM_DUP(comm, MPI_COMM_lpepc, ierr)
         else
@@ -126,11 +126,17 @@ module module_pepc
         write(*,'(a)') "    \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \  "
         write(*,'(a)') "     \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
         write(*,'(a)') "      \/_/    \/___/  \/_/    \/___/   "
-        write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
+        write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
                        SVNREVISION, frontendname, n_cpu
+        write(*,'("====     MACH = ",a)') MACH
+        write(*,'("==== COMPILER = ",a)') COMPILER
+        write(*,'("====   FFLAGS = ",a)') FFLAGS
+        write(*,'("====   CFLAGS = ",a)') CFLAGS
+        write(*,'("====  LDFLAGS = ",a)') LDFLAGS
+        write(*,'(//)')
       endif
 
-      if (my_rank == 0 .and. provided < MPI_THREAD_LEVEL) then 
+      if (my_rank == 0 .and. provided < MPI_THREAD_LEVEL) then
         !inform the user about possible issues concerning MPI thread safety
         if (pepc_initializes_mpi) then
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
@@ -287,7 +293,7 @@ module module_pepc
     subroutine pepc_finalize(comm)
       use module_debug
       use module_pepc_types, only : free_lpepc_mpi_types
-      use module_walk, only : tree_walk_finalize 
+      use module_walk, only : tree_walk_finalize
       use module_interaction_specific, only : calc_force_finalize
       use treevars, only : treevars_finalize, MPI_COMM_lpepc
       use pthreads_stuff, only: pthreads_uninit
@@ -313,7 +319,7 @@ module module_pepc
 
       call MPI_COMM_FREE(MPI_COMM_lpepc, ierr)
       if (pepc_initializes_mpi) then
-        if (present(comm)) then; call MPI_COMM_FREE(comm, ierr); end if 
+        if (present(comm)) then; call MPI_COMM_FREE(comm, ierr); end if
         call MPI_FINALIZE(ierr)
       end if
     end subroutine
@@ -391,9 +397,9 @@ module module_pepc
         call tree_communicator_stop(global_tree)
         call pepc_restore_particles(particles)
       endif
-      
+
       if (dealloc) call pepc_timber_tree()
-      
+
     end subroutine
 
 
@@ -408,7 +414,7 @@ module module_pepc
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
       call libpepc_grow_tree(global_tree, particles)
-      
+
     end subroutine
 
 
@@ -429,7 +435,7 @@ module module_pepc
       implicit none
 
       type(t_particle), target, intent(inout) :: particles(:) !< input particle data, initialize %x, %data, %work appropriately (and optionally set %label) before calling this function
-      
+
       call libpepc_traverse_tree(global_tree, particles)
 
     end subroutine
@@ -532,7 +538,7 @@ module module_pepc
       use module_interaction_specific
       implicit none
       type(t_particle), intent(inout) :: particles(:)
-      
+
       call particleresults_clear(particles)
     end subroutine
 

@@ -31,8 +31,8 @@ LDLIBS    = -lgfortran -lm
 
 # GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
 CPP      = cpp -Uvector
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" -ffreestanding -D__TOS_BGQ__
-                                                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+CPPFLAGS = -P -C -ffreestanding -D__TOS_BGQ__
+                     # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
 INLINING = -fkeep-inline-functions -findirect-inlining -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects -fuse-linker-plugin
 
@@ -92,6 +92,8 @@ ifeq ($(SCALASCA), 1)
   CCPRE += scalasca -instrument
   LDPRE += scalasca -instrument
 endif
+
+COMPILER = $(shell $(FC) --version | head -n 1)
 
 # HPCTOOLKIT USAGE
 # Call 

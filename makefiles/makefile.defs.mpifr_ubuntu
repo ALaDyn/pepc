@@ -21,7 +21,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+CPPFLAGS = -P -C
 
 INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
 # -flto-partition=none
@@ -55,6 +55,7 @@ LDLIBS   =
 
 RM       = rm -rf
 
+COMPILER = $(shell $(FC) --version | head -n 1)
 
 
 
