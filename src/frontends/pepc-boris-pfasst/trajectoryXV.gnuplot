@@ -12,7 +12,9 @@ plot "fort.47" using 1:3 with l  title 'Boris classical',   \
      "fort.50" using 1:3 with l  title 'Cyclotronic',       \
      "fort.51" using 1:3 with l  title 'Boris Patacchini',  \
      "fort.52" using 1:3 with l  title 'Boris leap-frog',   \
-     "fort.53" using 1:3 with l  title 'Boris tan(alpha)/alpha'
+     "fort.53" using 1:3 with l  title 'Boris tan(alpha)/alpha',    \
+     "fort.54" using 1:3 with l  title 'Tajima leap-frog implicit', \
+     "fort.55" using 1:3 with l  title 'Tajima leap-frog explicit'
 set label 1 'Y' at graph 0.92,0.9 font ',8'
 plot "fort.47" using 1:4 with l  title 'Boris classical',   \
      "fort.48" using 1:4 with l  title 'Boris SDC',         \
@@ -20,7 +22,9 @@ plot "fort.47" using 1:4 with l  title 'Boris classical',   \
      "fort.50" using 1:4 with l  title 'Cyclotronic',       \
      "fort.51" using 1:4 with l  title 'Boris Patacchini',  \
      "fort.52" using 1:4 with l  title 'Boris leap-frog',   \
-     "fort.53" using 1:4 with l  title 'Boris tan(alpha)/alpha'
+     "fort.53" using 1:4 with l  title 'Boris tan(alpha)/alpha',    \
+     "fort.54" using 1:4 with l  title 'Tajima leap-frog implicit', \
+     "fort.55" using 1:4 with l  title 'Tajima leap-frog explicit'
 set label 1 'Z' at graph 0.92,0.9 font ',8'
 plot "fort.47" using 1:5 with l  title 'Boris classical',   \
      "fort.48" using 1:5 with l  title 'Boris SDC',         \
@@ -28,7 +32,9 @@ plot "fort.47" using 1:5 with l  title 'Boris classical',   \
      "fort.50" using 1:5 with l  title 'Cyclotronic',       \
      "fort.51" using 1:5 with l  title 'Boris Patacchini',  \
      "fort.52" using 1:5 with l  title 'Boris leap-frog',   \
-     "fort.53" using 1:5 with l  title 'Boris tan(alpha)/alpha'
+     "fort.53" using 1:5 with l  title 'Boris tan(alpha)/alpha',    \
+     "fort.54" using 1:5 with l  title 'Tajima leap-frog implicit', \
+     "fort.55" using 1:5 with l  title 'Tajima leap-frog explicit'
 
 set label 1 'VX' at graph 0.92,0.9 font ',8'
 plot "fort.47" using 1:6 with l  title 'Boris classical',   \
@@ -37,7 +43,9 @@ plot "fort.47" using 1:6 with l  title 'Boris classical',   \
      "fort.50" using 1:6 with l  title 'Cyclotronic',       \
      "fort.51" using 1:6 with l  title 'Boris Patacchini',  \
      "fort.52" using 1:6 with l  title 'Boris leap-frog',   \
-     "fort.53" using 1:6 with l  title 'Boris tan(alpha)/alpha'
+     "fort.53" using 1:6 with l  title 'Boris tan(alpha)/alpha',    \
+     "fort.54" using 1:6 with l  title 'Tajima leap-frog implicit', \
+     "fort.55" using 1:6 with l  title 'Tajima leap-frog explicit'
 set label 1 'VY' at graph 0.92,0.9 font ',8'
 plot "fort.47" using 1:7 with l  title 'Boris classical',   \
      "fort.48" using 1:7 with l  title 'Boris SDC',         \
@@ -45,7 +53,9 @@ plot "fort.47" using 1:7 with l  title 'Boris classical',   \
      "fort.50" using 1:7 with l  title 'Cyclotronic',       \
      "fort.51" using 1:7 with l  title 'Boris Patacchini',  \
      "fort.52" using 1:7 with l  title 'Boris leap-frog',   \
-     "fort.53" using 1:7 with l  title 'Boris tan(alpha)/alpha'
+     "fort.53" using 1:7 with l  title 'Boris tan(alpha)/alpha',    \
+     "fort.54" using 1:7 with l  title 'Tajima leap-frog implicit', \
+     "fort.55" using 1:7 with l  title 'Tajima leap-frog explicit'
 set label 1 'VZ' at graph 0.92,0.9 font ',8'
 plot "fort.47" using 1:8 with l  title 'Boris classical',   \
      "fort.48" using 1:8 with l  title 'Boris SDC',         \
@@ -53,6 +63,8 @@ plot "fort.47" using 1:8 with l  title 'Boris classical',   \
      "fort.50" using 1:8 with l  title 'Cyclotronic',       \
      "fort.51" using 1:8 with l  title 'Boris Patacchini',  \
      "fort.52" using 1:8 with l  title 'Boris leap-frog',   \
-     "fort.53" using 1:8 with l  title 'Boris tan(alpha)/alpha'
+     "fort.53" using 1:8 with l  title 'Boris tan(alpha)/alpha',    \
+     "fort.54" using 1:8 with l  title 'Tajima leap-frog implicit', \
+     "fort.55" using 1:8 with l  title 'Tajima leap-frog explicit'
 
 unset multiplot

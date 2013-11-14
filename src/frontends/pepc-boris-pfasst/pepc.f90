@@ -156,6 +156,38 @@ program pepc
         end do
       end associate
 
+    case (WM_TAJIMA_LEAP_FROG_IMPLICIT)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt)
+
+        call update_velocities_tajima_implicit(particles,dt/2.0)
+
+        do step=1,nt
+          call print_timestep(step, nt, dt)
+          call push_particles(particles, dt)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call update_velocities_tajima_implicit(particles, dt)
+          ! ATTENTION: here, velocities are defined on timestep step+1/2, i.e. they will not comply with velocities from other schemes
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+        end do
+      end associate
+
+    case (WM_TAJIMA_LEAP_FROG_EXPLICIT)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt)
+
+        call update_velocities_tajima_explicit(particles,dt/2.0)
+
+        do step=1,nt
+          call print_timestep(step, nt, dt)
+          call push_particles(particles, dt)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call update_velocities_tajima_explicit(particles, dt)
+          ! ATTENTION: here, velocities are defined on timestep step+1/2, i.e. they will not comply with velocities from other schemes
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+        end do
+      end associate
+
     case (WM_CYCLOTRONIC)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
@@ -175,10 +207,10 @@ program pepc
                  params => pepcboris_nml%setup_params)
         do step=1,nt
           call print_timestep(step, nt, dt)
-          call drift_boris(particles, dt/2._8)
+          call push_particles(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_boris(particles, dt)
-          call drift_boris(particles, dt/2._8)
+          call push_particles(particles, dt/2._8)
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
         end do
       end associate

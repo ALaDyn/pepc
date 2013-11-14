@@ -25,9 +25,12 @@ module pepcboris_integrator
   implicit none
   private
 
+    public push_particles
+
     ! these routines assume that x and v are lagging behind each other by one half step
     public update_velocities_boris
-    public push_particles
+    public update_velocities_tajima_implicit
+    public update_velocities_tajima_explicit
     ! for these routines, x and v are assumed to live on full and identical time steps
     public update_velocities_velocity_verlet_boris
     public push_particles_velocity_verlet_boris
@@ -38,7 +41,6 @@ module pepcboris_integrator
     public kick_cyclotronic
     ! dito , boris integrator as given in J.Comp.Phys. 228 (2009), 2604-2615 with the option to (de)activate the
     ! "tan transformation"  \Delta\phi = \Omega\Delta t B0 instead of \Delta\phi = 2atan(\Omega\Delta t/2) B0
-    public drift_boris
     public kick_boris
 
     real*8, allocatable, public :: eold(:,:)
@@ -230,7 +232,70 @@ module pepcboris_integrator
         p(ip)%data%v(:) = uplus(:) + beta * p(ip)%results%e(:)
       end do
 
-   end subroutine update_velocities_boris
+   end subroutine
+
+   ! see http://www.particleincell.com/2011/vxb-rotation/
+   subroutine update_velocities_tajima_implicit(p, dt)
+      use module_pepc_types
+      use module_math_tools, only: inverse3
+      use pepcboris_helper
+      implicit none
+      real*8, intent(in) :: dt
+      type(t_particle), intent(inout) :: p(:)
+      integer(kind_particle) :: ip
+
+      real*8:: B(3), absB, R(3,3), ImeR(3,3), ImeRinv(3,3), IpeR(3,3)
+
+      real*8, dimension(3,3) :: I = transpose( &
+                                    reshape([1._8, 0._8, 0._8, &
+                                             0._8, 1._8, 0._8, &
+                                             0._8, 0._8, 1._8], shape(I)))
+      B    = get_magnetic_field()
+      absB = sqrt(dot_product(B, B))
+      R    = transpose(reshape([ 0._8,  B(3), -B(2), &
+                                -B(3),  0._8,  B(1), &
+                                 B(2), -B(1),  0._8], shape(R))) / absB
+
+      IpeR = I + pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8 * R
+      ImeR = I - pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8 * R
+      ImeRinv = inverse3(ImeR)
+
+      do ip = 1, size(p, kind=kind_particle)
+        p(ip)%data%v(:) = matmul(ImeRinv, matmul(IpeR, p(ip)%data%v(:)) + p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * dt)
+      end do
+
+   end subroutine
+
+   ! see http://www.particleincell.com/2011/vxb-rotation/
+   subroutine update_velocities_tajima_explicit(p, dt)
+      use module_pepc_types
+      use module_math_tools, only: inverse3
+      use pepcboris_helper
+      implicit none
+      real*8, intent(in) :: dt
+      type(t_particle), intent(inout) :: p(:)
+      integer(kind_particle) :: ip
+
+      real*8:: B(3), absB, R(3,3), IpetwoR(3,3), Edt(3)
+
+      real*8, dimension(3,3) :: I = transpose( &
+                                    reshape([1._8, 0._8, 0._8, &
+                                             0._8, 1._8, 0._8, &
+                                             0._8, 0._8, 1._8], shape(I)))
+      B    = get_magnetic_field()
+      absB = sqrt(dot_product(B, B))
+      R    = transpose(reshape([ 0._8,  B(3), -B(2), &
+                                -B(3),  0._8,  B(1), &
+                                 B(2), -B(1),  0._8], shape(R))) / absB
+
+      IpetwoR = I + 2._8*pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8 * R
+
+      do ip = 1, size(p, kind=kind_particle)
+        Edt = p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * dt / 2._8
+        p(ip)%data%v(:) = Edt + matmul(IpetwoR, p(ip)%data%v(:) + Edt)
+      end do
+
+   end subroutine
 
 
    subroutine kick_cyclotronic(p, dt)
@@ -310,18 +375,5 @@ module pepcboris_integrator
       end do
 
    end subroutine
-
-   subroutine drift_boris(p, dt)
-      use module_pepc_types
-      implicit none
-      type(t_particle), intent(inout) :: p(:)
-      real*8, intent(in) :: dt
-      integer(kind_particle) :: ip
-
-      do ip = 1, size(p, kind=kind_particle)
-        p(ip)%x = p(ip)%x + p(ip)%data%v * dt
-      end do
-   end subroutine
-
 
 end module
