@@ -112,7 +112,7 @@ program pepc
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
         if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1.) then
-          DEBUG_WARNING(*, 'Gyrofrequency too high or timestep too small. The gyroradius will increase linearly during simulation. Compare J. comp. Phys. 116, 386 (1995)')
+          DEBUG_WARNING(*, 'Gyrofrequency too high or timestep too large. The gyroradius will increase linearly during simulation. Compare J. comp. Phys. 116, 386 (1995)')
         endif
 
         do step=1,nt
@@ -121,6 +121,8 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt)
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
         end do
       end associate
 
@@ -128,7 +130,7 @@ program pepc
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
         if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1.) then
-          DEBUG_WARNING(*, 'Gyrofrequency too high or timestep too small. The gyroradius will increase linearly during simulation. Compare J. comp. Phys. 116, 386 (1995)')
+          DEBUG_WARNING(*, 'Gyrofrequency too high or timestep too large. The gyroradius will increase linearly during simulation. Compare J. comp. Phys. 116, 386 (1995)')
         endif
 
         do step=1,nt
@@ -256,6 +258,8 @@ program pepc
               params(PARAMS_VZ0) * cos(sqrttwo*params(PARAMS_OMEGAE)*step*dt)
 
             call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+            call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+              level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           end do
         end block
       end associate

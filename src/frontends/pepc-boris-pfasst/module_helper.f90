@@ -34,6 +34,7 @@ module pepcboris_helper
   public cross_prod
   public cross_prod_plus
   public dump_particles
+  public dump_energy
 
   ! dimension of space
   integer(kind_dim), public, parameter :: dim = 3
@@ -58,7 +59,8 @@ module pepcboris_helper
   integer, public, parameter :: WM_TAJIMA_LEAP_FROG_IMPLICIT = 8
   integer, public, parameter :: WM_TAJIMA_LEAP_FROG_EXPLICIT = 9
 
-  integer, public, parameter :: IFILE_SUMMAND = 46
+  integer, public, parameter :: IFILE_SUMMAND        =  46
+  integer, public, parameter :: IFILE_SUMMAND_ENERGY = 146
 
   !> parameter collection for pepcboris
   type pepcboris_nml_t
@@ -92,6 +94,40 @@ module pepcboris_helper
     do p=1,size(particles,kind=kind(p))
       write(istream,*) t, p, particles(p)%x, particles(p)%data%v
     end do
+  end subroutine
+
+  subroutine dump_energy(t, particles, istream, level_params, nml, step, comm, clearresults)
+    use module_pepc_types
+    use pfm_encap
+    implicit none
+    real*8, intent(in) :: t
+    type(t_particle), intent(in) :: particles(:)
+    integer, intent(in) :: istream
+    type(level_params_t), intent(in) :: level_params
+    type(pepcboris_nml_t), intent(in) :: nml
+    integer, intent(in) :: step
+    integer(kind_default), intent(in) :: comm
+    logical, intent(in) :: clearresults
+
+    integer(kind_particle) :: p
+    type(t_particle), allocatable :: particles_tmp(:)
+    real*8 :: epot, ekin, etot
+
+    epot = 0.
+    ekin = 0.
+
+    ! we need a temporary copy here to prevent destruction the results stored in the particles-array
+    allocate(particles_tmp(size(particles)))
+    particles_tmp = particles
+    do p=1,size(particles_tmp,kind=kind(p))
+      epot = epot + particles_tmp(p)%data%q * particles_tmp(p)%results%pot
+      ekin = ekin + particles_tmp(p)%data%m/2._8 * dot_product(particles_tmp(p)%data%v,particles_tmp(p)%data%v)
+    end do
+    deallocate(particles_tmp)
+
+    etot = epot + ekin
+    write(istream,*) t, epot, ekin, etot
+
   end subroutine
 
   subroutine pepcboris_init(nml, particles, dt, nt)
