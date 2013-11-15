@@ -139,6 +139,8 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call update_velocities_velocity_verlet_boris_tanalpha(particles, dt)
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
         end do
       end associate
 
@@ -155,6 +157,9 @@ program pepc
           call update_velocities_boris(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, i.e. they will not comply with velocities from other schemes
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+          ! FIXME: currently, energy will be wrong due to inappropriate alignment of velocity and position
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
         end do
       end associate
 
@@ -171,6 +176,9 @@ program pepc
           call update_velocities_tajima_implicit(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, i.e. they will not comply with velocities from other schemes
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+          ! FIXME: currently, energy will be wrong due to inappropriate alignment of velocity and position
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
         end do
       end associate
 
@@ -187,6 +195,9 @@ program pepc
           call update_velocities_tajima_explicit(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, i.e. they will not comply with velocities from other schemes
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+          ! FIXME: currently, energy will be wrong due to inappropriate alignment of velocity and position
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
         end do
       end associate
 
@@ -200,6 +211,8 @@ program pepc
           call kick_cyclotronic(particles, dt)
           call drift_cyclotronic(particles, dt/2._8)
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
         end do
       end associate
 
@@ -214,6 +227,8 @@ program pepc
           call kick_boris(particles, dt)
           call push_particles(particles, dt/2._8)
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
         end do
       end associate
 
