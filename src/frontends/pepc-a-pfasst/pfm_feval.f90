@@ -4,7 +4,7 @@ module pfm_feval
     use module_debug
     implicit none
     private
-    
+
     public feval_init
     public feval_finalize
     public eval_acceleration
@@ -23,7 +23,7 @@ module pfm_feval
       integer, intent(in) :: nlevels
       type(c_ptr), intent(inout) :: levelctx, encapctx
       type(t_particle), intent(in), pointer :: particles(:)
- 
+
       type(c_ptr) :: y0_C, yend_c
 
       type(level_params_t), pointer :: params
@@ -37,12 +37,12 @@ module pfm_feval
 
       call c_f_pointer(  y0_c, y0)
       call c_f_pointer(yend_c, yend)
-     
+
       call particles_to_encap(y0_c, particles)
-      
+
       ! compute initial energies for later comparison
-      call diagnose_energy(particles, params%initial_energies, 0, 0.0_8, params%comm, params%root) 
-      
+      call diagnose_energy(particles, params%initial_energies, 0, 0.0_8, params%comm, params%root)
+
     end subroutine feval_init
 
 
@@ -60,7 +60,7 @@ module pfm_feval
 
 
     !> Use pepc to compute accelerations
-    !> note here that we're assuming that acceleration 
+    !> note here that we're assuming that acceleration
     !> is only a function of x, and that \ddot{x} = a.
     subroutine eval_acceleration(xptr, t, level, ctx, aptr)
       use module_pepc
@@ -71,31 +71,31 @@ module pfm_feval
       type(c_ptr),    intent(in), value :: xptr, aptr, ctx
       real(pfdp),     intent(in)        :: t
       integer(c_int), intent(in)        :: level
-      
+
       type(t_particle), allocatable :: particles(:)
       type(app_data_t), pointer :: a,x
       type(level_params_t), pointer :: levelctx
       integer(kind_particle) :: i
       integer, save :: step =0
-      
+
       call pepc_status('|------> eval_acceleration()')
       call ptr_print('x', xptr)
       call ptr_print('a', aptr)
       call ptr_print('ctx', ctx)
-     
+
       call c_f_pointer(aptr, a)
       call c_f_pointer(xptr, x)
       call c_f_pointer(ctx, levelctx)
-      
+
       step = step + 1
-      
+
       DEBUG_ASSERT(a%params%nparts==x%params%nparts)
-      
+
       ! prepare and run PEPC
       allocate(particles(a%params%nparts))
       call encap_to_particles(particles, xptr, ctx)
       call eval_force(particles, levelctx, step, levelctx%comm, clearresults=.true.)
-      
+
       ! compute accelerations from fields
       do i=1,size(particles, kind=kind(i))
         ! acceleration from force from field
@@ -103,11 +103,11 @@ module pfm_feval
         a%x(a%params%dim+1:,i) = 0
         a%v(:,:) = a%x(:,:)
       end do
-      
+
       deallocate(particles)
     end subroutine eval_acceleration
 
-    
+
     !> invoke pepc or direct sum
     subroutine eval_force(particles, level_params, step, comm, clearresults)
       use module_debug
@@ -123,7 +123,7 @@ module pfm_feval
       if (clearresults) then
           call pepc_particleresults_clear(particles)
       endif
-      
+
       if (level_params%directforce) then
         call compute_force_direct(particles, comm)
       else
@@ -135,7 +135,7 @@ module pfm_feval
         call pepc_timber_tree()
       endif
     end subroutine
-       
+
 
     subroutine compute_force_direct(particles, comm)
       use module_pepc_types
@@ -158,5 +158,5 @@ module pfm_feval
       deallocate(directresults)
       call timer_stop(t_all)
     end subroutine
-    
+
 end module pfm_feval

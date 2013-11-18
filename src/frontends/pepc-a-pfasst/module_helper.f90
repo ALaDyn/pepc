@@ -111,6 +111,11 @@ module pepca_helper
         call displace_particles(particles, nml%setup_params(PARAMS_KX) / boxdims(1) * unit_length_micron_per_simunit, &
                                            nml%setup_params(PARAMS_A) / n0)
         periodicity = [.true., .true., .false.]
+        t_lattice_1 = [boxdims(1) / unit_length_micron_per_simunit, 0._8, 0._8]
+        t_lattice_2 = [0._8, boxdims(2) / unit_length_micron_per_simunit, 0._8]
+        t_lattice_3 = [0._8, 0._8, boxdims(3) / unit_length_micron_per_simunit]
+        call init_movement_constraint()
+        call constrain_periodic(particles)
       case (-1)
         call read_particles(particles, 'E_phase_space.dat', nml%numparts, 'I_phase_space.dat', nml%numparts, nml%comm)
       case default

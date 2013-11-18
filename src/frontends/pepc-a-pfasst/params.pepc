@@ -26,7 +26,7 @@
   output_interval = 0 0 0 0 0 1
   
   ! Plummer potential screening length in microns
-  eps = 1.e-2
+  eps = 1.e-0
   
   ! number of grid cells in each spatial direction for particle density output
   Ngrid = 500 1000 1
@@ -36,13 +36,13 @@
   ! physical simulation end time (in fs)
   tend    = 1000.
   
-  nsteps  = 10000 
+  nsteps  = 250
   niter   = 1
   nlevels = 1
   
   ! level parameters (one entry per level and line)
   nsweeps = 1
-  nnodes  = 3
+  nnodes  = 2
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
   directforce = .true.

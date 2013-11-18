@@ -11,7 +11,7 @@
   ! choice of integrator  
   ! true  --> use pfasst-verlet integrator
   ! false --> use default verlet integrator
-  use_pfasst = .false.
+  use_pfasst = .true.
   
   ! timestep intervals for dumping routines
   ! 0 --> dumping disabled for this output
@@ -26,7 +26,7 @@
   output_interval = 0 0 1 0 0 0
   
   ! Plummer potential screening length in microns
-  eps = 1.e-2
+  eps = 1.e-0
   
   ! number of grid cells in each spatial direction for particle density output
   Ngrid = 500 1000 1
@@ -34,15 +34,15 @@
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 1000.
+  tend    = 16.
   
-  nsteps  = 10000 
-  niter   = 1
+  nsteps  = 4096
+  niter   = 16
   nlevels = 1
   
   ! level parameters (one entry per level and line)
   nsweeps = 1
-  nnodes  = 3
+  nnodes  = 9
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
   directforce = .true.

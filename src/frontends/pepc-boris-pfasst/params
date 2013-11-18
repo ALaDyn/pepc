@@ -9,23 +9,23 @@
   setup_params = 0.5 0.75 0.05 -3.0 5.0 -1.5 5.656854249492380 18.
 
   ! choice of integrator  
-  ! 1 - WM_BORIS
-  ! 2 - WM_BORIS_SDC
-  ! 3 - WM_ANALYTIC
-  ! 4 - WM_CYCLOTRONIC
-  ! 5 - WM_BORIS_PATACCHINI
-  ! 6 - WM_BORIS_LEAP_FROG
-  ! 7 - WM_BORIS_TANALPHA
-  ! 8 - WM_TAJIMA_LEAP_FROG_IMPLICT
-  ! 9 - WM_TAJIMA_LEAP_FROG_EXPLICT
-  workingmode = 1
+  ! 1  - WM_BORIS
+  ! 2  - WM_BORIS_SDC
+  ! 3  - WM_ANALYTIC
+  ! 4  - WM_CYCLOTRONIC
+  ! 5  - WM_BORIS_PATACCHINI
+  ! 6  - WM_BORIS_LEAP_FROG
+  ! 7  - WM_BORIS_TANALPHA
+  ! 8  - WM_TAJIMA_LEAP_FROG_IMPLICT
+  ! 9  - WM_TAJIMA_LEAP_FROG_EXPLICT
+  workingmode = 9
 /
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 8.0
+  tend    = 256.0
   
-  nsteps  = 4096
+  nsteps  = 65536
   niter   = 1
   nlevels = 1
   

@@ -47,7 +47,6 @@ module pepcboris_integrator
 
   contains
 
-
     subroutine push_particles_velocity_verlet_boris_tanalpha(p, dt)
       use module_debug
       use module_pepc_types

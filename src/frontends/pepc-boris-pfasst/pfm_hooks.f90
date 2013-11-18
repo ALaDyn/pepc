@@ -17,6 +17,7 @@ contains
     use module_pepc_types
     use module_debug
     use pepcboris_helper
+    use pepcboris_diagnostics
     implicit none
     type(pf_pfasst_t), intent(inout) :: pf
     type(pf_level_t),  intent(inout) :: level
@@ -63,7 +64,9 @@ contains
    endif
 
     ! do diagnostics etc here
-    call dump_particles(t, particles, pepcboris_nml%workingmode + IFILE_SUMMAND)
+    call dump_particles(t, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+    call dump_energy(t, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+      levelctx, pepcboris_nml, levelctx%comm, do_average=.false.)
 
   end subroutine
 end module pfm_hooks

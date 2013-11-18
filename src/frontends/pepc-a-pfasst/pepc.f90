@@ -40,6 +40,7 @@ program pepc
   use pf_mod_pfasst, only: pf_pfasst_create, pf_pfasst_setup, pf_pfasst_destroy
   use pf_mod_parallel, only: pf_pfasst_run
   use pf_mod_hooks
+  use module_mirror_boxes, only: periodicity
 
   implicit none
 
@@ -67,6 +68,8 @@ program pepc
   call pepc_initialize('pepc-a-pfasst', pepca_nml%rank, pepca_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepca_nml%comm)
   ! frontend parameter initialization, particle configuration etc.
   call pepca_init(pepca_nml, particles, dt=pf_nml%tend/pf_nml%nsteps/(pf_nml%nnodes(pf_nml%nlevels)-1), nt=pf_nml%nsteps*(pf_nml%nnodes(pf_nml%nlevels)-1))  ! we use the finest (i.e. highest) level here
+  ! commit all internal pepc variables
+  call pepc_pre(dim)
   ! prepare table with level-dependent parameters
   call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepca_nml%rank, MPI_COMM_SPACE)
   ! initial potential will be needed for energy computation
@@ -91,6 +94,7 @@ program pepc
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, track_energy_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, compare_checkpoint_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, compare_checkpoint_hook)
+      if (any(periodicity)) call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, constrain_particles_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
 
       !if (pf_nml%echo_errors) then

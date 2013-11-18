@@ -5,6 +5,7 @@ module pfm_hooks
 
   public track_energy_hook
   public compare_checkpoint_hook
+  public constrain_particles_hook
   public dump_particles_hook
 
 contains
@@ -111,6 +112,37 @@ contains
   end subroutine
 
 
+  !> periodic boundaries etc.
+  subroutine constrain_particles_hook(pf, level, state, ctx)
+    use pf_mod_dtype
+    use pf_mod_hooks
+    use pfm_encap
+    use iso_c_binding
+    use pfm_feval
+    use module_pepc_types
+    use module_debug
+    use module_mirror_boxes
+    implicit none
+    type(pf_pfasst_t), intent(inout) :: pf
+    type(pf_level_t),  intent(inout) :: level
+    type(pf_state_t),  intent(in)    :: state
+    type(c_ptr),       intent(in)    :: ctx
+
+    type(t_particle), allocatable, target :: particles(:)
+    type(level_params_t), pointer :: levelctx
+
+    call pepc_status('------------- constrain_particles_hook')
+
+    call c_f_pointer(ctx, levelctx)
+
+    allocate(particles(levelctx%nparts))
+    call encap_to_particles(particles, level%qend, ctx)
+    call constrain_periodic(particles)
+    call particles_to_encap(level%qend, particles)
+
+  end subroutine
+
+
   !> particle output
   subroutine dump_particles_hook(pf, level, state, ctx)
     use pf_mod_dtype
@@ -136,7 +168,7 @@ contains
     integer(kind_default) :: dumpstep
     character(100) :: filename
 
-    call pepc_status('------------- track_energy_hook')
+    call pepc_status('------------- dump_particles_hook')
 
     t = state%t0+state%dt
 
