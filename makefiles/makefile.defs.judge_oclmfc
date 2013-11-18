@@ -16,7 +16,7 @@ module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
 OMPSS        = 1
 OMPSSCC      = oclmfc
 
-MACH     = JUDGE_oclmfc
+MACH     = oclmfc
 
 DEBUG    = 0
 
@@ -28,7 +28,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+CPPFLAGS = -P -C
 
 FCPRE    = 
 FC       = mpif90
@@ -55,17 +55,17 @@ else
 endif
 
 ifeq ($(OMPSS), 1)
-  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive,-O5
+  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive,-O3
   CFLAGS    = -Wall
-  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program,-O5
+  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program,-O3
   ifeq ($(DEBUG), 1)
     FFLAGS  += -g -k# --Wn,-fcheck=all
     CFLAGS  += -g
     LDFLAGS += -g -k# --Wn,-fcheck=all
   else
-    FFLAGS  += -k -O3 -g #--Wn,-O3,-finline-functions,-fwhole-program 
-    CFLAGS  += -O3 -g
-    LDFLAGS += -O3 -g #--Wn,-O3,-finline-functions,-fwhole-program
+    FFLAGS  += -g -k #--Wn,-O3,-finline-functions,-fwhole-program 
+    CFLAGS  += -g
+    LDFLAGS += -g #--Wn,-O3,-finline-functions,-fwhole-program
   endif
   FC += -f90=$(OMPSSCC)
   LD += -f90=$(OMPSSCC)
@@ -74,3 +74,6 @@ endif
 #FFLAGS = ""
 
 RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)
+

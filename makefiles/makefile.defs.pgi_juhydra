@@ -19,7 +19,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" $(DEFS)
+CPPFLAGS = -P -C $(DEFS)
 
 IN = -Mipa
 INLINING = -Minline -fast
@@ -48,4 +48,6 @@ LD       = mpif90 -f90=pgf90
 LDLIBS   += 
 
 RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)
 
