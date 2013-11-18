@@ -276,7 +276,7 @@ MODULE output
           write(*,'(a,f12.4)')  " == Bz                               : ", Bz
           write(*,*)
           write(*,*) "========== Simulation Domain ========="
-          if (real_unequal(B,0._8,1e-9_8)) then
+          if (real_unequal_zero(B,1e-10_8)) then
               write(*,'(a,12X,es10.2)')  " == dx (m)             : ", dx
               write(*,'(a,es10.2,a,es10.2)')  " == dy (gyro_radii, m) : ", dy/r_lamor,", ",dy
               write(*,'(a,es10.2,a,es10.2)')  " == dz (gyro_radii, m) : ", dz/r_lamor,", ",dz

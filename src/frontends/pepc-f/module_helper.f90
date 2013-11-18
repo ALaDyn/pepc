@@ -132,6 +132,7 @@ module helper
   end function get_time
 
 !======================================================================================
+!Doesn't work if a or b are exactly zero. Compare to zero with func real_equal_zero
   logical function real_equal(a,b,epsi)
     implicit none
     real(KIND=8),intent(in) :: a,b,epsi
@@ -145,6 +146,20 @@ module helper
   end function real_equal
 
 !======================================================================================
+  logical function real_equal_zero(a,epsi)
+    implicit none
+    real(KIND=8),intent(in) :: a,epsi
+
+    if (abs(a) <= epsi ) then
+       real_equal_zero = .true.
+    else
+       real_equal_zero = .false.
+    end if
+
+  end function real_equal_zero
+
+!======================================================================================
+!Doesn't work if a or b are exactly zero. Compare to zero with func real_equal_zero
   logical function real_unequal(a,b,epsi)
     implicit none
     real(KIND=8),intent(in) :: a,b,epsi
@@ -152,6 +167,15 @@ module helper
     real_unequal = (.not. real_equal(a,b,epsi))
 
   end function real_unequal
+
+!======================================================================================
+  logical function real_unequal_zero(a,epsi)
+    implicit none
+    real(KIND=8),intent(in) :: a,epsi
+
+    real_unequal_zero = (.not. real_equal_zero(a,epsi))
+
+  end function real_unequal_zero
 
 !======================================================================================
   logical function hit_r(p)

@@ -477,14 +477,15 @@ module particlehandling
                 nlp(p(ip)%data%species) = nlp(p(ip)%data%species) + 1
 
                 IF (species(p(ip)%data%species)%physical_particle) THEN
-                    p1(1)=p(ip)
-                    call source(p1)
-                    p(ip)=p1(1)
                     write(*,'(i6,a,i16,i16)')my_rank,": label,species: ", p(ip)%label,p(ip)%data%species
                     write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle velocity: ", p(ip)%data%v
                     write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle position: ", p(ip)%x
+                    write(*,'(i6,a,3(1pe16.7E3))')my_rank,": dx,dy,dz: ", [dx,dy,dz]
                     write(*,'(i6,a,3(1pe16.7E3))')my_rank,": old particle position: ", p(ip)%x - dt*p(ip)%data%v
                     write(*,'(a)') "Particle refluxed according to chosen source!"
+                    p1(1)=p(ip)
+                    call source(p1)
+                    p(ip)=p1(1)
                 END IF
             END IF
         END DO
