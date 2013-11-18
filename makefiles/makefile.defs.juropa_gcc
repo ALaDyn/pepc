@@ -23,7 +23,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" $(DEFS)
+CPPFLAGS = -P -C $(DEFS)
 
 INLINING = -ftree-vectorize -ftree-vectorizer-verbose=2 -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
 # -flto # deactivated since it lead to problems with MPI_IN_PLACE
@@ -55,3 +55,4 @@ LDLIBS   +=
 
 RM       = rm -rf
 
+COMPILER = $(shell $(FC) --version | head -n 1)

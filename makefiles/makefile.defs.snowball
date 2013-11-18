@@ -18,7 +18,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+CPPFLAGS = -P -C
 
 # the next line seems to break gcc-4.6.2
 INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining
@@ -53,3 +53,5 @@ LD       = mpif90 -f90=gfortran-4.6.2
 LDLIBS   = 
 
 RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)

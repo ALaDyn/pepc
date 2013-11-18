@@ -12,7 +12,7 @@
 "
 
 
-MACH     = gcc-4.8
+MACH     = linux_gcc-4.8
 
 DEBUG    = 1
 OMP      = 1
@@ -25,7 +25,8 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\""
+CPPFLAGS = -P -C -ffreestanding
+                  # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
 INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg 
 # -flto
@@ -60,4 +61,5 @@ LDLIBS   =
 
 RM       = rm -rf
 
+COMPILER = $(shell $(FC) --version | head -n 1)
 

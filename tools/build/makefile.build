@@ -6,6 +6,14 @@ include makefile.paths
 include makefile.defs
 include makefile.include.frontend
 
+CPPFLAGS += $(CPPFLAGS_BACKEND)
+CPPFLAGS += -DFFLAGS="\"$(FFLAGS)\""     \
+            -DCFLAGS="\"$(CFLAGS)\""     \
+            -DLDFLAGS="\"$(LDFLAGS)\""   \
+            -DCOMPILER="\"$(COMPILER)\"" \
+            -DSVNREVISION="\"$(SVNREVISION)\"" \
+            -DMACH="\"$(MACH)\"" \
+
 FSRC = $(filter %.f90, $(SRC))
 FOBJ = $(FSRC:%.f90=%.o)
 
@@ -22,7 +30,8 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 
 %.o: %.f90
 	@echo "== compiling F90 file :" $<
-	@$(CPP) $(CPPFLAGS) -include pepc_debug.h $< > pp_$< 2>> compile.log
+	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
+	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
 	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
 
 %.o: %.c
@@ -31,7 +40,7 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 
 makefile.deps: 
 	@echo "==== creating dependencies"
-	@$(F90MODDEPS) -o makefile.deps --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "" $(filter %.f90, $(SRC)) >> compile.log
+	@$(F90MODDEPS) -o makefile.deps --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "" $(FSRC) >> compile.log
 
 include makefile.deps
 

@@ -1,0 +1,113 @@
+HELP = "\
+\# Makefile for JuQueen\n\
+\# \n\
+\# for sionlib support in pepcb, call\n\nmodule load sionlib\n\n\# before compiling and running\
+"
+
+MACH      = IBM-BGQ-juqueen
+
+GPROF     = 0
+DEBUG     = 0
+OMP       = 1
+VAMPIR    = 0
+SION      = 0
+# for HPCTOOLKIT usage see end of this file
+# do not name the following variable to HPCTOOLKIT since this is already used externally
+HPCTOOLKT = 0
+SCOREP    = 0
+SCALASCA  = 0
+
+MAKE      = gmake
+AR        = ar
+ARFLAGS   = -rs
+RANLIB    = ranlib
+RM        = rm -rf
+
+FCPRE     = 
+CCPRE     = 
+LDPRE     = 
+
+FC        = mpixlf90_r
+CC        = mpixlc_r
+LD        = mpixlf90_r
+LDLIBS    = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
+
+CPP       = /usr/bin/cpp
+CPPFLAGS  = -P -C -DLITTLEENDIAN -D__TOS_BGQ__ -D__IBMCPP__
+
+OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qkeepparm -qflttrap -qnosmp -qxflag=dvz -Q! -qnounwind -qnounroll
+OPTIMIZATIONFLAGS       = -O5 -qhot -qipa=level=2 -qlibmpi -qinline -qinfo=all -qstrict \
+                          -qinline+__module_tree_node_NMOD_tree_node_is_leaf:__module_spacefilling_NMOD_is_ancestor_of_particle_withlevel:__module_spacefilling_NMOD_is_ancestor_of_particle_nolevel:__module_tree_node_NMOD_tree_node_get_num_children:__module_tree_node_NMOD_tree_node_get_first_child:__module_tree_node_NMOD_tree_node_get_next_sibling:__module_tree_node_NMOD_tree_node_children_available:__module_interaction_specific_NMOD_mac:__module_interaction_specific_NMOD_calc_force_per_interaction:_atomic_fetch_and_increment_int:_atomic_load_int:_atomic_mod_increment_and_fetch_int:_atomic_read_barrier:_atomic_store_int:_atomic_write_barrier:__module_atomic_ops_NMOD_atomic_fetch_and_increment_int:__module_atomic_ops_NMOD_atomic_load_int:__module_atomic_ops_NMOD_atomic_mod_increment_and_fetch_int:__module_atomic_ops_NMOD_atomic_store_int
+
+STANDARDFLAGS           = -qthreaded -qsmp=noauto 
+
+ifeq ($(OMP), 1)
+  STANDARDFLAGS += -qsmp=omp
+endif
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -qxlf2003=polymorphic -qddim
+  CFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG) -I/bgsys/drivers/ppcfloor/arch/include
+  LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS_DEBUG)
+else
+  FFLAGS   = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS) -qxlf2003=polymorphic
+  CFLAGS   = $(STANDARDFLAGS) -O3 -I/bgsys/drivers/ppcfloor/arch/include
+  LDFLAGS  = $(STANDARDFLAGS) $(OPTIMIZATIONFLAGS)
+  CPPFLAGS += -DNDEBUG
+endif
+
+ifeq ($(VAMPIR), 1)
+  FCPRE    = bgvtf90 -vt:f90
+  CCPRE    = bgvtcc  -vt:cc
+  LDPRE    = bgvtf90 -vt:f90
+endif
+
+ifeq ($(HPCTOOLKT), 1)
+  LDPRE    = hpclink
+  #LDFLAGS += -qnoipa
+  FFLAGS  += -g
+  CFLAGS  += -g
+  LDFLAGS += -g
+endif
+
+ifeq ($(GPROF), 1)
+  FFLAGS  += -pg -g
+  CFLAGS  += -pg -g
+  LDFLAGS += -pg -g
+endif
+
+ifeq ($(SCOREP), 1)
+  FCPRE += scorep
+  CCPRE += scorep
+  LDPRE += scorep
+endif
+
+#  Flags for sionlib I/O option
+ifeq ($(SION),1)
+  CPPFLAGS += -DSION  # Preprocessor
+  LDLIBS += `sionconfig --libs --mpi -be`
+  CFLAGS += `sionconfig --cflags --for --mpi -be`
+endif
+
+ifeq ($(SCALASCA), 1)
+  FCPRE += scalasca -instrument
+  CCPRE += scalasca -instrument
+  LDPRE += scalasca -instrument
+endif
+
+COMPILER = $(shell $(FC) -qversion | tr '\n' ' ')
+
+# HPCTOOLKIT USAGE
+# Call 
+# $>  module load UNITE hpctoolkit papi
+# Before compiling and execution. You should include those modules into your ~/.bashrc to also have them on the compute nodes.
+# After (re)compiling the application (e.g. pepc-mini) start it with
+# $>  runjob --envs  HPCRUN_EVENT_LIST="WALLCLOCK@10000" HPCRUN_TRACE=1 --label : ./pepc-mini ./params
+# Then generate the structure info (on the frontend node) using
+# $>  hpcstruct  ./pepc-mini
+# Build the measurement database from the measurements:
+# $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
+# 
+#
+
+

@@ -122,8 +122,14 @@ module module_pepc
         write(*,'(a)') "     \ \ \/  \ \ \_L\ \ \/  \ \ \_\ \    Solver            "
         write(*,'(a)') "      \ \_\   \ \____\ \_\   \ \____/                      "
         write(*,'(a)') "       \/_/    \/____/\/_/    \/___/     pepc@fz-juelich.de"
-        write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."//)') &
+        write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
                        SVNREVISION, frontendname, n_cpu
+        write(*,'("====     MACH = ",a)') MACH
+        write(*,'("==== COMPILER = ",a)') COMPILER
+        write(*,'("====   FFLAGS = ",a)') FFLAGS
+        write(*,'("====   CFLAGS = ",a)') CFLAGS
+        write(*,'("====  LDFLAGS = ",a)') LDFLAGS
+        write(*,'(//)')
 
         if ((pepc_initializes_mpi) .and. (provided < MPI_THREAD_LEVEL)) then
           !inform the user about possible issues concerning MPI thread safety

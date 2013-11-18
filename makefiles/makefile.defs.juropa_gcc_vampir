@@ -65,7 +65,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DSVNREVISION="\"$(SVNREVISION)\"" -DNDEBUG
+CPPFLAGS = -P -C -DNDEBUG
 
 INLINING = 
 INLINING = -g -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -mstringop-strategy=unrolled_loop 
@@ -87,3 +87,5 @@ LDFLAGS   = -pthread -pg -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
 LDLIBS   = 
 
 RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)
