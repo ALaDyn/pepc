@@ -11,5 +11,6 @@ plot "fort.47" using 3:4 with lp title 'Boris classical',   \
      "fort.52" using 3:4 with l  title 'Boris leap-frog' ,  \
      "fort.53" using 3:4 with l  title 'Boris tan(alpha)/alpha',    \
      "fort.54" using 3:4 with lp title 'Tajima leap-frog implicit', \
-     "fort.55" using 3:4 with lp title 'Tajima leap-frog explicit'
+     "fort.55" using 3:4 with lp title 'Tajima leap-frog explicit', \
+     "fort.56" using 3:4 with lp title 'Inverting Verlet'
 

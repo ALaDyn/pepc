@@ -5,8 +5,8 @@
   particle_config = 0
   
   ! physics parameters
-  !              X0  Y0   Z0   VX0  VY0 VZ0  OMEGAE            OMEGAB
-  setup_params = 0.5 0.75 0.05 -3.0 5.0 -1.5 5.656854249492380 18.
+  !              X0   Y0  Z0  VX0 VY0 VZ0 OMEGAE OMEGAB
+  setup_params = 1.0 0.0 0.0 1.0 0.0 1.0 5.0    25.0
 
   ! choice of integrator  
   ! 1  - WM_BORIS
@@ -18,14 +18,14 @@
   ! 7  - WM_BORIS_TANALPHA
   ! 8  - WM_TAJIMA_LEAP_FROG_IMPLICT
   ! 9  - WM_TAJIMA_LEAP_FROG_EXPLICT
-  workingmode = 9
+  workingmode = 1
 /
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 256.0
+  tend    = 8.0
   
-  nsteps  = 65536
+  nsteps  = 1024
   niter   = 1
   nlevels = 1
   

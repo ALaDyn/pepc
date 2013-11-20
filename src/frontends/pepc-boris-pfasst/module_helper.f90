@@ -56,6 +56,7 @@ module pepcboris_helper
   integer, public, parameter :: WM_BORIS_TANALPHA   = 7
   integer, public, parameter :: WM_TAJIMA_LEAP_FROG_IMPLICIT = 8
   integer, public, parameter :: WM_TAJIMA_LEAP_FROG_EXPLICIT = 9
+  integer, public, parameter :: WM_MATRIX_VERLET             = 10
 
   integer, public, parameter :: IFILE_SUMMAND        =  46
   integer, public, parameter :: IFILE_SUMMAND_ENERGY = 146

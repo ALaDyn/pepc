@@ -42,6 +42,9 @@ module pepcboris_integrator
     ! dito , boris integrator as given in J.Comp.Phys. 228 (2009), 2604-2615 with the option to (de)activate the
     ! "tan transformation"  \Delta\phi = \Omega\Delta t B0 instead of \Delta\phi = 2atan(\Omega\Delta t/2) B0
     public kick_boris
+    ! matrix verlet (specific for penning trap configuration)
+    public push_matrix_verlet
+
 
     real*8, allocatable, public :: eold(:,:)
 
@@ -371,6 +374,47 @@ module pepcboris_integrator
         vsstar(2) =  s*vstar(1) + c*vstar(2)
         vsstar(3) =    vstar(3)
         p(ip)%data%v = vsstar + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._8 * dt
+      end do
+
+   end subroutine
+
+   subroutine push_matrix_verlet(p, dt)
+      use module_pepc_types
+      use pepcboris_helper
+      use module_debug
+      implicit none
+      type(t_particle), intent(inout) :: p(:)
+      real*8, intent(in) :: dt
+      integer(kind_particle) :: ip
+
+      real*8 :: A,B,C,D,E,M1,M2,M3,M4,M(6,6),bla(6)
+
+      A = -pepcboris_nml%setup_params(PARAMS_OMEGAE)**2*dt
+      B =  A*dt
+      C =  pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt**2
+      D =  C*pepcboris_nml%setup_params(PARAMS_OMEGAB)
+      E =  A*dt
+
+      M1 = A*(B-4)/(D+4)
+      M2 = b*(B-4)/(D+4) * pepcboris_nml%setup_params(PARAMS_OMEGAB)/2._8
+      M3 = (B-2)*(D-4)/(2._8*(D+4))
+      M4 = 2._8*dt*pepcboris_nml%setup_params(PARAMS_OMEGAB)*(B-2)/(D+4)
+
+      M  = transpose(reshape( &
+            [1._8-B/2._8,        0._8,      dt,  C/2._8,   0._8, 0._8, &
+                    0._8, 1._8-B/2._8, -C/2._8,      dt,   0._8, 0._8, &
+                      M1,          M2,      M3,     -M4,   0._8, 0._8, &
+                     -M2,          M1,      M4,      M3,   0._8, 0._8, &
+                    0._8,        0._8,    0._8,    0._8,   1+E ,   dt, &
+                    0._8,        0._8,    0._8,    0._8,A*(2+E),  1+E], shape(M)))
+
+      do ip = 1, size(p, kind=kind_particle)
+        bla = [p(ip)%x(1), p(ip)%x(2), p(ip)%data%v(1), p(ip)%data%v(2), p(ip)%x(3), p(ip)%data%v(3)]
+        bla = matmul(M, bla)
+        p(ip)%x(1:2)      = bla(1:2)
+        p(ip)%data%v(1:2) = bla(3:4)
+        p(ip)%x(3)        = bla(5)
+        p(ip)%data%v(3)   = bla(6)
       end do
 
    end subroutine

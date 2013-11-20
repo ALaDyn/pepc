@@ -235,6 +235,19 @@ program pepc
         end do
       end associate
 
+    case (WM_MATRIX_VERLET)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt, &
+                 params => pepcboris_nml%setup_params)
+        do step=1,nt
+          call print_timestep(step, nt, dt)
+          call push_matrix_verlet(particles, dt)
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
+        end do
+      end associate
+
     case (WM_ANALYTIC)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt, &
