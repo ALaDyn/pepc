@@ -1,1 +1,1 @@
-accelerator_eq_gpu_OpenACC.f90
+accelerator_eq_gpu_OmpSs.f90

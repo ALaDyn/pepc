@@ -266,7 +266,9 @@ module module_pepc
 
       integer(kind_dim), optional, intent(in) :: idim
 
+#ifndef OMPSS_TASKS
       ERROR_ON_FAIL(pthreads_init())
+#endif
       call treevars_prepare(idim)
       call calc_neighbour_boxes() ! initialize mirror boxes
       call calc_force_prepare() ! prepare interaction-specific routines
@@ -302,9 +304,11 @@ module module_pepc
       call free_lpepc_mpi_types()
 
       call treevars_finalize()
+#ifndef OMPSS_TASKS
       if (0 /= pthreads_uninit()) then
         DEBUG_INFO(*, "pthreads_uninit() failed!")
       end if
+#endif
 
       call MPI_COMM_FREE(MPI_COMM_lpepc, ierr)
       if (pepc_initializes_mpi) then

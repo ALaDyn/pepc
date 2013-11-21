@@ -44,7 +44,7 @@
 module module_tree_communicator
   use module_tree, only: t_request_queue_entry, t_tree_communicator, TREE_COMM_REQUEST_QUEUE_LENGTH, TREE_COMM_ANSWER_BUFF_LENGTH, &
     TREE_COMM_THREAD_STATUS_STOPPED, TREE_COMM_THREAD_STATUS_STARTING, TREE_COMM_THREAD_STATUS_STARTED, &
-    TREE_COMM_THREAD_STATUS_STOPPING, TREE_COMM_THREAD_STATUS_WAITING
+    TREE_COMM_THREAD_STATUS_STOPPING, TREE_COMM_THREAD_STATUS_WAITING, t_tree  !<- WTF?!?
   use module_pepc_types
   implicit none
   private
@@ -169,11 +169,22 @@ module module_tree_communicator
     tp = c_loc(t)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
     tree_comm_thread_counter = tree_comm_thread_counter + 1
+#ifdef OMPSS_TASKS
+    !$OMP target device(smp)
+    !$OMP task
+    t%communicator%comm_thread%thread = run_communication_loop(t)
+    !$OMP end task
+#else
     ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp, thread_type = THREAD_TYPE_COMMUNICATOR, counter = tree_comm_thread_counter))
+#endif
     
     ! we have to wait here until the communicator has really started to find out its processor id
     do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STARTED)
-      ERROR_ON_FAIL(pthreads_sched_yield())
+#ifdef OMPSS_TASKS
+       call system('sleep 0.001s')
+#else
+       ERROR_ON_FAIL(pthreads_sched_yield())
+#endif
     end do
   end subroutine tree_communicator_start
 
@@ -203,7 +214,11 @@ module module_tree_communicator
     ! notify rank the communicator that we are finished with our walk
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STOPPING)
 
+#ifdef OMPSS_TASKS
+    !$OMP taskwait
+#else
     ERROR_ON_FAIL(pthreads_jointhread(t%communicator%comm_thread))
+#endif
     tree_comm_thread_counter = tree_comm_thread_counter - 1
 
     call timer_add(t_comm_total,    t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP))
@@ -750,7 +765,11 @@ module module_tree_communicator
   !>
   !> @todo Factor out thread scheduling code below and reactivate it.
   !>
+#ifdef OMPSS_TASKS
+  function run_communication_loop(t)
+#else
   function run_communication_loop(arg) bind(c)
+#endif
     use, intrinsic :: iso_c_binding
     use module_tree, only: t_tree
     use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread
@@ -760,9 +779,13 @@ module module_tree_communicator
     include 'mpif.h'
 
     type(c_ptr) :: run_communication_loop
+#ifdef OMPSS_TASKS
+    type(t_tree), intent(inout) :: t
+#else
     type(c_ptr), value :: arg
 
     type(t_tree), pointer :: t
+#endif
     !integer, intent(in) :: max_particles_per_thread
     integer, dimension(mintag:maxtag) :: nummessages
     integer :: messages_per_iteration !< tracks current number of received and transmitted messages per commloop iteration for adjusting particles_per_yield
@@ -771,9 +794,11 @@ module module_tree_communicator
                                              ! is still communicating and which ones are finished
                                              ! to emulate a non-blocking barrier
 
+#ifndef OMPSS_TASKS
     t => null()
     call c_f_pointer(arg, t)
     DEBUG_ASSERT(associated(t))
+#endif
     
     ! store ID of comm-thread processor
     t%communicator%processor_id = get_my_core()
@@ -832,7 +857,11 @@ module module_tree_communicator
       !end if
 
       ! currently, there is no further communication request --> other threads may do something interesting
+#ifdef OMPSS_TASKS
+      call system('sleep 0.001s')
+#else
       ERROR_ON_FAIL(pthreads_sched_yield())
+#endif
 
     end do ! while (.not. t%communicator%comm_thread_stopping)
 
@@ -841,7 +870,9 @@ module module_tree_communicator
     t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP) = MPI_WTIME() - t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP)
 
     run_communication_loop = c_null_ptr
+#ifndef OMPSS_TASKS
     ERROR_ON_FAIL(pthreads_exitthread())
+#endif
   end function run_communication_loop
 
 

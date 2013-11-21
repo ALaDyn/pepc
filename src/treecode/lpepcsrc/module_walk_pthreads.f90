@@ -370,6 +370,8 @@ module module_walk
     integer :: ith
     integer(kind_particle) :: num_processed_particles
 
+    type(c_ptr) :: walk_task(num_walk_threads)
+
     allocate(threaddata(num_walk_threads))
 
     threaddata(1:num_walk_threads)%finished = .false. ! we do not do this within the following loop because all (!) entries have to be .false. before the first (!) thread starts
@@ -381,14 +383,25 @@ module module_walk
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
+#ifdef OMPSS_TASKS
+      !$OMP target device(smp)
+      !$OMP task in(threaddata(ith))
+      thread_handles(ith)%thread = walk_worker_thread(threaddata(ith))
+      !$OMP end task
+#else
       ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith)), thread_type = THREAD_TYPE_WORKER, counter = ith), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
+#endif
     end do
     
     call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
+#ifdef OMPSS_TASKS
+      !$OMP taskwait
+#else
       ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
+#endif
 
       if (dbg(DBG_WALKSUMMARY)) then
         DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
@@ -487,7 +500,11 @@ module module_walk
   end subroutine uninit_walk_data
 
 
+#ifdef OMPSS_TASKS
+  function walk_worker_thread(my_threaddata)
+#else
   function walk_worker_thread(arg) bind(c)
+#endif
     use, intrinsic :: iso_c_binding
     use pthreads_stuff
     use module_interaction_specific
@@ -499,7 +516,12 @@ module module_walk
     include 'mpif.h'
 
     type(c_ptr) :: walk_worker_thread
+#ifdef OMPSS_TASKS
+    type(t_threaddata), intent(inout) :: my_threaddata
+#else
     type(c_ptr), value :: arg
+    type(t_threaddata), pointer :: my_threaddata
+#endif
 
     integer, dimension(:), allocatable :: thread_particle_indices
     type(t_particle_thread), dimension(:), allocatable :: thread_particle_data
@@ -512,7 +534,6 @@ module module_walk
     integer :: i
     logical :: particles_available
     logical :: particles_active
-    type(t_threaddata), pointer :: my_threaddata
     logical :: shared_core
     integer :: my_max_particles_per_thread
     integer :: my_processor_id
@@ -532,7 +553,9 @@ module module_walk
           my_max_particles_per_thread = max_particles_per_thread
     end if
 
+#ifndef OMPSS_TASKS
     call c_f_pointer(arg, my_threaddata)
+#endif
     my_threaddata%is_on_shared_core = shared_core
     my_threaddata%coreid = my_processor_id
     my_threaddata%finished = .false.
@@ -569,7 +592,11 @@ module module_walk
 
         ! after processing a number of particles: handle control to other (possibly comm) thread
         if (shared_core) then
-          ERROR_ON_FAIL(pthreads_sched_yield())
+#ifdef OMPSS_TASKS
+           call system('sleep 0.001s')
+#else
+           ERROR_ON_FAIL(pthreads_sched_yield())
+#endif
         end if
 
         do i=1,my_max_particles_per_thread
@@ -640,7 +667,11 @@ module module_walk
 
     ! we have to wait here until all threads have started before some of them die again :-)
     do while (atomic_load_int(thread_startup_complete) /= 1)
-      ERROR_ON_FAIL(pthreads_sched_yield())
+#ifdef OMPSS_TASKS
+       call system('sleep 0.001s')
+#else
+       ERROR_ON_FAIL(pthreads_sched_yield())
+#endif
     end do
 
     if (walk_profile) then
@@ -652,7 +683,9 @@ module module_walk
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr
+#ifndef OMPSS_TASKS
     ERROR_ON_FAIL(pthreads_exitthread())
+#endif
 
     contains
   

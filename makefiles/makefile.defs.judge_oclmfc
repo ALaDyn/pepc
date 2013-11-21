@@ -5,7 +5,7 @@
 #  > module load GCC
 
 MOD_UNLOAD = intel parastation mkl
-MOD_LOAD   = OMPSS ompss/git-version cuda extrae
+MOD_LOAD   = OMPSS ompss/git-version cuda extrae GCC
 
 HELP = "\
 \# Makefile for JUDGE using gcc and OmpSs\n\
@@ -18,7 +18,7 @@ OMPSSCC      = oclmfc
 
 MACH     = oclmfc
 
-DEBUG    = 0
+DEBUG    = 1
 
 RANLIB   = ranlib
 
@@ -28,7 +28,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C
+CPPFLAGS = -P -C -DOMPSS_TASKS
 
 FCPRE    = 
 FC       = mpif90
@@ -55,13 +55,13 @@ else
 endif
 
 ifeq ($(OMPSS), 1)
-  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive,-O3
+  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive,-O3 --ompss
   CFLAGS    = -Wall
-  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program,-O3
+  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program,-O3 --ompss
   ifeq ($(DEBUG), 1)
-    FFLAGS  += -g -k# --Wn,-fcheck=all
+    FFLAGS  += -g -k --Wn,-fcheck=all
     CFLAGS  += -g
-    LDFLAGS += -g -k# --Wn,-fcheck=all
+    LDFLAGS += -g -k --Wn,-fcheck=all
   else
     FFLAGS  += -g -k #--Wn,-O3,-finline-functions,-fwhole-program 
     CFLAGS  += -g

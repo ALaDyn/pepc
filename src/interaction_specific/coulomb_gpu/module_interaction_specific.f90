@@ -115,7 +115,11 @@ module module_interaction_specific
         call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_FLUSH)
         do while( atomic_load_int(acc%thread_status) .ne. ACC_THREAD_STATUS_STARTED )
            ! busy loop while the queue is processed
-          ERROR_ON_FAIL(pthreads_sched_yield())
+#ifdef OMPSS_TASKS
+           call system('sleep 0.001s')
+#else
+           ERROR_ON_FAIL(pthreads_sched_yield())
+#endif
         end do
       end subroutine
 
@@ -275,11 +279,22 @@ module module_interaction_specific
             .and. atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTING ) then
            call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
            !tree_comm_thread_counter = tree_comm_thread_counter + 1
+#ifdef OMPSS_TASKS
+           !$OMP target device(smp)
+           !$OMP task
+           acc%acc_thread%thread = acc_loop()
+           !$OMP end task
+#else
            ERROR_ON_FAIL(pthreads_createthread(acc%acc_thread, c_funloc(acc_loop), c_null_ptr, thread_type = THREAD_TYPE_ACCELERATOR, counter = 99))
+#endif
 
            ! we have to wait here until the accelerator has really started
            do while (atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTED)
+#ifdef OMPSS_TASKS
+              call system('sleep 0.001s')
+#else
               ERROR_ON_FAIL(pthreads_sched_yield())
+#endif
            end do
         end if
 
@@ -346,7 +361,11 @@ module module_interaction_specific
 
         ! wait for thread to finish properly
         do while (atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STOPPED)
+#ifdef OMPSS_TASKS
+           call system('sleep 0.001s')
+#else
            ERROR_ON_FAIL(pthreads_sched_yield())
+#endif
         end do
 
         return
