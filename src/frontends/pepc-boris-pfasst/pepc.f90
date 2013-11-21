@@ -219,6 +219,21 @@ program pepc
         end do
       end associate
 
+    case (WM_CYCLOTRONIC_NOTAN)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt)
+        do step=1,nt
+          call print_timestep(step, nt, dt)
+          call drift_cyclotronic(particles, dt/2._8, no_tan_trans=.true.)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call kick_cyclotronic(particles, dt)
+          call drift_cyclotronic(particles, dt/2._8, no_tan_trans=.true.)
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
+        end do
+      end associate
+
     case (WM_BORIS_PATACCHINI)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt, &
@@ -227,7 +242,23 @@ program pepc
           call print_timestep(step, nt, dt)
           call push_particles(particles, dt/2._8)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
-          call kick_boris(particles, dt)
+          call kick_boris_patacchini(particles, dt)
+          call push_particles(particles, dt/2._8)
+          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
+            level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
+        end do
+      end associate
+
+    case (WM_BORIS_PATACCHINI_NOTAN)
+      associate (dt => pepcboris_nml%dt, &
+                 nt => pepcboris_nml%nt, &
+                 params => pepcboris_nml%setup_params)
+        do step=1,nt
+          call print_timestep(step, nt, dt)
+          call push_particles(particles, dt/2._8)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
+          call kick_boris_patacchini(particles, dt, no_tan_trans=.true.)
           call push_particles(particles, dt/2._8)
           call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &

@@ -36,3 +36,10 @@ plot "fort.155" using 1:($4/mean_y) with l  title 'Tajima leap-frog explicit'
 
 fit f(x) "fort.156" u 1:4 via mean_y
 plot "fort.156" using 1:($4/mean_y) with l  title 'Inverting Verlet'
+
+fit f(x) "fort.157" u 1:4 via mean_y
+plot "fort.157" using 1:($4/mean_y) with l  title 'Cyclotronic (no tan trans)'
+
+fit f(x) "fort.158" u 1:4 via mean_y
+plot "fort.158" using 1:($4/mean_y) with l  title 'Boris Patacchini (no tan trans)'
+

@@ -41,7 +41,7 @@ module pepcboris_integrator
     public kick_cyclotronic
     ! dito , boris integrator as given in J.Comp.Phys. 228 (2009), 2604-2615 with the option to (de)activate the
     ! "tan transformation"  \Delta\phi = \Omega\Delta t B0 instead of \Delta\phi = 2atan(\Omega\Delta t/2) B0
-    public kick_boris
+    public kick_boris_patacchini
     ! matrix verlet (specific for penning trap configuration)
     public push_matrix_verlet
 
@@ -312,13 +312,14 @@ module pepcboris_integrator
       end do
    end subroutine
 
-   subroutine drift_cyclotronic(p, dt)
+   subroutine drift_cyclotronic(p, dt, no_tan_trans)
       use module_pepc_types
       use pepcboris_helper
       use module_debug
       implicit none
       type(t_particle), intent(inout) :: p(:)
       real*8, intent(in) :: dt
+      logical, optional, intent(in) :: no_tan_trans
       integer(kind_particle) :: ip
       real*8 :: vprime(2), phi, Omega, B0(3), c, s
 
@@ -331,6 +332,9 @@ module pepcboris_integrator
       do ip = 1, size(p, kind=kind_particle)
         Omega = p(ip)%data%q / p(ip)%data%m * B0(3)
         phi = -Omega*dt
+        if (present(no_tan_trans)) then
+          if (no_tan_trans) phi = -2._8*atan(Omega*dt/2._8)
+        endif
         c = cos(phi)
         s = sin(phi)
 
@@ -346,13 +350,14 @@ module pepcboris_integrator
    end subroutine
 
 
-   subroutine kick_boris(p, dt)
+   subroutine kick_boris_patacchini(p, dt, no_tan_trans)
       use module_pepc_types
       use pepcboris_helper
       use module_debug
       implicit none
       type(t_particle), intent(inout) :: p(:)
       real*8, intent(in) :: dt
+      logical, optional, intent(in) :: no_tan_trans
       integer(kind_particle) :: ip
 
       real*8 :: vstar(3), vsstar(3), phi, Omega, B0(3), c, s
@@ -366,6 +371,9 @@ module pepcboris_integrator
       do ip = 1, size(p, kind=kind_particle)
         Omega = p(ip)%data%q / p(ip)%data%m * B0(3)
         phi = -Omega*dt
+        if (present(no_tan_trans)) then
+          if (no_tan_trans) phi = -2._8*atan(Omega*dt/2._8)
+        endif
         c = cos(phi)
         s = sin(phi)
 

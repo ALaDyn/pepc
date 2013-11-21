@@ -17,15 +17,18 @@
   ! 6  - WM_BORIS_LEAP_FROG
   ! 7  - WM_BORIS_TANALPHA
   ! 8  - WM_TAJIMA_LEAP_FROG_IMPLICT
-  ! 9  - WM_TAJIMA_LEAP_FROG_EXPLICT
+  ! 9  - WM_TAJIMA_LEAP_FROG_EXPLICT 
+  ! 10 - WM_MATRIX_VERLET
+  ! 11 - WM_CYCLOTRONIC_NOTAN
+  ! 12 - WM_BORIS_PATACCHINI_NOTAN
   workingmode = 1
 /
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 8.0
+  tend    = 5.0
   
-  nsteps  = 1024
+  nsteps  = 128
   niter   = 1
   nlevels = 1
   

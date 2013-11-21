@@ -12,4 +12,6 @@ splot "fort.47" using 3:4:5 with lp title 'Boris classical',   \
       "fort.53" using 3:4:5 with lp title 'Boris tan(alpha)/alpha',    \
       "fort.54" using 3:4:5 with lp title 'Tajima leap-frog implicit', \
       "fort.55" using 3:4:5 with lp title 'Tajima leap-frog explicit', \
-      "fort.56" using 3:4:5 with lp title 'Inverting Verlet'
+      "fort.56" using 3:4:5 with lp title 'Inverting Verlet', \
+      "fort.57" using 3:4:5 with lp title 'Cyclotronic (no tan trans)', \
+      "fort.58" using 3:4:5 with lp title 'Boris Patacchini (no tan trans)'
