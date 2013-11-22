@@ -61,6 +61,10 @@ module module_directsum
 
           real*8 :: t1
           integer :: omp_thread_num
+#ifndef OMPSS_TASKS
+          external :: nanos_admit_current_thread, nanos_expel_current_thread
+          call nanos_admit_current_thread()
+#endif
 
           call MPI_COMM_RANK(comm, my_rank, ierr)
           call MPI_COMM_SIZE(comm, n_cpu, ierr)
@@ -165,5 +169,11 @@ module module_directsum
           call calc_force_per_particle(latticeparticles(1:ntest))
           directresults(1:ntest) = latticeparticles(1:ntest)%results
           call timer_stop(t_lattice)
+write(*,*) 'leaving direct sum'
+
+#ifndef OMPSS_TASKS
+          call nanos_expel_current_thread()
+#endif
+
         end subroutine
 end module module_directsum

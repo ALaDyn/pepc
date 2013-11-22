@@ -49,6 +49,11 @@ module module_accelerator
 
       logical :: eps_update
 
+#ifndef OMPSS_TASKS
+      external :: nanos_admit_current_thread, nanos_expel_current_thread
+      call nanos_admit_current_thread()
+#endif
+
       ! store ID of comm-thread processor
       acc%processor_id = get_my_core()
       call atomic_write_barrier()
@@ -117,8 +122,8 @@ module module_accelerator
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
 
 ! run GPU kernel
-!!@!!               !$OMP target device(smp)
-!!@!!               !$OMP task in(gpu(gpu_id:gpu_id), eps2, gpu_id) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
+               !$OMP target device(smp)
+               !$OMP task in(gpu(gpu_id:gpu_id), eps2, gpu_id) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
 
                !OpenACC parallel loop                                                                                 &       
                !OpenACC present(gpu(gpu_id:gpu_id))                                                                   &
@@ -201,11 +206,11 @@ module module_accelerator
                                + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                                     &
                               )
                end do
-!!@%               !$OMP end task
+               !$OMP end task
 
 ! get data from GPU
-!!!@#%@               !$OMP target device(smp)
-!!!@#%@               !$OMP task in(gpu_id, e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) inout(ptr) private(idx)
+               !$OMP target device(smp)
+               !$OMP task in(gpu_id, e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) inout(ptr) private(idx)
                if (gpu_id .eq. size(gpu)) then
                   do idx = 1,size(gpu)
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
@@ -215,9 +220,9 @@ module module_accelerator
                      ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
                   enddo
                endif
-!!$#%#@               !$OMP end task
+               !$OMP end task
 
-!!$#%#@               !$OMP taskwait
+               !$OMP taskwait
                ! kill list
                call critical_section_enter(queue_lock)
 
@@ -279,6 +284,7 @@ module module_accelerator
       acc_loop = c_null_ptr
 #ifndef OMPSS_TASKS
       ERROR_ON_FAIL(pthreads_exitthread())
+      call nanos_expel_current_thread()
 #endif
    
    end function acc_loop
@@ -296,7 +302,7 @@ module module_accelerator
       do while( atomic_load_int(acc%q_len) .le. 5 )
          ! busy loop while the queue is processed
 #ifdef OMPSS_TASKS
-         call system('sleep 0.001s')
+         call sleep(1)
 #else
          ERROR_ON_FAIL(pthreads_sched_yield())
 #endif

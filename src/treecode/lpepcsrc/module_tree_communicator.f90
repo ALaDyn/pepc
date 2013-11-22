@@ -44,7 +44,7 @@
 module module_tree_communicator
   use module_tree, only: t_request_queue_entry, t_tree_communicator, TREE_COMM_REQUEST_QUEUE_LENGTH, TREE_COMM_ANSWER_BUFF_LENGTH, &
     TREE_COMM_THREAD_STATUS_STOPPED, TREE_COMM_THREAD_STATUS_STARTING, TREE_COMM_THREAD_STATUS_STARTED, &
-    TREE_COMM_THREAD_STATUS_STOPPING, TREE_COMM_THREAD_STATUS_WAITING, t_tree  !<- WTF?!?
+    TREE_COMM_THREAD_STATUS_STOPPING, TREE_COMM_THREAD_STATUS_WAITING
   use module_pepc_types
   implicit none
   private
@@ -171,7 +171,7 @@ module module_tree_communicator
     tree_comm_thread_counter = tree_comm_thread_counter + 1
 #ifdef OMPSS_TASKS
     !$OMP target device(smp)
-    !$OMP task
+    !$OMP task inout(t)
     t%communicator%comm_thread%thread = run_communication_loop(t)
     !$OMP end task
 #else
@@ -181,7 +181,7 @@ module module_tree_communicator
     ! we have to wait here until the communicator has really started to find out its processor id
     do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STARTED)
 #ifdef OMPSS_TASKS
-       call system('sleep 0.001s')
+       call sleep(1)
 #else
        ERROR_ON_FAIL(pthreads_sched_yield())
 #endif
@@ -858,7 +858,7 @@ module module_tree_communicator
 
       ! currently, there is no further communication request --> other threads may do something interesting
 #ifdef OMPSS_TASKS
-      call system('sleep 0.001s')
+      call sleep(1)
 #else
       ERROR_ON_FAIL(pthreads_sched_yield())
 #endif

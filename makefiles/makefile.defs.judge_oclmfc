@@ -18,7 +18,7 @@ OMPSSCC      = oclmfc
 
 MACH     = oclmfc
 
-DEBUG    = 1
+DEBUG    = 0
 
 RANLIB   = ranlib
 
@@ -28,7 +28,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -DOMPSS_TASKS
+CPPFLAGS = -P -C# -DOMPSS_TASKS
 
 FCPRE    = 
 FC       = mpif90
@@ -55,17 +55,17 @@ else
 endif
 
 ifeq ($(OMPSS), 1)
-  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive,-O3 --ompss
+  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive --ompss
   CFLAGS    = -Wall
-  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program,-O3 --ompss
+  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program --ompss
   ifeq ($(DEBUG), 1)
     FFLAGS  += -g -k --Wn,-fcheck=all
     CFLAGS  += -g
     LDFLAGS += -g -k --Wn,-fcheck=all
   else
-    FFLAGS  += -g -k #--Wn,-O3,-finline-functions,-fwhole-program 
+    FFLAGS  += -g -k --Wn,-O3#,-finline-functions,-fwhole-program 
     CFLAGS  += -g
-    LDFLAGS += -g #--Wn,-O3,-finline-functions,-fwhole-program
+    LDFLAGS += -g --Wn,-O3#,-finline-functions,-fwhole-program
   endif
   FC += -f90=$(OMPSSCC)
   LD += -f90=$(OMPSSCC)
