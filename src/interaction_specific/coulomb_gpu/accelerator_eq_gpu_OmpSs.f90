@@ -122,8 +122,8 @@ module module_accelerator
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
 
 ! run GPU kernel
-!!!               !$OMP target device(smp)
-!!!               !$OMP task in(gpu(gpu_id:gpu_id), eps2, gpu_id) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
+               !$OMP target device(smp) copy_deps
+               !$OMP task in(gpu(gpu_id:gpu_id), eps2, gpu_id) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
 
                !OpenACC parallel loop                                                                                 &       
                !OpenACC present(gpu(gpu_id:gpu_id))                                                                   &
@@ -206,11 +206,11 @@ module module_accelerator
                                + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                                     &
                               )
                end do
-!!!               !$OMP end task
+               !$OMP end task
 
 ! get data from GPU
-!!!               !$OMP target device(smp)
-!!!               !$OMP task in(gpu_id, e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) inout(ptr) private(idx)
+               !$OMP target device(smp) copy_deps
+               !$OMP task in(gpu_id, e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) inout(ptr) private(idx)
                if (gpu_id .eq. size(gpu)) then
                   do idx = 1,size(gpu)
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
@@ -220,9 +220,9 @@ module module_accelerator
                      ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
                   enddo
                endif
-!!!               !$OMP end task
+               !$OMP end task
 
-!!!               !$OMP taskwait
+               !$OMP taskwait on (ptr)
                ! kill list
                call critical_section_enter(queue_lock)
 

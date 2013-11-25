@@ -182,7 +182,7 @@ int pthreads_exitthread()
 int pthreads_sched_yield()
 {
 #ifdef OMPSS_TASKS
-   unsigned int usecs=50;
+   unsigned int usecs=1; // 50
    return usleep(usecs);
 #else
    return sched_yield();
