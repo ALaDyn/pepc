@@ -97,7 +97,9 @@ module module_walk
   use module_atomic_ops, only: t_atomic_int
   use pthreads_stuff, only: t_pthread_with_type
   implicit none
+#ifndef OMPSS_TASKS
   private
+#endif
   
   !> debug flags - cannot be modified at runtime due to performance reasons
   logical, parameter, public :: walk_debug = .false.
@@ -367,6 +369,26 @@ module module_walk
     implicit none
     include 'mpif.h'
 
+#ifdef OMPSS_TASKS
+    interface
+      !$OMP target device(smp) copy_deps
+      !$OMP task inout(my_threaddata)
+      subroutine walk_worker_thread(my_threaddata)
+          use, intrinsic :: iso_c_binding
+          use pthreads_stuff
+          use module_interaction_specific
+          use module_debug
+          use module_atomic_ops
+          use module_pepc_types
+          use treevars, only: main_thread_processor_id
+          import t_threaddata
+          implicit none
+          include 'mpif.h'
+          type(t_threaddata), intent(inout) :: my_threaddata
+       end subroutine walk_worker_thread
+    end interface
+#endif
+
     integer :: ith
     integer(kind_particle) :: num_processed_particles
 
@@ -384,12 +406,7 @@ module module_walk
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
 #ifdef OMPSS_TASKS
-      !$OMP target device(smp)
-      !!!!!copy_deps
-!!!!      !$OMP task inout(threaddata(ith), thread_handles(ith)) in(ith)
-      !$OMP task
-      thread_handles(ith)%thread = walk_worker_thread(threaddata(ith))
-      !$OMP end task
+      call walk_worker_thread(threaddata(ith))
 #else
       ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith)), thread_type = THREAD_TYPE_WORKER, counter = ith), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
 #endif
@@ -398,20 +415,21 @@ module module_walk
     call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
-#ifdef OMPSS_TASKS
-    !$OMP taskwait
-    if (dbg(DBG_WALKSUMMARY)) then
-       DEBUG_INFO(*, "Hybrid walk finished for all tasks.")
-    end if
-#else
     do ith = 1, num_walk_threads
-      ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
-
-      if (dbg(DBG_WALKSUMMARY)) then
-        DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
-      end if
-    end do
+#ifdef OMPSS_TASKS
+       !$OMP taskwait on (threaddata(ith))
+#else
+       ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
 #endif
+
+       if (dbg(DBG_WALKSUMMARY)) then
+#ifdef OMPSS_TASKS
+          DEBUG_INFO(*, "Hybrid walk finished for task", ith)
+#else
+          DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
+#endif
+       end if
+    end do
 
     ! include 'barrier' to flush all accelerator caches and make sure they are finished
     call notify_and_wait_for_completion()
@@ -505,11 +523,8 @@ module module_walk
   end subroutine uninit_walk_data
 
 
-#ifdef OMPSS_TASKS
-  function walk_worker_thread(my_threaddata)
-#else
+#ifndef OMPSS_TASKS
   function walk_worker_thread(arg) bind(c)
-#endif
     use, intrinsic :: iso_c_binding
     use pthreads_stuff
     use module_interaction_specific
@@ -521,12 +536,8 @@ module module_walk
     include 'mpif.h'
 
     type(c_ptr) :: walk_worker_thread
-#ifdef OMPSS_TASKS
-    type(t_threaddata), intent(inout) :: my_threaddata
-#else
     type(c_ptr), value :: arg
     type(t_threaddata), pointer :: my_threaddata
-#endif
 
     integer, dimension(:), allocatable :: thread_particle_indices
     type(t_particle_thread), dimension(:), allocatable :: thread_particle_data
@@ -558,9 +569,7 @@ module module_walk
           my_max_particles_per_thread = max_particles_per_thread
     end if
 
-#ifndef OMPSS_TASKS
     call c_f_pointer(arg, my_threaddata)
-#endif
     my_threaddata%is_on_shared_core = shared_core
     my_threaddata%coreid = my_processor_id
     my_threaddata%finished = .false.
@@ -680,9 +689,7 @@ module module_walk
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr
-#ifndef OMPSS_TASKS
     ERROR_ON_FAIL(pthreads_exitthread())
-#endif
 
     contains
   
@@ -763,6 +770,7 @@ module module_walk
       defer_list_entries_old =  defer_list_start_pos(idx+1) - defer_list_start_pos(idx)
     end subroutine setup_defer_list
   end function walk_worker_thread
+#endif
 
 
   function walk_single_particle(particle, defer_list_old, defer_list_entries_old, &
@@ -994,3 +1002,249 @@ module module_walk
     end subroutine
   end function walk_single_particle
 end module module_walk
+
+#ifdef OMPSS_TASKS
+subroutine walk_worker_thread(my_threaddata)
+    use, intrinsic :: iso_c_binding
+    use module_walk
+    use pthreads_stuff
+    use module_interaction_specific
+    use module_debug
+    use module_atomic_ops
+    use module_pepc_types
+    use treevars, only: main_thread_processor_id
+    implicit none
+    include 'mpif.h'
+
+    type(t_threaddata), intent(inout) :: my_threaddata
+
+    integer, dimension(:), allocatable :: thread_particle_indices
+    type(t_particle_thread), dimension(:), allocatable :: thread_particle_data
+    integer(kind_node), dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
+    integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
+    integer, dimension(:), allocatable :: defer_list_start_pos
+    integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
+    integer :: defer_list_new_tail
+    integer(kind_node), dimension(:), allocatable :: todo_list
+    integer :: i
+    logical :: particles_available
+    logical :: particles_active
+    logical :: shared_core
+    integer :: my_max_particles_per_thread
+    integer :: my_processor_id
+    logical :: particle_has_finished
+    real*8  :: t_get_new_particle, t_walk_single_particle
+
+    integer(kind_node), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
+    defer_list_root_only(1) = walk_tree%node_root
+
+    my_processor_id = get_my_core()
+    shared_core = (my_processor_id == walk_tree%communicator%processor_id) .or. &
+                  (my_processor_id == main_thread_processor_id)
+
+    if ((shared_core) .and. (num_walk_threads > 1)) then
+          my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
+    else
+          my_max_particles_per_thread = max_particles_per_thread
+    end if
+
+    my_threaddata%is_on_shared_core = shared_core
+    my_threaddata%coreid = my_processor_id
+    my_threaddata%finished = .false.
+    if (walk_profile) then
+      t_get_new_particle = 0._8
+      t_walk_single_particle = 0._8
+
+      my_threaddata%timers(THREAD_TIMER_TOTAL) = - MPI_WTIME()
+      my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = 0
+    end if
+    my_threaddata%counters = 0
+
+    if (my_max_particles_per_thread > 0) then
+      total_defer_list_length = defer_list_length*my_max_particles_per_thread
+
+      allocate(thread_particle_indices(my_max_particles_per_thread), &
+                    thread_particle_data(my_max_particles_per_thread), &
+                      defer_list_start_pos(my_max_particles_per_thread+1), &
+                          partner_leaves(my_max_particles_per_thread))
+      allocate(defer_list_old(1:total_defer_list_length), &
+                defer_list_new(1:total_defer_list_length) )
+      allocate(todo_list(0:todo_list_length - 1))
+
+      thread_particle_indices(:) = -1     ! no particles assigned to this thread
+      particles_available        = .true. ! but there might be particles to be picked by the thread
+      particles_active           = .false.
+
+      do while (particles_active .or. particles_available)
+
+        call swap_defer_lists() ! swap _old and _new - lists
+                                ! we will always read entries from _old and write/copy entries to _new and swap again later
+
+        particles_active = .false.
+
+        ! after processing a number of particles: handle control to other (possibly comm) thread
+        if (shared_core) then
+           ERROR_ON_FAIL(pthreads_sched_yield())
+        end if
+
+        do i=1,my_max_particles_per_thread
+
+          if (contains_particle(i)) then
+            call setup_defer_list(i)
+          else
+            if (walk_profile) then; t_get_new_particle = t_get_new_particle - MPI_WTIME(); end if
+            call get_new_particle_and_setup_defer_list(i)
+            if (walk_profile) then; t_get_new_particle = t_get_new_particle + MPI_WTIME(); end if
+          end if
+
+          if (contains_particle(i)) then
+
+            ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
+            defer_list_start_pos(i) =  defer_list_new_tail
+
+            if (walk_profile) then; t_walk_single_particle = t_walk_single_particle - MPI_WTIME(); end if
+            particle_has_finished  = walk_single_particle(thread_particle_data(i), &
+                                      ptr_defer_list_old, defer_list_entries_old, &
+                                      ptr_defer_list_new, defer_list_entries_new, &
+                                      todo_list, partner_leaves(i), my_threaddata)
+            if (walk_profile) then; t_walk_single_particle = t_walk_single_particle + MPI_WTIME(); end if
+
+            if (particle_has_finished) then
+              ! walk for particle i has finished
+              if (walk_debug) then
+                  DEBUG_INFO('("PE", I6, " particle ", I12, " obviously finished walking around :-)")', walk_tree%comm_env%rank, i)
+              end if
+
+              ! check whether the particle really interacted with all other particles
+              if (partner_leaves(i) .ne. walk_tree%npart) then
+                write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') walk_tree%comm_env%rank, thread_particle_indices(i), thread_particle_data(i)%label
+                write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') walk_tree%npart, partner_leaves(i)
+                write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
+                call debug_mpi_abort()
+              end if
+
+              ! copy forces and potentials back to thread-global array
+              particle_data(thread_particle_indices(i))%data = thread_particle_data(i)%data
+              particle_data(thread_particle_indices(i))%results = thread_particle_data(i)%results
+              ! mark particle entry i as free
+              thread_particle_indices(i)                = -1
+              ! count total processed particles for this thread
+              my_threaddata%counters(THREAD_COUNTER_PROCESSED_PARTICLES) = my_threaddata%counters(THREAD_COUNTER_PROCESSED_PARTICLES) + 1
+            else
+              ! walk for particle i has not been finished
+              defer_list_new_tail = defer_list_new_tail + defer_list_entries_new
+              particles_active    = .true.
+            end if
+
+            if (defer_list_new_tail > total_defer_list_length) then
+              DEBUG_ERROR('("defer_list is full for particle ", I20, " defer_list_length =", I6, ", total =", I0," is too small (you should increase interaction_list_length_factor)")', i, defer_list_length, total_defer_list_length)
+            end if
+          else
+            ! there is no particle to process at position i, set the corresponding defer list to size 0
+            defer_list_start_pos(i) = defer_list_new_tail
+          end if
+        end do ! i=1,my_max_particles_per_thread
+
+        defer_list_start_pos(my_max_particles_per_thread+1) = defer_list_new_tail ! this entry is needed to store the length of the (max_particles_per_thread)th particles defer_list
+      end do
+
+      deallocate(thread_particle_indices, thread_particle_data, defer_list_start_pos, partner_leaves)
+      deallocate(defer_list_old, defer_list_new)
+      deallocate(todo_list)
+    end if
+
+    ! we have to wait here until all threads have started before some of them die again :-)
+    do while (atomic_load_int(thread_startup_complete) /= 1)
+       ERROR_ON_FAIL(pthreads_sched_yield())
+    end do
+
+    if (walk_profile) then
+      my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
+      my_threaddata%timers(THREAD_TIMER_GET_NEW_PARTICLE) = t_get_new_particle
+      my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_PARTICLE) = t_walk_single_particle
+    end if
+    
+    my_threaddata%finished = .true.
+
+    walk_worker_thread = c_null_ptr
+
+    contains
+  
+    subroutine swap_defer_lists()
+      use module_pepc_types, only: kind_node
+      implicit none
+      integer(kind_node), dimension(:), pointer :: tmp_list
+
+      tmp_list       => defer_list_old
+      defer_list_old => defer_list_new
+      defer_list_new => tmp_list
+
+      defer_list_new_tail = 1 ! position of first free entry in defer_list_new (i.e. it is considered as empty now)
+    end subroutine
+
+
+    logical function contains_particle(idx)
+      implicit none
+      integer, intent(in) :: idx
+
+      contains_particle = ( thread_particle_indices(idx) .ge. 0 )
+    end function contains_particle
+
+
+    function get_first_unassigned_particle()
+      use module_atomic_ops, only: atomic_fetch_and_increment_int, atomic_store_int
+      implicit none
+      integer :: get_first_unassigned_particle
+
+      integer :: next_unassigned_particle_local
+
+      next_unassigned_particle_local = atomic_fetch_and_increment_int(next_unassigned_particle)
+
+      if (next_unassigned_particle_local < num_particles + 1) then
+        get_first_unassigned_particle = next_unassigned_particle_local
+      else
+        call atomic_store_int(next_unassigned_particle, num_particles + 1)
+        get_first_unassigned_particle = -1
+      end if
+    end function get_first_unassigned_particle
+
+
+    subroutine get_new_particle_and_setup_defer_list(idx)
+      implicit none
+      integer, intent(in) :: idx
+
+      if (particles_available) then
+        thread_particle_indices(idx) = get_first_unassigned_particle()
+
+        if (contains_particle(idx)) then
+          ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
+          thread_particle_data(idx)%x         = particle_data(thread_particle_indices(idx))%x
+          thread_particle_data(idx)%work     => particle_data(thread_particle_indices(idx))%work
+          thread_particle_data(idx)%key       = particle_data(thread_particle_indices(idx))%key
+          thread_particle_data(idx)%node_leaf = particle_data(thread_particle_indices(idx))%node_leaf
+          thread_particle_data(idx)%label     = particle_data(thread_particle_indices(idx))%label
+          thread_particle_data(idx)%pid       = particle_data(thread_particle_indices(idx))%pid
+          thread_particle_data(idx)%data      = particle_data(thread_particle_indices(idx))%data
+          thread_particle_data(idx)%results  => particle_data(thread_particle_indices(idx))%results
+          thread_particle_data(idx)%queued    =  -1
+          thread_particle_data(idx)%my_idx    = thread_particle_indices(idx)
+          ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
+          ptr_defer_list_old      => defer_list_root_only
+          defer_list_entries_old  =  1
+          partner_leaves(idx)     =  0 ! no interactions yet
+        else
+          particles_available     = .false.
+        end if ! contains_particle(idx)
+      end if ! particles_available
+    end subroutine get_new_particle_and_setup_defer_list
+
+
+    subroutine setup_defer_list(idx)
+      implicit none
+      integer, intent(in) :: idx
+
+      ptr_defer_list_old     => defer_list_old(defer_list_start_pos(idx):defer_list_start_pos(idx+1)-1)
+      defer_list_entries_old =  defer_list_start_pos(idx+1) - defer_list_start_pos(idx)
+    end subroutine setup_defer_list
+ end subroutine walk_worker_thread
+#endif

@@ -211,7 +211,7 @@ module module_tree_communicator
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STOPPING)
 
 #ifdef OMPSS_TASKS
-    !$OMP taskwait
+    !$OMP taskwait on (t)
 #else
     ERROR_ON_FAIL(pthreads_jointhread(t%communicator%comm_thread))
 #endif
