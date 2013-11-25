@@ -39,7 +39,7 @@ eps2 = 0.5
 
 &libpepc
  num_threads = 2
- debug_level = 0
+ debug_level = 64
  np_mult = 1.0
 
 ! Choose sorting routine and load balancing

@@ -180,11 +180,7 @@ module module_tree_communicator
     
     ! we have to wait here until the communicator has really started to find out its processor id
     do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STARTED)
-#ifdef OMPSS_TASKS
-       call sleep(1)
-#else
        ERROR_ON_FAIL(pthreads_sched_yield())
-#endif
     end do
   end subroutine tree_communicator_start
 
@@ -857,11 +853,7 @@ module module_tree_communicator
       !end if
 
       ! currently, there is no further communication request --> other threads may do something interesting
-#ifdef OMPSS_TASKS
-      call sleep(1)
-#else
       ERROR_ON_FAIL(pthreads_sched_yield())
-#endif
 
     end do ! while (.not. t%communicator%comm_thread_stopping)
 

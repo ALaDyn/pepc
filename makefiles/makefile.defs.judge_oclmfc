@@ -28,7 +28,7 @@ AR       = ar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C# -DOMPSS_TASKS
+CPPFLAGS = -P -C -DOMPSS_TASKS
 
 FCPRE    = 
 FC       = mpif90
@@ -55,9 +55,9 @@ else
 endif
 
 ifeq ($(OMPSS), 1)
-  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive --ompss
-  CFLAGS    = -Wall
-  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program --ompss
+  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive --ompss --instrument
+  CFLAGS    = -Wall -DOMPSS_TASKS
+  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program --ompss --instrument
   ifeq ($(DEBUG), 1)
     FFLAGS  += -g -k --Wn,-fcheck=all
     CFLAGS  += -g

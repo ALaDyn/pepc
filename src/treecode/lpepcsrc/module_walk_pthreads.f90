@@ -383,9 +383,9 @@ module module_walk
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
-      write(*,'(3("0x",z16.16,1x))') loc(threaddata), loc(threaddata(ith)), c_loc(threaddata(ith))
 #ifdef OMPSS_TASKS
-      !$OMP target device(smp) copy_deps
+      !$OMP target device(smp)
+      !!!!!copy_deps
 !!!!      !$OMP task inout(threaddata(ith), thread_handles(ith)) in(ith)
       !$OMP task
       thread_handles(ith)%thread = walk_worker_thread(threaddata(ith))
@@ -398,17 +398,20 @@ module module_walk
     call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
-    do ith = 1, num_walk_threads
 #ifdef OMPSS_TASKS
-      !$OMP taskwait
+    !$OMP taskwait
+    if (dbg(DBG_WALKSUMMARY)) then
+       DEBUG_INFO(*, "Hybrid walk finished for all tasks.")
+    end if
 #else
+    do ith = 1, num_walk_threads
       ERROR_ON_FAIL(pthreads_jointhread(thread_handles(ith)))
-#endif
 
       if (dbg(DBG_WALKSUMMARY)) then
         DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
       end if
     end do
+#endif
 
     ! include 'barrier' to flush all accelerator caches and make sure they are finished
     call notify_and_wait_for_completion()
@@ -544,7 +547,7 @@ module module_walk
 
     integer(kind_node), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
     defer_list_root_only(1) = walk_tree%node_root
-!write(*,*) 'in worker thread'
+
     my_processor_id = get_my_core()
     shared_core = (my_processor_id == walk_tree%communicator%processor_id) .or. &
                   (my_processor_id == main_thread_processor_id)
@@ -594,11 +597,7 @@ module module_walk
 
         ! after processing a number of particles: handle control to other (possibly comm) thread
         if (shared_core) then
-#ifdef OMPSS_TASKS
-           call sleep(1)
-#else
            ERROR_ON_FAIL(pthreads_sched_yield())
-#endif
         end if
 
         do i=1,my_max_particles_per_thread
@@ -669,11 +668,7 @@ module module_walk
 
     ! we have to wait here until all threads have started before some of them die again :-)
     do while (atomic_load_int(thread_startup_complete) /= 1)
-#ifdef OMPSS_TASKS
-       call sleep(1)
-#else
        ERROR_ON_FAIL(pthreads_sched_yield())
-#endif
     end do
 
     if (walk_profile) then

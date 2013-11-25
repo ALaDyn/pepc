@@ -301,11 +301,7 @@ module module_accelerator
 
       do while( atomic_load_int(acc%q_len) .le. 5 )
          ! busy loop while the queue is processed
-#ifdef OMPSS_TASKS
-         call sleep(1)
-#else
          ERROR_ON_FAIL(pthreads_sched_yield())
-#endif
       end do
    
       ! have a critical section to make sure only one thread enters data into queue
