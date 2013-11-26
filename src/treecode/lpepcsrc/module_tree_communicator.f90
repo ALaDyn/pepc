@@ -170,9 +170,9 @@ module module_tree_communicator
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
     tree_comm_thread_counter = tree_comm_thread_counter + 1
 #ifdef OMPSS_TASKS
-    !$OMP target device(smp)
+    !$OMP target device(smp) copy_deps
     !$OMP task inout(t)
-    t%communicator%comm_thread%thread = run_communication_loop(t)
+    call run_communication_loop(t)
     !$OMP end task
 #else
     ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp, thread_type = THREAD_TYPE_COMMUNICATOR, counter = tree_comm_thread_counter))
@@ -762,7 +762,7 @@ module module_tree_communicator
   !> @todo Factor out thread scheduling code below and reactivate it.
   !>
 #ifdef OMPSS_TASKS
-  function run_communication_loop(t)
+  subroutine run_communication_loop(t)
 #else
   function run_communication_loop(arg) bind(c)
 #endif
@@ -774,10 +774,10 @@ module module_tree_communicator
     implicit none
     include 'mpif.h'
 
-    type(c_ptr) :: run_communication_loop
 #ifdef OMPSS_TASKS
     type(t_tree), intent(inout) :: t
 #else
+    type(c_ptr) :: run_communication_loop
     type(c_ptr), value :: arg
 
     type(t_tree), pointer :: t
@@ -861,11 +861,14 @@ module module_tree_communicator
 
     t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP) = MPI_WTIME() - t%communicator%timings_comm(TREE_COMM_TIMING_COMMLOOP)
 
+#ifdef OMPSS_TASKS
+  end subroutine run_communication_loop
+#else
     run_communication_loop = c_null_ptr
-#ifndef OMPSS_TASKS
     ERROR_ON_FAIL(pthreads_exitthread())
-#endif
+
   end function run_communication_loop
+#endif
 
 
   !>

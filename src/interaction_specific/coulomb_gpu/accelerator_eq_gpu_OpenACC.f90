@@ -41,16 +41,16 @@ module module_accelerator
       integer :: strt, stp, tck
 #endif
       ! kernel data
-      real*8, dimension(MAX_IACT_PARTNERS, size(gpu)) :: e_1, e_2, e_3, pot
+      real*8, dimension(MAX_IACT_PARTNERS, GPU_STREAMS) :: e_1, e_2, e_3, pot
       type point
          type(t_particle_results), pointer :: results
          real*8, pointer :: work
       end type point
-      type(point), dimension(size(gpu)) :: ptr
+      type(point), dimension(GPU_STREAMS) :: ptr
       real*8 :: e_1_, e_2_, e_3_, pot_
 
       ! GPU kernel stuff... move to a function again?
-      integer :: idx, idx_, queued(size(gpu))
+      integer :: idx, idx_, queued(GPU_STREAMS)
       real*8 :: dist2, eps2, WORKLOAD_PENALTY_INTERACTION
 
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
@@ -110,14 +110,14 @@ module module_accelerator
                call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
                ! find a stream
-               gpu_id = mod(gpu_id,size(gpu)) + 1
+               gpu_id = mod(gpu_id,GPU_STREAMS) + 1
 
 #if defined __OPENACC && defined NVVP
                flushy = mod(flushy+1,5000)
                if ( flushy .eq. 0 ) write(*,*) 'sync ',cudaDeviceSynchronize()
 #endif
 
-               if(gpu_id .lt. 0 .or. gpu_id .gt. size(gpu)) write(*,*) 'BUGGER'
+               if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! move list, copy data
                queued(gpu_id) = acc%acc_queue(tmp_top)%particle%queued
                ptr(gpu_id)%results => acc%acc_queue(tmp_top)%particle%results
@@ -242,9 +242,9 @@ module module_accelerator
                !$acc end parallel loop
 #endif
                ! get data from GPU
-               if (gpu_id .eq. size(gpu)) then
+               if (gpu_id .eq. GPU_STREAMS) then
                   !$acc update host(e_1, e_2, e_3, pot)
-                  do idx = 1,size(gpu)
+                  do idx = 1,GPU_STREAMS
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
                      ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
@@ -280,7 +280,7 @@ module module_accelerator
             ! got signal to flush, so check if there is data to flush - so all work done...
             if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
                ! check if finishing all work ended up using all streams - in which case the flush will have happend
-               if ( .not. (gpu_id .eq. size(gpu)) ) then
+               if ( .not. (gpu_id .eq. GPU_STREAMS) ) then
                   write(*,*) 'flushing GPU - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
                   !$acc update host(e_1, e_2, e_3, pot)
                   do idx = 1,gpu_id

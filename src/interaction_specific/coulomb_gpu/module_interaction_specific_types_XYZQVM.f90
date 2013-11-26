@@ -82,8 +82,9 @@ module module_interaction_specific_types
 
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
-      integer, public, parameter :: MAX_IACT_PARTNERS = 4 * 256 * 4 * 2 ! multiples of 256 because of gang size?
-      integer, public, parameter :: ACC_QUEUE_LENGTH  = 100
+      integer, public, parameter :: MAX_IACT_PARTNERS = 4 * 256 * 4 * 2 ! length of vectors for GPU, multiples of 256 because of gang size?
+      integer, public, parameter :: ACC_QUEUE_LENGTH  = 100             ! how may lists we accept from the workers at one time
+      integer, public, parameter :: GPU_STREAMS = 8                     ! number of GPU lists to prepare, multiple streams may require than one
 
       !> Thread local data structure to store extra interaction information
       ! thread local, since we do not want to ship this via MPI
@@ -119,7 +120,7 @@ module module_interaction_specific_types
          real*8 :: zxquad(1:MAX_IACT_PARTNERS)
       end type mpdelta
 
-      type(mpdelta) :: gpu(1:8)  ! extended to (:) for streams...
+      type(mpdelta) :: gpu(1:GPU_STREAMS)  ! extended to (:) for streams...
       integer :: gpu_id          ! to keep track of streams
 
       type, public :: t_acc_queue_entry

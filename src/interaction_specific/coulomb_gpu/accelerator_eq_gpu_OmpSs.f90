@@ -33,16 +33,16 @@ module module_accelerator
       type(t_particle_thread) :: tmp_particle
       integer :: tmp_top, q_tmp
       ! kernel data
-      real*8, dimension(MAX_IACT_PARTNERS, size(gpu)) :: e_1, e_2, e_3, pot
+      real*8, dimension(MAX_IACT_PARTNERS, GPU_STREAMS) :: e_1, e_2, e_3, pot
       type point
          type(t_particle_results), pointer :: results
          real*8, pointer :: work
       end type point
-      type(point), dimension(size(gpu)) :: ptr
+      type(point), dimension(GPU_STREAMS) :: ptr
       real*8 :: e_1_, e_2_, e_3_, pot_
 
       ! GPU kernel stuff... move to a function again?
-      integer :: idx, idx_, queued(size(gpu))
+      integer :: idx, idx_, queued(GPU_STREAMS)
       real*8 :: dist2, eps2, WORKLOAD_PENALTY_INTERACTION
 
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
@@ -92,9 +92,9 @@ module module_accelerator
                call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
                ! find a stream
-               gpu_id = mod(gpu_id,size(gpu)) + 1
+               gpu_id = mod(gpu_id,GPU_STREAMS) + 1
 
-               if(gpu_id .lt. 0 .or. gpu_id .gt. size(gpu)) write(*,*) 'BUGGER'
+               if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! move list, copy data
                queued(gpu_id) = acc%acc_queue(tmp_top)%particle%queued
                ptr(gpu_id)%results => acc%acc_queue(tmp_top)%particle%results
@@ -124,13 +124,6 @@ module module_accelerator
 ! run GPU kernel
                !$OMP target device(smp) copy_deps
                !$OMP task in(gpu(gpu_id:gpu_id), eps2, gpu_id) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
-
-               !OpenACC parallel loop                                                                                 &       
-               !OpenACC present(gpu(gpu_id:gpu_id))                                                                   &
-               !OpenACC present(eps2)                                                                                 &
-               !OpenACC present(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))                           &
-               !OpenACC private(dist2,rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6)  &
-               !OpenACC async(gpu_id)
                do idx = 1, queued(gpu_id)
              
                   dist2     =         gpu(gpu_id)%delta1(idx) * gpu(gpu_id)%delta1(idx)
@@ -209,20 +202,23 @@ module module_accelerator
                !$OMP end task
 
 ! get data from GPU
-               !$OMP target device(smp) copy_deps
-               !$OMP task in(gpu_id, e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) inout(ptr) private(idx)
-               if (gpu_id .eq. size(gpu)) then
-                  do idx = 1,size(gpu)
+               if (gpu_id .eq. GPU_STREAMS) then
+                  !$OMP target device(smp) copy_deps
+                  !$OMP task in(e_1, e_2, e_3, pot) inout(ptr) private(idx)
+                  do idx = 1,GPU_STREAMS
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
                      ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
                      ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
                      ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
                   enddo
+                  !$OMP end task
                endif
-               !$OMP end task
 
                !$OMP taskwait on (ptr)
+!TODO: this should _not_ be necessary. _however_ we do want to wait for the gpu
+!buffer above before filling it again. I suspect we did this implicitly via this
+!unnecessary taskwait.
                ! kill list
                call critical_section_enter(queue_lock)
 
@@ -250,7 +246,7 @@ module module_accelerator
             ! got signal to flush, so check if there is data to flush - so all work done...
             if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
                ! check if finishing all work ended up using all streams - in which case the flush will have happend
-               if ( .not. (gpu_id .eq. size(gpu)) ) then
+               if ( .not. (gpu_id .eq. GPU_STREAMS) ) then
                   write(*,*) 'flushing GPU - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
                   do idx = 1,gpu_id
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
@@ -310,7 +306,7 @@ module module_accelerator
             local_queue_bottom = atomic_mod_increment_and_fetch_int(acc%q_bottom, ACC_QUEUE_LENGTH)
    
             if (local_queue_bottom == atomic_load_int(acc%q_top)) then
-               ! we should not get here because of the busy-wait right above...
+               ! we should not get here because of the busy-wait for free entries in the queue...
                write(*,*) 'ACC queue exhausted...'
                DEBUG_ERROR(*, "ACC_QUEUE_LENGTH is too small: ", ACC_QUEUE_LENGTH)
             end if
