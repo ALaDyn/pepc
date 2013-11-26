@@ -204,7 +204,7 @@ module module_accelerator
 ! get data from GPU
                if (gpu_id .eq. GPU_STREAMS) then
                   !$OMP target device(smp) copy_deps
-                  !$OMP task in(e_1, e_2, e_3, pot) inout(ptr) private(idx)
+                  !$OMP task in(e_1(:,:), e_2(:,:), e_3(:,:), pot(:,:)) inout(ptr) private(idx)
                   do idx = 1,GPU_STREAMS
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
