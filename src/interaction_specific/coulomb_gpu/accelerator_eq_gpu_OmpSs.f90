@@ -300,7 +300,7 @@ module module_accelerator
       ! (we check its status before we continue from calc_force_prepare)
 
       do
-         if (atomic_fetch_and_decrement_int(acc%q_len) .ge. 0) then
+         if (atomic_fetch_and_decrement_int(acc%q_len) .gt. 1) then
             ! decrease queue indicator and check if we can add in one got
 
             ! have a critical section to make sure only one thread enters data into queue

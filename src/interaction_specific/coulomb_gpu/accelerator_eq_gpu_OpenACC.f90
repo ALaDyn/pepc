@@ -334,43 +334,52 @@ module module_accelerator
       ! when this is called, the accelerator thread is up and running
       ! (we check its status before we continue from calc_force_prepare)
 
-      do while( atomic_load_int(acc%q_len) .le. 5 )
-         ! busy loop while the queue is processed
-         ERROR_ON_FAIL(pthreads_sched_yield())
-      end do
-   
-      ! have a critical section to make sure only one thread enters data into queue
-      call critical_section_enter(queue_lock)
+      do
+         if (atomic_fetch_and_decrement_int(acc%q_len) .gt. 1) then
+            ! decrease queue indicator and check if we can add in one got
 
-         ! thread-safe way of reserving storage for our request
-         local_queue_bottom = atomic_mod_increment_and_fetch_int(acc%q_bottom, ACC_QUEUE_LENGTH)
+            ! have a critical section to make sure only one thread enters data into queue
+            call critical_section_enter(queue_lock)
+
+            ! thread-safe way of reserving storage for our request
+            local_queue_bottom = atomic_mod_increment_and_fetch_int(acc%q_bottom, ACC_QUEUE_LENGTH)
    
-         if (local_queue_bottom == atomic_load_int(acc%q_top)) then
-            ! we should not get here because of the busy-wait right above...
-            write(*,*) 'ACC queue exhausted...'
-            DEBUG_ERROR(*, "ACC_QUEUE_LENGTH is too small: ", ACC_QUEUE_LENGTH)
+            if (local_queue_bottom == atomic_load_int(acc%q_top)) then
+               ! we should not get here because of the busy-wait right above...
+               write(*,*) 'ACC queue exhausted...'
+               DEBUG_ERROR(*, "ACC_QUEUE_LENGTH is too small: ", ACC_QUEUE_LENGTH)
+            end if
+
+            ! the accelerator thread will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
+            DEBUG_ASSERT(.not. acc%acc_queue(local_queue_bottom)%entry_valid)
+
+            ! store link to particle, so we know what forces to update
+            acc%acc_queue(local_queue_bottom)%particle = particle
+            ! move list information to queue, list info in particle will be deleted by calling subroutine...
+            acc%acc_queue(local_queue_bottom)%queued = particle%queued
+            acc%acc_queue(local_queue_bottom)%partner => particle%partner
+            ! store epsilon and work_penalty to preserve original calc_force functionality
+            acc%acc_queue(local_queue_bottom)%eps = eps2
+            acc%acc_queue(local_queue_bottom)%pen = penalty
+
+            call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
+            acc%acc_queue(local_queue_bottom)%entry_valid    = .true.
+
+            call critical_section_leave(queue_lock)
+
+            return
+
+         else
+            ! add to queue indicator again
+            q_tmp = atomic_fetch_and_increment_int(acc%q_len)
+
+            ! busy loop while the queue is processed
+            ERROR_ON_FAIL(pthreads_sched_yield())
          end if
-   
-         ! the accelerator thread will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
-         DEBUG_ASSERT(.not. acc%acc_queue(local_queue_bottom)%entry_valid)
-   
-         ! store link to particle, so we know what forces to update
-         acc%acc_queue(local_queue_bottom)%particle = particle
-         ! move list information to queue, list info in particle will be deleted by calling subroutine...
-         acc%acc_queue(local_queue_bottom)%queued = particle%queued
-         acc%acc_queue(local_queue_bottom)%partner => particle%partner
-         ! store epsilon and work_penalty to preserve original calc_force functionality
-         acc%acc_queue(local_queue_bottom)%eps = eps2
-         acc%acc_queue(local_queue_bottom)%pen = penalty
-         ! change queue indicator 
-         q_tmp = atomic_fetch_and_decrement_int(acc%q_len)
-   
-         call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
-         acc%acc_queue(local_queue_bottom)%entry_valid    = .true.
-
-      call critical_section_leave(queue_lock)
+      end do
 
       return
+
    end subroutine dispatch_list
 
 end module module_accelerator

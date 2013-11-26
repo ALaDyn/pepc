@@ -20,7 +20,7 @@ domain_output = .false.
 reflecting_walls = .false.
 
 ! turn direct summantion test on/off
-particle_test = .true.
+particle_test = .false.
 
 ! size of the simulation box
 plasma_dimensions = 1.0 1.0 1.0
