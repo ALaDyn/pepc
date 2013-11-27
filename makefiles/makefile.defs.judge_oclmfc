@@ -10,44 +10,51 @@ MOD_LOAD   = OMPSS ompss/git-version cuda extrae GCC
 HELP = "\
 \# Makefile for JUDGE using gcc and OmpSs\n\
 \# recommended module commands\n\
-module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
+module purge; module load $(MOD_LOAD)\
 "
 
-OMPSS        = 1
-OMPSSCC      = oclmfc
+######################################
+#### uncomment to get OpenMP loop ####
+#EXTRA = -DOMPSS_TASKS_
 
-MACH     = oclmfc
 
-DEBUG    = 0
+######################################
 
-RANLIB   = ranlib
+OMPSS      = 1
+OMPSSCC    = oclmfc
 
-MAKE     = make
+MACH       = oclmfc
 
-AR       = ar
-ARFLAGS  = -rs
+DEBUG      = 0
+INSTRUMENT = 1
 
-CPP      = cpp
-CPPFLAGS = -P -C -DOMPSS_TASKS
+RANLIB     = ranlib
 
-FCPRE    = 
-FC       = mpif90
+MAKE       = make
 
-CCPRE    = 
-CC       = mpicc
+AR         = ar
+ARFLAGS    = -rs
 
-LDPRE    = 
-LD       = mpif90
-LDLIBS   =
+CPP        = cpp
+CPPFLAGS   = -P -C $(EXTRA) -DOMPSS_TASKS
 
-FFLAGS  = -Wall -ffree-line-length-none -fopenmp -frecursive
-CFLAGS  = -Wall
-LDFLAGS = -pthread -fopenmp -fwhole-program
+FCPRE      = 
+FC         = mpif90
 
+CCPRE      = 
+CC         = mpicc
+
+LDPRE      = 
+LD         = mpif90
+LDLIBS     =
+
+FFLAGS     = -Wall -ffree-line-length-none -fopenmp -frecursive
+CFLAGS     = -Wall
+LDFLAGS    = -pthread -fopenmp
 ifeq ($(DEBUG), 1)
-  FFLAGS  += -g -fcheck=all
+  FFLAGS  += -g -k -fcheck=all
   CFLAGS  += -g
-  LDFLAGS += -g -fcheck=all
+  LDFLAGS += -g -k -fcheck=all
 else
   FFLAGS  += -O3 -g
   CFLAGS  += -O3 -g
@@ -55,20 +62,27 @@ else
 endif
 
 ifeq ($(OMPSS), 1)
-  FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive --ompss --instrument
-  CFLAGS    = -Wall -DOMPSS_TASKS
-  LDFLAGS   = --Wn,-pthread,-fopenmp,-fwhole-program --ompss --instrument
-  ifeq ($(DEBUG), 1)
-    FFLAGS  += -g -k --Wn,-fcheck=all
-    CFLAGS  += -g
-    LDFLAGS += -g -k --Wn,-fcheck=all
-  else
-    FFLAGS  += -g -k --Wn,-O3#,-finline-functions,-fwhole-program 
-    CFLAGS  += -g
-    LDFLAGS += -g --Wn,-O3#,-finline-functions,-fwhole-program
-  endif
-  FC += -f90=$(OMPSSCC)
-  LD += -f90=$(OMPSSCC)
+   FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive --ompss
+   CFLAGS    = -Wall -DOMPSS_TASKS
+   LDFLAGS   = --Wn,-pthread,-fopenmp --ompss
+   ifeq ($(DEBUG), 1)
+      FFLAGS  += -g -k --Wn,-fcheck=all
+      CFLAGS  += -g
+      LDFLAGS += -g -k --Wn,-fcheck=all
+   else
+      FFLAGS  += -g --Wn,-O3#,-finline-functions,-fwhole-program 
+      CFLAGS  += -g
+      LDFLAGS += -g --Wn,-O3#,-finline-functions,-fwhole-program
+   endif
+   FC += -f90=$(OMPSSCC)
+   LD += -f90=$(OMPSSCC)
+   ifeq ($(INSTRUMENT), 1)
+      FFLAGS  += --instrument
+      CFLAGS  +=
+      LDFLAGS += --instrument
+   endif
+else
+   CPPFLAGS += -DNO_NANOS
 endif
 
 #FFLAGS = ""

@@ -113,7 +113,7 @@ module module_directsum
 
             t1 = MPI_WTIME()
 
-#ifdef OMPSS_TASKS___
+#ifdef OMPSS_TASKS_
             !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
 #endif
             do j=1,nreceived
@@ -133,7 +133,7 @@ module module_directsum
 
                 end do
             end do
-#ifdef OMPSS_TASKS___
+#ifdef OMPSS_TASKS_
             !$OMP END PARALLEL DO
 #endif
 

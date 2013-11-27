@@ -76,11 +76,14 @@ module pthreads_stuff
       implicit none
     end function
 
+!!!!!#ifndef OMPSS_TASKS
     integer(c_int) function pthreads_sched_yield() bind(C, name='pthreads_sched_yield')
       use, intrinsic :: iso_c_binding
       implicit none
     end function
+!!!!!#endif
   end interface
+
 
 
   interface
@@ -98,6 +101,14 @@ module pthreads_stuff
   private :: pthreads_createthread_c
 
   contains
+
+!!!!!#ifdef OMPSS_TASKS
+!!!!!    integer(c_int) function pthreads_sched_yield()
+!!!!!      use, intrinsic :: iso_c_binding
+!!!!!      implicit none
+!!!!!      !$OMP taskyield
+!!!!!    end function
+!!!!!#endif
 
   integer(c_int) function pthreads_createthread(thread, start_routine, arg, thread_type, counter)
     use, intrinsic :: iso_c_binding

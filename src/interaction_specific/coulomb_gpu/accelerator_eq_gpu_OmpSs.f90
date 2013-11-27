@@ -50,8 +50,10 @@ module module_accelerator
       logical :: eps_update
 
 #ifndef OMPSS_TASKS
+#ifndef NO_NANOS
       external :: nanos_admit_current_thread, nanos_expel_current_thread
       call nanos_admit_current_thread()
+#endif
 #endif
 
       ! store ID of comm-thread processor
@@ -94,6 +96,12 @@ module module_accelerator
                ! find a stream
                gpu_id = mod(gpu_id,GPU_STREAMS) + 1
 
+               ! wait for the stream...
+               !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
+#ifndef NO_NANOS
+               !$OMP taskwait on (gpu(gpu_id))
+#endif
+
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! move list, copy data
                queued(gpu_id) = acc%acc_queue(tmp_top)%particle%queued
@@ -115,15 +123,16 @@ module module_accelerator
                   gpu(gpu_id)%zxquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%zxquad
                enddo
 
-! update GPU data with gpu(gpu_id:gpu_id)
-
-! update GPU data with eps2
 
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
 
-! run GPU kernel
+               ! run (GPU) kernel
+               !    update GPU data with gpu(gpu_id:gpu_id)
+               !    update GPU data with eps2
+#ifndef NO_NANOS
                !$OMP target device(smp) copy_deps
-               !$OMP task in(gpu(gpu_id:gpu_id), eps2, gpu_id) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
+               !$OMP task in(gpu(gpu_id), eps2, gpu_id) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
+#endif
                do idx = 1, queued(gpu_id)
              
                   dist2     =         gpu(gpu_id)%delta1(idx) * gpu(gpu_id)%delta1(idx)
@@ -199,12 +208,16 @@ module module_accelerator
                                + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                                     &
                               )
                end do
+#ifndef NO_NANOS
                !$OMP end task
+#endif
 
-! get data from GPU
+               ! get data from GPU
                if (gpu_id .eq. GPU_STREAMS) then
+#ifndef NO_NANOS
                   !$OMP target device(smp) copy_deps
                   !$OMP task in(e_1(:,:), e_2(:,:), e_3(:,:), pot(:,:)) inout(ptr) private(idx)
+#endif
                   do idx = 1,GPU_STREAMS
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
@@ -212,13 +225,11 @@ module module_accelerator
                      ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
                      ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
                   enddo
+#ifndef NO_NANOS
                   !$OMP end task
+#endif
                endif
 
-               !$OMP taskwait on (ptr)
-!TODO: this should _not_ be necessary. _however_ we do want to wait for the gpu
-!buffer above before filling it again. I suspect we did this implicitly via this
-!unnecessary taskwait.
                ! kill list
                call critical_section_enter(queue_lock)
 
@@ -243,6 +254,9 @@ module module_accelerator
 
 ! flush GPU buffers at end of timestep
          if (atomic_load_int(acc%thread_status) .eq. ACC_THREAD_STATUS_FLUSH) then
+#ifndef NO_NANOS
+            !$OMP taskwait
+#endif
             ! got signal to flush, so check if there is data to flush - so all work done...
             if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
                ! check if finishing all work ended up using all streams - in which case the flush will have happend
@@ -280,7 +294,9 @@ module module_accelerator
       acc_loop = c_null_ptr
 #ifndef OMPSS_TASKS
       ERROR_ON_FAIL(pthreads_exitthread())
+#ifndef NO_NANOS
       call nanos_expel_current_thread()
+#endif
 #endif
    
    end function acc_loop

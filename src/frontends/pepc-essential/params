@@ -1,10 +1,10 @@
 &pepcessential
 
 ! total number of particles
-tnp = 5010
+tnp = 9010
 
 ! number of time steps
-nt = 2
+nt = 5
 
 ! time step
 dt = 0.5e-2
@@ -34,7 +34,7 @@ mac_select = 0
 ! theta = 0.0
 theta2     = 0.09
 ! eps squared
-eps2 = 0.5
+eps2 = 0.001
 /
 
 &libpepc
