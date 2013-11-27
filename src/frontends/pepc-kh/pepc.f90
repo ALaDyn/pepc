@@ -102,8 +102,8 @@ program pepc
 
     call pepc_particleresults_clear(p)
 
-    call pepc_grow_tree(p)
-    call pepc_traverse_tree(p)
+    !call pepc_grow_tree(p)
+    !call pepc_traverse_tree(p)
     p(:)%results%e(1) = p(:)%results%e(1) * force_const
     p(:)%results%e(2) = p(:)%results%e(2) * force_const
     p(:)%results%pot  = p(:)%results%pot  * force_const
@@ -130,14 +130,14 @@ program pepc
        call t_stop(timer_pio)
     end if
 
-    call pepc_timber_tree()
+    !call pepc_timber_tree()
     !call pepc_restore_particles(p)
 
     call physics_dump(pepc_pars, physics_pars, time_pars, step, p)
         
     call t_start(timer_dynamics)
-    call push_particles(pepc_pars, time_pars, physics_pars, p)
-    call constrain_particles(pepc_pars, time_pars, physics_pars, p)
+    call push_particles(time_pars, physics_pars, p)
+    call constrain_particles(physics_pars, p)
     call t_stop(timer_dynamics)
 
     call timings_GatherAndOutput(step, 0, step == 0)

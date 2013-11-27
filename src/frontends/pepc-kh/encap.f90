@@ -15,7 +15,7 @@ module encap
    end type pepc_pars_t
 
   type :: physics_pars_t
-    real(kind=8) :: B0, vte, vti, qe, qi, me, mi
+    real(kind=8) :: B0, vte, vti, qe, qi, me, mi, shear_halfwidth, shear_velocity
     real(kind=8), dimension(3) :: l_plasma
   end type physics_pars_t
 

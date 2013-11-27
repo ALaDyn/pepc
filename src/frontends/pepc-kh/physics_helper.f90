@@ -3,12 +3,11 @@ module physics_helper
    implicit none
 
    type physics_nml_t
-      real(kind=8) :: m_ratio, T_ratio, B0
+      real(kind=8) :: m_ratio, T_ratio, B0, shear_halfwidth, shear_strength
       real(kind=8), dimension(3) :: l_plasma
    end type physics_nml_t
 
    real(kind = 8), parameter :: force_const = 0.159154943D0
-   real(kind = 8) :: e_constraint
 
    integer, parameter :: file_energy = 70
 
@@ -25,6 +24,7 @@ contains
       use module_interaction_specific, only: include_far_field_if_periodic
       use encap
       use pepc_helper, only: para_file_available, para_file_name
+      implicit none
 
       type(physics_pars_t), intent(out) :: physics_pars
       type(time_pars_t), intent(in) :: time_pars
@@ -45,6 +45,9 @@ contains
       physics_pars%qi  = abs(physics_pars%qe)
       physics_pars%me  = physics_pars%qi
       physics_pars%mi  = physics_nml%m_ratio * physics_pars%qi
+      physics_pars%shear_halfwidth = physics_nml%shear_halfwidth
+      physics_pars%shear_velocity = physics_nml%shear_strength * physics_pars%qi * &
+        physics_pars%B0 / physics_pars%mi * physics_pars%shear_halfwidth
 
       t_lattice_1 = [ physics_pars%l_plasma(1), 0.0D0, 0.0D0 ]
       t_lattice_2 = [ 0.0D0, physics_pars%l_plasma(2), 0.0D0 ]
@@ -73,8 +76,6 @@ contains
         call special_start(pepc_pars, physics_pars, p)
       end if
 
-      e_constraint = 0.0D0
-
    end subroutine setup_physics
 
 
@@ -90,8 +91,10 @@ contains
       real(kind=8) :: T_ratio = 1.0D0
       real(kind=8) :: B0 = 1.0D0
       real(kind=8), dimension(3) :: l_plasma = [ 50.0D0, 125.0D0, 0.0D0 ]
+      real(kind=8) :: shear_halfwidth = 2.0D0
+      real(kind=8) :: shear_strength = 1.0D0
 
-      namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma
+      namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma, shear_halfwidth, shear_strength
 
       integer, parameter :: para_file_id = 10
 
@@ -106,6 +109,8 @@ contains
       physics_namelist%T_ratio = T_ratio
       physics_namelist%B0 = B0
       physics_namelist%l_plasma = l_plasma
+      physics_namelist%shear_halfwidth = shear_halfwidth
+      physics_namelist%shear_strength = shear_strength
 
    end subroutine read_in_physics_params
 
@@ -119,10 +124,12 @@ contains
 
     real(kind=8) :: m_ratio
     real(kind=8) :: T_ratio
+    real(kind=8) :: shear_halfwidth
+    real(kind=8) :: shear_strength
     real(kind=8) :: B0
     real(kind=8), dimension(3) :: l_plasma
 
-    namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma
+    namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma, shear_halfwidth, shear_strength
 
     integer, parameter :: para_file_id = 10
 
@@ -130,6 +137,9 @@ contains
     T_ratio  = m_ratio * (physics_pars%vti / physics_pars%vte)**2
     B0       = physics_pars%B0
     l_plasma = physics_pars%l_plasma
+    shear_halfwidth = physics_pars%shear_halfwidth
+    shear_strength = physics_pars%shear_velocity * physics_pars%mi / &
+      (physics_pars%qi * physics_pars%B0 * physics_pars%shear_halfwidth)
 
     open(para_file_id, file = trim(file_name), status = 'old', position = &
       'append', action = 'write')
@@ -145,110 +155,178 @@ contains
       use module_debug
       use module_rng
       use encap
+      use time_helper
       implicit none
 
       type(pepc_pars_t), intent(in) :: pepc_pars
       type(physics_pars_t), intent(in) :: physics_pars
       type(t_particle), allocatable, intent(inout) :: p(:)
 
-      integer(kind_particle) :: nx, ny, ipl, ipg, ix, iy, np, npp
+      integer(kind_particle) :: np, npp, ni, ne, ip
       integer(kind_default) :: mpi_rank, mpi_size
-      real(kind = 8) :: dx, dy, lx, ly, qi, qe, mi, me, vti, vte, xgc, ygc, B0, rwce, rwci
+      integer, allocatable :: period(:)
+      integer :: it
+      real(kind = 8) :: dx, lx, ly, qi, qe, mi, me, vti, vte, B0, rwce, rwci, v0
+      real(kind = 8), allocatable :: xi(:,:), vi(:,:), xp(:)
+      type(time_pars_t) :: time_pars
+
+      real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
 
       lx = physics_pars%l_plasma(1)
       ly = physics_pars%l_plasma(2)
       qi = physics_pars%qi
       qe = physics_pars%qe
-      me = physics_pars%me
       mi = physics_pars%mi
-      vte = physics_pars%vte
+      me = physics_pars%me
       vti = physics_pars%vti
+      vte = physics_pars%vte
       B0 = physics_pars%B0
+      dx = physics_pars%shear_halfwidth
+      v0 = physics_pars%shear_velocity
 
       rwce = abs(me / (qe * B0))
       rwci = abs(mi / (qi * B0))
 
-      ! place ions on a regular grid, np = 2 x ni = 2 x nx x ny
-      ! nx / ny = Lx / Ly
       mpi_rank = pepc_pars%pepc_comm%mpi_rank
       mpi_size = pepc_pars%pepc_comm%mpi_size
       np = pepc_pars%np
-      npp = np / mpi_size
+      ni = np / (2 * mpi_size)
       if (mpi_rank < mod(np, int(mpi_size, kind=kind_particle))) then
-        npp = npp + 1
+        ni = ni + 1
       end if
-      nx = nint(sqrt(lx * np / (2 * ly)))
-      ny = np / (2 * nx)
-
-      if (2 * nx * ny /= np) then
-        DEBUG_ERROR(*, "No. of particles np = ", np, " cannot be partitioned into nx x ny with nx / ny = Lx / Ly. nx = ", nx, " ny = ", ny, " Lx = ", lx, " Ly = ", ly)
-      end if
+      ne = ni
+      npp = ni + ne
 
       if (mpi_rank == 0) then
         print *, "== [special_start]"
-        print *, "   arranging ", np, " particles on a grid."
-        print *, "   nx x ny = ", nx, " x ", ny, " ion/electron pairs."
+        print *, "   arranging ", np, " particles."
         print *, "   Lx x Ly = ", lx, " x ", ly
         print *, "   mi / me = ", mi / me
         print *, "   Ti / Te = ", (mi * vti**2) / (me * vte**2)
-        print *, "   B0      = ", physics_pars%B0
+        print *, "   B0      = ", B0
         print *, ""
       end if
 
-      dx = lx / nx
-      dy = ly / ny
+      allocate(p(1:npp), xi(ni,3), vi(ni,3), xp(ni))
 
-      allocate(p(1:npp))
+      ! (1) assume a smooth profile for the electric polarization field, hence for the E x B drift velocity
 
-      do ipl = 1, npp
-        ipg = ipl + min(int(mpi_rank, kind=kind_particle), mod(np, int(mpi_size, kind=kind_particle))) * (np / mpi_size + 1) + &
-          max(0_kind_particle, mpi_rank - mod(np, int(mpi_size, kind=kind_particle))) * (np / mpi_size)
+      do ip = 1, ni
+        ! (2) load the ions into the simulation domain with a uniform distribution along the x axis
+        p(ip)%work = 1.0D0
+        p(ip)%data%q = qi
+        p(ip)%data%m = mi
 
-        ! ipg = 1, 3, ... are ions, ipg = 2, 4, ... are electrons, distribute on the same lattice
-        ix = mod((ipg - 1) / 2, nx) + 1
-        iy = (ipg - 1) / (2 * nx) + 1
+        p(ip)%x(1) = (lx / ni) * ip - lx / (2.0D0 * ni)
+        p(ip)%x(2) = ly * rng_next_real()
+        p(ip)%x(3) = 0.0D0
 
-        xgc = (ix - 0.5D0) * dx
-        ygc = (iy - 0.5D0) * dy
+        xi(ip,:) = p(ip)%x(:)
+        xp(ip) = p(ip)%x(1)
 
-        p(ipl)%work = 1.0D0
-        p(ipl)%label = ipg
+        ! (3) give the ions random initial velocities in the positive x direction with a Rayleigh distribution at the desired 
+        ! temperature
+        p(ip)%data%v(1) = velocity_1d_rayleigh(vti)
+        ! and in the y direction give them the local E x B drift velocity
+        p(ip)%data%v(2) = vdrift(p(ip)%x(1))
+        p(ip)%data%v(3) = 0.0D0
 
-        if (mod(ipg, 2_kind_particle) == 0) then ! this is an electron
-          p(ipl)%data%q = qe
-          p(ipl)%data%m = me
-
-          p(ipl)%data%v = velocity_2d_maxwell(vte)
-
-          p(ipl)%x(1) = xgc + p(ipl)%data%v(2) * rwce
-          p(ipl)%x(2) = ygc - p(ipl)%data%v(1) * rwce
-          p(ipl)%x(3) = 0.0D0
-
-        else ! this is an ion
-          p(ipl)%data%q = qi
-          p(ipl)%data%m = mi
-
-          p(ipl)%data%v = velocity_2d_maxwell(vti)
-
-          p(ipl)%x(1) = xgc - p(ipl)%data%v(2) * rwci
-          p(ipl)%x(2) = ygc + p(ipl)%data%v(1) * rwci
-          p(ipl)%x(3) = 0.0D0
-
-          if (p(ipl)%x(1) < 0) then
-            p(ipl)%x(1) = modulo(-p(ipl)%x(1), lx)
-            p(ipl)%data%v(2) = -p(ipl)%data%v(2)
-          end if
-
-        end if
-
-        if (p(ipl)%x(1) > lx) then
-          p(ipl)%x(1) = lx - modulo(p(ipl)%x(1), lx)
-          p(ipl)%data%v(2) = -p(ipl)%data%v(2)
-        end if
-
+        vi(ip,:) = p(ip)%data%v(:)
       end do
 
-      call constrain_periodic(p)
+      ! (4) advance each ion along its trajectory, in the presence of the constant but nonuniform electric field, for a random 
+      ! fraction of its orbital period
+      allocate(period(ni))
+      period = 0
+
+      time_pars%dt = 2.0D0 * pi * rwci / 160.0D0
+
+      it = 0
+      do
+        do ip = 1, ni
+          p(ip)%results%e(1) = estatic(p(ip)%x(1))
+          p(ip)%results%e(2) = 0.0D0
+        end do
+
+        call push_particles(time_pars, physics_pars, p(1:ni))
+        it = it + 1
+
+        do ip = 1, ni
+          if (period(ip) == 0 .and. xp(ip) < xi(ip, 1) .and. p(ip)%x(1) >= xi(ip, 1)) period(ip) = it
+          xp(ip) = p(ip)%x(1)
+        end do
+
+        if (all(period /= 0)) then
+          exit
+        end if
+      end do
+
+      do ip = 1, ni
+        p(ip)%x(:) = xi(ip,:)
+        p(ip)%data%v(:) = vi(ip,:)
+
+        do it = 1, int(rng_next_real() * period(ip))
+          p(ip)%results%e(1) = estatic(p(ip)%x(1))
+          p(ip)%results%e(2) = 0.0D0
+
+          call push_particles(time_pars, physics_pars, p(ip:ip))
+        end do
+      end do
+
+      deallocate(period, xi, vi, xp)
+
+      call constrain_periodic(p(1:ni))
+      do ip = 1, ni
+        if ((p(ip)%x(1) .gt. lx) .or. (p(ip)%x(1) .lt. 0.0D0)) then
+          p(ip)%data%v(1) = -p(ip)%data%v(1)
+          p(ip)%data%v(2) = 2.0D0 * vdrift(p(ip)%x(1)) - p(ip)%data%v(2)
+
+          p(ip)%x(1) = lx - modulo(p(ip)%x(1), lx)
+        end if
+      end do
+
+      do ip = ni + 1, ni + ne
+        p(ip)%work = 1.0D0
+        p(ip)%data%q = qe
+        p(ip)%data%m = me
+
+        p(ip)%x(1) = lx * rng_next_real()
+        p(ip)%x(2) = ly * rng_next_real()
+        p(ip)%x(3) = 0.0D0
+
+        p(ip)%data%v(1:2) = velocity_2d_maxwell(vte / sqrt(sqrt(1 + vdriftp(p(ip)%x(1)) * rwce)))
+        p(ip)%data%v(2) = p(ip)%data%v(2) + vdrift(p(ip)%x(1))
+        p(ip)%data%v(3) = 0.0D0
+      end do
+
+      contains
+
+      function vdrift(x)
+        implicit none
+
+        real*8 :: vdrift
+        real*8, intent(in) :: x
+
+        vdrift = v0 * tanh((x - lx / 2.0D0) / dx)
+      end function
+
+      function vdriftp(x)
+        implicit none
+
+        real*8 :: vdriftp
+        real*8, intent(in) :: x
+
+        vdriftp = v0 * (1.0D0 - tanh((x - lx / 2.0D0) / dx)**2.0D0) / dx
+      end function
+
+      function estatic(x)
+        implicit none
+
+        real*8 :: estatic
+        real*8, intent(in) :: x
+
+        estatic = -v0 * B0 * tanh((x - lx / 2.0D0) / dx)
+      end function
 
    end subroutine special_start
 
@@ -258,7 +336,7 @@ contains
     implicit none
 
     real*8, intent(in) :: vt
-    real*8, dimension(3) :: v
+    real*8, dimension(2) :: v
 
     real*8 :: xi, v0
     real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
@@ -268,9 +346,22 @@ contains
     xi = rng_next_real()
     v(1) = v0 * cos(2 * pi * xi)
     v(2) = v0 * sin(2 * pi * xi)
-    v(3) = 0.0D0
  
   end function velocity_2d_maxwell
+
+
+  function velocity_1d_rayleigh(vt) result(v)
+    use module_rng
+    implicit none
+
+    real*8, intent(in) :: vt
+    real*8 :: v
+
+    real*8 :: xi
+    
+    xi = rng_next_real()
+    v = vt * sqrt(-2.0D0 * log(xi))
+  end function velocity_1d_rayleigh
 
 
   subroutine physics_dump(pepc_pars, physics_pars, time_pars, step, p)
@@ -287,7 +378,7 @@ contains
 
     integer(kind_particle) :: ip
     integer(kind_default) :: mpi_err
-    real(kind = 8) :: e_kin, e_pot, e_kin_g, e_pot_g, e_constraint_g
+    real(kind = 8) :: e_kin, e_pot, e_kin_g, e_pot_g
 
     e_kin = 0.0D0
     e_pot = 0.0D0
@@ -300,8 +391,6 @@ contains
     call mpi_reduce(e_kin, e_kin_g, 1, MPI_REAL8, MPI_SUM, 0, &
       pepc_pars%pepc_comm%mpi_comm, mpi_err)
     call mpi_reduce(e_pot, e_pot_g, 1, MPI_REAL8, MPI_SUM, 0, &
-      pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_reduce(e_constraint, e_constraint_g, 1, MPI_REAL8, MPI_SUM, 0, &
       pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
     if (pepc_pars%pepc_comm%mpi_rank == 0) then
@@ -316,9 +405,8 @@ contains
 
       print *, "== [physics_dump]"
       print *, "   T : ", e_kin_g
-      print *, "   Tc: ", e_constraint_g
       print *, "   V : ", e_pot_g
-      print *, "   H : ", e_kin_g + e_constraint + e_pot_g
+      print *, "   H : ", e_kin_g + e_pot_g
       print *, ""
 
     end subroutine write_to_stdout
@@ -335,7 +423,7 @@ contains
 
       if (.not. (time_pars%nresume > 0 .and. time_pars%nresume == step)) then
         write(file_energy, *) time_pars%dt * step, ", ", e_kin_g, ", ", &
-          e_constraint_g, ", ", e_pot_g, ", ", (e_kin_g + e_constraint_g + e_pot_g)
+          e_pot_g, ", ", (e_kin_g + e_pot_g)
       end if
       close(file_energy)
 

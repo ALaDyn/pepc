@@ -96,12 +96,11 @@ contains
    end subroutine write_time_params
 
 
-   subroutine push_particles(pepc_pars, time_pars, physics_pars, p)
+   subroutine push_particles(time_pars, physics_pars, p)
       use module_pepc_types
       use encap
       implicit none
 
-      type(pepc_pars_t), intent(in) :: pepc_pars
       type(time_pars_t), intent(in) :: time_pars
       type(physics_pars_t), intent(in) :: physics_pars
       type(t_particle), intent(inout) :: p(:)
@@ -153,18 +152,15 @@ contains
    end subroutine push_particles
 
 
-  subroutine constrain_particles(pepc_pars, time_pars, physics_pars, p)
+  subroutine constrain_particles(physics_pars, p)
     use module_pepc_types
     use module_mirror_boxes
 
     use module_rng
     use encap
     use pepc_helper
-    use physics_helper
     implicit none
 
-    type(pepc_pars_t), intent(in) :: pepc_pars
-    type(time_pars_t), intent(in) :: time_pars
     type(physics_pars_t), intent(in) :: physics_pars
     type(t_particle), intent(inout) :: p(:)
 
@@ -176,14 +172,10 @@ contains
     lx  = physics_pars%l_plasma(1)
 
     do ip = 1, size(p)
-      if (p(ip)%x(1) .gt. lx) then
-
-        e_constraint = e_constraint + e_kin_of_particle(p(ip))
+      if ((p(ip)%x(1) .gt. lx) .or. (p(ip)%x(1) .lt. 0.0D0)) then
 
         p(ip)%x(1) = lx - modulo(p(ip)%x(1), lx)
         p(ip)%data%v(1) = -p(ip)%data%v(1)
-
-        e_constraint = e_constraint - e_kin_of_particle(p(ip))
 
       end if
     end do
