@@ -293,10 +293,10 @@ module module_accelerator
    
       acc_loop = c_null_ptr
 #ifndef OMPSS_TASKS
-      ERROR_ON_FAIL(pthreads_exitthread())
 #ifndef NO_NANOS
       call nanos_expel_current_thread()
 #endif
+      ERROR_ON_FAIL(pthreads_exitthread())
 #endif
    
    end function acc_loop
