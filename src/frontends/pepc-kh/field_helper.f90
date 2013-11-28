@@ -156,7 +156,7 @@ contains
     real(kind=8) :: da, rda
 
     call pepc_particleresults_clear(field_grid%p)
-    !call pepc_traverse_tree(field_grid%p)
+    call pepc_traverse_tree(field_grid%p)
     field_grid%p(:)%results%e(1) = field_grid%p(:)%results%e(1) * force_const
     field_grid%p(:)%results%e(2) = field_grid%p(:)%results%e(2) * force_const
     field_grid%p(:)%results%pot  = field_grid%p(:)%results%pot  * force_const

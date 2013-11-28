@@ -17,6 +17,7 @@ module encap
   type :: physics_pars_t
     real(kind=8) :: B0, vte, vti, qe, qi, me, mi, shear_halfwidth, shear_velocity
     real(kind=8), dimension(3) :: l_plasma
+    integer(kind = kind_particle) :: ni
   end type physics_pars_t
 
    type :: time_pars_t

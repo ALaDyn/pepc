@@ -1,10 +1,12 @@
 module physics_helper
+   use module_pepc_types, only: kind_particle
 
    implicit none
 
    type physics_nml_t
       real(kind=8) :: m_ratio, T_ratio, B0, shear_halfwidth, shear_strength
       real(kind=8), dimension(3) :: l_plasma
+      integer(kind = kind_particle) :: ni
    end type physics_nml_t
 
    real(kind = 8), parameter :: force_const = 0.159154943D0
@@ -41,13 +43,14 @@ contains
       physics_pars%l_plasma = physics_nml%l_plasma
       physics_pars%vte = 1.0D0
       physics_pars%vti = physics_pars%vte * sqrt(physics_nml%T_ratio / physics_nml%m_ratio)
-      physics_pars%qe  = -2.0D0 * physics_pars%l_plasma(1) * physics_pars%l_plasma(2) / pepc_pars%np
+      physics_pars%qe  = -physics_pars%l_plasma(1) * physics_pars%l_plasma(2) / physics_nml%ni
       physics_pars%qi  = abs(physics_pars%qe)
       physics_pars%me  = physics_pars%qi
       physics_pars%mi  = physics_nml%m_ratio * physics_pars%qi
       physics_pars%shear_halfwidth = physics_nml%shear_halfwidth
       physics_pars%shear_velocity = physics_nml%shear_strength * physics_pars%qi * &
         physics_pars%B0 / physics_pars%mi * physics_pars%shear_halfwidth
+      physics_pars%ni  = physics_nml%ni
 
       t_lattice_1 = [ physics_pars%l_plasma(1), 0.0D0, 0.0D0 ]
       t_lattice_2 = [ 0.0D0, physics_pars%l_plasma(2), 0.0D0 ]
@@ -80,6 +83,7 @@ contains
 
 
    subroutine read_in_physics_params(physics_namelist, file_available, file_name)
+      use module_pepc_types, only: kind_particle
       use mpi
       implicit none
 
@@ -93,8 +97,9 @@ contains
       real(kind=8), dimension(3) :: l_plasma = [ 50.0D0, 125.0D0, 0.0D0 ]
       real(kind=8) :: shear_halfwidth = 2.0D0
       real(kind=8) :: shear_strength = 1.0D0
+      integer(kind = kind_particle) :: ni = 0
 
-      namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma, shear_halfwidth, shear_strength
+      namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma, shear_halfwidth, shear_strength, ni
 
       integer, parameter :: para_file_id = 10
 
@@ -111,6 +116,7 @@ contains
       physics_namelist%l_plasma = l_plasma
       physics_namelist%shear_halfwidth = shear_halfwidth
       physics_namelist%shear_strength = shear_strength
+      physics_namelist%ni = ni
 
    end subroutine read_in_physics_params
 
@@ -150,7 +156,7 @@ contains
 
 
    subroutine special_start(pepc_pars, physics_pars, p)
-      use module_pepc_types, only: t_particle
+      use module_pepc_types, only: t_particle, kind_particle, kind_default
       use module_mirror_boxes, only: constrain_periodic
       use module_debug
       use module_rng
@@ -158,17 +164,20 @@ contains
       use time_helper
       implicit none
 
-      type(pepc_pars_t), intent(in) :: pepc_pars
+      type(pepc_pars_t), intent(inout) :: pepc_pars
       type(physics_pars_t), intent(in) :: physics_pars
       type(t_particle), allocatable, intent(inout) :: p(:)
 
-      integer(kind_particle) :: np, npp, ni, ne, ip
+      type(t_particle), allocatable :: pt(:)
+      integer(kind_particle) :: np, npp, ni, ne, ip, i
       integer(kind_default) :: mpi_rank, mpi_size
       integer, allocatable :: period(:)
-      integer :: it
-      real(kind = 8) :: dx, lx, ly, qi, qe, mi, me, vti, vte, B0, rwce, rwci, v0
+      integer :: it, ic
+      real(kind = 8) :: lambda, dx, lx, ly, qi, qe, mi, me, vti, vte, B0, rwci, rwce, v0
       real(kind = 8), allocatable :: xi(:,:), vi(:,:), xp(:)
       type(time_pars_t) :: time_pars
+      integer, parameter :: nhist = 128
+      integer(kind_particle), allocatable :: nihist(:), nehist(:)
 
       real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
 
@@ -181,7 +190,7 @@ contains
       vti = physics_pars%vti
       vte = physics_pars%vte
       B0 = physics_pars%B0
-      dx = physics_pars%shear_halfwidth
+      lambda = physics_pars%shear_halfwidth
       v0 = physics_pars%shear_velocity
 
       rwce = abs(me / (qe * B0))
@@ -189,17 +198,11 @@ contains
 
       mpi_rank = pepc_pars%pepc_comm%mpi_rank
       mpi_size = pepc_pars%pepc_comm%mpi_size
-      np = pepc_pars%np
-      ni = np / (2 * mpi_size)
-      if (mpi_rank < mod(np, int(mpi_size, kind=kind_particle))) then
-        ni = ni + 1
-      end if
-      ne = ni
-      npp = ni + ne
+      ni = physics_pars%ni / mpi_size
+      if (mpi_rank < mod(physics_pars%ni, int(mpi_size, kind=kind_particle))) ni = ni + 1
 
       if (mpi_rank == 0) then
         print *, "== [special_start]"
-        print *, "   arranging ", np, " particles."
         print *, "   Lx x Ly = ", lx, " x ", ly
         print *, "   mi / me = ", mi / me
         print *, "   Ti / Te = ", (mi * vti**2) / (me * vte**2)
@@ -207,31 +210,31 @@ contains
         print *, ""
       end if
 
-      allocate(p(1:npp), xi(ni,3), vi(ni,3), xp(ni))
+      allocate(pt(ni), xi(ni,3), vi(ni,3), xp(ni))
 
       ! (1) assume a smooth profile for the electric polarization field, hence for the E x B drift velocity
 
       do ip = 1, ni
         ! (2) load the ions into the simulation domain with a uniform distribution along the x axis
-        p(ip)%work = 1.0D0
-        p(ip)%data%q = qi
-        p(ip)%data%m = mi
+        pt(ip)%work = 1.0D0
+        pt(ip)%data%q = qi
+        pt(ip)%data%m = mi
 
-        p(ip)%x(1) = (lx / ni) * ip - lx / (2.0D0 * ni)
-        p(ip)%x(2) = ly * rng_next_real()
-        p(ip)%x(3) = 0.0D0
+        pt(ip)%x(1) = (lx / ni) * ip - lx / (2.0D0 * ni)
+        pt(ip)%x(2) = ly * rng_next_real()
+        pt(ip)%x(3) = 0.0D0
 
-        xi(ip,:) = p(ip)%x(:)
-        xp(ip) = p(ip)%x(1)
+        xi(ip,:) = pt(ip)%x(:)
+        xp(ip) = pt(ip)%x(1)
 
         ! (3) give the ions random initial velocities in the positive x direction with a Rayleigh distribution at the desired 
         ! temperature
-        p(ip)%data%v(1) = velocity_1d_rayleigh(vti)
+        pt(ip)%data%v(1) = velocity_1d_rayleigh(vti)
         ! and in the y direction give them the local E x B drift velocity
-        p(ip)%data%v(2) = vdrift(p(ip)%x(1))
-        p(ip)%data%v(3) = 0.0D0
+        pt(ip)%data%v(2) = vdrift(pt(ip)%x(1))
+        pt(ip)%data%v(3) = 0.0D0
 
-        vi(ip,:) = p(ip)%data%v(:)
+        vi(ip,:) = pt(ip)%data%v(:)
       end do
 
       ! (4) advance each ion along its trajectory, in the presence of the constant but nonuniform electric field, for a random 
@@ -244,16 +247,16 @@ contains
       it = 0
       do
         do ip = 1, ni
-          p(ip)%results%e(1) = estatic(p(ip)%x(1))
-          p(ip)%results%e(2) = 0.0D0
+          pt(ip)%results%e(1) = estatic(pt(ip)%x(1))
+          pt(ip)%results%e(2) = 0.0D0
         end do
 
-        call push_particles(time_pars, physics_pars, p(1:ni))
+        call push_particles(time_pars, physics_pars, pt(:))
         it = it + 1
 
         do ip = 1, ni
-          if (period(ip) == 0 .and. xp(ip) < xi(ip, 1) .and. p(ip)%x(1) >= xi(ip, 1)) period(ip) = it
-          xp(ip) = p(ip)%x(1)
+          if (period(ip) == 0 .and. xp(ip) < xi(ip, 1) .and. pt(ip)%x(1) >= xi(ip, 1)) period(ip) = it
+          xp(ip) = pt(ip)%x(1)
         end do
 
         if (all(period /= 0)) then
@@ -262,42 +265,84 @@ contains
       end do
 
       do ip = 1, ni
-        p(ip)%x(:) = xi(ip,:)
-        p(ip)%data%v(:) = vi(ip,:)
+        pt(ip)%x(:) = xi(ip,:)
+        pt(ip)%data%v(:) = vi(ip,:)
 
         do it = 1, int(rng_next_real() * period(ip))
-          p(ip)%results%e(1) = estatic(p(ip)%x(1))
-          p(ip)%results%e(2) = 0.0D0
+          pt(ip)%results%e(1) = estatic(pt(ip)%x(1))
+          pt(ip)%results%e(2) = 0.0D0
 
-          call push_particles(time_pars, physics_pars, p(ip:ip))
+          call push_particles(time_pars, physics_pars, pt(ip:ip))
         end do
       end do
 
       deallocate(period, xi, vi, xp)
 
-      call constrain_periodic(p(1:ni))
+      call constrain_periodic(pt(1:ni))
       do ip = 1, ni
-        if ((p(ip)%x(1) .gt. lx) .or. (p(ip)%x(1) .lt. 0.0D0)) then
-          p(ip)%data%v(1) = -p(ip)%data%v(1)
-          p(ip)%data%v(2) = 2.0D0 * vdrift(p(ip)%x(1)) - p(ip)%data%v(2)
+        if ((pt(ip)%x(1) .gt. lx) .or. (pt(ip)%x(1) .lt. 0.0D0)) then
+          pt(ip)%data%v(1) = -pt(ip)%data%v(1)
+          pt(ip)%data%v(2) = 2.0D0 * vdrift(pt(ip)%x(1)) - pt(ip)%data%v(2)
 
-          p(ip)%x(1) = lx - modulo(p(ip)%x(1), lx)
+          pt(ip)%x(1) = lx - modulo(pt(ip)%x(1), lx)
         end if
       end do
 
-      do ip = ni + 1, ni + ne
-        p(ip)%work = 1.0D0
-        p(ip)%data%q = qe
-        p(ip)%data%m = me
+      ! (5) calculate the (ensemble average) ion density profile
+      allocate(nihist(nhist), nehist(nhist))
+      nihist = 0
+      nehist = 0
+      dx = lx / nhist
 
-        p(ip)%x(1) = lx * rng_next_real()
-        p(ip)%x(2) = ly * rng_next_real()
-        p(ip)%x(3) = 0.0D0
-
-        p(ip)%data%v(1:2) = velocity_2d_maxwell(vte / sqrt(sqrt(1 + vdriftp(p(ip)%x(1)) * rwce)))
-        p(ip)%data%v(2) = p(ip)%data%v(2) + vdrift(p(ip)%x(1))
-        p(ip)%data%v(3) = 0.0D0
+      ! TODO: MPI
+      do ip = 1, ni
+        ic = min(ceiling(pt(ip)%x(1) / dx), nhist)
+        nihist(ic) = nihist(ic) + 1
       end do
+
+      print *, "nihist: ", nihist
+      print *, "sum nihist: ", sum(nihist)
+
+      ! (6), (7) calculate the net charge density by the Poisson equation from the electric field 
+      ! and calculate the electron density by subtracting the charge density from the ion density
+      do ic = 1, nhist
+        nehist(ic) = nihist(ic) + floor(ly * dx * estaticp(dx * (ic - 0.5D0)) / qe)
+      end do
+
+      ne = sum(nehist)
+
+      print *, "nehist: ", nehist
+      print *, "sum nehist: ", ne
+
+      npp = ni + ne
+      allocate(p(npp))
+      p(1:ni) = pt(:)
+      deallocate(pt)
+
+      ip = ni
+      do ic = 1, nhist
+        do i = 1, nehist(ic)
+          ip = ip + 1
+
+          p(ip)%work = 1.0D0
+          p(ip)%data%q = qe
+          p(ip)%data%m = me
+
+          ! (8) load the electrons into the simulation domain in such a way as to yield the required electron density
+          p(ip)%x(1) = dx * (ic - 1.0D0 + rng_next_real())
+          p(ip)%x(2) = ly * rng_next_real()
+          p(ip)%x(3) = 0.0D0
+
+          ! (9) give the electrons random initial velocities with a displaced Maxwellian distribution at the modified temperature
+          p(ip)%data%v(1:2) = velocity_2d_maxwell(vte / sqrt(sqrt(1 + vdriftp(p(ip)%x(1)) * rwce)))
+          p(ip)%data%v(2) = p(ip)%data%v(2) + vdrift(p(ip)%x(1))
+          p(ip)%data%v(3) = 0.0D0
+        end do
+      end do
+
+      deallocate(nihist, nehist)
+
+      print *, "num particles: ", ip
 
       contains
 
@@ -307,7 +352,7 @@ contains
         real*8 :: vdrift
         real*8, intent(in) :: x
 
-        vdrift = v0 * tanh((x - lx / 2.0D0) / dx)
+        vdrift = v0 * tanh((x - lx / 2.0D0) / lambda)
       end function
 
       function vdriftp(x)
@@ -316,7 +361,7 @@ contains
         real*8 :: vdriftp
         real*8, intent(in) :: x
 
-        vdriftp = v0 * (1.0D0 - tanh((x - lx / 2.0D0) / dx)**2.0D0) / dx
+        vdriftp = v0 * (1.0D0 - tanh((x - lx / 2.0D0) / lambda)**2.0D0) / lambda
       end function
 
       function estatic(x)
@@ -325,7 +370,16 @@ contains
         real*8 :: estatic
         real*8, intent(in) :: x
 
-        estatic = -v0 * B0 * tanh((x - lx / 2.0D0) / dx)
+        estatic = -B0 * vdrift(x)
+      end function
+
+      function estaticp(x)
+        implicit none
+
+        real*8 :: estaticp
+        real*8, intent(in) :: x
+
+        estaticp = -B0 * vdriftp(x)
       end function
 
    end subroutine special_start
