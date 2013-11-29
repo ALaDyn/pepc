@@ -50,7 +50,7 @@ program pepc
    call t_start(timer_init)
 
    ! initialize pepc library and MPI
-   call pepc_setup(p, pepc_pars)
+   call pepc_setup(pepc_pars)
 
    root = pepc_pars%pepc_comm%mpi_rank.eq.0
 
@@ -103,7 +103,7 @@ program pepc
     call pepc_particleresults_clear(p)
 
     call pepc_grow_tree(p)
-    !call pepc_traverse_tree(p)
+    call pepc_traverse_tree(p)
     p(:)%results%e(1) = p(:)%results%e(1) * force_const
     p(:)%results%e(2) = p(:)%results%e(2) * force_const
     p(:)%results%pot  = p(:)%results%pot  * force_const

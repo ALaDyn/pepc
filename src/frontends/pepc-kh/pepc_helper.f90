@@ -15,13 +15,12 @@ module pepc_helper
 contains
 
 
-   subroutine pepc_setup(p, pepc_pars)
+   subroutine pepc_setup(pepc_pars)
       use encap
       use module_pepc
       use module_pepc_types, only: t_particle, kind_dim, kind_particle
       implicit none
 
-      type(t_particle), dimension(:), allocatable, intent(out) :: p
       type(pepc_pars_t), intent(out) :: pepc_pars
 
       type(pepc_nml_t) :: pepc_nml
@@ -131,8 +130,6 @@ contains
     type(t_particle), allocatable, intent(in) :: p(:)
     integer, intent(in) :: step
 
-    integer(kind_particle) :: i
-    type(vtkfile_unstructured_grid) :: vtk
     integer :: vtk_step
     real*8 :: time
     real*8 :: ta, tb

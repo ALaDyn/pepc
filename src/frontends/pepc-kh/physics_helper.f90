@@ -57,6 +57,7 @@ contains
       t_lattice_3 = [ 0.0D0, 0.0D0, 1.0D0 ]
       if (.not. include_far_field_if_periodic) then
         spatial_interaction_cutoff = huge(0.0D0) * [ 1.0D0, 1.0D0, 1.0D0 ]
+        spatial_interaction_cutoff(2) = max(1, mirror_box_layers) * physics_pars%l_plasma(2)
       end if
       periodicity = [ .false., .true., .false. ]
 
@@ -162,6 +163,7 @@ contains
       use module_rng
       use encap
       use time_helper
+      use mpi
       implicit none
 
       type(pepc_pars_t), intent(inout) :: pepc_pars
@@ -169,14 +171,14 @@ contains
       type(t_particle), allocatable, intent(inout) :: p(:)
 
       type(t_particle), allocatable :: pt(:)
-      integer(kind_particle) :: np, npp, ni, ne, ip, i
-      integer(kind_default) :: mpi_rank, mpi_size
+      integer(kind_particle) :: ni, ne, ip, i, nil, nel, nebefore
+      integer(kind_default) :: mpi_rank, mpi_size, mpi_err
       integer, allocatable :: period(:)
       integer :: it, ic
       real(kind = 8) :: lambda, dx, lx, ly, qi, qe, mi, me, vti, vte, B0, rwci, rwce, v0
       real(kind = 8), allocatable :: xi(:,:), vi(:,:), xp(:)
       type(time_pars_t) :: time_pars
-      integer, parameter :: nhist = 128
+      integer(kind_default), parameter :: nhist = 128
       integer(kind_particle), allocatable :: nihist(:), nehist(:)
 
       real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
@@ -192,14 +194,15 @@ contains
       B0 = physics_pars%B0
       lambda = physics_pars%shear_halfwidth
       v0 = physics_pars%shear_velocity
+      ni = physics_pars%ni
 
       rwce = abs(me / (qe * B0))
       rwci = abs(mi / (qi * B0))
 
       mpi_rank = pepc_pars%pepc_comm%mpi_rank
       mpi_size = pepc_pars%pepc_comm%mpi_size
-      ni = physics_pars%ni / mpi_size
-      if (mpi_rank < mod(physics_pars%ni, int(mpi_size, kind=kind_particle))) ni = ni + 1
+      nil = ni / mpi_size
+      if (mpi_rank < mod(ni, int(mpi_size, kind=kind_particle))) nil = nil + 1
 
       if (mpi_rank == 0) then
         print *, "== [special_start]"
@@ -210,17 +213,17 @@ contains
         print *, ""
       end if
 
-      allocate(pt(ni), xi(ni,3), vi(ni,3), xp(ni))
+      allocate(pt(nil), xi(nil,3), vi(nil,3), xp(nil))
 
       ! (1) assume a smooth profile for the electric polarization field, hence for the E x B drift velocity
 
-      do ip = 1, ni
+      do ip = 1, nil
         ! (2) load the ions into the simulation domain with a uniform distribution along the x axis
         pt(ip)%work = 1.0D0
         pt(ip)%data%q = qi
         pt(ip)%data%m = mi
 
-        pt(ip)%x(1) = (lx / ni) * ip - lx / (2.0D0 * ni)
+        pt(ip)%x(1) = lx * rng_next_real()
         pt(ip)%x(2) = ly * rng_next_real()
         pt(ip)%x(3) = 0.0D0
 
@@ -239,14 +242,14 @@ contains
 
       ! (4) advance each ion along its trajectory, in the presence of the constant but nonuniform electric field, for a random 
       ! fraction of its orbital period
-      allocate(period(ni))
+      allocate(period(nil))
       period = 0
 
       time_pars%dt = 2.0D0 * pi * rwci / 160.0D0
 
       it = 0
       do
-        do ip = 1, ni
+        do ip = 1, nil
           pt(ip)%results%e(1) = estatic(pt(ip)%x(1))
           pt(ip)%results%e(2) = 0.0D0
         end do
@@ -254,7 +257,7 @@ contains
         call push_particles(time_pars, physics_pars, pt(:))
         it = it + 1
 
-        do ip = 1, ni
+        do ip = 1, nil
           if (period(ip) == 0 .and. xp(ip) < xi(ip, 1) .and. pt(ip)%x(1) >= xi(ip, 1)) period(ip) = it
           xp(ip) = pt(ip)%x(1)
         end do
@@ -264,7 +267,7 @@ contains
         end if
       end do
 
-      do ip = 1, ni
+      do ip = 1, nil
         pt(ip)%x(:) = xi(ip,:)
         pt(ip)%data%v(:) = vi(ip,:)
 
@@ -278,8 +281,8 @@ contains
 
       deallocate(period, xi, vi, xp)
 
-      call constrain_periodic(pt(1:ni))
-      do ip = 1, ni
+      call constrain_periodic(pt)
+      do ip = 1, nil
         if ((pt(ip)%x(1) .gt. lx) .or. (pt(ip)%x(1) .lt. 0.0D0)) then
           pt(ip)%data%v(1) = -pt(ip)%data%v(1)
           pt(ip)%data%v(2) = 2.0D0 * vdrift(pt(ip)%x(1)) - pt(ip)%data%v(2)
@@ -291,35 +294,51 @@ contains
       ! (5) calculate the (ensemble average) ion density profile
       allocate(nihist(nhist), nehist(nhist))
       nihist = 0
-      nehist = 0
       dx = lx / nhist
 
-      ! TODO: MPI
-      do ip = 1, ni
+      do ip = 1, nil
         ic = min(ceiling(pt(ip)%x(1) / dx), nhist)
         nihist(ic) = nihist(ic) + 1
       end do
 
-      print *, "nihist: ", nihist
-      print *, "sum nihist: ", sum(nihist)
+      call mpi_allreduce(MPI_IN_PLACE, nihist, nhist, MPI_KIND_PARTICLE, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+
+      !print *, "nihist: ", nihist
+      !print *, "sum nihist: ", sum(nihist)
 
       ! (6), (7) calculate the net charge density by the Poisson equation from the electric field 
       ! and calculate the electron density by subtracting the charge density from the ion density
+      nehist = 0
       do ic = 1, nhist
         nehist(ic) = nihist(ic) + floor(ly * dx * estaticp(dx * (ic - 0.5D0)) / qe)
       end do
 
       ne = sum(nehist)
 
-      print *, "nehist: ", nehist
-      print *, "sum nehist: ", ne
+      !print *, "nehist: ", nehist
+      !print *, "sum nehist: ", ne
 
-      npp = ni + ne
-      allocate(p(npp))
-      p(1:ni) = pt(:)
+      nel = ne / mpi_size
+      if (mpi_rank < mod(ne, int(mpi_size, kind=kind_particle))) nel = nel + 1
+
+      allocate(p(nil + nel))
+      p(1:nil) = pt(:)
       deallocate(pt)
 
-      ip = ni
+      nebefore = (ne / mpi_size + 1) * min(int(mpi_rank, kind = kind_particle), mod(ne, int(mpi_size, kind = kind_particle))) + &
+        (ne / mpi_size) * max(0_kind_particle, mpi_rank - mod(ne, int(mpi_size, kind=kind_particle)))
+
+      do ic = 1, nhist
+        if (nebefore > nehist(ic)) then
+          nebefore = nebefore - nehist(ic)
+          nehist(ic) = 0
+        else
+          nehist(ic) = nehist(ic) - nebefore
+          exit
+        end if
+      end do
+
+      ip = nil
       do ic = 1, nhist
         do i = 1, nehist(ic)
           ip = ip + 1
@@ -337,12 +356,31 @@ contains
           p(ip)%data%v(1:2) = velocity_2d_maxwell(vte / sqrt(sqrt(1 + vdriftp(p(ip)%x(1)) * rwce)))
           p(ip)%data%v(2) = p(ip)%data%v(2) + vdrift(p(ip)%x(1))
           p(ip)%data%v(3) = 0.0D0
+
+          if (ip == nil + nel) exit
         end do
+
+        if (ip == nil + nel) exit
       end do
 
       deallocate(nihist, nehist)
 
-      print *, "num particles: ", ip
+      !print *, "num particles: ", ip
+
+      !vte = 0.0D0
+      !vti = 0.0D0
+      !do ip = 1, nil
+      !  vti = vti + p(ip)%data%v(1)**2 + (p(ip)%data%v(2) - vdrift(p(ip)%x(1)))**2
+      !end do
+      !do ip = nil + 1, nil + nel
+      !  vte = vte + p(ip)%data%v(1)**2 + (p(ip)%data%v(2) - vdrift(p(ip)%x(1)))**2
+      !end do
+
+      !call mpi_allreduce(MPI_IN_PLACE, vti, 1, MPI_REAL8, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      !call mpi_allreduce(MPI_IN_PLACE, vte, 1, MPI_REAL8, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+
+      !if (mpi_rank == 0) &
+      !  print *, "Ti / Te = ", (mi * vti) / (me * vte)
 
       contains
 

@@ -239,11 +239,12 @@ contains
     type(physics_pars_t), intent(in) :: physics_pars
     type(field_grid_t), intent(in) :: field_grid
 
-    integer(kind_particle) :: my_count
+    integer(kind_particle) :: my_count, fflatshape(1)
     integer(kind = MPI_OFFSET_KIND) :: my_offset
     real(kind = 8), dimension(:), allocatable :: fflat
 
     allocate(fflat(field_grid%ntot))
+    fflatshape(1) = field_grid%ntot
 
     my_count = field_grid%nl
     my_offset = min(int(pepc_comm%mpi_rank, kind=kind_particle), &
@@ -255,17 +256,17 @@ contains
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)
     call write_quantity_on_grid("ex", field_grid%p(:)%results%e(1))
     call write_quantity_on_grid("ey", field_grid%p(:)%results%e(2))
-    fflat = reshape(field_grid%ne, [ field_grid%ntot ])
+    fflat = reshape(field_grid%ne, fflatshape)
     call write_quantity_on_grid("ne", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%ni, [ field_grid%ntot ])
+    fflat = reshape(field_grid%ni, fflatshape)
     call write_quantity_on_grid("ni", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vex, [ field_grid%ntot ])
+    fflat = reshape(field_grid%vex, fflatshape)
     call write_quantity_on_grid("vex", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vey, [ field_grid%ntot ])
+    fflat = reshape(field_grid%vey, fflatshape)
     call write_quantity_on_grid("vey", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vix, [ field_grid%ntot ])
+    fflat = reshape(field_grid%vix, fflatshape)
     call write_quantity_on_grid("vix", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%viy, [ field_grid%ntot ])
+    fflat = reshape(field_grid%viy, fflatshape)
     call write_quantity_on_grid("viy", fflat(my_offset + 1:))
 
     deallocate(fflat)
