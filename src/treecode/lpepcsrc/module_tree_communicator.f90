@@ -913,7 +913,7 @@ module module_tree_communicator
       t%communicator%comm_loop_iterations(3) = t%communicator%comm_loop_iterations(3) + 1
       tcomm = MPI_WTIME()
 
-      do while (msg_avail)
+      do! while (msg_avail)
         ipe_sender = stat(MPI_SOURCE)
         msg_tag    = stat(MPI_TAG)
 
@@ -1005,6 +1005,7 @@ module module_tree_communicator
         end select
 
         call MPI_IPROBE(MPI_ANY_SOURCE, MPI_ANY_TAG, t%comm_env%comm, msg_avail, stat, ierr)
+        if (.not. msg_avail) exit
       end do ! while (msg_avail)
 
       t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE) = t%communicator%timings_comm(TREE_COMM_TIMING_RECEIVE) +  (MPI_WTIME() - tcomm)
