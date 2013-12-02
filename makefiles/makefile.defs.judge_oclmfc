@@ -66,13 +66,13 @@ ifeq ($(OMPSS), 1)
    CFLAGS    = -Wall -DOMPSS_TASKS
    LDFLAGS   = --Wn,-pthread,-fopenmp --ompss
    ifeq ($(DEBUG), 1)
-      FFLAGS  += -g -k --Wn,-fcheck=all
+      FFLAGS  += -g -k --Wn,-O0 --Wn,-fcheck=all
       CFLAGS  += -g
-      LDFLAGS += -g -k --Wn,-fcheck=all
+      LDFLAGS += -g -k --Wn,-O0 --Wn,-fcheck=all
    else
-      FFLAGS  += -g --Wn,-O3#,-finline-functions,-fwhole-program 
+      FFLAGS  += -g -k --Wn,-O2#,-finline-functions,-fwhole-program 
       CFLAGS  += -g
-      LDFLAGS += -g --Wn,-O3#,-finline-functions,-fwhole-program
+      LDFLAGS += -g -k --Wn,-O2#,-finline-functions,-fwhole-program
    endif
    FC += -f90=$(OMPSSCC)
    LD += -f90=$(OMPSSCC)
@@ -84,6 +84,7 @@ ifeq ($(OMPSS), 1)
 else
    CPPFLAGS += -DNO_NANOS
 endif
+   CPPFLAGS += -DNO_NANOS
 
 #FFLAGS = ""
 

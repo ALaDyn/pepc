@@ -35,13 +35,34 @@ module module_accelerator
       include 'mpif.h'
    
       type(c_ptr) :: acc_loop
+
       type(t_particle_thread) :: tmp_particle
       integer :: tmp_top, q_tmp
 #ifdef __OPENACC
       integer :: strt, stp, tck
 #endif
+
+      !> Data structures to be fed to the GPU
+      type :: mpdelta
+         real*8 :: delta1(1:MAX_IACT_PARTNERS)
+         real*8 :: delta2(1:MAX_IACT_PARTNERS)
+         real*8 :: delta3(1:MAX_IACT_PARTNERS)
+         real*8 :: charge(1:MAX_IACT_PARTNERS)
+         real*8 :: dip1(1:MAX_IACT_PARTNERS)
+         real*8 :: dip2(1:MAX_IACT_PARTNERS)
+         real*8 :: dip3(1:MAX_IACT_PARTNERS)
+         real*8 :: quad1(1:MAX_IACT_PARTNERS)
+         real*8 :: quad2(1:MAX_IACT_PARTNERS)
+         real*8 :: quad3(1:MAX_IACT_PARTNERS)
+         real*8 :: xyquad(1:MAX_IACT_PARTNERS)
+         real*8 :: yzquad(1:MAX_IACT_PARTNERS)
+         real*8 :: zxquad(1:MAX_IACT_PARTNERS)
+      end type mpdelta
+      type(mpdelta), dimension(:), allocatable :: gpu
+      integer :: gpu_id          ! to keep track of streams
+
       ! kernel data
-      real*8, dimension(MAX_IACT_PARTNERS, GPU_STREAMS) :: e_1, e_2, e_3, pot
+      real*8, dimension(:,:), allocatable :: e_1, e_2, e_3, pot
       type point
          type(t_particle_results), pointer :: results
          real*8, pointer :: work
@@ -63,6 +84,14 @@ module module_accelerator
       call atomic_write_barrier()
 
       write(*,*) 'GPU thread on core ', acc%processor_id
+
+      ! allocate GPU structures on heap...
+      allocate(e_1(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(e_2(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(e_3(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(pot(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(gpu(1:GPU_STREAMS))
+
 
       ! signal we're starting...
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
@@ -315,6 +344,13 @@ module module_accelerator
       call atomic_deallocate_int(acc%q_top)
       call atomic_deallocate_int(acc%q_bottom)
       call atomic_deallocate_int(acc%q_len)
+
+      ! free GPU structures
+      deallocate(e_1)
+      deallocate(e_2)
+      deallocate(e_3)
+      deallocate(pot)
+      deallocate(gpu)
 
       write(*,*) 'GPU thread terminating'
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPED)

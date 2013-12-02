@@ -103,26 +103,6 @@ module module_interaction_specific_types
       end type t_particle_thread
       integer, private, parameter :: nprops_particle_thread = 10
 
-      !> Data structures to be fed to the GPU
-      type mpdelta
-         real*8 :: delta1(1:MAX_IACT_PARTNERS)
-         real*8 :: delta2(1:MAX_IACT_PARTNERS)
-         real*8 :: delta3(1:MAX_IACT_PARTNERS)
-         real*8 :: charge(1:MAX_IACT_PARTNERS)
-         real*8 :: dip1(1:MAX_IACT_PARTNERS)
-         real*8 :: dip2(1:MAX_IACT_PARTNERS)
-         real*8 :: dip3(1:MAX_IACT_PARTNERS)
-         real*8 :: quad1(1:MAX_IACT_PARTNERS)
-         real*8 :: quad2(1:MAX_IACT_PARTNERS)
-         real*8 :: quad3(1:MAX_IACT_PARTNERS)
-         real*8 :: xyquad(1:MAX_IACT_PARTNERS)
-         real*8 :: yzquad(1:MAX_IACT_PARTNERS)
-         real*8 :: zxquad(1:MAX_IACT_PARTNERS)
-      end type mpdelta
-
-      type(mpdelta) :: gpu(1:GPU_STREAMS)  ! extended to (:) for streams...
-      integer :: gpu_id          ! to keep track of streams
-
       type, public :: t_acc_queue_entry
          type(t_particle_thread) :: particle
          type(t_particle_results), pointer :: results

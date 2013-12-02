@@ -30,10 +30,31 @@ module module_accelerator
       include 'mpif.h'
    
       type(c_ptr) :: acc_loop
+
+      !> Data structures to be fed to the GPU
+      type :: mpdelta
+         real*8 :: delta1(1:MAX_IACT_PARTNERS)
+         real*8 :: delta2(1:MAX_IACT_PARTNERS)
+         real*8 :: delta3(1:MAX_IACT_PARTNERS)
+         real*8 :: charge(1:MAX_IACT_PARTNERS)
+         real*8 :: dip1(1:MAX_IACT_PARTNERS)
+         real*8 :: dip2(1:MAX_IACT_PARTNERS)
+         real*8 :: dip3(1:MAX_IACT_PARTNERS)
+         real*8 :: quad1(1:MAX_IACT_PARTNERS)
+         real*8 :: quad2(1:MAX_IACT_PARTNERS)
+         real*8 :: quad3(1:MAX_IACT_PARTNERS)
+         real*8 :: xyquad(1:MAX_IACT_PARTNERS)
+         real*8 :: yzquad(1:MAX_IACT_PARTNERS)
+         real*8 :: zxquad(1:MAX_IACT_PARTNERS)
+      end type mpdelta
+      type(mpdelta), dimension(:), allocatable :: gpu
+      integer :: gpu_id          ! to keep track of streams
+
       type(t_particle_thread) :: tmp_particle
       integer :: tmp_top, q_tmp
+
       ! kernel data
-      real*8, dimension(MAX_IACT_PARTNERS, GPU_STREAMS) :: e_1, e_2, e_3, pot
+      real*8, dimension(:,:), allocatable :: e_1, e_2, e_3, pot
       type point
          type(t_particle_results), pointer :: results
          real*8, pointer :: work
@@ -61,6 +82,13 @@ module module_accelerator
       call atomic_write_barrier()
 
       write(*,*) 'GPU thread on core ', acc%processor_id
+
+      ! allocate GPU structures on heap...
+      allocate(e_1(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(e_2(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(e_3(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(pot(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(gpu(1:GPU_STREAMS))
 
       ! signal we're starting...
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
@@ -93,14 +121,14 @@ module module_accelerator
             if (acc%acc_queue(tmp_top)%entry_valid) then
                call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
-               ! find a stream
-               gpu_id = mod(gpu_id,GPU_STREAMS) + 1
-
                ! wait for the stream...
                !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
 #ifndef NO_NANOS
                !$OMP taskwait on (gpu(gpu_id))
 #endif
+
+               ! find a stream
+               gpu_id = mod(gpu_id,GPU_STREAMS) + 1
 
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! move list, copy data
@@ -287,6 +315,13 @@ module module_accelerator
       call atomic_deallocate_int(acc%q_top)
       call atomic_deallocate_int(acc%q_bottom)
       call atomic_deallocate_int(acc%q_len)
+
+      ! free GPU structures
+      deallocate(e_1)
+      deallocate(e_2)
+      deallocate(e_3)
+      deallocate(pot)
+      deallocate(gpu)
 
       write(*,*) 'GPU thread terminating'
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPED)

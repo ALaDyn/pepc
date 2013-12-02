@@ -373,6 +373,7 @@ FREAL_TYPE_MPI	treecode/sl_pepc/fortran2c_types.h	82;"	d
 FREAL_TYPE_MPI	treecode/sl_pepc/fortran2c_types.h	86;"	d
 GLOBAL_REDUCEBCAST_THRESHOLD	treecode/sl_pepc/sl_pepckeys/sl_tune.h	13;"	d
 GLOBAL_REDUCEBCAST_THRESHOLD	treecode/sl_pepc/sl_pepcparts/sl_tune.h	13;"	d
+GPU_STREAMS	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, public, parameter :: GPU_STREAMS /;"	v	module:module_interaction_specific_types
 GREP	treecode/openpa/openpa/Makefile	/^GREP = \/usr\/bin\/grep$/;"	m
 GREP	treecode/openpa/openpa/src/Makefile	/^GREP = \/usr\/bin\/grep$/;"	m
 GREP	treecode/openpa/openpa/test/Makefile	/^GREP = \/usr\/bin\/grep$/;"	m
@@ -1849,8 +1850,6 @@ __Z_PACK_H__	treecode/sl_pepc/src/include/z_pack.h	10;"	d
 __Z_PACK_RENAME_H__	treecode/sl_pepc/src/include/z_pack_rename.h	10;"	d
 __restrict__	treecode/openpa/openpa/src/config.h	168;"	d
 __restrict__	treecode/openpa/openpa/src/opa_config.h	236;"	d
-__section__nanos_init	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^__attribute__((weak)) __attribute__((section("nanos_init"))) nanos_init_desc_t __section__nanos_init = { nanos_omp_set_interface, (void *)0 };$/;"	v
-__section__nanos_init	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^__attribute__((weak)) __attribute__((section("nanos_init"))) nanos_init_desc_t __section__nanos_init = { nanos_omp_set_interface, (void *)0 };$/;"	v
 _atomic_alloc_int	treecode/openpa/atomic_ops.c	/^OPA_int_t* _atomic_alloc_int()$/;"	f
 _atomic_compare_and_swap_int	treecode/openpa/atomic_ops.c	/^int _atomic_compare_and_swap_int(OPA_int_t* storage, int oldval, int newval)$/;"	f
 _atomic_fetch_and_decrement_int	treecode/openpa/atomic_ops.c	/^int _atomic_fetch_and_decrement_int(OPA_int_t* storage)$/;"	f
@@ -3386,8 +3385,6 @@ cws	treecode/sl_pepc/src/include/sl_types.h	/^  slweight_t *cws, *bin_cws;$/;"	m
 cws	treecode/sl_pepc/src/include/sl_types.h	/^  slweight_t *cws;$/;"	m	struct:_global_bins_t
 data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_data)/;"	k	type:t_particle_thread
 data	treecode/lpepcsrc/module_pepc_types.f90	/^         type(t_particle_data)/;"	k	type:t_particle
-data	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^  void *data;$/;"	m	struct:mcc_struct_anon_22	file:
-data	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^  void *data;$/;"	m	struct:mcc_struct_anon_22	file:
 data0	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_sldata0_t *data0;$/;"	m	struct:pepckeys__elements_t
 data0	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_sldata0_t data0[];$/;"	m	struct:pepckeys__packed_element_t
 data0	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_sldata0_t data0[pepckeys_sl_data0_size_c];$/;"	m	struct:pepckeys__packed_element_t
@@ -4590,7 +4587,6 @@ displs2counts	treecode/sl_pepc/src/include/sl_rename.h	170;"	d
 distcleancheck_listfiles	treecode/openpa/openpa/Makefile	/^distcleancheck_listfiles = find . -type f -print$/;"	m
 distdir	treecode/openpa/openpa/Makefile	/^distdir = $(PACKAGE)-$(VERSION)$/;"	m
 distuninstallcheck_listfiles	treecode/openpa/openpa/Makefile	/^distuninstallcheck_listfiles = find . -type f -print$/;"	m
-dka	treecode/sl_pepc/oclmfc_conftest.f90	/^    INTEGER(4) :: dka(/;"	v	program:main
 doDiag	frontends/pepc-essential/pepc.f90	/^  logical :: doDiag$/;"	v	program:pepc
 docdir	treecode/openpa/openpa/Makefile	/^docdir = ${datarootdir}\/doc\/${PACKAGE_TARNAME}$/;"	m
 docdir	treecode/openpa/openpa/src/Makefile	/^docdir = ${datarootdir}\/doc\/${PACKAGE_TARNAME}$/;"	m
@@ -4857,8 +4853,6 @@ force_law	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^   
 four	interaction_specific/coulomb_gpu/module_coulomb_kernels.f90	/^    real(kfp), parameter :: four /;"	v	module:module_coulomb_kernels
 fposts	treecode/lpepcsrc/module_domains.f90	/^    integer(kind_default), allocatable :: fposts(/;"	k	type:t_decomposition
 free_lpepc_mpi_types	treecode/lpepcsrc/module_pepc_types.f90	/^      subroutine free_lpepc_mpi_types(/;"	s	module:module_pepc_types
-func	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^  nanos_init_func_t (*func);$/;"	m	struct:mcc_struct_anon_22	file:
-func	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^  nanos_init_func_t (*func);$/;"	m	struct:mcc_struct_anon_22	file:
 func_append	treecode/openpa/openpa/confdb/ltmain.sh	/^func_append ()$/;"	f
 func_append	treecode/openpa/openpa/config.status	/^func_append ()\\$/;"	f
 func_append	treecode/openpa/openpa/configure	/^func_append ()\\$/;"	f
@@ -5106,7 +5100,7 @@ global_bins_t	treecode/sl_pepc/src/include/sl_types.h	/^} global_bins_t;$/;"	t	t
 global_tree	treecode/lpepcsrc/module_pepc.f90	/^    type(t_tree), public, target, save :: global_tree$/;"	v	module:module_pepc
 globaldims	utils/module_vtk.f90	/^          integer, private, dimension(2,3) :: globaldims,/;"	v
 gposts	treecode/lpepcsrc/module_domains.f90	/^    integer(kind_default), allocatable :: gposts(/;"	k	type:t_decomposition
-gpu	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(mpdelta) :: gpu(/;"	v	module:module_interaction_specific_types
+gpu	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(mpdelta), dimension(:), allocatable :: gpu /;"	v	module:module_interaction_specific_types
 gpu_id	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer :: gpu_id /;"	v	module:module_interaction_specific_types
 grouped_cas_int_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_int_helper(void *_udata)$/;"	f	file:
 grouped_cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_int_t;$/;"	t	typeref:struct:__anon16	file:
@@ -5482,7 +5476,6 @@ main	treecode/openpa/openpa/test/sanity.c	/^int main(int argc, char **argv)$/;"	
 main	treecode/openpa/openpa/test/test_barriers.c	/^int main(int argc, char **argv)$/;"	f
 main	treecode/openpa/openpa/test/test_primitives.c	/^int main(int argc, char **argv)$/;"	f
 main	treecode/openpa/openpa/test/test_queue.c	/^int main(int argc, char **argv)$/;"	f
-main	treecode/sl_pepc/oclmfc_conftest.f90	/^PROGRAM main$/;"	p
 main_thread_processor_id	treecode/lpepcsrc/treevars.f90	/^  integer :: main_thread_processor_id /;"	v	module:treevars
 make_counts	treecode/sl_pepc/src/core/sort_counting.c	/^void make_counts(elements_t *s, slint_t ncounts, slint_t *counts)  \/* sl_func make_counts *\/$/;"	f
 make_counts	treecode/sl_pepc/src/include/sl_rename.h	189;"	d
@@ -5561,8 +5554,6 @@ maxtag	treecode/lpepcsrc/module_tree_communicator.f90	/^  integer, private, para
 maxwell1	utils/module_velocity_setup.f90	/^        subroutine maxwell1(/;"	s	module:module_velocity_setup
 maxwell2	utils/module_velocity_setup.f90	/^		subroutine maxwell2(/;"	s	module:module_velocity_setup
 maxwell3	utils/module_velocity_setup.f90	/^        subroutine maxwell3(/;"	s	module:module_velocity_setup
-mcc_struct_anon_22	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^struct  mcc_struct_anon_22$/;"	s	file:
-mcc_struct_anon_22	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^struct  mcc_struct_anon_22$/;"	s	file:
 me	treecode/lpepcsrc/treevars.f90	/^  integer(kind_pe) :: me /;"	v	module:treevars
 me_sendrecv_replace_mem	treecode/sl_pepc/src/core_mpi/mpi_elements.c	/^void *me_sendrecv_replace_mem = NULL;  \/* sl_global, sl_var me_sendrecv_replace_mem *\/$/;"	v
 me_sendrecv_replace_mem	treecode/sl_pepc/src/include/sl_rename.h	308;"	d
@@ -5954,10 +5945,6 @@ n1	treecode/openpa/openpa/test/test_primitives.c	/^    int         n1;          
 n_ranks	frontends/pepc-essential/module_helper.f90	/^  integer(kind_pe) :: my_rank, n_ranks$/;"	v	module:helper
 nalloc	treecode/sl_pepc/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon49
 nalloc	treecode/sl_pepc/src/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon54
-nanos_init_desc_t	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^typedef struct mcc_struct_anon_22 nanos_init_desc_t;$/;"	t	typeref:struct:mcc_struct_anon_22	file:
-nanos_init_desc_t	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^typedef struct mcc_struct_anon_22 nanos_init_desc_t;$/;"	t	typeref:struct:mcc_struct_anon_22	file:
-nanos_init_func_t	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^typedef void nanos_init_func_t(void *);$/;"	t	file:
-nanos_init_func_t	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^typedef void nanos_init_func_t(void *);$/;"	t	file:
 nbinnings	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t nbinnings, max_nbinnings;$/;"	m	struct:pepckeys__local_bins_t
 nbinnings	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t nbinnings, max_nbinnings;$/;"	m	struct:pepcparts__local_bins_t
 nbinnings	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t nbinnings, max_nbinnings;$/;"	m	struct:_local_bins_t
@@ -7235,7 +7222,7 @@ rti_tstart	treecode/sl_pepc/src/include/sl_rti_intern.h	64;"	d
 rti_tstart	treecode/sl_pepc/src/include/sl_rti_intern.h	74;"	d
 rti_tstop	treecode/sl_pepc/src/include/sl_rti_intern.h	65;"	d
 rti_tstop	treecode/sl_pepc/src/include/sl_rti_intern.h	75;"	d
-run_communication_loop	treecode/lpepcsrc/module_tree_communicator.f90	/^  function run_communication_loop(/;"	f	module:module_tree_communicator
+run_communication_loop	treecode/lpepcsrc/module_tree_communicator.f90	/^  subroutine run_communication_loop(/;"	s	module:module_tree_communicator
 run_communication_loop_inner	treecode/lpepcsrc/module_tree_communicator.f90	/^  subroutine run_communication_loop_inner(/;"	s
 rwidth	treecode/sl_pepc/include/sl_pepckeys.h	/^    pepckeys_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepckeys__binning_data_t::__anon51
 rwidth	treecode/sl_pepc/include/sl_pepcparts.h	/^    pepcparts_slint_t rhigh, rlow, rwidth;$/;"	m	struct:pepcparts__binning_data_t::__anon50
@@ -8322,7 +8309,6 @@ timings_LocalOutput	treecode/lpepcsrc/module_timings.f90	/^    subroutine timing
 timings_ToFile	treecode/lpepcsrc/module_timings.f90	/^    subroutine timings_ToFile(/;"	s	module:module_timings
 timings_comm	treecode/lpepcsrc/module_tree.f90	/^      real*8 :: timings_comm(/;"	k	type:t_tree_communicator
 timstamp	treecode/lpepcsrc/module_debug.f90	/^     subroutine timstamp(/;"	s	module:module_debug
-tka	treecode/sl_pepc/oclmfc_conftest.f90	/^    INTEGER(4) :: tka(/;"	v	program:main
 tnp	frontends/pepc-essential/module_helper.f90	/^  integer(kind_particle) :: tnp /;"	v	module:helper
 todo_list_length	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer :: todo_list_length,/;"	v	module:module_walk
 todo_list_pop	treecode/lpepcsrc/module_walk_pthreads.f90	/^    function todo_list_pop(/;"	f	function:walk_single_particle
