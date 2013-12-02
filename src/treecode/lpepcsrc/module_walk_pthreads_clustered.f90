@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -34,7 +34,7 @@
 !>      worker threads and waits for them to complete.
 !>    * each worker thread (`walk_worker_thread`)
 !>      grabs a number of particles and performs their
-!>      individual walks. 
+!>      individual walks.
 !>    * if a potential interaction partner of a particle is not available
 !>      locally, it is requested via `tree_node_fetch_children()`
 !>      and the walk for that particle is deferred until later
@@ -98,7 +98,7 @@ module module_walk
   use pthreads_stuff, only: t_pthread_with_type
   implicit none
   private
-  
+
   !> debug flags - cannot be modified at runtime due to performance reasons
   logical, parameter, public :: walk_debug = .false.
   logical, parameter, public :: walk_profile = .false.
@@ -144,19 +144,14 @@ module module_walk
 
   type(t_atomic_int), pointer :: next_unassigned_cluster
   type(t_atomic_int), pointer :: thread_startup_complete
-  
-  type p_particle
-    type(t_particle), pointer :: p
-  end type
-  
+
   type t_thread_cluster_data
     integer(kind_particle) :: n
     real*8 :: cluster_centre(3)
     real*8 :: work
     ! FIXME: should we use separate x,y,z for better vectorization?
     real*8, dimension(:,:), allocatable :: x
-    ! FIXME: do not use pointers here but indices into particle_data(:)
-    type(p_particle), dimension(:), allocatable :: orig_particles
+    integer(kind_particle), dimension(:), allocatable :: orig_particles
   end type
 
   ! local walktime (i.e. from comm_loop start until send_walk_finished() )
@@ -225,7 +220,7 @@ module module_walk
     do i = 1, num_pe
       work_imbal = work_imbal + abs(num_interactions(i) - average_interactions) / average_interactions / num_pe
     end do
-    
+
     call MPI_REDUCE(thread_counters_nonshared_avg(:), global_thread_counters_nonshared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
     call MPI_REDUCE(thread_counters_shared_avg(:), global_thread_counters_shared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
     call MPI_REDUCE(thread_counters_nonshared_dev(:), global_thread_counters_nonshared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
@@ -271,7 +266,7 @@ module module_walk
       write (u,*) '######## DETAILED DATA ####################################################################'
       write (u,'(a/(i10,2i15,F10.4))') '        PE  #interactions     #mac_evals  rel.work', &
         (i-1, int(num_interactions(i)), int(num_mac_evaluations(i)), num_interactions(i) / average_interactions, i = 1, num_pe)
-                                          
+
     end if
 
     deallocate(num_interactions, num_mac_evaluations)
@@ -396,7 +391,7 @@ module module_walk
       threaddata(ith)%id = ith
       ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith)), thread_type = THREAD_TYPE_WORKER, counter = ith), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
-    
+
     call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
@@ -464,7 +459,7 @@ module module_walk
     use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
     use module_debug
     implicit none
-    
+
     ! find particle clusters
     call identify_particle_clusters()
 
@@ -497,7 +492,7 @@ module module_walk
     call atomic_deallocate_int(thread_startup_complete)
 
     deallocate(thread_handles)
-    
+
     deallocate(particle_clusters)
   end subroutine uninit_walk_data
 
@@ -505,14 +500,14 @@ module module_walk
   subroutine identify_particle_clusters()
     use module_pepc_types, only: kind_particle, kind_key
     implicit none
-    
+
     integer(kind_particle) :: i, np, nclusters
     integer(kind_key) :: lastkey
-    
-    ! FIXME: we have to assure, that all particle keys are available and are sorted 
+
+    ! FIXME: we have to assure, that all particle keys are available and are sorted
     ! FIXME: (should be done outside of the loop over all neighbour boxes); do not forget to restore original order afterwards
     np = size(particle_data, kind=kind(np))
-    
+
     nclusters = 1
     lastkey   = clustermask(particle_data(1)%key)
     do i=1,np
@@ -521,10 +516,10 @@ module module_walk
         nclusters = nclusters + 1
       endif
     end do
-    
+
     num_clusters = nclusters
     allocate(particle_clusters(2,num_clusters))
-    
+
     nclusters = 1
     lastkey   = clustermask(particle_data(1)%key)
     particle_clusters(1,nclusters) = 1
@@ -536,7 +531,7 @@ module module_walk
         particle_clusters(1,nclusters) = i
       endif
     end do
-      
+
     particle_clusters(2,nclusters) = i - particle_clusters(1,nclusters)
 
     contains
@@ -544,12 +539,12 @@ module module_walk
         implicit none
         integer(kind_key), intent(in) :: k
         integer(kind_key) :: clustermask
-        
+
         ! FIXME: make this more generic (maxlev, idim, etc.)
         clustermask = ishft(k, -3*(21_kind_level-particle_cluster_level))
-        
+
       end function
-    
+
   end subroutine
 
   function walk_worker_thread(arg) bind(c)
@@ -574,7 +569,7 @@ module module_walk
     integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
     integer :: defer_list_new_tail
     integer(kind_node), dimension(:), allocatable :: todo_list
-    integer :: i, p
+    integer :: i
     logical :: clusters_available
     logical :: clusters_active
     type(t_threaddata), pointer :: my_threaddata
@@ -715,14 +710,14 @@ module module_walk
       my_threaddata%timers(THREAD_TIMER_GET_NEW_CLUSTER) = t_get_new_cluster
       my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_CLUSTER) = t_walk_single_cluster
     end if
-    
+
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr
     ERROR_ON_FAIL(pthreads_exitthread())
 
     contains
-  
+
     subroutine swap_defer_lists()
       use module_pepc_types, only: kind_node
       implicit none
@@ -778,16 +773,16 @@ module module_walk
           allocate(thread_cluster_data(idx)%orig_particles(thread_cluster_data(idx)%n))
           thread_cluster_data(idx)%work = 0.
           thread_cluster_data(idx)%cluster_centre(:) = 0.
-          
+
           do i=1,thread_cluster_data(idx)%n
             thread_cluster_data(idx)%x(1:3,i) = particle_data(particle_clusters(1,thread_cluster_indices(idx))+i-1)%x - vbox
             !FIXME: compute coc correctly
             thread_cluster_data(idx)%cluster_centre(:) = thread_cluster_data(idx)%cluster_centre(:) + thread_cluster_data(idx)%x(:,i)
-            thread_cluster_data(idx)%orig_particles(i)%p => particle_data(particle_clusters(1,thread_cluster_indices(idx))+i-1)
+            thread_cluster_data(idx)%orig_particles(i) = particle_clusters(1,thread_cluster_indices(idx))+i-1
           end do
-          
+
           thread_cluster_data(idx)%cluster_centre = thread_cluster_data(idx)%cluster_centre / thread_cluster_data(idx)%n
-          
+
           ! for clusters that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
@@ -797,16 +792,16 @@ module module_walk
         end if ! contains_cluster(idx)
       end if ! clusters_available
     end subroutine get_new_cluster_and_setup_defer_list
-    
-    
+
+
     subroutine wipe_cluster(idx)
       implicit none
       integer, intent(in) :: idx
-      
+
       thread_cluster_data(idx)%n = 0
       deallocate(thread_cluster_data(idx)%x)
       deallocate(thread_cluster_data(idx)%orig_particles)
-      
+
     end subroutine
 
 
@@ -841,7 +836,7 @@ module module_walk
     integer, intent(in) :: defer_list_entries_old
     integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
     integer, intent(out) :: defer_list_entries_new
-    integer(kind_node), intent(inout) :: todo_list(0:todo_list_length-1) 
+    integer(kind_node), intent(inout) :: todo_list(0:todo_list_length-1)
     integer(kind_node), intent(inout) :: partner_leaves
     type(t_threaddata), intent(inout) :: my_threaddata
     logical :: walk_single_cluster !< function will return .true. if this cluster has finished its walk
@@ -871,7 +866,7 @@ module module_walk
     ! read all todo_list-entries and start further traversals there
     do while (todo_list_pop(walk_node_idx))
       walk_node => walk_tree%nodes(walk_node_idx)
-      
+
       ! we may not interact with the cluster itself or its ancestors
       ! if we are in the central box
       ! interaction with ancestor nodes should be prevented by the MAC
@@ -889,15 +884,15 @@ module module_walk
         do ipart=1,cluster%n
           pdelta = cluster%x(:,ipart) - walk_node%interaction_data%coc ! Separation vector
           pdist2 = DOT_PRODUCT(pdelta, pdelta)
-        
+
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
           if (any(abs(pdelta) >= spatial_interaction_cutoff)) cycle
           #endif
 
           if (pdist2 > 0.0_8) then ! not self, interact
-            call calc_force_per_interaction_with_leaf(cluster%orig_particles(ipart)%p, walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+            call calc_force_per_interaction_with_leaf(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
           else ! self, count as interaction partner, otherwise ignore
-            call calc_force_per_interaction_with_self(cluster%orig_particles(ipart)%p, walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+            call calc_force_per_interaction_with_self(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
           end if
 
           num_interactions = num_interactions + 1
@@ -917,7 +912,7 @@ module module_walk
             if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
             #endif
 
-            call calc_force_per_interaction_with_twig(cluster%orig_particles(ipart)%p, walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+            call calc_force_per_interaction_with_twig(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
             num_interactions = num_interactions + 1
           end do
         else ! MAC negative, resolve
@@ -958,7 +953,7 @@ module module_walk
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
         ! eager requests
-        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, cluster%orig_particles(1)%p, cluster%cluster_centre) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(cluster%orig_particles(1)), cluster%cluster_centre) ! fetch children from remote
         ! simple requests
         ! FIXME: the particle has to be given here for technical reasons, see documentation of tree_node_fetch_children for details
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)

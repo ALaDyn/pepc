@@ -446,7 +446,7 @@ module module_pepc
     !>
     subroutine pepc_statistics(itime)
         use module_tree, only: tree_stats
-        use module_walk, only: tree_walk_statistics, interactions_local, mac_evaluations_local
+        use module_walk, only: tree_walk_statistics
         use module_utils, only: create_directory
         use treevars, only: me, stats_u
         use module_debug
@@ -460,9 +460,6 @@ module module_pepc
         call timer_start(t_fields_stats)
         if (firstcall) then
           call create_directory("stats")
-          if (dbg(DBG_LOADFILE)) then
-            call create_directory("load")
-          end if
           firstcall = .false.
         end if
 
@@ -471,13 +468,6 @@ module module_pepc
         call tree_stats(global_tree, stats_u)
         call tree_walk_statistics(stats_u)
         if (0 == me) then; close (stats_u); end if
-
-        if( dbg(DBG_LOADFILE) ) then
-            write(cfile,'("load/load_",i6.6,".dat")') me
-            open(60, file=trim(cfile),STATUS='UNKNOWN', POSITION = 'APPEND')
-            write(60,'(i5,2f20.10, i12)') itime, interactions_local, mac_evaluations_local, global_tree%npart_me
-            close(60)
-        end if
 
         call timer_stop(t_fields_stats)
     end subroutine
