@@ -138,10 +138,8 @@ module module_walk
 
   type t_thread_cluster_data
     integer(kind_particle) :: n
-    real*8 :: cluster_centre(3)
+    real*8 :: cluster_centre(3) ! already shifted by vbox
     real*8 :: work
-    ! FIXME: should we use separate x,y,z for better vectorization?
-    real*8, dimension(:,:), allocatable :: x
     integer(kind_particle), dimension(:), allocatable :: orig_particles
   end type
 
@@ -658,19 +656,17 @@ module module_walk
           ! we make a copy of all cluster data to avoid thread-concurrent access to particle_data array
           ! and to be able to make more efficient use of vectorization later
           thread_cluster_data(idx)%n = particle_clusters(2,thread_cluster_indices(idx))
-          allocate(thread_cluster_data(idx)%x(3, thread_cluster_data(idx)%n))
           allocate(thread_cluster_data(idx)%orig_particles(thread_cluster_data(idx)%n))
           thread_cluster_data(idx)%work = 0.
           thread_cluster_data(idx)%cluster_centre(:) = 0.
 
           do i=1,thread_cluster_data(idx)%n
-            thread_cluster_data(idx)%x(1:3,i) = particle_data(particle_clusters(1,thread_cluster_indices(idx))+i-1)%x - vbox
             !FIXME: compute coc correctly
-            thread_cluster_data(idx)%cluster_centre(:) = thread_cluster_data(idx)%cluster_centre(:) + thread_cluster_data(idx)%x(:,i)
+            thread_cluster_data(idx)%cluster_centre(:) = thread_cluster_data(idx)%cluster_centre(:) + particle_data(particle_clusters(1,thread_cluster_indices(idx))+i-1)%x
             thread_cluster_data(idx)%orig_particles(i) = particle_clusters(1,thread_cluster_indices(idx))+i-1
           end do
 
-          thread_cluster_data(idx)%cluster_centre = thread_cluster_data(idx)%cluster_centre / thread_cluster_data(idx)%n
+          thread_cluster_data(idx)%cluster_centre = (thread_cluster_data(idx)%cluster_centre / thread_cluster_data(idx)%n) - vbox
 
           ! for clusters that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
@@ -688,7 +684,6 @@ module module_walk
       integer, intent(in) :: idx
 
       thread_cluster_data(idx)%n = 0
-      deallocate(thread_cluster_data(idx)%x)
       deallocate(thread_cluster_data(idx)%orig_particles)
 
     end subroutine
@@ -769,7 +764,7 @@ module module_walk
 
         !FIXME: restructure this: the branches have to be outside this loop
         do ipart=1,cluster%n
-          pdelta = cluster%x(:,ipart) - walk_node%interaction_data%coc ! Separation vector
+          pdelta = particle_data(cluster%orig_particles(ipart))%x - vbox - walk_node%interaction_data%coc ! Separation vector
           pdist2 = DOT_PRODUCT(pdelta, pdelta)
 
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
@@ -792,7 +787,7 @@ module module_walk
 
           !FIXME: restructure this: the branches have to be outside this loop
           do ipart=1,cluster%n
-            pdelta = cluster%x(:,ipart) - walk_node%interaction_data%coc ! Separation vector
+            pdelta = particle_data(cluster%orig_particles(ipart))%x - vbox - walk_node%interaction_data%coc ! Separation vector
             pdist2 = DOT_PRODUCT(pdelta, pdelta)
 
             #ifndef NO_SPATIAL_INTERACTION_CUTOFF
