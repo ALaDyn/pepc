@@ -137,10 +137,9 @@ module module_walk
   type(t_atomic_int), pointer :: thread_startup_complete
 
   type t_thread_cluster_data
-    integer(kind_particle) :: n
+    integer(kind_particle) :: n ! number of particles
     real*8 :: cluster_centre(3) ! already shifted by vbox
-    real*8 :: work
-    integer(kind_particle), dimension(:), allocatable :: orig_particles
+    integer(kind_particle), dimension(:), allocatable :: orig_particles ! index of n particles into particle_data field
   end type
 
   ! local walktime (i.e. from comm_loop start until send_walk_finished() )
@@ -561,8 +560,6 @@ module module_walk
                 call debug_mpi_abort()
               end if
 
-              ! FIXME: copy work from thread_cluster_data(i) to all its particles
-
               ! deallocate auxiliary data
               call wipe_cluster(i)
 
@@ -657,11 +654,11 @@ module module_walk
           ! and to be able to make more efficient use of vectorization later
           thread_cluster_data(idx)%n = particle_clusters(2,thread_cluster_indices(idx))
           allocate(thread_cluster_data(idx)%orig_particles(thread_cluster_data(idx)%n))
-          thread_cluster_data(idx)%work = 0.
           thread_cluster_data(idx)%cluster_centre(:) = 0.
 
           do i=1,thread_cluster_data(idx)%n
-            !FIXME: compute coc correctly
+            !FIXME: compute coc correctly -- this is just the geometric center
+            ! what should we use? real center-of-charge, geometric centre of particles, geometric centre of node-box?
             thread_cluster_data(idx)%cluster_centre(:) = thread_cluster_data(idx)%cluster_centre(:) + particle_data(particle_clusters(1,thread_cluster_indices(idx))+i-1)%x
             thread_cluster_data(idx)%orig_particles(i) = particle_clusters(1,thread_cluster_indices(idx))+i-1
           end do
@@ -715,7 +712,7 @@ module module_walk
     implicit none
     include 'mpif.h'
 
-    type(t_thread_cluster_data), intent(inout) :: cluster
+    type(t_thread_cluster_data), intent(in) :: cluster
     integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
     integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
@@ -725,11 +722,22 @@ module module_walk
     type(t_threaddata), intent(inout) :: my_threaddata
     logical :: walk_single_cluster !< function will return .true. if this cluster has finished its walk
 
+    interface t_calc_force
+      subroutine t_calc_force(particle, node, node_idx, delta, dist2, vbox)
+        use module_pepc_types
+        use treevars
+        implicit none
+        type(t_tree_node_interaction_data), intent(in) :: node
+        integer(kind_node), intent(in) :: node_idx
+        type(t_particle), intent(inout) :: particle
+        real*8, intent(in) :: vbox(3), delta(3), dist2
+      end subroutine
+    end interface
+
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
-    real*8 :: dist2, delta(3), pdist2, pdelta(3)
-    integer(kind_particle) :: ipart
+    real*8 :: dist2, delta(3)
     logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
 
@@ -761,42 +769,12 @@ module module_walk
 
       if (is_leaf) then
         partner_leaves = partner_leaves + 1
-
-        !FIXME: restructure this: the branches have to be outside this loop
-        do ipart=1,cluster%n
-          pdelta = particle_data(cluster%orig_particles(ipart))%x - vbox - walk_node%interaction_data%coc ! Separation vector
-          pdist2 = DOT_PRODUCT(pdelta, pdelta)
-
-          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(pdelta) >= spatial_interaction_cutoff)) cycle
-          #endif
-
-          if (pdist2 > 0.0_8) then ! not self, interact
-            call calc_force_per_interaction_with_leaf(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
-          else ! self, count as interaction partner, otherwise ignore
-            call calc_force_per_interaction_with_self(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
-          end if
-
-          num_interactions = num_interactions + 1
-        end do
+        call calc_force_for_cluster(cluster, calc_force_per_interaction_with_leaf, calc_force_per_interaction_with_self)
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
-
         if (mac(walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
           partner_leaves = partner_leaves + walk_node%leaves
-
-          !FIXME: restructure this: the branches have to be outside this loop
-          do ipart=1,cluster%n
-            pdelta = particle_data(cluster%orig_particles(ipart))%x - vbox - walk_node%interaction_data%coc ! Separation vector
-            pdist2 = DOT_PRODUCT(pdelta, pdelta)
-
-            #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-            if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
-            #endif
-
-            call calc_force_per_interaction_with_twig(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
-            num_interactions = num_interactions + 1
-          end do
+          call calc_force_for_cluster(cluster, calc_force_per_interaction_with_twig, calc_force_per_interaction_with_twig)
         else ! MAC negative, resolve
           call resolve()
         end if
@@ -811,6 +789,33 @@ module module_walk
     my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) + num_post_request
 
     contains
+
+    ! FIXME: self with twig does not make too much sense but makes the code much more beautiful
+    ! TODO: this should be vectorized or whatever. put this into interaction-specific bla
+    subroutine calc_force_for_cluster(c, calc_force, calc_force_self)
+      implicit none
+      type(t_thread_cluster_data), intent(in) :: c
+      procedure(t_calc_force) :: calc_force, calc_force_self
+      real*8 :: pdist2, pdelta(3)
+      integer(kind_particle) :: ipart
+
+      do ipart=1,cluster%n
+        pdelta = particle_data(cluster%orig_particles(ipart))%x - vbox - walk_node%interaction_data%coc ! Separation vector
+        pdist2 = DOT_PRODUCT(pdelta, pdelta)
+
+        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+        if (any(abs(pdelta) >= spatial_interaction_cutoff)) cycle
+        #endif
+
+        if (pdist2 > 0.0_8) then ! not self, interact
+          call calc_force(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          else ! self, count as interaction partner, otherwise ignore
+          call calc_force_self(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+        endif
+        num_interactions = num_interactions + 1
+      end do
+    end subroutine
+
 
     subroutine resolve()
       implicit none
