@@ -101,13 +101,6 @@ module module_walk
 
   !> debug flags - cannot be modified at runtime due to performance reasons
   logical, parameter, public :: walk_debug = .false.
-  logical, parameter, public :: walk_profile = .false.
-
-  integer, parameter :: NUM_THREAD_TIMERS                 = 4
-  integer, parameter :: THREAD_TIMER_TOTAL                = 1
-  integer, parameter :: THREAD_TIMER_POST_REQUEST         = 2
-  integer, parameter :: THREAD_TIMER_GET_NEW_CLUSTER      = 3
-  integer, parameter :: THREAD_TIMER_WALK_SINGLE_CLUSTER  = 4
 
   integer, parameter :: NUM_THREAD_COUNTERS                = 4
   integer, parameter :: THREAD_COUNTER_PROCESSED_CLUSTERS  = 1
@@ -121,7 +114,6 @@ module module_walk
     logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
     integer :: coreid !< thread output value: id of thread's processor
     logical :: finished !< will be set to .true. when the thread has finished
-    real*8 :: timers(NUM_THREAD_TIMERS)
     integer(kind_node) :: counters(NUM_THREAD_COUNTERS)
   end type t_threaddata
 
@@ -131,7 +123,6 @@ module module_walk
   real :: work_on_communicator_cluster_number_factor = 0.1 !< factor for reducing max_clusters_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
   integer, public :: max_clusters_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
-  integer :: num_nonshared_threads, num_shared_threads
 
   real*8 :: vbox(3)
   logical :: in_central_box
@@ -156,16 +147,6 @@ module module_walk
 
   ! local walktime (i.e. from comm_loop start until send_walk_finished() )
   real*8, pointer :: twalk_loc
-  real*8, public :: interactions_local, mac_evaluations_local
-
-  real*8 :: thread_timers_nonshared_avg(NUM_THREAD_TIMERS)
-  real*8 :: thread_timers_nonshared_dev(NUM_THREAD_TIMERS)
-  real*8 :: thread_timers_shared_avg(NUM_THREAD_TIMERS)
-  real*8 :: thread_timers_shared_dev(NUM_THREAD_TIMERS)
-  real*8 :: thread_counters_nonshared_avg(NUM_THREAD_COUNTERS)
-  real*8 :: thread_counters_nonshared_dev(NUM_THREAD_COUNTERS)
-  real*8 :: thread_counters_shared_avg(NUM_THREAD_COUNTERS)
-  real*8 :: thread_counters_shared_dev(NUM_THREAD_COUNTERS)
 
   namelist /walk_para_pthreads/ max_clusters_per_thread
 
@@ -190,54 +171,35 @@ module module_walk
 
     integer :: i
     integer(kind_default) :: ierr
-    real*8, allocatable ::  num_interactions(:), num_mac_evaluations(:)  ! Load balance arrays
     real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, &
       max_mac_evaluations
     real*8 :: work_imbal = 0.
     real*8 :: work_imbal_max, work_imbal_min  ! load stats
-    real*8 :: global_thread_timers_nonshared_avg(NUM_THREAD_TIMERS)
-    real*8 :: global_thread_timers_nonshared_dev(NUM_THREAD_TIMERS)
-    real*8 :: global_thread_timers_shared_avg(NUM_THREAD_TIMERS)
-    real*8 :: global_thread_timers_shared_dev(NUM_THREAD_TIMERS)
-    real*8 :: global_thread_counters_nonshared_avg(NUM_THREAD_COUNTERS)
-    real*8 :: global_thread_counters_nonshared_dev(NUM_THREAD_COUNTERS)
-    real*8 :: global_thread_counters_shared_avg(NUM_THREAD_COUNTERS)
-    real*8 :: global_thread_counters_shared_dev(NUM_THREAD_COUNTERS)
+    integer(kind_node) :: local_counters(NUM_THREAD_COUNTERS)
+    integer(kind_node), allocatable :: global_counters(:,:)
+    integer :: c
 
-    allocate(num_interactions(num_pe), num_mac_evaluations(num_pe))
-    call MPI_GATHER(interactions_local,    1, MPI_REAL8, num_interactions,      1, MPI_REAL8,   0,  MPI_COMM_lpepc, ierr)
-    call MPI_GATHER(mac_evaluations_local, 1, MPI_REAL8, num_mac_evaluations,   1, MPI_REAL8,   0,  MPI_COMM_lpepc, ierr)
+    allocate(global_counters(NUM_THREAD_COUNTERS, num_pe))
 
-    total_interactions       = SUM(num_interactions)
-    total_mac_evaluations    = SUM(num_mac_evaluations)
-    max_interactions         = MAXVAL(num_interactions)
-    max_mac_evaluations      = MAXVAL(num_mac_evaluations)
+    do c=1,NUM_THREAD_COUNTERS
+      local_counters(c) = sum(threaddata(:)%counters(c))
+    end do
+
+    call MPI_GATHER(local_counters, NUM_THREAD_COUNTERS, MPI_KIND_NODE, &
+                   global_counters, NUM_THREAD_COUNTERS, MPI_KIND_NODE, 0, MPI_COMM_lpepc, ierr)
+
+    total_interactions       = SUM(global_counters(THREAD_COUNTER_INTERACTIONS,:))
+    total_mac_evaluations    = SUM(global_counters(THREAD_COUNTER_MAC_EVALUATIONS,:))
+    max_interactions         = MAXVAL(global_counters(THREAD_COUNTER_INTERACTIONS,:))
+    max_mac_evaluations      = MAXVAL(global_counters(THREAD_COUNTER_MAC_EVALUATIONS,:))
     average_interactions     = total_interactions    / num_pe
     average_mac_evaluations  = total_mac_evaluations / num_pe
     work_imbal_max = max_interactions / average_interactions
-    work_imbal_min = MINVAL(num_interactions) / average_interactions
+    work_imbal_min = MINVAL(global_counters(THREAD_COUNTER_INTERACTIONS,:)) / average_interactions
     work_imbal = 0.
     do i = 1, num_pe
-      work_imbal = work_imbal + abs(num_interactions(i) - average_interactions) / average_interactions / num_pe
+      work_imbal = work_imbal + abs(global_counters(THREAD_COUNTER_INTERACTIONS,i) - average_interactions) / average_interactions / num_pe
     end do
-
-    call MPI_REDUCE(thread_counters_nonshared_avg(:), global_thread_counters_nonshared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
-    call MPI_REDUCE(thread_counters_shared_avg(:), global_thread_counters_shared_avg(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
-    call MPI_REDUCE(thread_counters_nonshared_dev(:), global_thread_counters_nonshared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
-    call MPI_REDUCE(thread_counters_shared_dev(:), global_thread_counters_shared_dev(:), NUM_THREAD_COUNTERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
-
-    global_thread_counters_nonshared_avg = global_thread_counters_nonshared_avg / num_pe
-    global_thread_counters_shared_avg    = global_thread_counters_shared_avg / num_pe
-
-    if (walk_profile) then
-      call MPI_REDUCE(thread_timers_nonshared_avg(:), global_thread_timers_nonshared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
-      call MPI_REDUCE(thread_timers_shared_avg(:), global_thread_timers_shared_avg(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr)
-      call MPI_REDUCE(thread_timers_nonshared_dev(:), global_thread_timers_nonshared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
-      call MPI_REDUCE(thread_timers_shared_dev(:), global_thread_timers_shared_dev(:), NUM_THREAD_TIMERS, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr)
-
-      global_thread_timers_nonshared_avg   = global_thread_timers_nonshared_avg / num_pe
-      global_thread_timers_shared_avg      = global_thread_timers_shared_avg / num_pe
-    end if
 
     if (0 == me) then
       write (u,*) '######## WORKLOAD AND WALK ################################################################'
@@ -245,33 +207,15 @@ module module_walk
       write (u,'(a50,3e12.4)')       'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations
       write (u,'(a50,3f12.3)')       'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
       write (u,*) '######## TREE TRAVERSAL MODULE ############################################################'
-      write (u,'(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_clusters_per_thread
-      write (u,*) '######## WALK-WORKER-THREAD WORKLOAD ######################################################'
-      write (u,'(a50)')              'average # processed clusters per thread    '
-      write (u,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
-                                          thread_counters_nonshared_avg(THREAD_COUNTER_PROCESSED_CLUSTERS), &
-                                          thread_counters_shared_avg(THREAD_COUNTER_PROCESSED_CLUSTERS)
-      write (u,'(a50,3f12.3)')       '  maximum relative deviation: ', &
-                                          thread_counters_nonshared_dev(THREAD_COUNTER_PROCESSED_CLUSTERS), &
-                                          thread_counters_shared_dev(THREAD_COUNTER_PROCESSED_CLUSTERS)
-      if (walk_profile) then
-        write (u,'(a50)')              'average wallclocktime per thread    '
-        write (u,'(a50,3f12.3)')       '  threads on exclusive cores, shared cores: ', &
-                                            thread_timers_nonshared_avg(THREAD_TIMER_TOTAL), &
-                                            thread_timers_shared_avg(THREAD_TIMER_TOTAL)
-        write (u,'(a50,3f12.3)')       '  maximum relative deviation: ', &
-                                            thread_timers_nonshared_dev(THREAD_TIMER_TOTAL), &
-                                            thread_timers_shared_dev(THREAD_TIMER_TOTAL)
-      end if
+      write (u,'(a50,2i12)') 'walk_threads, max_nclusters_per_thread: ', num_walk_threads, max_clusters_per_thread
       write (u,*) '######## DETAILED DATA ####################################################################'
-      write (u,'(a/(i10,2i15,F10.4))') '        PE  #interactions     #mac_evals  rel.work', &
-        (i-1, int(num_interactions(i)), int(num_mac_evaluations(i)), num_interactions(i) / average_interactions, i = 1, num_pe)
-
+      write (u,'(a)') '        PE  #interactions     #mac_evals    #posted_req  rel.work'
+      do i = 1, num_pe
+        write (u,'(i10,3i15,F10.4)') i-1, global_counters(THREAD_COUNTER_INTERACTIONS,i), global_counters(THREAD_COUNTER_MAC_EVALUATIONS,i), &
+          global_counters(THREAD_COUNTER_POST_REQUEST,i), 1._8*global_counters(THREAD_COUNTER_INTERACTIONS,i) / average_interactions
+      end do
     end if
-
-    deallocate(num_interactions, num_mac_evaluations)
   end subroutine tree_walk_statistics
-
 
   !>
   !> reads walk specific parameters from file
@@ -307,10 +251,9 @@ module module_walk
 
     num_walk_threads = max(num_threads, 1)
 
-    !if (me == 0) then
-    !  write(*,'("MPI-PThreads walk: Using ", I0," worker-threads in treewalk on each processor (i.e. per MPI rank)")') num_walk_threads
-    !  write(*,'("Maximum number of particles per work_thread = ", I0)') max_clusters_per_thread
-    !end if
+    if (allocated(threaddata)) deallocate(threaddata)
+    allocate(threaddata(num_walk_threads))
+
   end subroutine
 
 
@@ -320,6 +263,7 @@ module module_walk
   !>
   subroutine tree_walk_finalize()
     implicit none
+    deallocate(threaddata)
   end subroutine tree_walk_finalize
 
 
@@ -378,7 +322,7 @@ module module_walk
     integer :: ith
     integer(kind_particle) :: num_processed_clusters
 
-    allocate(threaddata(num_walk_threads))
+    DEBUG_ASSERT(size(threaddata)==num_walk_threads)
 
     threaddata(1:num_walk_threads)%finished = .false. ! we do not do this within the following loop because all (!) entries have to be .false. before the first (!) thread starts
 
@@ -409,48 +353,11 @@ module module_walk
 
     twalk_loc = MPI_WTIME() - twalk_loc
 
-    ! store workload data
-    call collect_thread_counters_timers()
-
     ! check wether all particles really have been processed
     num_processed_clusters = sum(threaddata(:)%counters(THREAD_COUNTER_PROCESSED_CLUSTERS))
     if (num_processed_clusters .ne. num_clusters) then
       DEBUG_ERROR(*, "Serious issue on PE", walk_tree%comm_env%rank, ": all walk threads have terminated, but obviously not all clusters are finished with walking: num_processed_clusters =", num_processed_clusters, " num_clusters =", num_clusters)
     end if
-
-    deallocate(threaddata)
-
-    contains
-
-    subroutine collect_thread_counters_timers()
-      implicit none
-
-      integer :: icounter, itimer
-
-      num_shared_threads = count(threaddata(:)%is_on_shared_core)
-      num_nonshared_threads = num_walk_threads - num_shared_threads
-
-      if (walk_profile) then
-        do itimer = 1,NUM_THREAD_TIMERS
-          thread_timers_shared_avg(itimer)    =  sum(threaddata(:)%timers(itimer), mask =       threaddata(:)%is_on_shared_core) / num_shared_threads
-          thread_timers_nonshared_avg(itimer) =  sum(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) / num_nonshared_threads
-
-          thread_timers_shared_dev(itimer)    = (maxval(threaddata(:)%timers(itimer), mask =       threaddata(:)%is_on_shared_core) - thread_timers_shared_avg(itimer))    / thread_timers_shared_avg(itimer)
-          thread_timers_nonshared_dev(itimer) = (maxval(threaddata(:)%timers(itimer), mask = .not. threaddata(:)%is_on_shared_core) - thread_timers_nonshared_avg(itimer)) / thread_timers_nonshared_avg(itimer)
-        end do
-      end if
-
-      do icounter = 1,NUM_THREAD_COUNTERS
-        thread_counters_shared_avg(icounter) = sum(threaddata(:)%counters(icounter), mask = threaddata(:)%is_on_shared_core) / real(num_shared_threads, kind = 8)
-        thread_counters_nonshared_avg(icounter) = sum(threaddata(:)%counters(icounter), mask = .not. threaddata(:)%is_on_shared_core) / real(num_nonshared_threads, kind = 8)
-
-        thread_counters_shared_dev(icounter) = (maxval(threaddata(:)%counters(icounter), mask = threaddata(:)%is_on_shared_core) - thread_counters_shared_avg(icounter)) / thread_counters_shared_avg(icounter)
-        thread_counters_nonshared_dev(icounter) = (maxval(threaddata(:)%counters(icounter), mask = .not. threaddata(:)%is_on_shared_core) - thread_counters_nonshared_avg(icounter)) / thread_counters_nonshared_avg(icounter)
-      end do
-
-      interactions_local    = sum(threaddata(:)%counters(THREAD_COUNTER_INTERACTIONS))
-      mac_evaluations_local = sum(threaddata(:)%counters(THREAD_COUNTER_MAC_EVALUATIONS))
-    end subroutine collect_thread_counters_timers
   end subroutine walk_hybrid
 
 
@@ -577,7 +484,6 @@ module module_walk
     integer :: my_max_clusters_per_thread
     integer :: my_processor_id
     logical :: cluster_has_finished
-    real*8  :: t_get_new_cluster, t_walk_single_cluster
 
     integer(kind_node), dimension(1), target :: defer_list_root_only ! start at root node (addr, and key)
     defer_list_root_only(1) = walk_tree%node_root
@@ -596,13 +502,6 @@ module module_walk
     my_threaddata%is_on_shared_core = shared_core
     my_threaddata%coreid = my_processor_id
     my_threaddata%finished = .false.
-    if (walk_profile) then
-      t_get_new_cluster = 0._8
-      t_walk_single_cluster = 0._8
-
-      my_threaddata%timers(THREAD_TIMER_TOTAL) = - MPI_WTIME()
-      my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = 0
-    end if
     my_threaddata%counters = 0
 
     if (my_max_clusters_per_thread > 0) then
@@ -637,9 +536,7 @@ module module_walk
           if (contains_cluster(i)) then
             call setup_defer_list(i)
           else
-            if (walk_profile) then; t_get_new_cluster = t_get_new_cluster - MPI_WTIME(); end if
             call get_new_cluster_and_setup_defer_list(i)
-            if (walk_profile) then; t_get_new_cluster = t_get_new_cluster + MPI_WTIME(); end if
           end if
 
           if (contains_cluster(i)) then
@@ -647,12 +544,10 @@ module module_walk
             ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
             defer_list_start_pos(i) =  defer_list_new_tail
 
-            if (walk_profile) then; t_walk_single_cluster = t_walk_single_cluster - MPI_WTIME(); end if
             cluster_has_finished  = walk_single_cluster(thread_cluster_data(i), &
                                       ptr_defer_list_old, defer_list_entries_old, &
                                       ptr_defer_list_new, defer_list_entries_new, &
                                       todo_list, partner_leaves(i), my_threaddata)
-            if (walk_profile) then; t_walk_single_cluster = t_walk_single_cluster + MPI_WTIME(); end if
 
             if (cluster_has_finished) then
               ! walk for cluster i has finished
@@ -704,12 +599,6 @@ module module_walk
     do while (atomic_load_int(thread_startup_complete) /= 1)
       ERROR_ON_FAIL(pthreads_sched_yield())
     end do
-
-    if (walk_profile) then
-      my_threaddata%timers(THREAD_TIMER_TOTAL) = my_threaddata%timers(THREAD_TIMER_TOTAL) + MPI_WTIME()
-      my_threaddata%timers(THREAD_TIMER_GET_NEW_CLUSTER) = t_get_new_cluster
-      my_threaddata%timers(THREAD_TIMER_WALK_SINGLE_CLUSTER) = t_walk_single_cluster
-    end if
 
     my_threaddata%finished = .true.
 
@@ -848,12 +737,10 @@ module module_walk
     integer(kind_particle) :: ipart
     logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
-    real*8 :: t_post_request
 
     todo_list_entries      = 0
     num_interactions       = 0
     num_mac_evaluations    = 0
-    if (walk_profile) then; t_post_request = 0._8; end if
     num_post_request       = 0
     walk_node_idx          = NODE_INVALID
 
@@ -928,10 +815,6 @@ module module_walk
     my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
     my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) + num_post_request
 
-    if (walk_profile) then
-      my_threaddata%timers(THREAD_TIMER_POST_REQUEST) = my_threaddata%timers(THREAD_TIMER_POST_REQUEST) + t_post_request
-    end if
-
     contains
 
     subroutine resolve()
@@ -951,13 +834,10 @@ module module_walk
       else
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
-        if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
         ! eager requests
         call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(cluster%orig_particles(1)), cluster%cluster_centre) ! fetch children from remote
         ! simple requests
-        ! FIXME: the particle has to be given here for technical reasons, see documentation of tree_node_fetch_children for details
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
-        if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1
         ! if posting the request failed, this is not a problem, since we defer the particle anyway
         ! since it will not be available then, the request will simply be repeated
