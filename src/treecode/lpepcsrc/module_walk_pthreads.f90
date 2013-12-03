@@ -820,7 +820,9 @@ module module_walk
     call defer_list_parse_and_compact()
 
     ! read all todo_list-entries and start further traversals there
-    do while (todo_list_pop(walk_node_idx))
+    !do while (todo_list_pop(walk_node_idx))
+    do
+      if (.not. (todo_list_pop(walk_node_idx))) exit
       walk_node => walk_tree%nodes(walk_node_idx)
       
       ! we may not interact with the particle itself or its ancestors
@@ -902,7 +904,7 @@ module module_walk
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
         ! eager requests
-        call tree_node_fetch_children(walk_tree, walk_node, particle%my_idx, particle_data(particle%my_idx), shifted_particle_position) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(particle%my_idx), shifted_particle_position) ! fetch children from remote
         ! simpel requests
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
