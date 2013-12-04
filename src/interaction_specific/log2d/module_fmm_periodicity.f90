@@ -48,7 +48,7 @@ module module_fmm_periodicity
       !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      public fmm_periodicity_init
+      public fmm_periodicity_prepare
       public fmm_periodicity_timestep
       public fmm_periodicity_sum_lattice_force
       public lattice_vect
@@ -106,13 +106,13 @@ module module_fmm_periodicity
         !> Module Initialization, should be called on program startup
         !> after setting up all geometric parameters etc.
         !>  - well-separation criterion is automatically set to module_mirror_boxes::mirror_box_layers
-        !>  - module_mirror_boxes::calc_neighbour_boxes() must have been called before calling this routine
+        !>  - module_mirror_boxes::neighbour_boxes_prepare() must have been called before calling this routine
         !>
         !> @param[in] mpi_rank MPI rank of process for controlling debug output
         !> @param[in] mpi_comm MPI communicator to be used
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine fmm_periodicity_init(mpi_rank, mpi_comm)
+        subroutine fmm_periodicity_prepare(mpi_rank, mpi_comm)
           use module_debug
           use module_mirror_boxes
           implicit none
@@ -123,29 +123,24 @@ module module_fmm_periodicity
           MPI_COMM_fmm = mpi_comm
           ws           = mirror_box_layers
 
-          do_periodic = any(periodicity(1:3))
-
-          if (do_periodic) then
-            if (periodicity(3)) then
-              DEBUG_ERROR(*, 'Periodicity in the third coordinate with 2D backend.')
-            end if
-            if (.not. all(t_lattice_3 == [0,0,1])) then
-              DEBUG_WARNING(*, 't_lattice_3 should be [0,0,1], resetting.')
-              t_lattice_3 = [0,0,1]
-              call calc_neighbour_boxes()
-            end if
-            LatticeCenter(3) = 0
-
-            BLattice = 0
-
-            call calc_lattice_coefficients(BLattice)
-
-            if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
-              call WriteTableToFile('BLattice.tab', BLattice)
-            end if
+          if (periodicity(3)) then
+            DEBUG_ERROR(*, 'Periodicity in the third coordinate with 2D backend.')
           end if
+          if (.not. all(t_lattice_3 == [0,0,1])) then
+            DEBUG_WARNING(*, 't_lattice_3 should be [0,0,1], resetting.')
+            t_lattice_3 = [0,0,1]
+            call neighbour_boxes_prepare()
+          end if
+          LatticeCenter(3) = 0
 
-        end subroutine fmm_periodicity_init
+          BLattice = 0
+
+          call calc_lattice_coefficients(BLattice)
+
+          if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
+            call WriteTableToFile('BLattice.tab', BLattice)
+          end if
+        end subroutine fmm_periodicity_prepare
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -156,20 +151,18 @@ module module_fmm_periodicity
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_periodicity_timestep(particles)
           use module_pepc_types
-          use module_mirror_boxes, only: check_lattice_boundaries, do_periodic
+          use module_mirror_boxes, only: check_lattice_boundaries
           use module_debug
           implicit none
           type(t_particle), intent(in) :: particles(:)
 
-          if (do_periodic) then
-            if (.not. check_lattice_boundaries(particles)) then
-              DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
-            endif
-            
-            call calc_omega_tilde(particles)
-            call calc_mu_cent(omega_tilde, mu_cent)
-            call calc_extrinsic_correction(particles)
-          endif
+          if (.not. check_lattice_boundaries(particles)) then
+            DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
+          end if
+          
+          call calc_omega_tilde(particles)
+          call calc_mu_cent(omega_tilde, mu_cent)
+          call calc_extrinsic_correction(particles)
         end subroutine fmm_periodicity_timestep
 
 
@@ -382,7 +375,7 @@ module module_fmm_periodicity
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_periodicity_sum_lattice_force(pos, e_lattice, phi_lattice)
-          use module_mirror_boxes, only: LatticeCenter, do_periodic
+          use module_mirror_boxes, only: LatticeCenter
           use module_multipole
           use module_debug
           implicit none
@@ -395,32 +388,25 @@ module module_fmm_periodicity
           complex(kfp), parameter :: ic = (zero, one)
           complex(kfp) :: z0, cphi, ce
 
-          if (.not. do_periodic) then
-            e_lattice   = 0
-            phi_lattice = 0
-          else
-            x0 = pos - LatticeCenter
-            z0 = x0(1) + ic * x0(2)
+          x0 = pos - LatticeCenter
+          z0 = x0(1) + ic * x0(2)
 
-            cphi = -mu_cent(0) ! OMultipole(0, z0) = 1
-            ce   = 0           ! OmultipolePrime(0, z0) = 0
+          cphi = -mu_cent(0) ! OMultipole(0, z0) = 1
+          ce   = 0           ! OmultipolePrime(0, z0) = 0
 
-            do k = 1, qTaylorFMMP
-              cphi = cphi - mu_cent(k) * OMultipole(k, z0)
-              ce = ce + mu_cent(k) * OMultipolePrime(k, z0)
-            end do
+          do k = 1, qTaylorFMMP
+            cphi = cphi - mu_cent(k) * OMultipole(k, z0)
+            ce = ce + mu_cent(k) * OMultipolePrime(k, z0)
+          end do
 
-            ! E = -grad(Phi)
-            e_lattice  = -[ real(ce, kind = 8), -real(aimag(ce), kind = 8) ]
-            phi_lattice = real(cphi, kind = 8)
+          ! E = -grad(Phi)
+          e_lattice  = -[ real(ce, kind = 8), -real(aimag(ce), kind = 8) ]
+          phi_lattice = real(cphi, kind = 8)
 
-            if (do_extrinsic_correction) then    ! extrinsic correction
-              e_lattice   = e_lattice   + box_dipole
-              phi_lattice = phi_lattice - dot_product(x0(1:2), box_dipole) + quad_trace
-            end if
-
+          if (do_extrinsic_correction) then    ! extrinsic correction
+            e_lattice   = e_lattice   + box_dipole
+            phi_lattice = phi_lattice - dot_product(x0(1:2), box_dipole) + quad_trace
           end if
-
         end subroutine fmm_periodicity_sum_lattice_force
 
 
@@ -819,6 +805,4 @@ module module_fmm_periodicity
             end do
           end do
         end subroutine chop2D
-
-
 end module module_fmm_periodicity

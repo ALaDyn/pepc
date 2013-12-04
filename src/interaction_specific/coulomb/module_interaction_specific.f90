@@ -189,10 +189,13 @@ module module_interaction_specific
       !>
       subroutine calc_force_prepare()
         use treevars, only : me, MPI_COMM_lpepc
-        use module_fmm_framework, only : fmm_framework_init
+        use module_fmm_framework, only : fmm_framework_prepare
+        use module_mirror_boxes, only : do_periodic
         implicit none
 
-        call fmm_framework_init(me, MPI_COMM_lpepc)
+        if (do_periodic .and. include_far_field_if_periodic) then
+          call fmm_framework_prepare(me, MPI_COMM_lpepc)
+        end if
       end subroutine
 
 
@@ -211,7 +214,7 @@ module module_interaction_specific
         ! this cannot be done in calc_force_per_particle() since there, possibly
         ! other particles are used than we need for the multipoles
         ! e.g. in the case of a second traverse for test/grid particles
-        if ((do_periodic) .and. (include_far_field_if_periodic)) then
+        if (do_periodic .and. include_far_field_if_periodic) then
           call fmm_framework_timestep(particles)
         end if
       end subroutine      
@@ -419,11 +422,10 @@ module module_interaction_specific
           potfarfield  = 0.
           potnearfield = 0.
 
-          if ((do_periodic) .and. (include_far_field_if_periodic)) then
-
+          if (do_periodic .and. include_far_field_if_periodic) then
              if ((me==0) .and. (force_law .ne. 3)) write(*,*) "Warning: far-field lattice contribution is currently only supported for force_law==3"
-          !$ call omp_set_num_threads(num_threads)
-          !$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles) SCHEDULE(RUNTIME) REDUCTION(+:potfarfield,potnearfield)
+             !$ call omp_set_num_threads(num_threads)
+             !$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles) SCHEDULE(RUNTIME) REDUCTION(+:potfarfield,potnearfield)
              do p=1,size(particles)
                 call fmm_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
@@ -433,9 +435,8 @@ module module_interaction_specific
                 particles(p)%results%e     = particles(p)%results%e     + e_lattice
                 particles(p)%results%pot   = particles(p)%results%pot   +  phi_lattice
              end do
-          !$OMP  END PARALLEL DO
-          !$ call omp_set_num_threads(1)
-
+             !$OMP  END PARALLEL DO
+             !$ call omp_set_num_threads(1)
           end if
 
           call pepc_status('CALC FORCE PER PARTICLE DONE')

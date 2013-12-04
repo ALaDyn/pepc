@@ -217,10 +217,13 @@ module module_interaction_specific
   !>
   subroutine calc_force_prepare()
     use treevars, only : me, MPI_COMM_lpepc
-    use module_fmm_periodicity, only : fmm_periodicity_init
+    use module_fmm_periodicity, only : fmm_periodicity_prepare
+    use module_mirror_boxes, only : do_periodic
     implicit none
 
-    call fmm_periodicity_init(me, MPI_COMM_lpepc)
+    if (do_periodic .and. include_far_field_if_periodic) then
+      call fmm_periodicity_prepare(me, MPI_COMM_lpepc)
+    end if
   end subroutine
 
 
@@ -240,7 +243,7 @@ module module_interaction_specific
     ! this cannot be done in calc_force_per_particle() since there, possibly
     ! other particles are used than we need for the multipoles
     ! e.g. in the case of a second traverse for test/grid particles
-    if ((do_periodic) .and. (include_far_field_if_periodic)) then
+    if (do_periodic .and. include_far_field_if_periodic) then
       call fmm_periodicity_timestep(particles)
     end if
   end subroutine      
@@ -411,7 +414,7 @@ module module_interaction_specific
     potfarfield  = 0.
     potnearfield = 0.
 
-    if ((do_periodic) .and. (include_far_field_if_periodic)) then
+    if (do_periodic .and. include_far_field_if_periodic) then
         do p = 1, size(particles, kind = kind(p))
           call fmm_periodicity_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
