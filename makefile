@@ -58,34 +58,34 @@ libsl: $(LIBDIR)/libsl.a
 
 $(LIBDIR)/libsl.a: $(LIBDIR)
 	@echo "==== building libsl"
-	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
-	@$(MAKE) -C $(SLPEPCDIR) $(MFLAGS)
-	@cp -p $(SLPEPCDIR)/libsl.a $(LIBDIR)/libsl.a
+	@ln -sf "$(ROOTDIR)/makefile.defs" "$(SLPEPCDIR)/makefile.defs"
+	@$(MAKE) -C "$(SLPEPCDIR)" $(MFLAGS)
+	@cp -p "$(SLPEPCDIR)/libsl.a" "$(LIBDIR)/libsl.a"
 
 libopa: $(LIBDIR)
 	@echo "==== building openpa"
-	@ROOTDIR=$(ROOTDIR) $(MAKE) -C $(OPADIR) $(MFLAGS)
+	@ROOTDIR="$(ROOTDIR)" $(MAKE) -C "$(OPADIR)" $(MFLAGS)
 
 clean:
 	@echo "==== cleaning build directory and binaries in bin directory"
 	@$(RM) makefile.envs
-	@$(RM) $(BUILDDIR) $(addprefix $(BINDIR)/, $(ALLFRONTENDS))
+	@$(RM) "$(BUILDDIR)" $(addprefix $(BINDIR)/, $(ALLFRONTENDS))
 	@echo ""
 
 cleanlib:
 	@echo "==== cleaning libraries"
-	@$(RM) $(LIBDIR)
-	@ln -sf $(ROOTDIR)/makefile.defs $(SLPEPCDIR)/makefile.defs
+	@$(RM) "$(LIBDIR)"
+	@ln -sf "$(ROOTDIR)/makefile.defs" "$(SLPEPCDIR)/makefile.defs"
 	@cd src/treecode/sl_pepc && $(MAKE) $(MFLAGS) clean 
-	@ROOTDIR=$(ROOTDIR) $(MAKE) -C $(OPADIR) $(MFLAGS) clean
+	@ROOTDIR="$(ROOTDIR)" $(MAKE) -C "$(OPADIR)" $(MFLAGS) clean
 	@echo ""
 
 cleandoc:
 	@echo "==== cleaning Doxygen documentation"
-	@$(RM) $(DOCDIR)
+	@$(RM) "$(DOCDIR)"
 
 cleanall: cleanlib cleandoc clean
-	@-$(RM) $(BINDIR)
+	@-$(RM) "$(BINDIR)"
 	@echo "==== all cleaned"
 
 allclean: cleanall
@@ -94,24 +94,24 @@ pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a libopa
 	@echo "======== start building frontend { $@ }"
 	@echo "==== date: " $(shell "date")
 	@echo "==== make target: " $@
-	@mkdir -p $(BUILDDIR)/$(MACH)/$@
-	@mkdir -p $(BINDIR)
-	@-$(RM) $(BINDIR)/$@
-	@FRONTEND=$@ ROOTDIR=$(ROOTDIR) SVNREVISION=$(SVNREVISION) WORKDIR=$(BUILDDIR)/$(MACH)/$@ $(MAKE) $(MFLAGS) -f $(MAKEDIR)/makefile.prepare
-	@cp -p $(BUILDDIR)/$(MACH)/$@/$@ $(BINDIR)
+	@mkdir -p "$(BUILDDIR)/$(MACH)/$@"
+	@mkdir -p "$(BINDIR)"
+	@-$(RM) "$(BINDIR)/$@"
+	@FRONTEND="$@" ROOTDIR="$(ROOTDIR)" SVNREVISION="$(SVNREVISION)" WORKDIR="$(BUILDDIR)/$(MACH)/$@" $(MAKE) $(MFLAGS) -f "$(MAKEDIR)/makefile.prepare"
+	@cp -p "$(BUILDDIR)/$(MACH)/$@/$@" "$(BINDIR)"
 	@echo ""
 	@echo "======== successfully built frontend { $@ } :-)"
 	@echo ""
 
 $(LIBDIR):
-	@mkdir $(LIBDIR)
+	@mkdir "$(LIBDIR)"
 
 $(DOCDIR):
-	@mkdir -p $(DOCDIR)
+	@mkdir -p "$(DOCDIR)"
 
 doc: $(DOCDIR) $(TOOLSDIR)/Doxyfile
 	@echo "======== start building Doxygen documentation"
-	@doxygen $(TOOLSDIR)/Doxyfile
+	@doxygen "$(TOOLSDIR)/Doxyfile"
 	@echo "=== you can view the source code documentation by opening $(DOCDIR)/index.html with your favourite web browser"
 
 MAKEFILEDEFSINFO = "\n\n\
