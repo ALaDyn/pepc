@@ -146,27 +146,20 @@ module module_libpepc_main
         type(t_particle), target, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
         integer :: ibox
-        real*8 :: ttrav, ttrav_loc ! timing integrals
 
         call pepc_status('TRAVERSE TREE')
         call timer_start(t_walk)
 
-        !TODO:call tree_walk_init()
+        call tree_walk_init(t, p, num_threads)
 
         call timer_start(t_fields_passes)
-
         do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
-
-            !call debug_barrier() ! we have to synchronize the different walks to prevent problems with recognition of finished ranks by rank 0
-                                 ! just for the case that some frontend calls traverse_tree() several times, all of them have to be
-                                 ! synchronized individually - hence in any case there must be a barrier here
-
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(t, p, lattice_vect(neighbour_boxes(:,ibox)))
+            call tree_walk_run(lattice_vect(neighbour_boxes(:,ibox)))
         end do ! ibox = 1,num_neighbour_boxes
         call timer_stop(t_fields_passes)
 
-        !TODO:call tree_walk_uninit()
+        call tree_walk_uninit(t, p)
 
         ! add lattice contribution
         call timer_start(t_lattice)
