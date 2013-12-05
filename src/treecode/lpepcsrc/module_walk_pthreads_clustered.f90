@@ -405,47 +405,48 @@ module module_walk
     use module_pepc_types, only: kind_particle, kind_key
     implicit none
 
-    integer(kind_particle) :: i, np, nclusters
+    integer(kind_particle) :: i, np
     integer(kind_key) :: lastkey
 
     ! FIXME: we have to assure, that all particle keys are available and are sorted
     ! FIXME: (should be done outside of the loop over all neighbour boxes); do not forget to restore original order afterwards
     np = size(particle_data, kind=kind(np))
-
-    nclusters = 1
+    ! count the nmber of clusters to be identified
+    num_clusters = 1
     lastkey   = clustermask(particle_data(1)%key)
     do i=1,np
       if (clustermask(particle_data(i)%key) .ne. lastkey) then
         lastkey = clustermask(particle_data(i)%key)
-        nclusters = nclusters + 1
+        num_clusters = num_clusters + 1
       endif
     end do
 
-    num_clusters = nclusters
+    num_clusters = num_clusters
+    ! allocate enough space for storing them
     allocate(particle_clusters(2,num_clusters))
-
-    nclusters = 1
+    ! and put them onto the list
+    num_clusters = 1
     lastkey   = clustermask(particle_data(1)%key)
-    particle_clusters(1,nclusters) = 1
+    particle_clusters(1,num_clusters) = 1
     do i=1,np
       if (clustermask(particle_data(i)%key) .ne. lastkey) then
-        particle_clusters(2,nclusters) = i - particle_clusters(1,nclusters)
+        particle_clusters(2,num_clusters) = i - particle_clusters(1,num_clusters)
         lastkey = clustermask(particle_data(i)%key)
-        nclusters = nclusters + 1
-        particle_clusters(1,nclusters) = i
+        num_clusters = num_clusters + 1
+        particle_clusters(1,num_clusters) = i
       endif
     end do
 
-    particle_clusters(2,nclusters) = i - particle_clusters(1,nclusters)
+    particle_clusters(2,num_clusters) = i - particle_clusters(1,num_clusters)
 
     contains
       elemental pure function clustermask(k)
+        use treevars, only : idim, nlev
         implicit none
         integer(kind_key), intent(in) :: k
         integer(kind_key) :: clustermask
 
-        ! FIXME: make this more generic (maxlev, idim, etc.)
-        clustermask = ishft(k, -3*(21_kind_level-particle_cluster_level))
+        clustermask = ishft(k, -idim*(nlev-particle_cluster_level))
 
       end function
 
@@ -784,9 +785,9 @@ module module_walk
     ! if todo_list and defer_list are now empty, the walk has finished
     walk_single_cluster = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
 
-    my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) = my_threaddata%counters(THREAD_COUNTER_INTERACTIONS) + num_interactions
+    my_threaddata%counters(THREAD_COUNTER_INTERACTIONS)    = my_threaddata%counters(THREAD_COUNTER_INTERACTIONS)    + num_interactions
     my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
-    my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST) + num_post_request
+    my_threaddata%counters(THREAD_COUNTER_POST_REQUEST)    = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST)    + num_post_request
 
     contains
 
@@ -799,8 +800,8 @@ module module_walk
       real*8 :: pdist2, pdelta(3)
       integer(kind_particle) :: ipart
 
-      do ipart=1,cluster%n
-        pdelta = particle_data(cluster%orig_particles(ipart))%x - vbox - walk_node%interaction_data%coc ! Separation vector
+      do ipart=1,c%n
+        pdelta = particle_data(c%orig_particles(ipart))%x - vbox - walk_node%interaction_data%coc ! Separation vector
         pdist2 = DOT_PRODUCT(pdelta, pdelta)
 
         #ifndef NO_SPATIAL_INTERACTION_CUTOFF
@@ -808,9 +809,9 @@ module module_walk
         #endif
 
         if (pdist2 > 0.0_8) then ! not self, interact
-          call calc_force(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          call calc_force(particle_data(c%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
           else ! self, count as interaction partner, otherwise ignore
-          call calc_force_self(particle_data(cluster%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          call calc_force_self(particle_data(c%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
         endif
         num_interactions = num_interactions + 1
       end do
