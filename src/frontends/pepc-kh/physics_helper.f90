@@ -232,7 +232,7 @@ contains
 
         ! (3) give the ions random initial velocities in the positive x direction with a Rayleigh distribution at the desired 
         ! temperature
-        pt(ip)%data%v(1) = velocity_1d_rayleigh(vti)
+        pt(ip)%data%v(1) = max(velocity_1d_rayleigh(vti), real(1.0E-6, kind = 8))
         ! and in the y direction give them the local E x B drift velocity
         pt(ip)%data%v(2) = vdrift(pt(ip)%x(1))
         pt(ip)%data%v(3) = 0.0D0
@@ -317,6 +317,8 @@ contains
 
       !print *, "nehist: ", nehist
       !print *, "sum nehist: ", ne
+
+      pepc_pars%np = ne + ni
 
       nel = ne / mpi_size
       if (mpi_rank < mod(ne, int(mpi_size, kind=kind_particle))) nel = nel + 1
