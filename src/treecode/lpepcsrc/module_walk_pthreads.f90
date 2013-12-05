@@ -132,7 +132,6 @@ module module_walk
   type(t_tree), pointer :: walk_tree
 
   type(t_atomic_int), pointer :: next_unassigned_particle
-  type(t_atomic_int), pointer :: thread_startup_complete
 
   namelist /walk_para_pthreads/ max_particles_per_thread
 
@@ -305,15 +304,11 @@ module module_walk
 
     threaddata(1:num_walk_threads)%finished = .false. ! we do not do this within the following loop because all (!) entries have to be .false. before the first (!) thread starts
 
-    call atomic_store_int(thread_startup_complete, 0)
-
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
       ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith)), thread_type = THREAD_TYPE_WORKER, counter = ith), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
-
-    call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
@@ -344,14 +339,12 @@ module module_walk
 
     ! initialize atomic variables
     call atomic_allocate_int(next_unassigned_particle)
-    call atomic_allocate_int(thread_startup_complete)
 
-    if (.not. (associated(next_unassigned_particle) .and. associated(thread_startup_complete))) then
+    if (.not. associated(next_unassigned_particle)) then
       DEBUG_ERROR(*, "atomic_allocate_int() failed!")
     end if
 
     call atomic_store_int(next_unassigned_particle, 1)
-    call atomic_store_int(thread_startup_complete, 0)
 
     ! evenly balance particles to threads if there are less than the maximum
     max_particles_per_thread = max(min(num_particles/num_walk_threads, max_particles_per_thread),1)
@@ -368,7 +361,6 @@ module module_walk
     implicit none
 
     call atomic_deallocate_int(next_unassigned_particle)
-    call atomic_deallocate_int(thread_startup_complete)
 
     deallocate(thread_handles)
   end subroutine uninit_walk_data
@@ -511,11 +503,6 @@ module module_walk
       deallocate(defer_list_old, defer_list_new)
       deallocate(todo_list)
     end if
-
-    ! we have to wait here until all threads have started before some of them die again :-)
-    do while (atomic_load_int(thread_startup_complete) /= 1)
-      ERROR_ON_FAIL(pthreads_sched_yield())
-    end do
 
     my_threaddata%finished = .true.
 
