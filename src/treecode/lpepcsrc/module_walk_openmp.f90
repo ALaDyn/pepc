@@ -312,10 +312,13 @@ module module_walk
 
     twalk_loc = MPI_WTIME()
 
-    call omp_set_num_threads(num_walk_threads)
-    !$omp parallel num_threads(num_walk_threads) private(ith)
+    !$omp parallel num_threads(num_walk_threads) private(ith) default(shared)
     ith = omp_get_thread_num()
-    if (ith > 0) call walk_worker_thread(threaddata(ith))
+    if (ith == 0) print *, ith, " of ", omp_get_num_threads()
+    if (ith > 0) then
+      threaddata(ith)%id = ith ! TODO: throw away?
+      call walk_worker_thread(threaddata(ith))
+    end if
     !$omp end parallel
 
     if (walk_debug) then
@@ -369,7 +372,7 @@ module module_walk
     use module_atomic_ops
     use module_pepc_types
     use treevars, only: main_thread_processor_id
-    use pthreads_stuff, only: get_my_core
+    use pthreads_stuff, only: get_my_core, pthreads_sched_yield
     implicit none
     include 'mpif.h'
 
@@ -433,7 +436,7 @@ module module_walk
         ! after processing a number of particles: handle control to other (possibly comm) thread
         if (shared_core) then
           !TODO: replace this with what?
-          !ERROR_ON_FAIL(pthreads_sched_yield())
+          ERROR_ON_FAIL(pthreads_sched_yield())
         end if
 
         do i=1,my_max_particles_per_thread
