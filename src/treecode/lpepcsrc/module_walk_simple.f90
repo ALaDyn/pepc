@@ -25,12 +25,20 @@
 !> arrive.
 !>
 module module_walk
+  use module_tree, only: t_tree
+  use module_pepc_types, only: t_particle
   implicit none
   private
 
+  type(t_tree), pointer :: walk_tree
+  type(t_particle), pointer :: walk_particles(:)
+  integer :: num_walk_threads
+
   real*8, public :: interactions_local, mac_evaluations_local
 
-  public :: tree_walk
+  public :: tree_walk_run
+  public :: tree_walk_init
+  public :: tree_walk_uninit
   public :: tree_walk_prepare
   public :: tree_walk_finalize
   public :: tree_walk_read_parameters
@@ -71,52 +79,60 @@ module module_walk
   end subroutine tree_walk_finalize
 
 
-  subroutine tree_walk(t, ps, twalk, twalk_loc, vbox)
-    use module_pepc_types, only: t_particle, kind_particle
-    use module_tree, only: t_tree
+  subroutine tree_walk_init(t, p, num_threads)
+    implicit none
+
+    type(t_tree), target, intent(in) :: t
+    type(t_particle), target, intent(in) :: p(:)
+    integer, intent(in) :: num_threads
+
+    walk_tree => t
+    walk_particles => p
+    num_walk_threads = num_threads
+  end subroutine tree_walk_init
+
+
+  subroutine tree_walk_uninit(t, p)
+    implicit none
+
+    type(t_tree), intent(in) :: t
+    type(t_particle), intent(in) :: p(:)
+  end subroutine tree_walk_uninit
+
+
+  subroutine tree_walk_run(vbox)
+    use module_pepc_types, only: kind_particle
     use treevars, only: num_threads
     use module_debug
     implicit none
-    include 'mpif.h'
 
-    type(t_tree), target, intent(inout) :: t !< tree to be traversed
-    type(t_particle), intent(inout) :: ps(:) !< list of particles
-    real*8, intent(inout) :: twalk !< time until completion
-    real*8, intent(inout) :: twalk_loc !< also time until completion
     real*8, intent(in) :: vbox(3) !< lattice vector
 
     integer(kind_particle) :: i
 
     call pepc_status('WALK SIMPLE')
 
-    twalk = - MPI_WTIME()
     interactions_local = 0.0_8
     mac_evaluations_local = 0.0_8
 
     !$omp parallel default(shared) private(i) num_threads(num_threads)
     !$omp master
-    do i = 1, size(ps, kind = kind_particle)
+    do i = 1, size(walk_particles, kind = kind_particle)
       !$omp task default(shared) firstprivate(i)
-      call tree_walk_single(t, ps(i), vbox)
+      call tree_walk_single(walk_particles(i), vbox)
       !$omp end task
     end do
-    !!$omp taskwait
     !$omp end master
     !$omp end parallel
-
-    twalk = MPI_WTIME() + twalk
-    twalk_loc = twalk
-  end subroutine tree_walk
+  end subroutine tree_walk_run
 
 
-  subroutine tree_walk_single(t, p_, vbox)
+  subroutine tree_walk_single(p_, vbox)
     use module_pepc_types, only: t_particle, kind_node
-    use module_tree, only: t_tree
     use module_debug
     use treevars, only: nlev
     implicit none
 
-    type(t_tree), intent(inout) :: t
     type(t_particle), intent(inout) :: p_
     real*8, intent(in) :: vbox(3)
 
@@ -128,7 +144,7 @@ module module_walk
     num_int = 0.0_8
     num_mac = 0.0_8
 
-    b2(0) = maxval(t%bounding_box%boxsize)**2
+    b2(0) = maxval(walk_tree%bounding_box%boxsize)**2
     do i = 1, nlev
       b2(i) = b2(i - 1) / 4.0_8
     end do
@@ -136,8 +152,8 @@ module module_walk
     p = p_ ! make a local copy of the particle (false sharing and such)
 
     ni = 0_kind_node
-    call tree_walk_single_aux(t%node_root)
-    DEBUG_ASSERT(ni == t%npart)
+    call tree_walk_single_aux(walk_tree%node_root)
+    DEBUG_ASSERT(ni == walk_tree%npart)
 
     !$omp critical
     interactions_local = interactions_local + num_int
@@ -168,7 +184,7 @@ module module_walk
       real*8 :: d2, d(3)
       logical :: is_leaf
 
-      node => t%nodes(n)
+      node => walk_tree%nodes(n)
       is_leaf = tree_node_is_leaf(node)
 
       d = (p%x - vbox) - node%interaction_data%coc
@@ -196,7 +212,7 @@ module module_walk
           call calc_force_per_interaction_with_twig(p, node%interaction_data, n, d, d2, vbox)
         else ! MAC fails: resolve
           if (.not. tree_node_children_available(node)) then
-            call tree_node_fetch_children(t, node, n)
+            call tree_node_fetch_children(walk_tree, node, n)
             do ! loop and yield until children have been fetched
               ERROR_ON_FAIL(pthreads_sched_yield())
               if (tree_node_children_available(node)) exit
@@ -210,7 +226,7 @@ module module_walk
           DEBUG_ASSERT_MSG(ns /= NODE_INVALID, *, "walk_simple: unexpectedly, this twig had no children")
           do
             call tree_walk_single_aux(ns)
-            ns = tree_node_get_next_sibling(t%nodes(ns))
+            ns = tree_node_get_next_sibling(walk_tree%nodes(ns))
             if (ns == NODE_INVALID) exit
           end do
         end if
