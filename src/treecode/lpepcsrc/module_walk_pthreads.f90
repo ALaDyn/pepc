@@ -134,9 +134,6 @@ module module_walk
   type(t_atomic_int), pointer :: next_unassigned_particle
   type(t_atomic_int), pointer :: thread_startup_complete
 
-  ! local walktime (i.e. from comm_loop start until send_walk_finished() )
-  real*8, pointer :: twalk_loc
-
   namelist /walk_para_pthreads/ max_particles_per_thread
 
   public tree_walk
@@ -260,7 +257,7 @@ module module_walk
   !> calculates forces due to the sources contained in tree `t` on the particles
   !> `p` by performing a B-H tree traversal
   !>
-  subroutine tree_walk(t, p, twalk, twalk_loc_, vbox_)
+  subroutine tree_walk(t, p, vbox_)
     use, intrinsic :: iso_c_binding
     use module_pepc_types
     use module_timings
@@ -271,7 +268,6 @@ module module_walk
     type(t_tree), target, intent(inout) :: t !< a B-H tree
     type(t_particle), target, intent(in) :: p(:) !< a list of particles
     real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
-    real*8, target, intent(inout) :: twalk, twalk_loc_
 
     call pepc_status('WALK HYBRID')
 
@@ -288,16 +284,9 @@ module module_walk
     ! in worst case, each entry in the defer list can spawn 8 children in the todo_list
     todo_list_length  = 8 * defer_list_length
 
-    ! pure local walk time (i.e. from start of communicator till send_walk_finished)
-    twalk_loc => twalk_loc_
-
-    twalk  = MPI_WTIME()
-
     call init_walk_data()
     call walk_hybrid()
     call uninit_walk_data()
-
-    twalk = MPI_WTIME() - twalk
   end subroutine tree_walk
 
 
@@ -315,8 +304,6 @@ module module_walk
     DEBUG_ASSERT(size(threaddata)==num_walk_threads)
 
     threaddata(1:num_walk_threads)%finished = .false. ! we do not do this within the following loop because all (!) entries have to be .false. before the first (!) thread starts
-
-    twalk_loc = MPI_WTIME()
 
     call atomic_store_int(thread_startup_complete, 0)
 
@@ -340,8 +327,6 @@ module module_walk
     if (walk_debug) then
       DEBUG_INFO(*, "PE", walk_tree%comm_env%rank, "has finished walking")
     end if
-
-    twalk_loc = MPI_WTIME() - twalk_loc
 
     ! check wether all particles really have been processed
     num_processed_particles = sum(threaddata(:)%counters(THREAD_COUNTER_PROCESSED_PARTICLES))

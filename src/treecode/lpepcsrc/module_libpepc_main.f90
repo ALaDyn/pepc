@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -84,10 +84,10 @@ module module_libpepc_main
 
       type(t_tree), intent(inout) :: t
       type(t_particle), allocatable, intent(inout) :: p(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
-      
+
       call tree_grow(t, p)
       call tree_communicator_start(t)
- 
+
       call pepc_status('AFTER GROW: CALC FORCE')
       call calc_force_after_grow(p)
       ! call pepc_status('AFTER GROW: TRAVERSE')
@@ -149,8 +149,10 @@ module module_libpepc_main
         real*8 :: ttrav, ttrav_loc ! timing integrals
 
         call pepc_status('TRAVERSE TREE')
-        call timer_reset(t_walk)
-        call timer_reset(t_walk_local)
+        call timer_start(t_walk)
+
+        !TODO:call tree_walk_init()
+
         call timer_start(t_fields_passes)
 
         do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
@@ -160,11 +162,11 @@ module module_libpepc_main
                                  ! synchronized individually - hence in any case there must be a barrier here
 
             ! tree walk finds interaction partners and calls interaction routine for particles on short list
-            call tree_walk(t, p, ttrav, ttrav_loc, lattice_vect(neighbour_boxes(:,ibox)))
-
-            call timer_add(t_walk, ttrav)           ! traversal time (until all walks are finished)
-            call timer_add(t_walk_local, ttrav_loc) ! traversal time (local)
+            call tree_walk(t, p, lattice_vect(neighbour_boxes(:,ibox)))
         end do ! ibox = 1,num_neighbour_boxes
+        call timer_stop(t_fields_passes)
+
+        !TODO:call tree_walk_uninit()
 
         ! add lattice contribution
         call timer_start(t_lattice)
@@ -172,7 +174,7 @@ module module_libpepc_main
         ! TODO: do not call calc_force_per_particle here!
         call calc_force_per_particle(p)
         call timer_stop(t_lattice)
-        call timer_stop(t_fields_passes)
+        call timer_stop(t_walk)
         call pepc_status('TRAVERSAL DONE')
     end subroutine libpepc_traverse_tree
 
