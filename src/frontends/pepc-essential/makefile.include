@@ -13,7 +13,7 @@ CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF
 
 BACKENDTYPE = XYZQVM
 
-#WALK = smpss
-#WALK = pthreads_blocking
 #WALK = pthreads_clustered
-WALK = openmp
+#WALK = simple
+#WALK = openmp
+WALK = pthreads
