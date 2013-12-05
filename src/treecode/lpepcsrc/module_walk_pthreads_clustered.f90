@@ -119,14 +119,12 @@ module module_walk
 
   type(t_pthread_with_type), target, allocatable :: thread_handles(:)
   type(t_threaddata), allocatable, target :: threaddata(:)
-  integer :: num_walk_threads = -1 !< number of worker threads, default value is set to treevars%num_threads in tree_walk_read_parameters()
+  integer :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
   real :: work_on_communicator_cluster_number_factor = 0.1 !< factor for reducing max_clusters_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
   integer, public :: max_clusters_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
 
   real*8 :: vbox(3)
-  logical :: in_central_box
-
   integer :: todo_list_length, defer_list_length, num_clusters
   type(t_particle), pointer, dimension(:) :: particle_data
   type(t_tree), pointer :: walk_tree
@@ -134,7 +132,6 @@ module module_walk
   integer(kind_level), parameter :: particle_cluster_level = 5
 
   type(t_atomic_int), pointer :: next_unassigned_cluster
-  type(t_atomic_int), pointer :: thread_startup_complete
 
   type t_thread_cluster_data
     integer(kind_particle) :: n ! number of particles
@@ -144,7 +141,9 @@ module module_walk
 
   namelist /walk_para_pthreads/ max_clusters_per_thread
 
-  public tree_walk
+  public tree_walk_run
+  public tree_walk_init
+  public tree_walk_uninit
   public tree_walk_finalize
   public tree_walk_prepare
   public tree_walk_statistics
@@ -240,14 +239,7 @@ module module_walk
   !> computes derived parameters for tree walk
   !>
   subroutine tree_walk_prepare()
-    use treevars, only: num_threads
     implicit none
-
-    num_walk_threads = max(num_threads, 1)
-
-    if (allocated(threaddata)) deallocate(threaddata)
-    allocate(threaddata(num_walk_threads))
-
   end subroutine
 
 
@@ -257,7 +249,7 @@ module module_walk
   !>
   subroutine tree_walk_finalize()
     implicit none
-    deallocate(threaddata)
+    deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
   end subroutine tree_walk_finalize
 
 
@@ -265,62 +257,36 @@ module module_walk
   !> calculates forces due to the sources contained in tree `t` on the particles
   !> `p` by performing a B-H tree traversal
   !>
-  subroutine tree_walk(t, p, vbox_)
+  subroutine tree_walk_run(vbox_)
     use, intrinsic :: iso_c_binding
+    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread, THREAD_TYPE_WORKER
+    use module_atomic_ops, only: atomic_store_int
     use module_pepc_types
     use module_timings
     use module_debug
     implicit none
     include 'mpif.h'
 
-    type(t_tree), target, intent(inout) :: t !< a B-H tree
-    type(t_particle), target, intent(in) :: p(:) !< a list of particles
     real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
-
-    call pepc_status('WALK HYBRID')
-
-    ! we have to have at least one walk thread
-    DEBUG_ASSERT(num_walk_threads >= 1)
-
-    particle_data => p
-    walk_tree => t
-    ! box shift vector
-    vbox = vbox_
-    ! defer-list per particle (estimations) - will set total_defer_list_length = defer_list_length*my_max_clusters_per_thread later
-    defer_list_length = max(int(t%nintmax), 10)
-    ! in worst case, each entry in the defer list can spawn 8 children in the todo_list
-    todo_list_length  = 8 * defer_list_length
-
-    call init_walk_data()
-    call walk_hybrid()
-    call uninit_walk_data()
-  end subroutine tree_walk
-
-
-  subroutine walk_hybrid()
-    use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread, THREAD_TYPE_WORKER
-    use module_debug
-    use module_atomic_ops, only: atomic_store_int
-    use, intrinsic :: iso_c_binding
-    implicit none
-    include 'mpif.h'
 
     integer :: ith
     integer(kind_particle) :: num_processed_clusters
+
+    call pepc_status('WALK HYBRID')
+    ! box shift vector
+    vbox = vbox_
 
     DEBUG_ASSERT(size(threaddata)==num_walk_threads)
 
     threaddata(1:num_walk_threads)%finished = .false. ! we do not do this within the following loop because all (!) entries have to be .false. before the first (!) thread starts
 
-    call atomic_store_int(thread_startup_complete, 0)
+    call atomic_store_int(next_unassigned_cluster, 1)
 
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
       ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith)), thread_type = THREAD_TYPE_WORKER, counter = ith), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
     end do
-
-    call atomic_store_int(thread_startup_complete, 1)
 
     ! ... and wait for work thread completion
     do ith = 1, num_walk_threads
@@ -340,50 +306,65 @@ module module_walk
     if (num_processed_clusters .ne. num_clusters) then
       DEBUG_ERROR(*, "Serious issue on PE", walk_tree%comm_env%rank, ": all walk threads have terminated, but obviously not all clusters are finished with walking: num_processed_clusters =", num_processed_clusters, " num_clusters =", num_clusters)
     end if
-  end subroutine walk_hybrid
+  end subroutine tree_walk_run
 
 
-  subroutine init_walk_data()
+  subroutine tree_walk_init(t, p, num_threads)
     use, intrinsic :: iso_c_binding
     use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
     use module_debug
     implicit none
+    type(t_tree), target, intent(inout) :: t !< a B-H tree
+    type(t_particle), target, intent(in) :: p(:) !< a list of particles
+    integer, intent(in) :: num_threads !< number of traversal threads to be used
+
+    call pepc_status('WALK INIT')
+
+    ! we have to have at least one walk thread
+    num_walk_threads = max(num_threads, 1)
+
+    ! to keep this alive for tree_walk_statistics(), this is only deallocated in tree_walk_finalize() -> we do not know if it is allocated here or not
+    if (allocated(threaddata)) deallocate(threaddata)
+    allocate(threaddata(num_walk_threads))
+
+    particle_data => p
+    walk_tree     => t
+
+    ! defer-list per particle (estimations) - will set total_defer_list_length = defer_list_length*my_max_particles_per_thread later
+    defer_list_length = max(int(t%nintmax), 10)
+    ! in worst case, each entry in the defer list can spawn 8 children in the todo_list
+    todo_list_length  = 8 * defer_list_length
 
     ! find particle clusters
-    call identify_particle_clusters()
+    call identify_particle_clusters() !FIXME: parameters?, deallocation of internal objects?
 
     ! initialize atomic variables
     call atomic_allocate_int(next_unassigned_cluster)
-    call atomic_allocate_int(thread_startup_complete)
 
-    if (.not. (associated(next_unassigned_cluster) .and. associated(thread_startup_complete))) then
+    if (.not. associated(next_unassigned_cluster)) then
       DEBUG_ERROR(*, "atomic_allocate_int() failed!")
     end if
-
-    call atomic_store_int(next_unassigned_cluster, 1)
-    call atomic_store_int(thread_startup_complete, 0)
 
     ! evenly balance particles to threads if there are less than the maximum
     max_clusters_per_thread = max(min(num_clusters/num_walk_threads, max_clusters_per_thread),1)
     ! allocate storage for thread handles
     allocate(thread_handles(num_walk_threads))
-
-    ! we will only want to reject the root node and the particle itself if we are in the central box
-    in_central_box = (dot_product(vbox,vbox) == 0)
-  end subroutine init_walk_data
+  end subroutine tree_walk_init
 
 
-  subroutine uninit_walk_data()
+  subroutine tree_walk_uninit(t, p)
     use module_atomic_ops, only: atomic_deallocate_int
+    use module_debug
     implicit none
+    type(t_tree), target, intent(inout) :: t !< a B-H tree
+    type(t_particle), target, intent(inout) :: p(:) !< a list of particles
+
+    call pepc_status('WALK UNINIT')
 
     call atomic_deallocate_int(next_unassigned_cluster)
-    call atomic_deallocate_int(thread_startup_complete)
-
     deallocate(thread_handles)
-
     deallocate(particle_clusters)
-  end subroutine uninit_walk_data
+  end subroutine tree_walk_uninit
 
 
   subroutine identify_particle_clusters()
@@ -576,11 +557,6 @@ module module_walk
       deallocate(todo_list)
     end if
 
-    ! we have to wait here until all threads have started before some of them die again :-)
-    do while (atomic_load_int(thread_startup_complete) /= 1)
-      ERROR_ON_FAIL(pthreads_sched_yield())
-    end do
-
     my_threaddata%finished = .true.
 
     walk_worker_thread = c_null_ptr
@@ -621,7 +597,6 @@ module module_walk
       if (next_unassigned_cluster_local < num_clusters + 1) then
         get_first_unassigned_cluster = next_unassigned_cluster_local
       else
-        call atomic_store_int(next_unassigned_cluster, num_clusters + 1)
         get_first_unassigned_cluster = -1
       end if
     end function get_first_unassigned_cluster

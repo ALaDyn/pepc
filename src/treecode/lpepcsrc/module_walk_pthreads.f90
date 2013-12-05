@@ -268,7 +268,7 @@ module module_walk
     call pepc_status('WALK HYBRID')
     ! box shift vector
     vbox = vbox_
-    ! we will only want to reject the root node and the particle itself if we are in the central box
+
     DEBUG_ASSERT(size(threaddata)==num_walk_threads)
 
     threaddata(1:num_walk_threads)%finished = .false. ! we do not do this within the following loop because all (!) entries have to be .false. before the first (!) thread starts
@@ -535,7 +535,6 @@ module module_walk
       if (next_unassigned_particle_local < num_particles + 1) then
         get_first_unassigned_particle = next_unassigned_particle_local
       else
-        call atomic_store_int(next_unassigned_particle, num_particles + 1)
         get_first_unassigned_particle = -1
       end if
     end function get_first_unassigned_particle
