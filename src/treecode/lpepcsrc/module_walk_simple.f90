@@ -115,7 +115,7 @@ module module_walk
     interactions_local = 0.0_8
     mac_evaluations_local = 0.0_8
 
-    !$omp parallel default(shared) private(i) num_threads(num_threads)
+    !$omp parallel default(shared) private(i) num_threads(num_walk_threads)
     !$omp master
     do i = 1, size(walk_particles, kind = kind_particle)
       !$omp task default(shared) firstprivate(i)
