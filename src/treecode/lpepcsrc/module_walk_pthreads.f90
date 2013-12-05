@@ -614,7 +614,7 @@ module module_walk
     ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
     ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
     ! that the node has to be resolved
-    ! if the defer_list is empty, the call reurns without doing anything
+    ! if the defer_list is empty, the call reutrns without doing anything
     call defer_list_parse_and_compact()
 
     ! read all todo_list-entries and start further traversals there

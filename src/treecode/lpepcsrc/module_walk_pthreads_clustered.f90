@@ -129,7 +129,7 @@ module module_walk
   type(t_particle), pointer, dimension(:) :: particle_data
   type(t_tree), pointer :: walk_tree
   integer(kind_particle), allocatable, dimension(:,:) :: particle_clusters
-  integer(kind_level), parameter :: particle_cluster_level = 5
+  integer(kind_level) :: particle_cluster_level = 5
 
   type(t_atomic_int), pointer :: next_unassigned_cluster
 
@@ -139,7 +139,7 @@ module module_walk
     integer(kind_particle), dimension(:), allocatable :: orig_particles ! index of n particles into particle_data field
   end type
 
-  namelist /walk_para_pthreads/ max_clusters_per_thread
+  namelist /walk_para_pthreads_clustered/ max_clusters_per_thread, particle_cluster_level
 
   public tree_walk_run
   public tree_walk_init
@@ -219,7 +219,7 @@ module module_walk
     integer, intent(in) :: filehandle
 
     call pepc_status("READ PARAMETERS, section walk_para_pthreads")
-    read(filehandle, NML=walk_para_pthreads)
+    read(filehandle, NML=walk_para_pthreads_clustered)
   end subroutine
 
 
@@ -231,7 +231,7 @@ module module_walk
     implicit none
     integer, intent(in) :: filehandle
 
-    write(filehandle, NML=walk_para_pthreads)
+    write(filehandle, NML=walk_para_pthreads_clustered)
   end subroutine
 
 
@@ -711,7 +711,7 @@ module module_walk
     ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
     ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
     ! that the node has to be resolved
-    ! if the defer_list is empty, the call reurns without doing anything
+    ! if the defer_list is empty, the call returns without doing anything
     call defer_list_parse_and_compact()
 
     ! read all todo_list-entries and start further traversals there
