@@ -128,16 +128,20 @@ module module_walk
   integer :: todo_list_length, defer_list_length, num_clusters
   type(t_particle), pointer, dimension(:) :: particle_data
   type(t_tree), pointer :: walk_tree
-  integer(kind_particle), allocatable, dimension(:,:) :: particle_clusters
-  integer(kind_level) :: particle_cluster_level = 5
 
-  type(t_atomic_int), pointer :: next_unassigned_cluster
+  type t_cluster_data
+    integer(kind_particle) :: n !< number of particles
+    integer(kind_particle) :: f !< index of the cluster`s first particle in the particle_list
+  end type
 
   type t_thread_cluster_data
-    integer(kind_particle) :: n ! number of particles
-    real*8 :: cluster_centre(3) ! already shifted by vbox
-    integer(kind_particle), dimension(:), allocatable :: orig_particles ! index of n particles into particle_data field
+    type(t_cluster_data) :: d
+    real*8 :: cluster_centre(3) !< cluster center, already shifted by vbox
   end type
+
+  type(t_cluster_data), allocatable, dimension(:) :: particle_clusters
+  integer(kind_level) :: particle_cluster_level = 5
+  type(t_atomic_int), pointer :: next_unassigned_cluster
 
   namelist /walk_para_pthreads_clustered/ max_clusters_per_thread, particle_cluster_level
 
@@ -389,21 +393,21 @@ module module_walk
 
     num_clusters = num_clusters
     ! allocate enough space for storing them
-    allocate(particle_clusters(2,num_clusters))
+    allocate(particle_clusters(num_clusters))
     ! and put them onto the list
     num_clusters = 1
     lastkey   = clustermask(particle_data(1)%key)
-    particle_clusters(1,num_clusters) = 1
+    particle_clusters(num_clusters)%f = 1
     do i=1,np
       if (clustermask(particle_data(i)%key) .ne. lastkey) then
-        particle_clusters(2,num_clusters) = i - particle_clusters(1,num_clusters)
+        particle_clusters(num_clusters)%n = i - particle_clusters(num_clusters)%f
         lastkey = clustermask(particle_data(i)%key)
         num_clusters = num_clusters + 1
-        particle_clusters(1,num_clusters) = i
+        particle_clusters(num_clusters)%f = i
       endif
     end do
 
-    particle_clusters(2,num_clusters) = i - particle_clusters(1,num_clusters)
+    particle_clusters(num_clusters)%n = i - particle_clusters(num_clusters)%f
 
     contains
       elemental pure function clustermask(k)
@@ -527,9 +531,6 @@ module module_walk
                 call debug_mpi_abort()
               end if
 
-              ! deallocate auxiliary data
-              call wipe_cluster(i)
-
               ! mark cluster entry i as free
               thread_cluster_indices(i)                = -1
               ! count total processed clusters for this thread
@@ -613,18 +614,16 @@ module module_walk
         if (contains_cluster(idx)) then
           ! we make a copy of all cluster data to avoid thread-concurrent access to particle_data array
           ! and to be able to make more efficient use of vectorization later
-          thread_cluster_data(idx)%n = particle_clusters(2,thread_cluster_indices(idx))
-          allocate(thread_cluster_data(idx)%orig_particles(thread_cluster_data(idx)%n))
-          thread_cluster_data(idx)%cluster_centre(:) = 0.
+          thread_cluster_data(idx)%d = particle_clusters(thread_cluster_indices(idx))
 
-          do i=1,thread_cluster_data(idx)%n
-            !FIXME: compute coc correctly -- this is just the geometric center
-            ! what should we use? real center-of-charge, geometric centre of particles, geometric centre of node-box?
-            thread_cluster_data(idx)%cluster_centre(:) = thread_cluster_data(idx)%cluster_centre(:) + particle_data(particle_clusters(1,thread_cluster_indices(idx))+i-1)%x
-            thread_cluster_data(idx)%orig_particles(i) = particle_clusters(1,thread_cluster_indices(idx))+i-1
+          thread_cluster_data(idx)%cluster_centre(:) = 0.
+          do i=1,thread_cluster_data(idx)%d%n
+            ! for now we use the geometric center as cluster center
+            ! possible options: center-of-charge, geometric centre of particles, geometric centre of node-box?
+            thread_cluster_data(idx)%cluster_centre(:) = thread_cluster_data(idx)%cluster_centre(:) + particle_data(particle_clusters(thread_cluster_indices(idx))%f+i-1)%x
           end do
 
-          thread_cluster_data(idx)%cluster_centre = (thread_cluster_data(idx)%cluster_centre / thread_cluster_data(idx)%n) - vbox
+          thread_cluster_data(idx)%cluster_centre = (thread_cluster_data(idx)%cluster_centre / thread_cluster_data(idx)%d%n) - vbox
 
           ! for clusters that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
@@ -635,16 +634,6 @@ module module_walk
         end if ! contains_cluster(idx)
       end if ! clusters_available
     end subroutine get_new_cluster_and_setup_defer_list
-
-
-    subroutine wipe_cluster(idx)
-      implicit none
-      integer, intent(in) :: idx
-
-      thread_cluster_data(idx)%n = 0
-      deallocate(thread_cluster_data(idx)%orig_particles)
-
-    end subroutine
 
 
     subroutine setup_defer_list(idx)
@@ -730,12 +719,12 @@ module module_walk
 
       if (is_leaf) then
         partner_leaves = partner_leaves + 1
-        call calc_force_for_cluster(cluster, calc_force_per_interaction_with_leaf, calc_force_per_interaction_with_self)
+        call calc_force_for_cluster(calc_force_per_interaction_with_leaf, calc_force_per_interaction_with_self)
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
         if (mac(walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
           partner_leaves = partner_leaves + walk_node%leaves
-          call calc_force_for_cluster(cluster, calc_force_per_interaction_with_twig, calc_force_per_interaction_with_twig)
+          call calc_force_for_cluster(calc_force_per_interaction_with_twig, calc_force_per_interaction_with_twig)
         else ! MAC negative, resolve
           call resolve()
         end if
@@ -753,15 +742,14 @@ module module_walk
 
     ! FIXME: self with twig does not make too much sense but makes the code much more beautiful
     ! TODO: this should be vectorized or whatever. put this into interaction-specific bla
-    subroutine calc_force_for_cluster(c, calc_force, calc_force_self)
+    subroutine calc_force_for_cluster(calc_force, calc_force_self)
       implicit none
-      type(t_thread_cluster_data), intent(in) :: c
       procedure(t_calc_force) :: calc_force, calc_force_self
       real*8 :: pdist2, pdelta(3)
       integer(kind_particle) :: ipart
 
-      do ipart=1,c%n
-        pdelta = particle_data(c%orig_particles(ipart))%x - vbox - walk_node%interaction_data%coc ! Separation vector
+      do ipart=0,cluster%d%n-1
+        pdelta = particle_data(cluster%d%f+ipart)%x - vbox - walk_node%interaction_data%coc ! Separation vector
         pdist2 = DOT_PRODUCT(pdelta, pdelta)
 
         #ifndef NO_SPATIAL_INTERACTION_CUTOFF
@@ -769,9 +757,9 @@ module module_walk
         #endif
 
         if (pdist2 > 0.0_8) then ! not self, interact
-          call calc_force(particle_data(c%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          call calc_force(particle_data(cluster%d%f+ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
           else ! self, count as interaction partner, otherwise ignore
-          call calc_force_self(particle_data(c%orig_particles(ipart)), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          call calc_force_self(particle_data(cluster%d%f+ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
         endif
         num_interactions = num_interactions + 1
       end do
@@ -796,7 +784,7 @@ module module_walk
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         ! eager requests
-        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(cluster%orig_particles(1)), cluster%cluster_centre) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(cluster%d%f), cluster%cluster_centre) ! fetch children from remote
         ! simple requests
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         num_post_request = num_post_request + 1
