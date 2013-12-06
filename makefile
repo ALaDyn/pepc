@@ -12,96 +12,98 @@ ALLFRONTENDS = $(shell ls $(FRONTENDDIR))
 
 RED=\e[0;31m
 GREEN=\e[0;32m
-NC=\e[0m # No Color
+BC=\e[1m# bold
+UL=\e[4m# underline
+NC=\e[0m# No Color, default font
 
 help: info
 	@printf $(HELP)
-	@echo ""
+	@echo -e ""
 
 info:
-	@echo "======== make info"
-	@echo "==== target architecture : $(MACH)"
-	@echo "==== code version        : $(SVNREVISION)"
-	@echo "==== pepc directory      : $(ROOTDIR)"
-	@echo "==== available frontends : $(ALLFRONTENDS)"
-	@echo ""
+	@echo -e "======== $(UL)make info$(NC)"
+	@echo -e "==== target architecture : $(BC)$(MACH)$(NC)"
+	@echo -e "==== code version        : $(BC)$(SVNREVISION)$(NC)"
+	@echo -e "==== pepc directory      : $(BC)$(ROOTDIR)$(NC)"
+	@echo -e "==== available frontends : $(BC)$(ALLFRONTENDS)$(NC)"
+	@echo -e ""
 
 buildenv:
-	@echo "======== build environment"
-	@echo "== CPP      : $(CPP)"
-	@echo "== CPPFLAGS : $(CPPFLAGS)"
-	@echo "== FCPRE    : $(FCPRE)"
-	@echo "== FC       : $(FC)"
-	@echo "== FFLAGS   : $(FFLAGS)"
-	@echo "== CCPRE    : $(CCPRE)"
-	@echo "== CC       : $(CC)"
-	@echo "== CFLAGS   : $(CFLAGS)"
-	@echo "== LDPRE    : $(LDPRE)"
-	@echo "== LD       : $(LD)"
-	@echo "== LDFLAGS  : $(LDFLAGS)"
-	@echo ""
+	@echo -e "======== $(UL)build environment$(NC)"
+	@echo -e "== CPP      : $(BC)$(CPP)$(NC)"
+	@echo -e "== CPPFLAGS : $(BC)$(CPPFLAGS)$(NC)"
+	@echo -e "== FCPRE    : $(BC)$(FCPRE)$(NC)"
+	@echo -e "== FC       : $(BC)$(FC)$(NC)"
+	@echo -e "== FFLAGS   : $(BC)$(FFLAGS)$(NC)"
+	@echo -e "== CCPRE    : $(BC)$(CCPRE)$(NC)"
+	@echo -e "== CC       : $(BC)$(CC)$(NC)"
+	@echo -e "== CFLAGS   : $(BC)$(CFLAGS)$(NC)"
+	@echo -e "== LDPRE    : $(BC)$(LDPRE)$(NC)"
+	@echo -e "== LD       : $(BC)$(LD)$(NC)"
+	@echo -e "== LDFLAGS  : $(BC)$(LDFLAGS)$(NC)"
+	@echo -e ""
 
 readme:
 	cat README | less
 
 all:
 	-$(MAKE) $(MFLAGS) -k $(ALLFRONTENDS)
-	@echo ""
+	@echo -e ""
 	-$(MAKE) $(MFLAGS) allresult
 
 allresult:
-	@echo "======== build all results:"
+	@echo -e "======== $(UL)build all results$(NC)"
 	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s $(GREEN)OK$(NC)\n" $$f ; else printf "== %-20s $(RED)FAILED$(NC)\n" $$f; fi; done
-	@echo ""
+	@echo -e ""
 
 libsl: $(LIBDIR)/libsl.a
 
 $(LIBDIR)/libsl.a: $(LIBDIR)
-	@echo "==== building libsl"
+	@echo -e "==== $(UL)building libsl$(NC)"
 	@ln -sf "$(ROOTDIR)/makefile.defs" "$(SLPEPCDIR)/makefile.defs"
 	@$(MAKE) -C "$(SLPEPCDIR)" $(MFLAGS)
 	@cp -p "$(SLPEPCDIR)/libsl.a" "$(LIBDIR)/libsl.a"
 
 libopa: $(LIBDIR)
-	@echo "==== building openpa"
+	@echo -e "==== $(UL)building openpa$(NC)"
 	@ROOTDIR="$(ROOTDIR)" $(MAKE) -C "$(OPADIR)" $(MFLAGS)
 
 clean:
-	@echo "==== cleaning build directory and binaries in bin directory"
+	@echo -e "==== $(UL)cleaning build directory and binaries in bin directory$(NC)"
 	@$(RM) makefile.envs
 	@$(RM) "$(BUILDDIR)" $(addprefix $(BINDIR)/, $(ALLFRONTENDS))
-	@echo ""
+	@echo -e ""
 
 cleanlib:
-	@echo "==== cleaning libraries"
+	@echo -e "==== $(UL)cleaning libraries$(NC)"
 	@$(RM) "$(LIBDIR)"
 	@ln -sf "$(ROOTDIR)/makefile.defs" "$(SLPEPCDIR)/makefile.defs"
 	@cd src/treecode/sl_pepc && $(MAKE) $(MFLAGS) clean 
 	@ROOTDIR="$(ROOTDIR)" $(MAKE) -C "$(OPADIR)" $(MFLAGS) clean
-	@echo ""
+	@echo -e ""
 
 cleandoc:
-	@echo "==== cleaning Doxygen documentation"
+	@echo -e "==== $(UL)cleaning Doxygen documentation$(NC)"
 	@$(RM) "$(DOCDIR)"
 
 cleanall: cleanlib cleandoc clean
 	@-$(RM) "$(BINDIR)"
-	@echo "==== all cleaned"
+	@echo -e "==== $(UL)all cleaned$(NC)"
 
 allclean: cleanall
 
 pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a libopa
-	@echo "======== start building frontend { $@ }"
-	@echo "==== date: " $(shell "date")
-	@echo "==== make target: " $@
+	@echo -e "======== start building frontend $(BC){ $@ }$(NC)"
+	@echo -e "==== date: $(BC)$(shell "date")$(NC)"
+	@echo -e "==== make target: $(BC)$@$(NC)"
 	@mkdir -p "$(BUILDDIR)/$(MACH)/$@"
 	@mkdir -p "$(BINDIR)"
 	@-$(RM) "$(BINDIR)/$@"
 	@FRONTEND="$@" ROOTDIR="$(ROOTDIR)" SVNREVISION="$(SVNREVISION)" WORKDIR="$(BUILDDIR)/$(MACH)/$@" $(MAKE) $(MFLAGS) -f "$(MAKEDIR)/makefile.prepare"
 	@cp -p "$(BUILDDIR)/$(MACH)/$@/$@" "$(BINDIR)"
-	@echo ""
-	@echo "======== successfully built frontend { $@ } :-)"
-	@echo ""
+	@echo -e ""
+	@echo -e "======== $(GREEN)successfully built frontend { $@ } :-)$(NC)"
+	@echo -e ""
 
 $(LIBDIR):
 	@mkdir "$(LIBDIR)"
@@ -110,9 +112,9 @@ $(DOCDIR):
 	@mkdir -p "$(DOCDIR)"
 
 doc: $(DOCDIR) $(TOOLSDIR)/Doxyfile
-	@echo "======== start building Doxygen documentation"
+	@echo -e "======== start building Doxygen documentation"
 	@doxygen "$(TOOLSDIR)/Doxyfile"
-	@echo "=== you can view the source code documentation by opening $(DOCDIR)/index.html with your favourite web browser"
+	@echo -e "=== you can view the source code documentation by opening $(BOLD)$(DOCDIR)/index.html$(NC) with your favourite web browser"
 
 MAKEFILEDEFSINFO = "\n\n\
 !!! To be able to build pepc, you first have to create a \n\

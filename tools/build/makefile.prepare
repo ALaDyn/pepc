@@ -14,11 +14,17 @@ include $(INTSPECDIR)/$(BACKEND)/makefile.include
 
 MAKEENVS = $(WORKDIR)/makefile.envs
 
+RED=\e[0;31m
+GREEN=\e[0;32m
+BC=\e[1m# bold
+UL=\e[4m# underline
+NC=\e[0m# No Color, default font
+
 prepare: $(SRC)
-	@echo "==== building frontend :" $(FRONTEND)
-	@echo "==== building walk     :" $(WALK)
-	@echo "==== building backend  :" $(BACKEND)
-	@echo "==== working directory :" $(WORKDIR)
+	@echo -e "==== building frontend : $(BC)$(FRONTEND)$(NC)"
+	@echo -e "==== building walk     : $(BC)$(WALK)$(NC)"
+	@echo -e "==== building backend  : $(BC)$(BACKEND)$(NC)"
+	@echo -e "==== working directory : $(BC)$(WORKDIR)$(NC)"
 	@$(RM) $(MAKEENVS)
 	@echo "FRONTEND=$(FRONTEND)"       >> $(MAKEENVS)
 	@echo "ROOTDIR=$(ROOTDIR)"         >> $(MAKEENVS)
