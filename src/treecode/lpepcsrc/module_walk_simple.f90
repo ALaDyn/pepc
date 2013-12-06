@@ -19,19 +19,27 @@
 !
 
 !>
-!> A simple force calculation / tree traversal
+!> A (not so) simple force calculation / tree traversal
 !>
-!> The algorithm is single threaded and blocks while waiting for remote nodes to
-!> arrive.
+!> The algorithm uses OpenMP tasks to hide MPI communication latency.
+!> The force calculation / tree traversal is performed for several particles grouped in a "tile" at the same time.
 !>
 module module_walk
   use module_tree, only: t_tree
-  use module_pepc_types, only: t_particle
+  use module_pepc_types, only: t_particle, kind_particle
   implicit none
   private
 
+  type t_walk_tile
+    type(t_particle), pointer :: p(:)
+  end type
+
   type(t_tree), pointer :: walk_tree
-  type(t_particle), pointer :: walk_particles(:)
+
+  integer(kind_particle), parameter :: TILE_SIZE = 16
+  type(t_walk_tile), allocatable :: walk_tiles(:)
+  integer(kind_particle) :: num_walk_tiles
+
   integer :: num_walk_threads
 
   real*8, public :: interactions_local, mac_evaluations_local
@@ -79,30 +87,92 @@ module module_walk
   end subroutine tree_walk_finalize
 
 
-  subroutine tree_walk_init(t, p, num_threads)
+  subroutine tree_walk_init(t, p_, num_threads)
+    use module_tree, only: TREE_KEY_ROOT
+    use module_spacefilling, only: level_from_key
+    use module_debug
     implicit none
 
     type(t_tree), target, intent(in) :: t
-    type(t_particle), target, intent(in) :: p(:)
+    type(t_particle), target, intent(in) :: p_(:)
     integer, intent(in) :: num_threads
 
+    call pepc_status('WALK INIT')
+
     walk_tree => t
-    walk_particles => p
     num_walk_threads = num_threads
+
+    ! TODO: this currently assumes that particles actually have a key
+
+    ! worst case: every particle in its own tile
+    allocate(walk_tiles(size(p_)))
+
+    num_walk_tiles = 0
+    call tree_walk_init_aux(TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), p_)
+    DEBUG_ASSERT(num_walk_tiles <= size(p_))
+
+    contains
+
+    recursive subroutine tree_walk_init_aux(k, l, p)
+      use module_pepc_types, only: kind_key, kind_level, kind_node
+      use module_spacefilling, only: child_key_from_parent_key, is_ancestor_of_particle
+      use treevars, only: idim, nlev
+      implicit none
+
+      integer(kind_key), intent(in) :: k
+      integer(kind_level), intent(in) :: l
+      type(t_particle), target :: p(:)
+
+      integer(kind_particle) :: np, pstart, pend
+      integer(kind_key) :: childkey
+      integer(kind_level) :: childlevel
+      integer :: ichild
+
+      if (l == nlev) then ! no more levels left, cannot split
+        DEBUG_ERROR(*, "walk_simple: insufficient key resolution in tile formation.")
+      end if
+
+      np = size(p, kind = kind_particle)
+
+      if (np <= TILE_SIZE) then
+        num_walk_tiles = num_walk_tiles + 1
+        walk_tiles(num_walk_tiles)%p => p(:)
+      else
+        childlevel = l + 1
+        pstart = 1
+        pend = pstart - 1
+        do ichild = 0, 2**idim - 1
+          childkey = child_key_from_parent_key(k, ichild)
+
+          pend = pstart - 1
+          do
+            if (.not. is_ancestor_of_particle(p(pend + 1)%key, childkey, childlevel)) exit
+            pend = pend + 1
+            if (pend == np) exit
+          end do
+
+          call tree_walk_init_aux(childkey, childlevel, p(pstart: pend))
+          pstart = pend + 1
+        end do
+      end if
+    end subroutine tree_walk_init_aux
   end subroutine tree_walk_init
 
 
   subroutine tree_walk_uninit(t, p)
+    use module_debug
     implicit none
 
     type(t_tree), intent(in) :: t
     type(t_particle), intent(in) :: p(:)
+
+    call pepc_status('WALK UNINIT')
+
+    deallocate(walk_tiles)
   end subroutine tree_walk_uninit
 
 
   subroutine tree_walk_run(vbox)
-    use module_pepc_types, only: kind_particle
-    use treevars, only: num_threads
     use module_debug
     implicit none
 
@@ -117,9 +187,9 @@ module module_walk
 
     !$omp parallel default(shared) num_threads(num_walk_threads)
     !$omp do
-    do i = 1, size(walk_particles, kind = kind_particle)
+    do i = 1, num_walk_tiles
       !$omp task untied default(shared) firstprivate(i)
-      call tree_walk_single(walk_particles(i), vbox)
+      call tree_walk_single(walk_tiles(i), vbox)
       !$omp end task
     end do
     !$omp end do nowait
@@ -127,20 +197,21 @@ module module_walk
   end subroutine tree_walk_run
 
 
-  subroutine tree_walk_single(p_, vbox)
-    use module_pepc_types, only: t_particle, kind_node
+  subroutine tree_walk_single(tl, vbox)
+    use module_pepc_types, only: kind_node, kind_level
     use module_debug
     use treevars, only: nlev
     implicit none
 
-    type(t_particle), intent(inout) :: p_
+    type(t_walk_tile), intent(inout) :: tl
     real*8, intent(in) :: vbox(3)
 
-    type(t_particle) :: p
+    type(t_particle) :: p(TILE_SIZE)
     integer(kind_node) :: ni
-    integer :: i
+    integer(kind_particle) :: ip, np
+    integer(kind_level) :: i
     real*8 :: b2(0:nlev), num_int, num_mac
-
+    
     num_int = 0.0_8
     num_mac = 0.0_8
 
@@ -149,7 +220,10 @@ module module_walk
       b2(i) = b2(i - 1) / 4.0_8
     end do
 
-    p = p_ ! make a local copy of the particle (false sharing and such)
+    np = size(tl%p)
+    do ip = 1, np
+      p(ip) = tl%p(ip) ! make a local copy of the particles (false sharing and such)
+    end do
 
     ni = 0_kind_node
     call tree_walk_single_aux(walk_tree%node_root)
@@ -160,7 +234,9 @@ module module_walk
     mac_evaluations_local = mac_evaluations_local + num_mac
     !$omp end critical
 
-    p_ = p
+    do ip = 1, np
+      tl%p(ip) = p(ip) ! copy particles back
+    end do
 
   contains
 
@@ -181,55 +257,66 @@ module module_walk
 
       type(t_tree_node), pointer :: node
       integer(kind_node) :: ns
-      real*8 :: d2, d(3)
-      logical :: is_leaf
+      real*8 :: d2(TILE_SIZE), d(TILE_SIZE, 3)
 
       node => walk_tree%nodes(n)
-      is_leaf = tree_node_is_leaf(node)
 
-      d = (p%x - vbox) - node%interaction_data%coc
-      d2 = dot_product(d, d)
-
-      if (is_leaf) then
+      if (tree_node_is_leaf(node)) then
         ni = ni + 1
-        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-        if (any(abs(d) >= spatial_interaction_cutoff)) return
-        #endif
-        num_int = num_int + 1.0_8
-        if (d2 > 0.0_8) then ! not self
-          call calc_force_per_interaction_with_leaf(p, node%interaction_data, n, d, d2, vbox)
-        else ! self
-          call calc_force_per_interaction_with_self(p, node%interaction_data, n, d, d2, vbox)
-        end if
-      else ! not a leaf, evaluate MAC
-        num_mac = num_mac + 1.0_8
-        if (mac(IF_MAC_NEEDS_PARTICLE(p) node%interaction_data, d2, b2(node%level))) then ! MAC OK: interact
-          ni = ni + node%leaves
+
+        do ip = 1, np
+          d(ip,:) = (p(ip)%x - vbox) - node%interaction_data%coc
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(d) >= spatial_interaction_cutoff)) return
+          if (any(abs(d(ip,:)) >= spatial_interaction_cutoff)) cycle
+          #endif
+          d2(ip) = dot_product(d(ip,:), d(ip,:))
+
+          num_int = num_int + 1.0_8
+          if (d2(ip) > 0.0_8) then ! not self
+            call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(ip,:), d2(ip), vbox)
+          else ! self
+            call calc_force_per_interaction_with_self(p(ip), node%interaction_data, n, d(ip,:), d2(ip), vbox)
+          end if
+        end do
+      else ! not a leaf, evaluate MAC
+        do ip = 1, np
+          num_mac = num_mac + 1.0_8
+          d(ip,:) = (p(ip)%x - vbox) - node%interaction_data%coc
+          d2(ip) = dot_product(d(ip,:), d(ip,:))
+
+          if (.not. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) node%interaction_data, d2(ip), b2(node%level))) then ! MAC fails: resolve
+            if (.not. tree_node_children_available(node)) then
+              call tree_node_fetch_children(walk_tree, node, n)
+              do ! loop and yield until children have been fetched
+                ERROR_ON_FAIL(pthreads_sched_yield())
+                if (tree_node_children_available(node)) exit
+                !$omp taskyield
+              end do
+            end if
+
+            call atomic_read_barrier()
+
+            ns = tree_node_get_first_child(node)
+            DEBUG_ASSERT_MSG(ns /= NODE_INVALID, *, "walk_simple: unexpectedly, this twig had no children")
+            do
+              call tree_walk_single_aux(ns)
+              ns = tree_node_get_next_sibling(walk_tree%nodes(ns))
+              if (ns == NODE_INVALID) exit
+            end do
+
+            return
+          end if
+        end do
+
+        ! MAC OK: interact
+        ni = ni + node%leaves
+        do ip = 1, np
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          if (any(abs(d(ip,:)) >= spatial_interaction_cutoff)) cycle
           #endif
           num_int = num_int + 1.0_8
-          call calc_force_per_interaction_with_twig(p, node%interaction_data, n, d, d2, vbox)
-        else ! MAC fails: resolve
-          if (.not. tree_node_children_available(node)) then
-            call tree_node_fetch_children(walk_tree, node, n)
-            do ! loop and yield until children have been fetched
-              ERROR_ON_FAIL(pthreads_sched_yield())
-              if (tree_node_children_available(node)) exit
-              !$omp taskyield
-            end do
-          end if
-
-          call atomic_read_barrier()
-
-          ns = tree_node_get_first_child(node)
-          DEBUG_ASSERT_MSG(ns /= NODE_INVALID, *, "walk_simple: unexpectedly, this twig had no children")
-          do
-            call tree_walk_single_aux(ns)
-            ns = tree_node_get_next_sibling(walk_tree%nodes(ns))
-            if (ns == NODE_INVALID) exit
-          end do
-        end if
+          call calc_force_per_interaction_with_twig(p(ip), node%interaction_data, n, d(ip,:), d2(ip), vbox)
+        end do
       end if
     end subroutine tree_walk_single_aux
   end subroutine tree_walk_single
