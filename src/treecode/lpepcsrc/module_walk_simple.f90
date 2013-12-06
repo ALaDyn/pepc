@@ -115,14 +115,14 @@ module module_walk
     interactions_local = 0.0_8
     mac_evaluations_local = 0.0_8
 
-    !$omp parallel default(shared) private(i) num_threads(num_walk_threads)
-    !$omp master
+    !$omp parallel default(shared) num_threads(num_walk_threads)
+    !$omp do
     do i = 1, size(walk_particles, kind = kind_particle)
-      !$omp task default(shared) firstprivate(i)
+      !$omp task untied default(shared) firstprivate(i)
       call tree_walk_single(walk_particles(i), vbox)
       !$omp end task
     end do
-    !$omp end master
+    !$omp end do nowait
     !$omp end parallel
   end subroutine tree_walk_run
 
