@@ -99,9 +99,6 @@ module module_walk
   implicit none
   private
 
-  !> debug flags - cannot be modified at runtime due to performance reasons
-  logical, parameter, public :: walk_debug = .false.
-
   integer, parameter :: NUM_THREAD_COUNTERS                = 4
   integer, parameter :: THREAD_COUNTER_PROCESSED_PARTICLES = 1
   integer, parameter :: THREAD_COUNTER_INTERACTIONS        = 2
@@ -290,10 +287,6 @@ module module_walk
       end if
     end do
 
-    if (walk_debug) then
-      DEBUG_INFO(*, "PE", walk_tree%comm_env%rank, "has finished walking")
-    end if
-
     ! check wether all particles really have been processed
     num_processed_particles = sum(threaddata(:)%counters(THREAD_COUNTER_PROCESSED_PARTICLES))
     if (num_processed_particles .ne. num_particles) then
@@ -454,10 +447,6 @@ module module_walk
 
             if (particle_has_finished) then
               ! walk for particle i has finished
-              if (walk_debug) then
-                  DEBUG_INFO('("PE", I6, " particle ", I12, " obviously finished walking around :-)")', walk_tree%comm_env%rank, i)
-              end if
-
               ! check whether the particle really interacted with all other particles
               if (partner_leaves(i) .ne. walk_tree%npart) then
                 write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') walk_tree%comm_env%rank, thread_particle_indices(i), thread_particle_data(i)%label
@@ -698,9 +687,6 @@ module module_walk
         ! since it will not be available then, the request will simply be repeated
         call defer_list_push(walk_node_idx) ! Deferred list of nodes to search, pending request
                                             ! for data from nonlocal PEs
-        if (walk_debug) then
-          DEBUG_INFO('("PE ", I6, " adding nonlocal key to defer_list, defer_list_entries=", I6)',  walk_tree%comm_env%rank, defer_list_entries_new)
-        end if
       end if
     end subroutine resolve
 
