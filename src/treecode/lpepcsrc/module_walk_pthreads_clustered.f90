@@ -369,38 +369,41 @@ module module_walk
     implicit none
 
     integer(kind_particle) :: i, np
+    integer(kind_key), allocatable :: masked_keys(:)
     integer(kind_key) :: lastkey
 
     ! FIXME: we have to assure, that all particle keys are available and are sorted
-    ! FIXME: (should be done outside of the loop over all neighbour boxes); do not forget to restore original order afterwards
+    !        we can do this now if we want, but should not forget to restore original order afterwards!
     np = size(particle_data, kind=kind(np))
-    ! count the nmber of clusters to be identified
-    num_clusters = 1
-    lastkey   = clustermask(particle_data(1)%key)
-    do i=1,np
-      if (clustermask(particle_data(i)%key) .ne. lastkey) then
-        lastkey = clustermask(particle_data(i)%key)
+    allocate(masked_keys(np))
+    ! count the number of clusters to be identified
+    masked_keys(1) = clustermask(particle_data(1)%key)
+    num_clusters   = 1
+
+    do i=2,np
+      masked_keys(i) = clustermask(particle_data(i)%key)
+
+      if (masked_keys(i) .ne. masked_keys(i-1)) then
         num_clusters = num_clusters + 1
       endif
     end do
 
-    num_clusters = num_clusters
     ! allocate enough space for storing them
     allocate(particle_clusters(num_clusters))
     ! and put them onto the list
     num_clusters = 1
-    lastkey   = clustermask(particle_data(1)%key)
     particle_clusters(num_clusters)%f = 1
-    do i=1,np
-      if (clustermask(particle_data(i)%key) .ne. lastkey) then
+    do i=2,np
+      if (masked_keys(i) .ne. masked_keys(i-1)) then
         particle_clusters(num_clusters)%n = i - particle_clusters(num_clusters)%f
-        lastkey = clustermask(particle_data(i)%key)
         num_clusters = num_clusters + 1
         particle_clusters(num_clusters)%f = i
       endif
     end do
 
     particle_clusters(num_clusters)%n = i - particle_clusters(num_clusters)%f
+
+    deallocate(masked_keys)
 
     contains
       elemental pure function clustermask(k)
