@@ -22,9 +22,15 @@ COBJ = $(CSRC:%.c=%.o)
 
 LDLIBS += libsl.a libopa.a
 
+RED=\e[0;31m
+GREEN=\e[0;32m
+BC=\e[1m# bold
+UL=\e[4m# underline
+NC=\e[0m# No Color, default font
+
 $(FRONTEND): $(FOBJ) $(COBJ)
-	@echo "==== building executable :" $@
-	@echo "==== using libraries     :" $(LDLIBS)
+	@echo -e "==== linking executable : $(BC)$@$(NC)"
+	@echo -e "==== using libraries    : $(BC)$(LDLIBS)$(NC)"
 	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
 #	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
 
