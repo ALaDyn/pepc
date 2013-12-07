@@ -21,10 +21,10 @@ UL=\e[4m# underline
 NC=\e[0m# No Color, default font
 
 prepare: $(SRC)
-	@echo -e "==== building frontend : $(BC)$(FRONTEND)$(NC)"
-	@echo -e "==== building walk     : $(BC)$(WALK)$(NC)"
-	@echo -e "==== building backend  : $(BC)$(BACKEND)$(NC)"
-	@echo -e "==== working directory : $(BC)$(WORKDIR)$(NC)"
+	@printf "==== building frontend : $(BC)$(FRONTEND)$(NC)\n"
+	@printf "==== building walk     : $(BC)$(WALK)$(NC)\n"
+	@printf "==== building backend  : $(BC)$(BACKEND)$(NC)\n"
+	@printf "==== working directory : $(BC)$(WORKDIR)$(NC)\n"
 	@$(RM) $(MAKEENVS)
 	@echo "FRONTEND=$(FRONTEND)"       >> $(MAKEENVS)
 	@echo "ROOTDIR=$(ROOTDIR)"         >> $(MAKEENVS)

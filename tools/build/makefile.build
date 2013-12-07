@@ -29,8 +29,8 @@ UL=\e[4m# underline
 NC=\e[0m# No Color, default font
 
 $(FRONTEND): $(FOBJ) $(COBJ)
-	@echo -e "==== linking executable : $(BC)$@$(NC)"
-	@echo -e "==== using libraries    : $(BC)$(LDLIBS)$(NC)"
+	@printf "==== linking executable : $(BC)$@$(NC)\n"
+	@printf "==== using libraries    : $(BC)$(LDLIBS)$(NC)\n"
 	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
 #	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
 
