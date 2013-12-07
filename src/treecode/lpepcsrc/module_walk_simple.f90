@@ -257,7 +257,7 @@ module module_walk
 
       type(t_tree_node), pointer :: node
       integer(kind_node) :: ns
-      real*8 :: d2(TILE_SIZE), d(TILE_SIZE, 3)
+      real*8 :: d2(TILE_SIZE), d(3, TILE_SIZE)
 
       node => walk_tree%nodes(n)
 
@@ -265,24 +265,24 @@ module module_walk
         ni = ni + 1
 
         do ip = 1, np
-          d(ip,:) = (p(ip)%x - vbox) - node%interaction_data%coc
+          d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(d(ip,:)) >= spatial_interaction_cutoff)) cycle
+          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
           #endif
-          d2(ip) = dot_product(d(ip,:), d(ip,:))
+          d2(ip) = dot_product(d(:, ip), d(:, ip))
 
           num_int = num_int + 1.0_8
           if (d2(ip) > 0.0_8) then ! not self
-            call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(ip,:), d2(ip), vbox)
+            call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
           else ! self
-            call calc_force_per_interaction_with_self(p(ip), node%interaction_data, n, d(ip,:), d2(ip), vbox)
+            call calc_force_per_interaction_with_self(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
           end if
         end do
       else ! not a leaf, evaluate MAC
         do ip = 1, np
           num_mac = num_mac + 1.0_8
-          d(ip,:) = (p(ip)%x - vbox) - node%interaction_data%coc
-          d2(ip) = dot_product(d(ip,:), d(ip,:))
+          d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
+          d2(ip) = dot_product(d(:, ip), d(:, ip))
 
           if (.not. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) node%interaction_data, d2(ip), b2(node%level))) then ! MAC fails: resolve
             if (.not. tree_node_children_available(node)) then
@@ -312,10 +312,10 @@ module module_walk
         ni = ni + node%leaves
         do ip = 1, np
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(d(ip,:)) >= spatial_interaction_cutoff)) cycle
+          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
           #endif
           num_int = num_int + 1.0_8
-          call calc_force_per_interaction_with_twig(p(ip), node%interaction_data, n, d(ip,:), d2(ip), vbox)
+          call calc_force_per_interaction_with_twig(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
         end do
       end if
     end subroutine tree_walk_single_aux
