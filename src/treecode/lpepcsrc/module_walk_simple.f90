@@ -134,7 +134,9 @@ module module_walk
 
       np = size(p, kind = kind_particle)
 
-      if (np <= TILE_SIZE) then
+      if (np == 0) then
+        ! do nothing
+      else if (np <= TILE_SIZE) then
         num_walk_tiles = num_walk_tiles + 1
         walk_tiles(num_walk_tiles)%p => p(:)
       else
