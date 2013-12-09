@@ -175,7 +175,9 @@ module module_walk
 
 
   subroutine tree_walk_run(vbox)
+    use pthreads_stuff, only: THREAD_TYPE_WORKER, THREAD_TYPE_MAIN, place_thread
     use module_debug
+    use omp_lib
     implicit none
 
     real*8, intent(in) :: vbox(3) !< lattice vector
@@ -188,6 +190,7 @@ module module_walk
     mac_evaluations_local = 0.0_8
 
     !$omp parallel default(shared) num_threads(num_walk_threads)
+    call place_thread(THREAD_TYPE_WORKER, omp_get_thread_num() + 1)
     !$omp do
     do i = 1, num_walk_tiles
       !$omp task untied default(shared) firstprivate(i)
@@ -196,6 +199,8 @@ module module_walk
     end do
     !$omp end do nowait
     !$omp end parallel
+
+    call place_thread(THREAD_TYPE_MAIN, 0)
   end subroutine tree_walk_run
 
 
