@@ -148,9 +148,9 @@ module module_walk
 
           pend = pstart - 1
           do
+            if (pend == np) exit
             if (.not. is_ancestor_of_particle(p(pend + 1)%key, childkey, childlevel)) exit
             pend = pend + 1
-            if (pend == np) exit
           end do
 
           call tree_walk_init_aux(childkey, childlevel, p(pstart: pend))
