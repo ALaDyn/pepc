@@ -124,7 +124,7 @@ contains
     use module_vtk_helpers
     use encap
     implicit none
-    
+
     type(pepc_pars_t), intent(in) :: pepc_pars
     type(time_pars_t), intent(in) :: time_pars
     type(t_particle), allocatable, intent(in) :: p(:)
@@ -133,9 +133,9 @@ contains
     integer :: vtk_step
     real*8 :: time
     real*8 :: ta, tb
-    
+
     ta = get_time()
-    
+
     time = time_pars%dt * step
 
     if (step .eq. 0) then
@@ -159,16 +159,17 @@ contains
     use module_pepc_types
     use module_vtk
     use module_vtk_helpers
+    use module_pepc, only : global_tree
 
     use encap
     implicit none
-  
+
     type(time_pars_t), intent(in) :: time_pars
     integer, intent(in) :: step
     type(t_particle), allocatable, intent(in) :: p(:)
 
     integer :: vtk_step
-  
+
     ! output of tree diagnostics
     if (step .eq. 0) then
       vtk_step = VTK_STEP_FIRST
@@ -178,10 +179,10 @@ contains
       vtk_step = VTK_STEP_NORMAL
     endif
 
-    call vtk_write_branches(step,  time_pars%dt * step, vtk_step)
-    call vtk_write_leaves(step, time_pars%dt * step, vtk_step)
+    call vtk_write_branches(step,  time_pars%dt * step, vtk_step, global_tree)
+    call vtk_write_leaves(step, time_pars%dt * step, vtk_step, global_tree)
     call vtk_write_spacecurve(step, time_pars%dt * step, vtk_step, p)
-    
+
   end subroutine write_domain
 
 end module pepc_helper

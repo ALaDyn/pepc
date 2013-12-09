@@ -1,20 +1,20 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 !
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -126,9 +126,9 @@ module helper
   real*8 function get_time()
     implicit none
     include 'mpif.h'
-    
+
     get_time = MPI_WTIME()
-    
+
   end function get_time
 
 !======================================================================================
@@ -187,7 +187,7 @@ module helper
     else
         hit_r = .false.
     end if
-     
+
   end function hit_r
 
 !======================================================================================
@@ -200,7 +200,7 @@ module helper
     else
         hit_l = .false.
     end if
-     
+
   end function hit_l
 
 
@@ -222,17 +222,17 @@ module helper
 !======================================================================================
   subroutine reallocate_particles(list, oldn, newn)
     implicit none
-  
+
     type(t_particle), allocatable, intent(inout) :: list(:)
     integer, intent(in) :: oldn, newn
-    
+
     type(t_particle) :: tmp_p(oldn)
-    
+
     tmp_p(1:oldn) = list(1:oldn)
     deallocate(list)
     allocate(list(newn))
     list(1:oldn) = tmp_p
-  
+
   end subroutine
 
 
@@ -256,7 +256,7 @@ module helper
       endif
 
       call pepc_statistics(step)
-      call vtk_write_branches(step,   step*dt, vtk_step)
+      call vtk_write_branches(step,   step*dt, vtk_step, global_tree)
       call vtk_write_spacecurve(step, step*dt, vtk_step, particles)
 
   end subroutine pepc_tree_diagnostics

@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -46,12 +46,12 @@ module helper
   logical :: particle_probe   ! turn probin on/off
   logical :: particle_test    ! turn direct summation on/off
   integer :: diag_interval    ! number of timesteps between all diagnostics and IO
-  
+
   real*8, parameter  :: plasma_width = 5.0_8      ! width of plasma block
   real*8, parameter  :: vessel_width = 5.0_8      ! distance between walls
   real*8             :: vessel_ez                 ! electrical field in vessel in z-direction
   character(255)     :: inputfile
-  
+
   integer(kind_default), parameter :: nprobes    = 200           ! number of probes
   real*8, parameter  :: min_probes = -vessel_width ! min z-pos of probes
   real*8, parameter  :: max_probes =  vessel_width ! max z-pos of probes
@@ -62,7 +62,7 @@ module helper
   real*8 :: current_q, current_I
   real*8, parameter :: current_emission = 1.0e4_8
   integer, parameter :: current_file_id = 14
-  
+
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable :: particles(:)
   real*8, allocatable           :: direct_L2(:)
@@ -77,18 +77,18 @@ module helper
   contains
 
   subroutine set_parameter()
-      
+
     use module_pepc
     use module_interaction_specific, only : theta2, eps2, force_law, include_far_field_if_periodic
     use module_mirror_boxes, only: periodicity, spatial_interaction_cutoff
     implicit none
-      
+
     integer, parameter :: fid = 12
     character(255)     :: para_file
     logical            :: read_para_file
 
     namelist /pepcmini/ tnp, nt, dt, particle_output, domain_output, particle_filter, particle_test, particle_probe, diag_interval, vessel_ez, inputfile
-    
+
     ! set default parameter values
     tnp             = 1441
     nt              = 20
@@ -98,10 +98,10 @@ module helper
     domain_output   = .true.
     particle_filter = .true.
     particle_probe  = .true.
-    diag_interval   = 2    
-    
+    diag_interval   = 2
+
     vessel_ez = 100.0_8
-        
+
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
@@ -112,7 +112,7 @@ module helper
       close(fid)
     else
       if(root) write(*,*) " == no param file, using default parameter "
-    end if    
+    end if
 
     tnp = tnp
 
@@ -120,14 +120,14 @@ module helper
       write(*,'(a,i12)')    " == total number of particles : ", tnp
       write(*,'(a,i12)')    " == number of time steps      : ", nt
       write(*,'(a,F12.4)')  " == time step                 : ", dt
-      write(*,'(a,F12.4)')  " == theta2                    : ", theta2 
-      write(*,'(a,F12.4)')  " == eps2                      : ", eps2 
+      write(*,'(a,F12.4)')  " == theta2                    : ", theta2
+      write(*,'(a,F12.4)')  " == eps2                      : ", eps2
       write(*,'(a,i12)')    " == diag & IO interval        : ", diag_interval
       write(*,'(a,l12)')    " == particle test             : ", particle_test
       write(*,'(a,l12)')    " == particle output           : ", particle_output
       write(*,'(a,l12)')    " == domain output             : ", domain_output
       write(*,'(a,l12)')    " == filter particles          : ", particle_filter
-      write(*,'(a,l12)')    " == field probes              : ", particle_probe    
+      write(*,'(a,l12)')    " == field probes              : ", particle_probe
     end if
 
     call pepc_prepare(3_kind_dim)
@@ -152,10 +152,10 @@ module helper
     ! Determine the range of bodies, i.e., [lb, ub), to be put on this rank.
     np = tnp / n_ranks
     extra = MOD (tnp, 1_kind_particle*n_ranks)
-    if (my_rank < extra) then 
+    if (my_rank < extra) then
       np = np + 1
       lb = np * my_rank
-    else 
+    else
       lb = (np + 1)*extra + np*(my_rank - extra)
     end if
 
@@ -165,7 +165,7 @@ module helper
     allocate(direct_L2(np), stat=rc)
     if(rc.ne.0) write(*,*) " === direct_L2 allocation error!"
     direct_L2 = -1.0_8
-    
+
     ! put probes on z-axis
     if(particle_probe) then
 
@@ -175,7 +175,7 @@ module helper
       do ip=1, nprobes
         probes(ip,1) = min_probes + (ip-1)*((max_probes-min_probes)/(nprobes-1))
       end do
-      
+
     end if
 
     call generate_particles(p, tnp, np, lb)
@@ -184,13 +184,13 @@ module helper
 
 
   !< Read particles from an inputfile
-  !! The file is a binary file, storing tnp particles sequentially. 
-  !! For each particle, it stores info in the order : 3D position, 
+  !! The file is a binary file, storing tnp particles sequentially.
+  !! For each particle, it stores info in the order : 3D position,
   !! 3D velocity, and mass, all in double precision.
-  !! So a particle takes 56 bytes. 
+  !! So a particle takes 56 bytes.
   subroutine read_particles(p)
     implicit none
-    
+
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle) :: ip
     integer :: rc
@@ -201,7 +201,7 @@ module helper
     integer :: filepos
 
     if(my_rank.eq.0) write(*,'(a)') " == [init] init particles "
-    
+
     ! set initially number of local particles
     np = tnp / n_ranks
     if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, 1_kind_particle*n_ranks)
@@ -212,7 +212,7 @@ module helper
     allocate(direct_L2(np), stat=rc)
     if(rc.ne.0) write(*,*) " === direct_L2 allocation error!"
     direct_L2 = -1.0_8
-    
+
     ! put probes on z-axis
     if(particle_probe) then
 
@@ -221,8 +221,8 @@ module helper
 
       do ip=1, nprobes
         probes(ip,1) = min_probes + (ip-1)*((max_probes-min_probes)/(nprobes-1))
-      end do      
-      
+      end do
+
     end if
 
     ! set random seed
@@ -230,7 +230,7 @@ module helper
 
     OPEN(UNIT=42, FILE=inputfile, STATUS="OLD", ACCESS="STREAM")
 
-    filepos = my_rank * (tnp / n_ranks) * 56 + 1 
+    filepos = my_rank * (tnp / n_ranks) * 56 + 1
     ! setup random qubic particle cloud
     do ip=1, np
 
@@ -245,18 +245,18 @@ module helper
 
       if (p(ip)%label .eq. 314) write(*, '(7f10.6)') p(ip)%x, p(ip)%data%v, p(ip)%data%q
 
-    end do  
+    end do
 
      CLOSE(UNIT=42)
 
     next_label = tnp+1
 
   end subroutine read_particles
-    
+
   subroutine push_particles(p)
     use module_mirror_boxes
     implicit none
-    
+
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle) :: ip
     real*8  :: fact, acc(3), dacc(3)
@@ -269,7 +269,7 @@ module helper
     do ip=1, np
 
       if (step .gt. 1) then
-        dacc = p(ip)%results%e - p(ip)%data%old_e 
+        dacc = p(ip)%results%e - p(ip)%data%old_e
         p(ip)%data%v = p(ip)%data%v + dacc * dt / 2
       endif
 
@@ -285,15 +285,15 @@ module helper
     end do
 
   end subroutine push_particles
-  
-  
+
+
   subroutine test_particles()
-  
+
     use module_pepc_types
     use module_directsum
     implicit none
     include 'mpif.h'
-  
+
     integer(kind_particle), allocatable   :: tindx(:)
     real*8, allocatable                   :: trnd(:)
     type(t_particle_results), allocatable :: trslt(:)
@@ -301,61 +301,61 @@ module helper
     integer                               :: rc
     real*8                                :: L2sum_local, L2sum_global, L2
     real*8                                :: ta, tb
-    
+
     ta = get_time()
-  
+
     if(allocated(direct_L2)) then
       deallocate(direct_L2)
     end if
     allocate(direct_L2(np))
     direct_L2 = -1.0_8
-  
+
     tn = particle_direct / n_ranks
     if(my_rank.eq.(n_ranks-1)) tn = tn + MOD(particle_direct, n_ranks)
-  
+
     allocate(tindx(tn), trnd(tn), trslt(tn))
-  
+
     call random(trnd)
-  
-    tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1 
-  
+
+    tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
+
     call directforce(particles, tindx, tn, trslt, MPI_COMM_WORLD)
-  
+
     L2sum_local  = 0.0
     L2sum_global = 0.0
     do ti = 1, tn
       L2          = &
                     (particles(tindx(ti))%results%e(1) - trslt(ti)%e(1))**2+ &
                     (particles(tindx(ti))%results%e(2) - trslt(ti)%e(2))**2+ &
-                    (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3) - vessel_ez)**2 
+                    (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3) - vessel_ez)**2
       L2sum_local = L2sum_local + L2
       direct_L2(tindx(ti)) = L2
     end do
-        
+
     call MPI_ALLREDUCE(tn, tn_global, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc)
     call MPI_ALLREDUCE(L2sum_local, L2sum_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-    
+
     L2sum_global = sqrt(L2sum_global) / tn_global
-    
+
     tb = get_time()
     if(root) then
       write(*,'(a,i12)')    " == [direct test] number tested particles         : ", tn_global
       write(*,'(a,es12.4)') " == [direct test] L2 error in probed particles    : ", L2sum_global
       write(*,'(a,es12.4)') " == [direct test] time in test [s]                : ", tb - ta
     end if
-    
+
     deallocate(tindx)
     deallocate(trnd)
     deallocate(trslt)
-  
+
   end subroutine test_particles
-  
+
   subroutine compute_field()
     use module_pepc
     implicit none
-  
+
     include 'mpif.h'
-  
+
     real*8             :: ta, tb
     integer, parameter :: fid = 12
     integer(kind_particle) :: ip
@@ -363,9 +363,9 @@ module helper
     character(255)     :: fname
     integer            :: pos
     real*8             :: dz, dmin, dsize
-  
+
     ta = get_time()
-  
+
     ! gather mean/min/max potential values along the z-axis
     do ip=1, nprobes
       probes(ip, 2:5) = [1.0e-10_8, 0.0_8, 0.0_8, 0.0_8]
@@ -375,44 +375,44 @@ module helper
     dz    = (dsize) / (1.0_8*nprobes)
     do ip=1, np
       pos = int( (particles(ip)%x(3) -dmin -0.5_8*dz)/(dz) ) + 1
-      if(pos.ge.1 .and. pos.le.nprobes) then        
-        probes(pos, 2) = probes(pos, 2) + 1.0_8 
+      if(pos.ge.1 .and. pos.le.nprobes) then
+        probes(pos, 2) = probes(pos, 2) + 1.0_8
         !probes(pos, 3) = probes(pos, 3) + particles(ip)%data%m
         probes(pos, 3) = probes(pos, 3) + particles(ip)%data%q  ! q is m in gravity
         probes(pos, 4) = probes(pos, 4) + particles(ip)%data%q
         probes(pos, 5) = probes(pos, 5) + particles(ip)%results%pot
       end if
     end do
-    
+
     call MPI_ALLREDUCE(MPI_IN_PLACE, probes(:,2), nprobes, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
     call MPI_ALLREDUCE(MPI_IN_PLACE, probes(:,3), nprobes, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
     call MPI_ALLREDUCE(MPI_IN_PLACE, probes(:,4), nprobes, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
     call MPI_ALLREDUCE(MPI_IN_PLACE, probes(:,5), nprobes, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-    
-    probes(:,5) = probes(:,5) / probes(:,2) 
-    
+
+    probes(:,5) = probes(:,5) / probes(:,2)
+
     ! write results to file
     write(fname, '("probe.",i6.6,".dat")') step
     if(root) write(*,'(2a)') " == [probes] write to file                        : ", trim(fname)
     open(unit=fid, file=fname, status='replace')
-    write(fid, '(a)') "z-pos(1), x-y-binned[n(2), m(3), q(4), avg. pot(5)], ext-pot(6)" 
+    write(fid, '(a)') "z-pos(1), x-y-binned[n(2), m(3), q(4), avg. pot(5)], ext-pot(6)"
     do ip=1, nprobes
       write(fid, '(6es12.4/)') probes(ip,1), probes(ip,2), probes(ip,3), probes(ip,4), probes(ip,5), probes(ip,1)*(-vessel_ez)
     end do
     close(fid)
-    
+
     tb = get_time()
-    
+
     if(root) then
       write(*,'(a,es12.4)') " == [probes] time in probes [s]                   : ", tb - ta
     end if
 
   end subroutine
-  
+
   subroutine write_particles(p)
     use module_vtk
     implicit none
-    
+
     type(t_particle), allocatable, intent(in) :: p(:)
 
     integer(kind_particle) :: i
@@ -420,9 +420,9 @@ module helper
     integer :: vtk_step
     real*8 :: time
     real*8 :: ta, tb
-    
+
     ta = get_time()
-    
+
     time = dt * step
 
     if (step .eq. 0) then
@@ -463,17 +463,18 @@ module helper
     if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
 
   end subroutine write_particles
-  
+
   subroutine write_domain(p)
-    
+
     use module_vtk
-    use module_vtk_helpers 
+    use module_vtk_helpers
+    use module_pepc, only: global_tree
     implicit none
-  
+
     type(t_particle), allocatable, intent(in) :: p(:)
 
     integer :: vtk_step
-  
+
     ! output of tree diagnostics
     if (step .eq. 0) then
       vtk_step = VTK_STEP_FIRST
@@ -482,57 +483,57 @@ module helper
     else
       vtk_step = VTK_STEP_NORMAL
     endif
-    call vtk_write_branches(step,  dt * step, vtk_step)
+    call vtk_write_branches(step,  dt * step, vtk_step, global_tree)
     call vtk_write_spacecurve(step, dt * step, vtk_step, p)
-    
+
   end subroutine write_domain
-  
+
   real*8 function get_time()
     implicit none
     include 'mpif.h'
-    
+
     get_time = MPI_WTIME()
-    
+
   end function get_time
-  
+
   subroutine random_gauss(list)
     implicit none
-  
+
     real*8, intent(inout) :: list(:)
-    
+
     real*8  :: v(2), pi, r, p
     integer :: n, i
-    
+
     pi = 2.0_8*acos(0.0_8)
     n  = size(list)
 
     do i=1, n, 2
-      
+
       call random(v)
-      
+
       r = sqrt(-2.0_8 * log(v(1)))
       p = 2.0_8*pi*v(2)
-      
+
       list(i)                = r * sin(p)
       if((i+1)<=n) list(i+1) = r * cos(p)
-    
+
     end do
-  
+
   end subroutine
 
   subroutine reallocate_particles(list, oldn, newn)
     implicit none
-  
+
     type(t_particle), allocatable, intent(inout) :: list(:)
     integer(kind_particle), intent(in) :: oldn, newn
-    
+
     type(t_particle) :: tmp_p(oldn)
-    
+
     tmp_p(1:oldn) = list(1:oldn)
     deallocate(list)
     allocate(list(newn))
     list(1:oldn) = tmp_p
-  
+
   end subroutine
 
 
@@ -560,7 +561,7 @@ module helper
     implicit none
     real :: par_rand
     integer, intent(in), optional :: iseed
-    
+
     integer, parameter :: IM1  = 2147483563
     integer, parameter :: IM2  = 2147483399
     real,    parameter :: AM   = 1.0/IM1
@@ -575,14 +576,14 @@ module helper
     integer, parameter :: NDIV = 1+IMM1/NTAB
     real,    parameter :: eps_ = 1.2e-7 ! epsilon(eps_)
     real,    parameter :: RNMX = 1.0 - eps_
-    
+
     integer :: j, k
     integer, volatile, save :: idum  = -1
     integer, volatile, save :: idum2 =  123456789
     integer, volatile, save :: iy    =  0
     integer, volatile, save :: iv(NTAB)
-    
-    
+
+
     if (idum <=0 .or. present(iseed)) then
        if (present(iseed)) then
           idum = iseed
@@ -593,36 +594,36 @@ module helper
              idum = -idum
           endif
        endif
-       
+
        idum2 = idum
-       
+
        do j = NTAB+7,0,-1
           k = idum/IQ1
           idum = IA1 * (idum-k*IQ1) - k*IR1
           if (idum < 0 ) idum = idum + IM1
-          
+
           if (j<NTAB) iv(j+1) = idum
-          
+
        end do
        iy = iv(1)
     end if
-    
+
     k = idum/IQ1
     idum = IA1 * (idum-k*IQ1) - k*IR1
     if (idum < 0) idum = idum + IM1
-    
+
     k = idum2/IQ2
     idum2 = IA2 * (idum2-k*IQ2) - k*IR2
     if (idum2 < 0) idum2 = idum2 + IM2
-    
+
     j = iy/NDIV + 1
     iy = iv(j)-idum2
     iv(j) = idum
-    
+
     if (iy < 1) iy = iy + IMM1
     par_rand = AM*iy
     if (par_rand > RNMX) par_rand = RNMX
-    
+
   end function par_rand
-  
+
 end module

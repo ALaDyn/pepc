@@ -504,14 +504,15 @@ module module_vtk_helpers
   !> Writes the interaction partners of the particle with the
   !> specified label into vtk files, once as boxes, once as points
   !>
-  subroutine vtk_write_interaction_partners(step, label,tsim, vtk_step, interaction_nodelist, no_interaction_partners, interaction_vbox, helper_func)
-    use module_pepc, only: global_tree
+  subroutine vtk_write_interaction_partners(step, label,tsim, vtk_step, t, interaction_nodelist, no_interaction_partners, interaction_vbox, helper_func)
     use module_pepc_types
+    use module_tree
     use treevars
     integer, intent(in) :: step
     integer, intent(in) :: vtk_step
     integer, intent(in) :: label
     real*8, intent(in) :: tsim
+    type(t_tree), intent(in) :: t
 
     integer(kind_node), intent(in) :: interaction_nodelist(:,:)
     integer(kind_node), intent(in) :: no_interaction_partners(:)
@@ -542,17 +543,17 @@ module module_vtk_helpers
         partner_nodes(i) = interaction_nodelist(label, i)
       end do
 
-      call vtk_write_nodes_as_points(fn_point, MPI_Comm_lpepc, step, tsim, vtk_step, global_tree, partner_nodes, &
+      call vtk_write_nodes_as_points(fn_point, MPI_Comm_lpepc, step, tsim, vtk_step, t, partner_nodes, &
         node_vbox = interaction_vbox(label, :, :), helper_func = helper_func)
 
-      call vtk_write_nodes_as_boxes(fn_box, MPI_Comm_lpepc, step, tsim, vtk_step, global_tree, partner_nodes, &
+      call vtk_write_nodes_as_boxes(fn_box, MPI_Comm_lpepc, step, tsim, vtk_step, t, partner_nodes, &
         node_vbox = interaction_vbox(label, :, :), helper_func = helper_func)
 
       deallocate(partner_nodes)
     else
       allocate(partner_nodes(0))
-      call vtk_write_nodes_as_points(fn_point, MPI_Comm_lpepc, step, tsim, vtk_step, global_tree, partner_nodes)
-      call vtk_write_nodes_as_boxes(fn_box, MPI_Comm_lpepc, step, tsim, vtk_step, global_tree, partner_nodes)
+      call vtk_write_nodes_as_points(fn_point, MPI_Comm_lpepc, step, tsim, vtk_step, t, partner_nodes)
+      call vtk_write_nodes_as_boxes(fn_box, MPI_Comm_lpepc, step, tsim, vtk_step, t, partner_nodes)
       deallocate(partner_nodes)
     end if
   end subroutine
@@ -561,8 +562,7 @@ module module_vtk_helpers
   !>
   !> Writes the tree leaves into a vtk file.
   !>
-  subroutine vtk_write_leaves(step, tsim, vtk_step, t_, helper_func, coord_scale)
-    use module_pepc, only: global_tree
+  subroutine vtk_write_leaves(step, tsim, vtk_step, t, helper_func, coord_scale)
     use module_pepc_types, only: t_tree_node, kind_node
     use module_tree, only: t_tree, tree_allocated
     use module_debug
@@ -571,7 +571,7 @@ module module_vtk_helpers
     integer, intent(in) :: step
     integer, intent(in) :: vtk_step
     real*8, intent(in) :: tsim
-    type(t_tree), optional, target, intent(in) :: t_
+    type(t_tree), intent(in) :: t
     real*8, intent(in), optional :: coord_scale
 
     interface
@@ -586,15 +586,8 @@ module module_vtk_helpers
 
     optional :: helper_func
 
-    type(t_tree), pointer :: t
     integer(kind_node) :: i
     integer(kind_node), allocatable :: leaves(:)
-
-    if (present(t_)) then
-      t => t_
-    else
-      t => global_tree
-    end if
 
     if (.not. tree_allocated(t)) then
       write(*,*) 'vtk_write_leaves(): tree is not allocated, aborting leaves output.'
@@ -652,8 +645,7 @@ module module_vtk_helpers
   !>
   !> Writes the tree branches structure into a vtk file.
   !>
-  subroutine vtk_write_branches(step, tsim, vtk_step, t_, helper_func, coord_scale)
-    use module_pepc, only: global_tree
+  subroutine vtk_write_branches(step, tsim, vtk_step, t, helper_func, coord_scale)
     use module_pepc_types, only: t_tree_node, kind_node
     use module_tree, only: t_tree, tree_allocated
     use module_debug
@@ -662,7 +654,7 @@ module module_vtk_helpers
     integer, intent(in) :: step
     integer, intent(in) :: vtk_step
     real*8, intent(in) :: tsim
-    type(t_tree), optional, target, intent(in) :: t_
+    type(t_tree), intent(in) :: t
     real*8, intent(in), optional :: coord_scale
 
     interface
@@ -677,15 +669,8 @@ module module_vtk_helpers
 
     optional :: helper_func
 
-    type(t_tree), pointer :: t
     integer(kind_node) :: i
     integer(kind_node), allocatable :: branch_nodes(:)
-
-    if (present(t_)) then
-      t => t_
-    else
-      t => global_tree
-    end if
 
     if (.not. tree_allocated(t)) then
       write(*,*) 'vtk_write_branches(): tree is not allocated, aborting branch output.'

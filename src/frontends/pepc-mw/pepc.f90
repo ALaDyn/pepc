@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -119,7 +119,7 @@ program pepc
                 ' Timestep ',itime &
                 ,' total run time = ',trun, trun*unit_t0_in_fs
      endif
-     
+
      ! set temperature in each timestep for kelbg interaction
      kelbg_invsqrttemp = 1._8/sqrt(tempe)
 
@@ -149,7 +149,7 @@ program pepc
      if (.not. directforce) then
        call pepc_traverse_tree(particles(1:num_force_particles))
        if (dbg(DBG_STATS)) call pepc_statistics(itime)
-       
+
        !call fields_on_spherical_grid(itime, trun*unit_t0_in_fs, 'field_spherical.dat', r_sphere, my_rank, n_cpu)
 
        !call verifydirect(particles, np_local, [1, 2, np_local-1, np_local], 3, my_rank, n_cpu, MPI_COMM_PEPC)
@@ -164,14 +164,14 @@ program pepc
            vtk_step = VTK_STEP_NORMAL
          endif
 
-         call vtk_write_branches(itime,   trun*unit_t0_in_fs, vtk_step)
+         call vtk_write_branches(itime,   trun*unit_t0_in_fs, vtk_step, global_tree)
          call vtk_write_spacecurve(itime, trun*unit_t0_in_fs, vtk_step, particles)
        endif
 
        call pepc_restore_particles(particles)
        np_local = size(particles, kind=kind(np_local))
        call pepc_timber_tree()
-       
+
        if (ispecial ==12) call dump_grid_particles(my_rank, 'field_spherical.dat', particles, itime, trun*unit_t0_in_fs)
 
      else
@@ -229,7 +229,7 @@ program pepc
 
   ! deallocate array space for particles
   call cleanup(my_rank,n_cpu)
-  
+
   ! Time stamp
   if (my_rank==0) call stamp(file_stdout,2)
   if (my_rank==0) call stamp(file_pepc_out,2)

@@ -72,7 +72,7 @@ module module_interaction_partners
       call pepc_traverse_tree(int_probe_particles(1:help_num_of_probes))
       force_law=3
       do i=1,help_num_of_probes
-          call vtk_write_interaction_partners(step, i,0.0_8, -1, interaction_nodelist, no_interaction_partners, interaction_vbox)
+          call vtk_write_interaction_partners(step, i,0.0_8, -1, global_tree, interaction_nodelist, no_interaction_partners, interaction_vbox)
           write(*,*)i,no_interaction_partners(i)
       end do
       no_interaction_partners=0
