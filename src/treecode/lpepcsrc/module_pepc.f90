@@ -133,6 +133,7 @@ module module_pepc
         write(*,'("====   FFLAGS = ",a)') FFLAGS
         write(*,'("====   CFLAGS = ",a)') CFLAGS
         write(*,'("====  LDFLAGS = ",a)') LDFLAGS
+        write(*,'("====     WALK = ",a)') WALKALGORITHM
         write(*,'(//)')
       endif
 

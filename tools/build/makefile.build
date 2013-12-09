@@ -13,6 +13,7 @@ CPPFLAGS += -DFFLAGS="\"$(FFLAGS)\""     \
             -DCOMPILER="\"$(COMPILER)\"" \
             -DSVNREVISION="\"$(SVNREVISION)\"" \
             -DMACH="\"$(MACH)\"" \
+            -DWALKALGORITHM="\"$(WALK)\""
 
 FSRC = $(filter %.f90, $(SRC))
 FOBJ = $(FSRC:%.f90=%.o)
