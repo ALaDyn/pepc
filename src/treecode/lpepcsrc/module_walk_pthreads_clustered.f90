@@ -137,10 +137,10 @@ module module_walk
   end type
 
   type(t_cluster_data), allocatable, dimension(:) :: particle_clusters
-  integer(kind_level) :: particle_cluster_level = 5
+  integer(kind_particle) :: max_particles_per_cluster = 32
   type(t_atomic_int), pointer :: next_unassigned_cluster
 
-  namelist /walk_para_pthreads_clustered/ max_clusters_per_thread, particle_cluster_level
+  namelist /walk_para_pthreads_clustered/ max_clusters_per_thread, max_particles_per_cluster
 
   public tree_walk_run
   public tree_walk_init
@@ -333,7 +333,7 @@ module module_walk
     todo_list_length  = 8 * defer_list_length
 
     ! find particle clusters
-    call identify_particle_clusters() !FIXME: parameters?, deallocation of internal objects?
+    call identify_particle_clusters()
 
     ! initialize atomic variables
     call atomic_allocate_int(next_unassigned_cluster)
@@ -365,56 +365,64 @@ module module_walk
 
 
   subroutine identify_particle_clusters()
+    use treevars, only: nlev, MPI_COMM_lpepc, idim
     use module_pepc_types, only: kind_particle, kind_key
+    use module_spacefilling, only : level_from_key
+    use module_vtk
+    use module_vtk_helpers
+    use module_math_tools, only : bpi
     implicit none
+    include 'mpif.h'
 
     integer(kind_particle) :: i, np
-    integer(kind_key), allocatable :: masked_keys(:)
-    integer(kind_key) :: lastkey
+    integer(kind_level) :: cutlvlmax, cutlevel, k
+    integer(kind_key) :: cut_key
+    integer(kind_particle) :: cutlvlpos, nclusterpart
 
-    ! FIXME: we have to assure, that all particle keys are available and are sorted
-    !        we can do this now if we want, but should not forget to restore original order afterwards!
+    integer :: step = 0
+    integer(kind_key), allocatable :: colors(:), keys(:)
+
+    ! FIXME: we have to assure, that all particle keys are available and already have been sorted
+    !        we can do this now if we want to, but should not forget to restore original order afterwards!
     np = size(particle_data, kind=kind(np))
-    allocate(masked_keys(np))
-    ! count the number of clusters to be identified
-    masked_keys(1) = clustermask(particle_data(1)%key)
-    num_clusters   = 1
 
-    do i=2,np
-      masked_keys(i) = clustermask(particle_data(i)%key)
-
-      if (masked_keys(i) .ne. masked_keys(i-1)) then
-        num_clusters = num_clusters + 1
-      endif
+    ! 1st loop run: count the number of clusters to be identified
+    num_clusters   = 0
+    i = 1
+    do while (i<np)
+      num_clusters = num_clusters + 1
+      cut_key = bpi(particle_data(i)%key, particle_data(min(i+max_particles_per_cluster,np))%key)
+      do while ((iand(particle_data(i)%key, cut_key) .ne. cut_key) .and. i<np)
+        i = i + 1
+      end do
     end do
-
     ! allocate enough space for storing them
     allocate(particle_clusters(num_clusters))
-    ! and put them onto the list
-    num_clusters = 1
-    particle_clusters(num_clusters)%f = 1
-    do i=2,np
-      if (masked_keys(i) .ne. masked_keys(i-1)) then
-        particle_clusters(num_clusters)%n = i - particle_clusters(num_clusters)%f
-        num_clusters = num_clusters + 1
-        particle_clusters(num_clusters)%f = i
-      endif
+    ! 2nd loop run: put them onto the particle_clusters list
+    num_clusters   = 0
+    i = 1
+    do while (i<np)
+      num_clusters = num_clusters + 1
+      particle_clusters(num_clusters)%f = i
+      cut_key = bpi(particle_data(i)%key, particle_data(min(i+max_particles_per_cluster,np))%key)
+      do while ((iand(particle_data(i)%key, cut_key) .ne. cut_key) .and. i<np)
+        i = i + 1
+      end do
+      if (k==2) particle_clusters(num_clusters)%n = i-particle_clusters(num_clusters)%f
     end do
 
-    particle_clusters(num_clusters)%n = i - particle_clusters(num_clusters)%f
+    step = step + 1
+    allocate(keys(np), colors(np))
+    do i=1,num_clusters
+      colors(particle_clusters(i)%f:particle_clusters(i)%f + particle_clusters(i)%n) = i
+    end do
+    do i=1,np
+      keys(i) = particle_data(i)%key
+    end do
 
-    deallocate(masked_keys)
+    call vtk_write_keys_as_boxes('clusters', MPI_COMM_lpepc, step, 0.0_8, VTK_STEP_NORMAL, walk_tree%bounding_box, keys, colors)
 
-    contains
-      elemental pure function clustermask(k)
-        use treevars, only : idim, nlev
-        implicit none
-        integer(kind_key), intent(in) :: k
-        integer(kind_key) :: clustermask
-
-        clustermask = ishft(k, -idim*(nlev-particle_cluster_level))
-
-      end function
+    deallocate(keys, colors)
 
   end subroutine
 

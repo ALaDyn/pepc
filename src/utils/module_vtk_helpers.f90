@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -30,6 +30,10 @@ module module_vtk_helpers
   public vtk_write_branches
   public vtk_write_leaves
   public vtk_write_interaction_partners
+
+  public vtk_write_nodes_as_points
+  public vtk_write_nodes_as_boxes
+  public vtk_write_keys_as_boxes
 
   public vtk_write_spacecurve
 
@@ -48,7 +52,7 @@ module module_vtk_helpers
     implicit none
 
     include 'mpif.h'
-    
+
     character(*), intent(in) :: fname
     integer(kind_default), intent(in) :: mpi_comm
     integer, intent(in) :: step
@@ -74,7 +78,7 @@ module module_vtk_helpers
     integer(kind_pe) :: mpi_rank, mpi_size
     integer(kind_default) :: ierr
     type(vtkfile_unstructured_grid) :: vtk
-    
+
     call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
     call MPI_Comm_size(mpi_comm, mpi_size, ierr)
 
@@ -317,7 +321,7 @@ module module_vtk_helpers
 
       ! compute real center coordinate
       call key_to_coord(t%bounding_box, bkey, bx, by, bz)
-      
+
       if ( present(node_vbox) ) then
         bx = bx + node_vbox(i, 1)
         by = by + node_vbox(i, 2)
@@ -376,7 +380,128 @@ module module_vtk_helpers
 
 
   !>
-  !> Writes the interaction partners of the particle with the 
+  !> Writes a collection of nodes into vtk files as boxes
+  !> if particle keys are given to this routine, resulting boxes might be way too small to be visible
+  !> using paraview, you can then successively apply the following filters: "Cell Centers", "Glyph" (choose box of appropriate size)
+  !>
+  subroutine vtk_write_keys_as_boxes(fname, mpi_comm, step, tsim, vtk_step, bounding_box, keys, colors, key_vbox, coord_scale)
+    use treevars
+    use module_vtk
+    use module_spacefilling
+    use module_mirror_boxes
+    use module_pepc_types
+    use module_interaction_specific_types
+    use module_box, only: t_box
+    use module_tree_node
+    use module_debug
+    implicit none
+
+    include 'mpif.h'
+
+    character(*), intent(in) :: fname
+    integer(kind_default) :: mpi_comm
+    integer, intent(in) :: step
+    integer, intent(in) :: vtk_step
+    real*8, intent(in) :: tsim
+    type(t_box), intent(in) :: bounding_box
+    integer(kind_key), dimension(:), intent(in) :: keys, colors
+    real*8, dimension(:,:), intent(in), optional :: key_vbox
+    real*8, intent(in), optional :: coord_scale
+
+    integer(kind_node) :: i, num_keys
+    integer(kind_default) :: mpi_rank, mpi_size, ierr
+    integer :: j
+    real*8 :: bsize(3)
+    real*8, dimension(:), allocatable  :: bcornersx, bcornersy, bcornersz
+    integer(kind_node), dimension(:), allocatable :: bcornersidx, bcornersoffsets
+    integer, dimension(:), allocatable :: blevel, mirror_level
+
+    integer, dimension(:, :), allocatable :: mirror_indices
+    real*8 :: bx, by, bz
+
+    real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
+                                                             0., 0., 1., &
+                                                             0., 1., 0., &
+                                                             0., 1., 1., &
+                                                             1., 0., 0., &
+                                                             1., 0., 1., &
+                                                             1., 1., 0., &
+                                                             1., 1., 1. ], shape(box_shift))
+    real*8, dimension(3) :: bshift
+    type(vtkfile_unstructured_grid) :: vtk
+
+    call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
+    call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+
+    num_keys = size(keys)
+    DEBUG_ASSERT(num_keys == size(colors))
+
+    allocate(bcornersx(num_keys*8), bcornersy(num_keys*8), bcornersz(num_keys*8))
+    allocate(bcornersidx(num_keys * 8), bcornersoffsets(num_keys))
+    allocate(blevel(num_keys), mirror_level(num_keys), mirror_indices(num_keys, 3))
+
+    do i = 1, num_keys
+      blevel(i) = level_from_key(keys(i))
+      bsize = bounding_box%boxsize / 2**blevel(i)
+
+      ! prepare voxel data structure
+      bcornersoffsets(i) = 8*i
+
+      ! compute real center coordinate
+      call key_to_coord(bounding_box, keys(i), bx, by, bz)
+
+      if ( present(key_vbox) ) then
+        bx = bx + key_vbox(i, 1)
+        by = by + key_vbox(i, 2)
+        bz = bz + key_vbox(i, 3)
+
+        mirror_indices(i, 1:3) = lattice_indices(key_vbox(i, 1:3))
+        mirror_level(i) = maxval(abs(mirror_indices(i, :)))
+      end if
+
+      do j=1,8
+        bcornersidx(8*(i-1)+j) = 8*(i-1)+j - 1
+        bshift(1:3) = box_shift(1:3,j) * bsize(1:3)
+        bcornersx(8*(i-1)+j)   = bx + bshift(1)
+        bcornersy(8*(i-1)+j)   = by + bshift(2)
+        bcornersz(8*(i-1)+j)   = bz + bshift(3)
+      end do
+    end do
+
+    call vtk%create_parallel(fname, step, mpi_rank, mpi_size, tsim, vtk_step)
+      call vtk%write_headers(num_keys*8, num_keys)
+      call vtk%startpoints()
+        call vtk%write_data_array("corners", bcornersx, bcornersy, bcornersz, coord_scale)
+      call vtk%finishpoints()
+      call vtk%startpointdata()
+        ! no point data here
+      call vtk%finishpointdata()
+      call vtk%startcells()
+        call vtk%write_data_array("connectivity", bcornersidx)
+        call vtk%write_data_array("offsets", bcornersoffsets)
+        call vtk%write_data_array("types", int(num_keys, kind = 4), VTK_VOXEL)
+      call vtk%finishcells()
+      call vtk%startcelldata()
+        call vtk%write_data_array("processor", size(keys), mpi_rank)
+        call vtk%write_data_array("level", blevel)
+        call vtk%write_data_array("color", colors)
+        if ( present(key_vbox) ) then
+          call vtk%write_data_array("mirror_level", mirror_level)
+          call vtk%write_data_array("mirror_indices", &
+            mirror_indices(:, 1), mirror_indices(:, 2), mirror_indices(:, 3))
+        end if
+      call vtk%finishcelldata()
+      call vtk%write_final()
+    call vtk%close()
+
+    deallocate(bcornersx, bcornersy, bcornersz)
+    deallocate(bcornersidx, bcornersoffsets)
+    deallocate(blevel, mirror_level, mirror_indices)
+  end subroutine vtk_write_keys_as_boxes
+
+
+  !>
+  !> Writes the interaction partners of the particle with the
   !> specified label into vtk files, once as boxes, once as points
   !>
   subroutine vtk_write_interaction_partners(step, label,tsim, vtk_step, interaction_nodelist, no_interaction_partners, interaction_vbox, helper_func)
@@ -387,11 +512,11 @@ module module_vtk_helpers
     integer, intent(in) :: vtk_step
     integer, intent(in) :: label
     real*8, intent(in) :: tsim
-    
+
     integer(kind_node), intent(in) :: interaction_nodelist(:,:)
     integer(kind_node), intent(in) :: no_interaction_partners(:)
     real*8, intent(in) :: interaction_vbox(:,:,:)
-    
+
     interface
       subroutine helper_func(d, vtkf)
         use module_interaction_specific_types, only: t_tree_node_interaction_data
@@ -604,7 +729,7 @@ module module_vtk_helpers
         if (btest(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
           i = i + 1
           branch_nodes(i) = nidx
-        else 
+        else
           s = tree_node_get_first_child(n)
           if (s /= NODE_INVALID) then
             do
@@ -686,7 +811,7 @@ module module_vtk_helpers
     integer :: mpi_rank, mpi_size, ierr
 
     type(vtkfile_rectilinear_grid) :: vtk
-    
+
     call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
     call MPI_Comm_size(mpi_comm, mpi_size, ierr)
 
@@ -730,11 +855,11 @@ module module_vtk_helpers
     real*8, intent(in) :: dens1(:,:,:), dens2(:,:,:)
     integer, intent(in) :: mpi_comm
     real*8, intent(in), optional :: coord_scale
-    
+
     integer :: mpi_rank, mpi_size, ierr
 
     type(vtkfile_rectilinear_grid) :: vtk
-    
+
     call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
     call MPI_Comm_size(mpi_comm, mpi_size, ierr)
 
