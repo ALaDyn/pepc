@@ -365,7 +365,6 @@ module module_walk
 
 
   subroutine identify_particle_clusters()
-    use treevars, only: MPI_COMM_lpepc
     use module_pepc_types, only: kind_particle, kind_key
     use module_spacefilling, only : level_from_key
     use module_vtk
@@ -376,9 +375,6 @@ module module_walk
 
     integer(kind_particle) :: i, k, np
     integer(kind_key) :: cut_key
-
-    integer :: step = 0
-    integer(kind_key), allocatable :: colors(:), keys(:)
 
     ! FIXME: we have to assure, that all particle keys are available and already have been sorted
     !        we can do this now if we want to, but should not forget to restore original order afterwards!
@@ -406,20 +402,6 @@ module module_walk
       ! allocate enough space for storing them
       if (k==1) allocate(particle_clusters(num_clusters))
     end do
-return
-    step = step + 1
-    allocate(keys(np), colors(np))
-    do i=1,num_clusters
-      colors(particle_clusters(i)%first:particle_clusters(i)%last) = i
-    end do
-    do i=1,np
-      keys(i) = particle_data(i)%key
-    end do
-
-    call vtk_write_keys_as_boxes('clusters', MPI_COMM_lpepc, step, 0.0_8, VTK_STEP_NORMAL, walk_tree%bounding_box, keys, colors)
-
-    deallocate(keys, colors)
-
   end subroutine
 
   function walk_worker_thread(arg) bind(c)
