@@ -2,15 +2,16 @@
 #  prepare-level makefile for pepc
 #
 
+# default backend and walk
 BACKEND = coulomb
 WALK    = pthreads
 
 include tools/build/makefile.paths
 include makefile.defs
 
-include $(FRONTENDDIR)/$(FRONTEND)/makefile.include
-include $(LPEPCDIR)/makefile.include
-include $(INTSPECDIR)/$(BACKEND)/makefile.include
+include $(FRONTENDDIR)/$(FRONTEND)/makefile.frontend
+include $(LPEPCDIR)/makefile.lpepc
+include $(INTSPECDIR)/$(BACKEND)/makefile.interaction_specific
 
 MAKEENVS = $(WORKDIR)/makefile.envs
 
@@ -33,10 +34,9 @@ prepare: $(SRC)
 	@echo "LDLIBS=$(LDLIBS)"           >> $(MAKEENVS)
 	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
 	@echo "CPPFLAGS_BACKEND=$(CPPFLAGS_BACKEND)" >> $(MAKEENVS)
-	@cp makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(WORKDIR)
-	@ln -sf makefile.build $(WORKDIR)/makefile
-	@cp $(FRONTENDDIR)/$(FRONTEND)/makefile.include $(WORKDIR)/makefile.include.frontend
+	@cp -p makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(FRONTENDDIR)/$(FRONTEND)/makefile.frontend $(WORKDIR)
 	@cp -r $(LIBDIR)/* $(WORKDIR)
+	@ln -sf makefile.build $(WORKDIR)/makefile
 	@echo ""
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build
 

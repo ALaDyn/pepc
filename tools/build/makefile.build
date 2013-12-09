@@ -1,10 +1,10 @@
 #
 #  build-level makefile for pepc
 #
+SUBFILES=makefile.paths makefile.defs makefile.frontend
+
+include $(SUBFILES)
 include makefile.envs
-include makefile.paths
-include makefile.defs
-include makefile.include.frontend
 
 CPPFLAGS += $(CPPFLAGS_BACKEND)
 CPPFLAGS += -DFFLAGS="\"$(FFLAGS)\""     \
@@ -34,17 +34,17 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
 #	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
 
-%.o: %.f90
+%.o: %.f90 $(SUBFILES)
 	@echo "== compiling F90 file :" $<
 	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
 	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
 	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
 
-%.o: %.c
+%.o: %.c $(SUBFILES)
 	@echo "== compiling C file   :" $<
 	@$(CCPRE) $(CC) -c $(CFLAGS) $(DBFLAGS) $< -o $@
 
-makefile.deps: 
+makefile.deps: $(SUBFILES)
 	@echo "==== creating dependencies"
 	@$(F90MODDEPS) -o makefile.deps --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "" $(FSRC) >> compile.log
 
