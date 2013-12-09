@@ -127,8 +127,8 @@ module module_walk
   type(t_tree), pointer :: walk_tree
 
   type t_cluster_data
-    integer(kind_particle) :: n !< number of particles
-    integer(kind_particle) :: f !< index of the cluster`s first particle in the particle_list
+    integer(kind_particle) :: first !< index of the cluster`s first particle in the particle_list
+    integer(kind_particle) :: last  !< index of the cluster`s last  particle in the particle_list
   end type
 
   type t_thread_cluster_data
@@ -365,7 +365,7 @@ module module_walk
 
 
   subroutine identify_particle_clusters()
-    use treevars, only: nlev, MPI_COMM_lpepc, idim
+    use treevars, only: MPI_COMM_lpepc
     use module_pepc_types, only: kind_particle, kind_key
     use module_spacefilling, only : level_from_key
     use module_vtk
@@ -374,10 +374,8 @@ module module_walk
     implicit none
     include 'mpif.h'
 
-    integer(kind_particle) :: i, np
-    integer(kind_level) :: cutlvlmax, cutlevel, k
+    integer(kind_particle) :: i, k, np
     integer(kind_key) :: cut_key
-    integer(kind_particle) :: cutlvlpos, nclusterpart
 
     integer :: step = 0
     integer(kind_key), allocatable :: colors(:), keys(:)
@@ -386,35 +384,33 @@ module module_walk
     !        we can do this now if we want to, but should not forget to restore original order afterwards!
     np = size(particle_data, kind=kind(np))
 
-    ! 1st loop run: count the number of clusters to be identified
-    num_clusters   = 0
-    i = 1
-    do while (i<np)
-      num_clusters = num_clusters + 1
-      cut_key = bpi(particle_data(i)%key, particle_data(min(i+max_particles_per_cluster,np))%key)
-      do while ((iand(particle_data(i)%key, cut_key) .ne. cut_key) .and. i<np)
-        i = i + 1
+    do k=1,2
+      ! 1st loop run: count the number of clusters to be identified
+      ! 2nd loop run: put them onto the particle_clusters list
+      num_clusters   = 0
+      i = 1
+      do while (i<=np)
+        num_clusters = num_clusters + 1
+        if (k==2) particle_clusters(num_clusters)%first = i
+        if (i<np) then
+          cut_key = bpi(particle_data(i)%key, particle_data(min(i+max_particles_per_cluster,np))%key)
+          do while ((iand(particle_data(i)%key, cut_key) .ne. cut_key) .and. i<np)
+            i = i + 1
+          end do
+          if (k==2) particle_clusters(num_clusters)%last = i-1
+        else
+          if (k==2) particle_clusters(num_clusters)%last = i
+          i = i+1
+        end if
       end do
+      ! allocate enough space for storing them
+      if (k==1) allocate(particle_clusters(num_clusters))
     end do
-    ! allocate enough space for storing them
-    allocate(particle_clusters(num_clusters))
-    ! 2nd loop run: put them onto the particle_clusters list
-    num_clusters   = 0
-    i = 1
-    do while (i<np)
-      num_clusters = num_clusters + 1
-      particle_clusters(num_clusters)%f = i
-      cut_key = bpi(particle_data(i)%key, particle_data(min(i+max_particles_per_cluster,np))%key)
-      do while ((iand(particle_data(i)%key, cut_key) .ne. cut_key) .and. i<np)
-        i = i + 1
-      end do
-      if (k==2) particle_clusters(num_clusters)%n = i-particle_clusters(num_clusters)%f
-    end do
-
+return
     step = step + 1
     allocate(keys(np), colors(np))
     do i=1,num_clusters
-      colors(particle_clusters(i)%f:particle_clusters(i)%f + particle_clusters(i)%n) = i
+      colors(particle_clusters(i)%first:particle_clusters(i)%last) = i
     end do
     do i=1,np
       keys(i) = particle_data(i)%key
@@ -441,7 +437,6 @@ module module_walk
     type(c_ptr), value :: arg
 
     integer, dimension(:), allocatable :: thread_cluster_indices
-    type(t_thread_cluster_data), dimension(:), allocatable :: thread_cluster_data
     integer(kind_node), dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
     integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
@@ -480,7 +475,6 @@ module module_walk
       total_defer_list_length = defer_list_length*my_max_clusters_per_thread
 
       allocate(thread_cluster_indices(my_max_clusters_per_thread), &
-                    thread_cluster_data(my_max_clusters_per_thread), &
                       defer_list_start_pos(my_max_clusters_per_thread+1), &
                           partner_leaves(my_max_clusters_per_thread))
       allocate(defer_list_old(1:total_defer_list_length), &
@@ -516,7 +510,7 @@ module module_walk
             ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
             defer_list_start_pos(i) =  defer_list_new_tail
 
-            cluster_has_finished  = walk_single_cluster(thread_cluster_data(i), &
+            cluster_has_finished  = walk_single_cluster(particle_clusters(thread_cluster_indices(i)), &
                                       ptr_defer_list_old, defer_list_entries_old, &
                                       ptr_defer_list_new, defer_list_entries_new, &
                                       todo_list, partner_leaves(i), my_threaddata)
@@ -553,7 +547,7 @@ module module_walk
         defer_list_start_pos(my_max_clusters_per_thread+1) = defer_list_new_tail ! this entry is needed to store the length of the (max_clusters_per_thread)th clusters defer_list
       end do
 
-      deallocate(thread_cluster_indices, thread_cluster_data, defer_list_start_pos, partner_leaves)
+      deallocate(thread_cluster_indices, defer_list_start_pos, partner_leaves)
       deallocate(defer_list_old, defer_list_new)
       deallocate(todo_list)
     end if
@@ -606,25 +600,11 @@ module module_walk
     subroutine get_new_cluster_and_setup_defer_list(idx)
       implicit none
       integer, intent(in) :: idx
-      integer(kind_particle) :: i
 
       if (clusters_available) then
         thread_cluster_indices(idx) = get_first_unassigned_cluster()
 
         if (contains_cluster(idx)) then
-          ! we make a copy of all cluster data to avoid thread-concurrent access to particle_data array
-          ! and to be able to make more efficient use of vectorization later
-          thread_cluster_data(idx)%d = particle_clusters(thread_cluster_indices(idx))
-
-          thread_cluster_data(idx)%cluster_centre(:) = 0.
-          do i=1,thread_cluster_data(idx)%d%n
-            ! for now we use the geometric center as cluster center
-            ! possible options: center-of-charge, geometric centre of particles, geometric centre of node-box?
-            thread_cluster_data(idx)%cluster_centre(:) = thread_cluster_data(idx)%cluster_centre(:) + particle_data(particle_clusters(thread_cluster_indices(idx))%f+i-1)%x
-          end do
-
-          thread_cluster_data(idx)%cluster_centre = (thread_cluster_data(idx)%cluster_centre / thread_cluster_data(idx)%d%n) - vbox
-
           ! for clusters that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
@@ -662,7 +642,7 @@ module module_walk
     implicit none
     include 'mpif.h'
 
-    type(t_thread_cluster_data), intent(in) :: cluster
+    type(t_cluster_data), intent(in) :: cluster
     integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
     integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
@@ -690,6 +670,7 @@ module module_walk
     real*8 :: dist2, delta(3)
     logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
+    integer(kind_particle) :: p
 
     todo_list_entries      = 0
     num_interactions       = 0
@@ -704,7 +685,7 @@ module module_walk
     call defer_list_parse_and_compact()
 
     ! read all todo_list-entries and start further traversals there
-    do while (todo_list_pop(walk_node_idx))
+    todo_list_loop: do while (todo_list_pop(walk_node_idx))
       walk_node => walk_tree%nodes(walk_node_idx)
 
       ! we may not interact with the cluster itself or its ancestors
@@ -714,22 +695,28 @@ module module_walk
       ! been modified due to 'duplicate keys'-error)
       is_leaf = tree_node_is_leaf(walk_node)
 
-      delta = cluster%cluster_centre - walk_node%interaction_data%coc ! Separation vector
-      dist2 = DOT_PRODUCT(delta, delta)
 
       if (is_leaf) then
         partner_leaves = partner_leaves + 1
         call calc_force_for_cluster(calc_force_per_interaction_with_leaf, calc_force_per_interaction_with_self)
       else ! not a leaf, evaluate MAC
-        num_mac_evaluations = num_mac_evaluations + 1
-        if (mac(walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
-          partner_leaves = partner_leaves + walk_node%leaves
-          call calc_force_for_cluster(calc_force_per_interaction_with_twig, calc_force_per_interaction_with_twig)
-        else ! MAC negative, resolve
-          call resolve()
-        end if
+        do p=cluster%first,cluster%last
+          delta = particle_data(p)%x - vbox - walk_node%interaction_data%coc ! Separation vector
+          dist2 = DOT_PRODUCT(delta, delta)
+
+          num_mac_evaluations = num_mac_evaluations + 1
+          if (.not. mac(walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC negative, resolve
+            call resolve(particle_data(p))
+            cycle todo_list_loop ! we do not have to evaluate the MAC for any other particles in this cluster
+          endif
+
+        end do
+
+        ! MAC was positive for all particles in the cluster, interact
+        partner_leaves = partner_leaves + walk_node%leaves
+        call calc_force_for_cluster(calc_force_per_interaction_with_twig, calc_force_per_interaction_with_twig)
       end if
-    end do ! (while (todo_list_pop(walk_key)))
+    end do todo_list_loop ! (while (todo_list_pop(walk_key)))
 
     ! if todo_list and defer_list are now empty, the walk has finished
     walk_single_cluster = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
@@ -748,8 +735,8 @@ module module_walk
       real*8 :: pdist2, pdelta(3)
       integer(kind_particle) :: ipart
 
-      do ipart=0,cluster%d%n-1
-        pdelta = particle_data(cluster%d%f+ipart)%x - vbox - walk_node%interaction_data%coc ! Separation vector
+      do ipart=cluster%first,cluster%last
+        pdelta = particle_data(ipart)%x - vbox - walk_node%interaction_data%coc ! Separation vector
         pdist2 = DOT_PRODUCT(pdelta, pdelta)
 
         #ifndef NO_SPATIAL_INTERACTION_CUTOFF
@@ -757,17 +744,18 @@ module module_walk
         #endif
 
         if (pdist2 > 0.0_8) then ! not self, interact
-          call calc_force(particle_data(cluster%d%f+ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          call calc_force(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
           else ! self, count as interaction partner, otherwise ignore
-          call calc_force_self(particle_data(cluster%d%f+ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          call calc_force_self(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
         endif
         num_interactions = num_interactions + 1
       end do
     end subroutine
 
 
-    subroutine resolve()
+    subroutine resolve(particle)
       implicit none
+      type(t_particle), intent(in) :: particle
 
       integer(kind_node) :: n
 
@@ -784,7 +772,7 @@ module module_walk
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         ! eager requests
-        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(cluster%d%f), cluster%cluster_centre) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle, particle%x - vbox) ! fetch children from remote
         ! simple requests
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         num_post_request = num_post_request + 1
