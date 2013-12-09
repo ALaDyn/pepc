@@ -393,11 +393,10 @@ module module_walk
           do while ((iand(particle_data(i)%key, cut_key) .ne. cut_key) .and. i<np)
             i = i + 1
           end do
-          if (k==2) particle_clusters(num_clusters)%last = i-1
         else
-          if (k==2) particle_clusters(num_clusters)%last = i
           i = i+1
         end if
+        if (k==2) particle_clusters(num_clusters)%last = i - 1
       end do
       ! allocate enough space for storing them
       if (k==1) allocate(particle_clusters(num_clusters))
