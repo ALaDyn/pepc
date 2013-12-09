@@ -46,8 +46,9 @@ pthread_rwlock_t *my_rwlocks;
 pthread_attr_t thread_attr;
 
 const int THREAD_TYPE_DEFAULT = 0;
-const int THREAD_TYPE_COMMUNICATOR = 1;
-const int THREAD_TYPE_WORKER = 2;
+const int THREAD_TYPE_MAIN = 1;
+const int THREAD_TYPE_COMMUNICATOR = 2;
+const int THREAD_TYPE_WORKER = 3;
 
 typedef struct {
   pthread_t* thread;
@@ -90,6 +91,7 @@ int pthreads_uninit()
     return 0;
 }
 
+
 #if defined(__TOS_BGQ__)
   #if defined(__GNUC__)
     #define cntlz8(x) (__builtin_ctzl(x))
@@ -99,7 +101,8 @@ int pthreads_uninit()
     #define popcnt8(x) (__popcnt8(x))
   #endif
 
-void* thread_helper(pthread_with_type_t* thread)
+
+void place_thread(int thread_type, int counter)
 {
     const int reserved = 4;
     pthread_t tid = pthread_self();
@@ -111,19 +114,22 @@ void* thread_helper(pthread_with_type_t* thread)
     unsigned int first;
     int count, selected = -1;
 
-    if (thread->thread_type == THREAD_TYPE_COMMUNICATOR) {
+    if (thread_type == THREAD_TYPE_MAIN) {
+      first = cntlz8(accessible); // identify first accessible hardware thread
+      selected = first;
+    } else if (thread_type == THREAD_TYPE_COMMUNICATOR) {
       first = cntlz8(accessible); // identify first accessible hardware thread
 
-      if (thread->counter == 1) {
+      if (counter == 1) {
         // first communicator goes on the free hardware thread of the first core
         selected = first + 2;
-      } else if (thread->counter == 2) {
+      } else if (counter == 2) {
         // second communicator shares a hardware thread with the main thread
         selected = first;
       } else {
-        printf("WARNING: No placement policy for communicator thread no. %d implemented!\n", thread->counter);
+        printf("WARNING: No placement policy for communicator thread no. %d implemented!\n", counter);
       }
-    } else if (thread->thread_type == THREAD_TYPE_WORKER) {
+    } else if (thread_type == THREAD_TYPE_WORKER) {
       first = cntlz8(accessible); // identify first accessible hardware thread
       count = popcnt8(accessible) - reserved; // number of accessible threads minus reserved first core
 
@@ -131,16 +137,16 @@ void* thread_helper(pthread_with_type_t* thread)
         selected = first + reserved  // skip first core
           // put the first count / 2 workers on even numbered hardware threads
           // (these are not shared with MPI threads)
-          + ((2 * (thread->counter - 1)) % count)
+          + ((2 * (counter - 1)) % count)
           // put additional threads on odd numbered hardware threads
-          + (((2 * (thread->counter - 1)) / count) % 2);
+          + (((2 * (counter - 1)) / count) % 2);
           // strictly speaking, this will (intentionally) wrap around to even
           // numbered hardware threads again after placing count workers.
 
       } else {
         // only one core is available, put workers on odd numbered hardware threads,
         // away from main and communicator threads on the even numbered cores
-        selected = first + 1 + 2 * ((thread->counter - 1) % 2);
+        selected = first + 1 + 2 * ((counter - 1) % 2);
       }
     }
 
@@ -150,15 +156,18 @@ void* thread_helper(pthread_with_type_t* thread)
       CPU_SET(selected, &cpumask);
       pthread_setaffinity_np(tid, sizeof(cpumask), &cpumask);
     }
+}
+#else
+void place_thread(int thread_type, int counter) { }
+#endif
+
+
+void* thread_helper(pthread_with_type_t* thread)
+{
+    place_thread(thread->thread_type, thread->counter);
 
     return (thread->start_routine)(thread->arg);
 }
-#else
-void* thread_helper(pthread_with_type_t* thread)
-{
-    return (thread->start_routine)(thread->arg);
-}
-#endif
 
 
 int pthreads_createthread_c(pthread_with_type_t* thread)
