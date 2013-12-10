@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -58,7 +58,7 @@ module module_walk
   subroutine tree_walk_statistics(u)
     use treevars, only: me
     implicit none
-    
+
     integer, intent(in) :: u
 
     if (0 == me) then; write (u, *) "module_walk_simple: no statistics for now."; end if
@@ -218,7 +218,7 @@ module module_walk
     integer(kind_particle) :: ip, np
     integer(kind_level) :: i
     real*8 :: b2(0:nlev), num_int, num_mac
-    
+
     num_int = 0.0_8
     num_mac = 0.0_8
 
@@ -280,6 +280,7 @@ module module_walk
           d2(ip) = dot_product(d(:, ip), d(:, ip))
 
           num_int = num_int + 1.0_8
+          p(ip)%work = p(ip)%work + 1._8
           if (d2(ip) > 0.0_8) then ! not self
             call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
           else ! self
@@ -323,6 +324,7 @@ module module_walk
           if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
           #endif
           num_int = num_int + 1.0_8
+          p(ip)%work = p(ip)%work + 1._8
           call calc_force_per_interaction_with_twig(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
         end do
       end if

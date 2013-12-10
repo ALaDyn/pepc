@@ -634,6 +634,7 @@ module module_walk
         end if
 
         num_interactions = num_interactions + 1
+        particle%work = particle%work + 1._8
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
 
@@ -646,6 +647,7 @@ module module_walk
 
           call calc_force_per_interaction_with_twig(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
           num_interactions = num_interactions + 1
+          particle%work = particle%work + 1._8
         else ! MAC negative, resolve
           call resolve()
         end if

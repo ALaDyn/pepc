@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -32,9 +32,6 @@ module module_interaction_specific
   implicit none
   save
   private
-
-  real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
-  real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
   integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
   logical, public :: include_far_field_if_periodic = .false. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
@@ -81,7 +78,7 @@ module module_interaction_specific
     complex(kind = 8) :: za, zb, zc, t, omega(pMultipole), tu, n
     real*8 :: l
     integer :: k
-    
+
     if (p%source_kind == CALC_FORCE_SOURCE_KIND_PARTICULAR) then
       m= t_tree_node_interaction_data(x, p%q, abs(p%q), omega0, 0.)
     else
@@ -228,7 +225,7 @@ module module_interaction_specific
 
 
   !>
-  !> initializes static variables of calc force module that depend 
+  !> initializes static variables of calc force module that depend
   !> on particle data and might be reused on subsequent traversals
   !>
   subroutine calc_force_after_grow(particles)
@@ -246,7 +243,7 @@ module module_interaction_specific
     if (do_periodic .and. include_far_field_if_periodic) then
       call fmm_periodicity_timestep(particles)
     end if
-  end subroutine      
+  end subroutine
 
 
   !>
@@ -367,7 +364,6 @@ module module_interaction_specific
 
     particle%results%e         = particle%results%e    + exy
     particle%results%pot       = particle%results%pot  + phic
-    particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
   end subroutine
 
 
@@ -390,7 +386,6 @@ module module_interaction_specific
 
     particle%results%e         = particle%results%e    + exy
     particle%results%pot       = particle%results%pot  + phic
-    particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
   end subroutine
 
 
@@ -464,7 +459,7 @@ module module_interaction_specific
     !
     ! and
     !
-    !   MTaylorPrime(k, z) = -k MTaylor(k, z) / z 
+    !   MTaylorPrime(k, z) = -k MTaylor(k, z) / z
     !
     ! to save time. A naive implementation would be:
     !
@@ -485,7 +480,7 @@ module module_interaction_specific
     ex  = real(cf, kind = 8)
     ey  = -real(aimag(cf), kind = 8)
   end subroutine calc_force_log_2D
-    
+
 
   !>
   !> Computes the direct particle particle interaction potential and

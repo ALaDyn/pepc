@@ -38,9 +38,6 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
-      real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
-
       integer, public :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
       integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
       logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
@@ -347,7 +344,6 @@ module module_interaction_specific
 
           particle%results%e         = particle%results%e    + exyz
           particle%results%pot       = particle%results%pot  + phic
-          particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
         end subroutine
 
 
@@ -390,7 +386,6 @@ module module_interaction_specific
 
           particle%results%e         = particle%results%e    + exyz
           particle%results%pot       = particle%results%pot  + phic
-          particle%work              = particle%work         + WORKLOAD_PENALTY_INTERACTION
         end subroutine
 
 

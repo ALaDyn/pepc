@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -29,9 +29,6 @@ module module_interaction_specific
   implicit none
   save
   private
-
-  real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
-  real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
   integer, public :: force_law    = 5      !< 5=NN-list "interaction"
   integer, public :: mac_select   = 3      !< selector for multipole acceptance criterion
@@ -216,7 +213,7 @@ contains
 
 
   !>
-  !> initializes static variables of calc force module that depend 
+  !> initializes static variables of calc force module that depend
   !> on particle data and might be reused on subsequent traversals
   !>
   subroutine calc_force_after_grow(particles)
@@ -225,7 +222,7 @@ contains
     type(t_particle), dimension(:), intent(in) :: particles
 
     ! nothing to be done here for now
-  end subroutine      
+  end subroutine
 
 
   !>
@@ -247,7 +244,7 @@ contains
     nintmax    = int(1._8/invnintmax)
   end subroutine get_number_of_interactions_per_particle
 
-  
+
   !>
   !> finalizes the calc force module at end of simulation
   !>
@@ -293,7 +290,7 @@ contains
        ! sqrt(dist2) - sqrt(3.*boxlength2) > sqrt(results%maxdist2)  .OR. sqrt(dist2) - sqrt(3.*boxlength2) > tree_nodes(node)%h*2.  ! + sqrt(3. * boxlength2)
        ! sqrt(dist2) > sqrt(results%maxdist2) + sqrt(3.*boxlength2)  .OR. sqrt(dist2) > tree_nodes(node)%h*2. + sqrt(3.*boxlength2)  ! ^2
        ! dist2 > results%maxdist2 + 2.*sqrt(results%maxdist2*3.*boxlength2) + 3.*boxlength2 .OR. dist2 > 4.*tree_nodes(node)%h**2 + 2.*sqrt(2.*tree_nodes(node)%h*3.*boxlength2) + 3. *boxlength2
-       ! 
+       !
        mac = ( (dist2 > particle%results%maxdist2 + sqrt(12.*particle%results%maxdist2*boxlength2) + 3.*boxlength2) .or. &
             (   dist2 > 4.*node%h**2 + sqrt(24.*node%h *boxlength2) + 3.*boxlength2) )
 
@@ -312,7 +309,7 @@ contains
     use module_pepc_types, only: t_particle
     implicit none
     type(t_particle), intent(inout) :: particles(:)
-    
+
     integer(kind_particle) :: i
 
     do i=1,size(particles, kind=kind(i))
@@ -362,9 +359,9 @@ contains
     integer(kind_node), intent(in) :: node_idx
     type(t_particle), intent(inout) :: particle
     real*8, intent(in) :: vbox(3), delta(3), dist2
-    
+
     real*8 :: exyz(3), phic
-    
+
     select case (force_law)
     case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
        call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
@@ -388,8 +385,6 @@ contains
     case default
        write(*,*) "value of force_law is not allowed in calc_force_per_interaction:", force_law
     end select
-
-    particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION          
   end subroutine
 
 
@@ -408,9 +403,9 @@ contains
     integer(kind_node), intent(in) :: node_idx
     type(t_particle), intent(inout) :: particle
     real*8, intent(in) :: vbox(3), delta(3), dist2
-    
+
     real*8 :: exyz(3), phic
-    
+
     select case (force_law)
     case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
        call calc_force_coulomb_2D(node, delta(1:2), dot_product(delta(1:2), delta(1:2)), exyz(1), exyz(2),phic)
@@ -434,8 +429,6 @@ contains
     case default
        write(*,*) "value of force_law is not allowed in calc_force_per_interaction:", force_law
     end select
-
-    particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION          
   end subroutine
 
 
@@ -489,7 +482,7 @@ contains
        endif
 
     case(4)
-       
+
        if ( (dist2 < particle%results%maxdist2) .or. ( dist2 < 4.*node%h*node%h ) ) then
           ! add node to NN_list
           particle%results%neighbour_nodes(particle%results%maxidx) = node_idx
@@ -507,7 +500,7 @@ contains
 
     case default
        write(*,*) "value of mac_select not allowed in update_nn_list:", mac_select
-       
+
     end select
   end subroutine update_nn_list
 

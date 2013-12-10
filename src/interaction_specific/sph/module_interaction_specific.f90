@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -29,9 +29,6 @@ module module_interaction_specific
      implicit none
      save
      private
-
-      real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
-      real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
       integer, public :: force_law    = 5      !< 5=NN-list "interaction"
       integer, public :: mac_select   = 1      !< selector for multipole acceptance criterion, 1 = NN-MAC
@@ -151,7 +148,7 @@ module module_interaction_specific
 
 
       !>
-      !> initializes static variables of calc force module that depend 
+      !> initializes static variables of calc force module that depend
       !> on particle data and might be reused on subsequent traversals
       !>
       subroutine calc_force_after_grow(particles)
@@ -160,7 +157,7 @@ module module_interaction_specific
         type(t_particle), dimension(:), intent(in) :: particles
 
         ! nothing to be done here for now
-      end subroutine      
+      end subroutine
 
 
       !>
@@ -233,7 +230,7 @@ module module_interaction_specific
          use module_pepc_types, only: t_particle
          implicit none
          type(t_particle), intent(inout) :: particles(:)
-    
+
          integer(kind_particle) :: i
 
          do i=1,size(particles, kind=kind(i))
@@ -281,7 +278,6 @@ module module_interaction_specific
           select case (force_law)
             case (5)
                 call update_nn_list(particle, node_idx, delta, dist2)
-                particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
           end select
         end subroutine
 
@@ -305,7 +301,6 @@ module module_interaction_specific
           select case (force_law)
             case (5)
                 call update_nn_list(particle, node_idx, delta, dist2)
-                particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
           end select
         end subroutine
 

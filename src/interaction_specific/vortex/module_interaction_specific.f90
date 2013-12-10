@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -29,9 +29,6 @@ module module_interaction_specific
      implicit none
      save
      private
-
-      real*8, parameter :: WORKLOAD_PENALTY_MAC  = 1._8 !< TODO: currently unused
-      real*8, parameter :: WORKLOAD_PENALTY_INTERACTION = 30._8
 
       integer, public :: force_law    = 2      !< 2 = calc_2nd_algebraic_condensed
       integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
@@ -218,7 +215,7 @@ module module_interaction_specific
 
 
       !>
-      !> initializes static variables of calc force module that depend 
+      !> initializes static variables of calc force module that depend
       !> on particle data and might be reused on subsequent traversals
       !>
       subroutine calc_force_after_grow(particles)
@@ -227,7 +224,7 @@ module module_interaction_specific
         type(t_particle), dimension(:), intent(in) :: particles
 
         ! nothing to be done here for now
-      end subroutine      
+      end subroutine
 
 
       !>
@@ -357,7 +354,6 @@ module module_interaction_specific
           particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
           particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
           particle%results%div       = particle%results%div        + div
-          particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
         end subroutine
 
 
@@ -406,7 +402,6 @@ module module_interaction_specific
           particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
           particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
           particle%results%div       = particle%results%div        + div
-          particle%work = particle%work + WORKLOAD_PENALTY_INTERACTION
         end subroutine
 
 

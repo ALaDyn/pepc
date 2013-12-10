@@ -610,6 +610,7 @@ module module_walk
 
       if (is_leaf) then
         partner_leaves = partner_leaves + 1
+        particle%work = particle%work + 1._8
 
         #ifndef NO_SPATIAL_INTERACTION_CUTOFF
         if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
@@ -634,6 +635,7 @@ module module_walk
 
           call calc_force_per_interaction_with_twig(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
           num_interactions = num_interactions + 1
+          particle%work = particle%work + 1._8
         else ! MAC negative, resolve
           call resolve()
         end if

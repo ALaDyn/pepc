@@ -731,6 +731,7 @@ module module_walk
           call calc_force_self(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
         endif
         num_interactions = num_interactions + 1
+        particle_data(ipart)%work = particle_data(ipart)%work + 1._8
       end do
     end subroutine
 
