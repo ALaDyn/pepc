@@ -272,6 +272,7 @@ module module_walk
         ni = ni + 1
 
         do ip = 1, np
+          ! TODO: tabulate x - vbox
           d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
           if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
@@ -293,7 +294,7 @@ module module_walk
 
           if (.not. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) node%interaction_data, d2(ip), b2(node%level))) then ! MAC fails: resolve
             if (.not. tree_node_children_available(node)) then
-              call tree_node_fetch_children(walk_tree, node, n)
+              call tree_node_fetch_children(walk_tree, node, n, p(1), p(1)%x - vbox)
               do ! loop and yield until children have been fetched
                 ERROR_ON_FAIL(pthreads_sched_yield())
                 if (tree_node_children_available(node)) exit
