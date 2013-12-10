@@ -55,6 +55,8 @@ module module_interaction_specific
       public calc_force_prepare
       public calc_force_after_grow
       public get_number_of_interactions_per_particle
+      public pack_particle_list
+      public unpack_particle_list
 
       contains
 
@@ -422,4 +424,61 @@ module module_interaction_specific
 
           call pepc_status('CALC FORCE PER PARTICLE DONE')
         end subroutine calc_force_per_particle
+
+
+      subroutine pack_particle_list(particles, packed)
+        use module_pepc_types, only: t_particle, kind_particle
+        implicit none
+
+        type(t_particle), intent(in) :: particles(:)
+        type(t_particle_pack), intent(inout) :: packed
+
+        integer(kind_particle) :: ip, np
+
+        np = size(particles, kind = kind_particle)
+
+        allocate( &
+          packed%ex(np), &
+          packed%ey(np), &
+          packed%ez(np), &
+          packed%pot(np) &
+        )
+
+        do ip = 1, np
+          packed%ex(ip) = particles(ip)%results%e(1)
+          packed%ey(ip) = particles(ip)%results%e(2)
+          packed%ez(ip) = particles(ip)%results%e(3)
+          packed%pot(ip) = particles(ip)%results%pot
+        end do
+
+      end subroutine pack_particle_list
+
+
+      subroutine unpack_particle_list(packed, particles)
+        use module_pepc_types, only: t_particle, kind_particle
+        use module_debug
+        implicit none
+
+        type(t_particle_pack), intent(inout) :: packed
+        type(t_particle), intent(inout) :: particles(:)
+
+        integer(kind_particle) :: ip, np
+
+        ip = size(particles, kind = kind_particle)
+        DEBUG_ASSERT(ip == size(packed%ex, kind = kind_particle))
+
+        do ip = 1, np
+          particles(ip)%results%e(1) = packed%ex(ip)
+          particles(ip)%results%e(2) = packed%ex(ip)
+          particles(ip)%results%e(3) = packed%ex(ip)
+          particles(ip)%results%pot = packed%pot(ip)
+        end do
+
+        deallocate( &
+          packed%ex, &
+          packed%ey, &
+          packed%ez, &
+          packed%pot &
+        )
+      end subroutine unpack_particle_list
 end module module_interaction_specific
