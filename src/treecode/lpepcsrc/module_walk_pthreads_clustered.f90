@@ -96,6 +96,7 @@ module module_walk
   use module_pepc_types
   use module_atomic_ops, only: t_atomic_int
   use pthreads_stuff, only: t_pthread_with_type
+  use module_interaction_specific_types, only : t_particle_pack
   implicit none
   private
 
@@ -129,11 +130,7 @@ module module_walk
   type t_cluster_data
     integer(kind_particle) :: first !< index of the cluster`s first particle in the particle_list
     integer(kind_particle) :: last  !< index of the cluster`s last  particle in the particle_list
-  end type
-
-  type t_thread_cluster_data
-    type(t_cluster_data) :: d
-    real*8 :: cluster_centre(3) !< cluster center, already shifted by vbox
+    type(t_particle_pack) :: packed_particle_data
   end type
 
   type(t_cluster_data), allocatable, dimension(:) :: particle_clusters
@@ -507,6 +504,9 @@ module module_walk
                 call debug_mpi_abort()
               end if
 
+              ! copy forces and potentials back to thread-global array
+              call unpack_particle_list(particle_clusters(thread_cluster_indices(i))%packed_particle_data, &
+                particle_data(particle_clusters(thread_cluster_indices(i))%first:particle_clusters(thread_cluster_indices(i))%last))
               ! mark cluster entry i as free
               thread_cluster_indices(i)                = -1
               ! count total processed clusters for this thread
@@ -591,6 +591,10 @@ module module_walk
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
           partner_leaves(idx)     =  0 ! no interactions yet
+
+          call pack_particle_list(particle_data(particle_clusters(thread_cluster_indices(idx))%first:&
+                                                particle_clusters(thread_cluster_indices(idx))%last), &
+                                                particle_clusters(thread_cluster_indices(idx))%packed_particle_data)
         else
           clusters_available     = .false.
         end if ! contains_cluster(idx)
