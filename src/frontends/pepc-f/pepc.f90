@@ -38,7 +38,6 @@ program pepc
     use output
     use diagnostics
     use module_cmdline
-    use module_interaction_partners
     use module_geometry
     use module_species
 

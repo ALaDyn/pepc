@@ -70,6 +70,8 @@ module module_interaction_specific
       public calc_force_prepare
       public calc_force_after_grow
       public get_number_of_interactions_per_particle
+      public pack_particle_list
+      public unpack_particle_list
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -401,4 +403,43 @@ module module_interaction_specific
           ! nothing to do here
         end subroutine calc_force_per_particle
 
+
+        subroutine pack_particle_list(particles, packed)
+          use module_pepc_types, only: t_particle, kind_particle
+          implicit none
+
+          type(t_particle), intent(in) :: particles(:)
+          type(t_particle_pack), intent(inout) :: packed
+
+          integer(kind_particle) :: ip, np
+
+          np = size(particles, kind = kind_particle)
+
+          allocate(packed%results(np))
+
+          do ip = 1, np
+            packed%results(ip) = particles(ip)%results
+          end do
+        end subroutine pack_particle_list
+
+
+        subroutine unpack_particle_list(packed, particles)
+          use module_pepc_types, only: t_particle, kind_particle
+          use module_debug
+          implicit none
+
+          type(t_particle_pack), intent(inout) :: packed
+          type(t_particle), intent(inout) :: particles(:)
+
+          integer(kind_particle) :: ip, np
+
+          ip = size(particles, kind = kind_particle)
+          DEBUG_ASSERT(ip == size(packed%results, kind = kind_particle))
+
+          do ip = 1, np
+            particles(ip)%results = packed%results(ip)
+          end do
+
+          deallocate(packed%results)
+        end subroutine unpack_particle_list
 end module module_interaction_specific

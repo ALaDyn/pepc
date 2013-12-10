@@ -47,6 +47,7 @@ module module_interaction_specific_types
       type t_particle_pack
          real*8, allocatable :: ex(:)
          real*8, allocatable :: ey(:)
+         real*8, allocatable :: ez(:)
          real*8, allocatable :: pot(:)
       end type t_particle_pack
 
