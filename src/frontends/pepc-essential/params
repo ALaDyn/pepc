@@ -58,5 +58,6 @@ eps2 = 1e-4
 
 &walk_para_pthreads_clustered
   max_clusters_per_thread = 100
-  particle_cluster_level = 2
+  max_particles_per_cluster = 1
 /
+
