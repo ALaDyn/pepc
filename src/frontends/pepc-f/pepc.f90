@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -59,8 +59,6 @@ program pepc
 
     !temporary aux variables
     diags=.false.
-    interaction_partner_diags=.false.
-
 
     timer(1) = get_time()
 
@@ -86,11 +84,6 @@ program pepc
 
     call init_output_arrays()
     call write_parameters()
-
-
-
-    !probes for analysing interaction partner diags
-    if (interaction_partner_diags) call init_probes(5)
 
     !get initial field configuration
     call pepc_particleresults_clear(particles)
@@ -194,8 +187,6 @@ program pepc
         !diagnostics
         if (diags) call pepc_tree_diagnostics()
         IF (spiegelladung/=0)call get_number_of_particles(particles)
-        if (interaction_partner_diags) call get_interaction_partners(5)
-
 
         timer(8)=get_time()
         !end diagnostics

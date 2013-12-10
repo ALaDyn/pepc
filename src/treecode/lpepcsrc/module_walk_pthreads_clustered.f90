@@ -403,6 +403,7 @@ module module_walk
     end do
   end subroutine
 
+
   function walk_worker_thread(arg) bind(c)
     use, intrinsic :: iso_c_binding
     use pthreads_stuff

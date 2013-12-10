@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -48,11 +48,6 @@ module module_interaction_specific
       real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
       real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
-! CS DEBUG STUFF FOR INTERACTION PARTNERS
-      integer(kind_key), allocatable,public :: interaction_keylist(:,:)
-      integer(kind_node), allocatable,public :: no_interaction_partners(:)
-      real*8, allocatable,public :: interaction_vbox(:,:,:)
-! ENDE CS
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
 
@@ -106,7 +101,7 @@ module module_interaction_specific
         type(t_particle_data), intent(in) :: particle
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
-        multipole = t_tree_node_interaction_data(particle_pos, particle%q, 0.) 
+        multipole = t_tree_node_interaction_data(particle_pos, particle%q, 0.)
       end subroutine
 
 
@@ -200,7 +195,7 @@ module module_interaction_specific
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !>
-      !> initializes static variables of calc force module that depend 
+      !> initializes static variables of calc force module that depend
       !> on particle data and might be reused on subsequent traversals
       !>
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -210,7 +205,7 @@ module module_interaction_specific
 
         ! nothing to be done here for now
 
-      end subroutine      
+      end subroutine
 
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -345,12 +340,6 @@ module module_interaction_specific
             case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
                       !  and Kelbg for particle-particle interaction
                 call calc_force_kelbg_3D_direct(particle, node, delta, dist2, kelbg_invsqrttemp, exyz, phic)
-! START CHRISTAN SALMAGNE; ADDED FOR DEBUGGING
-            case (6)  !  used to save interaction partners
-                no_interaction_partners(particle%label)=no_interaction_partners(particle%label)+1
-                interaction_keylist(particle%label,no_interaction_partners(particle%label))=key
-                interaction_vbox(particle%label,no_interaction_partners(particle%label),1:3)=vbox(1:3)
-! END CS
             case default
               exyz = 0.
               phic = 0.
@@ -394,12 +383,6 @@ module module_interaction_specific
             case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
                       !  and Kelbg for particle-particle interaction
                 call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
-! START CHRISTAN SALMAGNE; ADDED FOR DEBUGGING
-            case (6)  !  used to save interaction partners
-                no_interaction_partners(particle%label)=no_interaction_partners(particle%label)+1
-                interaction_keylist(particle%label,no_interaction_partners(particle%label))=key
-                interaction_vbox(particle%label,no_interaction_partners(particle%label),1:3)=vbox(1:3)
-! END CS
             case default
               exyz = 0.
               phic = 0.
