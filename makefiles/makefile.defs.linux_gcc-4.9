@@ -1,11 +1,12 @@
-HELP = "\
+'HELP = "\
 \# Makefile for gcc 4.9 (self-compiled)\n\
 "
 
 MACH     = linux_gcc-4.9
 
-DEBUG    = 1
+DEBUG    = 0
 OMP      = 1
+GPERFTOOLS = 1
 
 RANLIB   = ranlib
 
@@ -27,7 +28,7 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g 
   LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
 else
-  FFLAGS   = -Wall -O3 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
+  FFLAGS   = -Wall -O3 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING) -save-temps
   CFLAGS   = -Wall -O3 -g
   LDFLAGS  = -pthread -O3 -g $(INLINING)
   CPPFLAGS += -DNDEBUG
@@ -42,7 +43,6 @@ LDFLAGS += -u walk_worker_thread -u run_communication_loop
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
   LDFLAGS  += -fopenmp 
-else
 endif
 
 CCPRE    = 
@@ -51,6 +51,13 @@ CC       = mpicc
 LDPRE    = 
 LD       = mpicc
 LDLIBS   = -lgfortran -lm
+
+ifeq ($(GPERFTOOLS), 1)
+  # download and installation: http://code.google.com/p/gperftools/
+  # for usage see http://code.google.com/p/gperftools/wiki/GooglePerformanceTools
+  LDFLAGS+=-L${HOME}/programs/lib64
+  LDLIBS += -ltcmalloc -lprofiler
+endif
 
 RM       = rm -rf
 
