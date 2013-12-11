@@ -41,7 +41,9 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#ifndef __APPLE__
 #include <sys/prctl.h>
+#endif
 
 pthread_rwlock_t *my_rwlocks;
 pthread_attr_t thread_attr;
