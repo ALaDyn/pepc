@@ -1,20 +1,20 @@
 /*
 * This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-* 
-* Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+*
+* Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 *                         Forschungszentrum Juelich GmbH,
 *                         Germany
-* 
+*
 * PEPC is free software: you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * PEPC is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU Lesser General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public License
 * along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/prctl.h>
 
 pthread_rwlock_t *my_rwlocks;
 pthread_attr_t thread_attr;
@@ -49,6 +50,8 @@ const int THREAD_TYPE_DEFAULT = 0;
 const int THREAD_TYPE_MAIN = 1;
 const int THREAD_TYPE_COMMUNICATOR = 2;
 const int THREAD_TYPE_WORKER = 3;
+
+const char threadnames[4][20] = {"Tdefault", "Tmain", "Tcomm", "Twork"};
 
 typedef struct {
   pthread_t* thread;
@@ -161,9 +164,26 @@ void place_thread(int thread_type, int counter)
 void place_thread(int thread_type, int counter) { }
 #endif
 
+#define errExitEN(en, msg) \
+             do { errno = en; perror(msg); \
+} while (0)
 
 void* thread_helper(pthread_with_type_t* thread)
 {
+    char threadname[16];
+
+    sprintf(threadname, "%s [%d]", threadnames[thread->thread_type], thread->counter);
+    // see http://stackoverflow.com/questions/2369738/can-i-set-the-name-of-a-thread-in-pthreads-linux for details
+    #ifdef __APPLE__
+    pthread_setname_np(threadname);
+    #else
+    // try the recommended way first
+    if (0!=pthread_setname_np(thread->thread, threadname)) {
+      // then with some more brute force
+      prctl(PR_SET_NAME,threadname,0,0,0);
+    }
+    #endif // __APPLE__
+
     place_thread(thread->thread_type, thread->counter);
 
     return (thread->start_routine)(thread->arg);
