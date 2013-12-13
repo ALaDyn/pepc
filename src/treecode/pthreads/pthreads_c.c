@@ -26,6 +26,12 @@
 >
 *************************************************************************/
 
+#ifndef __APPLE__
+  #define _GNU_SOURCE
+  #include <features.h>
+  #include <sys/prctl.h>
+#endif
+
 #if defined(__TOS_BGQ__)
 #define _GNU_SOURCE
 #include <stdint.h>
@@ -33,7 +39,6 @@
 #include <spi/include/kernel/thread.h>
 #endif
 
-#include <pthread.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,9 +46,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
-#ifndef __APPLE__
-#include <sys/prctl.h>
-#endif
+#include <pthread.h>
 
 pthread_rwlock_t *my_rwlocks;
 pthread_attr_t thread_attr;
@@ -179,11 +182,12 @@ void* thread_helper(pthread_with_type_t* thread)
     #ifdef __APPLE__
     pthread_setname_np(threadname);
     #else
-    // try the recommended way first
-    if (0!=pthread_setname_np(thread->thread, threadname)) {
+      #if ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 12)) || (__GLIBC__ > 2)
+        // try the recommended way first
+        if (0!=pthread_setname_np(*thread->thread, threadname))
+      #endif // __GLIBC >=2.12
       // then with some more brute force
       prctl(PR_SET_NAME,threadname,0,0,0);
-    }
     #endif // __APPLE__
 
     place_thread(thread->thread_type, thread->counter);
