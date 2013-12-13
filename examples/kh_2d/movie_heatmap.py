@@ -31,13 +31,14 @@ def plot_fieldblob(arg):
     interpolation = 'nearest',
     cmap = cm,
     norm = Normalize(vmin = fmin, vmax = fmax),
-    extent = (offset[0], extent[0] + offset[0], offset[1], extent[1] + offset[1])
+    extent = (offset[0], extent[0] + offset[0], offset[1], extent[1] + offset[1]),
+    origin = 'bottom'
   )
 
   ax.set_xticks([])
   ax.set_yticks([])
 
-  ax.text(0.05, 0.95, 'w_{p,e} t = ' + str(t), transform = ax.transAxes)
+  ax.text(0.05, 0.95, 'w_{{p,e}} t = {0:6.3f}'.format(t), transform = ax.transAxes),
 
   fig.savefig(
     os.path.join(os.path.dirname(fname),

@@ -37,7 +37,7 @@ def plot_fieldblob(arg):
   ax.set_xlim(offset[0], offset[0] + extent[0])
   ax.set_ylim(fmin, fmax)
 
-  ax.text(0.05, 0.95, 'w_{p,e} t = ' + str(t),
+  ax.text(0.05, 0.95, 'w_{{p,e}} t = {0:6.3f}'.format(t),
     transform = ax.transAxes)
 
   fig.savefig(
