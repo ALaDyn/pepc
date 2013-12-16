@@ -27,7 +27,7 @@ module module_interaction_specific_types
 
       integer, parameter :: kind_key_i = kind(1_8)
 
-      integer, private, parameter :: max_neighbour_particles = 50
+      integer, parameter :: max_neighbour_particles = 50
 
       integer :: num_neighbour_particles = 12
 
@@ -42,14 +42,18 @@ module module_interaction_specific_types
       type t_particle_results
          real*8 :: maxdist2       !< maxval(dist2)
          integer :: maxidx        !< maxloc(dist2)
-         integer*8:: neighbour_nodes(max_neighbour_particles) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
+         integer*8 :: neighbour_nodes(max_neighbour_particles) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
          real*8 :: dist2(max_neighbour_particles)
          real*8 :: dist_vector(3,max_neighbour_particles) ! distance_vectors from particle to neighbour with respect to periodic shift vector
       end type t_particle_results
       integer, private, parameter :: nprops_particle_results = 5
 
       type t_particle_pack
-        type(t_particle_results), allocatable :: results(:)
+         real*8, allocatable :: maxdist2(:)       !< maxval(dist2)
+         integer, allocatable :: maxidx(:)        !< maxloc(dist2)
+         integer*8, allocatable :: neighbour_nodes(:,:) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
+         real*8, allocatable :: dist2(:,:)
+         real*8, allocatable :: dist_vector(:,:,:) ! distance_vectors from particle to neighbour with respect to periodic shift vector
       end type t_particle_pack
 
       !> Data structure for storing multiple moments of tree nodes

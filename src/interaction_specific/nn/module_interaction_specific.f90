@@ -313,14 +313,14 @@ module module_interaction_specific
           integer :: tmp(1), p
 
           do p=1,size(dist2)
-            if (dist2(p) < particle_pack%results(p)%maxdist2) then
+            if (dist2(p) < particle_pack%maxdist2(p)) then
               ! add node to NN_list
-              particle_pack%results(p)%neighbour_nodes(particle_pack%results(p)%maxidx) = particle_id
-              particle_pack%results(p)%dist2(particle_pack%results(p)%maxidx)           = dist2(p)
-              particle_pack%results(p)%dist_vector(:,particle_pack%results(p)%maxidx)   = delta(p,:)
-              tmp = maxloc(particle_pack%results(p)%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
-              particle_pack%results(p)%maxidx   = tmp(1)
-              particle_pack%results(p)%maxdist2 = particle_pack%results(p)%dist2(particle_pack%results(p)%maxidx)
+              particle_pack%neighbour_nodes(p, particle_pack%maxidx(p)) = particle_id
+              particle_pack%dist2(p, particle_pack%maxidx(p))           = dist2(p)
+              particle_pack%dist_vector(p, :,particle_pack%maxidx(p))   = delta(p,:)
+              tmp = maxloc(particle_pack%dist2(p, 1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
+              particle_pack%maxidx(p)   = tmp(1)
+              particle_pack%maxdist2(p) = particle_pack%dist2(p, particle_pack%maxidx(p))
             else
               ! node is further away than farest particle in nn-list --> can be ignored
             endif
@@ -339,10 +339,18 @@ module module_interaction_specific
 
           np = size(particles, kind = kind_particle)
 
-          allocate(packed%results(np))
+          allocate(packed%maxdist2(np), &
+                   packed%maxidx(np), &
+                   packed%neighbour_nodes(np, max_neighbour_particles), &
+                   packed%dist2(np, max_neighbour_particles), &
+                   packed%dist_vector(np, 3, max_neighbour_particles))
 
           do ip = 1, np
-            packed%results(ip) = particles(ip)%results
+            packed%maxdist2(ip) = particles(ip)%results%maxdist2
+            packed%maxidx(ip)   = particles(ip)%results%maxidx
+            packed%neighbour_nodes(ip,:) = particles(ip)%results%neighbour_nodes
+            packed%dist2(ip,:)  = particles(ip)%results%dist2
+            packed%dist_vector(ip,:,:)   = particles(ip)%results%dist_vector(:,:)
           end do
         end subroutine pack_particle_list
 
@@ -361,9 +369,17 @@ module module_interaction_specific
           DEBUG_ASSERT(np == size(packed%results, kind = kind_particle))
 
           do ip = 1, np
-            particles(ip)%results = packed%results(ip)
+            particles(ip)%results%maxdist2 = packed%maxdist2(ip)
+            particles(ip)%results%maxidx = packed%maxidx(ip)
+            particles(ip)%results%neighbour_nodes = packed%neighbour_nodes(ip,:)
+            particles(ip)%results%dist2 = packed%dist2(ip,:)
+            particles(ip)%results%dist_vector(:,:) = packed%dist_vector(ip,:,:)
           end do
 
-          deallocate(packed%results)
+          deallocate(packed%maxdist2, &
+                     packed%maxidx, &
+                     packed%neighbour_nodes, &
+                     packed%dist2, &
+                     packed%dist_vector)
         end subroutine unpack_particle_list
 end module module_interaction_specific
