@@ -1,6 +1,6 @@
 FILES_INT   = module_interaction_specific_types.f90 module_interaction_specific.f90 module_nn.f90
 
 SRC        += $(FILES_INT)
-SRC_COPY   += $(addprefix $(INTSPECDIR)/sph/, $(FILES_INT))
+SRC_COPY   += $(addprefix $(INTSPECDIR)/nn/, $(FILES_INT))
 
 CPPFLAGS_BACKEND = -DMAC_NEEDS_PARTICLE
