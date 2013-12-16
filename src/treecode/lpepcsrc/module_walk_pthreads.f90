@@ -594,7 +594,7 @@ module module_walk
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
-    real*8 :: dist2, delta(3), shifted_particle_position(3), work
+    real*8 :: dist2(1), delta(1,3), shifted_particle_position(3), work
     logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
 
@@ -623,37 +623,24 @@ module module_walk
       ! been modified due to 'duplicate keys'-error)
       is_leaf = tree_node_is_leaf(walk_node)
 
-      delta = shifted_particle_position - walk_node%interaction_data%coc ! Separation vector
-      dist2 = DOT_PRODUCT(delta, delta)
+      delta(1,:) = shifted_particle_position - walk_node%interaction_data%coc ! Separation vector
+      dist2(1) = DOT_PRODUCT(delta(1,:), delta(1,:))
 
       if (is_leaf) then
         partner_leaves = partner_leaves + 1
-
-        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-        if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
-        #endif
-
-        if (dist2 > 0.0_8) then ! not self, interact
-          call calc_force_per_interaction_with_leaf(particle_data(particle_idx), walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
-        else ! self, count as interaction partner, otherwise ignore
-          call calc_force_per_interaction_with_self(particle_data(particle_idx), walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
-        end if
-
         num_interactions = num_interactions + 1
         work = work + 1._8
+
+        call calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, walk_node%interaction_data)
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
 
-        if (mac(IF_MAC_NEEDS_PARTICLE(particle_data(particle_idx)) walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
+        if (mac(IF_MAC_NEEDS_PARTICLE(particle_data(particle_idx)) walk_node%interaction_data, dist2(1), walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
           partner_leaves = partner_leaves + walk_node%leaves
-
-          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
-          #endif
-
-          call calc_force_per_interaction_with_twig(particle_data(particle_idx), walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
           num_interactions = num_interactions + 1
           work = work + 1._8
+
+          call calc_force_per_interaction_with_twig(delta, dist2, particle_pack, walk_node%interaction_data)
         else ! MAC negative, resolve
           call resolve()
         end if
