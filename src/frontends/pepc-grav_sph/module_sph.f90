@@ -300,12 +300,13 @@ contains
        particles(local_particle_index)%results%rho = particles(local_particle_index)%data%q *kernel
 
        do actual_neighbour = 1, num_neighbour_particles
-         actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
 
           call sph_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, kernel)
 
-          particles(local_particle_index)%results%rho = particles(local_particle_index)%results%rho + &
-               actual_node%interaction_data%charge *kernel
+          ! FIXME: neighbour_nodes contains particle_id now instead of node_ids
+          !actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
+          ! particles(local_particle_index)%results%rho = particles(local_particle_index)%results%rho + &
+          !     actual_node%interaction_data%charge *kernel
 
        end do
 
@@ -477,7 +478,7 @@ contains
 
 
        do actual_neighbour = 1, num_neighbour_particles
-          
+          ! FIXME: neighbour_nodes contains particle_id now instead of node_ids
           actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
           
           ! scalar distance

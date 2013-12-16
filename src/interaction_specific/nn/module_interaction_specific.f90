@@ -252,7 +252,7 @@ module module_interaction_specific
 
           select case (force_law)
             case (5)
-                call update_nn_list(particle_pack, node_data%particle_id, delta, dist2)
+                call update_nn_list(particle_pack, node_data, delta, dist2)
             case default
                DEBUG_ERROR(*, "value of force_law is not allowed in calc_force_per_interaction:", force_law)
           end select
@@ -278,7 +278,7 @@ module module_interaction_specific
 
           select case (force_law)
             case (5)
-                call update_nn_list(particle_pack, node_data%particle_id, delta, dist2)
+                call update_nn_list(particle_pack, node_data, delta, dist2)
             case default
                DEBUG_ERROR(*, "value of force_law is not allowed in calc_force_per_interaction:", force_law)
           end select
@@ -299,7 +299,7 @@ module module_interaction_specific
         end subroutine calc_force_per_particle
 
 
-        subroutine update_nn_list(particle_pack, particle_id, delta, dist2)
+        subroutine update_nn_list(particle_pack, node_data, delta, dist2)
           use module_pepc_types
           use treevars
           implicit none
@@ -308,14 +308,14 @@ module module_interaction_specific
           real*8, intent(in) :: delta(:,:)
           real*8, intent(in) :: dist2(:)
           type(t_particle_pack), intent(inout) :: particle_pack
-          integer(kind_node), intent(in) :: particle_id !< node index of particle to interact with
+          type(t_tree_node_interaction_data), intent(in) :: node_data
 
           integer :: tmp(1), p
 
           do p=1,size(dist2)
             if (dist2(p) < particle_pack%maxdist2(p)) then
               ! add node to NN_list
-              particle_pack%neighbour_nodes(p, particle_pack%maxidx(p)) = particle_id
+              particle_pack%neighbour_nodes(p, particle_pack%maxidx(p)) = node_data%particle_id
               particle_pack%dist2(p, particle_pack%maxidx(p))           = dist2(p)
               particle_pack%dist_vector(p, :,particle_pack%maxidx(p))   = delta(p,:)
               tmp = maxloc(particle_pack%dist2(p, 1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
