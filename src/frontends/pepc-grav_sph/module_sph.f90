@@ -799,6 +799,9 @@ contains
 !    write (*,*) 'rdispls:', my_rank, rdispls
 
 
+    !call MPI_ALLTOALLV(non_local_node_keys, requests_per_process, sdispls, MPI_INTEGER8, &
+    !     requested_keys, requests_from_process, rdispls, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
+    !
     ! register propertyupdate data type ! FIXME: this has to be released somewhere: MPI_TYPE_FREE()
     blocklengths(1:nprops_property_update)  = [1, 1, 1, 1, 3, 1]
     types(1:nprops_property_update)         = [MPI_INTEGER8, MPI_INTEGER, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
