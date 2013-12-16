@@ -1,0 +1,57 @@
+HELP = "\
+\# Makefile for Snowball board\n\
+\# (and other ARM boards?)\n\
+"
+
+# set OPENMPFLAG to -fopenmp to compile with openmp (with gcc) and to empty to compile without openmp
+OPENMPFLAG = -fopenmp
+
+MACH     = Linaro_ARM_gcc
+
+DEBUG    = 0
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C
+
+# the next line seems to break gcc-4.6.2
+INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining
+# -flto-partition=none
+#-fwhopr
+# this line is ok on gcc-4.6.2...
+INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 -fipa-matrix-reorg -findirect-inlining
+# ... and quicker than this line
+#INLINING =
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = $(OPENMPFLAG) -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation -Wcharacter-truncation -Wunderflow -pedantic -Wnonstd-intrinsics
+  CFLAGS   = -I/usr/lib/mpich-shmem/include -g -pg -O0
+  LDFLAGS  = $(OPENMPFLAG) -g -pg -O0
+else
+  FFLAGS   = $(OPENMPFLAG) -Wall -O3 -ffree-line-length-none $(INLINING) -mfloat-abi=softfp -mcpu=cortex-a9 -march=armv7-a -mfpu=vfpv3-d16 -ftree-vectorize
+  CFLAGS   = -Wall -O3 $(INLINING) -mfloat-abi=softfp -mcpu=cortex-a9 -march=armv7-a -mfpu=vfpv3-d16 -ftree-vectorize
+  LDFLAGS  = $(OPENMPFLAG) -pthread -O3 $(INLINING) -mfloat-abi=softfp -mcpu=cortex-a9 -march=armv7-a -mfpu=vfpv3-d16 -ftree-vectorize
+# -fwhole-program 
+#-fuse-linker-plugin
+endif
+
+FCPRE    = 
+FC       = mpif90 -f90=gfortran-4.6.2
+
+CCPRE    = 
+CC       = mpicc -cc=gcc-4.6.2
+CC       = mpicc
+
+LDPRE    = 
+LD       = mpif90 -f90=gfortran-4.6.2
+LDLIBS   = 
+
+RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)

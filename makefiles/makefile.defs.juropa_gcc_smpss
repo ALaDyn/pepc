@@ -1,0 +1,61 @@
+# call before compilation to activate GNU Compiler Collection instead of Intel compiler:
+#  > module unload intel
+#  > module unload parastation
+#  > module load parastation/mpi2-gcc-mt-5.0.26-1
+#  > module load GCC
+
+MOD_UNLOAD = intel parastation
+MOD_LOAD   = parastation/mpi2-gcc-mt-5.0.26-1 GCC
+
+HELP = "\
+\# Makefile for JuRoPa using gcc and SMPSs\n\
+\# recommended module commands\n\
+module unload $(MOD_UNLOAD); module load $(MOD_LOAD)\
+"
+
+SMPSS        = 1
+SMPSSCC      = smpss-cc
+SMPSSCCFLAGS = -k
+
+MACH     = JUROPA_gcc
+
+DEBUG    = 1
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C
+
+INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
+# -flto-partition=none
+#-fwhopr
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0
+else
+  FFLAGS   = -Wall -O3        -ffree-line-length-none $(INLINING)
+  CFLAGS   = -Wall -O3
+  LDFLAGS  = -pthread -O3 $(INLINING) -fwhole-program 
+  CPPFLAGS += -DNDEBUG
+endif
+
+FCPRE    = 
+FC       = mpif90
+
+CCPRE    = 
+CC       = mpicc
+
+LDPRE    = 
+LD       = mpif90
+LDLIBS   = 
+
+RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)

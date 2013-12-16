@@ -1,0 +1,53 @@
+#
+#  build-level makefile for pepc
+#
+SUBFILES=makefile.paths makefile.defs makefile.frontend
+
+include $(SUBFILES)
+include makefile.envs
+
+CPPFLAGS += $(CPPFLAGS_BACKEND)
+CPPFLAGS += -DFFLAGS="\"$(FFLAGS)\""     \
+            -DCFLAGS="\"$(CFLAGS)\""     \
+            -DLDFLAGS="\"$(LDFLAGS)\""   \
+            -DCOMPILER="\"$(COMPILER)\"" \
+            -DSVNREVISION="\"$(SVNREVISION)\"" \
+            -DMACH="\"$(MACH)\"" \
+            -DWALKALGORITHM="\"$(WALK)\""
+
+FSRC = $(filter %.f90, $(SRC))
+FOBJ = $(FSRC:%.f90=%.o)
+
+CSRC = $(filter %.c, $(SRC))
+COBJ = $(CSRC:%.c=%.o)
+
+LDLIBS += libsl.a libopa.a
+
+RED=\e[0;31m
+GREEN=\e[0;32m
+BC=\e[1m# bold
+UL=\e[4m# underline
+NC=\e[0m# No Color, default font
+
+$(FRONTEND): $(FOBJ) $(COBJ)
+	@printf "==== linking executable : $(BC)$@$(NC)\n"
+	@printf "==== using libraries    : $(BC)$(LDLIBS)$(NC)\n"
+	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
+#	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
+
+%.o: %.f90 $(SUBFILES)
+	@echo "== compiling F90 file :" $<
+	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
+	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
+	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
+
+%.o: %.c $(SUBFILES)
+	@echo "== compiling C file   :" $<
+	@$(CCPRE) $(CC) -c $(CFLAGS) $(DBFLAGS) $< -o $@
+
+makefile.deps: $(SUBFILES)
+	@echo "==== creating dependencies"
+	@$(F90MODDEPS) -o makefile.deps --dep-template "\1.mod" --mod-template "\1.mod" --o-prefix "" $(FSRC) >> compile.log
+
+include makefile.deps
+

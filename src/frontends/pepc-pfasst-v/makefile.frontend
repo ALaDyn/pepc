@@ -1,0 +1,11 @@
+FILES_V   = quadrature_smat.f90 pfasst_helper_module.f90 physvars.f90 pfasst_calc_module.f90 pfasst_transfer_module.f90 pfasst_run_module.f90 files.f90 diagnostics.f90 manipulate_particles.f90 pepc.f90
+FILES_V_U = module_vtk.f90 module_base64.f90 module_directsum.f90
+
+SRC        += $(FILES_V)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-pfasst-v/, $(FILES_V))
+
+SRC        += $(FILES_V_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_V_U))
+
+BACKEND = vortex
+

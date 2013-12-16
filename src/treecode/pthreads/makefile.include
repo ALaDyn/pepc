@@ -1,0 +1,3 @@
+FILES_PT  = pthreads_c.c pthreads_f.f90 bgp_core.c
+SRC      += $(FILES_PT)
+SRC_COPY += $(addprefix $(PTHREADSDIR)/, $(FILES_PT))

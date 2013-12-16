@@ -1,0 +1,457 @@
+! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
+!                         Forschungszentrum Juelich GmbH,
+!                         Germany
+!
+! PEPC is free software: you can redistribute it and/or modify
+! it under the terms of the GNU Lesser General Public License as published by
+! the Free Software Foundation, either version 3 of the License, or
+! (at your option) any later version.
+!
+! PEPC is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU Lesser General Public License for more details.
+!
+! You should have received a copy of the GNU Lesser General Public License
+! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
+!
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!>
+!> Encapsulates anything that is directly involved in force calculation
+!> and multipole expansion manipulation
+!> i.e. shifting along the tree, computing forces between particles and cluster, etc.
+!>
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+module module_interaction_specific
+     use module_pepc_types
+     use module_interaction_specific_types
+     #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+     use module_mirror_boxes, only: spatial_interaction_cutoff
+     #endif
+     implicit none
+     save
+     private
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      integer, public :: force_law    = 3      !< ignored, interaction is always coulomb 3D
+      integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
+      logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
+      real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
+      real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
+      real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
+
+      integer, parameter :: kfp       =  8 ! numeric precision (kind value)
+      ! shortcut notations
+      real(kfp), parameter :: zero    =  0._kfp
+      real(kfp), parameter :: one     =  1._kfp
+      real(kfp), parameter :: two     =  2._kfp
+      real(kfp), parameter :: three   =  3._kfp
+      real(kfp), parameter :: four    =  4._kfp
+      real(kfp), parameter :: five    =  5._kfp
+      real(kfp), parameter :: eight   =  8._kfp
+      real(kfp), parameter :: nine    =  9._kfp
+      real(kfp), parameter :: half    =  0.5_kfp
+
+      namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      ! currently, all public functions in module_interaction_specific are obligatory
+      public multipole_from_particle
+      public shift_multipoles_up
+      public results_add
+      public calc_force_per_interaction_with_leaf
+      public calc_force_per_interaction_with_twig
+      public calc_force_per_particle
+      public mac
+      public particleresults_clear
+      public calc_force_read_parameters
+      public calc_force_write_parameters
+      public calc_force_finalize
+      public calc_force_prepare
+      public calc_force_after_grow
+      public get_number_of_interactions_per_particle
+      public pack_particle_list
+      public unpack_particle_list
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      contains
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> Computes multipole properties of a single particle
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine multipole_from_particle(particle_pos, particle, multipole)
+        implicit none
+        real*8, intent(in) :: particle_pos(3)
+        type(t_particle_data), intent(in) :: particle
+        type(t_tree_node_interaction_data), intent(out) :: multipole
+
+        multipole = t_tree_node_interaction_data(particle_pos, particle%q, 0.)
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> Accumulates multipole properties of child nodes to parent node
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine shift_multipoles_up(parent, children)
+        implicit none
+        type(t_tree_node_interaction_data), intent(out) :: parent
+        type(t_tree_node_interaction_data), intent(in) :: children(:)
+
+        integer :: nchild, j
+
+        real*8 :: shift(1:3)
+
+        nchild = size(children)
+
+        parent%charge     = SUM( children(1:nchild)%charge )
+
+        ! centre of charge
+        parent%coc        = [0., 0., 0.]
+
+        ! use center-of-charge because we may divide by charge
+        do j=1,nchild
+          parent%coc(1:3) = parent%coc(1:3) + ( children(j)%coc(1:3) * children(j)%charge )
+        end do
+
+        parent%coc(1:3) = parent%coc(1:3) / parent%charge
+        parent%bmax = maxval(sqrt((parent%coc(1)-children(1:nchild)%coc(1))**2+(parent%coc(2)-children(1:nchild)%coc(2))**2+(parent%coc(3)-children(1:nchild)%coc(3))**2) + children(1:nchild)%bmax)
+
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> adds res2 to res1
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine results_add(res1, res2)
+        implicit none
+        type(t_particle_results), intent(inout) :: res1
+        type(t_particle_results), intent(in) :: res2
+
+        res1%e    = res1%e    + res2%e
+        res1%pot  = res1%pot  + res2%pot
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> reads interaction-specific parameters from file
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_read_parameters(filehandle)
+        use module_debug, only: pepc_status
+        implicit none
+        integer, intent(in) :: filehandle
+
+        call pepc_status("READ PARAMETERS, section calc_force_coulomb")
+        read(filehandle, NML=calc_force_coulomb)
+
+      end subroutine
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> writes interaction-specific parameters to file
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_write_parameters(filehandle)
+        use module_debug, only: pepc_status
+        implicit none
+        integer, intent(in) :: filehandle
+
+        write(filehandle, NML=calc_force_coulomb)
+
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> computes derived parameters for calc force module
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_prepare()
+        implicit none
+        !nothing to do here
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> initializes static variables of calc force module that depend
+      !> on particle data and might be reused on subsequent traversals
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_after_grow(particles)
+        implicit none
+        type(t_particle), dimension(:), intent(in) :: particles
+
+        ! nothing to be done here for now
+
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> subroutine must return the estimated number of iteractions per particle
+      !> for the current mac and/or parameters and the supplied total number of particles
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
+        use module_pepc_types
+        implicit none
+        integer(kind_particle), intent(in) :: npart_total !< total number of particles
+        integer(kind_node), intent(out) :: nintmax !< maximum number of interactions per particle
+
+        real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
+
+        ! Estimate of interaction list length - Hernquist expression
+        ! applies for BH-MAC
+        invnintmax = max(theta2 / (35._8*log(1._8*npart_total)) , 1._8/npart_total)
+        nintmax    = int(1._8/invnintmax)
+
+      end subroutine
+
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> finalizes the calc force module at end of simulation
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine calc_force_finalize()
+        implicit none
+        ! nothing to do here
+      end subroutine calc_force_finalize
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> generic Multipole Acceptance Criterion
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      function mac(node, dist2, boxlength2)
+        implicit none
+
+        logical :: mac
+        type(t_tree_node_interaction_data), intent(in) :: node
+        real*8, intent(in) :: dist2
+        real*8, intent(in) :: boxlength2
+
+        select case (mac_select)
+            case (0)
+              ! Barnes-Hut-MAC
+              mac = (theta2 * dist2 > boxlength2)
+            case (1)
+               ! Bmax-MAC
+              mac = (theta2 * dist2 > min(node%bmax**2, 3.0 * boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
+            case default
+              ! N^2 code
+              mac = .false.
+        end select
+
+      end function
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> clears result in t_particle datatype - usually, this function does not need to be touched
+      !> due to dependency on module_pepc_types and(!) on module_interaction_specific, the
+      !> function cannot reside in module_interaction_specific that may not include module_pepc_types
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine particleresults_clear(particles)
+        use module_pepc_types
+        implicit none
+        type(t_particle), intent(inout) :: particles(:)
+
+        particles(:)%results = EMPTY_PARTICLE_RESULTS
+
+      end subroutine
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, t)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          real(kfp), intent(in) :: delta(:,:)
+          real(kfp), intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), intent(in) :: t
+
+          real(kfp) :: rd,qrd3
+          integer(kind_particle) :: ip, np
+
+          np = size(dist2, kind = kind_particle)
+
+          do ip = 1, np
+            #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+            if ( &
+              delta(ip,1) >= spatial_interaction_cutoff(1) .or. &
+              delta(ip,2) >= spatial_interaction_cutoff(2) .or. &
+              delta(ip,3) >= spatial_interaction_cutoff(3) &
+            ) cycle
+            #endif
+            if (dist2(ip) >= 0.0_kfp) then
+              rd = one / sqrt(dist2(ip) + eps2)
+              qrd3 = t%charge * rd * rd * rd
+
+              particle_pack%pot(ip) = particle_pack%pot(ip) - t%charge * rd
+
+              particle_pack%ex(ip) = particle_pack%ex(ip) - qrd3 * delta(ip,1)
+              particle_pack%ey(ip) = particle_pack%ey(ip) - qrd3 * delta(ip,2)
+              particle_pack%ez(ip) = particle_pack%ez(ip) - qrd3 * delta(ip,3)
+            end if
+          end do
+        end subroutine
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper.
+        !> This function is thought for pre- and postprocessing of
+        !> calculated fields, and for being able to call several
+        !> (different) force calculation routines
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_interaction_with_twig(delta, dist2, particle_pack, t)
+          use module_pepc_types
+          use treevars
+          implicit none
+
+          real(kfp), intent(in) :: delta(:,:)
+          real(kfp), intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), intent(in) :: t
+
+          real(kfp) :: rd,qrd3
+          integer(kind_particle) :: ip, np
+
+          np = size(dist2, kind = kind_particle)
+
+          do ip = 1, np
+            #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+            if ( &
+              delta(ip,1) >= spatial_interaction_cutoff(1) .or. &
+              delta(ip,2) >= spatial_interaction_cutoff(2) .or. &
+              delta(ip,3) >= spatial_interaction_cutoff(3) &
+            ) cycle
+            #endif
+
+            rd = one / sqrt(dist2(ip) + eps2)
+            qrd3 = t%charge * rd * rd * rd
+
+            particle_pack%pot(ip) = particle_pack%pot(ip) - t%charge * rd
+
+            particle_pack%ex(ip) = particle_pack%ex(ip) - qrd3 * delta(ip,1)
+            particle_pack%ey(ip) = particle_pack%ey(ip) - qrd3 * delta(ip,2)
+            particle_pack%ez(ip) = particle_pack%ez(ip) - qrd3 * delta(ip,3)
+          end do
+        end subroutine
+
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !>
+        !> Force calculation wrapper for contributions that only have
+        !> to be added once per particle
+        !>
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        subroutine calc_force_per_particle(particles)
+          implicit none
+          type(t_particle), intent(in) :: particles(:)
+          ! nothing to do here
+        end subroutine calc_force_per_particle
+
+
+        subroutine pack_particle_list(particles, packed)
+          use module_pepc_types, only: t_particle, kind_particle
+          implicit none
+
+          type(t_particle), intent(in) :: particles(:)
+          type(t_particle_pack), intent(inout) :: packed
+
+          integer(kind_particle) :: ip, np
+
+          np = size(particles, kind = kind_particle)
+
+          allocate( &
+            packed%ex(np), &
+            packed%ey(np), &
+            packed%ez(np), &
+            packed%pot(np) &
+          )
+
+          do ip = 1, np
+            packed%ex(ip) = particles(ip)%results%e(1)
+            packed%ey(ip) = particles(ip)%results%e(2)
+            packed%ez(ip) = particles(ip)%results%e(3)
+            packed%pot(ip) = particles(ip)%results%pot
+          end do
+        end subroutine pack_particle_list
+
+
+        subroutine unpack_particle_list(packed, particles)
+          use module_pepc_types, only: t_particle, kind_particle
+          use module_debug
+          implicit none
+
+          type(t_particle_pack), intent(inout) :: packed
+          type(t_particle), intent(inout) :: particles(:)
+
+          integer(kind_particle) :: ip, np
+
+          np = size(particles, kind = kind_particle)
+          DEBUG_ASSERT(np == size(packed%ex, kind = kind_particle))
+
+          do ip = 1, np
+            particles(ip)%results%e(1) = packed%ex(ip)
+            particles(ip)%results%e(2) = packed%ex(ip)
+            particles(ip)%results%e(3) = packed%ex(ip)
+            particles(ip)%results%pot = packed%pot(ip)
+          end do
+
+          deallocate( &
+            packed%ex, &
+            packed%ey, &
+            packed%ez, &
+            packed%pot &
+          )
+        end subroutine unpack_particle_list
+end module module_interaction_specific

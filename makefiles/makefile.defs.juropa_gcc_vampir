@@ -1,0 +1,91 @@
+HELP = "\
+\# Makefile for JuRoPa using vampirtrace\n\
+\#\n\
+\# call before compilation to activate GNU Compiler Collection instead of Intel compiler:\n\
+\#  > module unload parastation/intel\n\
+\#  > module unload intel\n\
+\#  > module load parastation/gcc-mt\n\
+\#  > module use ~/modulefiles\n\
+\#  > module load vampirtrace/5.10.1-parastation-gnu-papi\n\
+\#\n\
+\#  > make pepcmini\n\
+\#\n\
+\# start interactive session:\n\
+\# > msub -I -l nodes=2:ppn=8\n\
+\#\n\
+\# there:\n\
+\# > module use ~/modulefiles\n\
+\# > module load vampirtrace/5.10.1-parastation-gnu-papi\n\
+\# > export VT_SYNC_FLUSH=yes\n\
+\# > export VT_BUFFER_SIZE=1024M\n\
+\# > export VT_COMPRESSION=yes\n\
+\# > export VT_FILE_UNIQUE=yes\n\
+\# > export VT_MAX_FLUSHES=20\n\
+\# > export VT_UNIFY=yes\n\
+\# > export VT_CPUIDTRACE=yes\n\
+\# > export VT_ETIMESYNC=yes\n\
+\# > export VT_IOTRACE=yes\n\
+\# > export VT_LIBCTRACE=yes\n\
+\# > export VT_GROUPS_SPEC=~/vtgroups.txt\n\
+\# > export VT_FILTER_SPEC=~/vtfilter.txt\n\
+\# > export VT_METRICS=PAPI_FP_OPS:PAPI_TOT_CYC:PAPI_FP_INS\n\
+\# > mpiexec -x -n 4 ../pepcmini ./run.h\n\
+\#\n\
+\# content of vtfilter.txt:\n\
+\# par_rand* -- 0\n\
+\# key2addr* -- 0\n\
+\# __tree_walk_utils_NMOD_walk_single_par* -- 0\n\
+\#\n\
+\# content of vtgroups.txt (out of date, please update):\n\
+\# YIELD=pthreads_sched_yield\n\
+\# PTHREADS_CONDS=pthreads_conds*\n\
+\# RWLOCKS=rwlocks_*\n\
+\# SCHED_YIELD=pthreads_sched_yield\n\
+\# PTHREADS_THREAD=pthreads_createthread;pthreads_jointhread;pthreads_exitthread;pthreads_init;pthreads_uninit\n\
+\# COMMUNICATOR=__tree_walk_communicator_*\n\
+\# FIELDS=pepc_fields\n\
+\# SORTING=slsort_*\n\
+\# WALKWORKER=WALK_WORKER_THREAD\n\
+\# CALC_FORCE=*calc_force*\n\
+\# PT_FIRST_PARTICLE=__tree_walk_utils_NMOD_get_*\n\
+\#\n\
+\# to view traces:\n\
+\# > module load vampirserver vampir\n\
+\# vngd &\n\
+\# vampir\n\
+"
+
+MACH     = JUROPA_gcc_vampirtrace
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -DNDEBUG
+
+INLINING = 
+INLINING = -g -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -mstringop-strategy=unrolled_loop 
+
+FCPRE    = vtf90 -vt:f90
+FC       = mpif90
+#FFLAGS   = -O0 -g -pg -ffree-line-length-none -Wall -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+FFLAGS   =  -Wall -O3 -pg -ffree-line-length-none $(INLINING)
+
+CCPRE    = vtcc -vt:cc
+CC       = mpicc
+CFLAGS   = -g -pg -O3 -pthread  -Wconversion
+#CFLAGS   = -g -pg -O0
+
+LDPRE    = vtf90 -vt:f90
+LD       = mpif90
+#LDFLAGS   = -pg -O0 -g
+LDFLAGS   = -pthread -pg -O3 $(INLINING) -fwhole-program -fuse-linker-plugin
+LDLIBS   = 
+
+RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)

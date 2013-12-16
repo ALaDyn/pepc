@@ -1,0 +1,15 @@
+size 18 18
+set font rm
+set lwidth 0.003 lstyle 1
+psize=0.01
+begin scale       12.5478      12.5478
+!begin translate        0.0120       0.0200
+amove 0.1 0.1
+box        1.1954       1.1954
+begin translate -0.3 -0.3
+include map_000.gle                   
+include map_001.gle                   
+include map_002.gle                   
+include map_003.gle                   
+end translate
+end scale

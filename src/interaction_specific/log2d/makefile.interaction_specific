@@ -1,0 +1,14 @@
+
+FILES_INT   = module_interaction_specific.f90 \
+              module_interaction_specific_types_XYZQVM.f90 \
+              module_multipole.f90 \
+              module_fmm_periodicity.f90
+
+FILES_UTILS = module_base64.f90 module_vtk.f90
+
+SRC        += $(FILES_INT) $(FILES_UTILS)
+
+FILES_INT  += multipole.h
+
+SRC_COPY   += $(addprefix ./src/interaction_specific/log2d/, $(FILES_INT)) \
+	      $(addprefix $(UTILSDIR)/, $(FILES_UTILS))

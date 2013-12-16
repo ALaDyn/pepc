@@ -1,0 +1,21 @@
+FILES_L   = encap.f90 pepc.f90 pepc_helper.f90 time_helper.f90 \
+            physics_helper.f90 field_helper.f90 checkpoint_helper.f90 \
+            module_well_rng.f90
+
+FILES_L_U = module_vtk_helpers.f90 \
+            module_directsum.f90 \
+            module_checkpoint.f90
+
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-kh/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+BACKEND = log2d
+#BACKEND = coulomb
+BACKENDTYPE = XYZQVM
+
+#WALK = smpss
+#WALK = pthreads_blocking

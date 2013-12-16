@@ -1,0 +1,28 @@
+FILES_L   = pepc.f90               \
+            module_helper.f90      \
+            module_integrator.f90  \
+            module_diagnostics.f90 \
+            pfm_helper.f90         \
+            pfm_encap.f90          \
+            pfm_transfer.f90       \
+            pfm_feval.f90          \
+            pfm_hooks.f90          \
+            pf_pfasst.f90 pf_verlet.f90 pf_dtype.f90 pf_hooks.f90 \
+            pf_timer.f90 pf_utils.f90 pf_cycle.f90 pf_quadrature.f90 \
+            sdc_quadrature.f90 sdc_poly.f90 pf_mpi.f90 pf_parallel.f90 \
+            pf_interpolate.f90 pf_restrict.f90
+
+
+FILES_L_U = module_directsum.f90
+            
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-boris-pfasst/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+BACKEND = coulomb
+BACKENDTYPE = XYZQVM
+
+WALK = pthreads

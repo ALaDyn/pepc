@@ -1,0 +1,16 @@
+FILES_L   = pepc.f90
+
+FILES_L_U = module_vtk_helpers.f90
+
+CPPFLAGS += -I$(PETSC_DIR)/include -DBEM2D
+LDFLAGS += -L$(PETSC_DIR)/lib -L/usr/X11/lib
+LDLIBS += -lblas -llapack -lpetsc -lX11
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-testbem2d/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+BACKEND = log2d
+BACKENDTYPE = XYZQVM

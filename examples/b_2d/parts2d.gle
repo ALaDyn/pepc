@@ -1,0 +1,224 @@
+! new page
+size 20 22
+set font psh
+set hei .5
+
+begin translate 1 0
+
+!   X-Y
+
+begin translate 0 15
+begin graph
+size 6 6
+
+nobox
+xaxis min 0 max 4 hei 0.5 nticks 4
+yaxis min 0 max 4 hei 0.5 nticks 4
+
+xlabels hei  0.5
+ylabels hei  0.5
+xticks length .07
+yticks length .07
+!title " \;\;\;\omega_pt=0     " hei 0.5 font rmi
+xtitle "       x       "
+ytitle "       y       "
+data dumps/parts_p0000.000020 d1=c1,c2
+d1 marker dot color green msize .1
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=0
+end translate
+
+
+! X-Z
+
+begin translate   6 15
+begin graph
+size 6 6
+
+nobox
+xaxis min 0 max 4 hei 0.5 nticks 4
+yaxis min 0 max 4 hei 0.5 nticks 4
+
+xlabels hei 0.5
+ylabels hei 0.5
+xticks length .07
+yticks length .07
+!title "  \;\;\;         \omega_pt=10    " hei 0.5 font rmi
+xtitle "        x        "
+ytitle "        z        "
+data dumps/parts_p0000.000000 d1=c1,c3
+d1  marker dot color green msize .1
+
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=15
+end translate
+
+
+! X-VX
+
+begin translate   12 15
+begin graph
+size 6 6
+
+nobox
+xaxis min 0 max 4 hei 0.5 nticks 5
+yaxis min -.5 max .5 hei 0.5 nticks 5
+
+xlabels hei 0.5
+ylabels hei 0.5
+xticks length .07
+yticks length .07
+!title "  \;\;\;         \omega_pt=10    " hei 0.5 font rmi
+xtitle "      x    "
+ytitle "       v_x/c       "
+data dumps/parts_p0000.000000 d1=c1,c4
+d1  marker dot color green msize .1
+
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=15
+end translate
+
+!  Y-VY
+begin translate   0 8
+begin graph 
+size 6 6
+
+nobox
+xaxis min 0 max 2 hei 0.5 nticks 4 
+yaxis min -.5 max .5 hei 0.5 nticks 5 
+xlabels hei  0.5
+ylabels hei  0.5
+xticks length .07
+yticks length .07
+!title " \;\;\;\omega_pt=0     " hei 0.5 font rmi
+xtitle "        y     "
+ytitle "        v_y       "
+data dumps/parts_p0000.000000 d1=c2,c5
+d1 marker dot color green msize .1
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=0
+end translate
+
+
+begin translate   6 8
+begin graph  
+size 6 6
+
+nobox
+xaxis min 0 max 2 hei 0.5 nticks 4
+yaxis min 0 max 2 hei 0.5 nticks 5
+
+xlabels hei 0.5
+ylabels hei 0.5
+xticks length .07
+yticks length .07
+!title "  \;\;\;         \omega_pt=10    " hei 0.5 font rmi
+xtitle "        x        "
+ytitle "       z      "
+!data parts_001.dat
+!d2  marker dot color green
+
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=15
+end translate
+
+begin translate   12 8
+begin graph
+size 6 6
+
+nobox
+xaxis min 0 max 2 hei 0.5 nticks 4
+yaxis min -.5 max .5 hei 0.5 nticks 5
+
+xlabels hei 0.5
+ylabels hei 0.5
+xticks length .07
+yticks length .07
+!title "  \;\;\;         \omega_pt=10    " hei 0.5 font rmi
+xtitle "       x        "
+ytitle "       v_x/c       "
+!data parts_001.dat
+!d3  marker dot color green
+
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=15
+end translate
+
+
+begin translate   0 1
+begin graph
+size 6 6
+
+nobox
+xaxis min 0 max 2 hei 0.5 nticks 4
+yaxis min 0 max 2 hei 0.5 nticks 5
+
+xlabels hei  0.5
+ylabels hei  0.5
+xticks length .07
+yticks length .07
+!title " \;\;\;\omega_pt=0     " hei 0.5 font rmi
+xtitle "        x     "
+ytitle "        y       "
+!data parts_002.dat
+!d1 marker dot color green
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=0
+end translate
+
+
+
+begin translate   6 1
+begin graph
+size 6 6
+
+nobox
+xaxis min 0 max 2 hei 0.5 nticks 4
+yaxis min 0 max 2 hei 0.5 nticks 5
+
+xlabels hei 0.5
+ylabels hei 0.5
+xticks length .07
+yticks length .07
+!title "  \;\;\;         \omega_pt=10    " hei 0.5 font rmi
+xtitle "        x        "
+ytitle "       z      "
+!data parts_002.dat
+!d2  marker dot color green
+
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=15
+end translate
+
+begin translate   12 1
+begin graph
+size 6 6
+
+nobox
+xaxis min 0 max 2 hei 0.5 nticks 4
+yaxis min -.5 max .5 hei 0.5 nticks 5
+
+xlabels hei 0.5
+ylabels hei 0.5
+xticks length .07
+yticks length .07
+!title "  \;\;\;         \omega_pt=10    " hei 0.5 font rmi
+xtitle "       x        "
+ytitle "       v_x/c       "
+!data parts_002.dat
+!d3  marker dot color green
+
+end graph
+amove xg(5) yg(4.5)
+!text \omega_pt=15
+end translate
+end translate
+

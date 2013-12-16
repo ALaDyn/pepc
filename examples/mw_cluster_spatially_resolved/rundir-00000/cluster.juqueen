@@ -1,0 +1,14 @@
+# @ job_name = CLUSTERJOB
+# @ job_type = bluegene
+# @ comment = "Cluster 300k"
+# @ error = $(job_name).$(jobid).out
+# @ output = $(job_name).$(jobid).out
+# @ environment = COPY_ALL;
+# @ wall_clock_limit = 6:00:00
+# @ notification = always
+# @ notify_user = m.winkel@fz-juelich.de
+# @ bg_size = 256
+# @ bg_connectivity = MESH
+# @ queue
+
+runjob --label --verbose 4 --envs PAMID_STATISTICS=1 PAMID_VERBOSE=2 BG_COREDUMPDISABLED=0 BG_COREDUMPONERROR=1 BG_COREDUMPONEXIT=1 BG_COREDUMPSTACK=1 BG_COREDUMPREGS=0 BG_COREDUMPTLBS=0 --ranks-per-node 1 : ./pepc-mw ./run.h | tee run.out

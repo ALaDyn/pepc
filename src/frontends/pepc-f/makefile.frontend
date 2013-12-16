@@ -1,0 +1,22 @@
+FILES_L   = pepc.f90 module_particlehandling.f90 module_helper.f90 \
+            module_integrator.f90 module_zufall.f90 module_variables.f90 \
+            module_output.f90 module_diagnostics.f90 module_cmdline.f90 \
+            module_geometry.f90 \
+            module_species.f90 module_geometry_types.f90 \
+            module_species_types.f90 module_initialization.f90
+
+FILES_L_U = module_vtk_helpers.f90 \
+            module_directsum.f90 \
+            module_checkpoint.f90
+
+
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-f/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+BACKENDTYPE = XYZQVMBS
+
+#WALK = smpss

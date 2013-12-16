@@ -1,0 +1,53 @@
+! new page
+size 14 9
+ set font psh hei .6 lwidth .07
+ 
+
+begin translate  1 1
+begin graph 
+	size 14 8
+	nobox
+	ytitle "   n_e" hei .7
+	xtitle "    \omega_px/c    " hei .7
+ !       yaxis min 0 max 5
+        xaxis min 0 max 50  
+	xlabels hei 0.7 
+	ylabels hei 0.7 
+        xticks length .08
+        yticks length .08
+!  order: ne, ni, je, ji, ex, te, ti, phi
+
+	data fields_wake/xslice.000250 d1=c1,c2
+	data /home/paul/bops/tutorial/wake1/nenc04.xy d11=c1,c2 
+
+
+	key position tr hei .25
+	let d2=-d1
+	d2 lstyle 1 color black key "n_e "
+	d11 lstyle 1 color red key "n_e bops"
+!	d4 lstyle 1 color black key "a_z^2"
+
+
+
+end graph
+
+end translate
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

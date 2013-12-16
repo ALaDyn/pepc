@@ -1,0 +1,55 @@
+#
+#  prepare-level makefile for pepc
+#
+
+# default backend and walk
+BACKEND = coulomb
+WALK    = pthreads
+
+include tools/build/makefile.paths
+include makefile.defs
+
+include $(FRONTENDDIR)/$(FRONTEND)/makefile.frontend
+include $(LPEPCDIR)/makefile.lpepc
+include $(INTSPECDIR)/$(BACKEND)/makefile.interaction_specific
+
+MAKEENVS = $(WORKDIR)/makefile.envs
+
+RED=\e[0;31m
+GREEN=\e[0;32m
+BC=\e[1m# bold
+UL=\e[4m# underline
+NC=\e[0m# No Color, default font
+
+prepare: $(SRC)
+	@printf "==== building frontend : $(BC)$(FRONTEND)$(NC)\n"
+	@printf "==== building walk     : $(BC)$(WALK)$(NC)\n"
+	@printf "==== building backend  : $(BC)$(BACKEND)$(NC)\n"
+	@printf "==== working directory : $(BC)$(WORKDIR)$(NC)\n"
+	@$(RM) $(MAKEENVS)
+	@echo "FRONTEND=$(FRONTEND)"       >> $(MAKEENVS)
+	@echo "ROOTDIR=$(ROOTDIR)"         >> $(MAKEENVS)
+	@echo "SVNREVISION=$(SVNREVISION)" >> $(MAKEENVS)
+	@echo "WORKDIR=$(WORKDIR)"         >> $(MAKEENVS)
+	@echo "LDLIBS=$(LDLIBS)"           >> $(MAKEENVS)
+	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
+	@echo "CPPFLAGS_BACKEND=$(CPPFLAGS_BACKEND)" >> $(MAKEENVS)
+	@cp -p makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(FRONTENDDIR)/$(FRONTEND)/makefile.frontend $(WORKDIR)
+	@cp -r $(LIBDIR)/* $(WORKDIR)
+	@ln -sf makefile.build $(WORKDIR)/makefile
+	@echo ""
+	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build
+
+%.c: 
+	@echo "== preparing C file, origin   : $@, $(filter %/$@, $(SRC_COPY))" 
+	@cp -p $(filter %/$@, $(SRC_COPY)) $(WORKDIR)
+
+%.h: 
+	@echo "== preparing H file, origin   : $@, $(filter %/$@, $(SRC_COPY))" 
+	@cp -p $(filter %/$@, $(SRC_COPY)) $(WORKDIR)
+
+%.f90:
+	@echo "== preparing F90 file, origin : $@, $(filter %/$@, $(SRC_COPY))" 
+	@cp -p $(filter %/$@, $(SRC_COPY)) $(WORKDIR)
+
+
