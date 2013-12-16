@@ -1,6 +1,7 @@
 
 # only include charge in particle_data type (default)
-FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQV.f90
+FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQV.f90 \
+              module_coulomb_kernels.f90
 
 FILES_UTILS = module_base64.f90 module_vtk.f90
 

@@ -55,19 +55,18 @@ module module_directsum
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
-          real*8, allocatable :: delta(:,:), dist2(:)
-          integer :: ibox, id
+          real*8 :: delta(3)
+          integer :: ibox
           type(t_particle) :: latticeparticles(ntest)
-          type(t_particle_pack) :: particle_pack
 
-          real*8 :: t1, vbox(3)
+          real*8 :: t1
           integer :: omp_thread_num
 
           call MPI_COMM_RANK(comm, my_rank, ierr)
           call MPI_COMM_SIZE(comm, n_cpu, ierr)
 
           call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_KIND_PARTICLE, MPI_MAX, comm, ierr)
-          allocate(received(1:maxtest), sending(1:maxtest), delta(maxtest,3), dist2(maxtest))
+          allocate(received(1:maxtest), sending(1:maxtest))
 
           call timer_reset(t_direct_force)
           call timer_reset(t_direct_comm)
@@ -102,31 +101,38 @@ module module_directsum
 
           ! we will send our data packet to every other mpi rank
           do currank=0_kind_pe,n_cpu-1_kind_pe
+
             ! calculate force from local particles i onto particles j in received-buffer
             ! loop over all received particles
 
             t1 = MPI_WTIME()
 
-            call pack_particle_list(received(1:nreceived), particle_pack)
+            !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta, ibox)
+            do j=1,nreceived
+                do i=1,size(particles)
 
-            !!$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta, ibox)
-            do i = 1, size(particles)
-              do ibox = 1, num_neighbour_boxes ! sum over all boxes within ws=1
-                vbox = lattice_vect(neighbour_boxes(:,ibox))
-                dist2 = 0.0_8
-                do id = 1, 3
-                  do j = 1, nreceived
-                    delta(j, id) = received(j)%x(id) - vbox(id) - local_nodes(i)%coc(id)
-                    dist2(j) = dist2(j) + delta(j, id) * delta(j, id)
-                  end do
+                    do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
+                      ! if we use our own particles, test for equality; exclude particle itself if we are in central box
+                      delta = received(j)%x - lattice_vect(neighbour_boxes(:,ibox)) - local_nodes(i)%coc
+                      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+                      if (all(abs(delta) < spatial_interaction_cutoff)) then
+                      #endif
+                        if (currank == 0) then
+                          if ((ibox == num_neighbour_boxes) .and. (testidx(j) == i)) then
+                            call calc_force_per_interaction_with_self(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
+                            cycle
+                          end if
+                        end if
+
+                        call calc_force_per_interaction_with_leaf(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
+                      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+                      endif
+                      #endif
+                    end do
+
                 end do
-
-                call calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, local_nodes(i))
-              end do
             end do
-            !!$OMP END PARALLEL DO
-
-            call unpack_particle_list(particle_pack, received(1:nreceived))
+            !$OMP END PARALLEL DO
 
             call timer_add(t_direct_force,MPI_WTIME()-t1)
 
@@ -152,7 +158,7 @@ module module_directsum
           allocate(directresults(1:ntest))
           directresults(1:ntest) = received(1:nreceived)%results
 
-          deallocate(received, sending, local_nodes, delta, dist2)
+          deallocate(received, sending, local_nodes)
 
           ! Reset the number of openmp threads to 1.
           !$ call omp_set_num_threads(1)

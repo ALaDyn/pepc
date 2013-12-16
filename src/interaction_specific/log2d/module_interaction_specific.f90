@@ -29,9 +29,6 @@ module module_interaction_specific
   use module_pepc_types
   use module_interaction_specific_types
   use module_multipole
-  #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-  use module_mirror_boxes, only: spatial_interaction_cutoff
-  #endif
   implicit none
   save
   private
@@ -47,6 +44,7 @@ module module_interaction_specific
   public multipole_from_particle
   public shift_multipoles_up
   public results_add
+  public calc_force_per_interaction_with_self
   public calc_force_per_interaction_with_leaf
   public calc_force_per_interaction_with_twig
   public calc_force_per_particle
@@ -333,149 +331,63 @@ module module_interaction_specific
     real*8, intent(in) :: delta(3), dist2, vbox(3)
 
 #ifdef BEM2D
-#endif
-  end subroutine
-
-
-  !>
-  !> Computes the direct particle particle interaction potential and
-  !> force field:
-  !>
-  !> Phi = -q log(||r - r0||)
-  !> E = - grad Phi = q / ||r - r0||^2 (x - x0, y - y0)
-  !>
-  subroutine calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, t)
-    use module_pepc_types
-    implicit none
-
-    real*8, intent(in) :: delta(:,:)
-    real*8, intent(in) :: dist2(:)
-    type(t_particle_pack), intent(inout) :: particle_pack
-    type(t_tree_node_interaction_data), intent(in) :: t
-
     real*8, parameter :: pi = 3.1415926535897932385_8
 
-    real*8 :: dx, dy
-    integer(kind_particle) :: ip, np
-
-#ifdef BEM2D
     real*8 :: R
 
-    np = size(dist2, kind = kind_particle)
-
-    do ip = 1, np
-      dx = delta(ip, 1)
-      dy = delta(ip, 2)
-
-      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-      if (dx >= spatial_interaction_cutoff(1) .or. dy >= spatial_interaction_cutoff(2)) cycle
-      #endif
-
-      d2 = dx * dx + dy * dy
-      if (d2 >= 0.0_8) then ! TODO
-        associate (ra => p%data%ra, rb => p%data%rb)
-          R = 0.5_8 * sqrt(dot_product(rb - ra, rb - ra))
-          p%results%pot = p%results%pot + 2.0_8 * p%data%q * R * (1.0_8 - log(R)) - pi * p%data%phi
-        end associate
-      else
-        call calc_force_log_2D(node, delta(1:2), exy(1), exy(2), phic)
-      end if
-    end do
-#else
-    real*8 :: d2, qrd2
-
-    np = size(dist2, kind = kind_particle)
-
-    do ip = 1, np
-      dx = delta(ip, 1)
-      dy = delta(ip, 2)
-
-      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-      if (dx >= spatial_interaction_cutoff(1) .or. dy >= spatial_interaction_cutoff(2)) cycle
-      #endif
-
-      d2 = dx * dx + dy * dy
-      if (d2 >= 0.0_8) then
-        d2 = d2 + eps2
-        !d2  = dist2
-        qrd2 = t%charge / d2
-
-        particle_pack%pot(ip) = particle_pack%pot(ip) - 0.5 * t%charge * log(d2)
-
-        particle_pack%ex(ip) = particle_pack%ex(ip) + dx * qrd2
-        particle_pack%ey(ip) = particle_pack%ey(ip) + dy * qrd2
-      end if
-    end do
+    associate (ra => p%data%ra, rb => p%data%rb)
+      R = 0.5_8 * sqrt(dot_product(rb - ra, rb - ra))
+      p%results%pot = p%results%pot + 2.0_8 * p%data%q * R * (1.0_8 - log(R)) - pi * p%data%phi
+    end associate
 #endif
   end subroutine
 
 
   !>
-  !> Computes the particle multipole interaction potential and force
-  !> field:
+  !> Force calculation wrapper.
   !>
-  !> Phi = - Re { Q log(z) + Sum_k=1^p omega_k M_k(z) }
-  !>
-  subroutine calc_force_per_interaction_with_twig(delta, dist2, particle_pack, t)
+  subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
     use module_pepc_types
     implicit none
 
-    real*8, intent(in) :: delta(:,:)
-    real*8, intent(in) :: dist2(:)
-    type(t_particle_pack), intent(inout) :: particle_pack
-    type(t_tree_node_interaction_data), intent(in) :: t
+    type(t_particle), intent(inout) :: particle
+    type(t_tree_node_interaction_data), intent(in) :: node
+    integer(kind_node), intent(in) :: node_idx
+    real*8, intent(in) :: delta(3), dist2, vbox(3)
 
-    complex(kind = 8), parameter :: ic = (0, 1)
-    complex(kind = 8) :: z, cphi, cf, rz, mtaylor_
-    real(kind = 8) :: dx, dy
+    real*8 :: exy(2), phic
 
-    integer :: k
-    integer(kind_particle) :: ip, np
+    ! compute 2D-Coulomb fields and potential of particle p with node
+#ifdef BEM2D
+    call calc_force_log_2D(node, delta(1:2), exy(1), exy(2), phic)
+#else
+    call calc_force_log_2D_direct(node, delta(1:2), exy(1), exy(2), phic)
+#endif
 
-    np = size(dist2, kind = kind_particle)
+    particle%results%e         = particle%results%e    + exy
+    particle%results%pot       = particle%results%pot  + phic
+  end subroutine
 
-    do ip = 1, np
-      dx = delta(ip,1)
-      dy = delta(ip,2)
-      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-      if (dx >= spatial_interaction_cutoff(1) .or. dy >= spatial_interaction_cutoff(2)) cycle
-      #endif
 
-      z = dx + ic * dy
-      rz = 1. / z
+  !>
+  !> Force calculation wrapper.
+  !>
+  subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
+    use module_pepc_types
+    implicit none
 
-      cphi = -t%charge * log(z)
-      cf   = t%charge * rz
+    type(t_particle), intent(inout) :: particle
+    type(t_tree_node_interaction_data), intent(in) :: node
+    integer(kind_node), intent(in) :: node_idx
+    real*8, intent(in) :: delta(3), dist2, vbox(3)
 
-      !
-      ! This uses the fact that
-      !
-      !   MTaylor(0, z) = 1
-      !   MTaylor(k, z) = MTaylor(k - 1, z) / z
-      !
-      ! and
-      !
-      !   MTaylorPrime(k, z) = -k MTaylor(k, z) / z
-      !
-      ! to save time. A naive implementation would be:
-      !
-      !   do k = 1, pMultipole
-      !     cphi = cphi - t%omega(k) * MTaylor(k, z)
-      !     cf   = cf + t%omega(k) * MTaylorPrime(k, z)
-      !   end do
-      !
-      mtaylor_ = rz
+    real*8 :: exy(2), phic
 
-      do k = 1, pMultipole
-        cphi     = cphi - t%omega(k) * mtaylor_
-        mtaylor_ = mtaylor_ * rz
-        cf       = cf - k * t%omega(k) * mtaylor_
-      end do
+    ! compute 2D-Coulomb fields and potential of particle p with node
+    call calc_force_log_2D(node, delta(1:2), exy(1), exy(2), phic)
 
-      particle_pack%pot(ip) = particle_pack%pot(ip) + real(cphi, kind = 8)
-      particle_pack%ex(ip) = particle_pack%ex(ip) + real(cf, kind = 8)
-      particle_pack%ey(ip) = particle_pack%ey(ip) - real(aimag(cf), kind = 8)
-    end do
+    particle%results%e         = particle%results%e    + exy
+    particle%results%pot       = particle%results%pot  + phic
   end subroutine
 
 
@@ -513,6 +425,97 @@ module module_interaction_specific
 
     call pepc_status('CALC FORCE PER PARTICLE DONE')
   end subroutine calc_force_per_particle
+
+
+  !>
+  !> Computes the particle multipole interaction potential and force
+  !> field:
+  !>
+  !> Phi = - Re { Q log(z) + Sum_k=1^p omega_k M_k(z) }
+  !>
+  subroutine calc_force_log_2D(t, d, ex, ey, phi)
+    use module_pepc_types
+    use treevars
+    implicit none
+
+    type(t_tree_node_interaction_data), intent(in) :: t
+    real*8, intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
+    real*8, intent(out) ::  ex, ey, phi
+
+    complex(kind = 8), parameter :: ic = (0, 1)
+    complex(kind = 8) :: z, cphi, cf, rz, mtaylor_
+
+    integer :: k
+
+    z = d(1) + ic * d(2)
+    rz = 1. / z
+
+    cphi = -t%charge * log(z)
+    cf   = t%charge * rz
+
+    !
+    ! This uses the fact that
+    !
+    !   MTaylor(0, z) = 1
+    !   MTaylor(k, z) = MTaylor(k - 1, z) / z
+    !
+    ! and
+    !
+    !   MTaylorPrime(k, z) = -k MTaylor(k, z) / z
+    !
+    ! to save time. A naive implementation would be:
+    !
+    !   do k = 1, pMultipole
+    !     cphi = cphi - t%omega(k) * MTaylor(k, z)
+    !     cf   = cf + t%omega(k) * MTaylorPrime(k, z)
+    !   end do
+    !
+    mtaylor_ = rz
+
+    do k = 1, pMultipole
+      cphi     = cphi - t%omega(k) * mtaylor_
+      mtaylor_ = mtaylor_ * rz
+      cf       = cf - k * t%omega(k) * mtaylor_
+    end do
+
+    phi = real(cphi, kind = 8)
+    ex  = real(cf, kind = 8)
+    ey  = -real(aimag(cf), kind = 8)
+  end subroutine calc_force_log_2D
+
+
+  !>
+  !> Computes the direct particle particle interaction potential and
+  !> force field:
+  !>
+  !> Phi = -q log(||r - r0||)
+  !> E = - grad Phi = q / ||r - r0||^2 (x - x0, y - y0)
+  !>
+  subroutine calc_force_log_2D_direct(t, d, ex, ey, phi)
+    use module_pepc_types
+    use treevars
+    implicit none
+
+    type(t_tree_node_interaction_data), intent(in) :: t
+    real*8, intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
+    real*8, intent(out) :: ex, ey, phi
+
+    real*8 :: dx, dy, d2, rd2, charge
+
+    dx = d(1)
+    dy = d(2)
+
+    d2  = dot_product(d, d) + eps2
+    !d2  = dist2
+    rd2 = 1./d2
+
+    charge = t%charge
+
+    phi = - 0.5 * charge * log(d2)
+
+    ex = charge * dx * rd2
+    ey = charge * dy * rd2
+  end subroutine calc_force_log_2D_direct
 
 
   subroutine pack_particle_list(particles, packed)

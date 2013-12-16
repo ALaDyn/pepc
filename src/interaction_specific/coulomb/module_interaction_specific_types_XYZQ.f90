@@ -45,7 +45,6 @@ module module_interaction_specific_types
          real*8, allocatable :: ey(:)
          real*8, allocatable :: ez(:)
          real*8, allocatable :: pot(:)
-         real*8, allocatable :: q(:)
       end type t_particle_pack
 
       !> Data structure for storing multiple moments of tree nodes
