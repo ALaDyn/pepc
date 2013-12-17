@@ -647,7 +647,7 @@ module module_tree
 
         do i = lbound(particles, dim=1), ubound(particles, dim=1)
           write(debug_ipefile,'(x,i10,x)',advance='no') i
-          write(debug_ipefile,*) particles(i)
+          write(debug_ipefile,*)  particles(i)%x, particles(i)%work, particles(i)%key, particles(i)%node_leaf, particles(i)%label
         end do
       end if
 

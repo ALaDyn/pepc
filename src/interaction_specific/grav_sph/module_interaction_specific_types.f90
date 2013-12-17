@@ -41,39 +41,6 @@ module module_interaction_specific_types
       end type t_particle_data
       integer, private, parameter :: nprops_particle_data = 6
 
-      !> Data structure for results
-      type t_particle_results
-         real*8 :: maxdist2       !< maxval(dist2)
-         integer :: maxidx        !< maxloc(dist2)
-         integer*8 :: neighbour_nodes(max_neighbour_particles) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
-         real*8 :: dist2(max_neighbour_particles)
-         real*8 :: dist_vector(3,max_neighbour_particles)                           ! distance_vectors from particle to neighbour with respact to periodic shift vector
-         real*8 :: rho            !< density for sph
-         real*8 :: h              !< smoothing-length for sph
-         real*8 :: sph_force(1:3)
-         real*8 :: temperature_change
-         real*8, dimension(3) :: e  !< gravitational field (variable name taken from coulomb specific)
-         real*8 :: pot              !< potential energy (in gravitational field)
-      end type t_particle_results
-      integer, private, parameter :: nprops_particle_results = 11
-
-      type t_particle_pack ! TODO: are really of them necessary here?
-         ! SPH-data
-         real*8, allocatable :: maxdist2(:)       !< maxval(dist2)
-         integer, allocatable :: maxidx(:)        !< maxloc(dist2)
-         integer*8, allocatable :: neighbour_nodes(:,:) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
-         real*8, allocatable :: dist2(:,:)
-         real*8, allocatable :: dist_vector(:,:,:)                           ! distance_vectors from particle to neighbour with respact to periodic shift vector
-         ! GRAV-data
-         real*8, allocatable :: q(:)
-         real*8, allocatable :: rho(:)            !< density for sph
-         real*8, allocatable :: h(:)              !< smoothing-length for sph
-         real*8, allocatable :: sph_force(:,:)
-         real*8, allocatable :: temperature_change(:)
-         real*8, allocatable :: ex(:), ey(:), ez(:)  !< gravitational field (variable name taken from coulomb specific)
-         real*8, allocatable :: pot(:)              !< potential energy (in gravitational field)
-      end type t_particle_pack
-
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
         real*8 :: coc(3)     !< center of charge
@@ -91,7 +58,39 @@ module module_interaction_specific_types
         real*8 :: h          !< sph smoothing-length
       end type t_tree_node_interaction_data
       integer, private, parameter :: nprops_tree_node_interaction_data = 13
+      
+      type p_tree_node_interaction_data
+        type(t_tree_node_interaction_data), pointer :: p
+      end type
 
+      !> Data structure for results
+      type t_particle_results
+         real*8 :: maxdist2       !< maxval(dist2)
+         integer :: maxidx        !< maxloc(dist2)
+         type(p_tree_node_interaction_data) :: neighbour_nodes(max_neighbour_particles) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
+         real*8 :: dist2(max_neighbour_particles)
+         real*8 :: dist_vector(3,max_neighbour_particles)                           ! distance_vectors from particle to neighbour with respect to periodic shift vector
+         real*8 :: rho            !< density for sph
+         real*8 :: h              !< smoothing-length for sph
+         real*8 :: sph_force(1:3)
+         real*8 :: temperature_change
+         real*8, dimension(3) :: e  !< gravitational field (variable name taken from coulomb specific)
+         real*8 :: pot              !< potential energy (in gravitational field)
+      end type t_particle_results
+      integer, private, parameter :: nprops_particle_results = 11
+
+      type t_particle_pack
+         ! SPH-data
+         real*8, allocatable :: maxdist2(:)       !< maxval(dist2)
+         integer, allocatable :: maxidx(:)        !< maxloc(dist2)
+         type(p_tree_node_interaction_data), allocatable :: neighbour_nodes(:,:) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
+         real*8, allocatable :: dist2(:,:)
+         real*8, allocatable :: dist_vector(:,:,:)                           ! distance_vectors from particle to neighbour with respect to periodic shift vector
+         ! GRAV-data
+         real*8, allocatable :: q(:)
+         real*8, allocatable :: ex(:), ey(:), ez(:)  !< gravitational field (variable name taken from coulomb specific)
+         real*8, allocatable :: pot(:)              !< potential energy (in gravitational field)
+      end type t_particle_pack
 
       ! bit switches for particles types. use only powers of 2, combine with IOR, eg.: ior(PARTICLE_TYPE_FIXED, PARTICLE_TYPE_NONGAS)
       integer, parameter :: PARTICLE_TYPE_DEFAULT  = 0               !< for setting all bits to 0, default values: moving, sph, ...

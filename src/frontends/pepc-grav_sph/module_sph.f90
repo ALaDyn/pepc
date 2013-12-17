@@ -245,7 +245,7 @@ contains
 
     use module_pepc_types, only: &
          t_particle, &
-         t_tree_node
+         t_tree_node_interaction_data
 
     implicit none
     include 'mpif.h'
@@ -263,7 +263,7 @@ contains
     integer :: actual_neighbour
     real*8 :: h
     real*8 :: kernel
-    type(t_tree_node), pointer :: actual_node
+    type(t_tree_node_interaction_data), pointer :: actual_node
     
 !     IF( me == 0) then 
        
@@ -303,10 +303,9 @@ contains
 
           call sph_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, kernel)
 
-          ! FIXME: neighbour_nodes contains particle_id now instead of node_ids
-          !actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
-          ! particles(local_particle_index)%results%rho = particles(local_particle_index)%results%rho + &
-          !     actual_node%interaction_data%charge *kernel
+          actual_node => particles(local_particle_index)%results%neighbour_nodes(actual_neighbour)%p
+           particles(local_particle_index)%results%rho = particles(local_particle_index)%results%rho + &
+               actual_node%charge *kernel
 
        end do
 
@@ -394,7 +393,7 @@ contains
     
     use module_pepc_types, only: &
          t_particle, &
-         t_tree_node
+         t_tree_node_interaction_data
 
     use physvars, only: &
          my_rank
@@ -415,7 +414,7 @@ contains
     integer :: actual_neighbour
     real*8 :: h1, h2                          !< smoothing length of particle and current interaction partner
     real*8 :: grad_kernel_1, grad_kernel_2    !< kernel gradient for particle and current interaction partner with h1 and h2
-    type(t_tree_node), pointer :: actual_node
+    type(t_tree_node_interaction_data), pointer :: actual_node
 
     real*8 :: const
     real*8, dimension(3) :: dist              !< distance vector from particle to current interaction partner
@@ -479,12 +478,12 @@ contains
 
        do actual_neighbour = 1, num_neighbour_particles
           ! FIXME: neighbour_nodes contains particle_id now instead of node_ids
-          actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
+          actual_node => particles(local_particle_index)%results%neighbour_nodes(actual_neighbour)%p
           
           ! scalar distance
           distance = sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) )
 
-          h2 = actual_node%interaction_data%h
+          h2 = actual_node%h
           
           call sph_grad_kernel( distance , h1, grad_kernel_1 )
           !          call sph_grad_kernel( distance , h2, grad_kernel_2 )
@@ -512,7 +511,7 @@ contains
 
           ! for all dimension
           do dim = 1, idim
-             dv(dim) = actual_node%interaction_data%v(dim) - particles(local_particle_index)%data%v(dim)
+             dv(dim) = actual_node%v(dim) - particles(local_particle_index)%data%v(dim)
              
              ! vr: art_vis, scalar product of velocity difference and distance
              vr =  vr + dist(dim) * dv(dim)
@@ -526,14 +525,14 @@ contains
 
           ! TODO: make this a bit faster
           sound_speed = ( sqrt( const * particles(local_particle_index)%data%temperature )  &
-               + sqrt( const * actual_node%interaction_data%temperature ) )/ 2. ! mean sound_speed 
+               + sqrt( const * actual_node%temperature ) )/ 2. ! mean sound_speed 
           
           if ( use_artificial_viscosity .and. (vr < 0._8) ) then
              
              mu = ( h1 * vr ) / ( rr + eta * eta )                        ! art_vis
              
              artificial_viscosity = ( - art_vis_alpha * sound_speed * mu + art_vis_beta * mu * mu ) / &
-                  ( ( actual_node%interaction_data%rho +  particles(local_particle_index)%results%rho )/2. )
+                  ( ( actual_node%rho +  particles(local_particle_index)%results%rho )/2. )
              
           else 
              
@@ -542,9 +541,9 @@ contains
           
           
           ! compute scalar part of the force: mass * ( p1/rho1^2 + p2/rho2^2 + art_vis ) * grad_kernel
-          scalar_force = actual_node%interaction_data%charge * &
+          scalar_force = actual_node%charge * &
                ( &
-               const * actual_node%interaction_data%temperature / actual_node%interaction_data%rho + &
+               const * actual_node%temperature / actual_node%rho + &
                const * particles(local_particle_index)%data%temperature / particles(local_particle_index)%results%rho + &
                artificial_viscosity &
                ) * grad_kernel_1
@@ -557,8 +556,8 @@ contains
           if( sph_debug ) then
              write(50, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, &
                   particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, &
-                  actual_neighbour, actual_node%interaction_data%coc(1), distance, dist(1), grad_kernel_1, actual_node%interaction_data%charge, & 
-                  actual_node%interaction_data%temperature, actual_node%interaction_data%h, actual_node%interaction_data%rho, &
+                  actual_neighbour, actual_node%coc(1), distance, dist(1), grad_kernel_1, actual_node%charge, & 
+                  actual_node%temperature, actual_node%h, actual_node%rho, &
                   scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
           end if
           

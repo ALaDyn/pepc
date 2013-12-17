@@ -572,9 +572,6 @@ module module_walk
     use module_interaction_specific_types, only: t_particle_pack
     use module_spacefilling, only : is_ancestor_of_particle
     use module_debug
-    #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-    use module_mirror_boxes, only : spatial_interaction_cutoff
-    #endif
     use module_atomic_ops
     use module_pepc_types
     implicit none

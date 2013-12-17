@@ -38,11 +38,22 @@ module module_interaction_specific_types
       end type t_particle_data
       integer, private, parameter :: nprops_particle_data = 1
 
+      !> Data structure for storing multiple moments of tree nodes
+      type t_tree_node_interaction_data
+        real*8 :: coc(3)     !< center of charge
+        integer*8 :: particle_id !< corresponding t_particle_data%particle_id (only valid for leaves)
+      end type t_tree_node_interaction_data
+      integer, private, parameter :: nprops_tree_node_interaction_data = 2
+
+      type p_tree_node_interaction_data
+        type(t_tree_node_interaction_data), pointer :: p
+      end type
+
       !> Data structure for results
       type t_particle_results
          real*8 :: maxdist2       !< maxval(dist2)
          integer :: maxidx        !< maxloc(dist2)
-         integer*8 :: neighbour_nodes(max_neighbour_particles) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
+         type(p_tree_node_interaction_data) :: neighbour_nodes(max_neighbour_particles) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
          real*8 :: dist2(max_neighbour_particles)
          real*8 :: dist_vector(3,max_neighbour_particles) ! distance_vectors from particle to neighbour with respect to periodic shift vector
       end type t_particle_results
@@ -51,17 +62,10 @@ module module_interaction_specific_types
       type t_particle_pack
          real*8, allocatable :: maxdist2(:)       !< maxval(dist2)
          integer, allocatable :: maxidx(:)        !< maxloc(dist2)
-         integer*8, allocatable :: neighbour_nodes(:,:) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
+         type(p_tree_node_interaction_data), allocatable :: neighbour_nodes(:,:) ! FIXME: this should be integer(kind_node) and MPI_KIND_NODE
          real*8, allocatable :: dist2(:,:)
          real*8, allocatable :: dist_vector(:,:,:) ! distance_vectors from particle to neighbour with respect to periodic shift vector
       end type t_particle_pack
-
-      !> Data structure for storing multiple moments of tree nodes
-      type t_tree_node_interaction_data
-        real*8 :: coc(3)     !< center of charge
-        integer*8 :: particle_id !< corresponding t_particle_data%particle_id (only valid for leaves)
-      end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 2
 
       contains
 

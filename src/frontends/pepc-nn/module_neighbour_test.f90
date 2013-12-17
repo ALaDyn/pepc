@@ -403,7 +403,7 @@ contains
     do local_particle_index = 1, np_local
        do index_in_result_neighbour_list = 1, num_neighbour_particles
 
-          node_id = particles(local_particle_index)%results%neighbour_nodes(index_in_result_neighbour_list)
+          node_id = particles(local_particle_index)%results%neighbour_nodes(index_in_result_neighbour_list)%p%particle_id
 
           found = .false.
 
@@ -484,7 +484,8 @@ contains
 
     use module_pepc_types, only: &
          t_particle, &
-         t_tree_node
+         t_tree_node, &
+         t_tree_node_interaction_data
 
     use physvars, only: &
          n_cpu, &
@@ -508,7 +509,7 @@ contains
     integer :: actual_pe
     integer :: local_particle_index
     integer :: actual_neighbour
-    type(t_tree_node), pointer :: actual_node
+    type(t_tree_node_interaction_data), pointer :: actual_node
     integer :: ibox
     real*8, dimension(3) :: vbox
 
@@ -584,10 +585,10 @@ contains
 
        ! overplot neighbours with a black circle
        do actual_neighbour = 1, num_neighbour_particles
-          actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
+          actual_node => particles(local_particle_index)%results%neighbour_nodes(actual_neighbour)%p
 
           write (60, '(a)') 'set color black'
-          write (60, '(a,2f13.4)') 'amove ', actual_node%interaction_data%coc(1), actual_node%interaction_data%coc(2)
+          write (60, '(a,2f13.4)') 'amove ', actual_node%coc(1), actual_node%coc(2)
           !        write (60, '(a,2f13.4)') 'amove ', xcoc(next_neighbours(j,p)), ycoc(next_neighbours(j,i))
           write (60, '(a)') 'circle psize'
        end do

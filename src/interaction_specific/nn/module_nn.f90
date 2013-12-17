@@ -38,7 +38,7 @@ module module_nn
     type(t_particle), intent(inout) :: particles(:)
 
     integer(kind_node) :: node
-    integer :: i
+    integer :: i, j
     real*8, dimension(:), allocatable :: boxdiag2
 
     allocate(boxdiag2(0:nlev))
@@ -59,7 +59,9 @@ module module_nn
           if (t%nodes(node)%leaves >= num_neighbour_particles) then
             ! this twig contains enough particles --> we use its diameter as search radius
             particles(i)%results%maxdist2 = boxdiag2(t%nodes(node)%level)
-            particles(i)%results%neighbour_nodes(1:num_neighbour_particles) = node
+            do j=1,num_neighbour_particles
+              particles(i)%results%neighbour_nodes(j)%p => t%nodes(node)%interaction_data
+            end do
 
             exit ! from this loop
           endif

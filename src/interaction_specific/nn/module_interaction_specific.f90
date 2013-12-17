@@ -223,11 +223,13 @@ module module_interaction_specific
          implicit none
          type(t_particle), intent(inout) :: particles(:)
 
-         integer(kind_particle) :: i
+         integer(kind_particle) :: i, j
 
          do i=1,size(particles, kind=kind(i))
             particles(i)%results%maxdist2           = huge(0._8)
-            particles(i)%results%neighbour_nodes(:) = -1 ! FIXME: this should be NODE_INVALID
+            do j=1, size(particles(i)%results%neighbour_nodes)
+              particles(i)%results%neighbour_nodes(j)%p => null()
+            end do
             particles(i)%results%maxidx             = 1
          end do
        end subroutine particleresults_clear
@@ -248,7 +250,7 @@ module module_interaction_specific
           real*8, intent(in) :: delta(:,:)
           real*8, intent(in) :: dist2(:)
           type(t_particle_pack), intent(inout) :: particle_pack
-          type(t_tree_node_interaction_data), intent(in) :: node_data
+          type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
           select case (force_law)
             case (5)
@@ -274,7 +276,7 @@ module module_interaction_specific
           real*8, intent(in) :: delta(:,:)
           real*8, intent(in) :: dist2(:)
           type(t_particle_pack), intent(inout) :: particle_pack
-          type(t_tree_node_interaction_data), intent(in) :: node_data
+          type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
           select case (force_law)
             case (5)
@@ -308,14 +310,14 @@ module module_interaction_specific
           real*8, intent(in) :: delta(:,:)
           real*8, intent(in) :: dist2(:)
           type(t_particle_pack), intent(inout) :: particle_pack
-          type(t_tree_node_interaction_data), intent(in) :: node_data
+          type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
           integer :: tmp(1), p
 
           do p=1,size(dist2)
             if (dist2(p) < particle_pack%maxdist2(p)) then
               ! add node to NN_list
-              particle_pack%neighbour_nodes(p, particle_pack%maxidx(p)) = node_data%particle_id
+              particle_pack%neighbour_nodes(p, particle_pack%maxidx(p))%p => node_data
               particle_pack%dist2(p, particle_pack%maxidx(p))           = dist2(p)
               particle_pack%dist_vector(p, :,particle_pack%maxidx(p))   = delta(p,:)
               tmp = maxloc(particle_pack%dist2(p, 1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar

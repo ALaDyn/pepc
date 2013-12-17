@@ -313,7 +313,7 @@ contains
     implicit none
     type(t_particle), intent(inout) :: particles(:)
 
-    integer(kind_particle) :: i
+    integer(kind_particle) :: i,j
 
     do i=1,size(particles, kind=kind(i))
        particles(i)%results%h         = 0._8
@@ -322,9 +322,11 @@ contains
        particles(i)%results%e         = [0._8, 0._8, 0._8]
        particles(i)%results%pot       = 0._8
 
-       particles(i)%results%maxdist2           = huge(0._8)
-       particles(i)%results%neighbour_nodes(:) = -1 ! FIXME: this should be NODE_INVALID
-       particles(i)%results%maxidx             = 1
+       particles(i)%results%maxdist2             = huge(0._8)
+       do j=1,size(particles(i)%results%neighbour_nodes)
+         particles(i)%results%neighbour_nodes(j)%p => null()
+       end do
+       particles(i)%results%maxidx               = 1
     end do
   end subroutine particleresults_clear
 
@@ -345,7 +347,7 @@ contains
     real*8, intent(in) :: delta(:,:)
     real*8, intent(in) :: dist2(:)
     type(t_particle_pack), intent(inout) :: particle_pack
-    type(t_tree_node_interaction_data), intent(in) :: node_data
+    type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
     select case (force_law)
     case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
@@ -378,7 +380,7 @@ contains
     real*8, intent(in) :: delta(:,:)
     real*8, intent(in) :: dist2(:)
     type(t_particle_pack), intent(inout) :: particle_pack
-    type(t_tree_node_interaction_data), intent(in) :: node_data
+    type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
     select case (force_law)
     case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
@@ -423,7 +425,7 @@ contains
     real*8, intent(in) :: delta(:,:)
     real*8, intent(in) :: dist2(:)
     type(t_particle_pack), intent(inout) :: particle_pack
-    type(t_tree_node_interaction_data), intent(in) :: node_data
+    type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
     integer :: tmp(1), p
 
@@ -434,7 +436,7 @@ contains
        do p=1,size(dist2)
          if (dist2(p) < particle_pack%maxdist2(p)) then
            ! add node to NN_list
-           particle_pack%neighbour_nodes(p, particle_pack%maxidx(p)) = node_data%particle_id
+           particle_pack%neighbour_nodes(p, particle_pack%maxidx(p))%p => node_data
            particle_pack%dist2(p, particle_pack%maxidx(p))           = dist2(p)
            particle_pack%dist_vector(p, :,particle_pack%maxidx(p))   = delta(p,:)
            tmp = maxloc(particle_pack%dist2(p, 1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
@@ -450,7 +452,7 @@ contains
        do p=1,size(dist2)
          if ( (dist2(p) < particle_pack%maxdist2(p)) .or. (dist2(p) < 4.*node_data%h*node_data%h)) then
            ! add node to NN_list
-           particle_pack%neighbour_nodes(p, particle_pack%maxidx(p)) = node_data%particle_id
+           particle_pack%neighbour_nodes(p, particle_pack%maxidx(p))%p => node_data
            particle_pack%dist2(p, particle_pack%maxidx(p))           = dist2(p)
            particle_pack%dist_vector(p, :,particle_pack%maxidx(p))   = delta(p,:)
            
@@ -486,9 +488,6 @@ contains
              packed%dist2(np, max_neighbour_particles), &
              packed%dist_vector(np, 3, max_neighbour_particles), &
              packed%q(np), &
-             packed%rho(np), &
-             packed%sph_force(np,1:3), &
-             packed%temperature_change(np), &
              packed%ex(np), &
              packed%ey(np), &
              packed%ez(np), &
@@ -502,9 +501,6 @@ contains
       packed%dist2(ip,:)  = particles(ip)%results%dist2
       packed%dist_vector(ip,:,:)   = particles(ip)%results%dist_vector(:,:)
       packed%q(ip) = particles(ip)%data%q
-      packed%rho(ip) = particles(ip)%results%rho
-      packed%sph_force(ip,:) = particles(ip)%results%sph_force
-      packed%temperature_change(ip) = particles(ip)%results%temperature_change
       packed%ex(ip)  = particles(ip)%results%e(1)
       packed%ey(ip)  = particles(ip)%results%e(2)
       packed%ez(ip)  = particles(ip)%results%e(3)
@@ -532,9 +528,6 @@ contains
       particles(ip)%results%dist2 = packed%dist2(ip,:)
       particles(ip)%results%dist_vector(:,:) = packed%dist_vector(ip,:,:)
       particles(ip)%data%q = packed%q(ip)
-      particles(ip)%results%rho = packed%rho(ip)
-      particles(ip)%results%sph_force = packed%sph_force(ip,:)
-      particles(ip)%results%temperature_change = packed%temperature_change(ip)
       particles(ip)%results%e(1) = packed%ex(ip)
       particles(ip)%results%e(2) = packed%ey(ip)
       particles(ip)%results%e(3) = packed%ez(ip)
@@ -547,9 +540,6 @@ contains
                packed%dist2, &
                packed%dist_vector, &
                packed%q, &
-               packed%rho, &
-               packed%sph_force, &
-               packed%temperature_change, &
                packed%ex, &
                packed%ey, &
                packed%ez, &
