@@ -46,7 +46,10 @@ module module_interaction_specific_types
       type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], [0., 0., 0.], 0.)
 
       type t_particle_pack
-        type(t_particle_results), allocatable :: results(:)
+         real*8, allocatable :: alpha(:,:) ! vorticity or better: alpha = vorticity * volume
+         real*8, allocatable :: u(:,:)   ! velocities
+         real*8, allocatable :: af(:,:)  ! RHS for vorticity/alpha ODE
+         real*8, allocatable :: div(:)   ! divergence
       end type t_particle_pack
 
       !> Data structure for storing multiple moments of tree nodes

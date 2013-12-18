@@ -40,7 +40,6 @@ module module_interaction_specific
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
-      public calc_force_per_interaction_with_self
       public calc_force_per_interaction_with_leaf
       public calc_force_per_interaction_with_twig
       public calc_force_per_particle
@@ -302,16 +301,44 @@ module module_interaction_specific
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        subroutine calc_force_per_interaction_with_self(particle, node, node_idx, delta, dist2, vbox)
+        subroutine calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, node_data)
           use module_pepc_types
           use treevars
+          use module_debug
           implicit none
-          include 'mpif.h'
 
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_node), intent(in) :: node_idx
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real*8, intent(in) :: delta(:,:)
+          real*8, intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), intent(in) :: node_data
+
+          real*8 :: u(3), af(3), div, vort(3)
+          integer(kind_particle) :: p
+
+          ! this loop should reside inside the calc... subroutines to allow for vectorization
+          do p=1,size(dist2, kind=kind(p))
+            u    = 0.
+            af   = 0.
+            div  = 0.
+            vort = particle_pack%alpha(p,1:3) ! need particle's vorticity for cross-product here
+
+            select case (force_law)
+              case (21)  !  use 2nd order Gaussian kernel, transposed scheme
+                  call calc_2nd_gaussian_transposed_direct(vort, node_data, delta(p,:), dist2(p), u, af, div)
+              case (22)  !  use 2nd order algebraic kernel, transposed scheme
+                  call calc_2nd_algebraic_transposed_direct(vort, node_data, delta(p,:), dist2(p), u, af, div)
+              case (61)  ! use 6th order algebraic kernel, classical scheme
+                  call calc_6th_gaussian_transposed_direct(vort, node_data, delta(p,:), dist2(p), u, af, div) !TODO: 6xth order direct summation
+              case (62)  ! use 6th order algebraic kernel, transposed scheme
+                  call calc_6th_algebraic_transposed_direct(vort, node_data, delta(p,:), dist2(p), u, af, div) !TODO: 6xth order direct summation
+              case default
+                  DEBUG_ERROR(*, 'What force law is this?', force_law)
+            end select
+
+            particle_pack%u(p,1:3)    = particle_pack%u(p,1:3)     -  u(1:3)
+            particle_pack%af(p,1:3)   = particle_pack%af(p,1:3)    + af(1:3)
+            particle_pack%div(p)      = particle_pack%div(p)       + div
+          end do
         end subroutine
 
 
@@ -321,89 +348,46 @@ module module_interaction_specific
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
+        subroutine calc_force_per_interaction_with_twig(delta, dist2, particle_pack, node_data)
           use module_pepc_types
           use treevars
+          use module_debug
           implicit none
-          include 'mpif.h'
 
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_node), intent(in) :: node_idx
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real*8, intent(in) :: delta(:,:)
+          real*8, intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), intent(in) :: node_data
 
-          integer :: ierr
-          real*8 :: u(3), af(3), div
+          real*8 :: u(3), af(3), div, vort(3)
+          integer(kind_particle) :: p
 
-          u = 0.
-          af = 0.
-          div = 0.
+          ! this loop should reside inside the calc... subroutines to allow for vectorization
+          do p=1,size(dist2, kind=kind(p))
+            u    = 0.
+            af   = 0.
+            div  = 0.
+            vort = particle_pack%alpha(p,1:3) ! need particle's vorticity for cross-product here
 
-          select case (force_law)
-            case (21)  !  use 2nd order Gaussian kernel, transposed scheme
-                call calc_2nd_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div)
-            case (22)  !  use 2nd order algebraic kernel, transposed scheme
-                call calc_2nd_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div)
-            case (61)  ! use 6th order algebraic kernel, classical scheme
-                call calc_6th_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
-            case (62)  ! use 6th order algebraic kernel, transposed scheme
-                call calc_6th_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
-            case default
-                write(*,*) 'What force law is this?',force_law
-                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-          end select
+            select case (force_law)
+              case (21)  !  use 2nd order Gaussian kernel, transposed scheme
+                  ! TODO: ME 2nd order classical scheme
+                  DEBUG_ERROR(*, 'ME not implemented for Gaussian kernels, aborting ...')
+              case (22)  !  use 2nd order algebraic kernel, transposed scheme
+                  call calc_2nd_algebraic_transposed(vort, node_data, delta(p,:), dist2(p), u, af)
+              case (61)  ! use 6th order algebraic kernel, classical scheme
+                  ! TODO: ME 6th order classical scheme
+                  DEBUG_ERROR(*, 'ME not implemented for Gaussian kernels, aborting ...')
+              case (62)  ! use 6th order algebraic kernel, transposed scheme
+                  call calc_6th_algebraic_transposed(vort, node_data, delta(p,:), dist2(p), u, af)
+              case default
+                  DEBUG_ERROR(*, 'What force law is this?',force_law)
+            end select
 
-          particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
-          particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
-          particle%results%div       = particle%results%div        + div
-        end subroutine
-
-
-        !>
-        !> Force calculation wrapper.
-        !> This function is thought for pre- and postprocessing of
-        !> calculated fields, and for being able to call several
-        !> (different) force calculation routines
-        !>
-        subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
-          use module_pepc_types
-          use treevars
-          implicit none
-          include 'mpif.h'
-
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_node), intent(in) :: node_idx
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
-
-          integer :: ierr
-          real*8 :: u(3), af(3), div
-
-          u = 0.
-          af = 0.
-          div = 0.
-
-          select case (force_law)
-            case (21)  !  use 2nd order Gaussian kernel, transposed scheme
-                ! TODO: ME 2nd order classical scheme
-                write(*,*) 'ME not implemented for Gaussian kernels, aborting ...'
-                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-            case (22)  !  use 2nd order algebraic kernel, transposed scheme
-                call calc_2nd_algebraic_transposed(particle, node, delta, dist2, u, af)
-            case (61)  ! use 6th order algebraic kernel, classical scheme
-                ! TODO: ME 6th order classical scheme
-                write(*,*) 'ME not implemented for Gaussian kernels, aborting ...'
-                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-            case (62)  ! use 6th order algebraic kernel, transposed scheme
-                call calc_6th_algebraic_transposed(particle, node, delta, dist2, u, af)
-            case default
-                write(*,*) 'What force law is this?',force_law
-                call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-          end select
-
-          particle%results%u(1:3)    = particle%results%u(1:3)     -  u(1:3)
-          particle%results%af(1:3)   = particle%results%af(1:3)    + af(1:3)
-          particle%results%div       = particle%results%div        + div
+            particle_pack%u(p,1:3)    = particle_pack%u(p,1:3)  -  u(1:3)
+            particle_pack%af(p,1:3)   = particle_pack%af(p,1:3) + af(1:3)
+            particle_pack%div(p)      = particle_pack%div(p)    + div
+          end do
         end subroutine
 
 
@@ -423,12 +407,12 @@ module module_interaction_specific
         !> Calculates 3D 2nd order condensed algebraic kernel interaction
         !> of particle p with tree node t, results are returned in u and af
         !>
-        subroutine calc_2nd_algebraic_transposed(particle, t, d, dist2, u, af)
+        subroutine calc_2nd_algebraic_transposed(vort, t, d, dist2, u, af)
             use module_pepc_types
             use module_interaction_specific_types
             implicit none
 
-            type(t_particle), intent(in) :: particle
+            real*8, intent(in), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             real*8, intent(out) ::  u(1:3), af(1:3)
@@ -437,7 +421,6 @@ module module_interaction_specific
 
             real*8 :: dx, dy, dz !< temp variables for distance
             real*8 :: Gc25,Gc35,Gc45,Gc55,MPa1,DPa1,DPa2,QPa1,QPa2 !< prefactors for the multipole expansion
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             ! tensors allow nice and short code and better comparison with (my!) theory
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
@@ -447,8 +430,6 @@ module module_interaction_specific
             dx = d(1)
             dy = d(2)
             dz = d(3)
-
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
@@ -540,13 +521,13 @@ module module_interaction_specific
         !> Calculates 3D 2nd order condensed algebraic kernel interaction
         !> of particle p with tree node t, results are returned in u and af
         !>
-        subroutine calc_6th_algebraic_transposed(particle, t, d, dist2, u, af)
+        subroutine calc_6th_algebraic_transposed(vort, t, d, dist2, u, af)
             use module_pepc_types
             use treevars
             use module_interaction_specific_types
             implicit none
 
-            type(t_particle), intent(in) :: particle
+            real*8, intent(in), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             real*8, intent(out) ::  u(1:3), af(1:3)
@@ -556,7 +537,6 @@ module module_interaction_specific
             real*8 :: dx, dy, dz !< temp variables for distance
             real*8 :: MPa1,DPa1,DPa2,QPa1,QPa2 !< prefactors for the multipole expansion
             real*8 :: pre1, pre2, pre3, pre4, pre5, pre6
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             ! tensors allow nice and short code and better comparison with (my!) theory
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
@@ -566,8 +546,6 @@ module module_interaction_specific
             dx = d(1)
             dy = d(2)
             dz = d(3)
-
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
@@ -680,25 +658,23 @@ module module_interaction_specific
         !> Calculates 3D 2nd order algebraic kernel interaction, transposed scheme
         !> of particle p with tree *particle*, results are returned in u and af
         !>
-        subroutine calc_2nd_algebraic_transposed_direct(particle, t, d, dist2, u, af, div)
+        subroutine calc_2nd_algebraic_transposed_direct(vort, t, d, dist2, u, af, div)
             use module_pepc_types
             implicit none
 
             type(t_tree_node_interaction_data), intent(in) :: t
-            type(t_particle), intent(inout) :: particle
+            real*8, intent(in), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             real*8, intent(in) :: d(3), dist2
             real*8, intent(out) :: u(1:3), af(1:3), div
 
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
             real*8 :: dx, dy, dz, Gc25, MPa1, nom, nom45, nom35, nom25
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             dx = d(1)
             dy = d(2)
             dz = d(3)
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
             nom = dist2+sig2
@@ -725,28 +701,25 @@ module module_interaction_specific
         !> Calculates 3D 2nd order algebraic kernel interaction, transposed scheme
         !> of particle p with tree node inode, results are returned in u and af
         !>
-        subroutine calc_6th_algebraic_transposed_direct(particle, t, d, dist2, u, af, div)
+        subroutine calc_6th_algebraic_transposed_direct(vort, t, d, dist2, u, af, div)
             use module_pepc_types
             use treevars
             use module_interaction_specific_types
             implicit none
 
-            type(t_particle), intent(in) :: particle
+            real*8, intent(in), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             real*8, intent(out) ::  u(1:3), af(1:3), div
 
             real*8 :: dx, dy, dz !< temp variables for distance
-            real*8 :: sig4, sig8, nom, nom25, nom35, nom45, nom55, nom65, nom75, nom85, pre_u, pre_a1, pre_a2, &
-                      D52u, D92u, D132u, D52a, D72a, D92a, D112a, D132a, D152a, D92div, D132div, D152div, D172div
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real*8 :: sig4, sig8, nom, nom25, nom35, nom45, nom55, nom65, nom75, nom85, pre_u, pre_a2, &
+                      D52u, D92u, D132u, D72a, D112a, D152a, D132div, D152div, D172div
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
 
             dx = d(1)
             dy = d(2)
             dz = d(3)
-
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
@@ -795,25 +768,23 @@ module module_interaction_specific
         !> Calculates 3D 2nd order algebraic kernel interaction, classical scheme
         !> of particle p with tree *particle*, results are returned in u and af
         !>
-        subroutine calc_2nd_gaussian_transposed_direct(particle, t, d, dist2, u, af, div)
+        subroutine calc_2nd_gaussian_transposed_direct(vort, t, d, dist2, u, af, div)
             use module_pepc_types
             implicit none
 
             type(t_tree_node_interaction_data), intent(in) :: t
-            type(t_particle), intent(inout) :: particle
+            real*8, intent(in), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             real*8, intent(in) :: d(3), dist2
             real*8, intent(out) :: u(1:3), af(1:3), div
 
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
             real*8 :: dx, dy, dz, exp3,sig3, dist, dist3, K2, K2div, dK2
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             dx = d(1)
             dy = d(2)
             dz = d(3)
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
             dist = sqrt(dist2)
@@ -844,28 +815,24 @@ module module_interaction_specific
         !> Calculates 3D 2nd order algebraic kernel interaction, classical scheme
         !> of particle p with tree node inode, results are returned in u and af
         !>
-        subroutine calc_6th_gaussian_transposed_direct(particle, t, d, dist2, u, af, div)
+        subroutine calc_6th_gaussian_transposed_direct(vort, t, d, dist2, u, af, div)
             use module_pepc_types
             use treevars
             use module_interaction_specific_types
             implicit none
 
-            type(t_particle), intent(in) :: particle
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
             real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
             real*8, intent(out) ::  u(1:3), af(1:3), div
+            real*8, intent(out), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             real*8 :: dx, dy, dz !< temp variables for distance
             real*8 :: dist, dist3, sig3, ds3, exp3, exp83, exp273, K6, dK6, K6div
-            real*8 :: pre1, pre2, MPa1
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
             real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
 
             dx = d(1)
             dy = d(2)
             dz = d(3)
-
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
@@ -946,10 +913,16 @@ module module_interaction_specific
 
           np = size(particles, kind = kind_particle)
 
-          allocate(packed%results(np))
+          allocate(packed%alpha(np, 3), &
+                   packed%u(np, 3),     &
+                   packed%af(np, 3),    &
+                   packed%div(np))
 
           do ip = 1, np
-            packed%results(ip) = particles(ip)%results
+            packed%alpha(ip, :) = particles(ip)%data%alpha
+            packed%u(ip, :)     = particles(ip)%results%u
+            packed%af(ip, :)    = particles(ip)%results%af
+            packed%div(ip)      = particles(ip)%results%div
           end do
         end subroutine pack_particle_list
 
@@ -968,9 +941,15 @@ module module_interaction_specific
           DEBUG_ASSERT(np == size(packed%results, kind = kind_particle))
 
           do ip = 1, np
-            particles(ip)%results = packed%results(ip)
+            particles(ip)%data%alpha = packed%alpha(ip, :)
+            particles(ip)%results%u = packed%u(ip, :)
+            particles(ip)%results%af = packed%af(ip, :)
+            particles(ip)%results%div = packed%div(ip)
           end do
 
-          deallocate(packed%results)
+          deallocate(packed%alpha, &
+                     packed%u,     &
+                     packed%af,    &
+                     packed%div)
         end subroutine unpack_particle_list
 end module module_interaction_specific
