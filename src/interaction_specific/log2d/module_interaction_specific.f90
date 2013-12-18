@@ -321,23 +321,6 @@ module module_interaction_specific
 
 
   !>
-  !> Force calculation wrapper.
-  !>
-  subroutine calc_force_per_interaction_with_self(p, node, node_idx, delta, dist2, vbox)
-    use module_pepc_types
-    implicit none
-
-    type(t_particle), intent(inout) :: p
-    type(t_tree_node_interaction_data), intent(in) :: node
-    integer(kind_node), intent(in) :: node_idx
-    real*8, intent(in) :: delta(3), dist2, vbox(3)
-
-#ifdef BEM2D
-#endif
-  end subroutine
-
-
-  !>
   !> Computes the direct particle particle interaction potential and
   !> force field:
   !>
