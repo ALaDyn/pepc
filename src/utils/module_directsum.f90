@@ -50,8 +50,8 @@ module module_directsum
 
           integer(kind_particle) :: maxtest !< maximum ntest
           type(t_particle), dimension(:), allocatable :: received, sending
-          integer(kind_particle) :: i, j, tile_start, tile_size, nreceived, nsending
-          integer :: ierr, stat(MPI_STATUS_SIZE), thread_id, num_threads_
+          integer(kind_particle) :: i, j, tile_start, tile_size, nreceived, nsending, thread_id, num_threads_
+          integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8, allocatable :: delta(:,:), dist2(:)
@@ -118,7 +118,7 @@ module module_directsum
             tile_size = nreceived / num_threads_
             if (thread_id < mod(nreceived, num_threads_)) tile_size = tile_size + 1
             tile_start = 1 + (nreceived / num_threads_ + 1) * min(thread_id, mod(nreceived, num_threads_)) &
-              + (nreceived / num_threads_) * max(0, thread_id - mod(nreceived, num_threads_))
+              + (nreceived / num_threads_) * max(0_kind_particle, thread_id - mod(nreceived, num_threads_))
 
             allocate(delta(tile_size,3), dist2(tile_size))
             call pack_particle_list(received(tile_start:tile_start + tile_size - 1), particle_pack(thread_id))
