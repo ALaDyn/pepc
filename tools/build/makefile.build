@@ -21,7 +21,7 @@ FOBJ = $(FSRC:%.f90=%.o)
 CSRC = $(filter %.c, $(SRC))
 COBJ = $(CSRC:%.c=%.o)
 
-LDLIBS += libsl.a libopa.a
+LDLIBS += libsl.a -lm libopa.a
 
 RED=\e[0;31m
 GREEN=\e[0;32m

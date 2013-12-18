@@ -130,7 +130,10 @@ module module_walk
   type t_cluster_data
     integer(kind_particle) :: first !< index of the cluster`s first particle in the particle_list
     integer(kind_particle) :: last  !< index of the cluster`s last  particle in the particle_list
+    integer(kind_node) :: partner_leaves !< store for number of interaction partner leaves (should be N-1) after full traversal
     type(t_particle_pack) :: packed_particle_data
+
+    real*8 :: work
   end type
 
   type(t_cluster_data), allocatable, dimension(:) :: particle_clusters
@@ -247,7 +250,7 @@ module module_walk
   !>
   subroutine tree_walk_finalize()
     implicit none
-    deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
+    if (allocated(threaddata)) deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
   end subroutine tree_walk_finalize
 
 
@@ -416,7 +419,6 @@ module module_walk
     type(c_ptr), value :: arg
 
     integer, dimension(:), allocatable :: thread_cluster_indices
-    integer(kind_node), dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
     integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
     integer :: defer_list_entries_new, defer_list_entries_old, total_defer_list_length
@@ -454,8 +456,7 @@ module module_walk
       total_defer_list_length = defer_list_length*my_max_clusters_per_thread
 
       allocate(thread_cluster_indices(my_max_clusters_per_thread), &
-                      defer_list_start_pos(my_max_clusters_per_thread+1), &
-                          partner_leaves(my_max_clusters_per_thread))
+                      defer_list_start_pos(my_max_clusters_per_thread+1))
       allocate(defer_list_old(1:total_defer_list_length), &
                 defer_list_new(1:total_defer_list_length) )
       allocate(todo_list(0:todo_list_length - 1))
@@ -492,14 +493,14 @@ module module_walk
             cluster_has_finished  = walk_single_cluster(particle_clusters(thread_cluster_indices(i)), &
                                       ptr_defer_list_old, defer_list_entries_old, &
                                       ptr_defer_list_new, defer_list_entries_new, &
-                                      todo_list, partner_leaves(i), my_threaddata)
+                                      todo_list, my_threaddata)
 
             if (cluster_has_finished) then
               ! walk for cluster i has finished
               ! check whether the cluster really interacted with all other clusters
-              if (partner_leaves(i) .ne. walk_tree%npart) then
+              if (particle_clusters(thread_cluster_indices(i))%partner_leaves .ne. walk_tree%npart) then
                 write(*,'("Algorithmic problem on PE", I7, ": cluster ", I10)') walk_tree%comm_env%rank, thread_cluster_indices(i)
-                write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (clusters), but did with", I16)') walk_tree%npart, partner_leaves(i)
+                write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (clusters), but did with", I16)') walk_tree%npart, particle_clusters(thread_cluster_indices(i))%partner_leaves
                 write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
                 call debug_mpi_abort()
               end if
@@ -507,6 +508,7 @@ module module_walk
               ! copy forces and potentials back to thread-global array
               call unpack_particle_list(particle_clusters(thread_cluster_indices(i))%packed_particle_data, &
                 particle_data(particle_clusters(thread_cluster_indices(i))%first:particle_clusters(thread_cluster_indices(i))%last))
+              ! FIXME: copy particle_clusters(thread_cluster_indices(i))%work back to particles
               ! mark cluster entry i as free
               thread_cluster_indices(i)                = -1
               ! count total processed clusters for this thread
@@ -529,7 +531,7 @@ module module_walk
         defer_list_start_pos(my_max_clusters_per_thread+1) = defer_list_new_tail ! this entry is needed to store the length of the (max_clusters_per_thread)th clusters defer_list
       end do
 
-      deallocate(thread_cluster_indices, defer_list_start_pos, partner_leaves)
+      deallocate(thread_cluster_indices, defer_list_start_pos)
       deallocate(defer_list_old, defer_list_new)
       deallocate(todo_list)
     end if
@@ -590,11 +592,12 @@ module module_walk
           ! for clusters that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
-          partner_leaves(idx)     =  0 ! no interactions yet
 
           call pack_particle_list(particle_data(particle_clusters(thread_cluster_indices(idx))%first:&
                                                 particle_clusters(thread_cluster_indices(idx))%last), &
                                                 particle_clusters(thread_cluster_indices(idx))%packed_particle_data)
+          particle_clusters(thread_cluster_indices(idx))%partner_leaves = 0 ! no interactions yet
+          particle_clusters(thread_cluster_indices(idx))%work = 0.0_8
         else
           clusters_available     = .false.
         end if ! contains_cluster(idx)
@@ -614,46 +617,32 @@ module module_walk
 
   function walk_single_cluster(cluster, defer_list_old, defer_list_entries_old, &
                                         defer_list_new, defer_list_entries_new, &
-                                        todo_list, partner_leaves, my_threaddata)
+                                        todo_list, my_threaddata)
     use module_tree_node
     use module_tree_communicator, only: tree_node_fetch_children
     use module_interaction_specific
     use module_spacefilling, only : is_ancestor_of_particle
     use module_debug
-    #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-    use module_mirror_boxes, only : spatial_interaction_cutoff
-    #endif
+    use treevars, only: idim
     use module_atomic_ops
     use module_pepc_types
     implicit none
     include 'mpif.h'
 
-    type(t_cluster_data), intent(in) :: cluster
+    type(t_cluster_data), intent(inout) :: cluster
     integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
     integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
     integer, intent(out) :: defer_list_entries_new
     integer(kind_node), intent(inout) :: todo_list(0:todo_list_length-1)
-    integer(kind_node), intent(inout) :: partner_leaves
     type(t_threaddata), intent(inout) :: my_threaddata
     logical :: walk_single_cluster !< function will return .true. if this cluster has finished its walk
-
-    interface t_calc_force
-      subroutine t_calc_force(particle, node, node_idx, delta, dist2, vbox)
-        use module_pepc_types
-        use treevars
-        implicit none
-        type(t_tree_node_interaction_data), intent(in) :: node
-        integer(kind_node), intent(in) :: node_idx
-        type(t_particle), intent(inout) :: particle
-        real*8, intent(in) :: vbox(3), delta(3), dist2
-      end subroutine
-    end interface
 
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
-    real*8 :: dist2, delta(3)
+    real*8, allocatable :: dist2(:), delta(:,:) ! attention: the second coordinate has to be dimension
+    real*8 :: deltmp(1:idim)
     logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
     integer(kind_particle) :: p
@@ -663,6 +652,9 @@ module module_walk
     num_mac_evaluations    = 0
     num_post_request       = 0
     walk_node_idx          = NODE_INVALID
+
+    allocate(delta(cluster%first:cluster%last,1:idim))
+    allocate(dist2(cluster%first:cluster%last))
 
     ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
     ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
@@ -681,17 +673,20 @@ module module_walk
       ! been modified due to 'duplicate keys'-error)
       is_leaf = tree_node_is_leaf(walk_node)
 
+      do p=cluster%first,cluster%last
+        deltmp = particle_data(p)%x - vbox - walk_node%interaction_data%coc ! Separation vector
+        delta(p,1:idim) = deltmp
+        dist2(p)        = DOT_PRODUCT(deltmp, deltmp)
+      end do
 
       if (is_leaf) then
-        partner_leaves = partner_leaves + 1
-        call calc_force_for_cluster(calc_force_per_interaction_with_leaf, calc_force_per_interaction_with_self)
+        call calc_force_per_interaction_with_leaf(delta, dist2, cluster%packed_particle_data, walk_node%interaction_data)
+        cluster%partner_leaves = cluster%partner_leaves + 1
+        num_interactions = num_interactions + 1
       else ! not a leaf, evaluate MAC
         do p=cluster%first,cluster%last
-          delta = particle_data(p)%x - vbox - walk_node%interaction_data%coc ! Separation vector
-          dist2 = DOT_PRODUCT(delta, delta)
-
           num_mac_evaluations = num_mac_evaluations + 1
-          if (.not. mac(walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC negative, resolve
+          if (.not. mac(walk_node%interaction_data, dist2(p), walk_tree%boxlength2(walk_node%level))) then ! MAC negative, resolve
             call resolve(particle_data(p))
             cycle todo_list_loop ! we do not have to evaluate the MAC for any other particles in this cluster
           endif
@@ -699,8 +694,9 @@ module module_walk
         end do
 
         ! MAC was positive for all particles in the cluster, interact
-        partner_leaves = partner_leaves + walk_node%leaves
-        call calc_force_for_cluster(calc_force_per_interaction_with_twig, calc_force_per_interaction_with_twig)
+        call calc_force_per_interaction_with_twig(delta, dist2, cluster%packed_particle_data, walk_node%interaction_data)
+        cluster%partner_leaves = cluster%partner_leaves + walk_node%leaves
+        num_interactions = num_interactions + 1
       end if
     end do todo_list_loop ! (while (todo_list_pop(walk_key)))
 
@@ -711,34 +707,9 @@ module module_walk
     my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) = my_threaddata%counters(THREAD_COUNTER_MAC_EVALUATIONS) + num_mac_evaluations
     my_threaddata%counters(THREAD_COUNTER_POST_REQUEST)    = my_threaddata%counters(THREAD_COUNTER_POST_REQUEST)    + num_post_request
 
+    cluster%work = cluster%work + num_interactions
+
     contains
-
-    ! FIXME: self with twig does not make too much sense but makes the code much more beautiful
-    ! TODO: this should be vectorized or whatever. put this into interaction-specific bla
-    subroutine calc_force_for_cluster(calc_force, calc_force_self)
-      implicit none
-      procedure(t_calc_force) :: calc_force, calc_force_self
-      real*8 :: pdist2, pdelta(3)
-      integer(kind_particle) :: ipart
-
-      do ipart=cluster%first,cluster%last
-        pdelta = particle_data(ipart)%x - vbox - walk_node%interaction_data%coc ! Separation vector
-        pdist2 = DOT_PRODUCT(pdelta, pdelta)
-
-        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-        if (any(abs(pdelta) >= spatial_interaction_cutoff)) cycle
-        #endif
-
-        if (pdist2 > 0.0_8) then ! not self, interact
-          call calc_force(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
-          else ! self, count as interaction partner, otherwise ignore
-          call calc_force_self(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
-        endif
-        num_interactions = num_interactions + 1
-        particle_data(ipart)%work = particle_data(ipart)%work + 1._8
-      end do
-    end subroutine
-
 
     subroutine resolve(particle)
       implicit none

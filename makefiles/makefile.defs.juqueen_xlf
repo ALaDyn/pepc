@@ -7,7 +7,7 @@ HELP = "\
 MACH      = IBM-BGQ-juqueen
 
 GPROF     = 0
-DEBUG     = 0
+DEBUG     = 1
 OMP       = 1
 VAMPIR    = 0
 SION      = 0
@@ -30,14 +30,14 @@ LDPRE     =
 FC        = mpixlf90_r
 CC        = mpixlc_r
 LD        = mpixlf90_r
-LDLIBS    = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
+LDLIBS    = -lxlf90 -lxlopt -lxlsmp -lpthread -lc
 
 CPP       = /usr/bin/cpp
 CPPFLAGS  = -P -C -DLITTLEENDIAN -D__TOS_BGQ__ -D__IBMCPP__
 
 OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qflttrap -qnoinline -qnounroll
 OPTIMIZATIONFLAGS       = -O5 -qnounwind -qhot -qipa=level=1 -qlibmpi -qinline -qinfo=all -qstrict \
-                          -qinline+__module_tree_node_NMOD_tree_node_is_leaf:__module_spacefilling_NMOD_is_ancestor_of_particle_withlevel:__module_spacefilling_NMOD_is_ancestor_of_particle_nolevel:__module_tree_node_NMOD_tree_node_get_num_children:__module_tree_node_NMOD_tree_node_get_first_child:__module_tree_node_NMOD_tree_node_get_next_sibling:__module_tree_node_NMOD_tree_node_children_available:__module_interaction_specific_NMOD_mac:__module_interaction_specific_NMOD_calc_force_per_interaction:_atomic_fetch_and_increment_int:_atomic_load_int:_atomic_mod_increment_and_fetch_int:_atomic_read_barrier:_atomic_store_int:_atomic_write_barrier:__module_atomic_ops_NMOD_atomic_fetch_and_increment_int:__module_atomic_ops_NMOD_atomic_load_int:__module_atomic_ops_NMOD_atomic_mod_increment_and_fetch_int:__module_atomic_ops_NMOD_atomic_store_int
+                          -qinline+__module_tree_node_NMOD_tree_node_is_leaf:__module_spacefilling_NMOD_is_ancestor_of_particle_withlevel:__module_spacefilling_NMOD_is_ancestor_of_particle_nolevel:__module_tree_node_NMOD_tree_node_get_first_child:__module_tree_node_NMOD_tree_node_get_next_sibling:__module_tree_node_NMOD_tree_node_children_available:__module_interaction_specific_NMOD_mac:_atomic_fetch_and_increment_int:_atomic_load_int:_atomic_mod_increment_and_fetch_int:_atomic_read_barrier:_atomic_store_int:_atomic_write_barrier:__module_atomic_ops_NMOD_atomic_fetch_and_increment_int:__module_atomic_ops_NMOD_atomic_load_int:__module_atomic_ops_NMOD_atomic_mod_increment_and_fetch_int:__module_atomic_ops_NMOD_atomic_store_int
 
 STANDARDFLAGS           = -qthreaded -qsmp=noauto 
 

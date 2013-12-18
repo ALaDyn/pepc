@@ -257,7 +257,7 @@ module module_domains
       DEBUG_WARNING_ALL('("There are more particles than available keys in the local domain: npp=",I0,", but upper and lower key (octal) =", 2(x,O0),"; upper-lower (dec) = ",I0,". Usually, particle coordinates are invalid in this case. Printing particle list to diag file.")', d%npnew, local_keys(d%npnew), local_keys(1), local_keys(d%npnew) - local_keys(1))
       DEBUG_INFO(*, '1st column: KEY, folowing columns: t_particle structure')
       do i=1,d%npnew
-        DEBUG_INFO(*, local_keys(i), particles(i))
+        DEBUG_INFO(*, local_keys(i),  particles(i)%x, particles(i)%work, particles(i)%key, particles(i)%label)
       end do
       call debug_mpi_abort()
     end if
@@ -421,7 +421,7 @@ module module_domains
     write (debug_ipefile,'(/a/)') callinfo
     do j=1,npart
       write(debug_ipefile,'(i10)',advance='no') j
-      write(debug_ipefile,*)                     particles(j)
+      write(debug_ipefile,*) particles(j)%x, particles(j)%work, particles(j)%key, particles(j)%node_leaf, particles(j)%label
     end do
     write(debug_ipefile,'(/)')
     call debug_ipefile_close()

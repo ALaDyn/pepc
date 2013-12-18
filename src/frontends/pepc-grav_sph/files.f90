@@ -91,7 +91,7 @@ contains
 
     integer, intent(in) :: i
     real, intent(in) :: simtime
-    integer :: p, fh, ierr, err, status(MPI_STATUS_SIZE)
+    integer :: fh, ierr, err, status(MPI_STATUS_SIZE)
     integer(KIND=MPI_OFFSET_KIND) :: disp, header_disp=1024
 
     character(50) :: cfile
@@ -202,7 +202,7 @@ contains
 
     real, intent(in) :: time
     integer, intent(in) :: step
-    integer :: i
+    !integer :: i
     type(vtkfile_unstructured_grid) :: vtk
     integer :: vtk_step
 
@@ -264,10 +264,10 @@ contains
      integer :: width                     ! width of the data columns in the file. columns are seperated by a blank
 
      integer :: p, ierr
-     real*8 :: writesize, t1, t2, t3, t4
+     real*8 :: writesize!, t1, t2, t3, t4
  
  
-     logical :: file_exists
+     !logical :: file_exists
  
  
      integer :: part_including_mine
@@ -281,7 +281,7 @@ contains
      integer :: extended_header_length = 5000
      character :: extended_header*5000
      integer, dimension(MPI_STATUS_SIZE) :: status
-     integer :: i
+     !integer :: i
      integer :: all_part
 
 
@@ -690,7 +690,7 @@ contains
 
     character(*), intent(in) :: filename               ! all processes start this subroutine with the correct filename so BCAST before
 
-    integer :: step
+    !integer :: step
     integer :: p, ierr, tmp_int
 
     integer :: part_including_mine
@@ -701,9 +701,9 @@ contains
     character(5000) :: buffer
     integer :: headerlength
     character(5000) ::  header
-    character(5000) ::  header2
-    integer :: namelistlength = 5000
-    character :: namelist*5000
+    !character(5000) ::  header2
+    !integer :: namelistlength = 5000
+    !character :: namelist*5000
     integer, dimension(MPI_STATUS_SIZE) :: status
     integer :: input_particles
     integer :: current_pos

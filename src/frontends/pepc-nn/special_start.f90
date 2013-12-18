@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -31,7 +31,7 @@
 ! check for the random numbers:
 ! the first numbers should be 0.2853809, 0.2533582 and 0.2533582
 subroutine par_rand(res, iseed)
-  
+
   use physvars
   implicit none
 
@@ -51,7 +51,7 @@ subroutine par_rand(res, iseed)
   IM1 = 2147483563
   IM2 = 2147483399
   AM  = 1.0/IM1
-  IMM1 = IM1-1 
+  IMM1 = IM1-1
   IA1 = 40014
   IA2 = 40692
   IQ1 = 53668
@@ -63,7 +63,7 @@ subroutine par_rand(res, iseed)
   RNMX = 1.0 - 1.2e-7
 
   if (idum < 0) then
-  
+
      if (present(iseed)) then
        idum = iseed
      else
@@ -76,12 +76,12 @@ subroutine par_rand(res, iseed)
         k = idum/IQ1
         idum = IA1 * (idum-k*IQ1) - k*IR1
         if (idum < 0 ) idum = idum + IM1
-        
+
         if (j<NTAB) iv(j+1) = idum
-        
+
      end do
      iy = iv(1)
-  
+
   end if
 
   k = idum/IQ1
@@ -91,15 +91,15 @@ subroutine par_rand(res, iseed)
   k = idum2/IQ2
   idum2 = IA2 * (idum2-k*IQ2) - k*IR2
   if (idum2 < 0) idum2 = idum2 + IM2
-  
+
   j = iy/NDIV + 1
   iy = iv(j)-idum2
   iv(j) = idum
-  
+
   if (iy < 1) iy = iy + IMM1
   res = AM*iy
   if (res > RNMX) res = RNMX
-  
+
 end subroutine par_rand
 
 
@@ -166,11 +166,11 @@ subroutine special_start(iconf)
 
      do mpi_cnt = 0, n_cpu-1
         do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
-           
+
            xt = 0.
            yt = 0.
            zt = 0.
-           
+
            call par_rand(par_rand_res)
            xt = par_rand_res
            call par_rand(par_rand_res)
@@ -179,9 +179,9 @@ subroutine special_start(iconf)
            zt = par_rand_res
 
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
-              
+
               particles(p)%x = [xt, yt, zt]
-              
+
            end if
         end do
      end do
@@ -192,11 +192,11 @@ subroutine special_start(iconf)
 
      do mpi_cnt = 0, n_cpu-1
         do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
-           
+
            xt = 1.0_8
            yt = 1.0_8
            zt = 1.0_8
-           
+
            do while ( (xt*xt + yt*yt + zt*zt) > 1.0_8)
               call par_rand(par_rand_res)
               xt = -1.0_8 + 2.0_8*par_rand_res
@@ -205,15 +205,15 @@ subroutine special_start(iconf)
               call par_rand(par_rand_res)
               zt = -1.0_8 + 2.0_8*par_rand_res
            end do
-           
+
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
 
               xt = xt*0.1
               yt = yt*0.1
               zt = zt*0.1
-              
+
               particles(p)%x = [xt, yt, zt] + 0.5
-              
+
            end if
         end do
      end do
@@ -223,11 +223,11 @@ subroutine special_start(iconf)
 
      do mpi_cnt = 0, n_cpu-1
         do p = 1, (fances(mpi_cnt) - fances(mpi_cnt-1))
-           
+
            xt = 1.0_8
            yt = 1.0_8
            zt = 1.0_8
-           
+
            do while ( (xt*xt + yt*yt + zt*zt) > 1.0_8)
               call par_rand(par_rand_res)
               xt = -1.0_8 + 2.0_8*par_rand_res
@@ -236,22 +236,22 @@ subroutine special_start(iconf)
               call par_rand(par_rand_res)
               zt = -1.0_8 + 2.0_8*par_rand_res
            end do
-           
+
            xt = xt*0.1
            yt = yt*0.1
            zt = zt*0.1
-           
+
            call par_rand(par_rand_res)
            if (par_rand_res .lt. 0.5) then
               xt = xt + 0.2
            else
               xt = xt - 0.2
            end if
-           
+
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
-                            
+
               particles(p)%x = [xt, yt, zt] + 0.5
-              
+
            end if
         end do
      end do
@@ -297,11 +297,11 @@ subroutine special_start(iconf)
 
      do mpi_cnt = 0, n_cpu-1
         do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
-     
+
            xt = 0.
            yt = 0.
            zt = 0.
-           r1 = 0.           
+           r1 = 0.
 
            do while (.not.(r1 .gt. 0.1 .and. r1 .lt. 3))
               call par_rand(par_rand_res)
@@ -323,7 +323,7 @@ subroutine special_start(iconf)
 
 
   case(5)
-       
+
      if (my_rank == 0) write(*,*) "Using special start... case 5: 2D disc"
      ! get the largest np_local
      call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
@@ -331,23 +331,23 @@ subroutine special_start(iconf)
 
      do mpi_cnt = 0, n_cpu-1
         do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
-           
+
            xt = 1.
            yt = 1.
            zt = 0.
-           
+
            do while ( (xt*xt + yt*yt) > 1)
               call par_rand(par_rand_res)
               xt = -1.0 + 2.*par_rand_res
               call par_rand(par_rand_res)
               yt = -1.0 + 2.*par_rand_res
            end do
-           
+
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
 
               xt = xt*0.1
               yt = yt*0.1
-              
+
               particles(p)%x = [xt, yt, 0._8] + 0.5
            end if
         end do
@@ -356,31 +356,31 @@ subroutine special_start(iconf)
 
 
   case(6)
-     
+
      if (my_rank == 0) write(*,*) "Using special start... case 6 (2D-homogeneous distribution)"
 
      ! get the largest np_local
      call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
      call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-     
+
      do mpi_cnt = 0, n_cpu-1
         do p = 1, fances(mpi_cnt) - fances(mpi_cnt-1)
-           
+
            xt = 0.
            yt = 0.
            zt = 0.
-           
+
            call par_rand(par_rand_res)
            xt = par_rand_res
            call par_rand(par_rand_res)
            yt = par_rand_res
            call par_rand(par_rand_res)
            zt = 0
-           
+
            if ( my_rank == mpi_cnt .and. p <= np_local ) then
-              
+
               particles(p)%x = [xt, yt, zt]
-              
+
            end if
         end do
      end do
@@ -424,6 +424,8 @@ subroutine special_start(iconf)
     particles(1:nep)%label            = my_rank * nep + (/(i, i = 1, nep)/)      ! Electron labels
     particles(nep + 1:np_local)%label = ne + my_rank * nip + (/(i, i = 1, nip)/) ! Ion labels
 
+    particles(1:np_local)%data%particle_id = particles(1:np_local)%label !< particle ids for identification during neighbour-test
+
     if (myidx .ne. np_local) write(*,*) "ERROR in special_start(7): PE", my_rank, "set up", myidx, &
         "particles, but np_local=", np_local, "globalidx=", globalidx, "npart_total=",npart_total
 
@@ -442,7 +444,7 @@ subroutine special_start(iconf)
      call par_rand(par_rand_res, my_rank + 13)
 
      do p = 1, (fances(my_rank) - fances(my_rank-1))
-           
+
         call par_rand(par_rand_res)
         xt = par_rand_res
         call par_rand(par_rand_res)
@@ -451,16 +453,14 @@ subroutine special_start(iconf)
         zt = par_rand_res
 
         particles(p)%x = [xt, yt, zt]
-              
+
      end do
 
   end select config
 
-  particles(1:nep)%data%q             = qe        ! plasma electrons
-  particles(nep + 1:np_local)%data%q  = qi        ! plasma ions (need Z* here)
   particles(1:nep)%label            = fances(my_rank-1) + (/(i, i = 1, nep)/)      ! Electron labels
   particles(nep + 1:np_local)%label = ne + fances(my_rank-1) + nep + (/(i, i = 1, (fances(my_rank) - fances(my_rank-1) - nep))/) ! Ion labels
-
+  particles(1:np_local)%data%particle_id = particles(1:np_local)%label !< particle ids for identification during neighbour-test
 end subroutine special_start
 
 

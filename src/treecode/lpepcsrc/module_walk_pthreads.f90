@@ -239,7 +239,7 @@ module module_walk
   !>
   subroutine tree_walk_finalize()
     implicit none
-    deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
+    if (allocated(threaddata)) deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
   end subroutine tree_walk_finalize
 
 
@@ -572,9 +572,6 @@ module module_walk
     use module_interaction_specific_types, only: t_particle_pack
     use module_spacefilling, only : is_ancestor_of_particle
     use module_debug
-    #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-    use module_mirror_boxes, only : spatial_interaction_cutoff
-    #endif
     use module_atomic_ops
     use module_pepc_types
     implicit none

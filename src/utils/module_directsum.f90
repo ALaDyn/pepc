@@ -50,15 +50,14 @@ module module_directsum
 
           integer(kind_particle) :: maxtest !< maximum ntest
           type(t_particle), dimension(:), allocatable :: received, sending
-          integer(kind_particle) :: nreceived, nsending
-          integer(kind_particle) :: i, j
+          integer(kind_particle) :: i, j, tile_start, tile_size, nreceived, nsending, thread_id, num_threads_
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real*8, allocatable :: delta(:,:), dist2(:)
           integer :: ibox, id
           type(t_particle) :: latticeparticles(ntest)
-          type(t_particle_pack) :: particle_pack
+          type(t_particle_pack), allocatable :: particle_pack(:)
 
           real*8 :: t1, vbox(3)
           integer :: omp_thread_num
@@ -67,7 +66,7 @@ module module_directsum
           call MPI_COMM_SIZE(comm, n_cpu, ierr)
 
           call MPI_ALLREDUCE(ntest, maxtest, 1, MPI_KIND_PARTICLE, MPI_MAX, comm, ierr)
-          allocate(received(1:maxtest), sending(1:maxtest), delta(maxtest,3), dist2(maxtest))
+          allocate(received(1:maxtest), sending(1:maxtest))
 
           call timer_reset(t_direct_force)
           call timer_reset(t_direct_comm)
@@ -107,26 +106,46 @@ module module_directsum
 
             t1 = MPI_WTIME()
 
-            call pack_particle_list(received(1:nreceived), particle_pack)
+            !$OMP PARALLEL default(shared) private(vbox, dist2, delta, i, ibox, id, j, tile_start, tile_size, thread_id, num_threads_)
+            thread_id = omp_get_thread_num()
+            num_threads_ = omp_get_num_threads()
 
-            !!$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta, ibox)
-            do i = 1, size(particles)
+            !$omp master
+            allocate(particle_pack(0:num_threads_ - 1))
+            !$omp end master
+            !$omp barrier
+
+            tile_size = nreceived / num_threads_
+            if (thread_id < mod(nreceived, num_threads_)) tile_size = tile_size + 1
+            tile_start = 1 + (nreceived / num_threads_ + 1) * min(thread_id, mod(nreceived, num_threads_)) &
+              + (nreceived / num_threads_) * max(0_kind_particle, thread_id - mod(nreceived, num_threads_))
+
+            allocate(delta(tile_size,3), dist2(tile_size))
+            call pack_particle_list(received(tile_start:tile_start + tile_size - 1), particle_pack(thread_id))
+
+            do i = 1, size(local_nodes)
               do ibox = 1, num_neighbour_boxes ! sum over all boxes within ws=1
                 vbox = lattice_vect(neighbour_boxes(:,ibox))
                 dist2 = 0.0_8
                 do id = 1, 3
-                  do j = 1, nreceived
-                    delta(j, id) = received(j)%x(id) - vbox(id) - local_nodes(i)%coc(id)
+                  do j = 1, tile_size
+                    delta(j, id) = received(tile_start + j - 1)%x(id) - vbox(id) - local_nodes(i)%coc(id)
                     dist2(j) = dist2(j) + delta(j, id) * delta(j, id)
                   end do
                 end do
 
-                call calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, local_nodes(i))
+                call calc_force_per_interaction_with_leaf(delta, dist2, particle_pack(thread_id), local_nodes(i))
               end do
             end do
-            !!$OMP END PARALLEL DO
 
-            call unpack_particle_list(particle_pack, received(1:nreceived))
+            deallocate(delta, dist2)
+            call unpack_particle_list(particle_pack(thread_id), received(tile_start:tile_start + tile_size - 1))
+
+            !$omp barrier
+            !$omp master
+            deallocate(particle_pack)
+            !$omp end master
+            !$OMP END PARALLEL
 
             call timer_add(t_direct_force,MPI_WTIME()-t1)
 
@@ -152,7 +171,7 @@ module module_directsum
           allocate(directresults(1:ntest))
           directresults(1:ntest) = received(1:nreceived)%results
 
-          deallocate(received, sending, local_nodes, delta, dist2)
+          deallocate(received, sending, local_nodes)
 
           ! Reset the number of openmp threads to 1.
           !$ call omp_set_num_threads(1)

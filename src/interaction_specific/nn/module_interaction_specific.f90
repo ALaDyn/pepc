@@ -39,7 +39,6 @@ module module_interaction_specific
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
-      public calc_force_per_interaction_with_self
       public calc_force_per_interaction_with_leaf
       public calc_force_per_interaction_with_twig
       public calc_force_per_particle
@@ -60,15 +59,14 @@ module module_interaction_specific
       !> Computes multipole properties of a single particle
       !>
       subroutine multipole_from_particle(particle_pos, particle, multipole)
+        use module_spacefilling, only: veccoord_to_key_lastlevel
         implicit none
         real*8, intent(in) :: particle_pos(3)
         type(t_particle_data), intent(in) :: particle
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
         ! use velocity (v) at same time step as coordinate, not v_minus_half
-        multipole = t_tree_node_interaction_data(particle_pos,particle%q, particle%v, particle%temperature, -13._8, -13._8 )
-        ! set rho to -13 as dummy.
-        ! TODO: find a better place to store rho
+        multipole = t_tree_node_interaction_data(particle_pos, particle%particle_id)
       end subroutine
 
 
@@ -80,25 +78,17 @@ module module_interaction_specific
         type(t_tree_node_interaction_data), intent(out) :: parent
         type(t_tree_node_interaction_data), intent(in) :: children(:)
 
-        integer :: nchild, i
+        integer :: i
 
-        nchild = size(children)
+        parent%coc         = [0._8, 0._8, 0._8]
+        parent%particle_id = 0_8
 
-        parent%coc = [0._8, 0._8, 0._8]
-        parent%q = 0._8
-
-        do i=1,nchild
+        do i=1,size(children)
           parent%coc = parent%coc + children(i)%coc
-          parent%q   = parent%q   + children(i)%q
         end do
 
-        parent%coc = parent%coc / nchild
+        parent%coc = parent%coc / size(children)
 
-        ! set velocity, temperature and rho for tree node to a nonsense value which may be recognised as nonsense when one tries to use them
-        parent%v = [-13._8,-13._8,-13._8]
-        parent%temperature = -13._8
-        parent%rho = -13._8
-        parent%h = -13._8
       end subroutine
 
 
@@ -233,11 +223,13 @@ module module_interaction_specific
          implicit none
          type(t_particle), intent(inout) :: particles(:)
 
-         integer(kind_particle) :: i
+         integer(kind_particle) :: i, j
 
          do i=1,size(particles, kind=kind(i))
             particles(i)%results%maxdist2           = huge(0._8)
-            particles(i)%results%neighbour_nodes(:) = -1 ! FIXME: this should be NODE_INVALID
+            do j=1, size(particles(i)%results%neighbour_nodes)
+              particles(i)%results%neighbour_nodes(j)%p => null()
+            end do
             particles(i)%results%maxidx             = 1
          end do
        end subroutine particleresults_clear
@@ -249,37 +241,22 @@ module module_interaction_specific
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        subroutine calc_force_per_interaction_with_self(particle, node, node_idx, delta, dist2, vbox)
+        subroutine calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, node_data)
           use module_pepc_types
+          use module_debug
           use treevars
           implicit none
 
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_node), intent(in) :: node_idx
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
-        end subroutine
-
-
-        !>
-        !> Force calculation wrapper.
-        !> This function is thought for pre- and postprocessing of
-        !> calculated fields, and for being able to call several
-        !> (different) force calculation routines
-        !>
-        subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
-          use module_pepc_types
-          use treevars
-          implicit none
-
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_node), intent(in) :: node_idx
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real*8, intent(in) :: delta(:,:)
+          real*8, intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
           select case (force_law)
             case (5)
-                call update_nn_list(particle, node_idx, delta, dist2)
+                call update_nn_list(particle_pack, node_data, delta, dist2)
+            case default
+               DEBUG_ERROR(*, "value of force_law is not allowed in calc_force_per_interaction:", force_law)
           end select
         end subroutine
 
@@ -290,19 +267,22 @@ module module_interaction_specific
         !> calculated fields, and for being able to call several
         !> (different) force calculation routines
         !>
-        subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
+        subroutine calc_force_per_interaction_with_twig(delta, dist2, particle_pack, node_data)
           use module_pepc_types
+          use module_debug
           use treevars
           implicit none
 
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_node), intent(in) :: node_idx
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real*8, intent(in) :: delta(:,:)
+          real*8, intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
           select case (force_law)
             case (5)
-                call update_nn_list(particle, node_idx, delta, dist2)
+                call update_nn_list(particle_pack, node_data, delta, dist2)
+            case default
+               DEBUG_ERROR(*, "value of force_law is not allowed in calc_force_per_interaction:", force_law)
           end select
         end subroutine
 
@@ -321,29 +301,32 @@ module module_interaction_specific
         end subroutine calc_force_per_particle
 
 
-        subroutine update_nn_list(particle, node_idx, d, dist2)
+        subroutine update_nn_list(particle_pack, node_data, delta, dist2)
           use module_pepc_types
           use treevars
           implicit none
           include 'mpif.h'
 
-          integer(kind_node), intent(in) :: node_idx !< node index of particle to interact with
-          real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-          type(t_particle), intent(inout) :: particle
+          real*8, intent(in) :: delta(:,:)
+          real*8, intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), target, intent(in) :: node_data
 
-          integer :: tmp(1)
+          integer :: tmp(1), p
 
-          if (dist2 < particle%results%maxdist2) then
-            ! add node to NN_list
-            particle%results%neighbour_nodes(particle%results%maxidx) = node_idx
-            particle%results%dist2(particle%results%maxidx)           = dist2
-            particle%results%dist_vector(:,particle%results%maxidx)   = d
-            tmp                       = maxloc(particle%results%dist2(1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
-            particle%results%maxidx   = tmp(1)
-            particle%results%maxdist2 = particle%results%dist2(particle%results%maxidx)
-          else
-            ! node is further away than farest particle in nn-list --> can be ignored
-          endif
+          do p=1,size(dist2)
+            if (dist2(p) < particle_pack%maxdist2(p)) then
+              ! add node to NN_list
+              particle_pack%neighbour_nodes(p, particle_pack%maxidx(p))%p => node_data
+              particle_pack%dist2(p, particle_pack%maxidx(p))           = dist2(p)
+              particle_pack%dist_vector(p, :,particle_pack%maxidx(p))   = delta(p,:)
+              tmp = maxloc(particle_pack%dist2(p, 1:num_neighbour_particles)) ! this is really ugly, but maxloc returns a 1-by-1 vector instead of the expected scalar
+              particle_pack%maxidx(p)   = tmp(1)
+              particle_pack%maxdist2(p) = particle_pack%dist2(p, particle_pack%maxidx(p))
+            else
+              ! node is further away than farest particle in nn-list --> can be ignored
+            endif
+          end do
         end subroutine update_nn_list
 
 
@@ -358,10 +341,18 @@ module module_interaction_specific
 
           np = size(particles, kind = kind_particle)
 
-          allocate(packed%results(np))
+          allocate(packed%maxdist2(np), &
+                   packed%maxidx(np), &
+                   packed%neighbour_nodes(np, max_neighbour_particles), &
+                   packed%dist2(np, max_neighbour_particles), &
+                   packed%dist_vector(np, 3, max_neighbour_particles))
 
           do ip = 1, np
-            packed%results(ip) = particles(ip)%results
+            packed%maxdist2(ip) = particles(ip)%results%maxdist2
+            packed%maxidx(ip)   = particles(ip)%results%maxidx
+            packed%neighbour_nodes(ip,:) = particles(ip)%results%neighbour_nodes
+            packed%dist2(ip,:)  = particles(ip)%results%dist2
+            packed%dist_vector(ip,:,:)   = particles(ip)%results%dist_vector(:,:)
           end do
         end subroutine pack_particle_list
 
@@ -377,12 +368,20 @@ module module_interaction_specific
           integer(kind_particle) :: ip, np
 
           np = size(particles, kind = kind_particle)
-          DEBUG_ASSERT(np == size(packed%results, kind = kind_particle))
+          DEBUG_ASSERT(np == size(packed%maxdist2, kind = kind_particle))
 
           do ip = 1, np
-            particles(ip)%results = packed%results(ip)
+            particles(ip)%results%maxdist2 = packed%maxdist2(ip)
+            particles(ip)%results%maxidx = packed%maxidx(ip)
+            particles(ip)%results%neighbour_nodes = packed%neighbour_nodes(ip,:)
+            particles(ip)%results%dist2 = packed%dist2(ip,:)
+            particles(ip)%results%dist_vector(:,:) = packed%dist_vector(ip,:,:)
           end do
 
-          deallocate(packed%results)
+          deallocate(packed%maxdist2, &
+                     packed%maxidx, &
+                     packed%neighbour_nodes, &
+                     packed%dist2, &
+                     packed%dist_vector)
         end subroutine unpack_particle_list
 end module module_interaction_specific

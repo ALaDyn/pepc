@@ -71,7 +71,7 @@ subroutine pepc_setup()
   implicit none
   include 'mpif.h'
 
-  integer :: ierr, npart_tmp
+  !integer :: ierr, npart_tmp
 
   namelist /pepcsph/ npart_total, &
        mac, theta, eps, ispecial, &

@@ -1372,6 +1372,7 @@ contains
     do p = 1, np_local
        particles(p)%data%q           = 1._8
        particles(p)%label            = fences(my_rank-1) + p
+       particles(p)%data%particle_id = particles(p)%label
        particles(p)%work             = 1._8
        particles(p)%data%v_minus_half  = [ 0._8, 0._8, 0._8 ]
        particles(p)%data%v           = [ 0._8, 0._8, 0._8 ]
