@@ -7,7 +7,7 @@ HELP = "\
 MACH      = IBM-BGQ-juqueen
 
 GPROF     = 0
-DEBUG     = 1
+DEBUG     = 0
 OMP       = 1
 VAMPIR    = 0
 SION      = 0
