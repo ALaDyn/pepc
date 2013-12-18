@@ -5,7 +5,7 @@ HELP = "\
 MACH      = gcc-4.9
 
 GPROF     = 0
-DEBUG     = 0
+DEBUG     = 1
 OMP       = 1
 VAMPIR    = 0
 # for HPCTOOLKIT usage see end of this file
@@ -27,7 +27,7 @@ LDPRE     =
 FC        = mpigfortran
 CC        = mpigcc
 LD        = mpigcc
-LDLIBS    = -lgfortran -lm
+LDLIBS    = -lgfortran
 
 # GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
 CPP      = cpp -Uvector

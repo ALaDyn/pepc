@@ -7,7 +7,7 @@ HELP = "\
 MACH      = IBM-BGQ-juqueen
 
 GPROF     = 0
-DEBUG     = 0
+DEBUG     = 1
 OMP       = 1
 VAMPIR    = 0
 SION      = 0
@@ -30,7 +30,7 @@ LDPRE     =
 FC        = mpixlf90_r
 CC        = mpixlc_r
 LD        = mpixlf90_r
-LDLIBS    = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
+LDLIBS    = -lxlf90 -lxlopt -lxlsmp -lpthread -lc
 
 CPP       = /usr/bin/cpp
 CPPFLAGS  = -P -C -DLITTLEENDIAN -D__TOS_BGQ__ -D__IBMCPP__
