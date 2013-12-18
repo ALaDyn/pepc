@@ -580,8 +580,6 @@ module module_fmm_framework
 
           ! FIXME untested : call zero_terms_multipole(omega_tilde)
 
-          ! sum contributions from all processors
-
         contains
           subroutine addparticle(om, R, q)
             implicit none
@@ -781,6 +779,8 @@ module module_fmm_framework
         subroutine fmm_sum_lattice_force(pos, e_lattice, phi_lattice)
           use module_mirror_boxes, only : num_neighbour_boxes, lattice_vect, neighbour_boxes
           use module_coulomb_kernels, only : calc_force_coulomb_3D_direct
+          use module_interaction_specific_types, only : t_particle_pack
+          use module_interaction_specific, only : eps2
           implicit none
 
           real*8, intent(in) :: pos(3)
@@ -793,7 +793,8 @@ module module_fmm_framework
           real(kfp) :: prefact
           integer :: p, ibox
           real(kfp), parameter :: pi=acos(-one)
-          real*8 :: etmp(3), phitmp, delta(3)
+          real*8 :: delta(num_neighbour_boxes, 3), dist2(num_neighbour_boxes)
+          type(t_particle_pack) :: packed
 
           prefact = two*pi/(three*unit_box_volume)
 
@@ -822,17 +823,30 @@ module module_fmm_framework
               e_lattice   = e_lattice   + two*prefact * box_dipole
               phi_lattice = phi_lattice - two*prefact * dot_product(R, box_dipole) + prefact * quad_trace
             case (FMM_EXTRINSIC_CORRECTION_FICTCHARGE)
+              allocate(packed%ex(num_neighbour_boxes),  &
+                       packed%ey(num_neighbour_boxes),  &
+                       packed%ez(num_neighbour_boxes),  &
+                       packed%pot(num_neighbour_boxes), &
+                       packed%q(num_neighbour_boxes) )
+
               do p=1,nfictcharge
                 ! interact with fictcharge(p)
                 ! we loop over all vbox-vectors, in fact we are only interested in the surface charges since the others cancel anyway, but
                 ! the exception for this is too complicated for now - FIXME: correct this
                 do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
-                  delta = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
-                  !call calc_force_coulomb_3D_direct(fictcharge(p), delta, dot_product(delta, delta), etmp, phitmp)
-                  e_lattice   = e_lattice   + etmp
-                  phi_lattice = phi_lattice + phitmp
+                  delta(ibox,:) = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
+                  dist2(ibox)   = dot_product(delta(ibox,:), delta(ibox,:))
                 end do
+
+                call calc_force_coulomb_3D_direct(delta, dist2, packed, fictcharge(p), eps2)
+
+                e_lattice(1) = e_lattice(1) + sum(packed%ex)
+                e_lattice(2) = e_lattice(2) + sum(packed%ey)
+                e_lattice(3) = e_lattice(3) + sum(packed%ez)
+                phi_lattice  = phi_lattice  + sum(packed%pot)
               end do
+
+              deallocate(packed%ex, packed%ey, packed%ez, packed%pot, packed%q)
             case (FMM_EXTRINSIC_CORRECTION_MEASUREMENT)
               DEBUG_ERROR('("fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_MEASUREMENT currently not supported")')
             case default
