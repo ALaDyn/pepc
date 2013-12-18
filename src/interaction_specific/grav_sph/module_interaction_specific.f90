@@ -519,7 +519,7 @@ contains
     integer(kind_particle) :: ip, np
 
     np = size(particles, kind = kind_particle)
-    DEBUG_ASSERT(np == size(packed%results, kind = kind_particle))
+    DEBUG_ASSERT(np == size(packed%maxdist2, kind = kind_particle))
 
     do ip = 1, np
       particles(ip)%results%maxdist2 = packed%maxdist2(ip)

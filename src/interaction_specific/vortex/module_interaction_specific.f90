@@ -938,7 +938,7 @@ module module_interaction_specific
           integer(kind_particle) :: ip, np
 
           np = size(particles, kind = kind_particle)
-          DEBUG_ASSERT(np == size(packed%results, kind = kind_particle))
+          DEBUG_ASSERT(np == size(packed%div, kind = kind_particle))
 
           do ip = 1, np
             particles(ip)%data%alpha = packed%alpha(ip, :)
