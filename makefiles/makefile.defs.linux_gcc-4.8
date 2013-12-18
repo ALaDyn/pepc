@@ -14,7 +14,7 @@
 
 MACH     = linux_gcc-4.8
 
-DEBUG    = 1
+DEBUG    = 0
 OMP      = 1
 
 RANLIB   = ranlib
@@ -28,36 +28,36 @@ CPP      = cpp
 CPPFLAGS = -P -C -ffreestanding
                   # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
-INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg 
+#INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg
 # -flto
 #-fwhopr
 
-FCPRE    = 
+FCPRE    =
 FC       = mpif90
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Wall -O0 -pg -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
+  FFLAGS   = -Wall -O0 -pg -g -gdwarf-3 -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
   CFLAGS   = -Wall -O0 -pg -g -gdwarf-3
   LDFLAGS  =       -O0 -pg -g -gdwarf-3
 else
-  FFLAGS   = -Wall -O5 -pg    -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
-  CFLAGS   = -Wall -O5 -pg
-  LDFLAGS   = -pthread -pg -O5 $(INLINING) -fwhole-program  
+  FFLAGS   = -march=native -mavx -Ofast -frecursive -ffree-line-length-none -fsign-zero $(INLINING) -save-temps -ftree-loop-if-convert -ftree-loop-if-convert-stores
+  CFLAGS   = -march=native -mavx -Ofast
+  LDFLAGS  = -march=native -mavx -Ofast -pthread $(INLINING) -fwhole-program
 #-Wl,--threads
 #-fuse-linker-plugin
 endif
 
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
-  LDFLAGS  += -fopenmp 
+  LDFLAGS  += -fopenmp
 else
 endif
 
-CCPRE    = 
+CCPRE    =
 CC       = mpicc
 
-LDPRE    = 
+LDPRE    =
 LD       = mpif90
-LDLIBS   = 
+LDLIBS   =
 
 RM       = rm -rf
 
