@@ -58,7 +58,10 @@ module module_interaction_specific_types
       type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], 0.)
 
       type t_particle_pack
-        type(t_particle_results), allocatable :: results(:)
+         real*8, allocatable :: ex(:)
+         real*8, allocatable :: ey(:)
+         real*8, allocatable :: ez(:)
+         real*8, allocatable :: pot(:)
       end type t_particle_pack
 
       !> Data structure for storing multiple moments of tree nodes

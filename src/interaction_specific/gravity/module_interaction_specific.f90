@@ -28,6 +28,9 @@
 module module_interaction_specific
      use module_pepc_types
      use module_interaction_specific_types
+     #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+     use module_mirror_boxes, only: spatial_interaction_cutoff
+     #endif
      implicit none
      save
      private
@@ -38,15 +41,26 @@ module module_interaction_specific
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      integer, public :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
+      integer, public :: force_law    = 3      !< ignored, interaction is always coulomb 3D
       integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
       logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
       real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
       real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
       real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
-      namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
+      integer, parameter :: kfp       =  8 ! numeric precision (kind value)
+      ! shortcut notations
+      real(kfp), parameter :: zero    =  0._kfp
+      real(kfp), parameter :: one     =  1._kfp
+      real(kfp), parameter :: two     =  2._kfp
+      real(kfp), parameter :: three   =  3._kfp
+      real(kfp), parameter :: four    =  4._kfp
+      real(kfp), parameter :: five    =  5._kfp
+      real(kfp), parameter :: eight   =  8._kfp
+      real(kfp), parameter :: nine    =  9._kfp
+      real(kfp), parameter :: half    =  0.5_kfp
 
+      namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -58,7 +72,6 @@ module module_interaction_specific
       public multipole_from_particle
       public shift_multipoles_up
       public results_add
-      public calc_force_per_interaction_with_self
       public calc_force_per_interaction_with_leaf
       public calc_force_per_interaction_with_twig
       public calc_force_per_particle
@@ -293,17 +306,40 @@ module module_interaction_specific
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction_with_self(particle, node, key, delta, dist2, vbox)
+        subroutine calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, t)
           use module_pepc_types
           use treevars
-          use module_coulomb_kernels
           implicit none
 
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_key), intent(in) :: key
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real(kfp), intent(in) :: delta(:,:)
+          real(kfp), intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), intent(in) :: t
 
+          real(kfp) :: rd,qrd3
+          integer(kind_particle) :: ip, np
+
+          np = size(dist2, kind = kind_particle)
+
+          do ip = 1, np
+            #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+            if ( &
+              delta(ip,1) >= spatial_interaction_cutoff(1) .or. &
+              delta(ip,2) >= spatial_interaction_cutoff(2) .or. &
+              delta(ip,3) >= spatial_interaction_cutoff(3) &
+            ) cycle
+            #endif
+            if (dist2(ip) >= 0.0_kfp) then
+              rd = one / sqrt(dist2(ip) + eps2)
+              qrd3 = t%charge * rd * rd * rd
+
+              particle_pack%pot(ip) = particle_pack%pot(ip) - t%charge * rd
+
+              particle_pack%ex(ip) = particle_pack%ex(ip) - qrd3 * delta(ip,1)
+              particle_pack%ey(ip) = particle_pack%ey(ip) - qrd3 * delta(ip,2)
+              particle_pack%ez(ip) = particle_pack%ez(ip) - qrd3 * delta(ip,3)
+            end if
+          end do
         end subroutine
 
 
@@ -315,79 +351,39 @@ module module_interaction_specific
         !> (different) force calculation routines
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction_with_leaf(particle, node, key, delta, dist2, vbox)
+        subroutine calc_force_per_interaction_with_twig(delta, dist2, particle_pack, t)
           use module_pepc_types
           use treevars
-          use module_coulomb_kernels
           implicit none
 
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_key), intent(in) :: key
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real(kfp), intent(in) :: delta(:,:)
+          real(kfp), intent(in) :: dist2(:)
+          type(t_particle_pack), intent(inout) :: particle_pack
+          type(t_tree_node_interaction_data), intent(in) :: t
 
-          real*8 :: exyz(3), phic
+          real(kfp) :: rd,qrd3
+          integer(kind_particle) :: ip, np
 
-          select case (force_law)
-            case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
-                exyz(3) = 0.
-            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_3D_direct(node, delta, dist2 + eps2, exyz, phic)
-            case (4)  ! LJ potential for quiet start
-                call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
-            case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
-                      !  and Kelbg for particle-particle interaction
-                call calc_force_kelbg_3D_direct(particle, node, delta, dist2, kelbg_invsqrttemp, exyz, phic)
-            case default
-              exyz = 0.
-              phic = 0.
-          end select
+          np = size(dist2, kind = kind_particle)
 
-          particle%results%e         = particle%results%e    + exyz
-          particle%results%pot       = particle%results%pot  + phic
-        end subroutine
+          do ip = 1, np
+            #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+            if ( &
+              delta(ip,1) >= spatial_interaction_cutoff(1) .or. &
+              delta(ip,2) >= spatial_interaction_cutoff(2) .or. &
+              delta(ip,3) >= spatial_interaction_cutoff(3) &
+            ) cycle
+            #endif
 
+            rd = one / sqrt(dist2(ip) + eps2)
+            qrd3 = t%charge * rd * rd * rd
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !>
-        !> Force calculation wrapper.
-        !> This function is thought for pre- and postprocessing of
-        !> calculated fields, and for being able to call several
-        !> (different) force calculation routines
-        !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        subroutine calc_force_per_interaction_with_twig(particle, node, key, delta, dist2, vbox)
-          use module_pepc_types
-          use treevars
-          use module_coulomb_kernels
-          implicit none
+            particle_pack%pot(ip) = particle_pack%pot(ip) - t%charge * rd
 
-          type(t_tree_node_interaction_data), intent(in) :: node
-          integer(kind_key), intent(in) :: key
-          type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
-
-          real*8 :: exyz(3), phic
-
-          select case (force_law)
-            case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_2D(       node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
-                exyz(3) = 0.
-            case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-                call calc_force_coulomb_3D(       node, delta, dist2 + eps2, exyz, phic)
-            case (4)  ! LJ potential for quiet start
-                call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
-            case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
-                      !  and Kelbg for particle-particle interaction
-                call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
-            case default
-              exyz = 0.
-              phic = 0.
-          end select
-
-          particle%results%e         = particle%results%e    + exyz
-          particle%results%pot       = particle%results%pot  + phic
+            particle_pack%ex(ip) = particle_pack%ex(ip) - qrd3 * delta(ip,1)
+            particle_pack%ey(ip) = particle_pack%ey(ip) - qrd3 * delta(ip,2)
+            particle_pack%ez(ip) = particle_pack%ez(ip) - qrd3 * delta(ip,3)
+          end do
         end subroutine
 
 
@@ -415,10 +411,18 @@ module module_interaction_specific
 
           np = size(particles, kind = kind_particle)
 
-          allocate(packed%results(np))
+          allocate( &
+            packed%ex(np), &
+            packed%ey(np), &
+            packed%ez(np), &
+            packed%pot(np) &
+          )
 
           do ip = 1, np
-            packed%results(ip) = particles(ip)%results
+            packed%ex(ip) = particles(ip)%results%e(1)
+            packed%ey(ip) = particles(ip)%results%e(2)
+            packed%ez(ip) = particles(ip)%results%e(3)
+            packed%pot(ip) = particles(ip)%results%pot
           end do
         end subroutine pack_particle_list
 
@@ -434,12 +438,20 @@ module module_interaction_specific
           integer(kind_particle) :: ip, np
 
           np = size(particles, kind = kind_particle)
-          DEBUG_ASSERT(np == size(packed%results, kind = kind_particle))
+          DEBUG_ASSERT(np == size(packed%ex, kind = kind_particle))
 
           do ip = 1, np
-            particles(ip)%results = packed%results(ip)
+            particles(ip)%results%e(1) = packed%ex(ip)
+            particles(ip)%results%e(2) = packed%ex(ip)
+            particles(ip)%results%e(3) = packed%ex(ip)
+            particles(ip)%results%pot = packed%pot(ip)
           end do
 
-          deallocate(packed%results)
+          deallocate( &
+            packed%ex, &
+            packed%ey, &
+            packed%ez, &
+            packed%pot &
+          )
         end subroutine unpack_particle_list
 end module module_interaction_specific
