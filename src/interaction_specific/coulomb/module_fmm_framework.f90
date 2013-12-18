@@ -780,7 +780,6 @@ module module_fmm_framework
           use module_mirror_boxes, only : num_neighbour_boxes, lattice_vect, neighbour_boxes
           use module_coulomb_kernels, only : calc_force_coulomb_3D_direct
           use module_interaction_specific_types, only : t_particle_pack
-          use module_interaction_specific, only : eps2
           implicit none
 
           real*8, intent(in) :: pos(3)
@@ -838,7 +837,7 @@ module module_fmm_framework
                   dist2(ibox)   = dot_product(delta(ibox,:), delta(ibox,:))
                 end do
 
-                call calc_force_coulomb_3D_direct(delta, dist2, packed, fictcharge(p), eps2)
+                call calc_force_coulomb_3D_direct(delta, dist2, packed, fictcharge(p), 0.0_8)
 
                 e_lattice(1) = e_lattice(1) + sum(packed%ex)
                 e_lattice(2) = e_lattice(2) + sum(packed%ey)
