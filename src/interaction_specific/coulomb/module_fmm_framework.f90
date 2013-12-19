@@ -793,7 +793,7 @@ module module_fmm_framework
           integer :: p, ibox
           real(kfp), parameter :: pi=acos(-one)
           real*8 :: delta(num_neighbour_boxes, 3), dist2(num_neighbour_boxes)
-          type(t_particle_pack) :: packed
+          real*8 :: ex(num_neighbour_boxes), ey(num_neighbour_boxes), ez(num_neighbour_boxes), pot(num_neighbour_boxes)
 
           prefact = two*pi/(three*unit_box_volume)
 
@@ -822,11 +822,6 @@ module module_fmm_framework
               e_lattice   = e_lattice   + two*prefact * box_dipole
               phi_lattice = phi_lattice - two*prefact * dot_product(R, box_dipole) + prefact * quad_trace
             case (FMM_EXTRINSIC_CORRECTION_FICTCHARGE)
-              allocate(packed%ex(num_neighbour_boxes),  &
-                       packed%ey(num_neighbour_boxes),  &
-                       packed%ez(num_neighbour_boxes),  &
-                       packed%pot(num_neighbour_boxes), &
-                       packed%q(num_neighbour_boxes) )
 
               do p=1,nfictcharge
                 ! interact with fictcharge(p)
@@ -837,15 +832,14 @@ module module_fmm_framework
                   dist2(ibox)   = dot_product(delta(ibox,:), delta(ibox,:))
                 end do
 
-                call calc_force_coulomb_3D_direct(delta, dist2, packed, fictcharge(p), 0.0_8)
+                call calc_force_coulomb_3D_direct(1_kind_particle*num_neighbour_boxes, delta, dist2, ex, ey, ez, pot, fictcharge(p), 0.0_8)
 
-                e_lattice(1) = e_lattice(1) + sum(packed%ex)
-                e_lattice(2) = e_lattice(2) + sum(packed%ey)
-                e_lattice(3) = e_lattice(3) + sum(packed%ez)
-                phi_lattice  = phi_lattice  + sum(packed%pot)
+                e_lattice(1) = e_lattice(1) + sum(ex)
+                e_lattice(2) = e_lattice(2) + sum(ey)
+                e_lattice(3) = e_lattice(3) + sum(ez)
+                phi_lattice  = phi_lattice  + sum(pot)
               end do
 
-              deallocate(packed%ex, packed%ey, packed%ez, packed%pot, packed%q)
             case (FMM_EXTRINSIC_CORRECTION_MEASUREMENT)
               DEBUG_ERROR('("fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_MEASUREMENT currently not supported")')
             case default

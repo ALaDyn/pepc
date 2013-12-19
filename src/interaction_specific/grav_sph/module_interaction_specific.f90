@@ -348,14 +348,17 @@ contains
     real*8, intent(in) :: dist2(:)
     type(t_particle_pack), intent(inout) :: particle_pack
     type(t_tree_node_interaction_data), target, intent(in) :: node_data
+    integer(kind_particle) :: np
+    
+    np = size(dist2,kind=kind_particle)
 
     select case (force_law)
     case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-       call calc_force_coulomb_2D_direct(delta, dist2, particle_pack, node_data, eps2)
+       call calc_force_coulomb_2D_direct(np, delta, particle_pack%ex, particle_pack%ey, particle_pack%pot, node_data, eps2)
     case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-       call calc_force_coulomb_3D_direct(delta, dist2, particle_pack, node_data, eps2)
+       call calc_force_coulomb_3D_direct(np, delta, dist2, particle_pack%ex, particle_pack%ey, particle_pack%ez, particle_pack%pot, node_data, eps2)
     case (4)  ! LJ potential for quiet start
-       call calc_force_LJ(delta, dist2, particle_pack, node_data, eps2)
+       call calc_force_LJ(np, delta, dist2, particle_pack%ex, particle_pack%ey, particle_pack%ez, node_data, eps2)
     case (5)
         call update_nn_list(particle_pack, node_data, delta, dist2)
     case default
@@ -381,14 +384,17 @@ contains
     real*8, intent(in) :: dist2(:)
     type(t_particle_pack), intent(inout) :: particle_pack
     type(t_tree_node_interaction_data), target, intent(in) :: node_data
+    integer(kind_particle) :: np
+
+    np = size(dist2,kind=kind_particle)
 
     select case (force_law)
     case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-       call calc_force_coulomb_2D(delta, dist2, particle_pack, node_data, eps2)
+       call calc_force_coulomb_2D(np, delta, particle_pack%ex, particle_pack%ey, particle_pack%pot, node_data, eps2)
     case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-       call calc_force_coulomb_3D(delta, dist2, particle_pack, node_data, eps2)
+       call calc_force_coulomb_3D(np, delta, dist2, particle_pack%ex, particle_pack%ey, particle_pack%ez, particle_pack%pot, node_data, eps2)
     case (4)  ! LJ potential for quiet start
-       call calc_force_LJ(delta, dist2, particle_pack, node_data, eps2)
+       call calc_force_LJ(np, delta, dist2, particle_pack%ex, particle_pack%ey, particle_pack%ez, node_data, eps2)
     case (5)
        call update_nn_list(particle_pack, node_data, delta, dist2)
     case default
