@@ -15,4 +15,5 @@ BACKENDTYPE = XYZQVM
 
 #WALK = pthreads_clustered
 #WALK = simple
+#WALK = openmp
 WALK = pthreads

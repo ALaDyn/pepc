@@ -305,7 +305,7 @@ contains
           call sph_kernel(  sqrt( particles(local_particle_index)%results%dist2(actual_neighbour) ), h, kernel)
 
           particles(local_particle_index)%results%rho = particles(local_particle_index)%results%rho + &
-               actual_node%interaction_data%charge *kernel
+               actual_node%interaction_data%q *kernel
 
        end do
 
@@ -541,7 +541,7 @@ contains
           
           
           ! compute scalar part of the force: mass * ( p1/rho1^2 + p2/rho2^2 + art_vis ) * grad_kernel
-          scalar_force = actual_node%interaction_data%charge * &
+          scalar_force = actual_node%interaction_data%q * &
                ( &
                const * actual_node%interaction_data%temperature / actual_node%interaction_data%rho + &
                const * particles(local_particle_index)%data%temperature / particles(local_particle_index)%results%rho + &
@@ -556,7 +556,7 @@ contains
           if( sph_debug ) then
              write(50, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, &
                   particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, &
-                  actual_neighbour, actual_node%interaction_data%coc(1), distance, dist(1), grad_kernel_1, actual_node%interaction_data%charge, & 
+                  actual_neighbour, actual_node%interaction_data%coc(1), distance, dist(1), grad_kernel_1, actual_node%interaction_data%q, & 
                   actual_node%interaction_data%temperature, actual_node%interaction_data%h, actual_node%interaction_data%rho, &
                   scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
           end if
@@ -643,9 +643,7 @@ contains
     use module_pepc_types, only: &
          t_particle, &
          t_tree_node, &
-         kind_particle, &
-         kind_node, &
-         kind_pe
+         kind_node
 
     ! only for sort test
     use module_sort
@@ -685,7 +683,7 @@ contains
     integer(kind_node) :: nleaf_non_local
     integer*8, allocatable :: non_local_node_keys(:)
     integer*8, allocatable :: non_local_nodes(:)
-    integer(kind_pe), allocatable :: non_local_node_owner(:)
+    integer*8, allocatable :: non_local_node_owner(:)
     integer, allocatable :: node_arr_cp(:)
     integer, allocatable :: int_arr(:)
     integer :: num_request
@@ -713,7 +711,7 @@ contains
     integer, dimension(1:max_props) :: blocklengths, displacements, types
     integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
     logical :: found
-
+    
     nleaf_non_local = t%nleaf - t%nleaf_me ! bigger than necessary, TODO: find a better estimation for this
 
     allocate( non_local_node_keys(nleaf_non_local), non_local_node_owner(nleaf_non_local), requests_per_process(n_cpu), &
@@ -721,6 +719,7 @@ contains
          sdispls(n_cpu), rdispls(n_cpu), STAT=ierr )
     ! TODO: remove int_arr after sort test
     ! TODO: test STAT
+
 
     num_request = 0
 
@@ -736,7 +735,7 @@ contains
              non_local_node_owner(num_request) = actual_node%owner
           end if
     end do
-
+    
     ! a test for debugging
     if( sph_debug) then
        do i = 1, num_request
@@ -761,7 +760,6 @@ contains
     non_local_nodes(1:num_request)     = non_local_nodes(int_arr(1:num_request))
 
     requests_per_process = 0
-
     do i = 1, num_request
        ! use owner + 1, because owner is from 0 and array index from 1
        requests_per_process(non_local_node_owner(i)+1) = requests_per_process(non_local_node_owner(i)+1) + 1
@@ -799,6 +797,9 @@ contains
 !    write (*,*) 'rdispls:', my_rank, rdispls
 
 
+    call MPI_ALLTOALLV(non_local_node_keys, requests_per_process, sdispls, MPI_INTEGER8, &
+         requested_keys, requests_from_process, rdispls, MPI_INTEGER8, MPI_COMM_WORLD, ierr)
+    
     ! register propertyupdate data type ! FIXME: this has to be released somewhere: MPI_TYPE_FREE()
     blocklengths(1:nprops_property_update)  = [1, 1, 1, 1, 3, 1]
     types(1:nprops_property_update)         = [MPI_INTEGER8, MPI_INTEGER, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
@@ -846,7 +847,6 @@ contains
       end if
       
     end do
-
     
     disp = 0
     do i = 1, n_cpu
@@ -881,7 +881,6 @@ contains
        actual_node%interaction_data%temperature = particles(i)%data%temperature
        actual_node%interaction_data%h           = particles(i)%results%h
     end do
-
 
 
 

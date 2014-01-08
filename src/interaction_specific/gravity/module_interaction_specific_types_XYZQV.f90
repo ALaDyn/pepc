@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-!
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! 
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-!
+! 
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-!
+! 
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-!
+! 
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -57,13 +57,6 @@ module module_interaction_specific_types
 
       type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results([0., 0., 0.], 0.)
 
-      type t_particle_pack
-         real*8, allocatable :: ex(:)
-         real*8, allocatable :: ey(:)
-         real*8, allocatable :: ez(:)
-         real*8, allocatable :: pot(:)
-      end type t_particle_pack
-
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
         real*8 :: coc(3)     ! centre of charge
@@ -74,9 +67,9 @@ module module_interaction_specific_types
 
       contains
 !
-      !>
+      !>  
       !> Writes particle interaction data and results to a VTK file.
-      !>
+      !>  
       subroutine vtk_write_particle_data_results(d, r, vtkf)
         use module_vtk
         implicit none
@@ -94,9 +87,9 @@ module module_interaction_specific_types
       end subroutine vtk_write_particle_data_results
 !
 !
-      !>
+      !>  
       !> Writes (a sensible subset of) tree node interaction data to a VTK file.
-      !>
+      !>  
       subroutine vtk_write_node_interaction_data(d, vtkf)
         use module_vtk
         implicit none

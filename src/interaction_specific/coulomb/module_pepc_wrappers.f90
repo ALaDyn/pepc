@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-!
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! 
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-!
+! 
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-!
+! 
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-!
+! 
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -73,9 +73,9 @@ module module_pepc_wrappers
         real*8, dimension(np_local) :: p_w ! work loads
         logical, intent(in) :: no_dealloc
         real*8, intent(in) :: force_const
-
+        
         integer :: i
-
+        
         if (allocated(particles))        deallocate(particles)
         allocate(particles(1:np_local))
 
@@ -91,7 +91,7 @@ module module_pepc_wrappers
 
         call pepc_particleresults_clear(particles)
         call pepc_grow_and_traverse(particles, itime=itime, no_dealloc=no_dealloc, no_restore=.false.)
-
+        
         np_local = size(particles)
 
         ! read data from particle_coordinates, particle_results, particle_properties
@@ -109,6 +109,7 @@ module module_pepc_wrappers
 
     subroutine pepc_grid_fields_coulomb_wrapper(ngp,p_x, p_y, p_z, p_label, p_Ex, p_Ey, p_Ez, p_pot, &
                               num_neighbour_boxes, neighbour_boxes, force_const)
+      use treevars, only : me
       use module_pepc
       implicit none
       integer, intent(in) :: ngp

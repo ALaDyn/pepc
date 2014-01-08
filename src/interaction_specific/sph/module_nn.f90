@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-!
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! 
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-!
+! 
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-!
+! 
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-!
+! 
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -37,8 +37,8 @@ module module_nn
     type(t_tree), intent(in) :: t
     type(t_particle), intent(inout) :: particles(:)
 
-    integer(kind_node) :: node
-    integer :: i, j
+    integer(kind_node) :: node, parent
+    integer :: i
     real*8, dimension(:), allocatable :: boxdiag2
 
     allocate(boxdiag2(0:nlev))
@@ -59,9 +59,7 @@ module module_nn
           if (t%nodes(node)%leaves >= num_neighbour_particles) then
             ! this twig contains enough particles --> we use its diameter as search radius
             particles(i)%results%maxdist2 = boxdiag2(t%nodes(node)%level)
-            do j=1,num_neighbour_particles
-              particles(i)%results%neighbour_nodes(j)%p => t%nodes(node)%interaction_data
-            end do
+            particles(i)%results%neighbour_nodes(1:num_neighbour_particles) = node
 
             exit ! from this loop
           endif
@@ -71,7 +69,7 @@ module module_nn
        end do
 
        particles(i)%results%dist2(1:num_neighbour_particles) = particles(i)%results%maxdist2
-       particles(i)%results%dist_vector(:,1:num_neighbour_particles) = -13._8
+       particles(i)%results%dist_vector(:,1:num_neighbour_particles) = -13._8 
 
     end do
   end subroutine nn_prepare_particleresults

@@ -239,7 +239,7 @@ module module_walk
   !>
   subroutine tree_walk_finalize()
     implicit none
-    if (allocated(threaddata)) deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
+    deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
   end subroutine tree_walk_finalize
 
 
@@ -358,7 +358,6 @@ module module_walk
     use module_atomic_ops
     use module_pepc_types
     use treevars, only: main_thread_processor_id
-    use module_interaction_specific_types, only: t_particle_pack
     implicit none
     include 'mpif.h'
 
@@ -366,7 +365,7 @@ module module_walk
     type(c_ptr), value :: arg
 
     integer, dimension(:), allocatable :: thread_particle_indices
-    type(t_particle_pack), dimension(:), allocatable :: thread_particle_data
+    type(t_particle), dimension(:), allocatable :: thread_particle_data
     integer(kind_node), dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
     integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
@@ -441,8 +440,7 @@ module module_walk
             ptr_defer_list_new      => defer_list_new(defer_list_new_tail:total_defer_list_length)
             defer_list_start_pos(i) =  defer_list_new_tail
 
-            particle_has_finished  = walk_single_particle(thread_particle_indices(i), &
-                                      thread_particle_data(i), &
+            particle_has_finished  = walk_single_particle(thread_particle_data(i), &
                                       ptr_defer_list_old, defer_list_entries_old, &
                                       ptr_defer_list_new, defer_list_entries_new, &
                                       todo_list, partner_leaves(i), my_threaddata)
@@ -451,16 +449,16 @@ module module_walk
               ! walk for particle i has finished
               ! check whether the particle really interacted with all other particles
               if (partner_leaves(i) .ne. walk_tree%npart) then
-                write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') walk_tree%comm_env%rank, thread_particle_indices(i), particle_data(thread_particle_indices(i))%label
+                write(*,'("Algorithmic problem on PE", I7, ": Particle ", I10, " label ", I16)') walk_tree%comm_env%rank, thread_particle_indices(i), thread_particle_data(i)%label
                 write(*,'("should have been interacting (directly or indirectly) with", I16," leaves (particles), but did with", I16)') walk_tree%npart, partner_leaves(i)
                 write(*,*) "Its force and potential will be wrong due to some algorithmic error during tree traversal. Continuing anyway"
                 call debug_mpi_abort()
               end if
 
               ! copy forces and potentials back to thread-global array
-              call unpack_particle_list(thread_particle_data(i), particle_data(thread_particle_indices(i):thread_particle_indices(i)))
+              particle_data(thread_particle_indices(i)) = thread_particle_data(i)
               ! mark particle entry i as free
-              thread_particle_indices(i) = -1
+              thread_particle_indices(i)                = -1
               ! count total processed particles for this thread
               my_threaddata%counters(THREAD_COUNTER_PROCESSED_PARTICLES) = my_threaddata%counters(THREAD_COUNTER_PROCESSED_PARTICLES) + 1
             else
@@ -540,7 +538,7 @@ module module_walk
 
         if (contains_particle(idx)) then
           ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
-          call pack_particle_list([particle_data(thread_particle_indices(idx))], thread_particle_data(idx))
+          thread_particle_data(idx) = particle_data(thread_particle_indices(idx))
           ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
@@ -562,23 +560,23 @@ module module_walk
   end function walk_worker_thread
 
 
-  function walk_single_particle(particle_idx, particle_pack, &
-                                defer_list_old, defer_list_entries_old, &
-                                defer_list_new, defer_list_entries_new, &
-                                todo_list, partner_leaves, my_threaddata)
+  function walk_single_particle(particle, defer_list_old, defer_list_entries_old, &
+                                          defer_list_new, defer_list_entries_new, &
+                                          todo_list, partner_leaves, my_threaddata)
     use module_tree_node
     use module_tree_communicator, only: tree_node_fetch_children
     use module_interaction_specific
-    use module_interaction_specific_types, only: t_particle_pack
     use module_spacefilling, only : is_ancestor_of_particle
     use module_debug
+    #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+    use module_mirror_boxes, only : spatial_interaction_cutoff
+    #endif
     use module_atomic_ops
     use module_pepc_types
     implicit none
     include 'mpif.h'
 
-    integer, intent(in) :: particle_idx
-    type(t_particle_pack), intent(inout) :: particle_pack
+    type(t_particle), intent(inout) :: particle
     integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
     integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
@@ -591,17 +589,16 @@ module module_walk
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
-    real*8 :: dist2(1), delta(1,3), shifted_particle_position(3), work
+    real*8 :: dist2, delta(3), shifted_particle_position(3)
     logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
 
-    work                   = 0._8
     todo_list_entries      = 0
     num_interactions       = 0
     num_mac_evaluations    = 0
     num_post_request       = 0
     walk_node_idx          = NODE_INVALID
-    shifted_particle_position = particle_data(particle_idx)%x - vbox ! precompute shifted particle position to avoid subtracting vbox in every loop iteration below
+    shifted_particle_position = particle%x - vbox ! precompute shifted particle position to avoid subtracting vbox in every loop iteration below
 
     ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
     ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
@@ -620,31 +617,42 @@ module module_walk
       ! been modified due to 'duplicate keys'-error)
       is_leaf = tree_node_is_leaf(walk_node)
 
-      delta(1,:) = shifted_particle_position - walk_node%interaction_data%coc ! Separation vector
-      dist2(1) = DOT_PRODUCT(delta(1,:), delta(1,:))
+      delta = shifted_particle_position - walk_node%interaction_data%coc ! Separation vector
+      dist2 = DOT_PRODUCT(delta, delta)
 
       if (is_leaf) then
         partner_leaves = partner_leaves + 1
-        num_interactions = num_interactions + 1
-        work = work + 1._8
 
-        call calc_force_per_interaction_with_leaf(delta, dist2, particle_pack, walk_node%interaction_data)
+        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+        if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
+        #endif
+
+        if (dist2 > 0.0_8) then ! not self, interact
+          call calc_force_per_interaction_with_leaf(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+        else ! self, count as interaction partner, otherwise ignore
+          call calc_force_per_interaction_with_self(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+        end if
+
+        num_interactions = num_interactions + 1
+        particle%work = particle%work + 1._8
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
 
-        if (mac(IF_MAC_NEEDS_PARTICLE(particle_data(particle_idx)) walk_node%interaction_data, dist2(1), walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
+        if (mac(IF_MAC_NEEDS_PARTICLE(particle) walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
           partner_leaves = partner_leaves + walk_node%leaves
-          num_interactions = num_interactions + 1
-          work = work + 1._8
 
-          call calc_force_per_interaction_with_twig(delta, dist2, particle_pack, walk_node%interaction_data)
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
+          #endif
+
+          call calc_force_per_interaction_with_twig(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+          num_interactions = num_interactions + 1
+          particle%work = particle%work + 1._8
         else ! MAC negative, resolve
           call resolve()
         end if
       end if
     end do ! (while (todo_list_pop(walk_key)))
-
-    particle_data(particle_idx)%work = particle_data(particle_idx)%work + work
 
     ! if todo_list and defer_list are now empty, the walk has finished
     walk_single_particle = (todo_list_entries == 0) .and. (defer_list_entries_new == 0)
@@ -673,7 +681,7 @@ module module_walk
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         ! eager requests
-        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(particle_idx), shifted_particle_position) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle, shifted_particle_position) ! fetch children from remote
         ! simple requests
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         num_post_request = num_post_request + 1
@@ -720,7 +728,7 @@ module module_walk
           if (n == NODE_INVALID) exit
         end do
       else
-        DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle_data(particle_idx)%label, todo_list_length)
+        DEBUG_WARNING_ALL('("todo_list is full for particle with label ", I20, " todo_list_length =", I6, " is too small (you should increase interaction_list_length_factor). Putting particles back onto defer_list. Programme will continue without errors.")', particle%label, todo_list_length)
       end if
     end function
 

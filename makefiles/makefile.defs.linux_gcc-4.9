@@ -6,7 +6,7 @@ MACH     = linux_gcc-4.9
 
 DEBUG    = 0
 OMP      = 1
-GPERFTOOLS = 1
+GPERFTOOLS = 0
 
 RANLIB   = ranlib
 
@@ -50,7 +50,7 @@ CC       = mpicc
 
 LDPRE    = 
 LD       = mpicc
-LDLIBS   = -lgfortran
+LDLIBS   = -lgfortran -lm
 
 ifeq ($(GPERFTOOLS), 1)
   # download and installation: http://code.google.com/p/gperftools/

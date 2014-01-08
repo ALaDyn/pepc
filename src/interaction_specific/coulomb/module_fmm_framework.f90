@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-!
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! 
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-!
+! 
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-!
+! 
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-!
+! 
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -83,7 +83,7 @@ module module_fmm_framework
       !> fictitious charges and their position: fictcharge(0,i)=q_i, fictcharge(1:3,i)=r_i
       type(t_tree_node_interaction_data) :: fictcharge(1:4)
       integer :: nfictcharge = 0
-
+      
       contains
 
         !>
@@ -138,7 +138,7 @@ module module_fmm_framework
           if (.not. check_lattice_boundaries(particles)) then
             DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
           endif
-
+          
           if (      (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_REDLACK) &
                 .or. (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_FICTCHARGE)) then
             call calc_box_dipole(particles)
@@ -191,7 +191,7 @@ module module_fmm_framework
 
           ! zeroth step of iteration
           ML = Lstar
-
+          
           ! FIXME untested : call zero_terms_taylor(ML)
 
           do iter = 1,MaxIter
@@ -221,10 +221,10 @@ module module_fmm_framework
           use module_mirror_boxes, only : periodicity
           implicit none
           complex(kfp), intent(inout) :: M(1:fmm_array_length_taylor)
-
+          
           ! 1D, 2D, and 3D periodicity
           M(tblinv(0, 0, Lmax_taylor)) = (zero, zero)
-
+          
           if (count(periodicity) > 2) then
             ! only for 3D-periodic case
             M(tblinv(1, 0, Lmax_taylor)) = (zero, zero)
@@ -241,17 +241,17 @@ module module_fmm_framework
           use module_mirror_boxes, only : periodicity
           implicit none
           complex(kfp), intent(inout) :: O(1:fmm_array_length_multipole)
-
+          
           ! 1D, 2D, and 3D periodicity
           O(tblinv(0, 0, Lmax_multipole)) = (zero, zero)
-
+          
           if (count(periodicity) > 2) then
             ! only for 3D-periodic case
             O(tblinv(1, 0, Lmax_multipole)) = (zero, zero)
             O(tblinv(1, 1, Lmax_multipole)) = (zero, zero)
           endif
         end subroutine
-
+         
 
         !>
         !> Sets the lattice coefficients for computing mu_cent
@@ -525,7 +525,7 @@ module module_fmm_framework
 
           integer(kind_particle) :: p
           integer :: ierr
-
+          
           omega_tilde = zero
 
           ! calculate multipole contributions of all local particles
@@ -535,16 +535,16 @@ module module_fmm_framework
           do p=1,size(particles, kind=kind(p))
             call addparticle(omega_tilde, particles(p)%x, particles(p)%data%q)
           end do
-          !$OMP  END PARALLEL DO
+          !$OMP  END PARALLEL DO          
           !$ call omp_set_num_threads(1)
-
+          
           ! extrinsic correction via fictitious charges according to [Kudin & Scuseria, ChemPhysLet 283, 61 (1998)] on rank 0
           if (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_FICTCHARGE) then
             ! the fictitious charges are needed on all ranks for central-cell interaction
             ! but will only be added to the cell multipole expansion on rank 0
-
+            
             nfictcharge = 0
-
+            
             do p=1,3
               if (periodicity(p)) then
                 nfictcharge = nfictcharge + 1
@@ -552,11 +552,11 @@ module module_fmm_framework
                 fictcharge(nfictcharge)%charge   = - box_dipole(p) / sqrt(dot_product(Lattice(p,:),Lattice(p,:))) ! charge
               end if
             end do
-
+            
             nfictcharge = nfictcharge + 1
             fictcharge(nfictcharge)%coc(1:3)     =  LatticeOrigin                                                 ! position
             fictcharge(nfictcharge)%charge       = -sum(fictcharge(1:nfictcharge-1)%charge)                       ! charge
-
+            
             if (myrank==0) then
               do p=1,nfictcharge
                  call addparticle(omega_tilde, fictcharge(p)%coc, fictcharge(p)%charge)
@@ -577,8 +577,10 @@ module module_fmm_framework
             DEBUG_WARNING(*, 'The central box is not charge-neutral: Q_total=omega_tilde( tblinv(0, 0))=', omega_tilde( tblinv(0, 0, Lmax_multipole)), ' Setting to zero, resulting potentials might be wrong.' )
             omega_tilde( tblinv(0, 0, Lmax_multipole)) = (zero, zero) ! FIXME this line should be removed if zero_terms_..() functions are used
           end if
-
+          
           ! FIXME untested : call zero_terms_multipole(omega_tilde)
+          
+          ! sum contributions from all processors
 
         contains
           subroutine addparticle(om, R, q)
@@ -588,7 +590,7 @@ module module_fmm_framework
             real*8, intent(in) :: q
             real(kfp) :: S(3)
             integer :: ll, mm
-
+             
             S   = cartesian_to_spherical(R - LatticeCenter)
 
             do ll=0,Lmax_multipole
@@ -628,13 +630,13 @@ module module_fmm_framework
             box_dipole = box_dipole + particles(p)%data%q * r
             quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
           end do
-
+          
           ! sum contributions from all processors
           call MPI_ALLREDUCE(MPI_IN_PLACE, box_dipole, 3, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
           call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
         end subroutine calc_box_dipole
 
-
+         
         !>
         !> Calculates the lattice contribution with respect to the
         !> centre of the original box
@@ -779,7 +781,6 @@ module module_fmm_framework
         subroutine fmm_sum_lattice_force(pos, e_lattice, phi_lattice)
           use module_mirror_boxes, only : num_neighbour_boxes, lattice_vect, neighbour_boxes
           use module_coulomb_kernels, only : calc_force_coulomb_3D_direct
-          use module_interaction_specific_types, only : t_particle_pack
           implicit none
 
           real*8, intent(in) :: pos(3)
@@ -792,9 +793,8 @@ module module_fmm_framework
           real(kfp) :: prefact
           integer :: p, ibox
           real(kfp), parameter :: pi=acos(-one)
-          real*8 :: delta(num_neighbour_boxes, 3), dist2(num_neighbour_boxes)
-          real*8 :: ex(num_neighbour_boxes), ey(num_neighbour_boxes), ez(num_neighbour_boxes), pot(num_neighbour_boxes)
-
+          real*8 :: etmp(3), phitmp, delta(3)
+          
           prefact = two*pi/(three*unit_box_volume)
 
           ! shift mu_cent to the position of our particle
@@ -812,7 +812,7 @@ module module_fmm_framework
           ! E = -grad(Phi)
           e_lattice(1) = - real(tbl(mu_shift, 1, 1, Lmax_taylor))
           e_lattice(2) = -aimag(tbl(mu_shift, 1, 1, Lmax_taylor))
-          e_lattice(3) = - real(tbl(mu_shift, 1, 0, Lmax_taylor))
+          e_lattice(3) = - real(tbl(mu_shift, 1, 0, Lmax_taylor))                            
           phi_lattice  =   real(tbl(mu_shift, 0, 0, Lmax_taylor))
 
           select case (fmm_extrinsic_correction)
@@ -822,24 +822,17 @@ module module_fmm_framework
               e_lattice   = e_lattice   + two*prefact * box_dipole
               phi_lattice = phi_lattice - two*prefact * dot_product(R, box_dipole) + prefact * quad_trace
             case (FMM_EXTRINSIC_CORRECTION_FICTCHARGE)
-
               do p=1,nfictcharge
                 ! interact with fictcharge(p)
                 ! we loop over all vbox-vectors, in fact we are only interested in the surface charges since the others cancel anyway, but
                 ! the exception for this is too complicated for now - FIXME: correct this
                 do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
-                  delta(ibox,:) = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
-                  dist2(ibox)   = dot_product(delta(ibox,:), delta(ibox,:))
+                  delta = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
+                  call calc_force_coulomb_3D_direct(fictcharge(p), delta, dot_product(delta, delta), etmp, phitmp)
+                  e_lattice   = e_lattice   + etmp
+                  phi_lattice = phi_lattice + phitmp
                 end do
-
-                call calc_force_coulomb_3D_direct(1_kind_particle*num_neighbour_boxes, delta, dist2, ex, ey, ez, pot, fictcharge(p), 0.0_8)
-
-                e_lattice(1) = e_lattice(1) + sum(ex)
-                e_lattice(2) = e_lattice(2) + sum(ey)
-                e_lattice(3) = e_lattice(3) + sum(ez)
-                phi_lattice  = phi_lattice  + sum(pot)
               end do
-
             case (FMM_EXTRINSIC_CORRECTION_MEASUREMENT)
               DEBUG_ERROR('("fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_MEASUREMENT currently not supported")')
             case default

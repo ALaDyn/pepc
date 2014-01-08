@@ -27,7 +27,7 @@ LDPRE     =
 FC        = mpigfortran
 CC        = mpigcc
 LD        = mpigcc
-LDLIBS    = -lgfortran
+LDLIBS    = -lgfortran -lm
 
 # GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
 CPP      = cpp -Uvector

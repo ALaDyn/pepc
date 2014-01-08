@@ -25,24 +25,13 @@ module files
   logical, public :: IO_debug = .false.
   integer, public :: SPH_ASCII02_columnwidth = 12
 
-  integer, private :: num_known_output_formats = 3
-
-  character(255), public :: parameter_file_name
-  character(255), public :: data_file_name
-
-  logical, public :: parameter_file_available
-  logical, public :: data_file_available
-  
-  integer, public :: output_type
-  integer, public :: run_type
 
   public openfiles
   public closefiles
   public write_particles
   public read_in_checkpoint
   public write_particles_to_vtk
-  public process_commandline_arguments
-  public read_particles
+
 
 contains
 
@@ -292,7 +281,7 @@ contains
      SPH_ASCII02_columnwidth = 16
 
      if(my_rank == 0) write(*,*) "IO: write particles in mpi-io ascii 02 mode. Step:", step
-!     flush(6)
+     flush(6)
 
      width = SPH_ASCII02_columnwidth
 
@@ -312,7 +301,7 @@ contains
 
      if(IO_debug) then
         write(*,*) 'opening file'
-!        flush(6)
+        flush(6)
      end if
 
  
@@ -324,7 +313,7 @@ contains
 
         if(IO_debug) then
            write(*,*) 'writing header', all_part, step
-!           flush(6)
+           flush(6)
         end if
  
         write(header, '(a,I10,a)') '# SPH_ASCII02 ', all_part, new_line('A')
@@ -333,7 +322,7 @@ contains
         
         if(IO_debug) then
            write(*,*) 'writing header 1 ', headerlength, trim(header)
-!           flush(6)
+           flush(6)
         end if
  
         offset = 0_8
@@ -341,7 +330,7 @@ contains
  
         if(IO_debug) then
            write(*,*) 'writing header 2 ', status
-!           flush(6)
+           flush(6)
         end if
 
         write( formatstring, '(a,I2,a,I2,a)' ) '(a,I6,2a,I2,2a,a', width-2, ',x,15(a', width, ',x),a)'
@@ -366,7 +355,7 @@ contains
  
         if(IO_debug) then
            write(*,*) 'writing header 3'
-!           flush(6)
+           flush(6)
         end if
 
         offset = int(headerlength, 8)
@@ -374,7 +363,7 @@ contains
  
         if(IO_debug) then
            write(*,*) 'writing header done'
-!           flush(6)
+           flush(6)
         end if
         
         current_offset = int(headerlength, 8) + int(extended_header_length, 8)
@@ -418,389 +407,7 @@ contains
  
    end subroutine write_particles_sph_ascii02
  
-
-
-   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   ! >
-   ! > Process the commandline arguments
-   ! >
-   ! > Gets name of parameterfile (if available) and passes it to pepc_read_parameters_from_file_name.
-   ! > Gets name of datafile (if available) and returns it.
-   ! > Has same functionality for pepc as pepc_read_parameters_from_first_argument.
-   ! >
-   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine process_commandline_arguments()
-     
-     use physvars, only: &
-          my_rank, &
-          dump_time, &
-          cp_time, &
-          ispecial
-
-     use module_debug, only: &
-          pepc_status
-
-     use module_pepc, only: &
-          pepc_read_parameters_from_file_name
-     
-     implicit none
-     include 'mpif.h'
-     
-     logical            :: available
-     character(len=255) :: file_name
-     logical            :: data_available
-     character(len=255) :: datafile
-!     integer            :: run_type         ! what is performed during the run.
-
-     character(len=255) :: argument1
-     character(len=255) :: argument2
-     character(len=255) :: argument3
-     integer :: ierr
-     logical :: syntax_error = .false.
-     integer :: output_type
-     
-
-     available      = .false.
-     file_name      = ''
-     data_available = .false.
-     datafile       = ''
-     run_type       = 1
-
-
  
-     ! rank 0 reads in first command line argument
-     if (my_rank .eq. 0) then
-        if( COMMAND_ARGUMENT_COUNT() .ne. 0 ) then
-           call GET_COMMAND_ARGUMENT(1, argument1)
-           write(*,*) "argument1:", argument1
-           if( argument1(1:7) .eq. '-resume' ) then
-              if( COMMAND_ARGUMENT_COUNT() > 2 ) then
-                 call GET_COMMAND_ARGUMENT(2, argument2)
-                 call GET_COMMAND_ARGUMENT(3, argument3)
-                 available = .true.
-                 file_name = trim(argument2)
-                 datafile = trim(argument3)
-                 run_type = 2
-              else
-                 write(*,*) "======================================================================="
-                 write(*,*) "Error: To few arguments for -resume. Need parameter file and data file."
-                 write(*,*) ""
-                 syntax_error = .true.
-              end if
-              
-           else if( argument1(1:8) .eq. '-convert' ) then
-              write(*,*) "converting"
-              if( COMMAND_ARGUMENT_COUNT() > 2 ) then
-                 call GET_COMMAND_ARGUMENT(2, argument2)
-                 read(argument2,*) output_type
-                 if( output_type > 0 .and. output_type < num_known_output_formats) then
-                    call GET_COMMAND_ARGUMENT(3, argument3)
-                    data_available = .true.
-                    datafile = trim(argument3)
-                    run_type = 3
-                    ispecial = -1
-                    ! vtk dump every dump_time steps
-                    dump_time = 1
-                    
-                    ! checkpoint files every cp_time steps
-                    cp_time = 1
-                    write (*,*) "set runtype to 3"
-                 else
-                    write(*,*) "======================================================================="
-                    write(*,*) "Error: Unknown output_type."
-                    write(*,*) ""
-!                    call flush()
-                    syntax_error = .true.
-                 end if
-              else
-                 write(*,*) "======================================================================="
-                 write(*,*) "Error: To few arguments for -convert. Need target type and data file."
-                 write(*,*) ""
-!                 call flush()
-                 syntax_error = .true.
-              end if
-              
-           else
-              !if( argument1(1:5) .eq. 'run.h' ) then
-              available = .true.
-              file_name = trim(argument1)
-              run_type = 1
-
-              if( COMMAND_ARGUMENT_COUNT() > 1 ) then
-                 call GET_COMMAND_ARGUMENT(2, argument2)
-                 datafile = trim(argument2)
-              end if
-
-           end if
-
-        else
-           ! default run
-
-        end if
-     
-     end if
-  
- 
-     if( syntax_error ) then 
-        
-        if(my_rank .eq. 0) then
-           write(*,*) "Usage: pepc-...                                   To run the standard setup."
-           write(*,*) "       pepc-... run.h                             To run a user specified setup."
-           write(*,*) "       pepc-... -resume run.h datafile            To read physical conditions from run.h and particle data from datafile."
-           write(*,*) "       pepc-... -convert outputformat datafile    To convert datafile into outputformat."
-           write(*,*) ""
-           write(*,*) "Allowed outputformats are:"
-           write(*,*) "1      for ASCII"
-           write(*,*) "2      for VTK BINARY"
-           write(*,*) "3      for MPIIO"
-           write(*,*) ""
-           write(*,*) "Exiting."
-        end if
-        
-        call MPI_ABORT(MPI_COMM_WORLD, ierr)
-        
-     end if
-
-        
-
-     
-        
-        
-     call MPI_BCAST( available, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr )
-     
-     if( available ) then
-        
-        call MPI_BCAST( file_name, 255, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr )
-        
-        if(my_rank .eq. 0) write(*,*) "found parameter file: ", file_name
-        
-     end if
-        
-        
-     call MPI_BCAST( data_available, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr )
-     
-     if( data_available ) then
-        
-        call MPI_BCAST( datafile, 255, MPI_CHARACTER, 0, MPI_COMM_WORLD, ierr )
-        
-        write(*,*) "found data file: ", datafile
-     end if
-
-     call MPI_BCAST( run_type, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
-
-     if( available ) then
-        call pepc_status("INIT FROM FILE "//file_name)
-        call pepc_read_parameters_from_file_name(file_name)
-     else
-        call pepc_status("INIT WITH DEFAULT PARAMETERS")
-     end if
-
-     parameter_file_available = available
-     parameter_file_name      = file_name
-     data_file_available      = data_available
-     data_file_name           = datafile
-
-   end subroutine process_commandline_arguments
-
-
-
-   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   ! >
-   ! >
-   ! >
-   ! >
-   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine read_particles()
-     
-     use physvars
-
-     implicit none
-     include 'mpif.h'
-     
-     integer :: ierr
-     integer :: filetype = -1    ! 1 for ascii02, 2 for binary vtk, 3 for mpiio, 4 for ascii01, -1 for unknown
-     character(50) ::  header
-
-     
-     if( my_rank .eq. 0 ) write(*,*) "Reading particles from file", trim(data_file_name)
-     
-     if( my_rank .eq. 0 ) then
-        
-        open(33, file=trim(data_file_name)) 
-        read(33, '(a)' ) header
-        
-        if( header(1:14) .eq. '# SPH_ASCII01' ) then
-           
-           filetype = 4
-           
-!        else if( header(1:27) .eq. '# vtk DataFile Version 3.0' ) then
-!           
-!           filetype = -1
-           
-        else
-           
-           write(*,*) 'unknown data file format', header   
-           call MPI_ABORT(MPI_COMM_WORLD, 12, ierr)
-           
-        end if
-        
-        close(33)
-        
-     end if
-     
-     
-     call MPI_BCAST( filetype, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
-     
-     if( filetype .eq. 4 ) then
-        
-        call read_sph_ascii01(data_file_name)
-        
-!     else if( filetype .eq. 1 ) then 
-        
-!        call read_sph_vtk(datafilename, resume_time)
-        
-     else
-        
-        write(*,*) 'not yet implemented'
-        call MPI_ABORT(MPI_COMM_WORLD, 12, ierr)
-        
-     end if
-
-     
-   end subroutine read_particles
-
-
-   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   ! > 
-   ! > read particle data from SPH_ASCII01 file using MPI-IO
-   ! >
-   ! >
-   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine read_sph_ascii01(filename)
-
-     use physvars
-!, only: &
-!          my_rank, &
-!!          np_local, &
-!          npart_total, &
-!          particles
-
-    implicit none
-    include 'mpif.h'
-
-    character(*), intent(in) :: filename               ! all processes start this subroutine with the correct filename so BCAST before
-
-    integer :: step
-    integer :: p, ierr, tmp_int
-
-    integer :: part_including_mine
-    integer :: part_before_me
-    integer :: fh      ! filehandle
-    integer :: bufferlength
-    integer*8 :: offset
-    character(5000) :: buffer
-    integer :: headerlength
-    character(5000) ::  header
-    character(5000) ::  header2
-    integer :: namelistlength = 5000
-    character :: namelist*5000
-    integer, dimension(MPI_STATUS_SIZE) :: status
-    integer :: input_particles
-    integer :: current_pos
-
-    integer :: resume_time
-
-
-    integer :: ftell  ! FIXME: ftell is a GNU extension, not available in xlf, see http://gcc.gnu.org/onlinedocs/gfortran/FTELL.html
-
-
-    if(my_rank .eq. 0) write(*,*) "read particles from SPH_ASCII01 file with MPIIO: ", TRIM(filename)
-
-    call MPI_SCAN(np_local, part_including_mine, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-
-    part_before_me = part_including_mine - np_local
-
-    if( my_rank .eq. 0) then 
-
-       open(33, file=trim(filename)) 
-       read(33, '(a)' ) header
-
-       if( header(1:14) .eq. '# SPH_ASCII01' ) then
-
-          read(header(15:25), '(I10.10)')  input_particles
-
-          if( input_particles .ne. npart_total) then
-             
-             if(run_type .eq. 3) then ! converting data
-                npart_total = input_particles
-                
-                np_local = npart_total/n_cpu
-                if (np_local*n_cpu .ne. npart_total .and. mod(npart_total,n_cpu) > my_rank)  np_local = npart_total/n_cpu+1
-                
-                deallocate(particles)
-                allocate( particles(np_local) )
-                
-             else
-                write(69,*) 'particle number in data file not equal particle number in setup file', input_particles, npart_total
-                close(69)
-                
-                call MPI_ABORT(MPI_COMM_WORLD, 12, ierr)
-
-             end if
-          end if
-
-       else
-
-          write(*,*) 'unknown data file format', header   
-          call MPI_ABORT(MPI_COMM_WORLD, 12, ierr)
-       end if
-
-       read(33, '(a)' ) header
-
-       headerlength = len_trim(header)
-
-       read(header(headerlength-5:headerlength) , '(I6)' ) resume_time
-
-       itime = resume_time
-
-       close(33)
-
-       ! find first character of first not comment line
-       open(33, file=trim(filename), action='read') 
-       read(33, '(a)') header
-       current_pos = ftell(33) ! ftell is a intrinsic function
-       headerlength = 0
-       do while(header(1:1) .eq. '#')
-          read(33 , '(a)' ) header
-          headerlength = current_pos
-          current_pos = ftell(33)
-       end do
-       close(33)
-       ! headerlength now points to first byte of first not comment line
-
-    end if
-
-    call MPI_BCAST( resume_time, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
-    call MPI_BCAST( headerlength, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr )
-
-    call MPI_FILE_OPEN(MPI_COMM_WORLD, trim(filename), MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
-
-
-    bufferlength = 10+1+10*(12+1)+6+1+3*(12+1)+12+1
-
-    do p =1, np_local
-       !if the format string is changed, the bufferlength has to be changed, too.
-       offset = int(headerlength, 8) + ( (part_before_me + p -1 ) * bufferlength )
-       call MPI_FILE_READ_AT(fh, offset, buffer, bufferlength, MPI_CHARACTER, status, ierr)
-       read(buffer,'(I10.10,x,10(E12.5E2,x),I6.6,x,3(E12.5E2,x),E12.5E2,a))') particles(p)%label, particles(p)%x(1), particles(p)%x(2), particles(p)%x(3), &
-            particles(p)%data%v(1), particles(p)%data%v(2), particles(p)%data%v(3), particles(p)%data%q, particles(p)%results%h, particles(p)%results%rho, &
-            particles(p)%data%temperature, tmp_int,  particles(p)%results%e(1), particles(p)%results%e(2), particles(p)%results%e(3), particles(p)%results%temperature_change
-       particles(p)%results%h = particles(p)%results%h/2. ! SPH_ASCII01 files contain r_nn = 2h
-    end do
-
-    call MPI_FILE_CLOSE(fh, ierr)
-
-  end subroutine read_sph_ascii01
 
 
 end module files

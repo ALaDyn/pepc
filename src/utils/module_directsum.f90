@@ -50,16 +50,16 @@ module module_directsum
 
           integer(kind_particle) :: maxtest !< maximum ntest
           type(t_particle), dimension(:), allocatable :: received, sending
-          integer(kind_particle) :: i, j, tile_start, tile_size, nreceived, nsending, thread_id, num_threads_
+          integer(kind_particle) :: nreceived, nsending
+          integer(kind_particle) :: i, j
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
-          real*8, allocatable :: delta(:,:), dist2(:)
-          integer :: ibox, id
+          real*8 :: delta(3)
+          integer :: ibox
           type(t_particle) :: latticeparticles(ntest)
-          type(t_particle_pack), allocatable :: particle_pack(:)
 
-          real*8 :: t1, vbox(3)
+          real*8 :: t1
           integer :: omp_thread_num
 
           call MPI_COMM_RANK(comm, my_rank, ierr)
@@ -101,51 +101,38 @@ module module_directsum
 
           ! we will send our data packet to every other mpi rank
           do currank=0_kind_pe,n_cpu-1_kind_pe
+
             ! calculate force from local particles i onto particles j in received-buffer
             ! loop over all received particles
 
             t1 = MPI_WTIME()
 
-            !$OMP PARALLEL default(shared) private(vbox, dist2, delta, i, ibox, id, j, tile_start, tile_size, thread_id, num_threads_)
-            thread_id = omp_get_thread_num()
-            num_threads_ = omp_get_num_threads()
+            !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta, ibox)
+            do j=1,nreceived
+                do i=1,size(particles)
 
-            !$omp master
-            allocate(particle_pack(0:num_threads_ - 1))
-            !$omp end master
-            !$omp barrier
+                    do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
+                      ! if we use our own particles, test for equality; exclude particle itself if we are in central box
+                      delta = received(j)%x - lattice_vect(neighbour_boxes(:,ibox)) - local_nodes(i)%coc
+                      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+                      if (all(abs(delta) < spatial_interaction_cutoff)) then
+                      #endif
+                        if (currank == 0) then
+                          if ((ibox == num_neighbour_boxes) .and. (testidx(j) == i)) then
+                            call calc_force_per_interaction_with_self(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
+                            cycle
+                          end if
+                        end if
 
-            tile_size = nreceived / num_threads_
-            if (thread_id < mod(nreceived, num_threads_)) tile_size = tile_size + 1
-            tile_start = 1 + (nreceived / num_threads_ + 1) * min(thread_id, mod(nreceived, num_threads_)) &
-              + (nreceived / num_threads_) * max(0_kind_particle, thread_id - mod(nreceived, num_threads_))
+                        call calc_force_per_interaction_with_leaf(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
+                      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+                      endif
+                      #endif
+                    end do
 
-            allocate(delta(tile_size,3), dist2(tile_size))
-            call pack_particle_list(received(tile_start:tile_start + tile_size - 1), particle_pack(thread_id))
-
-            do i = 1, size(local_nodes)
-              do ibox = 1, num_neighbour_boxes ! sum over all boxes within ws=1
-                vbox = lattice_vect(neighbour_boxes(:,ibox))
-                dist2 = 0.0_8
-                do id = 1, 3
-                  do j = 1, tile_size
-                    delta(j, id) = received(tile_start + j - 1)%x(id) - vbox(id) - local_nodes(i)%coc(id)
-                    dist2(j) = dist2(j) + delta(j, id) * delta(j, id)
-                  end do
                 end do
-
-                call calc_force_per_interaction_with_leaf(delta, dist2, particle_pack(thread_id), local_nodes(i))
-              end do
             end do
-
-            deallocate(delta, dist2)
-            call unpack_particle_list(particle_pack(thread_id), received(tile_start:tile_start + tile_size - 1))
-
-            !$omp barrier
-            !$omp master
-            deallocate(particle_pack)
-            !$omp end master
-            !$OMP END PARALLEL
+            !$OMP END PARALLEL DO
 
             call timer_add(t_direct_force,MPI_WTIME()-t1)
 

@@ -137,6 +137,25 @@ subroutine special_start(iconf)
 
   integer :: fances(-1:n_cpu-1)
 
+
+  ! abreslau:
+  real*8, dimension(10) :: tmp_var            ! we need several temporary variables.
+  real*8 :: left_y, right_y
+  real*8 :: actual_x
+  real*8 :: offset
+  real*8 :: dx
+  real*8 :: area1, area2
+  real*8 :: setup_rho0, setup_rho1
+  integer :: actual_particle
+  integer :: all_part
+  integer :: part_including_mine
+  integer :: part_before_me
+  integer :: all_np_local
+  
+
+
+
+
   real*8 zero
   parameter(zero=0.d0)
   real*8 one
@@ -453,6 +472,159 @@ subroutine special_start(iconf)
         particles(p)%x = [xt, yt, zt]
               
      end do
+
+  case(9)
+
+     if (my_rank == 0) write(*,*) "Using special start... case 9 (fast homogeneous distribution with initial velocities set to 0)"
+
+     ! initialize random number generator with some arbitrary seed
+     call par_rand(par_rand_res, my_rank + 13)
+
+     do p = 1, (fances(my_rank) - fances(my_rank-1))
+           
+        call par_rand(par_rand_res)
+        xt = par_rand_res
+        call par_rand(par_rand_res)
+        yt = par_rand_res
+        call par_rand(par_rand_res)
+        zt = par_rand_res
+
+        particles(p)%x = [xt, yt, zt]
+        particles(p)%data%v = [0._8, 0._8, 0._8]
+        particles(p)%data%temperature = 1
+
+     end do
+     
+  case(10)
+     
+     if (my_rank == 0) write(*,*) "Using special start... case 10 (2D- r^-2 distribution)"
+
+     ! get the largest np_local
+     call MPI_REDUCE(np_local, np_local_max, 1, MPI_INTEGER, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
+     call MPI_BCAST(np_local_max, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     
+     do mpi_cnt = 0, n_cpu-1
+        do p = 1, np_local_max
+           
+           xt = 0.
+           yt = 0.
+           zt = 0.
+           
+           call par_rand(par_rand_res)
+           tmp_var(1) = 0.05 + 0.95*par_rand_res                 ! tmp_var(1) used as radius
+           call par_rand(par_rand_res)
+           tmp_var(2) = 2.0*par_rand_res*3.14159265              ! tmp_var(2) used as phi
+           zt = 0
+
+           xt = tmp_var(1) *cos(tmp_var(2))
+           yt = tmp_var(1) *sin(tmp_var(2))
+           
+           if ( my_rank == mpi_cnt .and. p <= np_local ) then
+              
+              particles(p)%x      = [ xt, yt, zt ]     ! maybe xt and yt have to be swappen
+              particles(p)%data%v = [ 0._8, 0._8, 0._8 ]
+              
+           end if
+        end do
+     end do
+     
+  case(11)
+     
+     if (my_rank == 0) write(*,*) "Using special start... case 11 (1D shock) (Springel 1)"
+     
+     ! set number of dimension. important for factor for sph kernel
+     idim = 1
+
+     ! set periodicity
+     ! periodic_x = .false.
+     ! periodic_y = .false.
+     ! periodic_z = .false.
+
+     ! if periodic set boxlength
+     ! boxlength_x = 1.
+     ! boxlength_y = 1.
+     ! boxlength_z = 1.
+
+     ! if periodic set minimal box coordinates for moving particles in integrator
+     ! boxmin_x = 0.
+     ! boxmin_y = 0.
+     ! boxmin_z = 0.
+
+     ! number of neighbours to search
+     ! n_nn = 6
+     
+     CALL MPI_ALLGATHER( np_local, 1, MPI_INTEGER, all_np_local, 1, MPI_INTEGER, MPI_COMM_WORLD, ierr )
+     CALL MPI_REDUCE(np_local, all_part, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+     CALL MPI_BCAST(all_part, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+     CALL MPI_SCAN(np_local, part_including_mine, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+     part_before_me = part_including_mine - np_local
+
+     setup_rho0 = 1._8
+     setup_rho1 = 0.125_8
+     
+     dx = 0.00000001
+     
+     area1 = setup_rho0 * 0.5 + setup_rho1 * 0.5
+
+     offset = area1/(all_part*2)
+     
+     write (*,*) 'area1:' , area1, 'offset:', offset
+     
+     actual_x = 0._8
+     area2 = 0._8
+
+
+     do p = 1, all_part
+        
+        do while(area2 < area1/real(all_part,8)*real(p-1,8)+offset )
+           if(actual_x <= 0.5) then
+              left_y = setup_rho0
+           else
+              right_y = setup_rho1
+           end if
+
+           if( (actual_x + dx ) <= 0.5) then
+              left_y = setup_rho0
+           else
+              right_y = setup_rho1
+           end if
+           
+           area2 = area2 +(left_y+right_y )/2._8*dx
+           actual_x = actual_x + dx
+        end do
+
+        
+        if( (p > part_before_me) .and. (p <= part_including_mine) ) then
+
+           actual_particle = p - part_before_me
+
+           particles(actual_particle)%x      = [ actual_x, 0._8, 0._8 ]
+           particles(actual_particle)%data%v = [ 0._8, 0._8, 0._8 ]
+
+           if(actual_x <= 0.5) then
+              particles(actual_particle)%data%temperature = 1.0 /(thermal_constant * 1.0)
+           else
+              particles(actual_particle)%data%temperature = 0.1 /(thermal_constant * 0.125)
+           end if
+           
+        end if
+        
+     end do
+
+     ! timestep length
+     dt = 0.001
+     !* sqrt(thermal_constant * medium_temperature /10.)
+
+     
+     ! Initial neighbour search radius
+     ! r_neighbour = boxlength_x * 1.1 / all_part *n_nn
+
+     if (my_rank == 0) write(*,*) "Using timestep:", dt
+
+
+
+
 
   end select config
 

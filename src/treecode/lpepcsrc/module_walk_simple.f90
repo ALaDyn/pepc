@@ -36,7 +36,7 @@ module module_walk
 
   type(t_tree), pointer :: walk_tree
 
-  integer(kind_particle), parameter :: TILE_SIZE = 64
+  integer(kind_particle), parameter :: TILE_SIZE = 16
   type(t_walk_tile), allocatable :: walk_tiles(:)
   integer(kind_particle) :: num_walk_tiles
 
@@ -206,8 +206,6 @@ module module_walk
 
   subroutine tree_walk_single(tl, vbox)
     use module_pepc_types, only: kind_node, kind_level
-    use module_interaction_specific, only: pack_particle_list, unpack_particle_list
-    use module_interaction_specific_types, only: t_particle_pack
     use module_debug
     use treevars, only: nlev
     implicit none
@@ -215,10 +213,7 @@ module module_walk
     type(t_walk_tile), intent(inout) :: tl
     real*8, intent(in) :: vbox(3)
 
-    type(t_particle_pack) :: p
-    real*8, allocatable :: x(:,:)
-    real*8, allocatable :: r(:,:)
-    real*8, allocatable :: r2(:)
+    type(t_particle) :: p(TILE_SIZE)
     integer(kind_node) :: ni
     integer(kind_particle) :: ip, np
     integer(kind_level) :: i
@@ -233,31 +228,22 @@ module module_walk
     end do
 
     np = size(tl%p)
-
-    allocate(x(np, 3), r(np, 3), r2(np))
-
     do ip = 1, np
-      x(ip,:) = tl%p(ip)%x - vbox
+      p(ip) = tl%p(ip) ! make a local copy of the particles (false sharing and such)
     end do
-
-    call pack_particle_list(tl%p, p)
 
     ni = 0_kind_node
     call tree_walk_single_aux(walk_tree%node_root)
     DEBUG_ASSERT(ni == walk_tree%npart)
 
-    call unpack_particle_list(p, tl%p)
-
-    deallocate(x, r, r2)
-
-    do ip = 1, np
-      tl%p(ip)%work = tl%p(ip)%work + num_int
-    end do
-
     !$omp critical
     interactions_local = interactions_local + num_int
     mac_evaluations_local = mac_evaluations_local + num_mac
     !$omp end critical
+
+    do ip = 1, np
+      tl%p(ip) = p(ip) ! copy particles back
+    end do
 
   contains
 
@@ -278,68 +264,70 @@ module module_walk
 
       type(t_tree_node), pointer :: node
       integer(kind_node) :: ns
-      integer :: id
+      real*8 :: d2(TILE_SIZE), d(3, TILE_SIZE)
 
       node => walk_tree%nodes(n)
 
-      r2 = 0.0_8
-      do id = 1, 3
-        do ip = 1, np
-          r(ip, id) = x(ip, id) - node%interaction_data%coc(id)
-          r2(ip) = r2(ip) + r(ip, id) * r(ip, id)
-        end do
-      end do
-
       if (tree_node_is_leaf(node)) then
         ni = ni + 1
-        num_int = num_int + 1.0_8
-        call calc_force_per_interaction_with_leaf(r, r2, p, node%interaction_data)
-      else ! not a leaf, evaluate MAC
-        num_mac = num_mac + 1.0_8
-        if (multimac(tl%p, node%interaction_data, r2, b2(node%level))) then ! MAC OK: interact
-          ni = ni + node%leaves
+
+        do ip = 1, np
+          ! TODO: tabulate x - vbox
+          d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
+          #endif
+          d2(ip) = dot_product(d(:, ip), d(:, ip))
+
           num_int = num_int + 1.0_8
-          call calc_force_per_interaction_with_twig(r, r2, p, node%interaction_data)
-        else ! MAC fails: resolve
-          if (.not. tree_node_children_available(node)) then
-            call tree_node_fetch_children(walk_tree, node, n, tl%p(1), tl%p(1)%x - vbox)
-            do ! loop and yield until children have been fetched
-              ERROR_ON_FAIL(pthreads_sched_yield())
-              if (tree_node_children_available(node)) exit
-              !$omp taskyield
-            end do
+          p(ip)%work = p(ip)%work + 1._8
+          if (d2(ip) > 0.0_8) then ! not self
+            call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
+          else ! self
+            call calc_force_per_interaction_with_self(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
           end if
+        end do
+      else ! not a leaf, evaluate MAC
+        do ip = 1, np
+          num_mac = num_mac + 1.0_8
+          d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
+          d2(ip) = dot_product(d(:, ip), d(:, ip))
 
-          call atomic_read_barrier()
+          if (.not. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) node%interaction_data, d2(ip), b2(node%level))) then ! MAC fails: resolve
+            if (.not. tree_node_children_available(node)) then
+              call tree_node_fetch_children(walk_tree, node, n, p(1), p(1)%x - vbox)
+              do ! loop and yield until children have been fetched
+                ERROR_ON_FAIL(pthreads_sched_yield())
+                if (tree_node_children_available(node)) exit
+                !$omp taskyield
+              end do
+            end if
 
-          ns = tree_node_get_first_child(node)
-          DEBUG_ASSERT_MSG(ns /= NODE_INVALID, *, "walk_simple: unexpectedly, this twig had no children")
-          do
-            call tree_walk_single_aux(ns)
-            ns = tree_node_get_next_sibling(walk_tree%nodes(ns))
-            if (ns == NODE_INVALID) exit
-          end do
-        end if
+            call atomic_read_barrier()
+
+            ns = tree_node_get_first_child(node)
+            DEBUG_ASSERT_MSG(ns /= NODE_INVALID, *, "walk_simple: unexpectedly, this twig had no children")
+            do
+              call tree_walk_single_aux(ns)
+              ns = tree_node_get_next_sibling(walk_tree%nodes(ns))
+              if (ns == NODE_INVALID) exit
+            end do
+
+            return
+          end if
+        end do
+
+        ! MAC OK: interact
+        ni = ni + node%leaves
+        do ip = 1, np
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
+          #endif
+          num_int = num_int + 1.0_8
+          p(ip)%work = p(ip)%work + 1._8
+          call calc_force_per_interaction_with_twig(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
+        end do
       end if
     end subroutine tree_walk_single_aux
-
-
-    function multimac(p, n, r2, b2)
-      use module_interaction_specific_types, only: t_tree_node_interaction_data
-      use module_interaction_specific, only: mac
-      implicit none
-
-      logical :: multimac
-      type(t_particle), intent(in) :: p(:)
-      type(t_tree_node_interaction_data), intent(in) :: n
-      real*8, intent(in) :: r2(:)
-      real*8, intent(in) :: b2
-
-      multimac = .true.
-      do ip = 1, size(p)
-        multimac = multimac .and. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) n, r2(ip), b2)
-        if (.not. multimac) return
-      end do
-    end function
   end subroutine tree_walk_single
 end module module_walk
