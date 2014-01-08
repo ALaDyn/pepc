@@ -239,7 +239,7 @@ module module_walk
   !>
   subroutine tree_walk_finalize()
     implicit none
-    deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
+    if (allocated(threaddata)) deallocate(threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
   end subroutine tree_walk_finalize
 
 
