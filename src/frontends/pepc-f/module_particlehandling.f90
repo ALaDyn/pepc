@@ -113,6 +113,61 @@ module particlehandling
 
 !======================================================================================
 
+    SUBROUTINE rethermalize(p)
+        implicit none
+        include 'mpif.h'
+
+        integer :: ip
+        integer :: rc
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        real*8 :: xold(3)
+        real(KIND=8) v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),v_ran(1)
+
+
+        DO ip =1,sum(npps)
+            IF (sign(1._8,p(ip)%x(1)) /= sign(1._8,p(ip)%data%v(1))) CYCLE
+
+            xold = p(ip)%x-p(ip)%data%v*dt
+            IF (sign(1._8,xold(1)) == sign(1._8,p(ip)%x(1))) CYCLE
+
+            IF (.true.) THEN   !immediate half-Maxwellian refluxing normal to surface, tangential v conserved
+                mu=0.0_8
+                sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
+                !call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
+                !p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
+                !call random_gauss_list(v_ran,mu,sigma)
+                !v_ran(1) = abs(v_ran(1))
+                call random_gaussian_flux(v_ran(1),sigma)
+                p(ip)%data%v(1) = v_ran(1)*sign(1._8,p(ip)%x(1))
+                ran = rnd_num()
+                p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                !ELSE IF (boundaries(ib)%type==6) THEN  !immediate half-Maxwellian refluxing normal to surface, tangential v resampled
+                !    mu=0.0_8
+                !    sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                !    xold = p(rp)%x-p(rp)%data%v*dt
+                !    call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
+                !    call random_gauss_list(v_new(1:3),mu,sigma)
+                !    v_new(1) = abs(v_new(1))
+                    !call random_gauss_list(v_new(2:3),mu,sigma)
+                    !call random_gaussian_flux(v_new(1),sigma)
+                !    t1=boundaries(ib)%e1/sqrt(dotproduct(boundaries(ib)%e1,boundaries(ib)%e1))
+                !    t2(1)=boundaries(ib)%n(2)*t1(3) - boundaries(ib)%n(3)*t1(2)
+                !    t2(2)=boundaries(ib)%n(3)*t1(1) - boundaries(ib)%n(1)*t1(3)
+                !    t2(3)=boundaries(ib)%n(1)*t1(2) - boundaries(ib)%n(2)*t1(1)
+                !    t2=t2/sqrt(dotproduct(t2,t2))
+                !    p(rp)%data%v(1) = boundaries(ib)%n(1)*v_new(1) + t1(1)*v_new(2) + t2(1)*v_new(3)
+                !    p(rp)%data%v(2) = boundaries(ib)%n(2)*v_new(1) + t1(2)*v_new(2) + t2(2)*v_new(3)
+                !    p(rp)%data%v(3) = boundaries(ib)%n(3)*v_new(1) + t1(3)*v_new(2) + t2(3)*v_new(3)
+                !    ran = rnd_num()
+                !    p(rp)%x = xi + dt*ran*p(rp)%data%v
+                !    ib=0
+            END IF
+        END DO
+    END SUBROUTINE
+
+
+!======================================================================================
+
     SUBROUTINE treat_logical_sheath_boundaries(p,hits,reflux,p_hits_logical_sheath)
         implicit none
         include 'mpif.h'
@@ -433,6 +488,7 @@ module particlehandling
         call set_need_to_reflux()
         call count_hits_and_remove_particles(p,hits,reflux)
 
+        call rethermalize(p)
 
         DO ispecies=0,nspecies-1
             DO ib=1,nb
@@ -470,8 +526,8 @@ module particlehandling
         allocate(p1(1),stat=rc)
 
         DO ip=1,n
-            IF (p(ip)%x(1)>=0. .AND. p(ip)%x(1)<=dx .AND. p(ip)%x(2)>=0. .AND. &
-                p(ip)%x(2)<=dy .AND. p(ip)%x(3)>=0. .AND. p(ip)%x(3)<=dz)   THEN
+            IF (p(ip)%x(1)>=xmin .AND. p(ip)%x(1)<=xmax .AND. p(ip)%x(2)>=ymin .AND. &
+                p(ip)%x(2)<=ymax .AND. p(ip)%x(3)>=zmin .AND. p(ip)%x(3)<=zmax)   THEN
                 CYCLE
             ELSE
                 nlp(p(ip)%data%species) = nlp(p(ip)%data%species) + 1

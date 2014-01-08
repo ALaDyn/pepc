@@ -57,6 +57,12 @@ module module_initialization
       dx              = 0.
       dy              = 0.
       dz              = 0.
+      xmax            = 0.
+      xmin            = 0.
+      ymax            = 0.
+      ymin            = 0.
+      zmax            = 0.
+      zmin            = 0.
 
   end subroutine set_default_parameters
 
@@ -132,6 +138,21 @@ module module_initialization
     read(fid,NML=walk_para_smpss)
     close(fid)
 
+    !xmin=0.0_8
+    !xmax=dx+xmin
+    !ymin=0.0_8
+    !ymax=dy+ymin
+    !zmin=0.0_8
+    !zmax=dz+zmin
+    dx = xmax - xmin
+    dy = ymax - ymin
+    dz = zmax - zmin
+
+    IF (dx < 0. .or. dy < 0. .or. dz < 0.) THEN  !one of dx, dy, dz < 0 (min > max)
+        IF (root) write(*,*) "Geometry not set correctly. dx, dy and dz cannot be < 0"
+        STOP
+    END IF
+
     !IF (dx.eq.0. .or. dy.eq.0. .or. dz.eq.0.) THEN  !one of dx, dy, dz not set
     IF (real_equal_zero(dx,eps) .or. real_equal_zero(dy,eps) .or. real_equal_zero(dz,eps)) THEN  !one of dx, dy, dz not set
         IF (root) write(*,*) "Geometry not set correctly. dx, dy and dz cannot be 0"
@@ -139,12 +160,6 @@ module module_initialization
     END IF
     !========== used if domain does not start in 0,0,0; origin can be set in input later
     !right now it is still 0,0,0, but the subroutines are already adapted
-    xmin=0.0_8
-    xmax=dx+xmin
-    ymin=0.0_8
-    ymax=dy+ymin
-    zmin=0.0_8
-    zmax=dz+zmin
 
     B=sqrt(Bx**2+By**2+Bz**2)
     IF (real_unequal_zero(B,eps)) THEN

@@ -117,7 +117,7 @@ module variables
   real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)
 
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
-  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, dx ,dy, dz,diag_interval, checkp_interval, vtk_interval,spiegelladung
+  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval, vtk_interval,spiegelladung
   namelist /walk_para_smpss/ chunk_size_default
 
 
