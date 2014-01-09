@@ -49,10 +49,11 @@ module pepcboris_diagnostics
 
   subroutine dump_particles(vtk_step, step, dt, particles, comm, do_average)
     use module_pepc_types
+    use module_pepc
     use module_debug
     use module_vtk_helpers
     use module_vtk
-    use pepcboris_helper, only: IFILE_SUMMAND_PARTICLES, pepcboris_nml
+    use pepcboris_helper, only: IFILE_SUMMAND_PARTICLES, IFILE_SUMMAND_PARTICLES_AVG, pepcboris_nml
     implicit none
     integer, intent(in) :: vtk_step
     integer, intent(in) :: step
@@ -62,6 +63,7 @@ module pepcboris_diagnostics
     logical, intent(in) :: do_average
     integer(kind_particle) :: p
     integer :: istream, dumptype
+    type(t_particle) :: pavg
 
     istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES
     dumptype = pepcboris_nml%dumptype
@@ -80,9 +82,35 @@ module pepcboris_diagnostics
             write(istream,*) step*dt, p, particles(p)%x, particles(p)%data%v
           end do
         endif
-      case (1)
+      case (1,3)
         ! vtk output
         call vtk_write_particles("particles", comm, step, step*dt, vtk_step, particles, particle_output_data)
+
+        if (dumptype==3) then
+          pavg%x      = 0.
+          pavg%data%v = 0.
+
+          if (do_average) then
+            DEBUG_ASSERT(allocated(vold))
+            ! we have to average over old and new velocities
+            do p=1,size(particles,kind=kind(p))
+              pavg%x      = pavg%x      +  particles(p)%x
+              pavg%data%v = pavg%data%v + (particles(p)%data%v + vold(:,p))/2._8
+            end do
+          else
+            do p=1,size(particles,kind=kind(p))
+              pavg%x      = pavg%x      +  particles(p)%x
+              pavg%data%v = pavg%data%v +  particles(p)%data%v
+            end do
+          endif
+
+          pavg%x      = pavg%x      / size(particles,kind=kind(p))
+          pavg%data%v = pavg%data%v / size(particles,kind=kind(p))
+
+          write(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG,*) step*dt, 1, pavg%x, pavg%data%v
+        endif
+
+
       case default
         DEBUG_ERROR(*, 'dump_particles() - invalid value for dumptype:', dumptype)
     end select
