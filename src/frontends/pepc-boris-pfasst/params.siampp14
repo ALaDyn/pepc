@@ -5,6 +5,13 @@
   ! 1 --> 100 particles randomly around a position given by PARAMS_X0, _Y0, _Z0 with velocities _VX0, _VY0, _VZ0
   particle_config = 1
   
+  ! dumptype
+  ! 0 - no particle dump
+  ! 1 - dump particle trajectory to fort.XX
+  ! 2 - dump particle trajectory to particles.timeseries.vtk
+  ! 3 - same as 2 and dump average particle trajectory to fort.2XX
+  dumptype = 3
+  
   ! physics parameters
   !              X0    Y0   Z0   VX0    VY0  VZ0    OMEGAE  OMEGAB  RADIUS  VELOCITY_SPREAD
   setup_params = 10.0  0.0  0.0  100.0  0.0  100.0  4.9     25.0    0.01    0.0

@@ -47,20 +47,24 @@ module pepcboris_diagnostics
     end do
   end subroutine
 
-  subroutine dump_particles(dumptype, vtk_step, step, dt, particles, istream, comm, do_average)
+  subroutine dump_particles(vtk_step, step, dt, particles, comm, do_average)
     use module_pepc_types
     use module_debug
     use module_vtk_helpers
     use module_vtk
+    use pepcboris_helper, only: IFILE_SUMMAND_PARTICLES, pepcboris_nml
     implicit none
-    integer, intent(in) :: dumptype
     integer, intent(in) :: vtk_step
     integer, intent(in) :: step
     real*8, intent(in) :: dt
     type(t_particle), intent(in) :: particles(:)
-    integer, intent(in) :: istream, comm
+    integer, intent(in) :: comm
     logical, intent(in) :: do_average
     integer(kind_particle) :: p
+    integer :: istream, dumptype
+
+    istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES
+    dumptype = pepcboris_nml%dumptype
 
     select case (dumptype)
       case (0)
@@ -107,24 +111,25 @@ module pepcboris_diagnostics
     end subroutine
   end subroutine
 
-  subroutine dump_energy(t, particles, istream, level_params, nml, comm, do_average)
+  subroutine dump_energy(t, particles, level_params, comm, do_average)
     use module_pepc_types
     use pfm_encap, only : level_params_t
     use pfm_feval, only : eval_force
-    use pepcboris_helper, only : pepcboris_nml_t
+    use pepcboris_helper, only : IFILE_SUMMAND_ENERGY, pepcboris_nml
     use module_debug
     implicit none
     real*8, intent(in) :: t
     type(t_particle), intent(in) :: particles(:)
-    integer, intent(in) :: istream
     type(level_params_t), intent(in) :: level_params
-    type(pepcboris_nml_t), intent(in) :: nml
     integer(kind_default), intent(in) :: comm
    logical, intent(in) :: do_average
 
     integer(kind_particle) :: p
     type(t_particle), allocatable :: particles_tmp(:)
     real*8 :: epot, ekin, etot, vtmp(3)
+    integer :: istream
+
+    istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY
 
     epot = 0.
     ekin = 0.
@@ -132,7 +137,7 @@ module pepcboris_diagnostics
     ! we need a temporary copy here to prevent destruction the results stored in the particles-array
     allocate(particles_tmp(size(particles)))
     particles_tmp(:) = particles(:)
-    call eval_force(particles_tmp, level_params, nml, -1, comm, clearresults=.true.)
+    call eval_force(particles_tmp, level_params, pepcboris_nml, -1, comm, clearresults=.true.)
     if (do_average) then
       DEBUG_ASSERT(allocated(vold))
       ! we have to average over old and new velocities

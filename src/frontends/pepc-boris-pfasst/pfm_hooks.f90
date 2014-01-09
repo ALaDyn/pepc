@@ -68,10 +68,8 @@ contains
    endif
 
     ! do diagnostics etc here
-    call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, state%dt, particles, &
-      pepcboris_nml%workingmode + IFILE_SUMMAND, levelctx%comm, do_average=.false.)
-    call dump_energy(t, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
-      levelctx, pepcboris_nml, levelctx%comm, do_average=.false.)
+    call dump_particles(VTK_STEP_NORMAL, step, state%dt, particles, levelctx%comm, do_average=.false.)
+    call dump_energy(t, particles, levelctx, levelctx%comm, do_average=.false.)
 
   end subroutine
 end module pfm_hooks

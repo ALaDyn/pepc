@@ -62,8 +62,10 @@ module pepcboris_helper
   integer, public, parameter :: WM_CYCLOTRONIC_NOTAN         = 11
   integer, public, parameter :: WM_BORIS_PATACCHINI_NOTAN    = 12
 
-  integer, public, parameter :: IFILE_SUMMAND        =  46
-  integer, public, parameter :: IFILE_SUMMAND_ENERGY = 146
+  integer, public, parameter :: IFILE_SUMMAND_PARTICLES     =  46
+  integer, public, parameter :: IFILE_SUMMAND_ENERGY        = 146
+  integer, public, parameter :: IFILE_SUMMAND_PARTICLES_AVG = 246
+
 
   !> parameter collection for pepcboris
   type pepcboris_nml_t
@@ -75,6 +77,7 @@ module pepcboris_helper
     integer :: nt  !< number of timesteps, set via pfasst parameters
     ! configuration variables
     integer :: particle_config = 0
+    integer :: dumptype = 0
     real*8 :: setup_params(PARAMS_MAXIDX) = 0.
     ! number of particles per species and rank, will be set automatically later
     integer(kind_particle) :: numparts
@@ -188,15 +191,16 @@ module pepcboris_helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    integer :: particle_config, workingmode
+    integer :: particle_config, workingmode, dumptype
     real*8 :: setup_params(PARAMS_MAXIDX)
 
-    namelist /pepcborispfasst/ particle_config, setup_params, workingmode
+    namelist /pepcborispfasst/ particle_config, setup_params, workingmode, dumptype
 
     ! frontend parameters
     particle_config = nml%particle_config
     setup_params    = nml%setup_params
     workingmode     = nml%workingmode
+    dumptype        = nml%dumptype
 
     ! pepc parameters
     theta2      = 0.36
@@ -218,6 +222,7 @@ module pepcboris_helper
     nml%particle_config = particle_config
     nml%setup_params    = setup_params
     nml%workingmode     = workingmode
+    nml%dumptype        = dumptype
 
     ! derived from pfasst parameters
     nml%dt      = dt
@@ -228,6 +233,7 @@ module pepcboris_helper
       write(*,'(a,i12)')       ' == number of time steps : ', nml%nt
       write(*,'(a,es12.4)')    ' == time step            : ', nml%dt
       write(*,'(a,es12.4)')    ' == final time           : ', nml%dt*nml%nt
+      write(*,'(a,i12)')       ' == dumptype             : ', nml%dumptype
     end if
 
     call pepc_prepare(dim)
