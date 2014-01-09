@@ -6,8 +6,8 @@
   particle_config = 1
   
   ! physics parameters
-  !              X0   Y0  Z0  VX0 VY0 VZ0 OMEGAE OMEGAB
-  setup_params = 10.0 0.0 0.0 100.0 0.0 100.0 4.9    25.0
+  !              X0    Y0   Z0   VX0    VY0  VZ0    OMEGAE  OMEGAB  RADIUS  VELOCITY_SPREAD
+  setup_params = 10.0  0.0  0.0  100.0  0.0  100.0  4.9     25.0    0.01    0.0
 
   ! choice of integrator  
   ! 1  - WM_BORIS
@@ -31,19 +31,20 @@
   
   nsteps  = 1024
   niter   = 1
-  nlevels = 1
+  nlevels = 2
   
-  ! level parameters (one entry per level and line)
-  nsweeps = 1
-  nnodes  = 2
+  ! level parameters (one entry per level and line, coarse levels are more left, finer levels more right)
+  nsweeps = 1 1
+  nnodes  = 2 2
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
-  directforce = .false.
+  directforce = .true. .true.
   ! 1st digit: 0 - no external field, 1 - full external field
   ! 2nd digit: 0 - no internal field, 1 - full internal field
-  feval_mode = 11
+  feval_mode = 10 11
   ! multipole acceptance parameter
-  theta   = 0.3
+  theta   = 0.3 0.3
+  ! end of level parameters
   
   res_tol = 0.
   

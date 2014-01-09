@@ -45,7 +45,9 @@ module pepcboris_helper
   integer, public, parameter :: PARAMS_VZ0 = 6
   integer, public, parameter :: PARAMS_OMEGAE = 7
   integer, public, parameter :: PARAMS_OMEGAB = 8
-  integer, public, parameter :: PARAMS_MAXIDX = PARAMS_OMEGAB
+  integer, public, parameter :: PARAMS_RADIUS = 9
+  integer, public, parameter :: PARAMS_VELOCITY_SPREAD = 10
+  integer, public, parameter :: PARAMS_MAXIDX = PARAMS_VELOCITY_SPREAD
 
   integer, public, parameter :: WM_BORIS       = 1
   integer, public, parameter :: WM_BORIS_SDC   = 2
@@ -148,11 +150,13 @@ module pepcboris_helper
 
         do i=1,nml%numparts
           call random_number(myrand)
-          particles(i)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0) + 10.*(myrand - 0.5_8)
+          particles(i)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0) &
+                              + nml%setup_params(PARAMS_RADIUS)*(myrand - 0.5_8)
           particles(i)%data%q = 1.
           particles(i)%data%m = 1.
           call random_number(myrand)
-          particles(i)%data%v = nml%setup_params(PARAMS_VX0:PARAMS_VZ0) + 0.0*(myrand - 0.5_8)
+          particles(i)%data%v = nml%setup_params(PARAMS_VX0:PARAMS_VZ0) &
+                              + nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_8)
           particles(i)%label  = i
           particles(i)%work   = 1.
         end do
