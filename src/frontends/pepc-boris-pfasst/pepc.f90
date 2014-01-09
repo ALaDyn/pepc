@@ -71,7 +71,7 @@ program pepc
   call pepc_prepare(dim)
   ! prepare table with level-dependent parameters
   call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepcboris_nml%rank, MPI_COMM_SPACE)
-  ! initial potential will be needed for energy computation
+  ! initial potential will be needed for energy computation - using finest level here
   call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step=0, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
   if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)**2 - 4._8*pepcboris_nml%setup_params(PARAMS_OMEGAE)**2 > 0) then
@@ -82,13 +82,19 @@ program pepc
   call dump_energy(0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
 
   select case (pepcboris_nml%workingmode)
-    case (WM_BORIS_SDC)
+    case (WM_BORIS_SDC, WM_BORIS_MLSDC)
       ! Set up PFASST object
       call pf_mpi_create(tcomm, MPI_COMM_TIME)
-      call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
-
       call pfm_encap_init(encap, particles)
       call pf_verlet_create(sweeper, calc_Efield, build_rhs, impl_solver)
+
+      ! if we were requested to perform only single-level SDC, we use finest-level params
+      if (pepcboris_nml%workingmode == WM_BORIS_SDC) then
+        level_params(1) = level_params(pf_nml%nlevels)
+        pf_nml%nlevels = 1
+      endif
+
+      call pf_pfasst_create(pf, tcomm, pf_nml%nlevels)
       call pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
 
       ! Initial conditions for pfasst

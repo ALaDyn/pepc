@@ -241,11 +241,12 @@ module pfm_helper
         tend                = pf_namelist%tend
         res_tol             = pf_namelist%res_tol
         nsteps              = pf_namelist%nsteps
-        nsweeps             = pf_namelist%nsweeps
-        nnodes              = pf_namelist%nnodes
-        theta               = pf_namelist%theta
-        directforce         = pf_namelist%directforce
-        fevaL_mode          = pf_namelist%feval_mode
+        ! storage order in params is reverse compared to in the code
+        nsweeps(1:max_nlevels)     = pf_namelist%nsweeps(max_nlevels:1:-1)
+        nnodes(1:max_nlevels)      = pf_namelist%nnodes(max_nlevels:1:-1)
+        theta(1:max_nlevels)       = pf_namelist%theta(max_nlevels:1:-1)
+        directforce(1:max_nlevels) = pf_namelist%directforce(max_nlevels:1:-1)
+        fevaL_mode(1:max_nlevels)  = pf_namelist%feval_mode(max_nlevels:1:-1)
 
         call pepc_status('|--> read_in_pf_params()')
 
@@ -287,11 +288,12 @@ module pfm_helper
         pf_namelist%tend                   = tend
         pf_namelist%res_tol                = res_tol
         pf_namelist%nsteps                 = nsteps
-        pf_namelist%nsweeps(1:nlevels)     = nsweeps(1:nlevels)
-        pf_namelist%nnodes(1:nlevels)      = nnodes(1:nlevels)
-        pf_namelist%theta(1:nlevels)       = theta(1:nlevels)
-        pf_namelist%directforce(1:nlevels) = directforce(1:nlevels)
-        pf_namelist%feval_mode(1:nlevels)  = feval_mode(1:nlevels)
+        ! storage order in params is reverse compared to in the code
+        pf_namelist%nsweeps(1:nlevels)     = nsweeps(nlevels:1:-1)
+        pf_namelist%nnodes(1:nlevels)      = nnodes(nlevels:1:-1)
+        pf_namelist%theta(1:nlevels)       = theta(nlevels:1:-1)
+        pf_namelist%directforce(1:nlevels) = directforce(nlevels:1:-1)
+        pf_namelist%feval_mode(1:nlevels)  = feval_mode(nlevels:1:-1)
     end subroutine read_in_pf_params
 
 end module pfm_helper

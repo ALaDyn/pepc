@@ -61,6 +61,7 @@ module pepcboris_helper
   integer, public, parameter :: WM_MATRIX_VERLET             = 10
   integer, public, parameter :: WM_CYCLOTRONIC_NOTAN         = 11
   integer, public, parameter :: WM_BORIS_PATACCHINI_NOTAN    = 12
+  integer, public, parameter :: WM_BORIS_MLSDC               = 13
 
   integer, public, parameter :: IFILE_SUMMAND_PARTICLES     =  46
   integer, public, parameter :: IFILE_SUMMAND_ENERGY        = 146

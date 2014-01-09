@@ -18,7 +18,7 @@
 
   ! choice of integrator  
   ! 1  - WM_BORIS
-  ! 2  - WM_BORIS_SDC
+  ! 2  - WM_BORIS_SDC (ignores nlevels, i.e. sets it to 1 and only uses first entry in level-dependent params)
   ! 3  - WM_ANALYTIC
   ! 4  - WM_CYCLOTRONIC
   ! 5  - WM_BORIS_PATACCHINI
@@ -29,7 +29,8 @@
   ! 10 - WM_MATRIX_VERLET
   ! 11 - WM_CYCLOTRONIC_NOTAN
   ! 12 - WM_BORIS_PATACCHINI_NOTAN
-  workingmode = 2
+  ! 13 - WM_BORIS_MLSDC
+  workingmode = 13
 /
 
 &pfasst
@@ -40,7 +41,7 @@
   niter   = 1
   nlevels = 2
   
-  ! level parameters (one entry per level and line, coarse levels are more left, finer levels more right)
+  ! level parameters (one entry per level and line, finer levels are more left, coarser levels more right)
   nsweeps = 1 1
   nnodes  = 2 2
   ! true  --> evaluate forces directly: O(N**2) but exact
@@ -48,7 +49,7 @@
   directforce = .true. .true.
   ! 1st digit: 0 - no external field, 1 - full external field
   ! 2nd digit: 0 - no internal field, 1 - full internal field
-  feval_mode = 10 11
+  feval_mode = 11 10
   ! multipole acceptance parameter
   theta   = 0.3 0.3
   ! end of level parameters
