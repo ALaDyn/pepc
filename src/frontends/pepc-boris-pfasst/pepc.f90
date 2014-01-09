@@ -24,6 +24,7 @@ program pepc
   use module_pepc_types
   use module_timings
   use module_debug
+  use module_vtk
   ! frontend helper routines
   use pepcboris_helper
   use pepcboris_integrator
@@ -77,7 +78,7 @@ program pepc
     DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
   endif
   ! initial particle dump
-  call dump_particles(0._8, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+  call dump_particles(pepcboris_nml%particle_config, VTK_STEP_FIRST, 0, 0._8, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
   call dump_energy(0._8, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
     level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
 
@@ -123,7 +124,7 @@ program pepc
           call push_particles_velocity_verlet_boris(particles, dt)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt)
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -141,7 +142,7 @@ program pepc
           call push_particles_velocity_verlet_boris_tanalpha(particles, dt)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call update_velocities_velocity_verlet_boris_tanalpha(particles, dt)
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -160,7 +161,7 @@ program pepc
           call backup_velocities(particles) ! for particle and energy dumping we will average over old and new velocities to get velocities on integer timesteps
           call update_velocities_boris(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, that is why we have to average over old and new velocities
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.true.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.true.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
            level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.true.)
         end do
@@ -179,7 +180,7 @@ program pepc
           call backup_velocities(particles) ! for particle and energy dumping we will average over old and new velocities to get velocities on integer timesteps
           call update_velocities_tajima_implicit(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, that is why we have to average over old and new velocities
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.true.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.true.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.true.)
         end do
@@ -198,7 +199,7 @@ program pepc
           call backup_velocities(particles) ! for particle and energy dumping we will average over old and new velocities to get velocities on integer timesteps
           call update_velocities_tajima_explicit(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, that is why we have to average over old and new velocities
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.true.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.true.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.true.)
         end do
@@ -213,7 +214,7 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
           call drift_cyclotronic(particles, dt/2._8)
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -228,7 +229,7 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
           call drift_cyclotronic(particles, dt/2._8, no_tan_trans=.true.)
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -244,7 +245,7 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_boris_patacchini(particles, dt)
           call push_particles(particles, dt/2._8)
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -260,7 +261,7 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, step, MPI_COMM_SPACE, clearresults=.true.)
           call kick_boris_patacchini(particles, dt, no_tan_trans=.true.)
           call push_particles(particles, dt/2._8)
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -273,7 +274,7 @@ program pepc
         do step=1,nt
           call print_timestep(step, nt, dt)
           call push_matrix_verlet(particles, dt)
-          call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+          call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
             level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -319,7 +320,7 @@ program pepc
             particles(1)%data%v(3) = -sqrttwo*params(PARAMS_OMEGAE)*params(PARAMS_Z0) * sin(sqrttwo*params(PARAMS_OMEGAE)*step*dt) + &
               params(PARAMS_VZ0) * cos(sqrttwo*params(PARAMS_OMEGAE)*step*dt)
 
-            call dump_particles(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+            call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
             call dump_energy(step*dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
               level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, do_average=.false.)
           end do
@@ -330,11 +331,15 @@ program pepc
         DEBUG_ERROR(*,'Invalid working mode:', pepcboris_nml%workingmode)
   end select
 
+  call dump_particles(pepcboris_nml%particle_config, VTK_STEP_LAST, pepcboris_nml%nt, &
+    pepcboris_nml%dt, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, MPI_COMM_SPACE, do_average=.false.)
+
   call pepc_finalize()
   call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)
   call MPI_COMM_FREE(MPI_COMM_SPACE, mpi_err)
   call MPI_FINALIZE( mpi_err )
 
+  write(*,*)
 
   contains
     subroutine print_timestep(step, nt, dt)

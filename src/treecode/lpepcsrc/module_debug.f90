@@ -50,7 +50,7 @@ module module_debug
       integer, parameter, public :: DBG_WALKSUMMARY = B'0000000001000000'    ! 64
       integer, parameter, public :: DBG_DUMPTREE    = B'0000000010000000'    ! 128
       integer, parameter, public :: DBG_TIMINGFILE  = B'0000000100000000'    ! 256
-      integer, parameter, public :: DBG_LOADFILE    = B'0000001000000000'    ! 512
+      ! deprecated: integer, parameter, public :: DBG_LOADFILE    = B'0000001000000000'    ! 512
       integer, parameter, public :: DBG_WALK        = B'0000010000000000'    ! 1024
       integer, parameter, public :: DBG_PERIODIC    = B'0000100000000000'    ! 2048
 

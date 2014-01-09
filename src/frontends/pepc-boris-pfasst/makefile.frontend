@@ -13,7 +13,9 @@ FILES_L   = pepc.f90               \
             pf_interpolate.f90 pf_restrict.f90
 
 
-FILES_L_U = module_directsum.f90
+FILES_L_U = module_directsum.f90   \
+            module_vtk.f90         \
+            module_vtk_helpers.f90
             
 
 SRC        += $(FILES_L)

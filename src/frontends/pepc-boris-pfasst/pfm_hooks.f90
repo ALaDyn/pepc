@@ -18,6 +18,7 @@ contains
     use module_debug
     use pepcboris_helper
     use pepcboris_diagnostics
+    use module_vtk, only: VTK_STEP_NORMAL
     implicit none
     type(pf_pfasst_t), intent(inout) :: pf
     type(pf_level_t),  intent(inout) :: level
@@ -27,6 +28,7 @@ contains
     type(t_particle), allocatable, target :: particles(:)
     type(level_params_t), pointer :: levelctx
     real(pfdp) ::  t
+    integer :: step
 
     logical, save :: did_prestep = .false.
 
@@ -44,6 +46,7 @@ contains
       case (PF_POST_STEP)
         call encap_to_particles(particles, level%qend, ctx)
         t = state%t0 + state%dt ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
+        step = state%step + 1
       case (PF_PRE_STEP)
         if (did_prestep) return
 
@@ -53,6 +56,7 @@ contains
         call encap_to_particles(particles, encaptmp, ctx)
         call encap_destroy(encaptmp)
         t = state%t0 ! yes, this is OK, t0 is automatically updated during each step
+        step = state%step
       case default
         DEBUG_ERROR(*,'wrong hook')
     end select
@@ -60,11 +64,12 @@ contains
     if (levelctx%root) then
       if (state%step == 0) write(*,*)
       write(*,'(a1, a,"| step: ",i5," t=", es10.3, " iter: ",i3, " === dumping particles if requested...")',advance='no') &
-        char(13), hook_names(state%hook), state%step+1, t, state%iter
+        char(13), hook_names(state%hook), step, t, state%iter
    endif
 
     ! do diagnostics etc here
-    call dump_particles(t, particles, pepcboris_nml%workingmode + IFILE_SUMMAND, do_average=.false.)
+    call dump_particles(pepcboris_nml%particle_config, VTK_STEP_NORMAL, step, state%dt, particles, &
+      pepcboris_nml%workingmode + IFILE_SUMMAND, levelctx%comm, do_average=.false.)
     call dump_energy(t, particles, pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, &
       levelctx, pepcboris_nml, levelctx%comm, do_average=.false.)
 

@@ -47,27 +47,64 @@ module pepcboris_diagnostics
     end do
   end subroutine
 
-  subroutine dump_particles(t, particles, istream, do_average)
+  subroutine dump_particles(dumptype, vtk_step, step, dt, particles, istream, comm, do_average)
     use module_pepc_types
     use module_debug
+    use module_vtk_helpers
+    use module_vtk
     implicit none
-    real*8, intent(in) :: t
+    integer, intent(in) :: dumptype
+    integer, intent(in) :: vtk_step
+    integer, intent(in) :: step
+    real*8, intent(in) :: dt
     type(t_particle), intent(in) :: particles(:)
-    integer, intent(in) :: istream
+    integer, intent(in) :: istream, comm
     logical, intent(in) :: do_average
     integer(kind_particle) :: p
 
-    if (do_average) then
-      DEBUG_ASSERT(allocated(vold))
-      ! we have to average over old and new velocities
-      do p=1,size(particles,kind=kind(p))
-        write(istream,*) t, p, particles(p)%x, (particles(p)%data%v + vold(:,p))/2._8
-      end do
-    else
-      do p=1,size(particles,kind=kind(p))
-        write(istream,*) t, p, particles(p)%x, particles(p)%data%v
-      end do
-    endif
+    select case (dumptype)
+      case (0)
+        ! linear output to fort.istream file
+        if (do_average) then
+          DEBUG_ASSERT(allocated(vold))
+          ! we have to average over old and new velocities
+          do p=1,size(particles,kind=kind(p))
+            write(istream,*) step*dt, p, particles(p)%x, (particles(p)%data%v + vold(:,p))/2._8
+          end do
+        else
+          do p=1,size(particles,kind=kind(p))
+            write(istream,*) step*dt, p, particles(p)%x, particles(p)%data%v
+          end do
+        endif
+      case (1)
+        ! vtk output
+        call vtk_write_particles("particles", comm, step, step*dt, vtk_step, particles, particle_output_data)
+      case default
+        DEBUG_ERROR(*, 'dump_particles() - invalid value for dumptype:', dumptype)
+    end select
+
+    contains
+
+    subroutine particle_output_data(d, r, vtkf)
+      use module_vtk
+      use module_interaction_specific_types
+      implicit none
+
+      type(t_particle_data), intent(in) :: d(:)
+      type(t_particle_results), intent(in) :: r(:)
+      type(vtkfile_unstructured_grid), intent(inout) :: vtkf
+
+      call vtk_write_particle_data_results(d, r, vtkf)
+      if (do_average) then
+        ! we have to average over old and new velocities
+        DEBUG_ASSERT(allocated(vold))
+        call vtkf%write_data_array("v_avg", ( d(:)%v(1)+vold(1,:) )/2._8, &
+                                            ( d(:)%v(2)+vold(2,:) )/2._8, &
+                                            ( d(:)%v(3)+vold(3,:) )/2._8)
+      else
+        call vtkf%write_data_array("v_avg", d(:)%v(1), d(:)%v(2), d(:)%v(3))
+      endif
+    end subroutine
   end subroutine
 
   subroutine dump_energy(t, particles, istream, level_params, nml, comm, do_average)

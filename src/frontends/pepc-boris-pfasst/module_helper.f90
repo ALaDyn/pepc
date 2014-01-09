@@ -127,18 +127,35 @@ module pepcboris_helper
     implicit none
     type(pepcboris_nml_t), intent(inout) :: nml
     type(t_particle), allocatable, target, intent(out) :: particles(:)
+    integer(kind_particle) :: i
+    real*8 :: myrand(3)
 
     select case (nml%particle_config)
       case (0)
         ! single particle at specified position
         nml%numparts = 1
-        allocate(particles(1))
+        allocate(particles(nml%numparts))
         particles(1)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0)
         particles(1)%data%q = 1.
         particles(1)%data%m = 1.
         particles(1)%data%v = nml%setup_params(PARAMS_VX0:PARAMS_VZ0)
         particles(1)%label  = 1
         particles(1)%work   = 1.
+      case (1)
+        ! 100 particles around specified position
+        nml%numparts = 100
+        allocate(particles(nml%numparts))
+
+        do i=1,nml%numparts
+          call random_number(myrand)
+          particles(i)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0) + 0.01*(myrand - 0.5_8)
+          particles(i)%data%q = 1.
+          particles(i)%data%m = 1.
+          call random_number(myrand)
+          particles(i)%data%v = nml%setup_params(PARAMS_VX0:PARAMS_VZ0) + 0.0*(myrand - 0.5_8)
+          particles(i)%label  = i
+          particles(i)%work   = 1.
+        end do
       case default
         DEBUG_ERROR(*, 'setup_particles() - invalid value for particle_config:', nml%particle_config)
     end select
