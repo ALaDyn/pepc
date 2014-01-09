@@ -28,6 +28,7 @@ module pfm_helper
         integer, dimension(max_nlevels) :: nnodes  = 3
         real*8, dimension(max_nlevels)  :: theta = 0.3
         logical, dimension(max_nlevels) :: directforce = .true. ! PEPC does not support single-particle-invocation
+        integer, dimension(max_nlevels) :: feval_mode = 11
     end type pf_nml_t
 
   contains
@@ -119,6 +120,7 @@ module pfm_helper
             lp%nparts = size(particles)
             lp%theta  = pf_nml%theta(i)
             lp%directforce = pf_nml%directforce(i)
+            lp%feval_mode  = pf_nml%feval_mode(i)
             lp%dim    = dim
             lp%comm   = comm
             lp%root   = rank == 0
@@ -144,6 +146,7 @@ module pfm_helper
             lp%nparts = -1
             lp%theta  = -1
             lp%directforce = .false.
+            lp%feval_mode  = -1
             lp%dim    = -1
             lp%comm   = -1
           end associate
@@ -219,8 +222,9 @@ module pfm_helper
         integer, dimension(max_nlevels) :: nnodes
         real*8, dimension(max_nlevels) :: theta
         logical, dimension(max_nlevels) :: directforce
+        integer, dimension(max_nlevels) :: feval_mode
 
-        namelist /pfasst/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div, theta, directforce
+        namelist /pfasst/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div, theta, directforce, fevaL_mode
 
         logical :: available
         character(len=255) :: file_name
@@ -241,6 +245,7 @@ module pfm_helper
         nnodes              = pf_namelist%nnodes
         theta               = pf_namelist%theta
         directforce         = pf_namelist%directforce
+        fevaL_mode          = pf_namelist%feval_mode
 
         call pepc_status('|--> read_in_pf_params()')
 
@@ -286,6 +291,7 @@ module pfm_helper
         pf_namelist%nnodes(1:nlevels)      = nnodes(1:nlevels)
         pf_namelist%theta(1:nlevels)       = theta(1:nlevels)
         pf_namelist%directforce(1:nlevels) = directforce(1:nlevels)
+        pf_namelist%feval_mode(1:nlevels)  = feval_mode(1:nlevels)
     end subroutine read_in_pf_params
 
 end module pfm_helper

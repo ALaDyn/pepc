@@ -148,7 +148,7 @@ module pepcboris_helper
 
         do i=1,nml%numparts
           call random_number(myrand)
-          particles(i)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0) + 0.01*(myrand - 0.5_8)
+          particles(i)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0) + 10.*(myrand - 0.5_8)
           particles(i)%data%q = 1.
           particles(i)%data%m = 1.
           call random_number(myrand)

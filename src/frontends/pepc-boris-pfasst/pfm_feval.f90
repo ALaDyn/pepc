@@ -12,6 +12,12 @@ module pfm_feval
     public build_rhs
     public impl_solver
 
+    integer, parameter, public :: FEVAL_MODE_NO_EXTERNAL_FIELD   = 0 * 10
+    integer, parameter, public :: FEVAL_MODE_FULL_EXTERNAL_FIELD = 1 * 10
+
+    integer, parameter, public :: FEVAL_MODE_NO_INTERNAL_FIELD   = 0 * 1
+    integer, parameter, public :: FEVAL_MODE_FULL_INTERNAL_FIELD = 1 * 1
+
   contains
 
     !> Initialize feval, i.e. transfer initial u to PFASST data object
@@ -120,22 +126,42 @@ module pfm_feval
       integer(kind_default), intent(in) :: comm
       logical, intent(in) :: clearresults
 
+      integer :: feval_mode_internal, feval_mode_external
+
+      feval_mode_internal = modulo(level_params%feval_mode, 10)
+      feval_mode_external = int(level_params%feval_mode/10)*10
+
       if (clearresults) then
           call pepc_particleresults_clear(particles)
       endif
 
-      if (level_params%directforce) then
-        call compute_force_direct(particles, comm)
-      else
-        intspec_theta2 = level_params%theta * level_params%theta
-        call pepc_grow_tree(particles)
-        call pepc_traverse_tree(particles)
-        call pepc_restore_particles(particles)
-        if (dbg(DBG_STATS)) call pepc_statistics(step)
-        call pepc_timber_tree()
-      endif
+      select case (feval_mode_internal)
+        case (FEVAL_MODE_FULL_INTERNAL_FIELD)
+          if (level_params%directforce) then
+            call compute_force_direct(particles, comm)
+          else
+            intspec_theta2 = level_params%theta * level_params%theta
+            call pepc_grow_tree(particles)
+            call pepc_traverse_tree(particles)
+            call pepc_restore_particles(particles)
+            if (dbg(DBG_STATS)) call pepc_statistics(step)
+            call pepc_timber_tree()
+          endif
+        case (FEVAL_MODE_NO_INTERNAL_FIELD)
+          ! simply do nothing
+        case default
+          DEBUG_ERROR(*,'feval_mode_internal invalid: ', feval_mode_internal)
+      end select
 
-      call apply_external_field(nml, particles)
+      select case (feval_mode_external)
+        case (FEVAL_MODE_FULL_EXTERNAL_FIELD)
+          call apply_external_field(nml, particles)
+        case (FEVAL_MODE_NO_INTERNAL_FIELD)
+          ! simply do nothing
+        case default
+          DEBUG_ERROR(*,'feval_mode_external invalid: ', feval_mode_external)
+      end select
+
     end subroutine
 
     !> compile full right-hand side using the E-field and particle data

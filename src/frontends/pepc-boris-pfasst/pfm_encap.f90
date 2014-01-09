@@ -12,6 +12,7 @@ module pfm_encap
     integer :: dim
     real*8 :: theta
     logical :: directforce
+    integer :: feval_mode
     integer(kind_default) :: comm
     logical :: root
   end type
