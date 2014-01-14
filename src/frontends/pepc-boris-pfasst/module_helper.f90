@@ -49,10 +49,10 @@ module pepcboris_helper
   integer, public, parameter :: PARAMS_VELOCITY_SPREAD = 10
   integer, public, parameter :: PARAMS_MAXIDX = PARAMS_VELOCITY_SPREAD
 
-  integer, public, parameter :: WM_BORIS       = 1
-  integer, public, parameter :: WM_BORIS_SDC   = 2
-  integer, public, parameter :: WM_ANALYTIC    = 3
-  integer, public, parameter :: WM_CYCLOTRONIC = 4
+  integer, public, parameter :: WM_BORIS            = 1
+  integer, public, parameter :: WM_BORIS_SDC_REF    = 2
+  integer, public, parameter :: WM_ANALYTIC         = 3
+  integer, public, parameter :: WM_CYCLOTRONIC      = 4
   integer, public, parameter :: WM_BORIS_PATACCHINI = 5
   integer, public, parameter :: WM_BORIS_LEAP_FROG  = 6
   integer, public, parameter :: WM_BORIS_TANALPHA   = 7
@@ -62,6 +62,7 @@ module pepcboris_helper
   integer, public, parameter :: WM_CYCLOTRONIC_NOTAN         = 11
   integer, public, parameter :: WM_BORIS_PATACCHINI_NOTAN    = 12
   integer, public, parameter :: WM_BORIS_MLSDC               = 13
+  integer, public, parameter :: WM_BORIS_SDC                 = 14
 
   integer, public, parameter :: IFILE_SUMMAND_PARTICLES     =  46
   integer, public, parameter :: IFILE_SUMMAND_ENERGY        = 146
@@ -81,7 +82,7 @@ module pepcboris_helper
     integer :: dumptype = 0
     real*8 :: setup_params(PARAMS_MAXIDX) = 0.
     ! number of particles per species and rank, will be set automatically later
-    integer(kind_particle) :: numparts
+    integer(kind_particle) :: numparts = 100
     ! use PFASST
     integer :: workingmode = WM_BORIS_SDC
   end type
@@ -148,8 +149,7 @@ module pepcboris_helper
         particles(1)%label  = 1
         particles(1)%work   = 1.
       case (1)
-        ! 100 particles around specified position
-        nml%numparts = 100
+        ! a bunch of particles around specified position
         allocate(particles(nml%numparts))
 
         do i=1,nml%numparts
@@ -193,15 +193,17 @@ module pepcboris_helper
     logical            :: read_para_file
 
     integer :: particle_config, workingmode, dumptype
+    integer(kind_particle) :: numparts
     real*8 :: setup_params(PARAMS_MAXIDX)
 
-    namelist /pepcborispfasst/ particle_config, setup_params, workingmode, dumptype
+    namelist /pepcborispfasst/ particle_config, setup_params, workingmode, dumptype, numparts
 
     ! frontend parameters
     particle_config = nml%particle_config
     setup_params    = nml%setup_params
     workingmode     = nml%workingmode
     dumptype        = nml%dumptype
+    numparts        = nml%numparts
 
     ! pepc parameters
     theta2      = 0.36
@@ -224,6 +226,7 @@ module pepcboris_helper
     nml%setup_params    = setup_params
     nml%workingmode     = workingmode
     nml%dumptype        = dumptype
+    nml%numparts        = numparts
 
     ! derived from pfasst parameters
     nml%dt      = dt

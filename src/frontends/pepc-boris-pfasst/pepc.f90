@@ -82,7 +82,7 @@ program pepc
   call dump_energy(0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
 
   select case (pepcboris_nml%workingmode)
-    case (WM_BORIS_SDC, WM_BORIS_MLSDC)
+    case (WM_BORIS_SDC, WM_BORIS_MLSDC, WM_BORIS_SDC_REF)
       ! Set up PFASST object
       call pf_mpi_create(tcomm, MPI_COMM_TIME)
       call pfm_encap_init(encap, particles)

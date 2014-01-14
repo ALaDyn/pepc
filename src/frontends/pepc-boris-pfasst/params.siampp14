@@ -2,8 +2,10 @@
 
   ! initial particle setup
   ! 0 --> one single lonely particle at a position given by PARAMS_X0, _Y0, _Z0 with velocities _VX0, _VY0, _VZ0
-  ! 1 --> 100 particles randomly around a position given by PARAMS_X0, _Y0, _Z0 with velocities _VX0, _VY0, _VZ0
+  ! 1 --> N=numparts particles randomly around a position given by PARAMS_X0, _Y0, _Z0 with velocities _VX0, _VY0, _VZ0
   particle_config = 1
+  ! number of particles for particle_config=1
+  numparts=100
   
   ! dumptype
   ! 0 - no particle dump
@@ -14,11 +16,11 @@
   
   ! physics parameters
   !              X0    Y0   Z0   VX0    VY0  VZ0    OMEGAE  OMEGAB  RADIUS  VELOCITY_SPREAD
-  setup_params = 10.0  0.0  0.0  100.0  0.0  100.0  4.9     25.0    0.01    0.0
+  setup_params = 10.0  0.0  0.0  100.0  0.0  100.0  4.9     25.0    0.001    5.0
 
   ! choice of integrator  
   ! 1  - WM_BORIS
-  ! 2  - WM_BORIS_SDC (ignores nlevels, i.e. sets it to 1 and only uses first entry in level-dependent params)
+  ! 2  - WM_BORIS_SDC_REF (ignores nlevels, i.e. sets it to 1 and only uses first entry in level-dependent params)
   ! 3  - WM_ANALYTIC
   ! 4  - WM_CYCLOTRONIC
   ! 5  - WM_BORIS_PATACCHINI
@@ -30,20 +32,21 @@
   ! 11 - WM_CYCLOTRONIC_NOTAN
   ! 12 - WM_BORIS_PATACCHINI_NOTAN
   ! 13 - WM_BORIS_MLSDC
-  workingmode = 13
+  ! 14 - WM_BORIS_SDC (the same as WM_BORIS_SDC, just to produce a different set of results and keep the original data)
+  workingmode = 2
 /
 
 &pfasst
   ! physical simulation end time (in fs)
   tend    = 16.0
   
-  nsteps  = 1024
-  niter   = 1
-  nlevels = 2
+  nsteps  = 16384
+  niter   = 32
+  nlevels = 1
   
   ! level parameters (one entry per level and line, finer levels are more left, coarser levels more right)
   nsweeps = 1 1
-  nnodes  = 2 2
+  nnodes  = 5 2
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
   directforce = .true. .true.
@@ -51,7 +54,7 @@
   ! 2nd digit: 0 - no internal field, 1 - full internal field
   feval_mode = 11 10
   ! multipole acceptance parameter
-  theta   = 0.3 0.3
+  theta   = 0.5 0.5
   ! end of level parameters
   
   res_tol = 0.
@@ -94,5 +97,5 @@
 
 &calc_force_coulomb
   ! square of plummer potential screening parameter
-  eps2 = 0.01
+  eps2 = 0.001
 /

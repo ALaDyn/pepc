@@ -63,7 +63,7 @@ module pepcboris_diagnostics
     logical, intent(in) :: do_average
     integer(kind_particle) :: p
     integer :: istream, dumptype
-    type(t_particle) :: pavg
+    real*8 :: avg(3,4), delt(3)
 
     istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES
     dumptype = pepcboris_nml%dumptype
@@ -87,27 +87,30 @@ module pepcboris_diagnostics
         call vtk_write_particles("particles", comm, step, step*dt, vtk_step, particles, particle_output_data)
 
         if (dumptype==3) then
-          pavg%x      = 0.
-          pavg%data%v = 0.
+          avg = 0.
+          ! average position and velocity
+          do p=1,size(particles,kind=kind(p))
+            avg(:,1) = avg(:,1) +  particles(p)%x
+            avg(:,2) = avg(:,2) +  particles(p)%data%v
+          end do
+          ! compute average absolute distance vector from center of mass
+          do p=1,size(particles,kind=kind(p))
+            delt(:)  = particles(p)%x - avg(:,1)
+            avg(:,3) = avg(:,3) +  abs( delt )
+
+            avg(1,4) =     avg(1,4) + sqrt(dot_product(delt, delt))
+            avg(2,4) = max(avg(2,4),  sqrt(dot_product(delt, delt)))
+          end do
 
           if (do_average) then
             DEBUG_ASSERT(allocated(vold))
             ! we have to average over old and new velocities
-            do p=1,size(particles,kind=kind(p))
-              pavg%x      = pavg%x      +  particles(p)%x
-              pavg%data%v = pavg%data%v + (particles(p)%data%v + vold(:,p))/2._8
-            end do
-          else
-            do p=1,size(particles,kind=kind(p))
-              pavg%x      = pavg%x      +  particles(p)%x
-              pavg%data%v = pavg%data%v +  particles(p)%data%v
-            end do
+            avg(:,2) = ( avg(:,2) + sum(vold,dim=2) ) / 2._8
           endif
 
-          pavg%x      = pavg%x      / size(particles,kind=kind(p))
-          pavg%data%v = pavg%data%v / size(particles,kind=kind(p))
+          avg = avg / size(particles,kind=kind(p))
 
-          write(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG,*) step*dt, 1, pavg%x, pavg%data%v
+          write(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG,*) step*dt, 1, avg(:,1), avg(:,2), avg(:,3), avg(1,4), avg(2,4)
         endif
 
 
