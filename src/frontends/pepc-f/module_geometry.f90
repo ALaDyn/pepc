@@ -53,7 +53,7 @@ module module_geometry
         integer :: nbnd,nbnd_max
         integer :: rc,ib,fid=12
 
-        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,mirror_box_layers,periodicity
+        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
 
         nbnd_max=1000
         allocate(x0(nbnd_max,3),stat=rc)
