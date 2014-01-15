@@ -64,7 +64,9 @@
   color_space_div     = .true.
   color_time_div      = .true.
   
-  echo_timings        = .true.
+  ! create fort.601 files with timings
+  echo_timings        = .false.
+  ! unused
   echo_errors         = .true.
 /
 

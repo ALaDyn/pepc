@@ -234,10 +234,10 @@ module pfm_helper
         niter               = pf_namelist%niter
         nlevels             = pf_namelist%nlevels
         num_space_instances = pf_namelist%num_space_instances
-        echo_errors         = pf_namelist%color_space_div
-        echo_timings        = pf_namelist%color_time_div
-        color_space_div     = pf_namelist%echo_errors
-        color_time_div      = pf_namelist%echo_timings
+        echo_errors         = pf_namelist%echo_errors
+        echo_timings        = pf_namelist%echo_timings
+        color_space_div     = pf_namelist%color_space_div
+        color_time_div      = pf_namelist%color_time_div
         tend                = pf_namelist%tend
         res_tol             = pf_namelist%res_tol
         nsteps              = pf_namelist%nsteps
