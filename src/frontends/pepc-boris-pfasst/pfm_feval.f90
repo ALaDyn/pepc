@@ -11,6 +11,7 @@ module pfm_feval
     public eval_force
     public build_rhs
     public impl_solver
+    public dump_nfeval
 
     integer, parameter, public :: FEVAL_MODE_NO_EXTERNAL_FIELD   = 0 * 10
     integer, parameter, public :: FEVAL_MODE_FULL_EXTERNAL_FIELD = 1 * 10
@@ -18,7 +19,23 @@ module pfm_feval
     integer, parameter, public :: FEVAL_MODE_NO_INTERNAL_FIELD   = 0 * 1
     integer, parameter, public :: FEVAL_MODE_FULL_INTERNAL_FIELD = 1 * 1
 
+    integer :: num_feval_internal = 0
+    integer :: num_feval_external = 0
+
   contains
+
+    !> dump number of rhs evaluations
+    subroutine dump_nfeval()
+      use pepcboris_helper, only : IFILE_SUMMAND_NFEVAL, pepcboris_nml
+      implicit none
+      integer :: istream
+
+      istream = pepcboris_nml%workingmode + IFILE_SUMMAND_NFEVAL
+
+      write(istream,'("# number of rhs evaluations (internal and external forces)",/,i0,x,i0)') num_feval_internal, num_feval_external
+      write(*,'("num_feval_internal / external: ",i0," / ",i0)') num_feval_internal, num_feval_external
+    end subroutine
+
 
     !> Initialize feval, i.e. transfer initial u to PFASST data object
     subroutine feval_init(y0, yend, nlevels, levelctx, encapctx, particles) ! FIXME: shouldnt we call this function once per level?
@@ -137,6 +154,8 @@ module pfm_feval
 
       select case (feval_mode_internal)
         case (FEVAL_MODE_FULL_INTERNAL_FIELD)
+          num_feval_internal = num_feval_internal + 1
+
           if (level_params%directforce) then
             call compute_force_direct(particles, comm)
           else
@@ -155,6 +174,8 @@ module pfm_feval
 
       select case (feval_mode_external)
         case (FEVAL_MODE_FULL_EXTERNAL_FIELD)
+          num_feval_external = num_feval_external + 1
+
           call apply_external_field(nml, particles)
         case (FEVAL_MODE_NO_INTERNAL_FIELD)
           ! simply do nothing

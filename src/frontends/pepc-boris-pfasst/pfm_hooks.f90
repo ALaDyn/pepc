@@ -63,8 +63,8 @@ contains
 
     if (levelctx%root) then
       if (state%step == 0) write(*,*)
-      write(*,'(a1, a,"| step: ",i5," t=", es10.3, " iter: ",i3, " === dumping particles if requested...")',advance='no') &
-        char(13), hook_names(state%hook), step, t, state%iter
+      write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i3)',advance='no') &
+        char(13), hook_names(state%hook), step, state%nsteps, t, state%iter
    endif
 
     ! do diagnostics etc here

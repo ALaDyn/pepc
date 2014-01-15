@@ -67,6 +67,7 @@ module pepcboris_helper
   integer, public, parameter :: IFILE_SUMMAND_PARTICLES     =  46
   integer, public, parameter :: IFILE_SUMMAND_ENERGY        = 146
   integer, public, parameter :: IFILE_SUMMAND_PARTICLES_AVG = 246
+  integer, public, parameter :: IFILE_SUMMAND_NFEVAL        = 346
 
 
   !> parameter collection for pepcboris

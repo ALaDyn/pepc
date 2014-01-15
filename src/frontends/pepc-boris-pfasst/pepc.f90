@@ -326,6 +326,8 @@ program pepc
   end select
 
   call dump_particles(VTK_STEP_LAST, pepcboris_nml%nt, pepcboris_nml%dt, particles, MPI_COMM_SPACE, do_average=.false.)
+  write(*,*) ''
+  call dump_nfeval()
 
   call pepc_finalize()
   call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)
