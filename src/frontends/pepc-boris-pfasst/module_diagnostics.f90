@@ -115,7 +115,7 @@ module pepcboris_diagnostics
 
         avg = avg / size(particles,kind=kind(p))
 
-        write(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG,*) step*dt, 1, avg(:,1), avg(:,2), avg(:,3), avg(1,4), avg(2,4)
+        write(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG,*) step*dt, 1, avg(:,1), avg(:,2), avg(:,3), avg(1,4), avg(2,4), particles(1)%x
     end select
 
     contains
