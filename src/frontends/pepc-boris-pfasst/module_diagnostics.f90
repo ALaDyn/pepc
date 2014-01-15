@@ -69,8 +69,8 @@ module pepcboris_diagnostics
     dumptype = pepcboris_nml%dumptype
 
     select case (dumptype)
-      case (0)
-        ! linear output to fort.istream file
+      case (1)
+        ! linear output of all particles to fort.istream file
         if (do_average) then
           DEBUG_ASSERT(allocated(vold))
           ! we have to average over old and new velocities
@@ -82,40 +82,40 @@ module pepcboris_diagnostics
             write(istream,*) step*dt, p, particles(p)%x, particles(p)%data%v
           end do
         endif
-      case (1,3)
+    end select
+
+    select case (dumptype)
+      case (2,4)
         ! vtk output
         call vtk_write_particles("particles", comm, step, step*dt, vtk_step, particles, particle_output_data)
+    end select
 
-        if (dumptype==3) then
-          avg = 0.
-          ! average position and velocity
-          do p=1,size(particles,kind=kind(p))
-            avg(:,1) = avg(:,1) +  particles(p)%x
-            avg(:,2) = avg(:,2) +  particles(p)%data%v
-          end do
-          ! compute average absolute distance vector from center of mass
-          do p=1,size(particles,kind=kind(p))
-            delt(:)  = particles(p)%x - avg(:,1)
-            avg(:,3) = avg(:,3) +  abs( delt )
+    select case (dumptype)
+      case (3,4)
+        avg = 0.
+        ! average position and velocity
+        do p=1,size(particles,kind=kind(p))
+          avg(:,1) = avg(:,1) +  particles(p)%x
+          avg(:,2) = avg(:,2) +  particles(p)%data%v
+        end do
+        ! compute average absolute distance vector from center of mass
+        do p=1,size(particles,kind=kind(p))
+          delt(:)  = particles(p)%x - avg(:,1)
+          avg(:,3) = avg(:,3) +  abs( delt )
 
-            avg(1,4) =     avg(1,4) + sqrt(dot_product(delt, delt))
-            avg(2,4) = max(avg(2,4),  sqrt(dot_product(delt, delt)))
-          end do
+          avg(1,4) =     avg(1,4) + sqrt(dot_product(delt, delt))
+          avg(2,4) = max(avg(2,4),  sqrt(dot_product(delt, delt)))
+        end do
 
-          if (do_average) then
-            DEBUG_ASSERT(allocated(vold))
-            ! we have to average over old and new velocities
-            avg(:,2) = ( avg(:,2) + sum(vold,dim=2) ) / 2._8
-          endif
-
-          avg = avg / size(particles,kind=kind(p))
-
-          write(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG,*) step*dt, 1, avg(:,1), avg(:,2), avg(:,3), avg(1,4), avg(2,4)
+        if (do_average) then
+          DEBUG_ASSERT(allocated(vold))
+          ! we have to average over old and new velocities
+          avg(:,2) = ( avg(:,2) + sum(vold,dim=2) ) / 2._8
         endif
 
+        avg = avg / size(particles,kind=kind(p))
 
-      case default
-        DEBUG_ERROR(*, 'dump_particles() - invalid value for dumptype:', dumptype)
+        write(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG,*) step*dt, 1, avg(:,1), avg(:,2), avg(:,3), avg(1,4), avg(2,4)
     end select
 
     contains

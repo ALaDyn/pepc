@@ -11,7 +11,8 @@
   ! 0 - no particle dump
   ! 1 - dump particle trajectory to fort.XX
   ! 2 - dump particle trajectory to particles.timeseries.vtk
-  ! 3 - same as 2 and dump average particle trajectory to fort.2XX
+  ! 3 - dump average particle trajectory to fort.2XX
+  ! 4 - same as 2 and 3
   dumptype = 3
   
   ! physics parameters
