@@ -21,7 +21,7 @@ CPP      = cpp
 CPPFLAGS = -P -C -D__INTEL_COMPILER
 
 #OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -O3
-OPTIMIZATION = -O3 -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip
+OPTIMIZATION = -O3 -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -xAVX
 
 ifeq ($(OPTLEV), -1)
   FFLAGS   = -g -pg -O0 -warn all -reentrancy threaded -openmp
