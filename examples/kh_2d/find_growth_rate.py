@@ -4,7 +4,10 @@ import sys
 import glob
 import multiprocessing as mp
 
+from math import ceil
+
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy.stats import t as student_tau
 
@@ -59,13 +62,19 @@ if __name__ == '__main__':
   gamma = np.zeros(nmodes + 1)
   stddev = np.zeros_like(gamma)
   res = []
+
+  mpl.rcParams['xtick.labelsize'] = 'small'
+  mpl.rcParams['ytick.labelsize'] = 'small'
+  mpl.rcParams['axes.labelsize'] = 'small'
+
+  fig = plt.figure()
   for i in range(1, nmodes + 1):
-    plt.figure()
-    plt.title("mode number: " + str(i))
-    plt.semilogy(t, spectra[i, :])
+    ax = fig.add_subplot(int(ceil(nmodes / 3.0)), 3, i)
+    ax.set_title("mode number: " + str(i), fontsize = 'small')
+    ax.semilogy(t, spectra[i, :], 'k-')
     try:
       (p, covariance) = lsfit(tfit, np.log(spectra[i][mask]), linmodel, [ 1.0, 0.01 ], maxfev = 10000)
-      plt.semilogy(tfit, np.exp(linmodel(tfit, p)))
+      ax.semilogy(tfit, np.exp(linmodel(tfit, p)), 'r--')
       if True: # ((spectra[-1, i] - spectra[0, i]) > 1.0 * spectra[0, i]):
         print 'p[', i, ']: ', p
         gamma[i] = Dx / V0 * p[1]
@@ -76,6 +85,8 @@ if __name__ == '__main__':
         gamma[i] = 0
     except RuntimeError:
       gamma[i] = 0
+
+  #plt.tight_layout()
 
   plt.figure()
   plt.plot(np.linspace(0,1,100), analytic(np.linspace(0,1,100)), 'k-')
