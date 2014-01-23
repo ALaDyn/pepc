@@ -16,6 +16,7 @@ contains
 
 
    subroutine pepc_setup(pepc_pars)
+      use constants
       use encap
       use module_pepc
       use module_pepc_types, only: t_particle, kind_dim, kind_particle
@@ -25,7 +26,7 @@ contains
 
       type(pepc_nml_t) :: pepc_nml
 
-      call pepc_initialize("pepc-kh-classical", pepc_pars%pepc_comm%mpi_rank, &
+      call pepc_initialize(FRONTEND_NAME, pepc_pars%pepc_comm%mpi_rank, &
         pepc_pars%pepc_comm%mpi_size, .true., comm = pepc_pars%pepc_comm%mpi_comm)
 
       call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)

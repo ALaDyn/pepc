@@ -24,6 +24,7 @@ program pepc
    use module_pepc_types
    use module_timings
   
+   use constants
    use encap
    use pepc_helper
    use time_helper
@@ -57,7 +58,7 @@ program pepc
    call rng_init(pepc_pars%pepc_comm%mpi_rank + 1)
 
    if (root) then
-      print *, "== [pepc-kh-classical]"
+      print *, "== [", FRONTEND_NAME, "]"
       print *, "   running on", pepc_pars%pepc_comm%mpi_size, " MPI ranks."
       print *, "   pdump   = ", pepc_pars%pdump
       print *, "   fdump   = ", pepc_pars%fdump
