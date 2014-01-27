@@ -142,12 +142,17 @@ module module_pepc
         if (pepc_initializes_mpi) then
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
                          MPI_THREAD_LEVEL, provided
-          write(*,'(a/)') 'Initialized with provided level of multithreading. This can lead to incorrect results or crashes.'
+          ! In this case your MPI does not support multithreading. You can install a thread-safe MPI by adapting the following commands:
+          ! $> wget http://www.mpich.org/static/downloads/3.0.4/mpich-3.0.4.tar.gz
+          ! $> tar -xzvf mpich-3.0.4.tar.gz
+          ! $> cd mpich-3.0.4/
+          ! $> ./configure --prefix=PREFIX --enable-g=all --enable-fc --enable-romio --enable-debug --enable-threads
+          ! $> make -j && make install
         else
           write(*,'("Frontend application did not call to MPI_INIT_THREAD correctly. Needed/provided level of multithreading:", I2, "/" ,I2)') &
                          MPI_THREAD_LEVEL, provided
-          write(*,'(a/)') 'Trying to run with provided level of multithreading. This can lead to incorrect results or crashes.'
         endif
+        DEBUG_ERROR(*, 'Not trying to run with provided level of multithreading. This would lead to incorrect results or crashes.')
       end if
 
       ! copy call parameters to treevars module
