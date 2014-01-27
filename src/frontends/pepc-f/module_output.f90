@@ -333,7 +333,7 @@ MODULE output
             end if
         end do
 
-        call reallocate_particles(p_out, n, n_out)
+        call reallocate_particles(p_out, n_out, n_out)
 
         if (step .eq. 0) then
           vtk_step = VTK_STEP_FIRST
