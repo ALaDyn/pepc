@@ -255,7 +255,7 @@ program pepce
 
      call pepc_traverse_tree(particles)
 
-     call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
+!     call validate_n_nearest_neighbour_list(np_local, particles, itime, num_neighbour_boxes, neighbour_boxes)
 
      ! call draw_neighbours(np_local, particles, itime)
 
