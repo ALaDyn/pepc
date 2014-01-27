@@ -98,7 +98,7 @@ program pepc
         call set_checkpoint()
     end if
     if(vtk_interval.ne.0) then
-        call write_particles(particles)
+        call write_particles(particles,17)
     end if
 
     timer(2) = get_time()
@@ -216,8 +216,8 @@ program pepc
         end if
         if(vtk_interval.ne.0) then
             if ((MOD(step,vtk_interval)==0).or.(step==nt+startstep)) THEN
-                IF (spiegelladung/=0) call write_particles(all_particles)
-                IF (spiegelladung==0) call write_particles(particles)
+                IF (spiegelladung/=0) call write_particles(all_particles,1)
+                IF (spiegelladung==0) call write_particles(particles,17)
             end if
         end if
         !end vtk and checkpoints

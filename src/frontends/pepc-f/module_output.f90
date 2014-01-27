@@ -301,25 +301,39 @@ MODULE output
 
 !======================================================================================
 
-    subroutine write_particles(p)
+    subroutine write_particles(p, vtk_mask)
         use module_vtk
         implicit none
     
         type(t_particle), allocatable, intent(in) :: p(:)
+        integer, intent(in) :: vtk_mask
 
-        integer :: i,n
+        type(t_particle), allocatable :: p_out(:)
+        integer :: n_out
+        integer :: i,n,rc,j
         type(vtkfile_unstructured_grid) :: vtk
         integer :: vtk_step
         real*8 :: time
         real*8 :: ta, tb
     
         ta = get_time()
-    
         time = dt* step
 
         if(root) write(*,'(a,i6)') " == [write_particles] vtk output at timestep",step
 
         n=size(p)
+        allocate(p_out(1:n),stat=rc)
+        n_out = 0
+        j=1
+        do i=1,n
+            if (MOD(p(i)%label,vtk_mask)==0) then
+                n_out = n_out+1
+                p_out(j) = p(i)
+                j = j+1
+            end if
+        end do
+
+        call reallocate_particles(p_out, n, n_out)
 
         if (step .eq. 0) then
           vtk_step = VTK_STEP_FIRST
@@ -330,21 +344,21 @@ MODULE output
         endif
 
         call vtk%create_parallel("particles", step, my_rank, n_ranks, time, vtk_step)
-        call vtk%write_headers(n, 0)
+        call vtk%write_headers(n_out, 0)
         call vtk%startpoints()
-        call vtk%write_data_array("xyz", p(:)%x(1), p(:)%x(2), p(:)%x(3))
+        call vtk%write_data_array("xyz", p_out(:)%x(1), p_out(:)%x(2), p_out(:)%x(3))
         call vtk%finishpoints()
         call vtk%startpointdata()
-        call vtk%write_data_array("velocity", p(:)%data%v(1), p(:)%data%v(2), p(:)%data%v(3))
-        call vtk%write_data_array("el_field", p(:)%results%e(1),p(:)%results%e(2), p(:)%results%e(3))
-        call vtk%write_data_array("el_pot", p(:)%results%pot)
-        call vtk%write_data_array("charge", p(:)%data%q)
-        call vtk%write_data_array("mass", p(:)%data%m)
-        call vtk%write_data_array("work", p(:)%work)
-        call vtk%write_data_array("pelabel", p(:)%label)
-        call vtk%write_data_array("local index", [(i,i=1,n)])
-        call vtk%write_data_array("processor", n, my_rank)
-        call vtk%write_data_array("species", p(:)%data%species)
+        call vtk%write_data_array("velocity", p_out(:)%data%v(1), p_out(:)%data%v(2), p_out(:)%data%v(3))
+        call vtk%write_data_array("el_field", p_out(:)%results%e(1),p_out(:)%results%e(2), p_out(:)%results%e(3))
+        call vtk%write_data_array("el_pot", p_out(:)%results%pot)
+        call vtk%write_data_array("charge", p_out(:)%data%q)
+        call vtk%write_data_array("mass", p_out(:)%data%m)
+        call vtk%write_data_array("work", p_out(:)%work)
+        call vtk%write_data_array("pelabel", p_out(:)%label)
+        call vtk%write_data_array("local index", [(i,i=1,n_out)])
+        call vtk%write_data_array("processor", n_out, my_rank)
+        call vtk%write_data_array("species", p_out(:)%data%species)
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()
