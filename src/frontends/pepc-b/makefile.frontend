@@ -14,7 +14,7 @@ FILES_B  =  module_physvars.f90 \
 #           module_xnbody.f90
 
 SRC        += $(FILES_B)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-b/, $(FILES_B))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_B))
 
 FILES_B_U   = #module_gle.f90
 SRC        += $(FILES_B_U)

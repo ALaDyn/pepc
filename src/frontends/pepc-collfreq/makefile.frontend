@@ -13,7 +13,7 @@ FILES_U    = module_checkpoint.f90 \
              module_vtk_helpers.f90
 
 SRC        += $(FILES)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-collfreq/, $(FILES))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES))
 
 SRC        += $(FILES_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_U))

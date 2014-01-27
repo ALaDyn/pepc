@@ -2,7 +2,7 @@ FILES_S   = pepc-s.f90 program.f90 fcs_fconfig.h
 FILES_S_U = 
 
 SRC        += $(FILES_S)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-s/, $(FILES_S))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_S))
 
 SRC        += $(FILES_S_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_S_U))

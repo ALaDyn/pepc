@@ -6,7 +6,7 @@ FILES_SPH   = physvars.f90 files.f90 setup.f90 special_start.f90 stamp.f90 \
 FILES_SPH_U = module_vtk.f90 module_base64.f90
 
 SRC        += $(FILES_SPH)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-sph/, $(FILES_SPH))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_SPH))
 
 SRC        += $(FILES_SPH_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_SPH_U))

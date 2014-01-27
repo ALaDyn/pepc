@@ -4,7 +4,7 @@ FILES_NN   = physvars.f90 files.f90 setup.f90 special_start.f90 stamp.f90 \
 FILES_NN_U = 
              
 SRC        += $(FILES_NN)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-nn/, $(FILES_NN))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_NN))
 
 SRC        += $(FILES_NN_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_NN_U))

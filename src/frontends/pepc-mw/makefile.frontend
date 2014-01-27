@@ -14,7 +14,7 @@ FILES_MW_U = module_checkpoint.f90 \
 
 
 SRC        += $(FILES_MW)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-mw/, $(FILES_MW))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_MW))
 
 SRC        += $(FILES_MW_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_MW_U))

@@ -4,10 +4,10 @@ FILES_L_U = module_vtk_helpers.f90 \
             module_directsum.f90 \
             module_checkpoint.f90
 
-LDLIBS  += $(FRONTENDDIR)/pepc-numpy/libnpy-0.4/lib/libnpy.a
+LDLIBS  += $(FRONTENDDIR)/$(FRONTEND)/libnpy-0.4/lib/libnpy.a
 
 SRC        += $(FILES_L)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-numpy/, $(FILES_L))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
 
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))

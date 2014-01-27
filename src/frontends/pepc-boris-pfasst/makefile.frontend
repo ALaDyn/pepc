@@ -19,7 +19,7 @@ FILES_L_U = module_directsum.f90   \
             
 
 SRC        += $(FILES_L)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-boris-pfasst/, $(FILES_L))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
 
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))

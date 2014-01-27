@@ -21,14 +21,14 @@ FILES_L_U = module_vtk_helpers.f90 \
             
 
 SRC        += $(FILES_L)
-SRC_COPY   += $(addprefix $(FRONTENDDIR)/pepc-a-pfasst/, $(FILES_L))
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
 
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
 # additions for libPFASST
-#LDLIBS += $(FRONTENDDIR)/pepc-a-pfasst/libpfasst/build/*.o
-#FFLAGS += -I$(FRONTENDDIR)/pepc-a-pfasst/libpfasst/build/
+#LDLIBS += $(FRONTENDDIR)/$(FRONTEND)/libpfasst/build/*.o
+#FFLAGS += -I$(FRONTENDDIR)/$(FRONTEND)/libpfasst/build/
 
 
 BACKEND = log2d
