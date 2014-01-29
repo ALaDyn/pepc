@@ -38,7 +38,6 @@ subroutine pepc_setup()
        nt, &
        np_local, &
        npart_total, &
-       nppm, &
        trun, &
        n_cpu, &
        my_rank, &
@@ -119,16 +118,7 @@ subroutine pepc_setup()
   if (np_local*n_cpu .ne. npart_total .and. mod(npart_total,n_cpu) > my_rank)  np_local = npart_total/n_cpu+1
 
 
-  if (n_cpu.eq.1) then
-     nppm=int(1.5*npart_total + 1000)  ! allow for additional ghost particles for field plots
-     !  else if (np_mult<0) then 
-     !     nppm = abs(np_mult)*max(npart_total/n_cpu,1000) ! allow 50% fluctuation
-  else
-     nppm = int(1.5*max(npart_total/n_cpu,1000)) ! allow 50% fluctuation
-  end if
-
-
-  allocate ( particles(nppm) )
+  allocate ( particles(np_local) )
 
 
   if (my_rank == 0) then

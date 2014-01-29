@@ -44,7 +44,6 @@ module physvars
 !  Variables needing 'copy' for tree routines
   integer :: npart_total  ! Total # particles (npart)
   integer :: np_local 
-  integer :: nppm  ! Total # particles (npart)
   real :: np_mult=1.5
 
 !  Associated MPI stuff
