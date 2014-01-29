@@ -38,7 +38,6 @@ contains
     type(app_data_t), pointer :: enc
 
     call pepc_status('|----> particles_to_encap()')
-    call ptr_print('ptrenc', ptrenc)
 
     call c_f_pointer(ptrenc, enc)
 
@@ -62,8 +61,6 @@ contains
     type(level_params_t), pointer :: levelparams
 
     call pepc_status('|----> encap_to_particles()')
-    call ptr_print('ptrenc', ptrenc)
-    call ptr_print('levelctx', levelctx)
 
     call c_f_pointer(ptrenc, enc)
     call c_f_pointer(levelctx, levelparams)
@@ -89,16 +86,6 @@ contains
 
     ptr_val = transfer (ptr, ptr_val)
   end function
-
-  !> internal helper for printing a pointer value (i.e. the address of the pointee)
-  subroutine ptr_print(name, ptr)
-    use iso_c_binding, only : c_ptr
-    implicit none
-    character(*), intent(in) :: name
-    type(c_ptr), intent(in) :: ptr
-
-    if (dbg(DBG_STATUS)) write(*,'("|------------------------------- &", a,"=0x",Z8.8)') trim(name), ptr_val(ptr)
-  end subroutine
 
 
   !> Fill pf_encap_t with pointers to encapsulation functions
@@ -132,8 +119,7 @@ contains
     type(app_data_t), pointer :: q
     type(level_params_t), pointer :: p
 
-    call pepc_status('|----> encap_create()')
-
+    !call pepc_status('|----> encap_create()')
     call c_f_pointer(levelctx, p)
 
     DEBUG_ASSERT(nvars==(2*p%dim)*(p%nparts)) ! dim*(coordinates and momenta) per particle
@@ -147,8 +133,6 @@ contains
 
     sol = c_loc(q)
 
-    call ptr_print('sol', sol)
-
   end subroutine encap_create
 
 
@@ -159,8 +143,7 @@ contains
 
     type(app_data_t), pointer :: q
 
-    call pepc_status('|----> encap_destroy()')
-    call ptr_print('ptr', ptr)
+    !call pepc_status('|----> encap_destroy()')
     call c_f_pointer(ptr, q)
 
     deallocate(q%x)
@@ -180,10 +163,7 @@ contains
     type(app_data_t), pointer :: q
      integer :: which
 
-    call pepc_status('|----> encap_setval()')
-    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",I0)') 'flags', flags
-    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",g0)') 'val', val
-    call ptr_print('ptr', ptr)
+    !call pepc_status('|----> encap_setval()')
     call c_f_pointer(ptr, q)
 
     which = 0
@@ -216,10 +196,7 @@ contains
     type(app_data_t), pointer :: dst, src
     integer :: which
 
-    call pepc_status('|----> encap_copy()')
-    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",I0)') 'flags', flags
-    call ptr_print('dst', dstptr)
-    call ptr_print('src', srcptr)
+    !call pepc_status('|----> encap_copy()')
     call c_f_pointer(dstptr,dst)
     call c_f_pointer(srcptr,src)
 
@@ -256,7 +233,6 @@ contains
     integer(kind_particle) :: i, j
 
     call pepc_status('|----> encap_pack()')
-    call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
     j = 1
@@ -282,7 +258,6 @@ contains
     integer(kind_particle) :: i, j
 
     call pepc_status('|----> encap_unpack()')
-    call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
     j = 1
@@ -309,10 +284,6 @@ contains
     integer :: which
 
     call pepc_status('|----> encap_axpy()')
-    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",I0)') 'flags', flags
-    if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",g0)') 'a', a
-    call ptr_print('xptr', xptr)
-    call ptr_print('yptr', yptr)
     call c_f_pointer(xptr, x)
     call c_f_pointer(yptr, y)
 
@@ -348,7 +319,6 @@ contains
     integer(kind_default) :: ierr
 
     call pepc_status('|----> encap_norm()')
-    call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
     norm_loc = max(maxval(q%x), maxval(q%v))

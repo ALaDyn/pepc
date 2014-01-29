@@ -99,10 +99,6 @@ module pfm_feval
       integer(kind_particle) :: i
 
       call pepc_status('|------> calc_Efield()')
-      call ptr_print('x', xptr)
-      call ptr_print('E', Eptr)
-      call ptr_print('ctx', ctx)
-
       call c_f_pointer(Eptr, E)
       call c_f_pointer(xptr, x)
       call c_f_pointer(ctx, levelctx)
@@ -197,11 +193,6 @@ module pfm_feval
       integer(kind_particle) :: i
 
       call pepc_status('|------> build_rhs()')
-      call ptr_print('rhs', rhsptr)
-      call ptr_print('E', Eptr)
-      call ptr_print('Q', Qptr)
-      call ptr_print('ctx', ctx)
-
       call c_f_pointer(Eptr, E)
       call c_f_pointer(Qptr, Q)
       call c_f_pointer(rhsptr, rhs)
@@ -245,13 +236,6 @@ module pfm_feval
       integer(kind_particle) :: i
 
       call pepc_status('|------> impl_solver()')
-      call ptr_print('v', vptr)
-      call ptr_print('v_old', v_oldptr)
-      call ptr_print('E_new', E_newptr)
-      call ptr_print('E_old', E_oldptr)
-      call ptr_print('SDCint', SDCintptr)
-      call ptr_print('ctx', ctx)
-
       call c_f_pointer(vptr, v)
       call c_f_pointer(v_oldptr, v_old)
       call c_f_pointer(E_newptr, E_new)
