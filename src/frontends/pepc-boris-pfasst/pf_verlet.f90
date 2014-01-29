@@ -33,6 +33,7 @@ module pf_mod_verlet
      procedure(pf_calc_Efield_p), pointer, nopass :: calc_Efield
      procedure(pf_build_rhs_p), pointer, nopass   :: build_rhs
      procedure(pf_impl_solver_p), pointer, nopass :: impl_solver
+     real(pfdp), allocatable :: smat(:,:,:)
   end type pf_verlet_t
 
 contains
@@ -159,8 +160,6 @@ contains
 
     integer :: m,i,j
 
-    allocate(F%smat(F%nnodes-1,F%nnodes,4))
-
     F%smat = 0.0_pfdp
 
     dsdc = F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1)
@@ -264,6 +263,7 @@ contains
     sweeper%evaluate    => verlet_evaluate
     sweeper%initialize  => verlet_initialize
     sweeper%integrate   => verlet_integrate
+    sweeper%destroy     => null() ! we care for destroying the sweeper by ourselves
     sweeper%sweeperctx  =  c_loc(verlet)
   end subroutine pf_verlet_create
 
