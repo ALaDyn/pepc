@@ -1,4 +1,4 @@
-!> Transfer (interpolate, restrict) routines.                                                                           
+!> Transfer (interpolate, restrict) routines.
 module pfm_transfer
   use module_debug
   use iso_c_binding
@@ -6,7 +6,7 @@ module pfm_transfer
   implicit none
   private
   save
-  
+
   public interpolate
   public restrict
 
@@ -26,8 +26,8 @@ contains
       call c_f_pointer(qGp,qG)
 
       ! FIXME: we just copy here, i.e. no coarsening in space for now
-      qF%x(:,:) = qG%x(:,:)
-      qF%v(:,:) = qG%v(:,:)
+      qF%x(:,:) = qG%x
+      qF%v(:,:) = qG%v
 
    end subroutine interpolate
 
@@ -46,8 +46,8 @@ contains
       call c_f_pointer(qGp,qG)
 
       ! FIXME: we just copy here, i.e. no coarsening in space for now
-      qG%x(:,:) = qF%x(:,:)
-      qG%v(:,:) = qF%v(:,:)
+      qG%x(:,:) = qF%x
+      qG%v(:,:) = qF%v
 
    end subroutine restrict
 

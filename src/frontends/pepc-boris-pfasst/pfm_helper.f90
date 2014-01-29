@@ -117,6 +117,7 @@ module pfm_helper
         do i = 1, pf_nml%nlevels
           associate (lp=>level_params(i))
             ! add any parameters from level_params_t here
+            lp%level  = i
             lp%nparts = size(particles)
             lp%theta  = pf_nml%theta(i)
             lp%directforce = pf_nml%directforce(i)

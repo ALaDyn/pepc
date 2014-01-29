@@ -168,7 +168,7 @@ module pepcboris_diagnostics
     ! we need a temporary copy here to prevent destruction the results stored in the particles-array
     allocate(particles_tmp(size(particles)))
     particles_tmp(:) = particles(:)
-    call eval_force(particles_tmp, level_params, pepcboris_nml, -1, comm, clearresults=.true.)
+    call eval_force(particles_tmp, level_params, pepcboris_nml, comm, clearresults=.true.)
     if (do_average) then
       DEBUG_ASSERT(allocated(vold))
       ! we have to average over old and new velocities

@@ -97,7 +97,6 @@ module pfm_feval
       type(app_data_t), pointer :: E,x
       type(level_params_t), pointer :: levelctx
       integer(kind_particle) :: i
-      integer, save :: step =0
 
       call pepc_status('|------> calc_Efield()')
       call ptr_print('x', xptr)
@@ -108,15 +107,13 @@ module pfm_feval
       call c_f_pointer(xptr, x)
       call c_f_pointer(ctx, levelctx)
 
-      step = step + 1
-
       DEBUG_ASSERT(E%params%nparts==x%params%nparts)
 
       ! prepare and run PEPC
       allocate(particles(E%params%nparts))
       call encap_to_particles(particles, xptr, ctx)
                                            ! FIXME: using pepcboris_nml as global variable is not really nice
-      call eval_force(particles, levelctx, pepcboris_nml, step, levelctx%comm, clearresults=.true.)
+      call eval_force(particles, levelctx, pepcboris_nml, levelctx%comm, clearresults=.true.)
 
       ! just copy results to E variable (yes, it's weird that we have x- and v-components.. don't ask, won't tell)
       do i=1,size(particles, kind=kind(i))
@@ -130,7 +127,7 @@ module pfm_feval
 
 
     !> invoke pepc or direct sum
-    subroutine eval_force(particles, level_params, nml, step, comm, clearresults)
+    subroutine eval_force(particles, level_params, nml, comm, clearresults)
       use module_debug
       use module_pepc
       use module_interaction_specific, only : intspec_theta2 => theta2
@@ -139,7 +136,6 @@ module pfm_feval
       type(t_particle), allocatable, target, intent(inout) :: particles(:)
       type(level_params_t), intent(in) :: level_params
       type(pepcboris_nml_t), intent(in) :: nml
-      integer, intent(in) :: step
       integer(kind_default), intent(in) :: comm
       logical, intent(in) :: clearresults
 
@@ -163,7 +159,6 @@ module pfm_feval
             call pepc_grow_tree(particles)
             call pepc_traverse_tree(particles)
             call pepc_restore_particles(particles)
-            if (dbg(DBG_STATS)) call pepc_statistics(step)
             call pepc_timber_tree()
           endif
         case (FEVAL_MODE_NO_INTERNAL_FIELD)

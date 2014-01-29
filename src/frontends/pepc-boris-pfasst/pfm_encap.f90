@@ -8,6 +8,7 @@ module pfm_encap
   !> data type for level-dependent application parameters
   !> if any parameters are added here, they also have to be included in #pfm_setup_solver_level_params
   type :: level_params_t
+    integer :: level
     integer :: nparts
     integer :: dim
     real*8 :: theta
@@ -130,7 +131,6 @@ contains
 
     type(app_data_t), pointer :: q
     type(level_params_t), pointer :: p
-    type(app_data_t), pointer :: y0
 
     call pepc_status('|----> encap_create()')
 
@@ -178,8 +178,7 @@ contains
     integer,     intent(in), optional :: flags
 
     type(app_data_t), pointer :: q
-    integer(kind_particle) :: i
-    integer :: which
+     integer :: which
 
     call pepc_status('|----> encap_setval()')
     if (dbg(DBG_STATUS)) write(*,'("|-------------------------------  ", a,"=",I0)') 'flags', flags
@@ -193,20 +192,14 @@ contains
     select case (which)
     case (0)
       ! set value for x and v
-      do i=1,q%params%nparts
-        q%x(:,i) = val
-        q%v(:,i) = val
-      end do
+      q%x = val
+      q%v = val
     case (1)
       ! set value for v
-      do i=1,q%params%nparts
-        q%v(:,i) = val
-      end do
+      q%v = val
     case (2)
       ! set value for x
-      do i=1,q%params%nparts
-        q%x(:,i) = val
-      end do
+      q%x = val
     case default
        DEBUG_ERROR(*, 'Invalid flags')
     end select
@@ -221,7 +214,6 @@ contains
     integer,     intent(in), optional :: flags
 
     type(app_data_t), pointer :: dst, src
-    integer(kind_particle) :: i
     integer :: which
 
     call pepc_status('|----> encap_copy()')
@@ -239,20 +231,14 @@ contains
     select case (which)
     case (0)
       ! copy value for x and v
-      do i=1,src%params%nparts
-       dst%x(:,i) = src%x(:,i)
-       dst%v(:,i) = src%v(:,i)
-      end do
+      dst%x(:,:) = src%x
+      dst%v(:,:) = src%v
     case (1)
       ! copy value for v
-      do i=1,src%params%nparts
-       dst%v(:,i) = src%v(:,i)
-      end do
+      dst%v(:,:) = src%v
     case (2)
       ! copy value for x
-      do i=1,src%params%nparts
-       dst%x(:,i) = src%x(:,i)
-      end do
+      dst%x(:,:) = src%x
     case default
        DEBUG_ERROR(*, 'Invalid flags')
     end select
@@ -320,7 +306,6 @@ contains
     integer,     intent(in), optional :: flags
 
     type(app_data_t), pointer :: x, y
-    integer(kind_particle) :: i
     integer :: which
 
     call pepc_status('|----> encap_axpy()')
@@ -337,22 +322,14 @@ contains
     if (present(flags)) which = flags
     select case (which)
     case (0)
-      do i=1,x%params%nparts
-        y%x(:,i) = a * x%x(:,i) + y%x(:,i)
-        y%v(:,i) = a * x%v(:,i) + y%v(:,i)
-      end do
+        y%x(:,:) = a * x%x + y%x
+        y%v(:,:) = a * x%v + y%v
     case (1)
-      do i=1,x%params%nparts
-        y%v(:,i) = a * x%v(:,i) + y%v(:,i)
-      end do
+        y%v(:,:) = a * x%v + y%v
     case (2)
-      do i=1,x%params%nparts
-        y%x(:,i) = a * x%x(:,i) + y%x(:,i)
-      end do
+        y%x(:,:) = a * x%x + y%x
     case (12)
-      do i=1,x%params%nparts
-        y%x(:,i) = a * x%v(:,i) + y%x(:,i)
-      end do
+        y%x(:,:) = a * x%v + y%x
     case default
        DEBUG_ERROR(*, 'Invalid flags')
     end select
@@ -368,17 +345,13 @@ contains
     real(pfdp) :: norm, norm_loc
 
     type(app_data_t), pointer :: q
-    integer(kind_particle) :: i
-    integer(kind_Default) :: ierr
+    integer(kind_default) :: ierr
 
     call pepc_status('|----> encap_norm()')
     call ptr_print('ptr', ptr)
     call c_f_pointer(ptr, q)
 
-    norm_loc = 0.
-    do i=1,q%params%nparts
-      norm_loc = maxval([norm_loc, maxval(q%x(:,i)), maxval(q%v(:,i))])
-    end do
+    norm_loc = max(maxval(q%x), maxval(q%v))
 
     call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, q%params%comm, ierr )
 
