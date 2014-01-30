@@ -188,7 +188,7 @@ module pfm_helper
             pf%levels(i)%encap       => encap
             pf%levels(i)%sweeper     => sweeper
 
-            pf%levels(i)%Finterp     = .false.
+            pf%levels(i)%Finterp     = .true.
 
         end do
 
