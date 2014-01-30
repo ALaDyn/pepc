@@ -35,6 +35,7 @@ prepare: $(SRC)
 	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
 	@echo "CPPFLAGS_BACKEND=$(CPPFLAGS_BACKEND)" >> $(MAKEENVS)
 	@cp -p makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(FRONTENDDIR)/$(FRONTEND)/makefile.frontend $(WORKDIR)
+	@cp $(TOOLSDIR)/tau/pepc_tau_select $(WORKDIR)
 	@cp -r $(LIBDIR)/* $(WORKDIR)
 	@ln -sf makefile.build $(WORKDIR)/makefile
 	@echo ""

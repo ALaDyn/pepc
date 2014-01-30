@@ -16,6 +16,19 @@ SION      = 0
 HPCTOOLKT = 0
 SCOREP    = 0
 SCALASCA  = 0
+# HOWTO use TAU:
+# First, perform a build with TAU = 0 to have non-instrumented versions
+# of OpenPA and the SL (building them with TAU = 1 does not work).
+# Do a make clean, load the TAU module
+#
+#   module load UNITE tau
+#
+# then set TAU_MAKEFILE
+#
+#   export TAU_MAKEFILE = $TAU_MF_DIR/Makefile.tau-papi-mpi-pthread-pdt
+#
+# set TAU = 1 below and rebuild your frontend.
+TAU       = 0
 
 MAKE      = gmake
 AR        = ar
@@ -93,6 +106,15 @@ ifeq ($(SCALASCA), 1)
   FCPRE += scalasca -instrument
   CCPRE += scalasca -instrument
   LDPRE += scalasca -instrument
+endif
+
+ifeq ($(TAU), 1)
+  CC = tau_cc.sh -optKeepFiles -optTauSelectFile=pepc_tau_select -optTrackPthread
+  CFLAGS += -D_GNU_SOURCE -qnoipa
+  FC = tau_f90.sh -optKeepFiles -optTauSelectFile=pepc_tau_select -optTrackPthread -optPdtGnuFortranParser
+  FFLAGS += -qnoipa
+  LD = tau_f90.sh -optKeepFiles -optTauSelectFile=pepc_tau_select -optTrackPthread
+  LDFLAGS += -qnoipa
 endif
 
 COMPILER = $(shell $(FC) -qversion | tr '\n' ' ')

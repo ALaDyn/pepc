@@ -70,9 +70,9 @@ module module_interaction_specific
         multipole = t_tree_node_interaction_data(particle_pos, &
                                      particle%q,   &
                                  abs(particle%q),  &
-                                     [0., 0., 0.], &
-                                     [0., 0., 0.], &
-                                      0., 0., 0., 0. )
+                                     (/0., 0., 0./), &
+                                     (/0., 0., 0./), &
+                                       0., 0., 0., 0. )
       end subroutine
 
 

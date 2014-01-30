@@ -1,0 +1,50 @@
+#Tell tau to not profile these functions
+BEGIN_INCLUDE_LIST
+
+#MODULE_PEPC::PEPC_TRAVERSE_TREE
+#MODULE_PEPC::PEPC_#
+
+END_INCLUDE_LIST
+
+#Exclude these files from profiling
+BEGIN_FILE_INCLUDE_LIST
+
+# treecode
+pp_module_box.f90
+pp_module_domains.f90
+pp_module_libpepc_main.f90
+pp_module_pepc.f90
+pp_module_spacefilling.f90
+pp_module_tree_communicator.f90
+pp_module_tree.f90
+pp_module_tree_grow.f90
+pp_module_tree_node.f90
+pp_module_walk_pthreads.f90
+
+# interaction backend
+pp_module_interaction_specific.f90
+pp_module_coulomb_kernels.f90
+
+# frontend
+pp_pepc.f90
+pp_module_helper.f90
+
+END_FILE_INCLUDE_LIST
+
+BEGIN_INSTRUMENT_SECTION
+
+# A dynamic phase will break up the profile into phase where
+# each events is recorded according to what phase of the application
+# in which it occured.
+#dynamic phase name="foo1_bar" file="foo.c" line=26 to line=27
+
+# instrument all the outer loops in this routine
+#loops file="loop_test.cpp" routine="multiply"
+
+# tracks memory allocations/deallocations as well as potential leaks
+#memory file="foo.f90" routine="INIT"
+
+# tracks the size of read, write and print statements in this routine
+#io file="foo.f90" routine="RINB"
+
+END_INSTRUMENT_SECTION

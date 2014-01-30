@@ -587,7 +587,7 @@ module module_tree_communicator
       integer(kind_node) :: child_nodes(1:8)
       integer :: nchild
 
-      if (ic > num_children) then; return; endif
+      if (ic > num_children) return
 
       lvl     =  child_data(ic)%level
       nchild  =  0
