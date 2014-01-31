@@ -3,13 +3,13 @@ module pfm_helper
   implicit none
   private
   save
-    
+
     public pf_nml_t
     public pfm_init_pfasst
     public pfm_fill_pfasst_object
     public pfm_setup_solver_level_params
     public pfm_finalize_solver_level_params
-  
+
     integer, parameter :: max_nlevels = 20
 
     !> pfasst parameter collection
@@ -29,7 +29,7 @@ module pfm_helper
         real*8, dimension(max_nlevels)  :: theta = 0.3
         logical, dimension(max_nlevels) :: directforce = .false.
     end type pf_nml_t
-    
+
   contains
 
 
@@ -45,7 +45,7 @@ module pfm_helper
         type(pf_nml_t), intent(inout) :: pf_nml
         integer(kind_default), intent(out) :: MPI_COMM_SPACE, MPI_COMM_TIME
         integer(kind_default) :: provided
-        
+
         integer :: mpi_err, color
         integer(kind_pe) :: mpi_size, mpi_rank, mpi_size_space
 
@@ -87,7 +87,7 @@ module pfm_helper
           color = mod(mpi_rank, mpi_size_space)
         endif
 
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, mpi_rank, MPI_COMM_TIME, mpi_err)       
+        call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, mpi_rank, MPI_COMM_TIME, mpi_err)
 
         if (mpi_rank == 0) write(*,*) 'All right, I can use ',mpi_size,&
                                       ' processors in total. These will be split up into ',pf_nml%num_space_instances,&
@@ -101,14 +101,14 @@ module pfm_helper
         use pfm_encap
         use pepca_helper, only: pepca_nml_t
         implicit none
-        
+
         integer, intent(in) :: rank
         type(pf_nml_t), intent(in) :: pf_nml
         type(level_params_t), pointer, intent(inout) :: level_params(:)
         integer(kind_dim), intent(in) :: dim
         integer(kind_default), intent(in) :: comm
         type(t_particle), allocatable, target, intent(in) :: particles(:)
-        
+
         integer :: i
 
         allocate(level_params(pf_nml%nlevels))
@@ -125,8 +125,8 @@ module pfm_helper
           end associate
         end do
     end subroutine pfm_setup_solver_level_params
-    
-    
+
+
     !> Finalizes solver parameters data structure
     subroutine pfm_finalize_solver_level_params(level_params, nlevels)
         use pfm_encap
@@ -150,7 +150,7 @@ module pfm_helper
         end do
 
         deallocate(level_params)
-    end subroutine pfm_finalize_solver_level_params    
+    end subroutine pfm_finalize_solver_level_params
 
 
     !> Fill PFASST object pf (generated earlier), mostly with read-in or derived parameters
@@ -192,8 +192,13 @@ module pfm_helper
         pf%qtype        = SDC_GAUSS_LOBATTO
         pf%echo_timings = pf_nml%echo_timings! FIXME .and. (wk(pf%nlevels)%mpi_rank == 0)
         pf%window       = PF_WINDOW_BLOCK
+
         pf%rel_res_tol  = pf_nml%res_tol
         pf%abs_res_tol  = pf_nml%res_tol
+
+        pf%pipeline_g   = .false.
+        pf%pfasst_pred  = .false.
+
     end subroutine pfm_fill_pfasst_object
 
 
@@ -202,7 +207,7 @@ module pfm_helper
         use pf_mod_mpi
         use pepca_units
         implicit none
-        
+
         type(pf_nml_t), intent(out) :: pf_namelist
         integer, intent(in) :: rank, comm
 
@@ -270,7 +275,7 @@ module pfm_helper
                 write(*,*) 'Error, nlevels is too large, must be lower than ', max_nlevels
                 call MPI_ABORT(MPI_COMM_WORLD, 0, ierr)
             end if
- 
+
         end if
 
         pf_namelist%niter                  = niter

@@ -26,6 +26,19 @@ module pfm_encap
     type(t_particle), pointer :: particles(:) !< this is a pointer to blueprint particles: x and v are stored in app_data_t structure, all other properties are stores here, see encap_to_particles() for details
   end type app_data_t
 
+  integer, parameter :: AXPY_aVpV_aXpX = 0
+  integer, parameter :: AXPY_aVpV      = 1
+  integer, parameter :: AXPY_aXpX      = 2
+  integer, parameter :: AXPY_aVpX      = 12
+
+  integer, parameter :: COPY_XV = 0
+  integer, parameter :: COPY_V  = 1
+  integer, parameter :: COPY_X  = 2
+
+  integer, parameter :: SETVAL_XV = 0
+  integer, parameter :: SETVAL_V  = 1
+  integer, parameter :: SETVAL_X  = 2
+
 contains
 
   subroutine particles_to_encap(ptrenc, p)
@@ -170,14 +183,14 @@ contains
     if (present(flags)) which = flags
 
     select case (which)
-    case (0)
+    case (SETVAL_XV)
       ! set value for x and v
       q%x = val
       q%v = val
-    case (1)
+    case (SETVAL_V)
       ! set value for v
       q%v = val
-    case (2)
+    case (SETVAL_X)
       ! set value for x
       q%x = val
     case default
@@ -202,18 +215,18 @@ contains
 
     DEBUG_ASSERT(src%params%nparts==dst%params%nparts)
 
-    which = 0
+    which = COPY_XV
     if (present(flags)) which = flags
 
     select case (which)
-    case (0)
+    case (COPY_XV)
       ! copy value for x and v
       dst%x(:,:) = src%x
       dst%v(:,:) = src%v
-    case (1)
+    case (COPY_V)
       ! copy value for v
       dst%v(:,:) = src%v
-    case (2)
+    case (COPY_X)
       ! copy value for x
       dst%x(:,:) = src%x
     case default
@@ -289,17 +302,17 @@ contains
 
     DEBUG_ASSERT(x%params%nparts==y%params%nparts)
 
-    which = 0
+    which = AXPY_aVpV_aXpX
     if (present(flags)) which = flags
     select case (which)
-    case (0)
+    case (AXPY_aVpV_aXpX)
         y%x(:,:) = a * x%x + y%x
         y%v(:,:) = a * x%v + y%v
-    case (1)
+    case (AXPY_aVpV)
         y%v(:,:) = a * x%v + y%v
-    case (2)
+    case (AXPY_aXpX)
         y%x(:,:) = a * x%x + y%x
-    case (12)
+    case (AXPY_aVpX)
         y%x(:,:) = a * x%v + y%x
     case default
        DEBUG_ERROR(*, 'Invalid flags')

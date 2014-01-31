@@ -1,5 +1,6 @@
 module pf_mod_verlet
   use pf_mod_dtype
+  use pfm_encap
   implicit none
   integer, parameter, private :: npieces = 1
 
@@ -63,22 +64,21 @@ contains
     !
 
     call F%encap%create(fq_int, F%level, SDC_KIND_INTEGRAL, F%nvars, F%shape, F%levelctx, F%encap%encapctx)
-    call F%encap%setval(fq_int, 0.0_pfdp)
+    call F%encap%setval(fq_int, 0.0_pfdp, SETVAL_XV)
 
     ! setup temporary variable to contain full right-hand side (based on E-field in F)
     call F%encap%create(rhs, F%level, SDC_KIND_FEVAL, F%nvars, F%shape, F%levelctx, F%encap%encapctx)
-    call F%encap%setval(rhs, 0.0_pfdp)
 
     dtsq = dt*dt
     do m = 1, F%nnodes-1
-       call F%encap%setval(F%S(m), 0.0_pfdp)
+       call F%encap%setval(F%S(m), 0.0_pfdp, SETVAL_XV)
        do n = 1, F%nnodes
           call verlet%build_rhs(F%F(n,1), F%Q(n), F%level, F%levelctx, rhs)
-          call F%encap%axpy(F%S(m), dt  *F%smat(m,n,1), rhs, 1)
-          call F%encap%axpy(F%S(m), dtsq*F%smat(m,n,2), rhs, 2)
+          call F%encap%axpy(F%S(m), dt  *F%smat(m,n,1), rhs, AXPY_aVpV)
+          call F%encap%axpy(F%S(m), dtsq*F%smat(m,n,2), rhs, AXPY_aXpX)
        end do
        if (associated(F%tau)) then
-          call F%encap%axpy(F%S(m), 1.0_pfdp, F%tau(m))
+          call F%encap%axpy(F%S(m), 1.0_pfdp, F%tau(m), AXPY_aVpV_aXpX)
        end if
     end do
 
@@ -94,19 +94,19 @@ contains
     dtsdc = dt * (F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1))
     do m = 1, F%nnodes-1
        t = t + dtsdc(m)
-       call F%encap%setval(fq_int, 0.0_pfdp)
+       call F%encap%setval(fq_int, 0.0_pfdp, SETVAL_XV)
 
        !  Lower triangular verlet to old new
        do n = 1, m
           call verlet%build_rhs(F%F(n,1), F%Q(n), F%level, F%levelctx, rhs)
-          call F%encap%axpy(fq_int, dtsq*F%smat(m,n,3), rhs, 2)
+          call F%encap%axpy(fq_int, dtsq*F%smat(m,n,3), rhs, AXPY_aXpX)
        end do
 
        !  Update position term (trapezoid rule)
-       call F%encap%copy(F%Q(m+1), fq_int, 2)
-       call F%encap%axpy(F%Q(m+1), dtsdc(m), F%Q(1), 12) !  Add the dt*v_0 term
-       call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%S(m), 2)  !  Add integration term for p
-       call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%Q(m), 2)  !  Start m+1 with value from m
+       call F%encap%copy(F%Q(m+1), fq_int, COPY_X)
+       call F%encap%axpy(F%Q(m+1), dtsdc(m), F%Q(1), AXPY_aVpX) !  Add the dt*v_0 term
+       call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%S(m), AXPY_aXpX)  !  Add integration term for p
+       call F%encap%axpy(F%Q(m+1), 1.0_pfdp, F%Q(m), AXPY_aXpX)  !  Start m+1 with value from m
 
        call verlet%calc_Efield(F%Q(m+1), t, F%level, F%levelctx, F%F(m+1,1))
 
@@ -121,7 +121,7 @@ contains
 
     end do
 
-    call F%encap%copy(F%qend, F%Q(F%nnodes))
+    call F%encap%copy(F%qend, F%Q(F%nnodes), COPY_XV)
     call F%encap%destroy(fq_int)
     call F%encap%destroy(rhs)
 
@@ -157,6 +157,8 @@ contains
     real(pfdp) :: Q(F%nnodes,F%nnodes)
     real(pfdp) :: D(F%nnodes,F%nnodes)
     real(pfdp) :: Dtrap(F%nnodes,F%nnodes)
+
+    real(pfdp) :: qtmp(F%nnodes,F%nnodes)
 
     integer :: m,i,j
 
@@ -205,8 +207,13 @@ contains
        F%smat(m,:,1) = (Dtrap(m+1,:)-Dtrap(m,:))
        F%smat(m,:,2) = (D(m+1,:)-D(m,:))
        F%smat(m,:,3) = Abartil(m+1,:)-Abartil(m,:)
-       F%smat(m,:,4) = Abar(m+1,:)-Abar(m,:)
     end do
+
+    ! populate Qpicx and Ppicv
+    qtmp(1, :) = 0.
+    qtmp(2:,:) = F%qmat
+    qtmp(:, :) = matmul(qtmp, qtmp)
+    F%qqmat(:, :) = qtmp(2:,:)
   end subroutine verlet_initialize
 
 
@@ -219,7 +226,7 @@ contains
     real(pfdp),       intent(in) :: dt
     type(c_ptr),      intent(inout) :: fintSDC(:)
 
-    real(pfdp) :: dtsdc(1:F%nnodes-1)
+    real(pfdp) :: dtsq
     integer :: n, m
     type(c_ptr) :: rhs
     type(pf_verlet_t), pointer :: verlet
@@ -228,15 +235,17 @@ contains
 
     ! setup temporary variable to contain full right-hand side (based on E-field in F)
     call F%encap%create(rhs, F%level, SDC_KIND_FEVAL, F%nvars, F%shape, F%levelctx, F%encap%encapctx)
-    call F%encap%setval(rhs, 0.0_pfdp)
 
-    dtsdc = dt * (F%nodes(2:F%nnodes) - F%nodes(1:F%nnodes-1))
+    dtsq = dt*dt
+
     do n = 1, F%nnodes-1
-       call F%encap%setval(fintSDC(n), 0.0_pfdp)
+       call F%encap%setval(fintSDC(n), 0.0_pfdp, SETVAL_XV)
+
        do m = 1, F%nnodes
           call verlet%build_rhs(fSDC(m,1), qSDC(m), F%level, F%levelctx, rhs)
-          call F%encap%axpy(fintSDC(n), dt*F%s0mat(n,m), rhs, 1)
-          call F%encap%axpy(fintSDC(n), dt*dt*F%smat(n,m,4), rhs, 2)
+          ! NOW: rhs%x(1:dim, i) = f ; rhs%v(1:dim, i) = f
+          call F%encap%axpy(fintSDC(n), dt  *F%qmat( n,m), rhs, AXPY_aVpV)
+          call F%encap%axpy(fintSDC(n), dtsq*F%qqmat(n,m), rhs, AXPY_aXpX)
        end do
     end do
 

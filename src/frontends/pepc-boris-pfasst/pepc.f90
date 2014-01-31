@@ -39,6 +39,7 @@ program pepc
   use pf_mod_pfasst, only: pf_pfasst_create, pf_pfasst_setup, pf_pfasst_destroy
   use pf_mod_parallel, only: pf_pfasst_run
   use pf_mod_hooks
+  use pf_mod_options
 
   implicit none
 
@@ -106,6 +107,9 @@ program pepc
       ! Add user-defined calls, e.g. diagnostics, here
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
       !call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
+
+      ! some informative output about what we are actually doing
+      call pf_print_options(pf)
 
       ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution
       call pf_pfasst_run(pf, c_loc(y0), pf_nml%tend/pf_nml%nsteps, pf_nml%tend, nsteps=pf_nml%nsteps, qend=c_loc(yend))
