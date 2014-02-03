@@ -79,6 +79,10 @@ contains
        end do
        if (associated(F%tau)) then
           call F%encap%axpy(F%S(m), 1.0_pfdp, F%tau(m), AXPY_aVpV_aXpX)
+          ! tau is 0-to-node in our case, we need node-to-node instead
+          if (m > 1) then
+            call F%encap%axpy(F%S(m), -1.0_pfdp, F%tau(m-1), AXPY_aVpV_aXpX)
+          endif
        end if
     end do
 
