@@ -209,8 +209,8 @@ contains
        F%smat(m,:,3) = Abartil(m+1,:)-Abartil(m,:)
     end do
 
-    ! populate Qpicx and Ppicv
-    qtmp(1, :) = 0.
+    ! populate qqmat (i.e. Q*Q without first line)
+    qtmp(1 ,:) = 0.
     qtmp(2:,:) = F%qmat
     qtmp(:, :) = matmul(qtmp, qtmp)
     F%qqmat(:, :) = qtmp(2:,:)

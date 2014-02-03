@@ -334,7 +334,7 @@ contains
     call pepc_status('|----> encap_norm()')
     call c_f_pointer(ptr, q)
 
-    norm_loc = max(maxval(q%x), maxval(q%v))
+    norm_loc = max(maxval(abs(q%x)), maxval(abs(q%v)))
 
     call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, q%params%comm, ierr )
 
