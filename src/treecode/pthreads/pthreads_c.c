@@ -171,10 +171,6 @@ void place_thread(int thread_type, int counter)
 void place_thread(int thread_type, int counter) { }
 #endif
 
-#define errExitEN(en, msg) \
-             do { errno = en; perror(msg); \
-} while (0)
-
 void rename_thread(pthread_with_type_t* thread)
 {
     char threadname[16];
