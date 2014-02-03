@@ -138,8 +138,8 @@ contains
     type(pf_level_t), intent(inout) :: F
     type(pf_verlet_t), pointer :: verlet
     call c_f_pointer(F%sweeper%sweeperctx, verlet)
-    call verlet%calc_Efield(F%Q(m), t, F%level, F%levelctx, F%F(m,1))
     ! Note: this is the E-field, not the full RHS and this is ok (will need this function for spread, interpolate and restrict)
+    call verlet%calc_Efield(F%Q(m), t, F%level, F%levelctx, F%F(m,1))
   end subroutine verlet_evaluate
 
 
@@ -218,13 +218,14 @@ contains
 
 
   !
-  ! Integrate (node-to-node)
+  ! Integrate (0-to-node)
   !
   subroutine verlet_integrate(F, qSDC, fSDC, dt, fintSDC)
     type(pf_level_t), intent(in) :: F
-    type(c_ptr),      intent(in) :: qSDC(:), fSDC(:, :)
+    type(c_ptr),      intent(in) :: qSDC(:)    !< unknowns at SDC nodes
+    type(c_ptr),      intent(in) :: fSDC(:, :) !< function values at SDC nodes
     real(pfdp),       intent(in) :: dt
-    type(c_ptr),      intent(inout) :: fintSDC(:)
+    type(c_ptr),      intent(inout) :: fintSDC(:) !< '0-to-node' integral
 
     real(pfdp) :: dtsq
     integer :: n, m
@@ -244,8 +245,11 @@ contains
        do m = 1, F%nnodes
           call verlet%build_rhs(fSDC(m,1), qSDC(m), F%level, F%levelctx, rhs)
           ! NOW: rhs%x(1:dim, i) = f ; rhs%v(1:dim, i) = f
-          call F%encap%axpy(fintSDC(n), dt  *F%qmat( n,m), rhs, AXPY_aVpV)
+
+          ! Qpic := dt(QQ \otimes Ix) + (Q \otimes Iv)
+          ! I    := dt*[(Qpic \otimes Id)fSDC](qSDC)
           call F%encap%axpy(fintSDC(n), dtsq*F%qqmat(n,m), rhs, AXPY_aXpX)
+          call F%encap%axpy(fintSDC(n), dt  *F%qmat( n,m), rhs, AXPY_aVpV)
        end do
     end do
 
