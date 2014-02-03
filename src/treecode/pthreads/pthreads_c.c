@@ -48,6 +48,10 @@
 #include <sys/types.h>
 #include <pthread.h>
 
+#ifdef TAU_PAPI
+#include <stdbool.h>
+#endif
+
 pthread_rwlock_t *my_rwlocks;
 pthread_attr_t thread_attr;
 
@@ -66,9 +70,7 @@ typedef struct {
   int counter;
 } pthread_with_type_t;
 
-
 #define CHECKRES do {if (iret != 0) return iret;} while(0);
-
 
 //////////////// PThreads //////////////////////
 
@@ -173,7 +175,7 @@ void place_thread(int thread_type, int counter) { }
              do { errno = en; perror(msg); \
 } while (0)
 
-void* thread_helper(pthread_with_type_t* thread)
+void rename_thread(pthread_with_type_t* thread)
 {
     char threadname[16];
 
@@ -189,7 +191,55 @@ void* thread_helper(pthread_with_type_t* thread)
       // then with some more brute force
       prctl(PR_SET_NAME,threadname,0,0,0);
     #endif // __APPLE__
+}
 
+
+#ifdef TAU_PAPI
+typedef struct {
+  void* (*start_routine)(void*);
+  void* arg;
+} tau_pthread_pack;
+
+extern pthread_key_t wrapper_flags_key;
+
+extern void* tau_pthread_function(void*);
+
+void* thread_helper(pthread_with_type_t* thread)
+{
+    tau_pthread_pack pack;
+    pack.start_routine = thread->start_routine;
+    pack.arg = thread->arg;
+
+    rename_thread(thread);
+    place_thread(thread->thread_type, thread->counter);
+
+    return tau_pthread_function((void*)&pack);
+}
+
+
+int pthreads_createthread_c(pthread_with_type_t* thread)
+{
+    int ret;
+    bool* wrapped;
+    thread->thread = (pthread_t*) malloc(sizeof (pthread_t));
+
+    wrapped = pthread_getspecific(wrapper_flags_key);
+    if (!wrapped) {
+      wrapped = (bool*) malloc(sizeof(bool));
+      pthread_setspecific(wrapper_flags_key, (void*) wrapped);
+    }
+
+    *wrapped = true;
+    ret = pthread_create(thread->thread, &thread_attr, (void* (*)(void*)) thread_helper, thread);
+    *wrapped = false;
+    return ret;
+}
+
+#else
+
+void* thread_helper(pthread_with_type_t* thread)
+{
+    rename_thread(thread);
     place_thread(thread->thread_type, thread->counter);
 
     return (thread->start_routine)(thread->arg);
@@ -202,6 +252,7 @@ int pthreads_createthread_c(pthread_with_type_t* thread)
 
     return pthread_create(thread->thread, &thread_attr, (void* (*)(void*)) thread_helper, thread);
 }
+#endif
 
 
 int pthreads_jointhread(pthread_with_type_t thread)
