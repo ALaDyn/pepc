@@ -211,6 +211,7 @@ contains
        F%smat(m,:,1) = (Dtrap(m+1,:)-Dtrap(m,:))
        F%smat(m,:,2) = (D(m+1,:)-D(m,:))
        F%smat(m,:,3) = Abartil(m+1,:)-Abartil(m,:)
+       F%smat(m,:,4) = Abar(m+1,:)-Abar(m,:)
     end do
 
     ! populate qqmat (i.e. Q*Q without first line)
@@ -249,16 +250,27 @@ contains
        do m = 1, F%nnodes
           call verlet%build_rhs(fSDC(m,1), qSDC(m), F%level, F%levelctx, rhs)
           ! NOW: rhs%x(1:dim, i) = f ; rhs%v(1:dim, i) = f
-
+#define INTEGRATE_MM
+#ifndef INTEGRATE_MM
           ! Qpic := dt(QQ \otimes Ix) + (Q \otimes Iv)
           ! I    := dt*[(Qpic \otimes Id)fSDC](qSDC)
           call F%encap%axpy(fintSDC(n), dtsq*F%qqmat(n,m), rhs, AXPY_aXpX)
           call F%encap%axpy(fintSDC(n), dt  *F%qmat( n,m), rhs, AXPY_aVpV)
+#else
+          call F%encap%axpy(fintSDC(n), dt *F%s0mat(n,m),   rhs, AXPY_aVpV)
+          call F%encap%axpy(fintSDC(n), dtsq*F%smat(n,m,4), rhs, AXPY_aXpX)
+#endif
        end do
     end do
 
     call F%encap%destroy(rhs)
 
+#ifdef INTEGRATE_MM
+    ! build 0-to-node from node-to-node integral
+    do n = 2, F%nnodes-1
+      call F%encap%axpy(fintSDC(n), 1.0_pfdp, fintSDC(n-1), AXPY_aVpV_aXpX)
+    end do
+#endif
   end subroutine verlet_integrate
 
 
