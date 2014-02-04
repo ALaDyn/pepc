@@ -63,13 +63,14 @@ contains
 
     if (levelctx%root) then
       if (state%step == 0) write(*,*)
-      write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10)',advance='no') &
-        char(13), hook_names(state%hook), step, state%nsteps, t, state%iter
+      write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g15.6)',advance='no') &
+        char(13), hook_names(state%hook), step, state%nsteps, t, state%iter, level%residual
    endif
 
     ! do diagnostics etc here
     call dump_particles(VTK_STEP_NORMAL, step, state%dt, particles, levelctx%comm, do_average=.false.)
     call dump_energy(t, particles, levelctx, levelctx%comm, do_average=.false.)
+    call dump_iterations(step, state%dt, state%hook, state%iter, level%residual)
 
   end subroutine
 end module pfm_hooks

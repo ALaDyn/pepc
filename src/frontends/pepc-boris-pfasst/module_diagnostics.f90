@@ -27,6 +27,7 @@ module pepcboris_diagnostics
   save
 
   public dump_particles
+  public dump_iterations
   public dump_energy
   public backup_velocities
 
@@ -34,7 +35,7 @@ module pepcboris_diagnostics
 
   contains
 
-   subroutine backup_velocities(particles)
+  subroutine backup_velocities(particles)
     use module_pepc_types
     implicit none
     type(t_particle), intent(in) :: particles(:)
@@ -45,6 +46,19 @@ module pepcboris_diagnostics
     do p = 1, size(particles, kind=kind_particle)
       vold(1:3,p) = particles(p)%data%v(1:3)
     end do
+  end subroutine
+
+  subroutine dump_iterations(step, dt, hook, niter, residual)
+    use pepcboris_helper
+    implicit none
+    integer, intent(in) :: step, niter, hook
+    real*8, intent(in) :: residual
+    real*8, intent(in) :: dt
+
+    integer :: istream
+
+    istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_NITER
+    write(istream,*) step*dt, step, hook, niter, residual
   end subroutine
 
   subroutine dump_particles(vtk_step, step, dt, particles, comm, do_average)
