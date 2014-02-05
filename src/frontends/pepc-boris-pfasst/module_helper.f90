@@ -75,6 +75,7 @@ module pepcboris_helper
   type pepcboris_nml_t
     ! MPI variables
     integer(kind_pe) :: rank, nrank
+    integer(kind_pe) :: rank_world, nrank_world !< rank/num_ranks in MPI_COMM_WORLD (used for globally unique output)
     integer(kind_default) :: comm
     ! time variables
     real*8  :: dt  !< timestep (in simunits), set via pfasst parameters
@@ -93,15 +94,14 @@ module pepcboris_helper
 
   contains
 
-  subroutine pepcboris_init(nml, particles, dt, nt)
+  subroutine pepcboris_init(particles, dt, nt)
     implicit none
-    type(pepcboris_nml_t), intent(inout) :: nml
     type(t_particle), allocatable, target, intent(out) :: particles(:)
     real*8, intent(in)  :: dt
     integer, intent(in) :: nt
 
-    call set_parameter(nml, dt, nt)
-    call setup_particles(particles, nml)
+    call set_parameter(dt, nt)
+    call setup_particles(particles)
 
   end subroutine
 
@@ -130,44 +130,43 @@ module pepcboris_helper
   end function cross_prod_plus
 
   !> set initial values for particle positions and velocities in y0
-  subroutine setup_particles(particles, nml)
+  subroutine setup_particles(particles)
     use module_debug
     use module_mirror_boxes
     implicit none
-    type(pepcboris_nml_t), intent(inout) :: nml
     type(t_particle), allocatable, target, intent(out) :: particles(:)
     integer(kind_particle) :: i
     real*8 :: myrand(3)
 
-    select case (nml%particle_config)
+    select case (pepcboris_nml%particle_config)
       case (0)
         ! single particle at specified position
-        nml%numparts = 1
-        allocate(particles(nml%numparts))
-        particles(1)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0)
+        pepcboris_nml%numparts = 1
+        allocate(particles(pepcboris_nml%numparts))
+        particles(1)%x      = pepcboris_nml%setup_params(PARAMS_X0:PARAMS_Z0)
         particles(1)%data%q = 1.
         particles(1)%data%m = 1.
-        particles(1)%data%v = nml%setup_params(PARAMS_VX0:PARAMS_VZ0)
+        particles(1)%data%v = pepcboris_nml%setup_params(PARAMS_VX0:PARAMS_VZ0)
         particles(1)%label  = 1
         particles(1)%work   = 1.
       case (1)
         ! a bunch of particles around specified position
-        allocate(particles(nml%numparts))
+        allocate(particles(pepcboris_nml%numparts))
 
-        do i=1,nml%numparts
+        do i=1,pepcboris_nml%numparts
           call random_number(myrand)
-          particles(i)%x      = nml%setup_params(PARAMS_X0:PARAMS_Z0) &
-                              + nml%setup_params(PARAMS_RADIUS)*(myrand - 0.5_8)
+          particles(i)%x      = pepcboris_nml%setup_params(PARAMS_X0:PARAMS_Z0) &
+                              + pepcboris_nml%setup_params(PARAMS_RADIUS)*(myrand - 0.5_8)
           particles(i)%data%q = 1.
           particles(i)%data%m = 1.
           call random_number(myrand)
-          particles(i)%data%v = nml%setup_params(PARAMS_VX0:PARAMS_VZ0) &
-                              + nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_8)
+          particles(i)%data%v = pepcboris_nml%setup_params(PARAMS_VX0:PARAMS_VZ0) &
+                              + pepcboris_nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_8)
           particles(i)%label  = i
           particles(i)%work   = 1.
         end do
       case default
-        DEBUG_ERROR(*, 'setup_particles() - invalid value for particle_config:', nml%particle_config)
+        DEBUG_ERROR(*, 'setup_particles() - invalid value for particle_config:', pepcboris_nml%particle_config)
     end select
 
   end subroutine
@@ -179,14 +178,13 @@ module pepcboris_helper
     get_magnetic_field = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_OMEGAB)] ! FIXME * m/Q
   end function
 
-  subroutine set_parameter(nml, dt, nt)
+  subroutine set_parameter(dt, nt)
     use module_pepc
     use module_debug
     use module_interaction_specific, only : theta2, eps2
     use treevars, only : num_threads, np_mult
     implicit none
 
-    type(pepcboris_nml_t), intent(inout) :: nml
     real*8, intent(in)  :: dt
     integer, intent(in) :: nt
 
@@ -201,11 +199,11 @@ module pepcboris_helper
     namelist /pepcborispfasst/ particle_config, setup_params, workingmode, dumptype, numparts
 
     ! frontend parameters
-    particle_config = nml%particle_config
-    setup_params    = nml%setup_params
-    workingmode     = nml%workingmode
-    dumptype        = nml%dumptype
-    numparts        = nml%numparts
+    particle_config = pepcboris_nml%particle_config
+    setup_params    = pepcboris_nml%setup_params
+    workingmode     = pepcboris_nml%workingmode
+    dumptype        = pepcboris_nml%dumptype
+    numparts        = pepcboris_nml%numparts
 
     ! pepc parameters
     theta2      = 0.36
@@ -215,31 +213,31 @@ module pepcboris_helper
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
     if (read_para_file) then
-      if(nml%rank==0) write(*,'(a)') ' == reading parameter file, section pepcborispfasst: ', para_file
+      if(pepcboris_nml%rank_world==0) write(*,'(a)') ' == reading parameter file, section pepcborispfasst: ', para_file
       open(fid,file=para_file)
       read(fid,NML=pepcborispfasst)
       close(fid)
     else
-      if(nml%rank==0) write(*,*) ' == no param file, using default parameters '
+      if(pepcboris_nml%rank_world==0) write(*,*) ' == no param file, using default parameters '
     end if
 
     ! frontend parameters
-    nml%particle_config = particle_config
-    nml%setup_params    = setup_params
-    nml%workingmode     = workingmode
-    nml%dumptype        = dumptype
-    nml%numparts        = numparts
+    pepcboris_nml%particle_config = particle_config
+    pepcboris_nml%setup_params    = setup_params
+    pepcboris_nml%workingmode     = workingmode
+    pepcboris_nml%dumptype        = dumptype
+    pepcboris_nml%numparts        = numparts
 
     ! derived from pfasst parameters
-    nml%dt      = dt
-    nml%nt      = nt
+    pepcboris_nml%dt = dt
+    pepcboris_nml%nt = nt
 
-    if(nml%rank==0) then
-      write(*,'(a,i12)')       ' == particle config      : ', nml%particle_config
-      write(*,'(a,i12)')       ' == number of time steps : ', nml%nt
-      write(*,'(a,es12.4)')    ' == time step            : ', nml%dt
-      write(*,'(a,es12.4)')    ' == final time           : ', nml%dt*nml%nt
-      write(*,'(a,i12)')       ' == dumptype             : ', nml%dumptype
+    if(pepcboris_nml%rank_world==0) then
+      write(*,'(a,i12)')       ' == particle config      : ', pepcboris_nml%particle_config
+      write(*,'(a,i12)')       ' == number of time steps : ', pepcboris_nml%nt
+      write(*,'(a,es12.4)')    ' == time step            : ', pepcboris_nml%dt
+      write(*,'(a,es12.4)')    ' == final time           : ', pepcboris_nml%dt*pepcboris_nml%nt
+      write(*,'(a,i12)')       ' == dumptype             : ', pepcboris_nml%dumptype
     end if
 
     call pepc_prepare(dim)

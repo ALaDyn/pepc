@@ -35,9 +35,10 @@ module pfm_helper
 
 
     !> Read params from file, init MPI communication, split into TIME and SPACE communicators
-    subroutine pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+    subroutine pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME, rank_world, nrank_world)
         use module_pepc_types
         use pf_mod_mpi
+        use module_debug
         implicit none
 
         ! "Multiple threads may call MPI, with no restrictions." - MPI-2.2, p. 385
@@ -45,54 +46,54 @@ module pfm_helper
 
         type(pf_nml_t), intent(inout) :: pf_nml
         integer(kind_default), intent(out) :: MPI_COMM_SPACE, MPI_COMM_TIME
-        integer(kind_default) :: provided
+        integer(kind_pe) :: rank_world, nrank_world
 
+        integer(kind_default) :: provided
         integer :: mpi_err, color
-        integer(kind_pe) :: mpi_size, mpi_rank, mpi_size_space
+        integer(kind_pe) :: mpi_size_space
 
         call pepc_status('|--> init_pfasst()')
 
         ! Global MPI initialization
         call MPI_INIT_THREAD(MPI_THREAD_LEVEL, provided, mpi_err)
-        call MPI_COMM_SIZE( MPI_COMM_WORLD, mpi_size, mpi_err )
-        call MPI_COMM_RANK( MPI_COMM_WORLD, mpi_rank, mpi_err )
+        call MPI_COMM_SIZE( MPI_COMM_WORLD, nrank_world, mpi_err )
+        call MPI_COMM_RANK( MPI_COMM_WORLD, rank_world, mpi_err )
 
-        if ((provided < MPI_THREAD_LEVEL) .and. (mpi_rank == 0)) then
+        if ((provided < MPI_THREAD_LEVEL) .and. (rank_world == 0)) then
           !inform the user about possible issues concerning MPI thread safety
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
                          MPI_THREAD_LEVEL, provided
           write(*,'(a/)') 'Initializing with provided level of multithreading. This can lead to incorrect results or crashes.'
         end if
 
-        call read_in_pf_params(pf_nml, mpi_rank, MPI_COMM_WORLD)
+        call read_in_pf_params(pf_nml, rank_world, MPI_COMM_WORLD)
 
-        if (mod(mpi_size,pf_nml%num_space_instances) .ne. 0) then
-            if (mpi_rank == 0) write(*,*) 'Well, this is not going to work, num_space_instances must be a factor of mpi_size:', mpi_size, pf_nml%num_space_instances
-            call MPI_ABORT(MPI_COMM_WORLD,1,mpi_err)
+        if (mod(nrank_world,pf_nml%num_space_instances) .ne. 0) then
+          DEBUG_ERROR(*, 'Well, this is not going to work, num_space_instances must be a factor of nrank_world:', nrank_world, pf_nml%num_space_instances)
         end if
 
         ! Generate spatial MPI communicator, depending on num_space_instances
         if (pf_nml%color_space_div) then
-          color = mpi_rank/(mpi_size/pf_nml%num_space_instances)
+          color = rank_world/(nrank_world/pf_nml%num_space_instances)
         else
-          color = mod(mpi_rank,pf_nml%num_space_instances)
+          color = mod(rank_world,pf_nml%num_space_instances)
         endif
 
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, mpi_rank, MPI_COMM_SPACE, mpi_err)
+        call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, rank_world, MPI_COMM_SPACE, mpi_err)
         call MPI_COMM_SIZE(MPI_COMM_SPACE, mpi_size_space, mpi_err)
 
         ! Generate temporal MPI communicator
         if (pf_nml%color_space_div) then
-          color = mpi_rank/pf_nml%num_space_instances
+          color = rank_world/pf_nml%num_space_instances
         else
-          color = mod(mpi_rank, mpi_size_space)
+          color = mod(rank_world, mpi_size_space)
         endif
 
-        call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, mpi_rank, MPI_COMM_TIME, mpi_err)
+        call MPI_COMM_SPLIT(MPI_COMM_WORLD, color, rank_world, MPI_COMM_TIME, mpi_err)
 
-        if (mpi_rank == 0) write(*,*) 'All right, I can use ',mpi_size,&
-                                      ' processors in total. These will be split up into ',pf_nml%num_space_instances,&
-                                      ' instances with ',mpi_size_space,' processors each.'
+        if (rank_world == 0) write(*,*) 'All right, I can use ', nrank_world,&
+                                        ' processors in total. These will be split up into ',pf_nml%num_space_instances,&
+                                        ' instances with ',mpi_size_space,' processors each.'
     end subroutine pfm_init_pfasst
 
 

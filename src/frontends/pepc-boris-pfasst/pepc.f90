@@ -58,7 +58,7 @@ program pepc
   integer :: step
 
   ! Take care of communication stuff
-  call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+  call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME, pepcboris_nml%rank_world, pepcboris_nml%nrank_world)
   ! initialize pepc library and MPI
   pepcboris_nml%comm=MPI_COMM_SPACE
   call pepc_initialize('pepc-boris-pfasst', pepcboris_nml%rank, pepcboris_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepcboris_nml%comm)
@@ -67,7 +67,7 @@ program pepc
     DEBUG_ERROR(*, "This is not an MPI-parallel application")
   endif
   ! frontend parameter initialization, particle configuration etc.
-  call pepcboris_init(pepcboris_nml, particles, dt=pf_nml%tend/pf_nml%nsteps, nt=pf_nml%nsteps)  ! we use the finest (i.e. highest) level here
+  call pepcboris_init(particles, dt=pf_nml%tend/pf_nml%nsteps, nt=pf_nml%nsteps)  ! we use the finest (i.e. highest) level here
   ! commit all internal pepc variables
   call pepc_prepare(dim)
   ! prepare table with level-dependent parameters
