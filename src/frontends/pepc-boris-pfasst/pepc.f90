@@ -43,6 +43,8 @@ program pepc
 
   implicit none
 
+  include 'mpif.h'
+
   ! variables for pfasst
   integer(kind_default):: MPI_COMM_SPACE, MPI_COMM_TIME, mpi_err
   type(pf_pfasst_t) :: pf
@@ -58,20 +60,27 @@ program pepc
   integer :: step
 
   ! Take care of communication stuff
-  call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME, pepcboris_nml%rank_world, pepcboris_nml%nrank_world)
+  call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+
+  ! store communicators and ranks/sizes
+  pepcboris_nml%comm_space = MPI_COMM_SPACE
+  pepcboris_nml%comm_time  = MPI_COMM_TIME
+  call get_mpi_rank(MPI_COMM_WORLD,           pepcboris_nml%rank_world, pepcboris_nml%nrank_world)
+  call get_mpi_rank(pepcboris_nml%comm_space, pepcboris_nml%rank_space, pepcboris_nml%nrank_space)
+  call get_mpi_rank(pepcboris_nml%comm_time,  pepcboris_nml%rank_time,  pepcboris_nml%nrank_time)
+
   ! initialize pepc library and MPI
-  pepcboris_nml%comm=MPI_COMM_SPACE
-  call pepc_initialize('pepc-boris-pfasst', pepcboris_nml%rank, pepcboris_nml%nrank, .false., db_level_in=DBG_STATUS, comm=pepcboris_nml%comm)
+  call pepc_initialize('pepc-boris-pfasst', init_mpi=.false., db_level_in=DBG_STATUS, comm=pepcboris_nml%comm_space)
   ! this is not an MPI-parallel application
-  if (pepcboris_nml%nrank > 1) then
-    DEBUG_ERROR(*, "This is not an MPI-parallel application")
+  if (pepcboris_nml%nrank_space > 1 .and. pepcboris_nml%rank_world == 0) then
+    DEBUG_WARNING(*, "You are requesting spatial parallelism. This is still considered untested. Maybe you wanted to set num_space_instances=num_ranks to only use temporal parallelism?")
   endif
   ! frontend parameter initialization, particle configuration etc.
   call pepcboris_init(particles, dt=pf_nml%tend/pf_nml%nsteps, nt=pf_nml%nsteps)  ! we use the finest (i.e. highest) level here
   ! commit all internal pepc variables
   call pepc_prepare(dim)
-  ! prepare table with level-dependent parameters
-  call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepcboris_nml%rank, MPI_COMM_SPACE)
+  ! prepare table with level-dependent parameters                          # FIXME: v-- this should be pepcboris_nml%rank_time==pepcboris_nml%nrank_time-1, but for that rank the hook is not called apparently
+  call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepcboris_nml%rank_time==0, MPI_COMM_SPACE)
   ! initial potential will be needed for energy computation - using finest level here
   call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
@@ -109,7 +118,7 @@ program pepc
       !call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
 
       ! some informative output about what we are actually doing
-      call pf_print_options(pf)
+      if (pepcboris_nml%rank_world == 0) call pf_print_options(pf)
 
       ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution
       call pf_pfasst_run(pf, c_loc(y0), pf_nml%tend/pf_nml%nsteps, pf_nml%tend, nsteps=pf_nml%nsteps, qend=c_loc(yend))
@@ -330,8 +339,7 @@ program pepc
   end select
 
   call dump_particles(VTK_STEP_LAST, pepcboris_nml%nt, pepcboris_nml%dt, particles, MPI_COMM_SPACE, do_average=.false.)
-  write(*,*) ''
-  call dump_nfeval()
+  call dump_nfeval(pepcboris_nml%rank_world, MPI_COMM_WORLD)
 
   call pepc_finalize()
   call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)
@@ -346,7 +354,7 @@ program pepc
       real*8, intent(in) :: dt
       integer, intent(in) :: step, nt
 
-      if(pepcboris_nml%rank==0) then
+      if(pepcboris_nml%rank_world==0) then
         if (step == 0) write(*,*)
         write(*,'(a1, " == computing step",i12,"/",i0, " == simulation time: ", f 12.4)', advance='no')  char(13), step, nt, step*dt
         if (step == nt) write(*,*)

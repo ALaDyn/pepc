@@ -25,15 +25,26 @@ module pfm_feval
   contains
 
     !> dump number of rhs evaluations
-    subroutine dump_nfeval()
+    subroutine dump_nfeval(rank, comm)
+      use module_pepc_types
       use pepcboris_helper, only : IFILE_SUMMAND_NFEVAL, pepcboris_nml
       implicit none
+      include 'mpif.h'
+      integer(kind_pe), intent(in) :: rank
+      integer(kind_default), intent(in) :: comm
       integer :: istream
+      integer(kind_default) :: mpi_err
+      integer :: num_feval_internal_global, num_feval_external_global
+
+      call MPI_REDUCE(num_feval_internal, num_feval_internal_global, 1, MPI_INTEGER, MPI_SUM, 0, comm, mpi_err)
+      call MPI_REDUCE(num_feval_external, num_feval_external_global, 1, MPI_INTEGER, MPI_SUM, 0, comm, mpi_err)
 
       istream = pepcboris_nml%workingmode + IFILE_SUMMAND_NFEVAL
 
-      write(istream,'("# number of rhs evaluations (internal and external forces)",/,i0,x,i0)') num_feval_internal, num_feval_external
-      write(*,'("num_feval_internal / external: ",i0," / ",i0)') num_feval_internal, num_feval_external
+      if (rank == 0) then
+        write(istream,'("# overall total number of rhs evaluations (internal and external forces)",/,i0,x,i0)') num_feval_internal, num_feval_external
+        write(*,'(/,"overall total num_feval_internal / external: ",i0," / ",i0)') num_feval_internal, num_feval_external
+      endif
     end subroutine
 
 

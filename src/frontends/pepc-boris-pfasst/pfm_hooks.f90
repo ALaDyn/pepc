@@ -63,14 +63,16 @@ contains
 
     if (levelctx%root) then
       if (state%step == 0) write(*,*)
+      ! FIXME: this output should only appear from time-rank==nrank_time-1, space-rank==0 or appropriately
       write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g15.6)',advance='no') &
         char(13), hook_names(state%hook), step, state%nsteps, t, state%iter, level%residual
-   endif
 
-    ! do diagnostics etc here
-    call dump_particles(VTK_STEP_NORMAL, step, state%dt, particles, levelctx%comm, do_average=.false.)
-    call dump_energy(t, particles, levelctx, levelctx%comm, do_average=.false.)
-    call dump_iterations(step, state%dt, state%hook, state%iter, level%residual)
+      ! do diagnostics etc here
+      ! FIXME: this output should only appear from time-rank==nrank_time-1, space-rank==0 (stuff fromm other space-ranks has to be collected there) or appropriately
+      call dump_particles(VTK_STEP_NORMAL, step, state%dt, particles, levelctx%comm, do_average=.false.)
+      call dump_energy(t, particles, levelctx, levelctx%comm, do_average=.false.)
+      call dump_iterations(step, state%dt, state%hook, state%iter, level%residual)
+   endif
 
   end subroutine
 end module pfm_hooks

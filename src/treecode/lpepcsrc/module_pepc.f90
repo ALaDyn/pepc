@@ -76,8 +76,8 @@ module module_pepc
       implicit none
       include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
-      integer(kind_pe), intent(out) :: my_rank !< MPI rank of this instance as returned from MPI
-      integer(kind_pe), intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
+      integer(kind_pe), optional, intent(out) :: my_rank !< MPI rank of this instance as returned from MPI
+      integer(kind_pe), optional, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
       logical, intent(in) :: init_mpi !< if set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
       integer, intent(in), optional :: db_level_in !< sets debug level for treecode kernel (overrides settings, that may be read from libpepc-section in input file)
       integer, intent(inout), optional :: comm !< communicator. if pepc initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator (the frontend is responsible for calling MPI_COMM_FREE(comm) prior to calling pepc_finalize() or supply it as argument to pepc_finalize() in this case); otherwise, it uses an MPI_COMM_DUP copy of the given comm
@@ -109,15 +109,15 @@ module module_pepc
       call MPI_IN_PLACE_test(MPI_COMM_lpepc)
 
       ! Get the id number of the current task
-      call MPI_COMM_RANK(MPI_COMM_lpepc, my_rank, ierr)
+      call MPI_COMM_RANK(MPI_COMM_lpepc, me, ierr)
       ! Get the number of MPI tasks
-      call MPI_COMM_SIZE(MPI_COMM_lpepc, n_cpu, ierr)
+      call MPI_COMM_SIZE(MPI_COMM_lpepc, num_pe, ierr)
       ! Get the processor ID of the main thread
       main_thread_processor_id = get_my_core()
 
       call MPI_FILE_SET_ERRHANDLER(MPI_FILE_NULL, MPI_ERRORS_ARE_FATAL, ierr)
 
-      if (my_rank == 0 .and. pepc_initializes_mpi) then
+      if (me == 0 .and. pepc_initializes_mpi) then
         ! verbose startup-output
         write(*,'(a)') "   ____    ____    ____    ____        "
         write(*,'(a)') "  /\  _`\ /\  _`\ /\  _`\ /\  _`\      "
@@ -127,7 +127,7 @@ module module_pepc
         write(*,'(a)') "     \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
         write(*,'(a)') "      \/_/    \/___/  \/_/    \/___/   "
         write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
-                       SVNREVISION, frontendname, n_cpu
+                       SVNREVISION, frontendname, num_pe
         write(*,'("====     MACH = ",a)') MACH
         write(*,'("==== COMPILER = ",a)') COMPILER
         write(*,'("====   FFLAGS = ",a)') FFLAGS
@@ -137,7 +137,7 @@ module module_pepc
         write(*,'(//)')
       endif
 
-      if (my_rank == 0 .and. provided < MPI_THREAD_LEVEL) then
+      if (me == 0 .and. provided < MPI_THREAD_LEVEL) then
         !inform the user about possible issues concerning MPI thread safety
         if (pepc_initializes_mpi) then
           write(*,'("Call to MPI_INIT_THREAD failed. Requested/provided level of multithreading:", I2, "/" ,I2)') &
@@ -155,9 +155,8 @@ module module_pepc
         DEBUG_ERROR(*, 'Not trying to run with provided level of multithreading. This would lead to incorrect results or crashes.')
       end if
 
-      ! copy call parameters to treevars module
-      me     = my_rank
-      num_pe = n_cpu
+      if (present(my_rank)) my_rank = me
+      if (present(n_cpu))   n_cpu   = num_pe
 
       if (present(db_level_in)) then
           debug_level = db_level_in

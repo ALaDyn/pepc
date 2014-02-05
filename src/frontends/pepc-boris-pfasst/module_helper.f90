@@ -33,6 +33,7 @@ module pepcboris_helper
   public get_magnetic_field
   public cross_prod
   public cross_prod_plus
+  public get_mpi_rank
 
   ! dimension of space
   integer(kind_dim), public, parameter :: dim = 3
@@ -74,9 +75,10 @@ module pepcboris_helper
   !> parameter collection for pepcboris
   type pepcboris_nml_t
     ! MPI variables
-    integer(kind_pe) :: rank, nrank
+    integer(kind_pe) :: rank_space, nrank_space
     integer(kind_pe) :: rank_world, nrank_world !< rank/num_ranks in MPI_COMM_WORLD (used for globally unique output)
-    integer(kind_default) :: comm
+    integer(kind_pe) :: rank_time,  nrank_time
+    integer(kind_default) :: comm_space, comm_time
     ! time variables
     real*8  :: dt  !< timestep (in simunits), set via pfasst parameters
     integer :: nt  !< number of timesteps, set via pfasst parameters
@@ -93,6 +95,20 @@ module pepcboris_helper
   type(pepcboris_nml_t), public :: pepcboris_nml
 
   contains
+
+  subroutine get_mpi_rank(comm, rank, size)
+    use module_pepc_types
+    implicit none
+    include 'mpif.h'
+    integer(kind_default), intent(in) :: comm
+    integer(kind_pe), intent(out) :: rank, size
+    integer(kind_default) :: mpi_err
+
+    call MPI_COMM_RANK( comm, rank, mpi_err )
+    call MPI_COMM_SIZE( comm, size, mpi_err )
+
+  end subroutine
+
 
   subroutine pepcboris_init(particles, dt, nt)
     implicit none

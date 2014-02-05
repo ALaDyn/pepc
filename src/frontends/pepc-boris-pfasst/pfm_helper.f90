@@ -35,7 +35,7 @@ module pfm_helper
 
 
     !> Read params from file, init MPI communication, split into TIME and SPACE communicators
-    subroutine pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME, rank_world, nrank_world)
+    subroutine pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
         use module_pepc_types
         use pf_mod_mpi
         use module_debug
@@ -98,13 +98,13 @@ module pfm_helper
 
 
     !> Sets up parameters on each level and defines initial RHS (as "old" u value)
-    subroutine pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, rank, comm)
+    subroutine pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, root, comm)
         use pf_mod_mpi
         use pfm_encap
         use pepcboris_helper, only: pepcboris_nml_t
         implicit none
 
-        integer, intent(in) :: rank
+        logical, intent(in) :: root
         type(pf_nml_t), intent(in) :: pf_nml
         type(level_params_t), pointer, intent(inout) :: level_params(:)
         integer(kind_dim), intent(in) :: dim
@@ -125,7 +125,7 @@ module pfm_helper
             lp%feval_mode  = pf_nml%feval_mode(i)
             lp%dim    = dim
             lp%comm   = comm
-            lp%root   = rank == 0
+            lp%root   = root
           end associate
         end do
     end subroutine pfm_setup_solver_level_params
@@ -163,6 +163,7 @@ module pfm_helper
         use pf_mod_dtype, only: pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK, SDC_GAUSS_LOBATTO
         use pfm_encap, only : pf_encap_t, level_params_t
         use pfm_transfer, only : interpolate, restrict
+        use pepcboris_helper, only: pepcboris_nml
         use iso_c_binding !, only : c_loc, c_null_ptr ! had to remove this as compile fix for Michael
         implicit none
 
@@ -195,7 +196,7 @@ module pfm_helper
 
         pf%niters       = pf_nml%niter
         pf%qtype        = SDC_GAUSS_LOBATTO
-        pf%echo_timings = pf_nml%echo_timings! FIXME .and. (wk(pf%nlevels)%mpi_rank == 0)
+        pf%echo_timings = pf_nml%echo_timings .and. pepcboris_nml%rank_space == 0
         pf%window       = PF_WINDOW_BLOCK
         pf%rel_res_tol  = pf_nml%res_tol
         pf%abs_res_tol  = pf_nml%res_tol
