@@ -44,7 +44,7 @@ module pepcboris_paralleldump
 
   #undef PARALLELDUMP_OWN_BSEND_BUFFER
 
-  integer, public, parameter :: PARALLELDUMP_MAXLEN = 256 ! maximum length of a single line sent with this method
+  integer, public, parameter :: PARALLELDUMP_MAXLEN = 512 ! maximum length of a single line sent with this method
   #ifdef PARALLELDUMP_OWN_BSEND_BUFFER
     integer, parameter :: PARALLELDUMP_BUFFLEN = 64 ! number of lines in the used send-buffer
     character, dimension(:), allocatable :: paralleldump_bsend_buffer
@@ -89,7 +89,7 @@ module pepcboris_paralleldump
         call MPI_GET_COUNT(stat, MPI_CHARACTER, msg_len, ierr)
         call MPI_RECV(message, msg_len, MPI_CHARACTER, sender, msg_tag, paralleldump_comm, MPI_STATUS_IGNORE, ierr)
 
-        write(msg_tag, *) trim(message)
+        write(msg_tag, *) message(1:msg_len)
       end do
     endif
 
@@ -114,6 +114,9 @@ module pepcboris_paralleldump
     #ifdef PARALLELDUMP_OWN_BSEND_BUFFER
       integer(kind_default) :: buffsize
     #endif
+    ! make sure that nobody wants to send any messages
+    call MPI_BARRIER(paralleldump_comm, ierr)
+    ! flush anz pending messages
     call paralleldump_flush()
     #ifdef PARALLELDUMP_OWN_BSEND_BUFFER
       call MPI_BUFFER_DETACH(paralleldump_bsend_buffer, buffsize, ierr)
