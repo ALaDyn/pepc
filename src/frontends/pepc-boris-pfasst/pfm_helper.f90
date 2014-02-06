@@ -98,17 +98,15 @@ module pfm_helper
 
 
     !> Sets up parameters on each level and defines initial RHS (as "old" u value)
-    subroutine pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, root, comm)
+    subroutine pfm_setup_solver_level_params(particles, level_params, pf_nml, dim)
         use pf_mod_mpi
         use pfm_encap
-        use pepcboris_helper, only: pepcboris_nml_t
+        use pepcboris_helper, only: pepcboris_nml
         implicit none
 
-        logical, intent(in) :: root
         type(pf_nml_t), intent(in) :: pf_nml
         type(level_params_t), pointer, intent(inout) :: level_params(:)
         integer(kind_dim), intent(in) :: dim
-        integer(kind_default), intent(in) :: comm
         type(t_particle), allocatable, target, intent(in) :: particles(:)
 
         integer :: i
@@ -123,9 +121,10 @@ module pfm_helper
             lp%theta  = pf_nml%theta(i)
             lp%directforce = pf_nml%directforce(i)
             lp%feval_mode  = pf_nml%feval_mode(i)
-            lp%dim    = dim
-            lp%comm   = comm
-            lp%root   = root
+            lp%dim         = dim
+            lp%comm        = pepcboris_nml%comm_space
+            lp%root_stdio  = (pepcboris_nml%rank_space == 0) .and. (pepcboris_nml%rank_time  == pepcboris_nml%nrank_time-1)
+            lp%root_file   = (pepcboris_nml%rank_space == 0)
           end associate
         end do
     end subroutine pfm_setup_solver_level_params
@@ -137,7 +136,7 @@ module pfm_helper
         implicit none
 
         type(level_params_t), intent(inout), pointer :: level_params(:)
-        integer, intent(in) :: nlevels
+        integer, intent(in) :: nlevelspepcboris_nml
 
         integer :: i
 

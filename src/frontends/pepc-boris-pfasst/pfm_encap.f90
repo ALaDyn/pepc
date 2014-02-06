@@ -15,7 +15,8 @@ module pfm_encap
     logical :: directforce
     integer :: feval_mode
     integer(kind_default) :: comm
-    logical :: root
+    logical :: root_stdio
+    logical :: root_file
   end type
 
   !> Data encapsulation: data and parameters which will be filled in encap_create using ctx

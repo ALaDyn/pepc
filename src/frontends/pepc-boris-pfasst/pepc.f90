@@ -80,7 +80,7 @@ program pepc
   ! commit all internal pepc variables
   call pepc_prepare(dim)
   ! prepare table with level-dependent parameters                          # FIXME: v-- this should be pepcboris_nml%rank_time==pepcboris_nml%nrank_time-1, but for that rank the hook is not called apparently
-  call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepcboris_nml%rank_time==0, MPI_COMM_SPACE)
+  call pfm_setup_solver_level_params(particles, level_params, pf_nml, dim)
   ! initial potential will be needed for energy computation - using finest level here
   call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
