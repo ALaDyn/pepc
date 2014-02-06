@@ -77,7 +77,7 @@ contains
           call F%encap%axpy(F%S(m), dt  *F%smat(m,n,1), rhs, AXPY_aVpV)
           call F%encap%axpy(F%S(m), dtsq*F%smat(m,n,2), rhs, AXPY_aXpX)
        end do
-       if (associated(F%tau)) then
+       if (allocated(F%tau)) then
           call F%encap%axpy(F%S(m), 1.0_pfdp, F%tau(m), AXPY_aVpV_aXpX)
           ! tau is 0-to-node in our case, we need node-to-node instead
           if (m > 1) then
