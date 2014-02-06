@@ -50,15 +50,16 @@ module pepcboris_diagnostics
 
   subroutine dump_iterations(step, dt, hook, niter, residual)
     use pepcboris_helper
+    use pepcboris_paralleldump
     implicit none
     integer, intent(in) :: step, niter, hook
     real*8, intent(in) :: residual
     real*8, intent(in) :: dt
 
-    integer :: istream
+    character(len=PARALLELDUMP_MAXLEN) :: line
 
-    istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_NITER
-    write(istream,*) step*dt, step, hook, niter, residual
+    write(line,*) step*dt, step, hook, niter, residual
+    call paralleldump_dump(pepcboris_nml%workingmode + IFILE_SUMMAND_NITER, line)
   end subroutine
 
   subroutine dump_particles(vtk_step, step, dt, particles, comm, do_average)
@@ -67,6 +68,7 @@ module pepcboris_diagnostics
     use module_debug
     use module_vtk_helpers
     use module_vtk
+    use pepcboris_paralleldump
     use pepcboris_helper, only: IFILE_SUMMAND_PARTICLES, IFILE_SUMMAND_PARTICLES_AVG, pepcboris_nml
     implicit none
     integer, intent(in) :: vtk_step
@@ -79,6 +81,7 @@ module pepcboris_diagnostics
     integer :: istream, dumptype
     real*8 :: avg(3,4), delt(3)
 
+    character(len=PARALLELDUMP_MAXLEN) :: line
     istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES
     dumptype = pepcboris_nml%dumptype
 
@@ -89,11 +92,13 @@ module pepcboris_diagnostics
           DEBUG_ASSERT(allocated(vold))
           ! we have to average over old and new velocities
           do p=1,size(particles,kind=kind(p))
-            write(istream,*) step*dt, p, particles(p)%x, (particles(p)%data%v + vold(:,p))/2._8
+            write(line,*) step*dt, p, particles(p)%x, (particles(p)%data%v + vold(:,p))/2._8
+            call paralleldump_dump(istream, line)
           end do
         else
           do p=1,size(particles,kind=kind(p))
-            write(istream,*) step*dt, p, particles(p)%x, particles(p)%data%v
+            write(line,*) step*dt, p, particles(p)%x, particles(p)%data%v
+            call paralleldump_dump(istream, line)
           end do
         endif
     end select
@@ -101,6 +106,7 @@ module pepcboris_diagnostics
     select case (dumptype)
       case (2,4)
         ! vtk output
+        ! FIXME: I am rather sure that this will not work with time-parallel execution
         call vtk_write_particles("particles", comm, step, step*dt, vtk_step, particles, particle_output_data)
     end select
 
@@ -129,7 +135,8 @@ module pepcboris_diagnostics
 
         avg = avg / size(particles,kind=kind(p))
 
-        write(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG,*) step*dt, 1, avg(:,1), avg(:,2), avg(:,3), avg(1,4), avg(2,4), particles(1)%x
+        write(line,*) step*dt, 1, avg(:,1), avg(:,2), avg(:,3), avg(1,4), avg(2,4), particles(1)%x
+        call paralleldump_dump(pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES_AVG, line)
     end select
 
     contains
@@ -158,6 +165,7 @@ module pepcboris_diagnostics
 
   subroutine dump_energy(t, particles, level_params, comm, do_average)
     use module_pepc_types
+    use pepcboris_paralleldump
     use pfm_encap, only : level_params_t
     use pfm_feval, only : eval_force
     use pepcboris_helper, only : IFILE_SUMMAND_ENERGY, pepcboris_nml
@@ -172,13 +180,10 @@ module pepcboris_diagnostics
     integer(kind_particle) :: p
     type(t_particle), allocatable :: particles_tmp(:)
     real*8 :: epot, ekin, etot, vtmp(3)
-    integer :: istream
-
-    istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY
+    character(len=PARALLELDUMP_MAXLEN) :: line
 
     epot = 0.
     ekin = 0.
-
     ! we need a temporary copy here to prevent destruction the results stored in the particles-array
     allocate(particles_tmp(size(particles)))
     particles_tmp(:) = particles(:)
@@ -202,7 +207,8 @@ module pepcboris_diagnostics
     deallocate(particles_tmp)
 
     etot = epot + ekin
-    write(istream,*) t, epot, ekin, etot
+    write(line,*) t, epot, ekin, etot
+    call paralleldump_dump(pepcboris_nml%workingmode + IFILE_SUMMAND_ENERGY, line)
 
   end subroutine
 

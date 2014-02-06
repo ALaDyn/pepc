@@ -29,6 +29,7 @@ program pepc
   use pepcboris_helper
   use pepcboris_integrator
   use pepcboris_diagnostics
+  use pepcboris_paralleldump
 
   use pf_mod_verlet, only: pf_verlet_create, pf_verlet_destroy
   use pfm_helper
@@ -68,9 +69,13 @@ program pepc
   call get_mpi_rank(MPI_COMM_WORLD,           pepcboris_nml%rank_world, pepcboris_nml%nrank_world)
   call get_mpi_rank(pepcboris_nml%comm_space, pepcboris_nml%rank_space, pepcboris_nml%nrank_space)
   call get_mpi_rank(pepcboris_nml%comm_time,  pepcboris_nml%rank_time,  pepcboris_nml%nrank_time)
+  pepcboris_nml%root_stdio  = (pepcboris_nml%rank_space == 0) .and. (pepcboris_nml%rank_time  == pepcboris_nml%nrank_time-1)
+  pepcboris_nml%root_file   = (pepcboris_nml%rank_space == 0)
 
   ! initialize pepc library and MPI
   call pepc_initialize('pepc-boris-pfasst', init_mpi=.false., db_level_in=DBG_STATUS, comm=pepcboris_nml%comm_space)
+  ! has to be called after pepc_initialize because there MPI_BUFFER_ATTACH is called (and paralleldump needs this buffer)
+  call paralleldump_init()
   ! this is not an MPI-parallel application
   if (pepcboris_nml%nrank_space > 1 .and. pepcboris_nml%rank_world == 0) then
     DEBUG_WARNING(*, "You are requesting spatial parallelism. This is still considered untested. Maybe you wanted to set num_space_instances=num_ranks to only use temporal parallelism?")
@@ -88,8 +93,10 @@ program pepc
     DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
   endif
   ! initial particle dump
-  call dump_particles(VTK_STEP_FIRST, 0, 0._8, particles, MPI_COMM_SPACE, do_average=.false.)
-  call dump_energy(0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+  if (pepcboris_nml%root_file) then
+    call dump_particles(VTK_STEP_FIRST, 0, 0._8, particles, MPI_COMM_SPACE, do_average=.false.)
+    call dump_energy(0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+  endif
 
   select case (pepcboris_nml%workingmode)
     case (WM_BORIS_SDC, WM_BORIS_MLSDC, WM_BORIS_SDC_REF)
@@ -338,8 +345,12 @@ program pepc
         DEBUG_ERROR(*,'Invalid working mode:', pepcboris_nml%workingmode)
   end select
 
-  call dump_particles(VTK_STEP_LAST, pepcboris_nml%nt, pepcboris_nml%dt, particles, MPI_COMM_SPACE, do_average=.false.)
-  call dump_nfeval(pepcboris_nml%rank_world, MPI_COMM_WORLD)
+  if (pepcboris_nml%root_file) then
+    call dump_particles(VTK_STEP_LAST, pepcboris_nml%nt, pepcboris_nml%dt, particles, MPI_COMM_SPACE, do_average=.false.)
+    call dump_nfeval(pepcboris_nml%rank_world, MPI_COMM_WORLD)
+  endif
+
+  call paralleldump_cleanup()
 
   call pepc_finalize()
   call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)

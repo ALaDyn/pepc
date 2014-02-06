@@ -90,6 +90,9 @@ module pepcboris_helper
     integer(kind_particle) :: numparts = 100
     ! use PFASST
     integer :: workingmode = WM_BORIS_SDC
+    !
+    logical :: root_stdio
+    logical :: root_file
   end type
 
   type(pepcboris_nml_t), public :: pepcboris_nml

@@ -61,15 +61,14 @@ contains
         DEBUG_ERROR(*,'wrong hook')
     end select
 
-    if (levelctx%root_stdio) then
+    if (pepcboris_nml%root_stdio) then
       if (state%step == 0) write(*,*)
       write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g15.6)',advance='no') &
         char(13), hook_names(state%hook), step, state%nsteps, t, state%iter, level%residual
     endif
 
-    if (levelctx%root_file) then
+    if (pepcboris_nml%root_file) then
       ! do diagnostics etc here
-      ! FIXME: this output has to synchronized somehow between the different time ranks
       call dump_particles(VTK_STEP_NORMAL, step, state%dt, particles, levelctx%comm, do_average=.false.)
       call dump_energy(t, particles, levelctx, levelctx%comm, do_average=.false.)
       call dump_iterations(step, state%dt, state%hook, state%iter, level%residual)
