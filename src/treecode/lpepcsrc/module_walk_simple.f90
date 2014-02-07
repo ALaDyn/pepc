@@ -25,6 +25,7 @@
 !> The force calculation / tree traversal is performed for several particles grouped in a "tile" at the same time.
 !>
 module module_walk
+  !use module_domains, only: t_decomposition
   use module_tree, only: t_tree
   use module_pepc_types, only: t_particle, kind_particle
   implicit none
@@ -35,6 +36,8 @@ module module_walk
   end type
 
   type(t_tree), pointer :: walk_tree
+
+  !type(t_decomposition) :: walk_decomposition
 
   integer(kind_particle), parameter :: TILE_SIZE = 64
   type(t_walk_tile), allocatable :: walk_tiles(:)
@@ -88,8 +91,12 @@ module module_walk
 
 
   subroutine tree_walk_init(t, p_, num_threads)
+    !use module_box, only: t_box, box_create
+    !use module_comm_env, only: comm_env_self
+    !use module_domains, only: domain_decompose
     use module_tree, only: TREE_KEY_ROOT
-    use module_spacefilling, only: level_from_key
+    !use module_spacefilling, only: level_from_key, compute_particle_keys, KEY_INVALID
+    use module_spacefilling, only: level_from_key, KEY_INVALID
     use module_debug
     implicit none
 
@@ -97,19 +104,35 @@ module module_walk
     type(t_particle), target, intent(in) :: p_(:)
     integer, intent(in) :: num_threads
 
+    !type(t_box) :: b
+    !type(t_particle) :: dummy(2)
+    integer(kind_particle) :: ip
+
     call pepc_status('WALK INIT')
 
     walk_tree => t
     num_walk_threads = num_threads
 
-    ! TODO: this currently assumes that particles actually have a key
+    !if (p_(1)%key == KEY_INVALID) then
+    !  call box_create(b, p_)
+    !  call compute_particle_keys(b, p_)
+    !  call domain_decompose(walk_decomposition, b, size(p_, kind = kind_particle), p_, dummy, comm_env_self())
+    !end if
 
     ! worst case: every particle in its own tile
     allocate(walk_tiles(size(p_)))
 
     num_walk_tiles = 0
-    call tree_walk_init_aux(TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), p_)
+    if (p_(1)%key == KEY_INVALID) then
+      num_walk_tiles = size(p_, kind = kind_particle)
+      do ip = 1, num_walk_tiles
+        walk_tiles(ip)%p => p_(ip:ip)
+      end do
+    else
+      call tree_walk_init_aux(TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), p_)
+    end if
     DEBUG_ASSERT(num_walk_tiles <= size(p_))
+    print *, "walk_simple using ", num_walk_tiles, " tiles."
 
     contains
 
@@ -162,15 +185,22 @@ module module_walk
 
 
   subroutine tree_walk_uninit(t, p)
+    use module_domains, only: decomposition_allocated, domain_restore
+    use module_spacefilling, only: KEY_INVALID
     use module_debug
     implicit none
 
     type(t_tree), intent(in) :: t
-    type(t_particle), intent(in) :: p(:)
+    type(t_particle), intent(inout) :: p(:)
 
     call pepc_status('WALK UNINIT')
 
     deallocate(walk_tiles)
+
+    !if (decomposition_allocated(walk_decomposition)) then
+    !  call domain_restore(walk_decomposition, p)
+    !  p(:)%key = KEY_INVALID
+    !end if
   end subroutine tree_walk_uninit
 
 
@@ -242,7 +272,7 @@ module module_walk
 
     call pack_particle_list(tl%p, p)
 
-    ni = 0_kind_node
+    DEBUG_DO(ni = 0_kind_node)
     call tree_walk_single_aux(walk_tree%node_root)
     DEBUG_ASSERT(ni == walk_tree%npart)
 
@@ -291,13 +321,13 @@ module module_walk
       end do
 
       if (tree_node_is_leaf(node)) then
-        ni = ni + 1
+        DEBUG_DO(ni = ni + 1)
         num_int = num_int + 1.0_8
         call calc_force_per_interaction_with_leaf(r, r2, p, node%interaction_data)
       else ! not a leaf, evaluate MAC
         num_mac = num_mac + 1.0_8
         if (multimac(tl%p, node%interaction_data, r2, b2(node%level))) then ! MAC OK: interact
-          ni = ni + node%leaves
+          DEBUG_DO(ni = ni + node%leaves)
           num_int = num_int + 1.0_8
           call calc_force_per_interaction_with_twig(r, r2, p, node%interaction_data)
         else ! MAC fails: resolve

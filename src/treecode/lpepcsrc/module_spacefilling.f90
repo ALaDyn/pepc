@@ -25,6 +25,8 @@ module module_spacefilling
       use module_pepc_types
       implicit none
 
+      integer(kind_key), parameter, public :: KEY_INVALID = 0_kind_key
+
       integer, public :: curve_type = 1 !(0: Morton, 1: Hilbert) 
 
       interface coord_to_key

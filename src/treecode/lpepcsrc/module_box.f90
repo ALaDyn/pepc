@@ -53,7 +53,7 @@ module module_box
 
     type(t_box), intent(out) :: b !< the bounding box that contains all `p`
     type(t_particle), intent(in) :: p(:) !< particles to embed in the bounding box
-    type(t_comm_env), intent(in) :: c !< communication environment
+    type(t_comm_env), intent(in), optional :: c !< communication environment
 
     integer(kind_default) :: ierr
     real*8 :: min_local(3), max_local(3)
@@ -72,8 +72,13 @@ module module_box
     endif
 
     ! Find global limits
-    call MPI_ALLREDUCE(min_local, b%boxmin, 3, MPI_REAL8, MPI_MIN, c%comm, ierr)
-    call MPI_ALLREDUCE(max_local, b%boxmax, 3, MPI_REAL8, MPI_MAX, c%comm, ierr)
+    if (present(c)) then
+      call MPI_ALLREDUCE(min_local, b%boxmin, 3, MPI_REAL8, MPI_MIN, c%comm, ierr)
+      call MPI_ALLREDUCE(max_local, b%boxmax, 3, MPI_REAL8, MPI_MAX, c%comm, ierr)
+    else
+      b%boxmin = min_local
+      b%boxmax = max_local
+    end if
 
     ! Safety margin - put buffer region around particles
     b%boxsize = b%boxmax - b%boxmin

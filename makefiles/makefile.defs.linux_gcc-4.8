@@ -42,6 +42,7 @@ else
   FFLAGS   = -march=native -mavx -Ofast -frecursive -ffree-line-length-none -fsign-zero $(INLINING) -save-temps -ftree-loop-if-convert -ftree-loop-if-convert-stores
   CFLAGS   = -march=native -mavx -Ofast
   LDFLAGS  = -march=native -mavx -Ofast -pthread $(INLINING) -fwhole-program
+  CPPFLAGS += -DNDEBUG
 #-Wl,--threads
 #-fuse-linker-plugin
 endif

@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -64,7 +64,7 @@ module module_tree_grow
     call timer_start(t_all)
     call timer_start(t_fields_tree)
 
-    call comm_env_dup(MPI_COMM_lpepc, tree_comm_env)
+    tree_comm_env = comm_env_dup(MPI_COMM_lpepc)
 
     ! determine the bounding box of the particle configuration
     call box_create(t%bounding_box, p, tree_comm_env)
@@ -72,7 +72,7 @@ module module_tree_grow
     ! assign SFC coordinate to each particle
     call compute_particle_keys(t%bounding_box, p)
     call timer_stop(t_domains_keys)
-    
+
     ! determine local number of particles
     nl = size(p, kind=kind(nl))
 
@@ -168,7 +168,7 @@ module module_tree_grow
     integer(kind_default), allocatable :: nbranches(:), igap(:)
 
     call timer_start(t_exchange_branches_pack)
-    
+
     nbranch = int(num_local_branch_nodes, kind=kind(nbranch)) ! we need this cast since MPI-strides have to be of kind_default
 
     ! Pack local branches for shipping
@@ -212,7 +212,7 @@ module module_tree_grow
       ! insert all remote branches into local data structures (this does *not* prepare the internal tree connections, but only copies multipole properties and creates the htable-entries)
       if (get_mult(i)%owner /= t%comm_env%rank) then
         call tree_node_unpack(get_mult(i), unpack_node)
-        
+
         call tree_insert_node(t, unpack_node, branch_nodes(i))
       else
         j = j + 1
@@ -324,9 +324,9 @@ module module_tree_grow
         branch_level(ilevel) = branch_level_D1(ilevel) + branch_level_D2(ilevel)
       end do
       t%nbranch_max_me = sum(branch_level(:))
-          
+
       allocate(bn(1:t%nbranch_max_me))
-      
+
       nb = 0
       ! for D1
       pos = L
@@ -334,7 +334,7 @@ module module_tree_grow
         do j = 1, branch_level_D1(ilevel)
           pos = pos - 2_kind_key**(idim * (nlev - ilevel))
           possible_branch = shift_key_by_level(pos, -(nlev - ilevel))
-        
+
           ! After local build hashtable should contain branch key
           ! otherwise branch does not exists
           ! if entry exists it is counted as branch
@@ -352,7 +352,7 @@ module module_tree_grow
         do j = 1, int(branch_level_D2(ilevel))
           pos = pos + 2_kind_key**(idim * (nlev - ilevel))
           possible_branch = shift_key_by_level(pos, -(nlev - ilevel))
-          
+
           ! After build hashtable should contain branch key
           ! otherwise branch does not exists
           ! if entry exists it is counted as branch
@@ -381,7 +381,7 @@ module module_tree_grow
       integer(kind_key), intent(out) :: r !< right virtual key domain limit
 
       integer(kind_key) :: lme, rme, lb, rb
-        
+
       ! get local key limits
       lme = p(1)%key
       rme = p(ubound(p, 1))%key
@@ -511,7 +511,7 @@ module module_tree_grow
         nparent               = nparent + 1
         parent_key(nparent)   = current_parent_key
         parent_nodes(nparent) = NODE_INVALID
-        
+
         do k=groupstart,groupend
           if (t%nodes(sorted_sub_nodes(k))%parent /= NODE_INVALID) then
             ! a parent node is already existing
@@ -642,7 +642,7 @@ module module_tree_grow
       integer(kind_node) :: si, ip, pstart, pend
 
       inserted_node_idx = NODE_INVALID
-      
+
       si = size(ki, kind=kind(si))
 
       if (si < 1) then ! no particles below this key
@@ -673,7 +673,7 @@ module module_tree_grow
             if (.not. is_ancestor_of_particle(ki(pend + 1)%key, childkey, childlevel)) then; exit; end if
             pend = pend + 1
           end do
-          
+
           call insert_helper(t, childkey, childlevel, ki(pstart:pend), child_nodes(nchild + 1))
           if (child_nodes(nchild + 1) .ne. NODE_INVALID) then; nchild = nchild + 1; end if
           pstart = pend + 1
@@ -731,7 +731,7 @@ module module_tree_grow
     call timer_stop(t_props_leaves)
   end subroutine tree_node_create_from_particle
 
-  
+
   !>
   !> accumulates properties of child nodes to parent node.
   !> initialises links to NODE_INVALID.
@@ -749,7 +749,7 @@ module module_tree_grow
 
     parent%parent       = NODE_INVALID
     parent%next_sibling = NODE_INVALID
-    parent%first_child  = NODE_INVALID 
+    parent%first_child  = NODE_INVALID
 
     call tree_node_update_from_children(t, parent, children, k)
   end subroutine tree_node_create_from_children
