@@ -166,7 +166,7 @@ module module_species
                         IF (root) write(*,'(a,i3,a,i3,a,i3)') "Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
                                                                ,src_type(ispecies),"for species ",ispecies
                     END IF
-                ELSE IF ((src_type(ispecies)==1).or.(src_type(ispecies)==2)) THEN !Volume Source
+                ELSE IF ((src_type(ispecies)==1).or.(src_type(ispecies)==2).or.(src_type(ispecies)==3)) THEN !Volume Source
                     src_bnd(ispecies)=0
                     IF (root) write(*,'(a,i2,a,i2,a)') " == Volume source of type ",src_type(ispecies)," for species ",ispecies," set. Parameters:"
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == x0: ",src_x0(ispecies,:)

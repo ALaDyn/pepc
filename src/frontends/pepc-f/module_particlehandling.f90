@@ -662,12 +662,18 @@ module particlehandling
         real               :: ran,ran1,ran2
         integer            :: n,ip,ib
         real*8             :: mu,sigma
-        real(KIND=8)       :: t1(3),t2(3),n1(3),e1(3)
+        real(KIND=8)       :: t1(3),t2(3),n1(3),e1(3),vhelp(3),B_vector(3)
+        real(KIND=8)       :: eps=1.0e-10
 
         logical :: init_uniform_gaussian
 
         init_uniform_gaussian=.false.
 
+        B_vector(1) = Bx
+        B_vector(2) = By
+        B_vector(3) = Bz
+
+        vhelp=0.0_8
         mu=0.0
         IF (allocated(p)) THEN
             n=size(p)
@@ -705,9 +711,9 @@ module particlehandling
                         CYCLE
                     END IF
                 END IF
-                IF (species(p(ip)%data%species)%src_type==0) THEN
-                    call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
-                    call random_gaussian_flux(p(ip)%data%v(1),sigma)
+                IF (species(p(ip)%data%species)%src_type==0) THEN                 !surface source
+                    call random_gauss_list(vhelp(2:3),mu,sigma)
+                    call random_gaussian_flux(vhelp(1),sigma)
                     e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
                     n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
                     t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector
@@ -715,9 +721,9 @@ module particlehandling
                     t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
                     t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
                     t2=t2/sqrt(dotproduct(t2,t2))
-                    p(ip)%data%v(1) = n1(1)*p(ip)%data%v(1) + t1(1)*p(ip)%data%v(2) + t2(1)*p(ip)%data%v(3) ! this gives the maxwellian flux
-                    p(ip)%data%v(2) = n1(2)*p(ip)%data%v(1) + t1(2)*p(ip)%data%v(2) + t2(2)*p(ip)%data%v(3) ! along n1 and gaussian
-                    p(ip)%data%v(3) = n1(3)*p(ip)%data%v(1) + t1(3)*p(ip)%data%v(2) + t2(3)*p(ip)%data%v(3) ! distribution along t1, t2
+                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
+                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
+                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
                     ran=rnd_num()
                     ran1=rnd_num()
                     ran2=rnd_num()
@@ -726,7 +732,7 @@ module particlehandling
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
                     p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
                               dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
-                ELSE IF (species(p(ip)%data%species)%src_type==1) THEN
+                ELSE IF (species(p(ip)%data%species)%src_type==1) THEN            ! Emmert source along x, Maxwellian perpendicular to x
                     call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
                     call random_gaussian_flux(p(ip)%data%v(1),sigma)
                     ran=rnd_num()
@@ -738,7 +744,44 @@ module particlehandling
                               ran * species(p(ip)%data%species)%src_e1 + &
                               ran1 * species(p(ip)%data%species)%src_e2 + &
                               ran2 * species(p(ip)%data%species)%src_e3
-                ELSE IF (species(p(ip)%data%species)%src_type==2) THEN
+                ELSE IF (species(p(ip)%data%species)%src_type==3) THEN                ! Emmert source along B, Maxwellian perpendicular to B
+                    IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
+                        n1 = B_vector / sqrt(dotproduct(B_vector,B_vector))           ! normal vector along B
+                    ELSE                                                              ! Without B Field
+                        n1(1) = 1.0_8                                                 ! normal vector along x
+                        n1(2) = 0.0_8
+                        n1(3) = 0.0_8
+                    END IF
+                    IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                        t1(1) = -n1(2)                                            ! tangential vector
+                        t1(2) = n1(1)
+                        t1(3) = 0.0_8
+                    ELSE
+                        t1(1) = 1.0_8                                             ! tangential vector
+                        t1(2) = 0.0_8
+                        t1(3) = 0.0_8
+                    END IF
+                    t1 = t1 / sqrt(dotproduct(t1,t1))
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+                    t2=t2/sqrt(dotproduct(t2,t2))
+
+                    call random_gauss_list(vhelp(2:3),mu,sigma)
+                    call random_gaussian_flux(vhelp(1),sigma)
+                    ran=rnd_num()
+                    IF (ran>0.5) vhelp(1)=-vhelp(1)
+                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
+                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
+                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
+                    ran=rnd_num()
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = species(p(ip)%data%species)%src_x0 + &
+                              ran * species(p(ip)%data%species)%src_e1 + &
+                              ran1 * species(p(ip)%data%species)%src_e2 + &
+                              ran2 * species(p(ip)%data%species)%src_e3
+                ELSE IF (species(p(ip)%data%species)%src_type==2) THEN            ! Bissel Johnson source along x
                     call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
                     ran=rnd_num()
                     ran1=rnd_num()
