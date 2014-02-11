@@ -93,7 +93,7 @@ program pepc
     DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
   endif
   ! initial particle dump
-  if (pepcboris_nml%root_file) then
+  if (pepcboris_nml%root_stdio) then
     call dump_particles(VTK_STEP_FIRST, 0, 0._8, particles, MPI_COMM_SPACE, do_average=.false.)
     call dump_energy(0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
   endif
@@ -345,10 +345,8 @@ program pepc
         DEBUG_ERROR(*,'Invalid working mode:', pepcboris_nml%workingmode)
   end select
 
-  if (pepcboris_nml%root_file) then
-    call dump_particles(VTK_STEP_LAST, pepcboris_nml%nt, pepcboris_nml%dt, particles, MPI_COMM_SPACE, do_average=.false.)
-    call dump_nfeval(pepcboris_nml%rank_world, MPI_COMM_WORLD)
-  endif
+  if (pepcboris_nml%root_stdio) call dump_particles(VTK_STEP_LAST, pepcboris_nml%nt, pepcboris_nml%dt, particles, MPI_COMM_SPACE, do_average=.false.)
+  call dump_nfeval(pepcboris_nml%rank_world, MPI_COMM_WORLD)
 
   call paralleldump_cleanup()
 
