@@ -286,9 +286,49 @@ module module_coulomb_kernels
       type(t_tree_node_interaction_data), intent(in) :: t
       real(kfp), intent(in) :: eps2
 
-      real(kfp) :: rd,r,rd3charge
+  #if defined(__TOS_BGQ__) && ( defined(__IBMC__) || defined(__IBMCPP__) )
+      VECTOR(REAL(kfp)) :: rd,r,rd3tcharge,rdtcharge, vzero, vdist2, vone, vtcharge, veps2, include_mask
       integer(kind_particle) :: ip, np
+      
+      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+        VECTOR(REAL(kfp)) :: vcut(3)
+        
+        do ip=1,3
+          vcut(ip) = VEC_SPLATS(spatial_interaction_cutoff(ip))
+        end do
+      #endif      
 
+      vzero    = VEC_SPLATS(0._kfp)
+      vone     = VEC_SPLATS(one)
+      vtcharge = VEC_SPLATS(t%charge)
+      veps2    = VEC_SPLATS(eps2)
+      
+      np = 8*size(dist2, kind = kind_particle)
+
+      !ibm* assert(nodeps)
+      do ip=0,np-8,32
+          ! see http://pic.dhe.ibm.com/infocenter/compbg/v121v141/topic/com.ibm.xlf141.bg.doc/language_ref/vmxintrinsics.html
+          vdist2 = VEC_LDA(ip, dist2)
+
+          r  = VEC_SWSQRT_NOCHK( VEC_ADD(vdist2, veps2) )
+          include_mask = VEC_CMPGT(vdist2, vzero)
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+            include_mask = VEC_AND( VEC_AND( VEC_AND( 
+              VEC_CMPLT(VEC_LDA(      ip, delta), vcut(1))  , &
+              VEC_CMPLT(VEC_LDA(   np+ip, delta), vcut(2)) ), &
+              VEC_CMPLT(VEC_LDA(np+np+ip, delta), vcut(3)) ), &
+              include_mask )
+          #endif
+          rd = VEC_SEL(vzero, VEC_SWDIV_NOCHK(vone, r), include_mask)
+          rdtcharge  = VEC_MUL(vtcharge, rd)
+          call VEC_STA(VEC_ADD(rdtcharge, VEC_LDA(ip, particle_pack%pot)), ip, particle_pack%pot)
+
+          rd3tcharge = VEC_MUL(rdtcharge, VEC_MUL(rd,rd))
+          call VEC_STA(VEC_MADD(rd3tcharge, VEC_LDA(      ip, delta), VEC_LDA(ip, particle_pack%ex)), ip, particle_pack%ex)
+          call VEC_STA(VEC_MADD(rd3tcharge, VEC_LDA(   np+ip, delta), VEC_LDA(ip, particle_pack%ey)), ip, particle_pack%ey)
+          call VEC_STA(VEC_MADD(rd3tcharge, VEC_LDA(np+np+ip, delta), VEC_LDA(ip, particle_pack%ez)), ip, particle_pack%ez)
+      end do
+  #else
       np = size(dist2, kind = kind_particle)
 
       do ip = 1, np
@@ -311,6 +351,7 @@ module module_coulomb_kernels
           particle_pack%ez(ip) = particle_pack%ez(ip) + rd3charge*delta(ip,3)
         end if
       end do
+  #endif
     end subroutine calc_force_coulomb_3D_direct
 
 
