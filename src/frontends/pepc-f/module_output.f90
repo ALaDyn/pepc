@@ -55,6 +55,40 @@ MODULE output
 
 !===============================================================================
 
+    SUBROUTINE x_and_v_output(ispecies,npoints,filehandle)
+        use diagnostics
+        use module_pepc_types
+        implicit none
+        include 'mpif.h'
+
+        integer                 :: rc,i
+
+        integer,intent(in)      :: filehandle,ispecies,npoints
+        real(KIND=8)            :: vsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        integer                 :: n_bin(npoints)
+        real(KIND=8)            :: tvsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        integer                 :: tn_bin(npoints)
+        real(KIND=8)            :: x_bin(npoints)
+
+
+
+        call bin_v(ispecies,npoints,x_bin,vsum_bin,n_bin)
+
+
+        call MPI_ALLREDUCE(n_bin, tn_bin, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(vsum_bin, tvsum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+
+
+        IF (root) THEN
+            write(filehandle,'(a12,a16,a10,6(a16))')"","x","n","vx","vy","vz","vpar","vperp1","vperp2"
+            DO i=1,npoints
+                write(filehandle,'(a12,1pe16.7E3,i10.9,6(1pe16.7E3))')"Histogram:  ",x_bin(i),tn_bin(i),tvsum_bin(1,i)/tn_bin(i),tvsum_bin(2,i)/tn_bin(i),tvsum_bin(3,i)/tn_bin(i),tvsum_bin(4,i)/tn_bin(i),tvsum_bin(5,i)/tn_bin(i),tvsum_bin(6,i)/tn_bin(i)
+            END DO
+        END IF
+
+    END SUBROUTINE  x_and_v_output
+!===============================================================================
+
     SUBROUTINE probe_output(ispecies,filehandle)
         use diagnostics
         use module_pepc_types
@@ -195,6 +229,14 @@ MODULE output
             IF (species(ispecies)%physical_particle) THEN
                 call velocity_output(ispecies,filehandle)
                 call energy_output(ispecies,filehandle)
+                IF(root) write(filehandle,*)
+
+                IF(diag_interval.ne.0) THEN
+                    IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
+                        call x_and_v_output(ispecies,250,filehandle)
+                    END IF
+                END IF
+
                 IF(root) write(filehandle,*)
                 DO ib=1,nb
                     IF(root) write(filehandle,'(a,i2,a,i10)') "Hits on boundary ",ib,":",thits_out(ispecies,ib)

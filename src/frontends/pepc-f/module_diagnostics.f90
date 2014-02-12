@@ -10,6 +10,7 @@ MODULE diagnostics
 
 
     use variables
+    use helper
 
     implicit none
 
@@ -43,6 +44,77 @@ MODULE diagnostics
         return
 
     end function get_epot
+
+!===============================================================================
+
+
+    subroutine bin_v(ispecies,npoints,x_bin,vsum_bin,n_bin)
+        implicit none
+
+        integer, intent(in) :: ispecies,npoints
+        real(KIND=8), intent(out) :: x_bin(:)
+        integer, intent(out):: n_bin(:)
+        real(KIND=8), intent(out) :: vsum_bin(:,:)
+
+        integer :: ip,n
+        real(KIND=8)            :: dx,x0
+        integer                 :: i
+
+        real(KIND=8)            :: n1(3), t1(3), t2(3), B_vector(3)
+        real(KIND=8)       :: eps=1.0e-10
+
+        B_vector(1) = Bx
+        B_vector(2) = By
+        B_vector(3) = Bz
+        IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
+            n1 = B_vector / sqrt(dotproduct(B_vector,B_vector))           ! normal vector along B
+        ELSE                                                              ! Without B Field
+            n1(1) = 1.0_8                                                 ! normal vector along x
+            n1(2) = 0.0_8
+            n1(3) = 0.0_8
+        END IF
+        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+            t1(1) = -n1(2)                                            ! tangential vector
+            t1(2) = n1(1)
+            t1(3) = 0.0_8
+        ELSE
+            t1(1) = 1.0_8                                             ! tangential vector
+            t1(2) = 0.0_8
+            t1(3) = 0.0_8
+        END IF
+        t1 = t1 / sqrt(dotproduct(t1,t1))
+        t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+        t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+        t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+        t2=t2/sqrt(dotproduct(t2,t2))
+
+        dx = (xmax-xmin)/npoints
+        x0 = xmin + dx/2.
+        x_bin = x0
+        DO i=1,npoints
+            x_bin(i) = x_bin(i) + (i-1)*dx
+        END DO
+
+        n = size(particles)
+        n_bin = 0
+        vsum_bin = 0.0_8
+
+        DO i=1, npoints
+            DO ip=1, n
+                IF (particles(ip)%data%species == ispecies) THEN
+                    IF ((particles(ip)%x(1) < x_bin(i)+dx/2.) .AND. (particles(ip)%x(1) >= x_bin(i)-dx/2.)) THEN
+                        n_bin(i) = n_bin(i) + 1
+                        vsum_bin(1,i) = vsum_bin(1,i) + particles(ip)%data%v(1)
+                        vsum_bin(2,i) = vsum_bin(2,i) + particles(ip)%data%v(2)
+                        vsum_bin(3,i) = vsum_bin(3,i) + particles(ip)%data%v(3)
+                        vsum_bin(4,i) = vsum_bin(4,i) + dotproduct(particles(ip)%data%v,n1)
+                        vsum_bin(5,i) = vsum_bin(5,i) + dotproduct(particles(ip)%data%v,t1)
+                        vsum_bin(6,i) = vsum_bin(6,i) + dotproduct(particles(ip)%data%v,t2)
+                    END IF
+                END IF
+            END DO
+        END DO
+    end subroutine
 
 !===============================================================================
 
