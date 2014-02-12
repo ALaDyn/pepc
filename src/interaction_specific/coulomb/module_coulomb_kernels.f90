@@ -57,18 +57,19 @@ module module_coulomb_kernels
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    subroutine calc_force_coulomb_3D(np, delta, dist2, ex, ey, ez, pot, t, eps2)
+    subroutine calc_force_coulomb_3D(delta, dist2, particle_pack, t, eps2)
       implicit none
 
-      integer(kind_particle), intent(in) :: np
-      real(kfp), intent(in) :: delta(np,3)
-      real(kfp), intent(in) :: dist2(np)
-      real(kfp), intent(inout) :: ex(np), ey(np), ez(np), pot(np)
+      real(kfp), intent(in) :: delta(:,:)
+      real(kfp), intent(in) :: dist2(:)
+      type(t_particle_pack), intent(inout) :: particle_pack
       type(t_tree_node_interaction_data), intent(in) :: t
       real(kfp), intent(in) :: eps2
 
       real(kfp) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
-      integer(kind_particle) :: ip
+      integer(kind_particle) :: ip, np
+
+      np = size(dist2, kind = kind_particle)
 
       do ip = 1, np
         dx = delta(ip, 1)
@@ -101,13 +102,13 @@ module module_coulomb_kernels
         fd5 = three*dy*dz*rd5
         fd6 = three*dx*dz*rd5
 
-        pot(ip) = pot(ip) &
+        particle_pack%pot(ip) = particle_pack%pot(ip) &
               + t%charge*rd                                           &  !  monopole term
               + (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !  dipole
               + half*(fd1*t%quad(1) + fd2*t%quad(2) + fd3*t%quad(3))  &  !  quadrupole
               +       fd4*t%xyquad  + fd5*t%yzquad  + fd6*t%zxquad
 
-        ex(ip) = ex(ip) &
+        particle_pack%ex(ip) = particle_pack%ex(ip) &
                   + t%charge*dx*rd3                                  &  ! monopole term
                   + fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3)       &  ! dipole term
                   + three * (                                        &  ! quadrupole term
@@ -121,7 +122,7 @@ module module_coulomb_kernels
                     + ( five*dx*dy*dz*rd7          )*t%yzquad        &
                     )
 
-        ey(ip) = ey(ip) &
+        particle_pack%ey(ip) = particle_pack%ey(ip) &
                   + t%charge*dy*rd3                                  &
                   + fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3)       &
                   + three * (                                        &
@@ -135,7 +136,7 @@ module module_coulomb_kernels
                     + ( five*dx*dy*dz*rd7          )*t%zxquad        &
                     )
 
-        ez(ip) = ez(ip) &
+        particle_pack%ez(ip) = particle_pack%ez(ip) &
                   + t%charge*dz*rd3                                  &
                   + fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1)       &
                   + three * (                                        &
@@ -160,17 +161,19 @@ module module_coulomb_kernels
     !>   Phi = -2q log R
     !>   Ex = -dPhi/dx = 2 q x/R^2 etc
     !>
-    subroutine calc_force_coulomb_2D(np, delta, ex, ey, pot, t, eps2)
+    subroutine calc_force_coulomb_2D(delta, dist2, particle_pack, t, eps2)
       implicit none
 
-      integer(kind_particle), intent(in) :: np
-      real(kfp), intent(in) :: delta(np,3)
-      real(kfp), intent(inout) :: ex(np), ey(np), pot(np)
+      real(kfp), intent(in) :: delta(:,:)
+      real(kfp), intent(in) :: dist2(:)
+      type(t_particle_pack), intent(inout) :: particle_pack
       type(t_tree_node_interaction_data), intent(in) :: t
       real(kfp), intent(in) :: eps2
 
       real(kfp) :: dx,dy,d2,rd2,rd4,rd6,dx2,dy2,dx3,dy3
-      integer(kind_particle) :: ip
+      integer(kind_particle) :: ip, np
+
+      np = size(dist2, kind = kind_particle)
 
       do ip = 1, np
         dx = delta(ip,1)
@@ -191,14 +194,14 @@ module module_coulomb_kernels
         rd4 = rd2*rd2
         rd6 = rd4*rd2
 
-        pot(ip) = pot(ip) &
+        particle_pack%pot(ip) = particle_pack%pot(ip) &
             - half*t%charge*log(d2)               & !  monopole term
             + (dx*t%dip(1) + dy*t%dip(2))*rd2     & !  dipole
             + half*(t%quad(1)*(dx2*rd4 - rd2)     & ! quadrupole
             +       t%quad(2)*(dy2*rd4 - rd2))    &
             + t%xyquad*dx*dy*rd4
 
-        ex(ip) = ex(ip) &
+        particle_pack%ex(ip) = particle_pack%ex(ip) &
             + t%charge*dx*rd2                              & ! monopole
             + t%dip(1)*(two*dx2  *rd4 - rd2)               & ! dipole
             + t%dip(2)* two*dx*dy*rd4                      &
@@ -206,7 +209,7 @@ module module_coulomb_kernels
             + t%quad(2)*(four *dx *dy2*rd6 -       dx*rd4) &
             + t%xyquad *(eight*dx2*dy *rd6 -   two*dy*rd4)
 
-        ey(ip) = ey(ip) &
+        particle_pack%ey(ip) = particle_pack%ey(ip) &
             + t%charge*dy*rd2                              & ! monopole
             + t%dip(2)*(two*dy2  *rd4 - rd2)               & ! dipole
             + t%dip(1)* two*dx*dy*rd4                      &
@@ -224,18 +227,19 @@ module module_coulomb_kernels
     !> shifted by the lattice vector vbox
     !> results are returned exyz, phi
     !>
-    subroutine calc_force_LJ(np, delta, dist2, ex, ey, ez, t, aii2)
+    subroutine calc_force_LJ(delta, dist2, particle_pack, t, aii2)
       implicit none
 
-      integer(kind_particle), intent(in) :: np
-      real(kfp), intent(in) :: delta(np,3)
-      real(kfp), intent(in) :: dist2(np)
-      real(kfp), intent(inout) :: ex(np), ey(np), ez(np)
+      real(kfp), intent(in) :: delta(:,:)
+      real(kfp), intent(in) :: dist2(:)
+      type(t_particle_pack), intent(inout) :: particle_pack
       type(t_tree_node_interaction_data), intent(in) :: t
       real(kfp), intent(in) :: aii2
 
       real(kfp) :: flj, epsc2, aii2_r2,aii4_r4, r, fljrd
-      integer(kind_particle) :: ip
+      integer(kind_particle) :: ip, np
+
+      np = size(dist2, kind = kind_particle)
 
       ! epsc should be > a_ii to get evenly spaced ions
       epsc2 = 0.8_kfp * aii2
@@ -250,17 +254,20 @@ module module_coulomb_kernels
         #endif
 
         ! Force is repulsive up to and just beyond aii
-        aii2_r2 = aii2 / max(dist2(ip), epsc2)
-        aii4_r4 = aii2_r2*aii2_r2
-        flj = two*(aii4_r4*aii4_r4) - aii4_r4
+        !aii2_r2 = aii2 / max(dist2(ip), epsc2)
+
+        !aii4_r4 = aii2_r2*aii2_r2
+
+        !flj = two*(aii4_r4*aii4_r4) - aii4_r4
 
         !  forces
         r     = sqrt(dist2(ip))
-        fljrd = flj/r
+        !fljrd = flj/r
+        fljrd = 1.0_kfp/r
 
-        ex(ip) = ex(ip) + delta(ip,1) * fljrd
-        ey(ip) = ey(ip) + delta(ip,2) * fljrd
-        ez(ip) = ez(ip) + delta(ip,3) * fljrd
+        particle_pack%ex(ip) = particle_pack%ex(ip) + delta(ip,1) * fljrd
+        particle_pack%ey(ip) = particle_pack%ey(ip) + delta(ip,2) * fljrd
+        particle_pack%ez(ip) = particle_pack%ez(ip) + delta(ip,3) * fljrd
       end do
     end subroutine calc_force_LJ
 
@@ -270,26 +277,19 @@ module module_coulomb_kernels
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    subroutine calc_force_coulomb_3D_direct(np, delta, dist2, ex, ey, ez, pot, t, eps2)
+    subroutine calc_force_coulomb_3D_direct(delta, dist2, particle_pack, t, eps2)
       implicit none
 
-      integer(kind_particle), intent(in) :: np
-      real(kfp), intent(in) :: delta(np,3)
-      real(kfp), intent(in) :: dist2(np)
-      real(kfp), intent(inout) :: ex(np), ey(np), ez(np), pot(np)
+      real(kfp), intent(in) :: delta(:,:)
+      real(kfp), intent(in) :: dist2(:)
+      type(t_particle_pack), intent(inout) :: particle_pack
       type(t_tree_node_interaction_data), intent(in) :: t
       real(kfp), intent(in) :: eps2
 
       real(kfp) :: rd,r,rd3charge
-      integer(kind_particle) :: ip
-      
-      real(kfp) :: mask(np)
-      
-      mask = 1._kfp
-      
-      where (dist2 <= 0.0_kfp)
-        mask = 0.0_kfp
-      end where
+      integer(kind_particle) :: ip, np
+
+      np = size(dist2, kind = kind_particle)
 
       do ip = 1, np
         #ifndef NO_SPATIAL_INTERACTION_CUTOFF
@@ -300,14 +300,16 @@ module module_coulomb_kernels
         ) cycle
         #endif
 
-        r         = sqrt(dist2(ip) + eps2)
-        rd        = mask(ip) / r
-        rd3charge = t%charge*rd*rd*rd
+        if (dist2(ip) > 0.0_kfp) then
+          r         = sqrt(dist2(ip) + eps2)
+          rd        = one/r
+          rd3charge = t%charge*rd*rd*rd
 
-        pot(ip) = pot(ip) + t%charge*rd
-        ex(ip)  = ex(ip) + rd3charge*delta(ip,1)
-        ey(ip)  = ey(ip) + rd3charge*delta(ip,2)
-        ez(ip)  = ez(ip) + rd3charge*delta(ip,3)
+          particle_pack%pot(ip) = particle_pack%pot(ip) + t%charge*rd
+          particle_pack%ex(ip) = particle_pack%ex(ip) + rd3charge*delta(ip,1)
+          particle_pack%ey(ip) = particle_pack%ey(ip) + rd3charge*delta(ip,2)
+          particle_pack%ez(ip) = particle_pack%ez(ip) + rd3charge*delta(ip,3)
+        end if
       end do
     end subroutine calc_force_coulomb_3D_direct
 
@@ -320,40 +322,37 @@ module module_coulomb_kernels
     !>   Phi = -2q log R
     !>   Ex = -dPhi/dx = 2 q x/R^2 etc
     !>
-    subroutine calc_force_coulomb_2D_direct(np, delta, ex, ey, pot, t, eps2)
+    subroutine calc_force_coulomb_2D_direct(delta, dist2, particle_pack, t, eps2)
       implicit none
 
-      integer(kind_particle), intent(in) :: np
-      real(kfp), intent(in) :: delta(np,3)
-      real(kfp), intent(inout) :: ex(np), ey(np), pot(np)
+      real(kfp), intent(in) :: delta(:,:)
+      real(kfp), intent(in) :: dist2(:)
+      type(t_particle_pack), intent(inout) :: particle_pack
       type(t_tree_node_interaction_data), intent(in) :: t
       real(kfp), intent(in) :: eps2
 
-      real(kfp) :: rd2charge
-      integer(kind_particle) :: ip
-      
-      real(kfp) :: mask(np), d2(np)
-      
-      d2 = delta(:,1)*delta(:,1) + delta(:,2)*delta(:,2)
+      real(kfp) :: rd2charge, dx, dy, d2
+      integer(kind_particle) :: ip, np
 
-      mask = 1._kfp
-      
-      where (d2 <= 0.0_kfp)
-        mask = 0.0_kfp
-      end where
-      
-      d2 = d2 + eps2
+      np = size(dist2, kind = kind_particle)
 
       do ip = 1, np
+        dx = delta(ip,1)
+        dy = delta(ip,2)
+
         #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-        if (delta(ip,1) >= spatial_interaction_cutoff(1) .or. delta(ip,2) >= spatial_interaction_cutoff(2)) cycle
+        if (dx >= spatial_interaction_cutoff(1) .or. dy >= spatial_interaction_cutoff(2)) cycle
         #endif
 
-        rd2charge = t%charge/d2(ip) * mask(ip)
+        d2 = dx * dx + dy * dy
+        if (d2 > 0.0_kfp) then
+          d2 = d2 + eps2
+          rd2charge = t%charge/d2
 
-        pot(ip) = pot(ip) - half*t%charge*log(d2(ip)) * mask(ip)
-        ex(ip) = ex(ip) + rd2charge * delta(ip,1)
-        ey(ip) = ey(ip) + rd2charge * delta(ip,2)
+          particle_pack%pot(ip) = particle_pack%pot(ip) - half*t%charge*log(d2)
+          particle_pack%ex(ip) = particle_pack%ex(ip) + rd2charge * delta(ip,1)
+          particle_pack%ey(ip) = particle_pack%ey(ip) + rd2charge * delta(ip,2)
+        end if
       end do
     end subroutine calc_force_coulomb_2D_direct
 
