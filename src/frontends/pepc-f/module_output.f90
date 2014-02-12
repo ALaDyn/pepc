@@ -306,7 +306,7 @@ MODULE output
         implicit none
     
         type(t_particle), allocatable, intent(in) :: p(:)
-        integer, intent(in) :: vtk_mask
+        integer(kind_particle), intent(in) :: vtk_mask
 
         type(t_particle), allocatable :: p_out(:)
         integer :: n_out
