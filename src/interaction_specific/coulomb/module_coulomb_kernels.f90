@@ -78,6 +78,7 @@ module module_coulomb_kernels
     !> results are returned in exyz, phi
     !>
     subroutine calc_force_coulomb_3D(delta, dist2, particle_pack, t, eps2)
+      use module_debug
       implicit none
 
       real(kfp), intent(in) :: delta(:,:)
@@ -92,7 +93,6 @@ module module_coulomb_kernels
                            vfive_rd7, dx_rd5, dy_rd5, dz_rd5, vtcharge_rd3, vfive_rd7_dx, vfive_rd7_dy, vfive_rd7_dz,vfive_rd7_dxdydz
       integer(kind_particle) :: ip, np
 
-      
       #ifndef NO_SPATIAL_INTERACTION_CUTOFF
         VECTOR(REAL(kfp)) :: vcut(3), include_mask
         
@@ -106,7 +106,6 @@ module module_coulomb_kernels
       vthree   = VEC_SPLATS(three)
       vfive    = VEC_SPLATS(five)
       vhalf    = VEC_SPLATS(half)
-
       vtcharge = VEC_SPLATS(t%charge)
       do ip=1,3
         vtdip(ip)  = VEC_SPLATS(t%dip(ip))
@@ -116,6 +115,7 @@ module module_coulomb_kernels
       vtyzquad = VEC_SPLATS(t%yzquad)
       vtzxquad = VEC_SPLATS(t%zxquad)
 
+      DEBUG_ASSERT_MSG(mod(size(dist2, kind=kind_particle), 4_kind_particle) == 0, *, 'For QPX-vectorization, the length of the particle_pack%XXX, delta, and dist2 arrays must be a multiple of 4')
       np = 8*size(dist2, kind = kind_particle)
       
       !ibm* assert(nodeps)
@@ -449,6 +449,7 @@ module module_coulomb_kernels
     !> results are returned in exyz, phi
     !>
     subroutine calc_force_coulomb_3D_direct(delta, dist2, particle_pack, t, eps2)
+      use module_debug
       implicit none
 
       real(kfp), intent(in) :: delta(:,:)
@@ -474,6 +475,7 @@ module module_coulomb_kernels
       vtcharge = VEC_SPLATS(t%charge)
       veps2    = VEC_SPLATS(eps2)
       
+      DEBUG_ASSERT_MSG(mod(size(dist2, kind=kind_particle), 4_kind_particle) == 0, *, 'For QPX-vectorization, the length of the particle_pack%XXX, delta, and dist2 arrays must be a multiple of 4')
       np = 8*size(dist2, kind = kind_particle)
 
       !ibm* assert(nodeps)
