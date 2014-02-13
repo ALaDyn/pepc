@@ -50,7 +50,27 @@ module module_coulomb_kernels
     public calc_force_LJ
     public calc_force_kelbg_3D_direct
 
+
   contains
+
+    #if defined(__TOS_BGQ__) && ( defined(__IBMC__) || defined(__IBMCPP__) )
+      !> helper macros for QPX, see
+      !> http://pic.dhe.ibm.com/infocenter/compbg/v121v141/topic/com.ibm.xlf141.bg.doc/language_ref/vmxintrinsics.html
+      !> for the basic instructions
+      !> TODO: in some places, even reordering of the expressions lead to performance improvement around 2%... - someone might want to try this out
+      ! a * b * c
+      #define VEC_MUL3(a,b,c) VEC_MUL(a, VEC_MUL(b,c))
+      ! a * b + c * d
+      #define VEC_aTbMcTd(a,b,c,d) VEC_MSUB(a,b,VEC_MUL(c,d))
+      ! a * b + c * d + e * f
+      #define VEC_aTbPcTdPeTf(a,b,c,d,e,f) VEC_MADD(a,b,VEC_MADD(c,d,VEC_MUL(e,f)))
+      ! a * b * c -d
+      #define VEC_MUL3SUB(a,b,c,d) VEC_MSUB(a, VEC_MUL(b,c), d)
+      ! performs variable(index) += summand
+      #define VEC_ACCUMULATE(index, variable, summand) VEC_STA(VEC_ADD(summand,VEC_LDA(index,variable)),index,variable)
+      ! performs variable(index) += a * bsummand
+      #define VEC_MACCUMULATE(index, variable, a, b) VEC_STA(VEC_MADD(a,b,VEC_LDA(index,variable)),index,variable)
+    #endif
 
     !>
     !> Calculates 3D Coulomb interaction of particle p with tree node inode
@@ -66,6 +86,156 @@ module module_coulomb_kernels
       type(t_tree_node_interaction_data), intent(in) :: t
       real(kfp), intent(in) :: eps2
 
+  #if defined(__TOS_BGQ__) && ( defined(__IBMC__) || defined(__IBMCPP__) )
+      vector(real(kfp)) :: rd,dx,dy,dz,dx2,dy2,dz2,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
+      vector(real(kfp)) :: veps2, vone, vthree, vfive, vhalf, vdist2, vtcharge, vtdip(3), vtquad(3), vtxyquad, vtzxquad, vtyzquad, &
+                           vfive_rd7, dx_rd5, dy_rd5, dz_rd5, vtcharge_rd3, vfive_rd7_dx, vfive_rd7_dy, vfive_rd7_dz,vfive_rd7_dxdydz
+      integer(kind_particle) :: ip, np
+
+      
+      #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+        VECTOR(REAL(kfp)) :: vcut(3), include_mask
+        
+        do ip=1,3
+          vcut(ip) = VEC_SPLATS(spatial_interaction_cutoff(ip))
+        end do
+      #endif  
+      
+      veps2    = VEC_SPLATS(eps2)
+      vone     = VEC_SPLATS(one)
+      vthree   = VEC_SPLATS(three)
+      vfive    = VEC_SPLATS(five)
+      vhalf    = VEC_SPLATS(half)
+
+      vtcharge = VEC_SPLATS(t%charge)
+      do ip=1,3
+        vtdip(ip)  = VEC_SPLATS(t%dip(ip))
+        vtquad(ip) = VEC_SPLATS(t%quad(ip))
+      end do
+      vtxyquad = VEC_SPLATS(t%xyquad)
+      vtyzquad = VEC_SPLATS(t%yzquad)
+      vtzxquad = VEC_SPLATS(t%zxquad)
+
+      np = 8*size(dist2, kind = kind_particle)
+      
+      !ibm* assert(nodeps)
+      do ip=0,np-8,32
+        vdist2 = VEC_LDA(ip, dist2)
+
+        rd  = VEC_SWDIV_NOCHK(vone, VEC_SWSQRT_NOCHK( VEC_ADD(vdist2, veps2) ))
+        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          include_mask = VEC_AND( VEC_AND( 
+              VEC_CMPLT(VEC_LDA(      ip, delta), vcut(1))  , &
+              VEC_CMPLT(VEC_LDA(   np+ip, delta), vcut(2)) ), &
+              VEC_CMPLT(VEC_LDA(np+np+ip, delta), vcut(3)) )
+          rd = VEC_SEL(vzero, rd, include_mask)
+        #endif
+        rd2 = VEC_MUL(rd,  rd )
+        rd3 = VEC_MUL(rd,  rd2)
+        rd5 = VEC_MUL(rd3, rd2)
+        rd7 = VEC_MUL(rd5, rd2)
+
+        dx = VEC_LDA(      ip, delta)
+        dy = VEC_LDA(   np+ip, delta)
+        dz = VEC_LDA(np+np+ip, delta)
+        dx2 = VEC_MUL(dx, dx)
+        dy2 = VEC_MUL(dy, dy)
+        dz2 = VEC_MUL(dz, dz)
+
+        fd1 = VEC_SUB(VEC_MUL(VEC_MUL(vthree, dx2), rd5), rd3)
+        fd2 = VEC_SUB(VEC_MUL(VEC_MUL(vthree, dy2), rd5), rd3)
+        fd3 = VEC_SUB(VEC_MUL(VEC_MUL(vthree, dz2), rd5), rd3)
+        fd4 = VEC_MUL(VEC_MUL(VEC_MUL(vthree, dx), dy), rd5)
+        fd5 = VEC_MUL(VEC_MUL(VEC_MUL(vthree, dy), dz), rd5)
+        fd6 = VEC_MUL(VEC_MUL(VEC_MUL(vthree, dx), dz), rd5)
+        
+        vfive_rd7    = VEC_MUL(vfive, rd7)
+        vfive_rd7_dx = VEC_MUL(vfive_rd7, dx)
+        vfive_rd7_dy = VEC_MUL(vfive_rd7, dy)
+        vfive_rd7_dz = VEC_MUL(vfive_rd7, dz)
+        vfive_rd7_dxdydz = VEC_MUL3(vfive_rd7_dx, dy, dz)
+        dx_rd5       = VEC_MUL(dx, rd5)
+        dy_rd5       = VEC_MUL(dy, rd5)
+        dz_rd5       = VEC_MUL(dz, rd5)
+        vtcharge_rd3 = VEC_MUL(vtcharge, rd3)
+
+        call VEC_ACCUMULATE(ip, particle_pack%pot,
+                VEC_MADD(vtcharge,
+                         rd,
+                         VEC_MADD(rd3,
+                                  VEC_aTbPcTdPeTf(dx,vtdip(1),dy,vtdip(2),dz,vtdip(3)),
+                                  VEC_MADD(vhalf,
+                                           VEC_aTbPcTdPeTf(fd1,vtquad(1),fd2,vtquad(2),fd3,vtquad(3)),
+                                           VEC_aTbPcTdPeTf(fd4,vtxyquad,fd5,vtyzquad,fd6,vtzxquad)
+                                           )
+                                  )
+                         )
+                        )
+
+        call VEC_ACCUMULATE(ip,particle_pack%ex,
+                  VEC_MADD( vthree,
+                            VEC_MADD( vhalf,
+                                      VEC_aTbPcTdPeTf(VEC_aTbMcTd(vfive_rd7_dx,dx2,dx_rd5,vthree),vtquad(1),
+                                                      VEC_MSUB(   vfive_rd7_dx,dy2,dx_rd5)       ,vtquad(2),
+                                                      VEC_MSUB(   vfive_rd7_dx,dz2,dx_rd5)       ,vtquad(3)
+                                                      ),
+                                      VEC_aTbPcTdPeTf(VEC_MSUB(vfive_rd7_dy,dx2,dy_rd5), vtxyquad,
+                                                      VEC_MSUB(vfive_rd7_dz,dx2,dz_rd5), vtzxquad,
+                                                      vfive_rd7_dxdydz,                  vtyzquad
+                                                      ) 
+                                      ),
+                            VEC_MADD( vtcharge_rd3,
+                                      dx,
+                                      VEC_aTbPcTdPeTf(fd1,vtdip(1),
+                                                      fd4,vtdip(2),
+                                                      fd6,vtdip(3))
+                                     )
+                           )
+                          )
+
+        call VEC_ACCUMULATE(ip,particle_pack%ey,
+                  VEC_MADD( vthree,
+                            VEC_MADD( vhalf,
+                                      VEC_aTbPcTdPeTf(VEC_aTbMcTd(vfive_rd7_dy,dy2,dy_rd5,vthree),vtquad(2),
+                                                      VEC_MSUB(   vfive_rd7_dy,dx2,dy_rd5)       ,vtquad(1),
+                                                      VEC_MSUB(   vfive_rd7_dy,dz2,dy_rd5)       ,vtquad(3)
+                                                      ),
+                                      VEC_aTbPcTdPeTf(VEC_MSUB(vfive_rd7_dx,dy2,dx_rd5 ),vtxyquad, 
+                                                      VEC_MSUB(vfive_rd7_dz,dy2,dz_rd5 ),vtyzquad,
+                                                      vfive_rd7_dxdydz,                  vtzxquad
+                                                      )
+                                      ),
+                            VEC_MADD(vtcharge_rd3,
+                                     dy,
+                                     VEC_aTbPcTdPeTf(fd2,vtdip(2),
+                                                     fd4,vtdip(1),
+                                                     fd5,vtdip(3))
+                                     )
+                          )
+                         )
+
+        call VEC_ACCUMULATE(ip,particle_pack%ez,
+                  VEC_MADD( vthree,
+                            VEC_MADD( vhalf,
+                                      VEC_aTbPcTdPeTf(VEC_aTbMcTd(vfive_rd7_dz,dz2,dz_rd5,vthree),vtquad(3),
+                                                      VEC_MSUB(   vfive_rd7_dz,dy2,dz_rd5)       ,vtquad(2),
+                                                      VEC_MSUB(   vfive_rd7_dz,dx2,dz_rd5)       ,vtquad(1)
+                                                      ),
+                                      VEC_aTbPcTdPeTf(VEC_MSUB(vfive_rd7_dx,dz2,dx_rd5 ),vtzxquad, 
+                                                      VEC_MSUB(vfive_rd7_dy,dz2,dy_rd5 ),vtyzquad,
+                                                      vfive_rd7_dxdydz,                  vtxyquad
+                                                      )
+                                      ),
+                            VEC_MADD(vtcharge_rd3,
+                                     dz,
+                                     VEC_aTbPcTdPeTf(fd3,vtdip(3),
+                                                     fd5,vtdip(2),
+                                                     fd6,vtdip(1))
+                                     )
+                          )
+                         )
+      end do
+  #else
       real(kfp) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
       integer(kind_particle) :: ip, np
 
@@ -150,6 +320,7 @@ module module_coulomb_kernels
                     + ( five*dx*dy*dz*rd7          )*t%xyquad        &
                     )
       end do
+  #endif
     end subroutine calc_force_coulomb_3D
 
 
@@ -307,7 +478,6 @@ module module_coulomb_kernels
 
       !ibm* assert(nodeps)
       do ip=0,np-8,32
-          ! see http://pic.dhe.ibm.com/infocenter/compbg/v121v141/topic/com.ibm.xlf141.bg.doc/language_ref/vmxintrinsics.html
           vdist2 = VEC_LDA(ip, dist2)
 
           r  = VEC_SWSQRT_NOCHK( VEC_ADD(vdist2, veps2) )
@@ -321,12 +491,11 @@ module module_coulomb_kernels
           #endif
           rd = VEC_SEL(vzero, VEC_SWDIV_NOCHK(vone, r), include_mask)
           rdtcharge  = VEC_MUL(vtcharge, rd)
-          call VEC_STA(VEC_ADD(rdtcharge, VEC_LDA(ip, particle_pack%pot)), ip, particle_pack%pot)
-
-          rd3tcharge = VEC_MUL(rdtcharge, VEC_MUL(rd,rd))
-          call VEC_STA(VEC_MADD(rd3tcharge, VEC_LDA(      ip, delta), VEC_LDA(ip, particle_pack%ex)), ip, particle_pack%ex)
-          call VEC_STA(VEC_MADD(rd3tcharge, VEC_LDA(   np+ip, delta), VEC_LDA(ip, particle_pack%ey)), ip, particle_pack%ey)
-          call VEC_STA(VEC_MADD(rd3tcharge, VEC_LDA(np+np+ip, delta), VEC_LDA(ip, particle_pack%ez)), ip, particle_pack%ez)
+          call VEC_ACCUMULATE(ip, particle_pack%pot, rdtcharge)
+          rd3tcharge = VEC_MUL3(rdtcharge,rd,rd)
+          call VEC_MACCUMULATE(ip, particle_pack%ex, rd3tcharge, VEC_LDA(      ip, delta))
+          call VEC_MACCUMULATE(ip, particle_pack%ey, rd3tcharge, VEC_LDA(   np+ip, delta))
+          call VEC_MACCUMULATE(ip, particle_pack%ez, rd3tcharge, VEC_LDA(np+np+ip, delta))
       end do
   #else
       np = size(dist2, kind = kind_particle)
