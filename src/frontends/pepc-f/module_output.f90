@@ -65,24 +65,25 @@ MODULE output
 
         integer,intent(in)      :: filehandle,ispecies,npoints
         real(KIND=8)            :: vsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        real(KIND=8)            :: v2sum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
         integer                 :: n_bin(npoints)
         real(KIND=8)            :: tvsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        real(KIND=8)            :: tv2sum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
         integer                 :: tn_bin(npoints)
         real(KIND=8)            :: x_bin(npoints)
 
 
 
-        call bin_v(ispecies,npoints,x_bin,vsum_bin,n_bin)
-
-
+        call bin_v(ispecies,npoints,x_bin,vsum_bin,v2sum_bin,n_bin)
         call MPI_ALLREDUCE(n_bin, tn_bin, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         call MPI_ALLREDUCE(vsum_bin, tvsum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(v2sum_bin, tv2sum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
 
         IF (root) THEN
-            write(filehandle,'(a12,a16,a10,6(a16))')"","x","n","vx","vy","vz","vpar","vperp1","vperp2"
+            write(filehandle,'(a12,a16,a10,12(a16))')"","x","n","vx","vy","vz","vpar","vperp1","vperp2","vx2","vy2","vz2","vpar2","vperp1_2","vperp2_2"
             DO i=1,npoints
-                write(filehandle,'(a12,1pe16.7E3,i10.9,6(1pe16.7E3))')"Histogram:  ",x_bin(i),tn_bin(i),tvsum_bin(1,i)/tn_bin(i),tvsum_bin(2,i)/tn_bin(i),tvsum_bin(3,i)/tn_bin(i),tvsum_bin(4,i)/tn_bin(i),tvsum_bin(5,i)/tn_bin(i),tvsum_bin(6,i)/tn_bin(i)
+                write(filehandle,'(a12,1pe16.7E3,i10.9,12(1pe16.7E3))')"Histogram:  ",x_bin(i),tn_bin(i),tvsum_bin(1,i)/tn_bin(i),tvsum_bin(2,i)/tn_bin(i),tvsum_bin(3,i)/tn_bin(i),tvsum_bin(4,i)/tn_bin(i),tvsum_bin(5,i)/tn_bin(i),tvsum_bin(6,i)/tn_bin(i),tv2sum_bin(1,i)/tn_bin(i),tv2sum_bin(2,i)/tn_bin(i),tv2sum_bin(3,i)/tn_bin(i),tv2sum_bin(4,i)/tn_bin(i),tv2sum_bin(5,i)/tn_bin(i),tv2sum_bin(6,i)/tn_bin(i)
             END DO
         END IF
 
