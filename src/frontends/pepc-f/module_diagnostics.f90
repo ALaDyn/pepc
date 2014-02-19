@@ -48,20 +48,21 @@ MODULE diagnostics
 !===============================================================================
 
 
-    subroutine bin_v(ispecies,npoints,x_bin,vsum_bin,n_bin)
+    subroutine bin_v(ispecies,npoints,x_bin,vsum_bin,v2sum_bin,n_bin)
         implicit none
 
         integer, intent(in) :: ispecies,npoints
         real(KIND=8), intent(out) :: x_bin(:)
         integer, intent(out):: n_bin(:)
         real(KIND=8), intent(out) :: vsum_bin(:,:)
+        real(KIND=8), intent(out) :: v2sum_bin(:,:)
 
         integer :: ip,n
         real(KIND=8)            :: dx,x0
         integer                 :: i
 
         real(KIND=8)            :: n1(3), t1(3), t2(3), B_vector(3)
-        real(KIND=8)       :: eps=1.0e-10
+        real(KIND=8)            :: eps=1.0e-10
 
         B_vector(1) = Bx
         B_vector(2) = By
@@ -98,6 +99,7 @@ MODULE diagnostics
         n = size(particles)
         n_bin = 0
         vsum_bin = 0.0_8
+        v2sum_bin = 0.0_8
 
         DO i=1, npoints
             DO ip=1, n
@@ -110,6 +112,12 @@ MODULE diagnostics
                         vsum_bin(4,i) = vsum_bin(4,i) + dotproduct(particles(ip)%data%v,n1)
                         vsum_bin(5,i) = vsum_bin(5,i) + dotproduct(particles(ip)%data%v,t1)
                         vsum_bin(6,i) = vsum_bin(6,i) + dotproduct(particles(ip)%data%v,t2)
+                        v2sum_bin(1,i) = v2sum_bin(1,i) + particles(ip)%data%v(1)**2
+                        v2sum_bin(2,i) = v2sum_bin(2,i) + particles(ip)%data%v(2)**2
+                        v2sum_bin(3,i) = v2sum_bin(3,i) + particles(ip)%data%v(3)**2
+                        v2sum_bin(4,i) = v2sum_bin(4,i) + dotproduct(particles(ip)%data%v,n1)**2
+                        v2sum_bin(5,i) = v2sum_bin(5,i) + dotproduct(particles(ip)%data%v,t1)**2
+                        v2sum_bin(6,i) = v2sum_bin(6,i) + dotproduct(particles(ip)%data%v,t2)**2
                     END IF
                 END IF
             END DO
