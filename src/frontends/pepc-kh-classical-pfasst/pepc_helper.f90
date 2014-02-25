@@ -57,7 +57,7 @@ contains
       use module_pepc_types, only: t_particle, kind_dim, kind_particle
       implicit none
 
-      type(pepc_pars_t), intent(out) :: pepc_pars
+      type(pepc_pars_t), intent(inout) :: pepc_pars
 
       type(pepc_nml_t) :: pepc_nml
 

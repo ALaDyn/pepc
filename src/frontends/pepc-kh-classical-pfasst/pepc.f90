@@ -50,7 +50,7 @@ program pepc
   include 'mpif.h'
 
   ! variables for pfasst
-  integer(kind_default):: MPI_COMM_SPACE, MPI_COMM_TIME, mpi_err
+  integer(kind_default):: mpi_err
   type(pf_pfasst_t) :: pf
   type(pf_nml_t) :: pf_nml
   type(pf_comm_t) :: tcomm
@@ -77,16 +77,20 @@ program pepc
    call t_start(timer_init)
 
   ! Take care of communication stuff
-  call pfm_init_pfasst(pf_nml, MPI_COMM_SPACE, MPI_COMM_TIME)
+  call pfm_init_pfasst(pf_nml, pepc_pars%pepc_comm%comm_space, pepc_pars%pepc_comm%comm_time)
 
   ! store communicators and ranks/sizes
-   pepc_pars%pepc_comm%comm_space = MPI_COMM_SPACE
-   pepc_pars%pepc_comm%comm_time  = MPI_COMM_TIME
-   call get_mpi_rank(MPI_COMM_WORLD,           pepc_pars%pepc_comm%rank_world, pepc_pars%pepc_comm%nrank_world)
+   call get_mpi_rank(MPI_COMM_WORLD,                 pepc_pars%pepc_comm%rank_world, pepc_pars%pepc_comm%nrank_world)
    call get_mpi_rank(pepc_pars%pepc_comm%comm_space, pepc_pars%pepc_comm%rank_space, pepc_pars%pepc_comm%nrank_space)
    call get_mpi_rank(pepc_pars%pepc_comm%comm_time,  pepc_pars%pepc_comm%rank_time,  pepc_pars%pepc_comm%nrank_time)
    pepc_pars%pepc_comm%root_stdio  = (pepc_pars%pepc_comm%rank_space == 0) .and. (pepc_pars%pepc_comm%rank_time  == pepc_pars%pepc_comm%nrank_time-1)
    pepc_pars%pepc_comm%root_file   = (pepc_pars%pepc_comm%rank_space == 0)
+
+   if (pepc_pars%pepc_comm%root_stdio) then
+     write(*,'(a, " = 0x", z8)') 'MPI_COMM_WORLD                ', MPI_COMM_WORLD
+     write(*,'(a, " = 0x", z8)') 'pepc_pars%pepc_comm%comm_space', pepc_pars%pepc_comm%comm_space
+     write(*,'(a, " = 0x", z8)') 'pepc_pars%pepc_comm%comm_time ', pepc_pars%pepc_comm%comm_time
+   endif
 
    ! initialize pepc library and MPI
    call pepc_initialize('pepc-kh-classical-pfasst', init_mpi=.false., db_level_in=DBG_STATUS, comm=pepc_pars%pepc_comm%comm_space)
@@ -110,12 +114,12 @@ program pepc
   ! prepare table with level-dependent parameters                          # FIXME: v-- this should be pepc_pars%pepc_comm%rank_time==pepc_pars%pepc_comm%nrank_time-1, but for that rank the hook is not called apparently
   call pfm_setup_solver_level_params(particles, level_params, pf_nml, 2_kind_dim, pepc_pars, physics_pars)
   ! initial potential will be needed for energy computation - using finest level here
-  call eval_force(particles, level_params(pf_nml%nlevels), comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
+  call eval_force(particles, level_params(pf_nml%nlevels), comm=pepc_pars%pepc_comm%comm_space, clearresults=.true.) ! again, use parameters of finest level
 
   ! initial particle dump
   if (pepc_pars%pepc_comm%root_stdio) then
-!TODO    call dump_particles(VTK_STEP_FIRST, 0, 0._8, particles, MPI_COMM_SPACE, do_average=.false.)
-!TODO    call dump_energy(0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+!TODO    call dump_particles(VTK_STEP_FIRST, 0, 0._8, particles, pepc_pars%pepc_comm%comm_space, do_average=.false.)
+!TODO    call dump_energy(0._8, particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, do_average=.false.)
   endif
 
   call t_stop(timer_init)
@@ -137,7 +141,7 @@ program pepc
   select case (pepc_pars%workingmode)
     case (WM_BORIS_SDC, WM_BORIS_MLSDC)
       ! Set up PFASST object
-      call pf_mpi_create(tcomm, MPI_COMM_TIME)
+      call pf_mpi_create(tcomm, pepc_pars%pepc_comm%comm_time)
       call pfm_encap_init(enc, particles)
       call pf_verlet_create(sweeper, calc_Efield, build_rhs, impl_solver)
 
@@ -179,10 +183,10 @@ program pepc
         do step=1,nt
           call print_timestep(step, nt, dt)
           call push_particles_velocity_verlet_boris(particles, dt, [0.0_8, 0.0_8, physics_pars%B0])
-          call eval_force(particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, clearresults=.true.)
+          call eval_force(particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt, [0.0_8, 0.0_8, physics_pars%B0])
-!TODO          call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-!TODO          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+!TODO          call dump_particles(VTK_STEP_NORMAL, step, dt, particles, pepc_pars%pepc_comm%comm_space, do_average=.false.)
+!TODO          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, do_average=.false.)
         end do
       end associate
   case (WM_BENEDIKT)
@@ -275,7 +279,7 @@ program pepc
 
   call t_stop(timer_total)
 
-!TODO  if (pepc_pars%pepc_comm%root_stdio) call dump_particles(VTK_STEP_LAST, time_pars%nsteps, time_pars%dt, particles, MPI_COMM_SPACE, do_average=.false.)
+!TODO  if (pepc_pars%pepc_comm%root_stdio) call dump_particles(VTK_STEP_LAST, time_pars%nsteps, time_pars%dt, particles, pepc_pars%pepc_comm%comm_space, do_average=.false.)
   call dump_nfeval(pepc_pars%pepc_comm%rank_world, MPI_COMM_WORLD, pepc_pars%workingmode + IFILE_SUMMAND_NFEVAL)
 
   if(pepc_pars%pepc_comm%root_stdio) then
@@ -289,8 +293,8 @@ program pepc
 
   !!! cleanup pepc and MPI
   call pepc_finalize()
-  call MPI_COMM_FREE(MPI_COMM_TIME, mpi_err)
-  call MPI_COMM_FREE(MPI_COMM_SPACE, mpi_err)
+  call MPI_COMM_FREE(pepc_pars%pepc_comm%comm_time, mpi_err)
+  call MPI_COMM_FREE(pepc_pars%pepc_comm%comm_space, mpi_err)
   call MPI_FINALIZE( mpi_err )
 
 

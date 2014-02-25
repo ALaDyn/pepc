@@ -113,6 +113,8 @@ module pfm_helper
 
         integer :: i
 
+        call pepc_status("SETUP SOLVER LEVEL PARAMS")
+
         allocate(level_params(pf_nml%nlevels))
 
         do i = 1, pf_nml%nlevels

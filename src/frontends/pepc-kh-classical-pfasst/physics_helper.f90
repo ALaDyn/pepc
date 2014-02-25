@@ -37,6 +37,8 @@ contains
       integer :: dummy_nresume
       character(len = 255) :: dummy_file_name
 
+      call pepc_status('SETUP PHYSICS')
+
       call read_in_physics_params(physics_nml, para_file_available, para_file_name)
 
       physics_pars%B0 = physics_nml%B0
@@ -183,6 +185,8 @@ contains
 
       real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
 
+      call pepc_status('SPECIAL START')
+
       lx = physics_pars%l_plasma(1)
       ly = physics_pars%l_plasma(2)
       qi = physics_pars%qi
@@ -302,6 +306,7 @@ contains
       end do
 
       call mpi_allreduce(MPI_IN_PLACE, nihist, nhist, MPI_KIND_PARTICLE, MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
+
 
       !print *, "nihist: ", nihist
       !print *, "sum nihist: ", sum(nihist)

@@ -14,6 +14,7 @@ contains
     use pepc_helper, only: para_file_available, para_file_name
     use module_utils, only: create_directory
     use encap
+    use module_debug
     implicit none
 
     type(field_grid_t), intent(out) :: field_grid
@@ -22,6 +23,8 @@ contains
     type(field_grid_nml_t) :: field_grid_nml
     integer(kind_default) :: mpi_size, mpi_rank
     integer(kind_particle) :: ipl, ipg, ix, iy
+
+    call pepc_status("SETUP FIELD GRID")
 
     call create_directory(field_dir)
 
