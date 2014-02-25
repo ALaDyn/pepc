@@ -230,7 +230,8 @@ module pfm_feval
       real(pfdp),     intent(in)        :: dt
 
       real*8               :: beta, gam
-      real*8, dimension(3) :: uminus, uprime, uplus, t, s, Emean
+      real*8, dimension(3) :: uprime, uplus, t, s, uminus
+      real*8, dimension(2) :: Emean
 
       type(t_particle), allocatable :: particles(:)
       type(app_data_t), pointer :: v, v_old, E_new, E_old, SDCint
@@ -248,12 +249,14 @@ module pfm_feval
       allocate(particles(E_new%params%nparts))
       call encap_to_particles(particles, E_newptr, ctx)
 
+      uminus (3)= 0
+
       do i = 1,size(particles, kind=kind(i))
          ! charge/mass*time-constant
         beta   = particles(i)%data%q / (2._8 * particles(i)%data%m) * dt
         Emean(:)  = (E_old%v(:,i) + E_new%v(:,i)) / 2._8
         ! first half step with electric field
-        uminus(:) = v_old%v(:,i) + beta * Emean(:) + SDCint%v(:,i) / 2._8
+        uminus(1:2) = v_old%v(:,i) + beta * Emean(:) + SDCint%v(:,i) / 2._8
         ! gamma factor
         !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
         gam    = 1._8
@@ -263,7 +266,7 @@ module pfm_feval
         s      = 2._8 * t / (1._8 + dot_product(t, t))
         uplus  = cross_prod_plus(uprime, s, uminus)
         ! second half step with electric field
-        v%v(:,i) = uplus(:) + beta * Emean(:) + SDCint%v(:,i) / 2._8
+        v%v(:,i) = uplus(1:2) + beta * Emean(:) + SDCint%v(:,i) / 2._8
       end do
 
       deallocate(particles)

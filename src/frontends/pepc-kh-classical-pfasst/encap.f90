@@ -26,7 +26,7 @@ module encap
       integer(c_int) :: pdump, fdump, cdump
       integer(c_int64_t) :: np
       type(pepc_comm_t) :: pepc_comm
-      integer :: workingmode = WM_BENEDIKT ! FIXME: this must be read from the parameter file via a namelist
+      integer :: workingmode
    end type pepc_pars_t
 
   type :: physics_pars_t

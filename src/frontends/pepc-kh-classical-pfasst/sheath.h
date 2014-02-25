@@ -16,6 +16,13 @@ cdump = 0
 mirror_box_layers = 3
 
 do_extrinsic_correction = .false.
+
+! WM_BORIS_SDC   = 1
+! WM_BORIS_MLSDC = 2
+! WM_BORIS       = 3
+! WM_BENEDIKT    = 4
+workingmode = 1
+
 /
 
 &time_nml
@@ -106,7 +113,7 @@ include_far_field_if_periodic = .false.
   nnodes  = 5 2
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
-  directforce = .true. .true.
+  directforce = .false. .false.
   ! 1st digit: 0 - no external field, 1 - full external field
   ! 2nd digit: 0 - no internal field, 1 - full internal field
   feval_mode = 11 10

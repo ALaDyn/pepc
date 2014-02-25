@@ -1,4 +1,5 @@
 module pepc_helper
+  use encap, only : WM_BENEDIKT
 
    implicit none
 
@@ -7,6 +8,7 @@ module pepc_helper
       integer :: pdump = 0
       integer :: fdump = 0
       integer :: cdump = 0
+      integer :: workingmode = WM_BENEDIKT
    end type pepc_nml_t
 
    logical :: para_file_available
@@ -70,6 +72,7 @@ contains
       pepc_pars%pdump = pepc_nml%pdump
       pepc_pars%fdump = pepc_nml%fdump
       pepc_pars%cdump = pepc_nml%cdump
+      pepc_pars%workingmode = pepc_nml%workingmode
 
    end subroutine pepc_setup
 
@@ -91,8 +94,9 @@ contains
       integer :: pdump = 0
       integer :: fdump = 0
       integer :: cdump = 0
+      integer :: workingmode = WM_BENEDIKT
 
-      namelist /pepc_nml/ np, pdump, fdump, cdump, mirror_box_layers, do_extrinsic_correction
+      namelist /pepc_nml/ np, pdump, fdump, cdump, mirror_box_layers, do_extrinsic_correction, workingmode
 
       if (file_available) then
         open(para_file_id,file=trim(file_name),action='read')
@@ -105,6 +109,7 @@ contains
       pepc_namelist%pdump = pdump
       pepc_namelist%fdump = fdump
       pepc_namelist%cdump = cdump
+      pepc_namelist%workingmode = workingmode
 
    end subroutine read_in_params
 
