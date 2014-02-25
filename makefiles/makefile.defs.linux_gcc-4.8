@@ -35,7 +35,7 @@ INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -fi
 FCPRE    = 
 FC       = mpif90
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Wall -O0 -pg -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
+  FFLAGS   = -Wall -O0 -pg -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
   CFLAGS   = -Wall -O0 -pg -g -gdwarf-3
   LDFLAGS  =       -O0 -pg -g -gdwarf-3
 else

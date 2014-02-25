@@ -25,7 +25,6 @@ program pepc
    use module_timings
    use module_vtk
 
-   use constants
    use encap
    use pepc_helper
    use time_helper
@@ -122,7 +121,7 @@ program pepc
   call t_stop(timer_init)
 
   if (pepc_pars%pepc_comm%root_stdio) then
-    print *, "== [", FRONTEND_NAME, "]"
+    print *, "== [pepc-kh-classical-pfasst]"
     print *, "   running on", pepc_pars%pepc_comm%nrank_space, " MPI ranks."
     print *, "   pdump   = ", pepc_pars%pdump
     print *, "   fdump   = ", pepc_pars%fdump

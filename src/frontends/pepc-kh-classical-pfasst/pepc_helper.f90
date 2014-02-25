@@ -52,7 +52,6 @@ contains
   end subroutine
 
    subroutine pepc_setup(pepc_pars)
-      use constants
       use encap
       use module_pepc
       use module_pepc_types, only: t_particle, kind_dim, kind_particle
