@@ -79,7 +79,7 @@ include_far_field_if_periodic = .false.
 
 &libpepc
  debug_level = 1
- np_mult = -4000
+ np_mult = -40
 
 ! Choose sorting routine and load balancing
 ! 0: no load balancing, 1: load balancing
