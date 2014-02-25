@@ -7,6 +7,8 @@ module time_helper
       integer :: nsteps, nresume
    end type time_nml_t
 
+   real*8, allocatable, public :: eold(:,:)
+
 contains
 
 
@@ -26,7 +28,7 @@ contains
       time_pars%nresume = time_nml%nresume
       time_pars%dt = time_pars%te/time_pars%nsteps
 
-      if (pepc_comm%mpi_rank == 0) then
+      if (pepc_comm%root_stdio) then
          print *, "== [setup_time]"
          print *, "   te      = ", time_pars%te
          print *, "   nsteps  = ", time_pars%nsteps
@@ -185,5 +187,64 @@ contains
 
   end subroutine constrain_particles
 
+     subroutine push_particles_velocity_verlet_boris(p, dt, B0)
+      use module_pepc_types
+      use pepc_helper
+      implicit none
+      type(t_particle), intent(inout) :: p(:)
+      real*8, intent(in) :: dt
+      integer(kind_particle) :: ip
+      real*8, intent(in), dimension(3) :: B0
+      real*8 :: beta
+
+      if (.not. allocated(eold)) allocate(eold(1:2, size(p)))
+
+      do ip = 1, size(p, kind=kind_particle)
+        ! charge/mass*time-constant
+        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+
+        p(ip)%x(:) = p(ip)%x(:) + dt * ( p(ip)%data%v(:) + beta * cross_prod_plus(p(ip)%data%v, B0, p(ip)%results%e) )
+
+        eold(1:2, ip) = p(ip)%results%e(:)
+      end do
+    end subroutine
+
+   subroutine update_velocities_velocity_verlet_boris(p, dt, B0)
+      use module_pepc_types
+      use pepc_helper
+      implicit none
+
+      real*8, intent(in) :: dt
+      type(t_particle), intent(inout) :: p(:)
+      real*8, dimension(3), intent(in) :: B0
+
+      integer(kind_particle) :: ip
+      real*8 :: beta, gam
+      real*8, dimension(3) :: uminus, uprime, uplus, t, s
+
+      real*8, dimension(3) :: Eavg
+
+      Eavg = 0
+
+      do ip = 1, size(p, kind=kind_particle)
+        Eavg(1:2) = (p(ip)%results%e(:) + eold(:,ip)) / 2._8
+
+        ! charge/mass*time-constant
+        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+        ! first half step with electric field
+        uminus(:) = p(ip)%data%v(:) + beta * Eavg(:)
+        ! gamma factor
+        !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
+        gam    = 1._8
+        ! rotation with magnetic field
+        t      = beta/gam * B0
+        uprime = cross_prod_plus(uminus, t, uminus)
+        s      = 2._8 * t / (1._8 + dot_product(t, t))
+        uplus  = cross_prod_plus(uprime, s, uminus)
+        ! second half step with electric field
+        p(ip)%data%v(:) = uplus(:) + beta * Eavg(:)
+      end do
+
+   end subroutine
 
 end module time_helper

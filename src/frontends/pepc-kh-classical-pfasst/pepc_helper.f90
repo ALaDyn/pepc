@@ -14,6 +14,42 @@ module pepc_helper
 
 contains
 
+  !> computes a x b
+  pure function cross_prod(a, b)
+    implicit none
+
+    real*8, dimension(3), intent(in) :: a, b
+    real*8, dimension(3) :: cross_prod
+
+    cross_prod(1) = a(2) * b(3) - a(3) * b(2)
+    cross_prod(2) = a(3) * b(1) - a(1) * b(3)
+    cross_prod(3) = a(1) * b(2) - b(2) * a(1)
+  end function cross_prod
+
+  !> computes a x b + c
+  pure function cross_prod_plus(a, b, c)
+    implicit none
+
+    real*8, dimension(3), intent(in) :: a, b, c
+    real*8, dimension(3) :: cross_prod_plus
+
+    cross_prod_plus(1) = a(2) * b(3) - a(3) * b(2) + c(1)
+    cross_prod_plus(2) = a(3) * b(1) - a(1) * b(3) + c(2)
+    cross_prod_plus(3) = a(1) * b(2) - b(2) * a(1) + c(3)
+  end function cross_prod_plus
+
+  subroutine get_mpi_rank(comm, rank, size)
+    use module_pepc_types
+    implicit none
+    include 'mpif.h'
+    integer(kind_default), intent(in) :: comm
+    integer(kind_pe), intent(out) :: rank, size
+    integer(kind_default) :: mpi_err
+
+    call MPI_COMM_RANK( comm, rank, mpi_err )
+    call MPI_COMM_SIZE( comm, size, mpi_err )
+
+  end subroutine
 
    subroutine pepc_setup(pepc_pars)
       use constants
@@ -25,9 +61,6 @@ contains
       type(pepc_pars_t), intent(out) :: pepc_pars
 
       type(pepc_nml_t) :: pepc_nml
-
-      call pepc_initialize(FRONTEND_NAME, pepc_pars%pepc_comm%mpi_rank, &
-        pepc_pars%pepc_comm%mpi_size, .true., comm = pepc_pars%pepc_comm%mpi_comm)
 
       call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
       call read_in_params(pepc_nml, para_file_available, para_file_name)
@@ -119,6 +152,7 @@ contains
   end function
 
 
+  ! FIXME: this routine will not in time-parallel mode
   subroutine write_particles(pepc_pars, time_pars, step, p)
     use module_pepc_types
     use module_vtk
@@ -147,11 +181,11 @@ contains
       vtk_step = VTK_STEP_NORMAL
     endif
 
-    call vtk_write_particles("particles", pepc_pars%pepc_comm%mpi_comm, step, time, vtk_step, p)
+    call vtk_write_particles("particles", pepc_pars%pepc_comm%rank_space, step, time, vtk_step, p)
 
     tb = get_time()
 
-    if(pepc_pars%pepc_comm%mpi_rank == 0) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
+    if(pepc_pars%pepc_comm%rank_space == 0) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
 
   end subroutine write_particles
 

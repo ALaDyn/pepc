@@ -64,14 +64,14 @@ contains
       call pepc_prepare(2_kind_dim)
 
       if (time_pars%nresume > 0) then
-        call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%mpi_comm, &
+        call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%comm_space, & ! FIXME: this will not in time-parallel mode
           dummy_nresume, pepc_pars%np, p, dummy_file_name)
 
         if (dummy_nresume .ne. time_pars%nresume) then
           DEBUG_ERROR(*, "Resume timestep mismatch, parameter file says: ", time_pars%nresume, " checkpoint file says: ", dummy_nresume)
         end if
 
-        if (pepc_pars%pepc_comm%mpi_rank == 0) then
+        if (pepc_pars%pepc_comm%root_stdio) then
           print *, "== [resume]"
           print *, "   resuming with ", pepc_pars%np, " particles."
           print *, ""
@@ -199,12 +199,12 @@ contains
       rwce = abs(me / (qe * B0))
       rwci = abs(mi / (qi * B0))
 
-      mpi_rank = pepc_pars%pepc_comm%mpi_rank
-      mpi_size = pepc_pars%pepc_comm%mpi_size
+      mpi_rank = pepc_pars%pepc_comm%rank_space
+      mpi_size = pepc_pars%pepc_comm%nrank_space
       nil = ni / mpi_size
       if (mpi_rank < mod(ni, int(mpi_size, kind=kind_particle))) nil = nil + 1
 
-      if (mpi_rank == 0) then
+      if (pepc_pars%pepc_comm%root_stdio) then
         print *, "== [special_start]"
         print *, "   Lx x Ly = ", lx, " x ", ly
         print *, "   mi / me = ", mi / me
@@ -230,7 +230,7 @@ contains
         xi(ip,:) = pt(ip)%x(:)
         xp(ip) = pt(ip)%x(1)
 
-        ! (3) give the ions random initial velocities in the positive x direction with a Rayleigh distribution at the desired 
+        ! (3) give the ions random initial velocities in the positive x direction with a Rayleigh distribution at the desired
         ! temperature
         pt(ip)%data%v(1) = max(velocity_1d_rayleigh(vti), real(1.0E-6, kind = 8))
         ! and in the y direction give them the local E x B drift velocity
@@ -240,7 +240,7 @@ contains
         vi(ip,:) = pt(ip)%data%v(:)
       end do
 
-      ! (4) advance each ion along its trajectory, in the presence of the constant but nonuniform electric field, for a random 
+      ! (4) advance each ion along its trajectory, in the presence of the constant but nonuniform electric field, for a random
       ! fraction of its orbital period
       allocate(period(nil))
       period = 0
@@ -301,12 +301,12 @@ contains
         nihist(ic) = nihist(ic) + 1
       end do
 
-      call mpi_allreduce(MPI_IN_PLACE, nihist, nhist, MPI_KIND_PARTICLE, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      call mpi_allreduce(MPI_IN_PLACE, nihist, nhist, MPI_KIND_PARTICLE, MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
 
       !print *, "nihist: ", nihist
       !print *, "sum nihist: ", sum(nihist)
 
-      ! (6), (7) calculate the net charge density by the Poisson equation from the electric field 
+      ! (6), (7) calculate the net charge density by the Poisson equation from the electric field
       ! and calculate the electron density by subtracting the charge density from the ion density
       nehist = 0
       do ic = 1, nhist
@@ -378,8 +378,8 @@ contains
       !  vte = vte + p(ip)%data%v(1)**2 + (p(ip)%data%v(2) - vdrift(p(ip)%x(1)))**2
       !end do
 
-      !call mpi_allreduce(MPI_IN_PLACE, vti, 1, MPI_REAL8, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-      !call mpi_allreduce(MPI_IN_PLACE, vte, 1, MPI_REAL8, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      !call mpi_allreduce(MPI_IN_PLACE, vti, 1, MPI_REAL8, MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
+      !call mpi_allreduce(MPI_IN_PLACE, vte, 1, MPI_REAL8, MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
 
       !if (mpi_rank == 0) &
       !  print *, "Ti / Te = ", (mi * vti) / (me * vte)
@@ -440,7 +440,7 @@ contains
     xi = rng_next_real()
     v(1) = v0 * cos(2 * pi * xi)
     v(2) = v0 * sin(2 * pi * xi)
- 
+
   end function velocity_2d_maxwell
 
 
@@ -452,7 +452,7 @@ contains
     real*8 :: v
 
     real*8 :: xi
-    
+
     xi = rng_next_real()
     v = vt * sqrt(-2.0D0 * log(xi))
   end function velocity_1d_rayleigh
@@ -478,19 +478,17 @@ contains
     e_pot = 0.0D0
 
     do ip = 1, size(p)
-      e_kin = e_kin + e_kin_of_particle(p(ip)) 
+      e_kin = e_kin + e_kin_of_particle(p(ip))
       e_pot = e_pot + e_pot_of_particle(p(ip))
     end do
 
     call mpi_reduce(e_kin, e_kin_g, 1, MPI_REAL8, MPI_SUM, 0, &
-      pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      pepc_pars%pepc_comm%comm_space, mpi_err)
     call mpi_reduce(e_pot, e_pot_g, 1, MPI_REAL8, MPI_SUM, 0, &
-      pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      pepc_pars%pepc_comm%comm_space, mpi_err)
 
-    if (pepc_pars%pepc_comm%mpi_rank == 0) then
-      call write_to_stdout()
-      call write_to_file()
-    end if
+    if (pepc_pars%pepc_comm%root_stdio) call write_to_stdout()
+    if (pepc_pars%pepc_comm%root_file)  call write_to_file()
 
     contains
 

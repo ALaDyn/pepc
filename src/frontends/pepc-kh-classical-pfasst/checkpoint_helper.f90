@@ -3,6 +3,7 @@ module checkpoint_helper
 
   contains
 
+  ! FIXME: this will not work in time-parallel mode
   subroutine write_checkpoint(pepc_pars, time_pars, step, physics_pars, field_grid, p)
     use module_pepc_types
     use module_checkpoint
@@ -22,10 +23,10 @@ module checkpoint_helper
 
     character(len = 255) :: file_name
 
-    call write_particles_mpiio(pepc_pars%pepc_comm%mpi_comm, &
+    call write_particles_mpiio(pepc_pars%pepc_comm%comm_space, &
       step, pepc_pars%np, p, file_name)
 
-    if (pepc_pars%pepc_comm%mpi_rank == 0) then
+    if (pepc_pars%pepc_comm%rank_space == 0) then
       call write_field_grid_params(field_grid, file_name)
       call write_physics_params(physics_pars, file_name)
       call write_time_params(time_pars, step, file_name)
@@ -33,5 +34,5 @@ module checkpoint_helper
     end if
 
   end subroutine write_checkpoint
- 
+
 end module checkpoint_helper

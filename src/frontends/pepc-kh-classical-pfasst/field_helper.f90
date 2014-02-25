@@ -27,8 +27,8 @@ contains
 
     call read_in_field_grid_params(field_grid_nml, para_file_available, para_file_name)
 
-    mpi_rank = int(pepc_comm%mpi_rank, kind = kind(mpi_rank))
-    mpi_size = int(pepc_comm%mpi_size, kind = kind(mpi_size))
+    mpi_rank = int(pepc_comm%rank_space,  kind = kind(mpi_rank))
+    mpi_size = int(pepc_comm%nrank_space, kind = kind(mpi_size))
 
     field_grid%n = field_grid_nml%n
     field_grid%ntot = product(field_grid%n)
@@ -76,7 +76,7 @@ contains
   end subroutine setup_field_grid
 
 
-   subroutine read_in_field_grid_params(field_grid_namelist, file_available, file_name) 
+   subroutine read_in_field_grid_params(field_grid_namelist, file_available, file_name)
       use mpi
       implicit none
 
@@ -115,7 +115,7 @@ contains
     character(len = 255), intent(in) :: file_name
 
     integer, parameter :: para_file_id = 10
-    
+
     integer(kind_particle), dimension(2) :: n
     real(kind=8), dimension(2) :: offset
     real(kind=8), dimension(2) :: extent
@@ -132,11 +132,6 @@ contains
     close(para_file_id)
 
   end subroutine write_field_grid_params
-
-
-  subroutine apply_external_field()
-    implicit none
-  end subroutine apply_external_field
 
 
   subroutine compute_field(pepc_pars, field_grid, p)
@@ -191,22 +186,22 @@ contains
 
     ! accumulate the histograms
     call mpi_allreduce(MPI_IN_PLACE, field_grid%ne, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
-      MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
     call mpi_allreduce(MPI_IN_PLACE, field_grid%ni, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
-      MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
 
     call mpi_allreduce(MPI_IN_PLACE, field_grid%vex, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
-      MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
     call mpi_allreduce(MPI_IN_PLACE, field_grid%vey, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
-      MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
     call mpi_allreduce(MPI_IN_PLACE, field_grid%vix, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
-      MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
     call mpi_allreduce(MPI_IN_PLACE, field_grid%viy, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
-      MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
 
     ! normalize to fluid quantities
     ! total velocity -> mean velocity
-    where (field_grid%ne > 0.0D0) 
+    where (field_grid%ne > 0.0D0)
       field_grid%vex = field_grid%vex / field_grid%ne
       field_grid%vey = field_grid%vey / field_grid%ne
     elsewhere
@@ -247,11 +242,11 @@ contains
     fflatshape(1) = field_grid%ntot
 
     my_count = field_grid%nl
-    my_offset = min(int(pepc_comm%mpi_rank, kind=kind_particle), &
-      mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) &
-      * (field_grid%ntot / pepc_comm%mpi_size + 1) + &
-      max(0_kind_particle, pepc_comm%mpi_rank - mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) * &
-      (field_grid%ntot / pepc_comm%mpi_size)
+    my_offset = min(int(pepc_comm%rank_space, kind=kind_particle), &
+      mod(field_grid%ntot, int(pepc_comm%nrank_space, kind=kind_particle))) &
+      * (field_grid%ntot / pepc_comm%nrank_space + 1) + &
+      max(0_kind_particle, pepc_comm%rank_space - mod(field_grid%ntot, int(pepc_comm%nrank_space, kind=kind_particle))) * &
+      (field_grid%ntot / pepc_comm%nrank_space)
 
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)
     call write_quantity_on_grid("ex", field_grid%p(:)%results%e(1))
@@ -291,7 +286,7 @@ contains
 
       write(filename, '(a,"/",a,"_",i6.6,".bin")') field_dir, yname, step
 
-      call mpi_file_open(pepc_comm%mpi_comm, filename, &
+      call mpi_file_open(pepc_comm%comm_space, filename, &
         ior(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, mpi_err)
 
       if (mpi_err .ne. MPI_SUCCESS) then
@@ -323,7 +318,7 @@ contains
       ! float64 mi
       ! float64 min
       ! float64 max
-      if (pepc_comm%mpi_rank == 0) then
+      if (pepc_comm%rank_space == 0) then
         call mpi_file_write(fh, field_header_magic, 1, MPI_INTEGER4, mpi_stat, mpi_err)
         call mpi_file_write(fh, nx_, 1, MPI_INTEGER4, mpi_stat, mpi_err)
         call mpi_file_write(fh, ny_, 1, MPI_INTEGER4, mpi_stat, mpi_err)
