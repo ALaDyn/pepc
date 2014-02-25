@@ -11,7 +11,7 @@ module encap
    integer, parameter :: IFILE_SUMMAND_NFEVAL = 50
 
     ! variables for MPI within pepc
-   type, bind(c) :: pepc_comm_t
+   type :: pepc_comm_t
       ! MPI variables
       integer(kind_pe) :: rank_space, nrank_space
       integer(kind_pe) :: rank_world, nrank_world !< rank/num_ranks in MPI_COMM_WORLD (used for globally unique output)
@@ -22,7 +22,7 @@ module encap
       logical :: root_file
    end type pepc_comm_t
 
-   type, bind(c) :: pepc_pars_t
+   type :: pepc_pars_t
       integer(c_int) :: pdump, fdump, cdump
       integer(c_int64_t) :: np
       type(pepc_comm_t) :: pepc_comm

@@ -203,7 +203,7 @@ contains
         ! charge/mass*time-constant
         beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
 
-        p(ip)%x(:) = p(ip)%x(:) + dt * ( p(ip)%data%v(:) + beta * cross_prod_plus(p(ip)%data%v, B0, p(ip)%results%e) )
+        p(ip)%x(:) = p(ip)%x(:) + dt * ( p(ip)%data%v(:) + beta * cross_prod_plus(p(ip)%data%v, B0, [p(ip)%results%e(1), p(ip)%results%e(2), 0._8]) )
 
         eold(1:2, ip) = p(ip)%results%e(:)
       end do
