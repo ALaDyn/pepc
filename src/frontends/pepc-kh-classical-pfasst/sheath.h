@@ -57,7 +57,7 @@ ni = 2000
 &field_grid_nml
 
 ! nx x ny grid points
-n = 256 1024
+n = 64 256
 
 ! shifted right by 50
 offset = 0.0 0.0

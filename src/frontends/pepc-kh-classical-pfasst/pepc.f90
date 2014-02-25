@@ -65,7 +65,7 @@ program pepc
    type(physics_pars_t) :: physics_pars
    type(field_grid_t) :: field_grid
   ! particle data (position, velocity, mass, charge)
-   type(t_particle), dimension(:), allocatable, target :: particles
+   type(t_particle), dimension(:), allocatable :: particles
 
    integer(kind = 4) :: step
    real(kind = 8) :: timer_total, timer_init, timer_step, timer_pcomp, &

@@ -55,7 +55,7 @@ module pfm_feval
       type(app_data_t), pointer, intent(inout) :: y0, yend
       integer, intent(in) :: nlevels
       type(c_ptr), intent(inout) :: levelctx, encapctx
-      type(t_particle), intent(in), pointer :: particles(:)
+      type(t_particle), intent(in) :: particles(:)
 
       type(c_ptr) :: y0_C, yend_c
 
