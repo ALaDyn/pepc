@@ -138,8 +138,8 @@ module module_libpepc_main
         use module_mirror_boxes
         use module_timings
         use module_interaction_specific
-        use module_debug, only: pepc_status
-        use module_tree, only: t_tree
+        use module_debug
+        use module_tree, only: t_tree, tree_allocated
         implicit none
 
         type(t_tree), target, intent(inout) :: t
@@ -148,6 +148,7 @@ module module_libpepc_main
         integer :: ibox
 
         call pepc_status('TRAVERSE TREE')
+        DEBUG_ASSERT(tree_allocated(t))
         call timer_start(t_walk)
 
         call tree_walk_init(t, p, num_threads)
