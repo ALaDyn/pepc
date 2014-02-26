@@ -59,33 +59,35 @@ contains
         DEBUG_ERROR(*,'wrong hook')
     end select
 
-    if (levelctx%root_stdio) then
+    if (levelctx%pepc_pars%pepc_comm%root_stdio) then
       if (state%step == 0) write(*,*)
       write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g15.6)',advance='no') &
         char(13), hook_names(state%hook), step, state%nsteps, t, state%iter, level%residual
     endif
 
-    if (levelctx%root_file) then
+    if (levelctx%pepc_pars%pepc_comm%root_file) then
       ! do diagnostics etc here
 !TODO      call dump_particles(VTK_STEP_NORMAL, step, state%dt, particles, levelctx%comm, do_average=.false.)
 !TODO      call dump_energy(t, particles, levelctx, levelctx%comm, do_average=.false.)
-!TODO      call dump_iterations(step, state%dt, state%hook, state%iter, level%residual)
+      call dump_iterations(step, state%dt, state%hook, state%iter, level%residual, levelctx%pepc_pars)
    endif
 
   end subroutine
 
 
-  subroutine dump_iterations(step, dt, hook, niter, residual)
+  subroutine dump_iterations(step, dt, hook, niter, residual, pepc_pars)
+    use encap
     use pepcboris_paralleldump
     implicit none
     integer, intent(in) :: step, niter, hook
     real*8, intent(in) :: residual
     real*8, intent(in) :: dt
+    type(pepc_pars_t), intent(in) :: pepc_pars
 
     character(len=PARALLELDUMP_MAXLEN) :: line
 
     write(line,*) step*dt, step, hook, niter, residual
- !TODO         call paralleldump_dump(pepc_pars%workingmode + IFILE_SUMMAND_NITER, line)
+    call paralleldump_dump(pepc_pars%workingmode + IFILE_SUMMAND_NITER, line)
   end subroutine
 
 end module pfm_hooks

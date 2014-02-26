@@ -116,7 +116,7 @@ module pfm_feval
       ! prepare and run PEPC
       allocate(particles(E%params%nparts))
       call encap_to_particles(particles, xptr, ctx)
-      call eval_force(particles, levelctx, levelctx%comm, clearresults=.true.)
+      call eval_force(particles, levelctx, levelctx%pepc_pars%pepc_comm%comm_space, clearresults=.true.)
 
       ! just copy results to E variable (yes, it's weird that we have x- and v-components.. don't ask, won't tell)
       do i=1,size(particles, kind=kind(i))
@@ -209,7 +209,7 @@ module pfm_feval
       call encap_to_particles(particles, Eptr, ctx)
 
       do i=1,size(particles, kind=kind(i))
-        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*cross_prod_plus_2d(Q%v(1:Q%params%dim,i),levelctx%Bz,E%x(1:E%params%dim,i)) / particles(i)%data%m
+        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*cross_prod_plus_2d(Q%v(1:Q%params%dim,i),levelctx%physics_pars%B0,E%x(1:E%params%dim,i)) / particles(i)%data%m
         rhs%v(:,i) = rhs%x(:,i)
       end do
 
@@ -257,7 +257,7 @@ module pfm_feval
         !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
         gam    = 1._8
         ! rotation with magnetic field
-        tz     = beta/gam * levelctx%Bz
+        tz     = beta/gam * levelctx%physics_pars%B0
         uprime = cross_prod_plus_2d(uminus, tz, uminus)
         sz     = 2._8 * tz / (1._8 + tz*tz)
         uplus  = cross_prod_plus_2d(uprime, sz, uminus)

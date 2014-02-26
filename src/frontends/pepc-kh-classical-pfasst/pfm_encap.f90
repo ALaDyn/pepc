@@ -3,6 +3,7 @@ module pfm_encap
   use module_pepc_types
   use module_debug
   use pf_mod_dtype
+  use encap
   implicit none
 
   !> data type for level-dependent application parameters
@@ -14,9 +15,8 @@ module pfm_encap
     real*8 :: theta
     logical :: directforce
     integer :: feval_mode
-    integer(kind_default) :: comm
-    real*8 :: Bz !< z-component of the magnetic field (B_x=B_y=0)
-    logical :: root_stdio, root_file
+    type(pepc_pars_t) :: pepc_pars
+    type(physics_pars_t) :: physics_pars
   end type
 
   !> Data encapsulation: data and parameters which will be filled in encap_create using ctx
@@ -358,7 +358,7 @@ contains
 
     norm_loc = max(maxval(abs(q%x)), maxval(abs(q%v)))
 
-    call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, q%params%comm, ierr )
+    call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, q%params%pepc_pars%pepc_comm%comm_space, ierr )
 
   end function encap_norm
 

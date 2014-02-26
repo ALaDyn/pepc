@@ -161,8 +161,8 @@ program pepc
       call pf_pfasst_setup(pf)
 
       ! Add user-defined calls, e.g. diagnostics, here
-!TODO      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
       !call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
 
       ! some informative output about what we are actually doing
       if (pepc_pars%pepc_comm%rank_world == 0) call pf_print_options(pf)

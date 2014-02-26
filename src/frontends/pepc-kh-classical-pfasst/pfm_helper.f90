@@ -123,13 +123,11 @@ module pfm_helper
             lp%level  = i
             lp%nparts = size(particles)
             lp%theta  = pf_nml%theta(i)
-            lp%directforce = pf_nml%directforce(i)
-            lp%feval_mode  = pf_nml%feval_mode(i)
-            lp%dim         = dim
-            lp%comm        = pepc_pars%pepc_comm%comm_space
-            lp%Bz          = physics_pars%B0 ! FIXME * m/Q
-            lp%root_file   = pepc_pars%pepc_comm%root_file
-            lp%root_stdio  = pepc_pars%pepc_comm%root_stdio
+            lp%directforce  = pf_nml%directforce(i)
+            lp%feval_mode   = pf_nml%feval_mode(i)
+            lp%dim          = dim
+            lp%pepc_pars    = pepc_pars
+            lp%physics_pars = physics_pars
           end associate
         end do
     end subroutine pfm_setup_solver_level_params
@@ -155,7 +153,6 @@ module pfm_helper
             lp%directforce = .false.
             lp%feval_mode  = -1
             lp%dim    = -1
-            lp%comm   = -1
           end associate
         end do
 

@@ -85,7 +85,7 @@ include_far_field_if_periodic = .false.
 /
 
 &libpepc
- debug_level = 1
+ debug_level = 0
  np_mult = -40
 
 ! Choose sorting routine and load balancing
@@ -105,12 +105,12 @@ include_far_field_if_periodic = .false.
 
 
 &pfasst
-  niter   = 32
+  niter   = 1
   nlevels = 1
   
   ! level parameters (one entry per level and line, finer levels are more left, coarser levels more right)
   nsweeps = 1 1
-  nnodes  = 5 2
+  nnodes  = 3 3
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
   directforce = .true. .true.

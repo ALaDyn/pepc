@@ -9,6 +9,7 @@ module encap
    integer, parameter :: WM_BENEDIKT    = 4
 
    integer, parameter :: IFILE_SUMMAND_NFEVAL = 50
+   integer, parameter :: IFILE_SUMMAND_NITER  = 70
 
     ! variables for MPI within pepc
    type :: pepc_comm_t
@@ -23,13 +24,13 @@ module encap
    end type pepc_comm_t
 
    type :: pepc_pars_t
-      integer(c_int) :: pdump, fdump, cdump
-      integer(c_int64_t) :: np
+      integer(kind_default) :: pdump, fdump, cdump
+      integer(kind_particle) :: np
       type(pepc_comm_t) :: pepc_comm
       integer :: workingmode
    end type pepc_pars_t
 
-  type :: physics_pars_t
+  type :: physics_pars_t  ! FIXME * m/Q in B0 ??
     real(kind=8) :: B0, vte, vti, qe, qi, me, mi, shear_halfwidth, shear_velocity
     real(kind=8), dimension(3) :: l_plasma
     integer(kind = kind_particle) :: ni
