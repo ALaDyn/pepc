@@ -54,7 +54,7 @@ module module_pepc
     public pepc_write_parameters
 
     logical :: pepc_initializes_mpi !< is set to .true., if pepc has to care for MPI_INIT and MPI_FINALIZE; otherwise, the frontend must care for that
-    type(t_tree), public, target, allocatable, save :: global_tree
+    type(t_tree), public, target, save :: global_tree
 
     contains
 
@@ -418,7 +418,6 @@ module module_pepc
       implicit none
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
-      allocate(global_tree)
       call libpepc_grow_tree(global_tree, particles)
 
     end subroutine
@@ -523,7 +522,6 @@ module module_pepc
       implicit none
 
       call libpepc_timber_tree(global_tree)
-      deallocate(global_tree)
     end subroutine
 
 

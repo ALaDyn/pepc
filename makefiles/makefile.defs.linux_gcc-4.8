@@ -35,13 +35,13 @@ INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -fi
 FCPRE    = 
 FC       = mpif90
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Wall -O0 -pg -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
-  CFLAGS   = -Wall -O0 -pg -g -gdwarf-3
-  LDFLAGS  =       -O0 -pg -g -gdwarf-3
+  FFLAGS   = -Wall -O0 -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Wcharacter-truncation -Wline-truncation -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -g -gdwarf-3
+  LDFLAGS  =       -O0 -g -gdwarf-3
 else
-  FFLAGS   = -Wall -O5 -pg    -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
-  CFLAGS   = -Wall -O5 -pg
-  LDFLAGS   = -pthread -pg -O5 $(INLINING) -fwhole-program  
+  FFLAGS   = -Wall -O5 -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
+  CFLAGS   = -Wall -O5 
+  LDFLAGS   = -pthread -O5 $(INLINING) -fwhole-program  
 #-Wl,--threads
 #-fuse-linker-plugin
 endif

@@ -58,13 +58,13 @@ shear_halfwidth = 2.0
 shear_strength = 1.0
 
 ! number of ions in initial configuration
-ni = 2000
+ni = 200
 /
 
 &field_grid_nml
 
 ! nx x ny grid points
-n = 64 256
+n = 4 16
 
 ! shifted right by 50
 offset = 0.0 0.0
@@ -113,7 +113,7 @@ include_far_field_if_periodic = .false.
   nnodes  = 5 2
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
-  directforce = .false. .false.
+  directforce = .true. .true.
   ! 1st digit: 0 - no external field, 1 - full external field
   ! 2nd digit: 0 - no internal field, 1 - full internal field
   feval_mode = 11 10

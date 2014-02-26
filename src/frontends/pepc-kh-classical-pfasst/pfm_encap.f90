@@ -166,6 +166,31 @@ contains
 
   end subroutine encap_destroy
 
+  !> prints the content of an encap structure
+  subroutine encap_print(ptr)
+     implicit none
+     type(c_ptr), intent(in), value :: ptr
+
+    type(app_data_t), pointer :: q
+
+    !call pepc_status('|----> encap_destroy()')
+    call c_f_pointer(ptr, q)
+
+    write(*,'("encap_print(0x",z8,")")') ptr
+    if (allocated(q%x)) then
+      write(*,'("  %x:", g16.8, " .. ", g16.8, " (",2(i0,","),")")') q%x(1,1), q%x(1,size(q%x(1,:))), shape(q%x)
+    else
+      write(*,'("  %x: (not allocated)")')
+    endif
+    if (allocated(q%v)) then
+      write(*,'("  %v:", g16.8, " .. ", g16.8, " (",2(i0,","),")")') q%v(1,1), q%v(1,size(q%v(1,:))), shape(q%v)
+    else
+      write(*,'("  %v: (not allocated)")')
+    endif
+
+
+  end subroutine
+
 
   !> Set solution value.
   subroutine encap_setval(ptr, val, flags)
