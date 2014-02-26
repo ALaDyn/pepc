@@ -33,6 +33,7 @@ program pepc
    use checkpoint_helper
    use module_rng
    use pfm_feval
+   use dump_helper
 
    use pf_mod_verlet, only: pf_verlet_create, pf_verlet_destroy
    use pfm_helper
@@ -156,6 +157,7 @@ program pepc
       ! Add user-defined calls, e.g. diagnostics, here
       !call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook) ! this is actually only executed once in the very first timestep (see variable did_prestep in dump_particles_hook() )
 
       ! some informative output about what we are actually doing
       if (pepc_pars%pepc_comm%rank_world == 0) call pf_print_options(pf)
@@ -262,26 +264,7 @@ program pepc
   call MPI_COMM_FREE(pepc_pars%pepc_comm%comm_space, mpi_err)
   call MPI_FINALIZE( mpi_err )
 
-
-contains
-
-  subroutine t_start(t)
-    implicit none
-    real(kind = 8), intent(out) :: t
-    t = -get_time()
-  end subroutine t_start
-
-  subroutine t_stop(t)
-    implicit none
-    real(kind = 8), intent(inout) :: t
-    t = t + get_time()
-  end subroutine t_stop
-
-  subroutine t_resume(t)
-    implicit none
-    real(kind = 8), intent(inout) :: t
-    t = t - get_time()
-  end subroutine t_resume
+  contains
 
   subroutine print_timestep(step, nt, dt)
     implicit none
@@ -295,56 +278,6 @@ contains
     end if
 
   end subroutine
-
-  subroutine perform_all_dumps(step, pepc_pars, physics_pars, time_pars, field_grid, particles)
-    use encap
-    use physics_helper
-    implicit none
-    type(physics_pars_t), intent(in) :: physics_pars
-    type(pepc_pars_t), intent(in) :: pepc_pars
-    type(time_pars_t), intent(in) :: time_pars
-    type(t_particle), intent(in) :: particles(:)
-    type(field_grid_t), intent(inout) :: field_grid
-    integer(kind = 4) :: step
-
-    logical :: do_pdump, do_fdump, do_cdump
-    real(kind = 8) :: timer_pio, timer_fcomp, timer_fio, timer_chkpt
-
-    do_pdump = .false.
-    do_fdump = .false.
-    do_cdump = .false.
-
-    if (pepc_pars%pdump .ne. 0) do_pdump = mod(step, pepc_pars%pdump) .eq. 0
-    if (pepc_pars%fdump .ne. 0) do_fdump = mod(step, pepc_pars%fdump) .eq. 0
-    if (pepc_pars%cdump .ne. 0) do_cdump = mod(step, pepc_pars%cdump) .eq. 0
-
-    if (do_cdump) then
-      call t_start(timer_chkpt)
-      call write_checkpoint(pepc_pars, time_pars, step, physics_pars, field_grid, particles)
-      call t_stop(timer_chkpt)
-    end if
-
-    if(do_fdump) then
-      call t_start(timer_fcomp)
-      call compute_field(pepc_pars, field_grid, particles)
-      call t_stop(timer_fcomp)
-
-      call t_start(timer_fio)
-      call write_field_on_grid(pepc_pars%pepc_comm, time_pars, step, &
-          physics_pars, field_grid)
-      call t_stop(timer_fio)
-    end if
-
-    if (do_pdump) then
-       call t_start(timer_pio)
-       call write_domain(time_pars, step, particles)
-       call write_particles(pepc_pars, time_pars, step, particles)
-       call t_stop(timer_pio)
-    end if
-
-    call physics_dump(pepc_pars, physics_pars, time_pars, step, particles)
-end subroutine
-
 end program pepc
 
 

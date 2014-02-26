@@ -358,7 +358,7 @@ contains
     call pepc_status('|----> encap_norm()')
     call c_f_pointer(ptr, q)
 
-    norm_loc = max(maxval(abs(q%x)), maxval(abs(q%v)))
+    norm_loc = max(maxval(abs(q%x)), maxval(abs(q%v))) !FIXME: if we wrap particles at periodic boundaries, the 2-norm might make more sense here
 
     call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, q%params%pepc_pars%pepc_comm%comm_space, ierr )
 

@@ -16,6 +16,8 @@ contains
     use pfm_feval
     use module_pepc_types
     use module_debug
+    use pepc_helper
+    use dump_helper
     use module_vtk, only: VTK_STEP_NORMAL
     implicit none
     type(pf_pfasst_t), intent(inout) :: pf
@@ -61,16 +63,17 @@ contains
 
     if (levelctx%pepc_pars%pepc_comm%root_stdio) then
       if (state%step == 0) write(*,*)
-      write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g15.6)',advance='no') &
+      write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g15.6)',advance='yes') &
         char(13), hook_names(state%hook), step, state%nsteps, t, state%iter, level%residual
     endif
 
     if (levelctx%pepc_pars%pepc_comm%root_file) then
       ! do diagnostics etc here
-!TODO      call dump_particles(VTK_STEP_NORMAL, step, state%dt, particles, levelctx%comm, do_average=.false.)
-!TODO      call dump_energy(t, particles, levelctx, levelctx%comm, do_average=.false.)
+      call perform_all_dumps(step, levelctx%pepc_pars, levelctx%physics_pars, levelctx%time_pars, levelctx%field_grid, particles)
       call dump_iterations(step, state%dt, state%hook, state%iter, level%residual, levelctx%pepc_pars)
    endif
+
+   deallocate(particles)
 
   end subroutine
 
