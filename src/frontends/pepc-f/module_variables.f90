@@ -50,6 +50,7 @@ module variables
   integer :: vtk_interval=0   ! interval for writing vtk output
   integer :: checkp_interval=0! interval for setting checkpoints
   logical :: diags
+  integer :: diag_bins_x=1,diag_bins_y=1,diag_bins_z=1   !bins for the computation of fluid variables
 
   ! type of rng (0=standard fortran,1=par_rand from module_zufall)
   integer :: rng
@@ -117,7 +118,7 @@ module variables
   real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)
 
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
-  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval, vtk_interval,spiegelladung
+  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval, vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z
   namelist /walk_para_smpss/ chunk_size_default
 
 

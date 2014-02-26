@@ -55,35 +55,77 @@ MODULE output
 
 !===============================================================================
 
-    SUBROUTINE x_and_v_output(ispecies,npoints,filehandle)
+    !SUBROUTINE x_and_v_output(ispecies,npoints,filehandle)
+    !    use diagnostics
+    !    use module_pepc_types
+    !    implicit none
+    !    include 'mpif.h'
+
+    !    integer                 :: rc,i
+
+    !    integer,intent(in)      :: filehandle,ispecies,npoints
+    !    real(KIND=8)            :: vsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+    !    real(KIND=8)            :: v2sum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+    !    integer                 :: n_bin(npoints)
+    !    real(KIND=8)            :: tvsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+    !    real(KIND=8)            :: tv2sum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+    !    integer                 :: tn_bin(npoints)
+    !    real(KIND=8)            :: x_bin(npoints)
+
+!        call bin_v(ispecies,npoints,x_bin,vsum_bin,v2sum_bin,n_bin)
+!        call MPI_ALLREDUCE(n_bin, tn_bin, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+!        call MPI_ALLREDUCE(vsum_bin, tvsum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+!        call MPI_ALLREDUCE(v2sum_bin, tv2sum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+
+
+!        IF (root) THEN
+!            write(filehandle,'(a12,a16,a10,12(a16))')"","x","n","vx","vy","vz","vpar","vperp1","vperp2","vx2","vy2","vz2","vpar2","vperp1_2","vperp2_2"
+!            DO i=1,npoints
+!                write(filehandle,'(a12,1pe16.7E3,i10.9,12(1pe16.7E3))')"Histogram:  ",x_bin(i),tn_bin(i),tvsum_bin(1,i)/tn_bin(i),tvsum_bin(2,i)/tn_bin(i),tvsum_bin(3,i)/tn_bin(i),tvsum_bin(4,i)/tn_bin(i),tvsum_bin(5,i)/tn_bin(i),tvsum_bin(6,i)/tn_bin(i),tv2sum_bin(1,i)/tn_bin(i),tv2sum_bin(2,i)/tn_bin(i),tv2sum_bin(3,i)/tn_bin(i),tv2sum_bin(4,i)/tn_bin(i),tv2sum_bin(5,i)/tn_bin(i),tv2sum_bin(6,i)/tn_bin(i)
+!            END DO
+!        END IF
+
+!    END SUBROUTINE  x_and_v_output
+
+
+    !===============================================================================
+
+    SUBROUTINE x_and_v_output(ispecies,filehandle)
         use diagnostics
         use module_pepc_types
         implicit none
         include 'mpif.h'
 
-        integer                 :: rc,i
+        integer                 :: rc,ix,iy,iz
 
-        integer,intent(in)      :: filehandle,ispecies,npoints
-        real(KIND=8)            :: vsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        real(KIND=8)            :: v2sum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        integer                 :: n_bin(npoints)
-        real(KIND=8)            :: tvsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        real(KIND=8)            :: tv2sum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        integer                 :: tn_bin(npoints)
-        real(KIND=8)            :: x_bin(npoints)
+        integer,intent(in)      :: filehandle,ispecies
+        integer                 :: npoints
+        real(KIND=8)            :: vsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)   !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        real(KIND=8)            :: v2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        integer                 :: n_bin(diag_bins_x,diag_bins_y,diag_bins_z)
+        real(KIND=8)            :: tvsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        real(KIND=8)            :: tv2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        integer                 :: tn_bin(diag_bins_x,diag_bins_y,diag_bins_z)
 
 
+        npoints = diag_bins_x * diag_bins_y * diag_bins_z
 
-        call bin_v(ispecies,npoints,x_bin,vsum_bin,v2sum_bin,n_bin)
+        call bin_v(ispecies,vsum_bin,v2sum_bin,n_bin)
         call MPI_ALLREDUCE(n_bin, tn_bin, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         call MPI_ALLREDUCE(vsum_bin, tvsum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(v2sum_bin, tv2sum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
-
+        call MPI_ALLREDUCE(v2sum_bin, tv2sum_bin, 12*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+        !tvsum_bin=vsum_bin
+        !tv2sum_bin=v2sum_bin
 
         IF (root) THEN
-            write(filehandle,'(a12,a16,a10,12(a16))')"","x","n","vx","vy","vz","vpar","vperp1","vperp2","vx2","vy2","vz2","vpar2","vperp1_2","vperp2_2"
-            DO i=1,npoints
-                write(filehandle,'(a12,1pe16.7E3,i10.9,12(1pe16.7E3))')"Histogram:  ",x_bin(i),tn_bin(i),tvsum_bin(1,i)/tn_bin(i),tvsum_bin(2,i)/tn_bin(i),tvsum_bin(3,i)/tn_bin(i),tvsum_bin(4,i)/tn_bin(i),tvsum_bin(5,i)/tn_bin(i),tvsum_bin(6,i)/tn_bin(i),tv2sum_bin(1,i)/tn_bin(i),tv2sum_bin(2,i)/tn_bin(i),tv2sum_bin(3,i)/tn_bin(i),tv2sum_bin(4,i)/tn_bin(i),tv2sum_bin(5,i)/tn_bin(i),tv2sum_bin(6,i)/tn_bin(i)
+            write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,ny,nz):", diag_bins_x,diag_bins_y,diag_bins_z
+            write(filehandle,'(a12,3(a6),a10,6(a16),12(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar","vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz","vzvx","vparvpar","vperp1vperp1","vperp2vperp2","vparvperp1","vperp1vperp2","vperp2vpar"
+            DO iz=1,diag_bins_z
+                DO iy=1,diag_bins_y
+                    DO ix=1,diag_bins_x
+                        write(filehandle,'(a12,3(i6.5),i10.9,6(1pe16.7E3),12(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bin(ix,iy,iz),tvsum_bin(:,ix,iy,iz),tv2sum_bin(:,ix,iy,iz)
+                    END DO
+                END DO
             END DO
         END IF
 
@@ -234,7 +276,7 @@ MODULE output
 
                 IF(diag_interval.ne.0) THEN
                     IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                        call x_and_v_output(ispecies,250,filehandle)
+                        call x_and_v_output(ispecies,filehandle)
                     END IF
                 END IF
 
