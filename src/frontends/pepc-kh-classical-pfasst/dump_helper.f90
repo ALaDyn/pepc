@@ -53,6 +53,18 @@ module dump_helper
     end if
 
     call physics_dump(pepc_pars, physics_pars, time_pars, step, particles)
+
+    if (pepc_pars%pepc_comm%root_stdio) then
+       if (do_cdump) &
+          write(*,'(a,es12.4)') " == time in checkpoint I/O (s)                    : ", timer_chkpt
+       if (do_pdump) &
+          write(*,'(a,es12.4)') " == time in particle I/O (s)                      : ", timer_pio
+       if (do_fdump) then
+          write(*,'(a,es12.4)') " == time in field computation (s)                 : ", timer_fcomp
+          write(*,'(a,es12.4)') " == time in field I/O (s)                         : ", timer_fio
+       end if
+    end if
+
   end subroutine
 
   subroutine t_start(t)

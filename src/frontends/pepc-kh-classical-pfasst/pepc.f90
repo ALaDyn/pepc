@@ -114,12 +114,6 @@ program pepc
   ! initial potential will be needed for energy computation - using finest level here
   call eval_force(particles, level_params(pf_nml%nlevels), comm=pepc_pars%pepc_comm%comm_space, clearresults=.true.) ! again, use parameters of finest level
 
-  ! initial particle dump
-  if (pepc_pars%pepc_comm%root_stdio) then
-!TODO    call dump_particles(VTK_STEP_FIRST, 0, 0._8, particles, pepc_pars%pepc_comm%comm_space, do_average=.false.)
-!TODO    call dump_energy(0._8, particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, do_average=.false.)
-  endif
-
   call t_stop(timer_init)
 
   if (pepc_pars%pepc_comm%root_stdio) then
@@ -180,8 +174,7 @@ program pepc
           call push_particles_velocity_verlet_boris(particles, dt, physics_pars%B0)
           call eval_force(particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt, physics_pars%B0)
-!TODO          call dump_particles(VTK_STEP_NORMAL, step, dt, particles, pepc_pars%pepc_comm%comm_space, do_average=.false.)
-!TODO          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, do_average=.false.)
+          call perform_all_dumps(step, pepc_pars, physics_pars, time_pars, field_grid, particles)
         end do
       end associate
   case (WM_BENEDIKT)
@@ -216,7 +209,7 @@ program pepc
 
         call t_start(timer_dynamics)
         call push_particles(time_pars, physics_pars, particles)
-        call constrain_particles(physics_pars, particles) ! TODO: maybe we should also constrain our particles at some point?
+        call constrain_particles(physics_pars, particles) !TODO: maybe we should also constrain our particles in SDC mode at some point, see comment in encap::norm() on that
         call t_stop(timer_dynamics)
 
         call timings_GatherAndOutput(step, 0, step == 0)
@@ -225,15 +218,7 @@ program pepc
 
         if (pepc_pars%pepc_comm%root_stdio) then
            write(*,'(a,es12.4)') " == time in step (s)                              : ", timer_step
-!TODO           if (do_cdump) &
-!TODO              write(*,'(a,es12.4)') " == time in checkpoint I/O (s)                    : ", timer_chkpt
            write(*,'(a,es12.4)') " == time in force computation (s)                 : ", timer_pcomp
-!TODO           if (do_pdump) &
-!TODO              write(*,'(a,es12.4)') " == time in particle I/O (s)                      : ", timer_pio
-!TODO           if (do_fdump) then
-!TODO              write(*,'(a,es12.4)') " == time in field computation (s)                 : ", timer_fcomp
-!TODO              write(*,'(a,es12.4)') " == time in field I/O (s)                         : ", timer_fio
-!TODO           end if
            write(*,'(a,es12.4)') " == time in pusher (s)                            : ", timer_dynamics
         end if
 
@@ -246,7 +231,6 @@ program pepc
 
   call t_stop(timer_total)
 
-!TODO  if (pepc_pars%pepc_comm%root_stdio) call dump_particles(VTK_STEP_LAST, time_pars%nsteps, time_pars%dt, particles, pepc_pars%pepc_comm%comm_space, do_average=.false.)
   call dump_nfeval(pepc_pars%pepc_comm%rank_world, MPI_COMM_WORLD, pepc_pars%workingmode + IFILE_SUMMAND_NFEVAL)
 
   if(pepc_pars%pepc_comm%root_stdio) then
