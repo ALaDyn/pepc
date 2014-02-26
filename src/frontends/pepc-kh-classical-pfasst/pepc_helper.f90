@@ -154,7 +154,7 @@ contains
 
     type(pepc_pars_t), intent(in) :: pepc_pars
     type(time_pars_t), intent(in) :: time_pars
-    type(t_particle), allocatable, intent(in) :: p(:)
+    type(t_particle), intent(in) :: p(:)
     integer, intent(in) :: step
 
     integer :: vtk_step
@@ -193,7 +193,7 @@ contains
 
     type(time_pars_t), intent(in) :: time_pars
     integer, intent(in) :: step
-    type(t_particle), allocatable, intent(in) :: p(:)
+    type(t_particle), intent(in) :: p(:)
 
     integer :: vtk_step
 

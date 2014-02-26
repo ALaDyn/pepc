@@ -68,10 +68,7 @@ program pepc
    type(t_particle), dimension(:), allocatable :: particles
 
    integer(kind = 4) :: step
-   real(kind = 8) :: timer_total, timer_init, timer_step, timer_pcomp, &
-      timer_pio, timer_fcomp, timer_fio, timer_dynamics, timer_chkpt
-
-   logical :: do_pdump, do_fdump, do_cdump
+   real(kind = 8) :: timer_total, timer_init, timer_step, timer_pcomp, timer_dynamics
 
    call t_start(timer_total)
    call t_start(timer_init)
@@ -133,10 +130,6 @@ program pepc
     print *, ""
     write(*,'(a,es12.4)') " == time in setup (s)                            : ", timer_init
   end if
-
-  do_pdump = .false.
-  do_fdump = .false.
-  do_cdump = .false.
 
   select case (pepc_pars%workingmode)
     case (WM_BORIS_SDC, WM_BORIS_MLSDC)
@@ -214,37 +207,7 @@ program pepc
 
         call t_stop(timer_pcomp)
 
-! DUMPING START
-        if (pepc_pars%pdump .ne. 0) do_pdump = mod(step, pepc_pars%pdump) .eq. 0
-        if (pepc_pars%fdump .ne. 0) do_fdump = mod(step, pepc_pars%fdump) .eq. 0
-        if (pepc_pars%cdump .ne. 0) do_cdump = mod(step, pepc_pars%cdump) .eq. 0
-
-        if (do_cdump) then
-          call t_start(timer_chkpt)
-          call write_checkpoint(pepc_pars, time_pars, step, physics_pars, field_grid, particles)
-          call t_stop(timer_chkpt)
-        end if
-
-        if(do_fdump) then
-          call t_start(timer_fcomp)
-          call compute_field(pepc_pars, field_grid, particles)
-          call t_stop(timer_fcomp)
-
-          call t_start(timer_fio)
-          call write_field_on_grid(pepc_pars%pepc_comm, time_pars, step, &
-              physics_pars, field_grid)
-          call t_stop(timer_fio)
-        end if
-
-        if (do_pdump) then
-           call t_start(timer_pio)
-           call write_domain(time_pars, step, particles)
-           call write_particles(pepc_pars, time_pars, step, particles)
-           call t_stop(timer_pio)
-        end if
-
-        call physics_dump(pepc_pars, physics_pars, time_pars, step, particles)
-! DUMPING END
+        call perform_all_dumps(step, pepc_pars, physics_pars, time_pars, field_grid, particles)
 
         !call pepc_restore_particles(p)
         call pepc_timber_tree()
@@ -260,15 +223,15 @@ program pepc
 
         if (pepc_pars%pepc_comm%root_stdio) then
            write(*,'(a,es12.4)') " == time in step (s)                              : ", timer_step
-           if (do_cdump) &
-              write(*,'(a,es12.4)') " == time in checkpoint I/O (s)                    : ", timer_chkpt
+!TODO           if (do_cdump) &
+!TODO              write(*,'(a,es12.4)') " == time in checkpoint I/O (s)                    : ", timer_chkpt
            write(*,'(a,es12.4)') " == time in force computation (s)                 : ", timer_pcomp
-           if (do_pdump) &
-              write(*,'(a,es12.4)') " == time in particle I/O (s)                      : ", timer_pio
-           if (do_fdump) then
-              write(*,'(a,es12.4)') " == time in field computation (s)                 : ", timer_fcomp
-              write(*,'(a,es12.4)') " == time in field I/O (s)                         : ", timer_fio
-           end if
+!TODO           if (do_pdump) &
+!TODO              write(*,'(a,es12.4)') " == time in particle I/O (s)                      : ", timer_pio
+!TODO           if (do_fdump) then
+!TODO              write(*,'(a,es12.4)') " == time in field computation (s)                 : ", timer_fcomp
+!TODO              write(*,'(a,es12.4)') " == time in field I/O (s)                         : ", timer_fio
+!TODO           end if
            write(*,'(a,es12.4)') " == time in pusher (s)                            : ", timer_dynamics
         end if
 
@@ -332,5 +295,56 @@ contains
     end if
 
   end subroutine
+
+  subroutine perform_all_dumps(step, pepc_pars, physics_pars, time_pars, field_grid, particles)
+    use encap
+    use physics_helper
+    implicit none
+    type(physics_pars_t), intent(in) :: physics_pars
+    type(pepc_pars_t), intent(in) :: pepc_pars
+    type(time_pars_t), intent(in) :: time_pars
+    type(t_particle), intent(in) :: particles(:)
+    type(field_grid_t), intent(inout) :: field_grid
+    integer(kind = 4) :: step
+
+    logical :: do_pdump, do_fdump, do_cdump
+    real(kind = 8) :: timer_pio, timer_fcomp, timer_fio, timer_chkpt
+
+    do_pdump = .false.
+    do_fdump = .false.
+    do_cdump = .false.
+
+    if (pepc_pars%pdump .ne. 0) do_pdump = mod(step, pepc_pars%pdump) .eq. 0
+    if (pepc_pars%fdump .ne. 0) do_fdump = mod(step, pepc_pars%fdump) .eq. 0
+    if (pepc_pars%cdump .ne. 0) do_cdump = mod(step, pepc_pars%cdump) .eq. 0
+
+    if (do_cdump) then
+      call t_start(timer_chkpt)
+      call write_checkpoint(pepc_pars, time_pars, step, physics_pars, field_grid, particles)
+      call t_stop(timer_chkpt)
+    end if
+
+    if(do_fdump) then
+      call t_start(timer_fcomp)
+      call compute_field(pepc_pars, field_grid, particles)
+      call t_stop(timer_fcomp)
+
+      call t_start(timer_fio)
+      call write_field_on_grid(pepc_pars%pepc_comm, time_pars, step, &
+          physics_pars, field_grid)
+      call t_stop(timer_fio)
+    end if
+
+    if (do_pdump) then
+       call t_start(timer_pio)
+       call write_domain(time_pars, step, particles)
+       call write_particles(pepc_pars, time_pars, step, particles)
+       call t_stop(timer_pio)
+    end if
+
+    call physics_dump(pepc_pars, physics_pars, time_pars, step, particles)
+end subroutine
+
 end program pepc
+
 
