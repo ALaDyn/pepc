@@ -200,6 +200,21 @@ program pepc
 
         call t_start(timer_step)
 
+        call t_start(timer_pcomp)
+
+        call pepc_particleresults_clear(particles)
+
+        call pepc_grow_tree(particles)
+        call pepc_traverse_tree(particles)
+        particles(:)%results%e(1) = particles(:)%results%e(1) * force_const !TODO do we actually use the right force const in SDC and PFASST?
+        particles(:)%results%e(2) = particles(:)%results%e(2) * force_const
+        particles(:)%results%pot  = particles(:)%results%pot  * force_const
+
+        call apply_external_field(particles)
+
+        call t_stop(timer_pcomp)
+
+! DUMPING START
         if (pepc_pars%pdump .ne. 0) do_pdump = mod(step, pepc_pars%pdump) .eq. 0
         if (pepc_pars%fdump .ne. 0) do_fdump = mod(step, pepc_pars%fdump) .eq. 0
         if (pepc_pars%cdump .ne. 0) do_cdump = mod(step, pepc_pars%cdump) .eq. 0
@@ -209,20 +224,6 @@ program pepc
           call write_checkpoint(pepc_pars, time_pars, step, physics_pars, field_grid, particles)
           call t_stop(timer_chkpt)
         end if
-
-        call t_start(timer_pcomp)
-
-        call pepc_particleresults_clear(particles)
-
-        call pepc_grow_tree(particles)
-        call pepc_traverse_tree(particles)
-        particles(:)%results%e(1) = particles(:)%results%e(1) * force_const
-        particles(:)%results%e(2) = particles(:)%results%e(2) * force_const
-        particles(:)%results%pot  = particles(:)%results%pot  * force_const
-
-        call apply_external_field(particles)
-
-        call t_stop(timer_pcomp)
 
         if(do_fdump) then
           call t_start(timer_fcomp)
@@ -242,14 +243,15 @@ program pepc
            call t_stop(timer_pio)
         end if
 
+        call physics_dump(pepc_pars, physics_pars, time_pars, step, particles)
+! DUMPING END
+
         !call pepc_restore_particles(p)
         call pepc_timber_tree()
 
-        call physics_dump(pepc_pars, physics_pars, time_pars, step, particles)
-
         call t_start(timer_dynamics)
         call push_particles(time_pars, physics_pars, particles)
-        call constrain_particles(physics_pars, particles)
+        call constrain_particles(physics_pars, particles) ! TODO: maybe we should also constrain our particles at some point?
         call t_stop(timer_dynamics)
 
         call timings_GatherAndOutput(step, 0, step == 0)

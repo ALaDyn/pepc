@@ -31,7 +31,7 @@ workingmode = 1
 te = 0.04
 
 ! number of steps from t = 0 to t = te
-nsteps = 100
+nsteps = 10
 
 ! resume from this step
 nresume = 0

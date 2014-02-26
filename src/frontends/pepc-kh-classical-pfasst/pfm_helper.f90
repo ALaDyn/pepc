@@ -27,7 +27,7 @@ module pfm_helper
         integer, dimension(max_nlevels) :: nsweeps = 1
         integer, dimension(max_nlevels) :: nnodes  = 3
         real*8, dimension(max_nlevels)  :: theta = 0.3
-        logical, dimension(max_nlevels) :: directforce = .true. ! PEPC does not support single-particle-invocation
+        logical, dimension(max_nlevels) :: directforce = .true.
         integer, dimension(max_nlevels) :: feval_mode = 11
     end type pf_nml_t
 
