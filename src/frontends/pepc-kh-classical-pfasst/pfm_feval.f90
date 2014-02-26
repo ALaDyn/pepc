@@ -121,7 +121,6 @@ module pfm_feval
       ! just copy results to E variable (yes, it's weird that we have x- and v-components.. don't ask, won't tell)
       do i=1,size(particles, kind=kind(i))
         E%x(1:E%params%dim, i) = particles(i)%results%e(1:E%params%dim)
-        E%x(E%params%dim+1:,i) = 0
         E%v(:,i) = E%x(:,i)
       end do
 
@@ -204,13 +203,13 @@ module pfm_feval
 
       DEBUG_ASSERT(E%params%nparts==rhs%params%nparts)
       DEBUG_ASSERT(E%params%dim==rhs%params%dim)
+      DEBUG_ASSERT(Q%params%dim == rhs%params%dim)
 
       allocate(particles(E%params%nparts))
       call encap_to_particles(particles, Eptr, ctx)
 
       do i=1,size(particles, kind=kind(i))
-        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*cross_prod_plus(Q%v(1:Q%params%dim,i),levelctx%B0,E%x(1:E%params%dim,i)) / particles(i)%data%m
-        rhs%x(rhs%params%dim+1:,i) = 0
+        rhs%x(1:rhs%params%dim, i) = particles(i)%data%q*cross_prod_plus_2d(Q%v(1:Q%params%dim,i),levelctx%Bz,E%x(1:E%params%dim,i)) / particles(i)%data%m
         rhs%v(:,i) = rhs%x(:,i)
       end do
 
@@ -229,9 +228,8 @@ module pfm_feval
       integer(c_int), intent(in)        :: level
       real(pfdp),     intent(in)        :: dt
 
-      real*8               :: beta, gam
-      real*8, dimension(3) :: uprime, uplus, t, s, uminus
-      real*8, dimension(2) :: Emean
+      real*8               :: beta, gam, tz, sz
+      real*8, dimension(2) :: uprime, uplus, Emean, uminus
 
       type(t_particle), allocatable :: particles(:)
       type(app_data_t), pointer :: v, v_old, E_new, E_old, SDCint
@@ -249,22 +247,20 @@ module pfm_feval
       allocate(particles(E_new%params%nparts))
       call encap_to_particles(particles, E_newptr, ctx)
 
-      uminus (3)= 0
-
       do i = 1,size(particles, kind=kind(i))
          ! charge/mass*time-constant
         beta   = particles(i)%data%q / (2._8 * particles(i)%data%m) * dt
         Emean(:)  = (E_old%v(:,i) + E_new%v(:,i)) / 2._8
         ! first half step with electric field
-        uminus(1:2) = v_old%v(:,i) + beta * Emean(:) + SDCint%v(:,i) / 2._8
+        uminus(:) = v_old%v(:,i) + beta * Emean(:) + SDCint%v(:,i) / 2._8
         ! gamma factor
         !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
         gam    = 1._8
         ! rotation with magnetic field
-        t      = beta/gam * levelctx%B0
-        uprime = cross_prod_plus(uminus, t, uminus)
-        s      = 2._8 * t / (1._8 + dot_product(t, t))
-        uplus  = cross_prod_plus(uprime, s, uminus)
+        tz     = beta/gam * levelctx%Bz
+        uprime = cross_prod_plus_2d(uminus, tz, uminus)
+        sz     = 2._8 * tz / (1._8 + tz*tz)
+        uplus  = cross_prod_plus_2d(uprime, sz, uminus)
         ! second half step with electric field
         v%v(:,i) = uplus(1:2) + beta * Emean(:) + SDCint%v(:,i) / 2._8
       end do

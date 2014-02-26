@@ -127,7 +127,7 @@ module pfm_helper
             lp%feval_mode  = pf_nml%feval_mode(i)
             lp%dim         = dim
             lp%comm        = pepc_pars%pepc_comm%comm_space
-            lp%B0          = [0.0_8, 0.0_8, physics_pars%B0] ! FIXME * m/Q
+            lp%Bz          = physics_pars%B0 ! FIXME * m/Q
             lp%root_file   = pepc_pars%pepc_comm%root_file
             lp%root_stdio  = pepc_pars%pepc_comm%root_stdio
           end associate

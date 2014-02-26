@@ -182,9 +182,9 @@ program pepc
                  nt => time_pars%nsteps)
         do step=1,nt
           call print_timestep(step, nt, dt)
-          call push_particles_velocity_verlet_boris(particles, dt, [0.0_8, 0.0_8, physics_pars%B0])
+          call push_particles_velocity_verlet_boris(particles, dt, physics_pars%B0)
           call eval_force(particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, clearresults=.true.)
-          call update_velocities_velocity_verlet_boris(particles, dt, [0.0_8, 0.0_8, physics_pars%B0])
+          call update_velocities_velocity_verlet_boris(particles, dt, physics_pars%B0)
 !TODO          call dump_particles(VTK_STEP_NORMAL, step, dt, particles, pepc_pars%pepc_comm%comm_space, do_average=.false.)
 !TODO          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, do_average=.false.)
         end do

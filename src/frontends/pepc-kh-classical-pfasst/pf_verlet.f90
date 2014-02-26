@@ -68,7 +68,6 @@ contains
 
     ! setup temporary variable to contain full right-hand side (based on E-field in F)
     call F%encap%create(rhs, F%level, SDC_KIND_FEVAL, F%nvars, F%shape, F%levelctx, F%encap%encapctx)
-    call encap_print(rhs)
 
     dtsq = dt*dt
     do m = 1, F%nnodes-1
@@ -87,7 +86,6 @@ contains
        end if
     end do
 
-    call encap_print(rhs)
     !
     ! do time-stepping
     !
@@ -129,8 +127,6 @@ contains
 
     call F%encap%copy(F%qend, F%Q(F%nnodes), COPY_XV)
     call F%encap%destroy(fq_int)
-
-    call encap_print(rhs)
     call F%encap%destroy(rhs)
 
     call end_timer(pf, TLEVEL+F%level-1)

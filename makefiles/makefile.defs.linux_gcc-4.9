@@ -24,8 +24,8 @@ INLINING = -fkeep-inline-functions -findirect-inlining -mstringop-strategy=unrol
 FCPRE    = 
 FC       = mpif90
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all
-  CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g 
+  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all -fstack-protector-all
+  CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -fstack-protector-all
   LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
 else
   FFLAGS   = -Wall -O3 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING) -save-temps

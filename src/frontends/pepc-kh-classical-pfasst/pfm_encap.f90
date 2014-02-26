@@ -15,7 +15,7 @@ module pfm_encap
     logical :: directforce
     integer :: feval_mode
     integer(kind_default) :: comm
-    real*8 :: B0(3)
+    real*8 :: Bz !< z-component of the magnetic field (B_x=B_y=0)
     logical :: root_stdio, root_file
   end type
 
@@ -85,9 +85,7 @@ contains
     do i=1,size(p)
       p(i)                          = enc%particles(i) ! FIXME: here we set coordinates and velocities but overwrite them again in the next lines
       p(i)%x(     1:enc%params%dim) = enc%x(1:enc%params%dim, i)
-      p(i)%x(enc%params%dim+1:)     = 0.
       p(i)%data%v(1:enc%params%dim) = enc%v(1:enc%params%dim, i)
-      p(i)%x(enc%params%dim+1:)     = 0.
     end do
   end subroutine
 
@@ -187,8 +185,6 @@ contains
     else
       write(*,'("  %v: (not allocated)")')
     endif
-
-
   end subroutine
 
 
