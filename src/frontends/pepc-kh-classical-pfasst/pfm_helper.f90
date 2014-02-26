@@ -98,7 +98,7 @@ module pfm_helper
 
 
     !> Sets up parameters on each level and defines initial RHS (as "old" u value)
-    subroutine pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepc_pars, physics_pars)
+    subroutine pfm_setup_solver_level_params(particles, level_params, pf_nml, dim, pepc_pars, physics_pars, time_pars, field_grid)
         use pf_mod_mpi
         use pfm_encap
         use encap
@@ -110,6 +110,8 @@ module pfm_helper
         type(t_particle), allocatable, target, intent(in) :: particles(:)
         type(physics_pars_t), intent(in) :: physics_pars
         type(pepc_pars_t), intent(in) :: pepc_pars
+        type(time_pars_t), intent(in) :: time_pars
+        type(field_grid_t), target, intent(in) :: field_grid
 
         integer :: i
 
@@ -128,6 +130,8 @@ module pfm_helper
             lp%dim          = dim
             lp%pepc_pars    = pepc_pars
             lp%physics_pars = physics_pars
+            lp%time_pars    = time_pars
+            lp%field_grid   => field_grid
           end associate
         end do
     end subroutine pfm_setup_solver_level_params

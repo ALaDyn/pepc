@@ -17,6 +17,8 @@ module pfm_encap
     integer :: feval_mode
     type(pepc_pars_t) :: pepc_pars
     type(physics_pars_t) :: physics_pars
+    type(time_pars_t) :: time_pars
+    type(field_grid_t), pointer :: field_grid
   end type
 
   !> Data encapsulation: data and parameters which will be filled in encap_create using ctx

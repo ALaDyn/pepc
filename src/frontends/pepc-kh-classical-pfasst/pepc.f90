@@ -109,7 +109,7 @@ program pepc
   ! commit all internal pepc variables
   call pepc_prepare(2_kind_dim)
   ! prepare table with level-dependent parameters
-  call pfm_setup_solver_level_params(particles, level_params, pf_nml, 2_kind_dim, pepc_pars, physics_pars)
+  call pfm_setup_solver_level_params(particles, level_params, pf_nml, 2_kind_dim, pepc_pars, physics_pars, time_pars, field_grid)
   ! initial potential will be needed for energy computation - using finest level here
   call eval_force(particles, level_params(pf_nml%nlevels), comm=pepc_pars%pepc_comm%comm_space, clearresults=.true.) ! again, use parameters of finest level
 
