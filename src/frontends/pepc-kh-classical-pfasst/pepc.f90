@@ -152,6 +152,7 @@ program pepc
       !call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook) ! this is actually only executed once in the very first timestep (see variable did_prestep in dump_particles_hook() )
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, constrain_particles_hook)
 
       ! some informative output about what we are actually doing
       if (pepc_pars%pepc_comm%rank_world == 0) call pf_print_options(pf)
@@ -174,6 +175,7 @@ program pepc
           call push_particles_velocity_verlet_boris(particles, dt, physics_pars%B0)
           call eval_force(particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt, physics_pars%B0)
+          call constrain_particles(physics_pars, particles)
           call perform_all_dumps(step, pepc_pars, physics_pars, time_pars, field_grid, particles)
         end do
       end associate
@@ -209,7 +211,7 @@ program pepc
 
         call t_start(timer_dynamics)
         call push_particles(time_pars, physics_pars, particles)
-        call constrain_particles(physics_pars, particles) !TODO: maybe we should also constrain our particles in SDC mode at some point, see comment in encap::norm() on that
+        call constrain_particles(physics_pars, particles)
         call t_stop(timer_dynamics)
 
         call timings_GatherAndOutput(step, 0, step == 0)

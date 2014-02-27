@@ -4,6 +4,7 @@ module pfm_hooks
   private
 
   public dump_particles_hook
+  public constrain_particles_hook
 
 contains
 
@@ -75,6 +76,41 @@ contains
 
    deallocate(particles)
 
+  end subroutine
+
+
+  !> folding particles back into the periodic simulation box
+  subroutine constrain_particles_hook(pf, level, state, ctx)
+    use pf_mod_dtype
+    use pf_mod_hooks
+    use pfm_encap
+    use iso_c_binding
+    use module_pepc_types
+    use module_debug
+    use pepc_helper
+    use time_helper
+    implicit none
+    type(pf_pfasst_t), intent(inout) :: pf
+    type(pf_level_t),  intent(inout) :: level
+    type(pf_state_t),  intent(in)    :: state
+    type(c_ptr),       intent(in)    :: ctx
+
+    type(t_particle), allocatable, target :: particles(:)
+    type(level_params_t), pointer :: levelctx
+
+    call pepc_status('------------- dump_particles_hook')
+
+    select case (state%hook)
+      case (PF_POST_STEP)
+        call c_f_pointer(ctx, levelctx)
+        allocate(particles(levelctx%nparts))
+        call encap_to_particles(particles, level%qend, ctx)
+        call constrain_particles(levelctx%physics_pars, particles)
+        call particles_to_encap(level%qend, particles)
+        deallocate(particles)
+      case default
+        DEBUG_ERROR(*,'wrong hook')
+    end select
   end subroutine
 
 
