@@ -227,8 +227,8 @@ contains
       field_grid%viy = 0.0D0
     end where
     ! particle number -> particle density
-    field_grid%ne = field_grid%ne * rda
-    field_grid%ni = field_grid%ni * rda
+    field_grid%ne(:,:) = field_grid%ne * rda
+    field_grid%ni(:,:) = field_grid%ni * rda
 
   end subroutine compute_field
 
@@ -261,17 +261,17 @@ contains
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)
     call write_quantity_on_grid("ex", field_grid%p(:)%results%e(1))
     call write_quantity_on_grid("ey", field_grid%p(:)%results%e(2))
-    fflat = reshape(field_grid%ne, fflatshape)
+    fflat(:) = reshape(field_grid%ne, fflatshape)
     call write_quantity_on_grid("ne", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%ni, fflatshape)
+    fflat(:) = reshape(field_grid%ni, fflatshape)
     call write_quantity_on_grid("ni", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vex, fflatshape)
+    fflat(:) = reshape(field_grid%vex, fflatshape)
     call write_quantity_on_grid("vex", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vey, fflatshape)
+    fflat(:) = reshape(field_grid%vey, fflatshape)
     call write_quantity_on_grid("vey", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vix, fflatshape)
+    fflat(:) = reshape(field_grid%vix, fflatshape)
     call write_quantity_on_grid("vix", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%viy, fflatshape)
+    fflat(:) = reshape(field_grid%viy, fflatshape)
     call write_quantity_on_grid("viy", fflat(my_offset + 1:))
 
     deallocate(fflat)
