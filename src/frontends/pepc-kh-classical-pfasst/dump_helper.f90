@@ -13,7 +13,7 @@ module dump_helper
     type(physics_pars_t), intent(in) :: physics_pars
     type(pepc_pars_t), intent(in) :: pepc_pars
     type(time_pars_t), intent(in) :: time_pars
-    type(t_particle), intent(in) :: particles(:)
+    type(t_particle), allocatable, intent(inout) :: particles(:)
     type(field_grid_t), intent(inout) :: field_grid
     integer(kind = 4) :: step
 
@@ -36,7 +36,7 @@ module dump_helper
 
     if(do_fdump) then
       call t_start(timer_fcomp)
-!TODO      call compute_field(pepc_pars, field_grid, particles)
+      call compute_field(pepc_pars, field_grid, particles)
       call t_stop(timer_fcomp)
 
       call t_start(timer_fio)

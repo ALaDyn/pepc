@@ -139,14 +139,15 @@ contains
 
   subroutine compute_field(pepc_pars, field_grid, p)
     use mpi
-    use module_pepc, only: pepc_particleresults_clear, pepc_traverse_tree
+    use module_pepc
+    use module_tree, only : tree_allocated
     use encap
     use physics_helper
     implicit none
 
     type(pepc_pars_t), intent(in) :: pepc_pars
     type(field_grid_t), intent(inout) :: field_grid
-    type(t_particle), dimension(:), intent(in) :: p
+    type(t_particle), dimension(:), allocatable, intent(inout) :: p
 
     integer(kind_particle) :: ipl
     integer(kind_default) :: mpi_err
@@ -154,7 +155,13 @@ contains
     real(kind=8) :: da, rda
 
     call pepc_particleresults_clear(field_grid%p)
-    call pepc_traverse_tree(field_grid%p)
+
+    if (.not. tree_allocated(global_tree)) then
+      call pepc_grow_and_traverse_for_others(p, field_grid%p, 0)
+    else
+      call pepc_traverse_tree(field_grid%p)
+    endif
+
     field_grid%p(:)%results%e(1) = field_grid%p(:)%results%e(1) * force_const
     field_grid%p(:)%results%e(2) = field_grid%p(:)%results%e(2) * force_const
     field_grid%p(:)%results%pot  = field_grid%p(:)%results%pot  * force_const
