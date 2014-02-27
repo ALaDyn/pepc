@@ -264,7 +264,7 @@ contains
   subroutine encap_pack(z, ptr)
     implicit none
     type(c_ptr), intent(in), value  :: ptr
-    real(pfdp),  intent(out)        :: z(:)  !FIXME: an alternative with a frontend-defined MPI type would be very nice - this will avoid packing completely :-)
+    real(pfdp),  intent(out)        :: z(:)
 
     type(app_data_t), pointer :: q
     integer(kind_particle) :: i, j
@@ -289,7 +289,7 @@ contains
   subroutine encap_unpack(ptr, z)
     implicit none
     type(c_ptr), intent(in), value :: ptr
-    real(pfdp),  intent(in)        :: z(:)  !FIXME: an alternative with a frontend-defined MPI type would be very nice - this will avoid packing completely :-)
+    real(pfdp),  intent(in)        :: z(:)
 
     type(app_data_t), pointer :: q
     integer(kind_particle) :: i, j

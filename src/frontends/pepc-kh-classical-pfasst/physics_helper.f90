@@ -66,7 +66,7 @@ contains
       call pepc_prepare(2_kind_dim)
 
       if (time_pars%nresume > 0) then
-        call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%comm_space, & ! FIXME: this will not in time-parallel mode
+        call read_particles_mpiio(time_pars%nresume, pepc_pars%pepc_comm%comm_space, &
           dummy_nresume, pepc_pars%np, p, dummy_file_name)
 
         if (dummy_nresume .ne. time_pars%nresume) then

@@ -3,7 +3,6 @@ module checkpoint_helper
 
   contains
 
-  ! FIXME: this will not work in time-parallel mode
   subroutine write_checkpoint(pepc_pars, time_pars, step, physics_pars, field_grid, p)
     use module_pepc_types
     use module_checkpoint

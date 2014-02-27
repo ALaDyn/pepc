@@ -144,7 +144,6 @@ contains
   end function
 
 
-  ! FIXME: this routine will not in time-parallel mode
   subroutine write_particles(pepc_pars, time_pars, step, p)
     use module_pepc_types
     use module_vtk
