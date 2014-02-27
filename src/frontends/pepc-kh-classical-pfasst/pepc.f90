@@ -194,7 +194,7 @@ program pepc
 
         call pepc_grow_tree(particles)
         call pepc_traverse_tree(particles)
-        particles(:)%results%e(1) = particles(:)%results%e(1) * force_const !TODO do we actually use the right force const in SDC and PFASST?
+        particles(:)%results%e(1) = particles(:)%results%e(1) * force_const
         particles(:)%results%e(2) = particles(:)%results%e(2) * force_const
         particles(:)%results%pot  = particles(:)%results%pot  * force_const
 

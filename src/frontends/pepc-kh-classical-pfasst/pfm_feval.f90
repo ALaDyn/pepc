@@ -133,6 +133,7 @@ module pfm_feval
       use module_debug
       use module_pepc
       use module_interaction_specific, only : intspec_theta2 => theta2
+      use physics_helper, only : force_const
       implicit none
       type(t_particle), allocatable, target, intent(inout) :: particles(:)
       type(level_params_t), intent(in) :: level_params
@@ -177,6 +178,10 @@ module pfm_feval
         case default
           DEBUG_ERROR(*,'feval_mode_external invalid: ', feval_mode_external)
       end select
+
+      particles(:)%results%e(1) = particles(:)%results%e(1) * force_const
+      particles(:)%results%e(2) = particles(:)%results%e(2) * force_const
+      particles(:)%results%pot  = particles(:)%results%pot  * force_const
 
     end subroutine
 
