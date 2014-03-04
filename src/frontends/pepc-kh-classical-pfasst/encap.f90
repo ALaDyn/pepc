@@ -1,3 +1,8 @@
+module mpi
+  implicit none
+  include 'mpif.h'
+end module
+
 module encap
    use module_pepc_types
    use iso_c_binding
