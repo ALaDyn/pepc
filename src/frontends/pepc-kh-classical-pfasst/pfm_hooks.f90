@@ -68,9 +68,10 @@ contains
         char(13), hook_names(state%hook), step, state%nsteps, t, state%iter, level%residual
     endif
 
+    ! do diagnostics etc here
+    call perform_all_dumps(step, levelctx%pepc_pars, levelctx%physics_pars, levelctx%time_pars, levelctx%field_grid, particles)
+
     if (levelctx%pepc_pars%pepc_comm%root_file) then
-      ! do diagnostics etc here
-      call perform_all_dumps(step, levelctx%pepc_pars, levelctx%physics_pars, levelctx%time_pars, levelctx%field_grid, particles)
       call dump_iterations(step, state%dt, state%hook, state%iter, level%residual, levelctx%pepc_pars)
    endif
 
