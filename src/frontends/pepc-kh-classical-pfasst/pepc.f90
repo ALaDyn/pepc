@@ -170,6 +170,7 @@ program pepc
     case (WM_BORIS)
       associate (dt => time_pars%dt, &
                  nt => time_pars%nsteps)
+        call perform_all_dumps(0, pepc_pars, physics_pars, time_pars, field_grid, particles)
         do step=1,nt
           call print_timestep(step, nt, dt)
           call push_particles_velocity_verlet_boris(particles, dt, physics_pars%B0)
