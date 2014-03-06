@@ -170,6 +170,8 @@ contains
 
     field_grid%ne = 0.0D0
     field_grid%ni = 0.0D0
+    field_grid%ne_from_left = 0.0D0
+    field_grid%ni_from_left = 0.0D0
     field_grid%vex = 0.0D0
     field_grid%vey = 0.0D0
     field_grid%vix = 0.0D0

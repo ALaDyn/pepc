@@ -16,6 +16,8 @@ if __name__ == '__main__':
   movieprops = [
     ('ne', 'density', 'Reds'),
     ('ni', 'density', 'Blues'),
+    ('nefromleft', 'density', 'Reds'),
+    ('nifromleft', 'density', 'Blues'),
     ('potential', 'potential', 'RdBu_r'),
     ('ex', 'potential', 'RdBu_r'),
     ('ey', 'potential', 'RdBu_r'),

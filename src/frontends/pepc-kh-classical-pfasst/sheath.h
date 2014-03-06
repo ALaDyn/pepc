@@ -7,13 +7,13 @@ np = 0
 pdump = 0
 
 ! output fields every ... steps (no output if 0)
-fdump = 1
+fdump = 10
 
 ! output checkpoints every ... steps (no output if 0)
 cdump = 0
 
 ! periodicity
-mirror_box_layers = 3
+mirror_box_layers = 10
 
 do_extrinsic_correction = .false.
 
@@ -28,10 +28,10 @@ workingmode = 1
 &time_nml
 
 ! time at end of simulation
-te = 0.04
+te = 500
 
 ! number of steps from t = 0 to t = te
-nsteps = 10
+nsteps = 150
 
 ! resume from this step
 nresume = 0
@@ -49,7 +49,7 @@ T_ratio = 1.0
 B0 = 2.0
 
 ! extent of the plasma slab
-l_plasma = 73.0, 292.0, 0.0
+l_plasma = 51.2 204.8 0.0
 
 ! halfwidth of the shear layer 
 shear_halfwidth = 2.0
@@ -58,28 +58,28 @@ shear_halfwidth = 2.0
 shear_strength = 1.0
 
 ! number of ions in initial configuration
-ni = 200
+ni = 20000
 /
 
 &field_grid_nml
 
 ! nx x ny grid points
-n = 4 16
+n = 64 128
 
 ! shifted right by 50
 offset = 0.0 0.0
 
 ! physical space spanned by the grid
-extent = 73.0 292.0
+extent = 51.2 204.8
 /
 
 &calc_force_log2d
 
 mac_select = 0
 
-theta2 = 0.49
+theta2 = 0.36
 
-eps2 = 0.04
+eps2 = 0.05
 
 include_far_field_if_periodic = .false.
 /
@@ -96,7 +96,7 @@ include_far_field_if_periodic = .false.
  curve_type = 1
  
  interaction_list_length_factor = 8
- num_threads = 1
+ num_threads = 8
 /
 
 &walk_para_pthreads
@@ -113,12 +113,12 @@ include_far_field_if_periodic = .false.
   nnodes  = 3 3
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
-  directforce = .true. .true.
+  directforce = .false. .false.
   ! 1st digit: 0 - no external field, 1 - full external field
   ! 2nd digit: 0 - no internal field, 1 - full internal field
   feval_mode = 11 10
   ! multipole acceptance parameter
-  theta   = 0.5 0.5
+  theta   = 0.3 0.3
   ! end of level parameters
   
   res_tol = 0.

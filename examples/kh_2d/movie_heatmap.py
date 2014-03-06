@@ -4,7 +4,7 @@ import os, sys
 
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 
