@@ -52,6 +52,8 @@ contains
     allocate(field_grid%p(field_grid%nl), &
       field_grid%ne(field_grid%n(1), field_grid%n(2)), &
       field_grid%ni(field_grid%n(1), field_grid%n(2)), &
+      field_grid%ne_from_left(field_grid%n(1), field_grid%n(2)), &
+      field_grid%ni_from_left(field_grid%n(1), field_grid%n(2)), &
       field_grid%vex(field_grid%n(1), field_grid%n(2)), &
       field_grid%vey(field_grid%n(1), field_grid%n(2)), &
       field_grid%vix(field_grid%n(1), field_grid%n(2)), &
@@ -115,7 +117,7 @@ contains
     character(len = 255), intent(in) :: file_name
 
     integer, parameter :: para_file_id = 10
-    
+
     integer(kind_particle), dimension(2) :: n
     real(kind=8), dimension(2) :: offset
     real(kind=8), dimension(2) :: extent
@@ -163,6 +165,8 @@ contains
 
     field_grid%ne = 0.0D0
     field_grid%ni = 0.0D0
+    field_grid%ne_from_left = 0.0D0
+    field_grid%ni_from_left = 0.0D0
     field_grid%vex = 0.0D0
     field_grid%vey = 0.0D0
     field_grid%vix = 0.0D0
@@ -182,10 +186,16 @@ contains
         field_grid%ne(ic(1), ic(2)) = field_grid%ne(ic(1), ic(2)) + 1
         field_grid%vex(ic(1), ic(2)) = field_grid%vex(ic(1), ic(2)) +  p(ipl)%data%v(1)
         field_grid%vey(ic(1), ic(2)) = field_grid%vey(ic(1), ic(2)) +  p(ipl)%data%v(2)
+        if (p(ipl)%label == LABEL_ELECTRON_LEFT) then
+          field_grid%ne_from_left(ic(1), ic(2)) = field_grid%ne_from_left(ic(1), ic(2)) + 1
+        endif
       else
         field_grid%ni(ic(1), ic(2)) = field_grid%ni(ic(1), ic(2)) + 1
         field_grid%vix(ic(1), ic(2)) = field_grid%vix(ic(1), ic(2)) +  p(ipl)%data%v(1)
         field_grid%viy(ic(1), ic(2)) = field_grid%viy(ic(1), ic(2)) +  p(ipl)%data%v(2)
+        if (p(ipl)%label == LABEL_ION_LEFT) then
+          field_grid%ni_from_left(ic(1), ic(2)) = field_grid%ni_from_left(ic(1), ic(2)) + 1
+        endif
       end if
     end do
 
@@ -193,6 +203,10 @@ contains
     call mpi_allreduce(MPI_IN_PLACE, field_grid%ne, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
     call mpi_allreduce(MPI_IN_PLACE, field_grid%ni, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+      MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ne_from_left, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+      MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ni_from_left, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
     call mpi_allreduce(MPI_IN_PLACE, field_grid%vex, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
@@ -206,7 +220,7 @@ contains
 
     ! normalize to fluid quantities
     ! total velocity -> mean velocity
-    where (field_grid%ne > 0.0D0) 
+    where (field_grid%ne > 0.0D0)
       field_grid%vex = field_grid%vex / field_grid%ne
       field_grid%vey = field_grid%vey / field_grid%ne
     elsewhere
@@ -222,8 +236,10 @@ contains
       field_grid%viy = 0.0D0
     end where
     ! particle number -> particle density
-    field_grid%ne = field_grid%ne * rda
-    field_grid%ni = field_grid%ni * rda
+    field_grid%ne(:,:) = field_grid%ne * rda
+    field_grid%ni(:,:) = field_grid%ni * rda
+    field_grid%ne_from_left(:,:) = field_grid%ne_from_left * rda
+    field_grid%ni_from_left(:,:) = field_grid%ni_from_left * rda
 
   end subroutine compute_field
 
@@ -256,17 +272,21 @@ contains
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)
     call write_quantity_on_grid("ex", field_grid%p(:)%results%e(1))
     call write_quantity_on_grid("ey", field_grid%p(:)%results%e(2))
-    fflat = reshape(field_grid%ne, fflatshape)
+    fflat(:) = reshape(field_grid%ne, fflatshape)
     call write_quantity_on_grid("ne", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%ni, fflatshape)
+    fflat(:) = reshape(field_grid%ni, fflatshape)
     call write_quantity_on_grid("ni", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vex, fflatshape)
+    fflat(:) = reshape(field_grid%ne_from_left, fflatshape)
+    call write_quantity_on_grid("nefromleft", fflat(my_offset + 1:))
+    fflat(:) = reshape(field_grid%ni_from_left, fflatshape)
+    call write_quantity_on_grid("nifromleft", fflat(my_offset + 1:))
+    fflat(:) = reshape(field_grid%vex, fflatshape)
     call write_quantity_on_grid("vex", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vey, fflatshape)
+    fflat(:) = reshape(field_grid%vey, fflatshape)
     call write_quantity_on_grid("vey", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%vix, fflatshape)
+    fflat(:) = reshape(field_grid%vix, fflatshape)
     call write_quantity_on_grid("vix", fflat(my_offset + 1:))
-    fflat = reshape(field_grid%viy, fflatshape)
+    fflat(:) = reshape(field_grid%viy, fflatshape)
     call write_quantity_on_grid("viy", fflat(my_offset + 1:))
 
     deallocate(fflat)

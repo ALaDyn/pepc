@@ -13,6 +13,11 @@ module physics_helper
 
    integer, parameter :: file_energy = 70
 
+   integer, parameter :: LABEL_ELECTRON_LEFT  = -1
+   integer, parameter :: LABEL_ELECTRON_RIGHT = +1
+   integer, parameter :: LABEL_ION_LEFT       = -2
+   integer, parameter :: LABEL_ION_RIGHT      = +2
+
 contains
 
 
@@ -230,7 +235,7 @@ contains
         xi(ip,:) = pt(ip)%x(:)
         xp(ip) = pt(ip)%x(1)
 
-        ! (3) give the ions random initial velocities in the positive x direction with a Rayleigh distribution at the desired 
+        ! (3) give the ions random initial velocities in the positive x direction with a Rayleigh distribution at the desired
         ! temperature
         pt(ip)%data%v(1) = max(velocity_1d_rayleigh(vti), real(1.0E-6, kind = 8))
         ! and in the y direction give them the local E x B drift velocity
@@ -240,7 +245,7 @@ contains
         vi(ip,:) = pt(ip)%data%v(:)
       end do
 
-      ! (4) advance each ion along its trajectory, in the presence of the constant but nonuniform electric field, for a random 
+      ! (4) advance each ion along its trajectory, in the presence of the constant but nonuniform electric field, for a random
       ! fraction of its orbital period
       allocate(period(nil))
       period = 0
@@ -384,6 +389,23 @@ contains
       !if (mpi_rank == 0) &
       !  print *, "Ti / Te = ", (mi * vti) / (me * vte)
 
+      ! assign negative labels to all left particles, positive labels to right particles
+      do ip = 1,nil
+        if (p(ip)%x(1) <= lx/2.) then
+          p(ip)%label = LABEL_ION_LEFT
+        else
+          p(ip)%label = LABEL_ION_RIGHT
+        endif
+      end do
+
+      do ip = nil+1, size(p, kind=kind(ip))
+        if (p(ip)%x(1) <= lx/2.) then
+          p(ip)%label = LABEL_ELECTRON_LEFT
+        else
+          p(ip)%label = LABEL_ELECTRON_RIGHT
+        endif
+      end do
+
       contains
 
       function vdrift(x)
@@ -440,7 +462,7 @@ contains
     xi = rng_next_real()
     v(1) = v0 * cos(2 * pi * xi)
     v(2) = v0 * sin(2 * pi * xi)
- 
+
   end function velocity_2d_maxwell
 
 
@@ -452,7 +474,7 @@ contains
     real*8 :: v
 
     real*8 :: xi
-    
+
     xi = rng_next_real()
     v = vt * sqrt(-2.0D0 * log(xi))
   end function velocity_1d_rayleigh
@@ -478,7 +500,7 @@ contains
     e_pot = 0.0D0
 
     do ip = 1, size(p)
-      e_kin = e_kin + e_kin_of_particle(p(ip)) 
+      e_kin = e_kin + e_kin_of_particle(p(ip))
       e_pot = e_pot + e_pot_of_particle(p(ip))
     end do
 
