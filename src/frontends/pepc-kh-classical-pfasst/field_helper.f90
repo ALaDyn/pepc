@@ -55,6 +55,8 @@ contains
     allocate(field_grid%p(field_grid%nl), &
       field_grid%ne(field_grid%n(1), field_grid%n(2)), &
       field_grid%ni(field_grid%n(1), field_grid%n(2)), &
+      field_grid%ne_from_left(field_grid%n(1), field_grid%n(2)), &
+      field_grid%ni_from_left(field_grid%n(1), field_grid%n(2)), &
       field_grid%vex(field_grid%n(1), field_grid%n(2)), &
       field_grid%vey(field_grid%n(1), field_grid%n(2)), &
       field_grid%vix(field_grid%n(1), field_grid%n(2)), &
@@ -184,13 +186,19 @@ contains
       ic = ceiling((p(ipl)%x(1:2) - field_grid%offset) / field_grid%dx)
 
       if (p(ipl)%data%q < 0.0D0) then ! electron
-        field_grid%ne(ic(1), ic(2)) = field_grid%ne(ic(1), ic(2)) + 1
+        field_grid%ne( ic(1), ic(2)) = field_grid%ne( ic(1), ic(2)) + 1
         field_grid%vex(ic(1), ic(2)) = field_grid%vex(ic(1), ic(2)) +  p(ipl)%data%v(1)
         field_grid%vey(ic(1), ic(2)) = field_grid%vey(ic(1), ic(2)) +  p(ipl)%data%v(2)
+        if (p(ipl)%label == LABEL_ELECTRON_LEFT) then
+          field_grid%ne_from_left( ic(1), ic(2)) = field_grid%ne_from_left( ic(1), ic(2)) + 1
+        endif
       else
-        field_grid%ni(ic(1), ic(2)) = field_grid%ni(ic(1), ic(2)) + 1
+        field_grid%ni( ic(1), ic(2)) = field_grid%ni( ic(1), ic(2)) + 1
         field_grid%vix(ic(1), ic(2)) = field_grid%vix(ic(1), ic(2)) +  p(ipl)%data%v(1)
         field_grid%viy(ic(1), ic(2)) = field_grid%viy(ic(1), ic(2)) +  p(ipl)%data%v(2)
+        if (p(ipl)%label == LABEL_ION_LEFT) then
+          field_grid%ni_from_left( ic(1), ic(2)) = field_grid%ni_from_left( ic(1), ic(2)) + 1
+        endif
       end if
     end do
 
@@ -198,6 +206,10 @@ contains
     call mpi_allreduce(MPI_IN_PLACE, field_grid%ne, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
     call mpi_allreduce(MPI_IN_PLACE, field_grid%ni, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+      MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ne_from_left, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+      MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ni_from_left, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
       MPI_SUM, pepc_pars%pepc_comm%comm_space, mpi_err)
 
     call mpi_allreduce(MPI_IN_PLACE, field_grid%vex, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
@@ -229,6 +241,8 @@ contains
     ! particle number -> particle density
     field_grid%ne(:,:) = field_grid%ne * rda
     field_grid%ni(:,:) = field_grid%ni * rda
+    field_grid%ne_from_left(:,:) = field_grid%ne_from_left * rda
+    field_grid%ni_from_left(:,:) = field_grid%ni_from_left * rda
 
   end subroutine compute_field
 
@@ -265,6 +279,10 @@ contains
     call write_quantity_on_grid("ne", fflat(my_offset + 1:))
     fflat(:) = reshape(field_grid%ni, fflatshape)
     call write_quantity_on_grid("ni", fflat(my_offset + 1:))
+    fflat(:) = reshape(field_grid%ne_from_left, fflatshape)
+    call write_quantity_on_grid("nefromleft", fflat(my_offset + 1:))
+    fflat(:) = reshape(field_grid%ni_from_left, fflatshape)
+    call write_quantity_on_grid("nifromleft", fflat(my_offset + 1:))
     fflat(:) = reshape(field_grid%vex, fflatshape)
     call write_quantity_on_grid("vex", fflat(my_offset + 1:))
     fflat(:) = reshape(field_grid%vey, fflatshape)

@@ -13,6 +13,11 @@ module physics_helper
 
    integer, parameter :: file_energy = 70
 
+   integer, parameter :: LABEL_ELECTRON_LEFT  = -1
+   integer, parameter :: LABEL_ELECTRON_RIGHT = +1
+   integer, parameter :: LABEL_ION_LEFT       = -2
+   integer, parameter :: LABEL_ION_RIGHT      = +2
+
 contains
 
 
@@ -388,6 +393,23 @@ contains
 
       !if (mpi_rank == 0) &
       !  print *, "Ti / Te = ", (mi * vti) / (me * vte)
+
+      ! assign negative labels to all left particles, positive labels to right particles
+      do ip = 1,nil
+        if (p(ip)%x(1) <= lx/2.) then
+          p(ip)%label = LABEL_ION_LEFT
+        else
+          p(ip)%label = LABEL_ION_RIGHT
+        endif
+      end do
+
+      do ip = nil+1, size(p, kind=kind(ip))
+        if (p(ip)%x(1) <= lx/2.) then
+          p(ip)%label = LABEL_ELECTRON_LEFT
+        else
+          p(ip)%label = LABEL_ELECTRON_RIGHT
+        endif
+      end do
 
       contains
 
