@@ -87,6 +87,8 @@ if __name__ == '__main__':
       gamma[i] = 0
 
   #plt.tight_layout()
+  plt.savefig('modes_%s_overview.png' % field)
+  plt.savefig('modes_%s_overview.pdf' % field)
 
   plt.figure()
   plt.plot(np.linspace(0,1,100), analytic(np.linspace(0,1,100)), 'k-')
@@ -94,5 +96,7 @@ if __name__ == '__main__':
 
   print '{', ', '.join(['{{{0}, {1}}}'.format(e[0], e[1]) for e in res]), '}'
 
-  plt.show()
+  plt.savefig('modes_%s_growthrate.png' % field)
+  plt.savefig('modes_%s_growthrate.pdf' % field)
+
 
