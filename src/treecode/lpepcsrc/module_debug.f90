@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -70,6 +70,7 @@ module module_debug
      !>  lpepc status output
      !>
      subroutine pepc_status(stat)
+       use, intrinsic :: iso_fortran_env, only: output_unit
        use treevars, only : me
        implicit none
        character(*), intent(in) :: stat
@@ -77,14 +78,18 @@ module module_debug
        if (dbg(DBG_STATUS)) then
           if (debug_initialized) then ! output to ipefile only if it already has been created
             call debug_ipefile_open()
-            write(debug_ipefile,'("LPEPC | ", a)') stat
+            call debug_print_timestamp(debug_ipefile)
+            write(debug_ipefile,'(" LPEPC | ", a)') stat
             call debug_ipefile_close()
           endif
 
-          if (me==0) write(*,'("LPEPC | ", a)') stat
+          if (me==0) then
+            call debug_print_timestamp(output_unit)
+            write(*,'(" LPEPC | ", a)') stat
+          end if
        endif
      end subroutine
-     
+
 
      !>
      !>  module initialization (is called automatically on first call to debug_ipefile_open)
@@ -105,7 +110,8 @@ module module_debug
        call create_directory("diag")
 
        open(debug_ipefile, file=trim(debug_ipefile_name),STATUS='UNKNOWN', POSITION = 'REWIND')
-       call timstamp(debug_ipefile, "PEPC on ["//procname(1:resultlen)//"]")
+       call debug_print_timestamp(debug_ipefile)
+       write (debug_ipefile, '(a)') " PEPC on ["//procname(1:resultlen)//"]"
        close(debug_ipefile)
 
        debug_initialized = .true.
@@ -113,23 +119,46 @@ module module_debug
 
 
      !>
-     !>  prints timestamp and reason to istream
+     !> Writes the current date and time into the argument in the format YYYY-MM-DD hh:mm:ss
      !>
-     subroutine timstamp(istream,reason)
+     subroutine debug_timestamp(str)
+       implicit none
+       character(*), intent(out) :: str
+
+       ! [
+       !  year,
+       !  month of year,
+       !  day of month,
+       !  difference to UTC in minutes,
+       !  hour of day,
+       !  minutes of hour,
+       !  seconds of minute,
+       !  milliseconds of second
+       ! ]
+       integer :: v(8)
+
+       if (len(str) >= 19) then
+         call date_and_time(values = v)
+         write (str, '(i4, "-", i2.2, "-", i2.2, " ", i2.2, ":", i2.2, ":", i2.2)') v(1), v(2), v(3), v(5), v(6), v(7)
+       end if
+     end subroutine debug_timestamp
+
+
+     !>
+     !> Writes the output of `debug_timestamp` surrounded by angled brackets to the I/O unit specified in the argument
+     !> without advancing to the next line.
+     !>
+     subroutine debug_print_timestamp(iounit)
        implicit none
 
-       character :: cdate*8, ctime*10, czone*5
-       integer, intent(in) :: istream
-       character(*), intent(in) :: reason
+       integer(kind_default), intent(in) :: iounit
 
-       call DATE_AND_TIME(cdate,ctime,czone)
+       character(19) :: str
 
-       write(istream, '(2(a2,"/"),a4,", ",2(a2,":"),a2, " (GMT", a5,") - ", a, //)') &
-             cdate(7:8), cdate(5:6), cdate(1:4), &
-             ctime(1:2), ctime(3:4), ctime(5:6), &
-             czone, &
-             reason
-     end subroutine
+       call debug_timestamp(str)
+
+       write (iounit, '("<", a, ">")', advance = 'no') str
+    end subroutine debug_print_timestamp
 
 
      !>
@@ -156,7 +185,7 @@ module module_debug
        implicit none
        include 'mpif.h'
        integer(kind_default) :: ierr
-       
+
        ! starting from GCC version 4.8, a backtrace() subroutine is provided by gfortran
        #if defined(__GNUC__)
          #define GCC_VERSION (__GNUC__ * 10000 \
