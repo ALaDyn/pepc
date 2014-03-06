@@ -93,6 +93,7 @@ cleanall: cleanlib cleandoc clean
 allclean: cleanall
 
 pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a libopa
+	@if [ ! -d "$(FRONTENDDIR)/$@" ]; then printf "======== $(RED)Frontend $@ does not exist. Aborting.$(NC)\n"; false; fi
 	@printf "======== start building frontend $(BC){ $@ }$(NC)\n"
 	@printf "==== date: $(BC)$(shell "date")$(NC)\n"
 	@printf "==== make target: $(BC)$@$(NC)\n"
