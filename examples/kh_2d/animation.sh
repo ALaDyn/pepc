@@ -6,11 +6,11 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-QUALITY=2
+QUALITY=6
 FILEOUT="./heatmap_${1}.bin"
 
 rm -f animation.list
-ls -1 fields/heatmap_${1}_??????.bin.png > animation.list
+ls -1 fields/heatmap_${1}_??????.bin.png | tee animation.list | sed "s/\(.*\)/file '\1'/" > animation.ffmpeg.list
 
 # see http://www.mplayerhq.hu/DOCS/HTML/de/menc-feat-enc-libavcodec.html
 
@@ -37,17 +37,17 @@ case $QUALITY in
   ;;
   5) # lossless h.264
   type ffmpeg || { echo >&2 "I require ffmpeg but it's not installed.  Aborting. Use your workstation computer."; exit 1; }
-  ffmpeg -f image2 -r 16 -i animation.%04d.png -c:v libx264 -preset veryslow -qp 0 "$FILEOUT.mkv"
+  ffmpeg -f concat -i animation.ffmpeg.list -r 25 -c:v libx264 -preset veryslow -qp 0 "$FILEOUT.mkv"
   #compression# = { ultrafast | veryslow }
   ;;
   6) # high-quality h.264
   type ffmpeg || { echo >&2 "I require ffmpeg but it's not installed.  Aborting. Use your workstation computer."; exit 1; }
-  ffmpeg -f image2 -r 16 -i animation.%04d.png -c:v libx264 -preset veryslow -crf 18 "$FILEOUT.mkv"
+  ffmpeg -f concat -i animation.ffmpeg.list -r 25 -c:v libx264 -preset veryslow -crf 18 "$FILEOUT.mkv"
   #compression# = { ultrafast | veryslow }
   ;;
   7) # high-quality, half size h.264
   type ffmpeg || { echo >&2 "I require ffmpeg but it's not installed.  Aborting. Use your workstation computer."; exit 1; }
-  ffmpeg -f image2 -r 16 -i animation.%04d.png -c:v libx264 -preset veryslow -crf 18 -vf scale=iw/2:-1 -sws_flags bilinear "$FILEOUT.mkv"
+  ffmpeg -f concat -i animation.ffmpeg.list -r 25 -c:v libx264 -preset veryslow -crf 18 -vf scale=iw/2:-1 -sws_flags bilinear "$FILEOUT.mkv"
   #compression# = { ultrafast | veryslow }
   ;;
 esac
