@@ -16,7 +16,6 @@ from fit import lsfit
 
 expmodel = lambda x, p: p[0] * np.exp(x * p[1]) + p[2]**2
 linmodel = lambda x, p: np.log(p[0]) + x * p[1]
-analytic = lambda x: 0.2 - 0.2 * (2.0 * (x - 0.5))**2
 
 def ky_of_fieldblob(fn):
   ly = fb.extenty_of_fieldblob(fn)
@@ -93,6 +92,10 @@ if __name__ == '__main__':
   plt.figure()
   x_analytic, y_analytic = np.loadtxt('growth_rate_analytic.csv', delimiter = ',', dtype = np.float64, unpack = True)
   plt.plot(x_analytic, y_analytic, 'k-')
+
+  x_kai, y_kai, ub_kai = np.loadtxt('growth_rate_kai_ex1.csv', delimiter = ',', dtype = np.float64, unpack = True)
+  plt.errorbar(x_kai, y_kai, yerr = ub_kai - y_kai, fmt = '.', color = 'gray')
+
   plt.errorbar(k[1:len(gamma)], gamma[1:], yerr = confidence_scale * stddev[1:], fmt = 'k.')
 
   print '{', ', '.join(['{{{0}, {1}}}'.format(e[0], e[1]) for e in res]), '}'
