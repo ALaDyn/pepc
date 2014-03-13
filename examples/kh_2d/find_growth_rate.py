@@ -91,7 +91,8 @@ if __name__ == '__main__':
   plt.savefig('modes_%s_overview.pdf' % field)
 
   plt.figure()
-  plt.plot(np.linspace(0,1,100), analytic(np.linspace(0,1,100)), 'k-')
+  x_analytic, y_analytic = np.loadtxt('growth_rate_analytic.csv', delimiter = ',', dtype = np.float64, unpack = True)
+  plt.plot(x_analytic, y_analytic, 'k-')
   plt.errorbar(k[1:len(gamma)], gamma[1:], yerr = confidence_scale * stddev[1:], fmt = 'k.')
 
   print '{', ', '.join(['{{{0}, {1}}}'.format(e[0], e[1]) for e in res]), '}'
