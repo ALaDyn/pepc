@@ -497,17 +497,11 @@ contains
     integer, intent(in) :: step
     type(t_particle), dimension(:), intent(in) :: p
 
-    integer(kind_particle) :: ip
     integer(kind_default) :: mpi_err
     real(kind = 8) :: e_kin, e_pot, e_kin_g, e_pot_g
 
-    e_kin = 0.0D0
-    e_pot = 0.0D0
-
-    do ip = 1, size(p)
-      e_kin = e_kin + e_kin_of_particle(p(ip))
-      e_pot = e_pot + e_pot_of_particle(p(ip))
-    end do
+    e_kin =     sum(e_kin_of_particle(p))
+    e_pot = 0.5*sum(e_pot_of_particle(p))
 
     call mpi_reduce(e_kin, e_kin_g, 1, MPI_REAL8, MPI_SUM, 0, &
       pepc_pars%pepc_comm%comm_space, mpi_err)
@@ -551,7 +545,7 @@ contains
   end subroutine physics_dump
 
 
-  pure function e_kin_of_particle(p)
+  elemental pure function e_kin_of_particle(p)
     use module_pepc_types, only: t_particle
     implicit none
 
@@ -562,14 +556,14 @@ contains
   end function e_kin_of_particle
 
 
-  pure function e_pot_of_particle(p)
+  elemental pure function e_pot_of_particle(p)
     use module_pepc_types, only: t_particle
     implicit none
 
     type(t_particle), intent(in) :: p
     real(kind = 8) :: e_pot_of_particle
 
-    e_pot_of_particle = 0.5 * p%results%pot * p%data%q
+    e_pot_of_particle = p%results%pot * p%data%q
   end function e_pot_of_particle
 
 

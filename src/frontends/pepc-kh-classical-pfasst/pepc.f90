@@ -149,7 +149,10 @@ program pepc
       call pf_pfasst_setup(pf)
 
       ! Add user-defined calls, e.g. diagnostics, here
-      !call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_iterstate_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_iterstate_hook)
+      call pf_add_hook(pf, pf_nml%nlevels, PF_POST_ITERATION, dump_iterstate_hook)
+
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, dump_particles_hook)
       call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook) ! this is actually only executed once in the very first timestep (see variable did_prestep in dump_particles_hook() )
       call pf_add_hook(pf, pf_nml%nlevels, PF_POST_STEP, constrain_particles_hook)
@@ -177,6 +180,8 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt, physics_pars%B0)
           call constrain_particles(physics_pars, particles)
+
+          call eval_force(particles, level_params(pf_nml%nlevels), pepc_pars%pepc_comm%comm_space, clearresults=.true.)
           call perform_all_dumps(step, pepc_pars, physics_pars, time_pars, field_grid, particles)
         end do
       end associate

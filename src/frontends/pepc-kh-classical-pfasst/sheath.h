@@ -28,10 +28,10 @@ workingmode = 1
 &time_nml
 
 ! time at end of simulation
-te = 500
+te = 200
 
 ! number of steps from t = 0 to t = te
-nsteps = 150
+nsteps = 50
 
 ! resume from this step
 nresume = 0
