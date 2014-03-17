@@ -97,10 +97,7 @@ contains
     call c_f_pointer(level%levelctx, levelctx)
 
     select case (state%hook)
-      case (PF_POST_STEP)
-        t = state%t0 + state%dt ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
-        step = state%step + 1
-      case (PF_POST_ITERATION)
+      case (PF_POST_STEP, PF_POST_ITERATION)
         t = state%t0 + state%dt ! yes, this is OK, no multiplication with step as t0 is automatically updated during each step
         step = state%step + 1
       case (PF_PRE_STEP)
