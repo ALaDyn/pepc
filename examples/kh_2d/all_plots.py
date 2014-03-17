@@ -36,3 +36,17 @@ if __name__ == '__main__':
     argv = ['./movie_yaverage.py', fieldtype]
     argv.extend(filenames)
     run_with_output(argv)
+
+  movieprops = [
+    ( 'ex',  'ey', 'RdBu_r'),
+    ('vex', 'vey', 'RdBu_r'),
+    ('vix', 'viy', 'RdBu_r')
+  ]
+
+  for (fieldnameu, fieldnamev, cmap) in movieprops:
+    argv = ['./movie_streamplot.py', cmap]
+    filenamesu = glob.glob('fields/{0}_??????.bin'.format(fieldnameu))
+    argv.extend(filenamesu)
+    filenamesv = glob.glob('fields/{0}_??????.bin'.format(fieldnamev))
+    argv.extend(filenamesv)
+    run_with_output(argv)
