@@ -172,7 +172,7 @@ contains
       vtk_step = VTK_STEP_NORMAL
     endif
 
-    call vtk_write_particles("particles", pepc_pars%pepc_comm%rank_space, step, time, vtk_step, p)
+    call vtk_write_particles("particles", pepc_pars%pepc_comm%comm_space, step, time, vtk_step, p)
 
     tb = get_time()
 
