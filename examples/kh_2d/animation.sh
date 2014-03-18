@@ -1,9 +1,12 @@
 #!/bin/bash
 
-if [ "$#" -lt 1 ]; then
-    echo "Produces a video from fields/heatmap_XXX_??????.bin.png"
-    echo "Usage: ${0} [FIELD [FIELD [FIELD [..]]]]"
-    echo "   with FIELD=ne|ni|nefromleft|nifromleft|potential|ex|ey|vex|vey|vix|viy"
+if [ "$#" -lt 2 ]; then
+    echo "Produces a video from fields/TYPE_XXX_??????.bin.png"
+    echo "Usage:"
+    echo "   ${0} TYPE [FIELD [FIELD [FIELD [..]]]]"
+    echo "        - FIELD=ne|ni|nefromleft|nifromleft|potential|ex|ey|vex|vey|vix|viy"
+    echo "        - TYPE=heatmap|streamplot"
+    echo""
     echo "If more than one field is supplied, in addition to the"
     echo "separate videos, another video is generated that shows"
     echo "all individual movies next to each other."
@@ -16,13 +19,16 @@ OVFILES_FFMPEG=""
 OVDATA_FFMPEG=""
 IDX="0"
 FILEMERGED=""
+TYPE=${1}
+
+shift # get rid of first argument
 
 for datafield in "$@"
 do
     echo "################### processing ${datafield} ####################"
     FILENAME_FFMPEG="animation.ffmpeg"
     FILENAME_MPLAYER="animation.mencoder"
-    FILEOUT="./heatmap_${datafield}"
+    FILEOUT="./${TYPE}_${datafield}"
     FILEMERGED="${FILEMERGED}_${datafield}"
     OVFILES_FFMPEG="${OVFILES_FFMPEG} -i ${FILEOUT}.mkv"
     if [ "${IDX}" -eq 0 ]; then
@@ -32,7 +38,7 @@ do
       OVDATA_FFMPEG="${OVDATA_FFMPEG}[vid${PREVIDX}];[vid${PREVIDX}][${IDX}:v]overlay=w*${IDX}"
     fi
     IDX=$((${IDX} + 1))
-    ls -1 fields/heatmap_${datafield}_??????.bin.png | tee ${FILENAME_MPLAYER} | sed "s/\(.*\)/file '\1'/" > ${FILENAME_FFMPEG}
+    ls -1 fields/${TYPE}_${datafield}_??????.bin.png | tee ${FILENAME_MPLAYER} | sed "s/\(.*\)/file '\1'/" > ${FILENAME_FFMPEG}
 
     case $QUALITY in
         5) # lossless h.264
@@ -53,7 +59,7 @@ do
     esac
 done
 
-if [ "$#" -gt 1 ]; then
+if [ "$#" -gt 2 ]; then
   echo "################### merging videos ####################"
   echo ffmpeg ${OVFILES_FFMPEG} -filter_complex "${OVDATA_FFMPEG}" -r 25 -c:v libx264 "heatmap${FILEMERGED}.mkv"
   ffmpeg ${OVFILES_FFMPEG} -filter_complex "${OVDATA_FFMPEG}" -r 25 -c:v libx264 "heatmap${FILEMERGED}.mkv"
