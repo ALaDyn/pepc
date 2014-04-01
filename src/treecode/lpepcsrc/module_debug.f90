@@ -63,6 +63,7 @@ module module_debug
       public debug_ipefile_close
       public debug_mpi_abort
       public debug_barrier
+      public debug_print_timestamp
 
    contains
 

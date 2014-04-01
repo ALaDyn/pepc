@@ -110,6 +110,7 @@ contains
     end select
 
     if (levelctx%pepc_pars%pepc_comm%root_stdio) then
+      call debug_print_timestamp(6)
       write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g15.6)',advance='yes') &
         char(13), hook_names(state%hook), step, state%nsteps, t, state%iter, level%residual
     endif
