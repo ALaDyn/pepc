@@ -267,7 +267,7 @@ program pepc
     if(pepc_pars%pepc_comm%rank_world==0) then
       if (step == 0) write(*,*)
       call debug_print_timestamp(6)
-      write(*,'(a1, " == computing step",i12,"/",i0, " == simulation time: ", f 12.4)', advance='no')  char(13), step, nt, step*dt
+      write(*,'(" == computing step",i12,"/",i0, " == simulation time: ", f 12.4)', advance='no') step, nt, step*dt
       if (step == nt) write(*,*)
     end if
 
