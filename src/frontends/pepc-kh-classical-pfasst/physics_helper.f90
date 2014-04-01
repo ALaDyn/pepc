@@ -535,8 +535,7 @@ contains
       end if
 
       if (.not. (time_pars%nresume > 0 .and. time_pars%nresume == step)) then
-        write(file_energy, *) time_pars%dt * step, ", ", e_kin_g, ", ", &
-          e_pot_g, ", ", (e_kin_g + e_pot_g)
+        write(file_energy, '(4(16.10g,x))') time_pars%dt * step, e_kin_g, e_pot_g, e_kin_g+e_pot_g
       end if
       close(file_energy)
 
