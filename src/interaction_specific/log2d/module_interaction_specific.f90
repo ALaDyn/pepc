@@ -333,10 +333,12 @@ module module_interaction_specific
 
     real*8 :: R
 
-    associate (ra => p%data%ra, rb => p%data%rb)
-      R = 0.5_8 * sqrt(dot_product(rb - ra, rb - ra))
-      p%results%pot = p%results%pot + 2.0_8 * p%data%q * R * (1.0_8 - log(R)) - pi * p%data%phi
-    end associate
+    if (p%data%source_kind /= CALC_FORCE_SOURCE_KIND_PARTICULAR) then
+      associate (ra => p%data%ra, rb => p%data%rb)
+        R = 0.5_8 * sqrt(dot_product(rb - ra, rb - ra))
+        p%results%pot = p%results%pot + 2.0_8 * p%data%q * R * (1.0_8 - log(R)) - pi * p%data%phi
+      end associate
+    end if
 #endif
   end subroutine
 

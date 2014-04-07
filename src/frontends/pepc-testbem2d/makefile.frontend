@@ -12,5 +12,7 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
+# FIXME: walk_simple still has counters.
+WALK = simple
 BACKEND = log2d
 BACKENDTYPE = XYZQVM

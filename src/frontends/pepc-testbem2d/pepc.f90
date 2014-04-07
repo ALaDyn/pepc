@@ -76,7 +76,7 @@ module bem
     call VecRestoreArrayF90(x, sol, ierr)
 
     ! mask out knowns
-    where (bem_el(:)%data%source_kind == CALC_FORCE_SOURCE_KIND_DIRICHLET) 
+    where (bem_el(:)%data%source_kind == CALC_FORCE_SOURCE_KIND_DIRICHLET)
       bem_tmp = bem_el(:)%data%phi
       bem_el(:)%data%phi = 0.0_8
     end where
@@ -131,13 +131,11 @@ module bem
     PetscErrorCode :: ierr
     PetscInt :: i
 
+    call pepc_particleresults_clear(bem_el)
+
     ! compute particular part RHS
     if (present(part)) then
-      call pepc_particleresults_clear(bem_el)
-      call pepc_grow_tree(part)
-      call pepc_traverse_tree(bem_el)
-      call pepc_restore_particles(part)
-      call pepc_timber_tree()
+      call pepc_grow_and_traverse_for_others(part, bem_el, -1, no_dealloc = .false., no_restore = .false.)
     end if
 
     ! mask out the unknowns for RHS computation
@@ -151,9 +149,6 @@ module bem
     end where
 
     call pepc_grow_and_traverse(bem_el, -1, no_dealloc = .false., no_restore = .false.)
-    do i = 1, size(bem_el)
-      call calc_force_per_interaction_self(bem_el(i))
-    end do
 
     ! restore unknowns to particles
     where (bem_el(:)%data%source_kind == CALC_FORCE_SOURCE_KIND_DIRICHLET) bem_el(:)%data%q   = bem_tmp
@@ -189,7 +184,7 @@ module bem
     !write (*, *) "LHS vector:"
     !call VecView(x, PETSC_VIEWER_STDOUT_SELF, ierr)
 
-    ! assign values given by RHS vec x to bem particles
+    ! assign values given by LHS vec x to bem particles
     call VecGetArrayF90(x, lhs, ierr)
     where (bem_el(:)%data%source_kind == CALC_FORCE_SOURCE_KIND_DIRICHLET) bem_el(:)%data%q   = lhs
     where (bem_el(:)%data%source_kind == CALC_FORCE_SOURCE_KIND_NEUMANN)   bem_el(:)%data%phi = lhs
@@ -197,11 +192,8 @@ module bem
 
     call pepc_particleresults_clear(bem_el)
     call pepc_grow_and_traverse(bem_el, bem_iteration, no_dealloc = .false., no_restore = .false.)
-    do i = 1, size(bem_el)
-      call calc_force_per_interaction_self(bem_el(i))
-    end do
 
-    write (*, *) ", interactions: ", interactions_local + size(bem_el)
+    write (*, *) ", interactions: ", interactions_local
 
     ! store results in vector y
     call VecGetArrayF90(y, res, ierr)
@@ -267,7 +259,7 @@ program pepc
 
   include 'mpif.h'
 
-  integer(kind_particle), parameter :: NX = 1024, NY = NX, NSIDE = 1024, NPART = 1024
+  integer(kind_particle), parameter :: NX = 128, NY = NX, NSIDE = 128, NPART = 128
 
   type(t_particle), target, allocatable :: pgrid(:), pside(:), part(:)
 
@@ -285,7 +277,7 @@ program pepc
 
   call pepc_initialize("pepc-testbem2d", mpi_rank, mpi_size, .true., comm = mpi_comm)
   num_threads = 8
-  theta2 = 0.36_8
+  theta2 = 0.09_8
   call pepc_prepare(2_kind_dim)
   call pepc_write_parameters(output_unit)
 
@@ -297,6 +289,7 @@ program pepc
     associate (p => part(ip))
       call random_number(p%x(1:2))
       p%x(3) = 0.0_8
+      p%work = 1.0_8
       p%data%v = [ 0.0_8, 0.0_8, 0.0_8 ]
       p%data%m = 0.0_8
 
@@ -391,7 +384,7 @@ program pepc
   call pepc_particleresults_clear(pgrid)
   call pepc_grow_tree(pside)
   call pepc_traverse_tree(pgrid)
-  call vtk_write_leaves(0, 0.0_8, VTK_STEP_FIRST)
+  call vtk_write_leaves(0, 0.0_8, VTK_STEP_FIRST, global_tree)
   call pepc_timber_tree()
 
   call pepc_grow_tree(part)
@@ -402,15 +395,15 @@ program pepc
   pgrid(:)%results%e(1) = pgrid(:)%results%e(1) / (2 * pi)
   pgrid(:)%results%e(2) = pgrid(:)%results%e(2) / (2 * pi)
 
-!  open (file = 'result.dat', status = 'replace', newunit = fd)
-!  do ip = 1, NX * NY
-!    associate (p => pgrid(ip))
-!      write (fd, '(3(g0,:,","))') p%x(1:2), p%results%pot
-!    end associate
-!  end do
-!  close (fd)
+  open (file = 'result.dat', status = 'replace', newunit = fd)
+  do ip = 1, NX * NY
+    associate (p => pgrid(ip))
+      write (fd, '(3(g0,:,","))') p%x(1:2), p%results%pot
+    end associate
+  end do
+  close (fd)
 
-  !call vtk_write_particles("grid", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pgrid, write_results)
+  call vtk_write_particles("grid", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pgrid, write_results)
   call vtk_write_particles("boundary", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pside, write_bc)
   call vtk_write_particles("boundary_results", mpi_comm, 0, 0.0_8, VTK_STEP_FIRST, pside, write_results)
 
@@ -423,7 +416,7 @@ program pepc
   xcoords = [ ((ix - 0.5_8) * dx, ix = 1, NX) ]
   ycoords = [ ((iy - 0.5_8) * dy, iy = 1, NY) ]
   zcoords = [ 0.0 ]
-  
+
   do ix = 1, NX
     do iy = 1, NY
       associate (p => pgrid(iy + NY * (ix - 1)))
@@ -433,9 +426,9 @@ program pepc
       end associate
     end do
   end do
-  
+
   call vtk_write_field_on_grid("grid", 0, 0.0_8, VTK_STEP_FIRST, globaldims, mydims, xcoords, ycoords, zcoords, &
-    scalarvalues, "phi", vectorvalues, "e", 0, 1, MPI_COMM_WORLD)
+    scalarvalues, "phi", vectorvalues, "e", MPI_COMM_WORLD)
   deallocate (xcoords, ycoords, zcoords)
   deallocate (scalarvalues, vectorvalues)
 
