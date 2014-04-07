@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -25,7 +25,9 @@ module module_spacefilling
       use module_pepc_types
       implicit none
 
-      integer, public :: curve_type = 1 !(0: Morton, 1: Hilbert) 
+      integer(kind_key), parameter, public :: KEY_INVALID = 0_kind_key
+
+      integer, public :: curve_type = 1 !(0: Morton, 1: Hilbert)
 
       interface coord_to_key
         module procedure coord_to_key_lastlevel, coord_to_key_level, &
@@ -86,7 +88,7 @@ module module_spacefilling
 
           child_number_from_key = int(ibits(key, 0, idim), kind_byte)
         end function child_number_from_key
-        
+
 
         !>
         !> returns `key` shifted up (negative argument) or down by a number
@@ -105,7 +107,7 @@ module module_spacefilling
 
 
         !>
-        !> returns the key for child `n` of a node with key `key` 
+        !> returns the key for child `n` of a node with key `key`
         !>
         pure function child_key_from_parent_key(key, n)
           implicit none
@@ -150,14 +152,14 @@ module module_spacefilling
 
 
         !>
-        !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key) 
+        !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key)
         !>
         pure function is_ancestor_of_particle_nolevel(key_c,key_a)
           use treevars, only: nlev
           implicit none
           logical :: is_ancestor_of_particle_nolevel
           integer(kind_key), intent(in) :: key_a, key_c
- 
+
           integer(kind_level) :: level_a
 
           level_a = level_from_key(key_a)
@@ -166,7 +168,7 @@ module module_spacefilling
 
 
         !>
-        !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key) 
+        !> checks whether key_a is an ancestor of key_c (which must be at highest tree level, i.e. a particle key)
         !>
         pure function is_ancestor_of_particle_withlevel(key_c,key_a,level_a)
           use treevars, only: nlev
@@ -174,7 +176,7 @@ module module_spacefilling
           logical :: is_ancestor_of_particle_withlevel
           integer(kind_key), intent(in) :: key_a, key_c
           integer(kind_level), intent(in) :: level_a
- 
+
           is_ancestor_of_particle_withlevel = is_ancestor_of_withlevel(key_a, level_a, key_c, nlev)
         end function
 
@@ -501,7 +503,7 @@ module module_spacefilling
                 itemp(1) = itemp(2)
                 itemp(2) = change
             end select
-                
+
             ! reverse
             do j=1,2
               if (btest(reverse, j - 1)) itemp(j) = iand(not(itemp(j)), 2_kind_key**(i) - 1)

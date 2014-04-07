@@ -89,7 +89,7 @@ module module_walk
 
   subroutine tree_walk_init(t, p_, num_threads)
     use module_tree, only: TREE_KEY_ROOT
-    use module_spacefilling, only: level_from_key
+    use module_spacefilling, only: KEY_INVALID, level_from_key
     use module_debug
     implicit none
 
@@ -97,18 +97,25 @@ module module_walk
     type(t_particle), target, intent(in) :: p_(:)
     integer, intent(in) :: num_threads
 
+    integer(kind_particle) :: ip
+
     call pepc_status('WALK INIT')
 
     walk_tree => t
     num_walk_threads = num_threads
 
-    ! TODO: this currently assumes that particles actually have a key
-
     ! worst case: every particle in its own tile
     allocate(walk_tiles(size(p_)))
 
     num_walk_tiles = 0
-    call tree_walk_init_aux(TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), p_)
+    if (p_(1)%key == KEY_INVALID) then
+      num_walk_tiles = size(p_, kind = kind_particle)
+      do ip = 1, num_walk_tiles
+        walk_tiles(ip)%p => p_(ip:ip)
+      end do
+    else
+      call tree_walk_init_aux(TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), p_)
+    end if
     DEBUG_ASSERT(num_walk_tiles <= size(p_))
 
     contains
