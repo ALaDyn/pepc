@@ -187,12 +187,27 @@ module particlehandling
 
                 ! resample vpar according to maxwellian flux source, don't touch vperp
                 ! resample x = ran*dt*vx, don't touch y,z
-                call random_gaussian_flux(v_ran(1),sigma)
-                p(ip)%data%v = p(ip)%data%v - (dotproduct(p(ip)%data%v, n1) * n1)       !this gives v - vpar
-                p(ip)%data%v = p(ip)%data%v + (v_ran(1) * n1 *sign(1._8,p(ip)%x(1)))    !this adds resampled vpar
-                ran = rnd_num()
-                p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                !call random_gaussian_flux(v_ran(1),sigma)
+                !p(ip)%data%v = p(ip)%data%v - (dotproduct(p(ip)%data%v, n1) * n1)                       !this gives v - vpar
+                !p(ip)%data%v = p(ip)%data%v + (v_ran(1) * n1 *sign(1._8,p(ip)%x(1)) * sign(1._8,n1(1))  !this adds resampled vpar
+                !ran = rnd_num()
+                !p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
 
+
+                ! resample vpar according to maxwellian flux source, vperp1 and vperp2 according to Maxwellian source
+                ! resample x = ran*dt*vx, y,z = ran
+                call random_gaussian_flux(v_ran(1),sigma)
+                call random_gauss_list(v_ran(2:3),mu,sigma)
+                v_ran(1) = v_ran(1) * sign(1._8,p(ip)%x(1)) * sign(1._8,n1(1))
+                p(ip)%data%v(1) = n1(1)*v_ran(1) + t1(1)*v_ran(2) + t2(1)*v_ran(3) ! this gives the maxwellian flux
+                p(ip)%data%v(2) = n1(2)*v_ran(1) + t1(2)*v_ran(2) + t2(2)*v_ran(3) ! along n1 and gaussian
+                p(ip)%data%v(3) = n1(3)*v_ran(1) + t1(3)*v_ran(2) + t2(3)*v_ran(3) ! distribution along t1, t2
+                ran = rnd_num()
+                ran2 = rnd_num()
+                ran3 = rnd_num()
+                p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                p(ip)%x(2) = ymin + ran2*(ymax-ymin)
+                p(ip)%x(3) = zmin + ran3*(zmax-zmin)
 
        	       	! resample vx according	to maxwellian flux source, don't touch vy,vz
     	       	! resample x = ran*dt*vx, don't touch y,z
@@ -721,6 +736,11 @@ module particlehandling
         ELSE
             n=0
         END IF
+
+
+
+
+
         DO ip=1, n
             IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
                 IF (p(ip)%data%species==0) THEN
