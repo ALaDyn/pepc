@@ -17,6 +17,7 @@ module purge; module load $(MOD_LOAD)\
 #### uncomment to get OpenMP loop ####
 #EXTRA = -DOMPSS_TASKS_
 
+#### -DOMPSS_TASKS will enable tasks instead of pthreads
 
 ######################################
 
@@ -26,7 +27,7 @@ OMPSSCC    = oclmfc
 MACH       = oclmfc
 
 DEBUG      = 0
-INSTRUMENT = 0
+INSTRUMENT = 1
 
 RANLIB     = ranlib
 
@@ -70,9 +71,9 @@ ifeq ($(OMPSS), 1)
       CFLAGS  += -g
       LDFLAGS += -g -k --Wn,-O0 --Wn,-fcheck=all
    else
-      FFLAGS  += -g -k --Wn,-O2#,-finline-functions,-fwhole-program 
-      CFLAGS  += -g
-      LDFLAGS += -g -k --Wn,-O2#,-finline-functions,-fwhole-program
+      FFLAGS  += -g -k --Wn,-O3,-finline-functions,-ftree-vectorize,-fdump-ipa-inline#,-fwhole-program
+      CFLAGS  += -g                                                                                   
+      LDFLAGS += -g -k --Wn,-O3,-finline-functions                                   #,-fwhole-program
    endif
    FC += -f90=$(OMPSSCC)
    LD += -f90=$(OMPSSCC)
@@ -84,7 +85,7 @@ ifeq ($(OMPSS), 1)
 else
    CPPFLAGS += -DNO_NANOS
 endif
-   CPPFLAGS += -DNO_NANOS
+#   CPPFLAGS += -DNO_NANOS
 
 #FFLAGS = ""
 

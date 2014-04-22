@@ -124,7 +124,7 @@ module module_accelerator
                ! wait for the stream...
                !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
 #ifndef NO_NANOS
-               !$OMP taskwait on (gpu(gpu_id))
+               !$OMP taskwait on (gpu(mod(gpu_id,GPU_STREAMS) + 1))
 #endif
 
                ! find a stream
@@ -246,6 +246,7 @@ module module_accelerator
                   !$OMP target device(smp) copy_deps
                   !$OMP task in(e_1(:,:), e_2(:,:), e_3(:,:), pot(:,:)) inout(ptr) private(idx)
 #endif
+!                  write(*,*) 'flushing ACC - ', GPU_STREAMS,' entries, ',sum(queued(1:GPU_STREAMS)),' interactions'
                   do idx = 1,GPU_STREAMS
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
@@ -289,7 +290,7 @@ module module_accelerator
             if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
                ! check if finishing all work ended up using all streams - in which case the flush will have happend
                if ( .not. (gpu_id .eq. GPU_STREAMS) ) then
-                  write(*,*) 'flushing GPU - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
+                  write(*,*) 'force flushing ACC - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
                   do idx = 1,gpu_id
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))

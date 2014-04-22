@@ -577,8 +577,8 @@ module module_tree_communicator
     include 'mpif.h'
 
     type(t_tree), intent(inout) :: t
-    type(t_tree_node_package) :: child_data(num_children) !< child data that has been received
-    integer :: num_children !< actual number of valid children in dataset
+    type(t_tree_node_package), intent(in) :: child_data(num_children) !< child data that has been received
+    integer, intent(in) :: num_children !< actual number of valid children in dataset
     integer(kind_pe), intent(in) :: ipe_sender
 
     integer(kind_node) :: parent_node

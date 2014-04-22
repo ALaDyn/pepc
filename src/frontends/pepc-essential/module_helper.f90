@@ -230,7 +230,7 @@ module helper
     else
        tn = particle_direct / n_ranks
        if(my_rank.eq.(n_ranks-1)) tn = tn + MOD(particle_direct, n_ranks)
-    endif 
+    endif
   
     allocate(tindx(tn), trnd(tn), trslt(tn))
  

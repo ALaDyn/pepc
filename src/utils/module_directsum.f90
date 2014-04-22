@@ -75,11 +75,11 @@ module module_directsum
           call timer_reset(t_direct_force)
           call timer_reset(t_direct_comm)
 
-          ! Set number of openmp threads to the same number as pthreads used in the walk
+          ! Set number of OpenMP threads to the same number as pthreads used in the walk
 !!!          !$ call omp_set_num_threads(num_threads)
 
 #ifdef OMPSS_TASKS___
-          ! Inform the user that openmp is used, and with how many threads
+          ! Inform the user that OpenMP is used, and with how many threads
           !$OMP PARALLEL PRIVATE(omp_thread_num)
           !$ omp_thread_num = OMP_GET_THREAD_NUM()
           !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
@@ -95,7 +95,7 @@ module module_directsum
           do i=1,ntest
             received(i) = particles(testidx(i))
           end do
-           
+
           call particleresults_clear(received)
 
           ! we copy all local particles into a node array to be able to feed them to calc_force_per_interaction
@@ -176,7 +176,6 @@ module module_directsum
           call calc_force_per_particle(latticeparticles(1:ntest))
           directresults(1:ntest) = latticeparticles(1:ntest)%results
           call timer_stop(t_lattice)
-write(*,*) 'leaving direct sum'
 
 #ifndef OMPSS_TASKS
 !!!          call nanos_expel_current_thread()
