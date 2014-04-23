@@ -4,7 +4,7 @@
 tnp = 1010
 
 ! number of time steps
-nt = 5
+nt = 3
 
 ! time step
 dt = 0.5e-2
@@ -35,7 +35,7 @@ mac_select = 0
 ! theta = 0.0
 theta2     = 0.009
 ! eps squared
-eps2 = 0.0001
+eps2 = 0.09
 /
 
 &libpepc

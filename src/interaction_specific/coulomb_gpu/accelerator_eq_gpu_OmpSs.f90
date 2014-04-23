@@ -121,17 +121,25 @@ module module_accelerator
             if (acc%acc_queue(tmp_top)%entry_valid) then
                call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
-               ! wait for the stream...
-               !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
-#ifndef NO_NANOS
-               !$OMP taskwait on (gpu(mod(gpu_id,GPU_STREAMS) + 1))
-#endif
+!!!!               ! wait for the stream...
+!!!!               !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
+!!!!#ifndef NO_NANOS
+!!!!!$!$               !$OMP taskwait on (gpu(mod(gpu_id,GPU_STREAMS) + 1))
+!!!!!$!$               !$OMP taskwait
+!!!!#endif
 
                ! find a stream
                gpu_id = mod(gpu_id,GPU_STREAMS) + 1
+               ! wait for the stream...
+               !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
+               !$OMP taskwait on (gpu(gpu_id))
+               !$OMP taskwait
 
+!SEGFAULT               !$OMP target device(smp) copy_deps
+!SEGFAULT               !$OMP task firstprivate(gpu_id) out(ptr(gpu_id), queued(gpu_id), gpu(gpu_id)) in(acc%acc_queue(tmp_top))
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! move list, copy data
+               eps2 = acc%acc_queue(tmp_top)%eps
                queued(gpu_id) = acc%acc_queue(tmp_top)%particle%queued
                ptr(gpu_id)%results => acc%acc_queue(tmp_top)%particle%results
                ptr(gpu_id)%work => acc%acc_queue(tmp_top)%particle%work
@@ -150,6 +158,7 @@ module module_accelerator
                   gpu(gpu_id)%yzquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%yzquad
                   gpu(gpu_id)%zxquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%zxquad
                enddo
+!SEGFAULT               !$OMP end task
 
 
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
@@ -159,7 +168,7 @@ module module_accelerator
                !    update GPU data with eps2
 #ifndef NO_NANOS
                !$OMP target device(smp) copy_deps
-               !$OMP task in(gpu(gpu_id), eps2, gpu_id) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id))
+               !$OMP task firstprivate(gpu_id) in(gpu(gpu_id), eps2, queued(gpu_id)) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) private(dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6)
 #endif
                do idx = 1, queued(gpu_id)
              
@@ -243,10 +252,12 @@ module module_accelerator
                ! get data from GPU
                if (gpu_id .eq. GPU_STREAMS) then
 #ifndef NO_NANOS
+!$!$                  !$OMP taskwait
+
                   !$OMP target device(smp) copy_deps
-                  !$OMP task in(e_1(:,:), e_2(:,:), e_3(:,:), pot(:,:)) inout(ptr) private(idx)
+                  !$OMP task in(e_1(:,GPU_STREAMS), e_2(:,GPU_STREAMS), e_3(:,GPU_STREAMS), pot(:,GPU_STREAMS), queued(GPU_STREAMS)) inout(ptr(GPU_STREAMS)) private(idx)
 #endif
-!                  write(*,*) 'flushing ACC - ', GPU_STREAMS,' entries, ',sum(queued(1:GPU_STREAMS)),' interactions'
+!$!$                  write(*,*) 'flushing ACC - ', GPU_STREAMS,' entries, ',sum(queued(1:GPU_STREAMS)),' interactions'
                   do idx = 1,GPU_STREAMS
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
