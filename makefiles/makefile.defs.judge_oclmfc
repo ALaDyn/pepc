@@ -26,8 +26,8 @@ OMPSSCC    = oclmfc
 
 MACH       = oclmfc
 
-DEBUG      = 0
-INSTRUMENT = 1
+DEBUG      = 1
+INSTRUMENT = 0
 
 RANLIB     = ranlib
 

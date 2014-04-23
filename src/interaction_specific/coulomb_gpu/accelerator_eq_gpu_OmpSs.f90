@@ -63,7 +63,7 @@ module module_accelerator
       real*8 :: e_1_, e_2_, e_3_, pot_
 
       ! GPU kernel stuff... move to a function again?
-      integer :: idx, idx_, queued(GPU_STREAMS)
+      integer :: idx, idx_, queued(GPU_STREAMS), ccc
       real*8 :: dist2, eps2, WORKLOAD_PENALTY_INTERACTION
 
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
@@ -121,22 +121,16 @@ module module_accelerator
             if (acc%acc_queue(tmp_top)%entry_valid) then
                call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
-!!!!               ! wait for the stream...
-!!!!               !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
-!!!!#ifndef NO_NANOS
-!!!!!$!$               !$OMP taskwait on (gpu(mod(gpu_id,GPU_STREAMS) + 1))
-!!!!!$!$               !$OMP taskwait
-!!!!#endif
-
                ! find a stream
                gpu_id = mod(gpu_id,GPU_STREAMS) + 1
                ! wait for the stream...
                !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
-               !$OMP taskwait on (gpu(gpu_id))
-               !$OMP taskwait
+!!!               !$OMP taskwait on (gpu(gpu_id))
+               !$OMP taskwait on (queued(gpu_id))
+!!!               !$OMP taskwait
 
-!SEGFAULT               !$OMP target device(smp) copy_deps
-!SEGFAULT               !$OMP task firstprivate(gpu_id) out(ptr(gpu_id), queued(gpu_id), gpu(gpu_id)) in(acc%acc_queue(tmp_top))
+               !$OMP target device(smp) copy_deps
+               !$OMP task firstprivate(gpu_id) inout(queued(gpu_id)) inout(gpu(gpu_id), ptr(gpu_id), eps2, acc)
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! move list, copy data
                eps2 = acc%acc_queue(tmp_top)%eps
@@ -158,7 +152,7 @@ module module_accelerator
                   gpu(gpu_id)%yzquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%yzquad
                   gpu(gpu_id)%zxquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%zxquad
                enddo
-!SEGFAULT               !$OMP end task
+               !$OMP end task
 
 
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
@@ -168,8 +162,9 @@ module module_accelerator
                !    update GPU data with eps2
 #ifndef NO_NANOS
                !$OMP target device(smp) copy_deps
-               !$OMP task firstprivate(gpu_id) in(gpu(gpu_id), eps2, queued(gpu_id)) inout(e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) private(dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6)
+               !$OMP task firstprivate(gpu_id) inout(gpu(gpu_id), eps2, queued(gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) private(dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6)
 #endif
+               do ccc = 1,1
                do idx = 1, queued(gpu_id)
              
                   dist2     =         gpu(gpu_id)%delta1(idx) * gpu(gpu_id)%delta1(idx)
@@ -245,6 +240,7 @@ module module_accelerator
                                + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                                     &
                               )
                end do
+            end do
 #ifndef NO_NANOS
                !$OMP end task
 #endif
@@ -255,7 +251,8 @@ module module_accelerator
 !$!$                  !$OMP taskwait
 
                   !$OMP target device(smp) copy_deps
-                  !$OMP task in(e_1(:,GPU_STREAMS), e_2(:,GPU_STREAMS), e_3(:,GPU_STREAMS), pot(:,GPU_STREAMS), queued(GPU_STREAMS)) inout(ptr(GPU_STREAMS)) private(idx)
+                  !$OMP task inout(queued(1), queued(2), queued(3), queued(4), queued(5), queued(6), queued(7), queued(8)) 
+!!!                  !$OMP task in(e_1(:,GPU_STREAMS), e_2(:,GPU_STREAMS), e_3(:,GPU_STREAMS), pot(:,GPU_STREAMS), queued(GPU_STREAMS)) inout(ptr(GPU_STREAMS)) private(idx)
 #endif
 !$!$                  write(*,*) 'flushing ACC - ', GPU_STREAMS,' entries, ',sum(queued(1:GPU_STREAMS)),' interactions'
                   do idx = 1,GPU_STREAMS
