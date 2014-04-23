@@ -16,6 +16,25 @@ module module_accelerator
 
    type(t_critical_section), pointer :: queue_lock
 
+   type :: mpdelta
+      real*8 :: delta1(1:MAX_IACT_PARTNERS)
+      real*8 :: delta2(1:MAX_IACT_PARTNERS)
+      real*8 :: delta3(1:MAX_IACT_PARTNERS)
+      real*8 :: charge(1:MAX_IACT_PARTNERS)
+      real*8 :: dip1(1:MAX_IACT_PARTNERS)
+      real*8 :: dip2(1:MAX_IACT_PARTNERS)
+      real*8 :: dip3(1:MAX_IACT_PARTNERS)
+      real*8 :: quad1(1:MAX_IACT_PARTNERS)
+      real*8 :: quad2(1:MAX_IACT_PARTNERS)
+      real*8 :: quad3(1:MAX_IACT_PARTNERS)
+      real*8 :: xyquad(1:MAX_IACT_PARTNERS)
+      real*8 :: yzquad(1:MAX_IACT_PARTNERS)
+      real*8 :: zxquad(1:MAX_IACT_PARTNERS)
+   end type mpdelta
+   type point
+      type(t_particle_results), pointer :: results
+      real*8, pointer :: work
+   end type point
    contains
    !>
    !> main routine to drive GPU
@@ -32,21 +51,21 @@ module module_accelerator
       type(c_ptr) :: acc_loop
 
       !> Data structures to be fed to the GPU
-      type :: mpdelta
-         real*8 :: delta1(1:MAX_IACT_PARTNERS)
-         real*8 :: delta2(1:MAX_IACT_PARTNERS)
-         real*8 :: delta3(1:MAX_IACT_PARTNERS)
-         real*8 :: charge(1:MAX_IACT_PARTNERS)
-         real*8 :: dip1(1:MAX_IACT_PARTNERS)
-         real*8 :: dip2(1:MAX_IACT_PARTNERS)
-         real*8 :: dip3(1:MAX_IACT_PARTNERS)
-         real*8 :: quad1(1:MAX_IACT_PARTNERS)
-         real*8 :: quad2(1:MAX_IACT_PARTNERS)
-         real*8 :: quad3(1:MAX_IACT_PARTNERS)
-         real*8 :: xyquad(1:MAX_IACT_PARTNERS)
-         real*8 :: yzquad(1:MAX_IACT_PARTNERS)
-         real*8 :: zxquad(1:MAX_IACT_PARTNERS)
-      end type mpdelta
+!      type :: mpdelta
+!         real*8 :: delta1(1:MAX_IACT_PARTNERS)
+!         real*8 :: delta2(1:MAX_IACT_PARTNERS)
+!         real*8 :: delta3(1:MAX_IACT_PARTNERS)
+!         real*8 :: charge(1:MAX_IACT_PARTNERS)
+!         real*8 :: dip1(1:MAX_IACT_PARTNERS)
+!         real*8 :: dip2(1:MAX_IACT_PARTNERS)
+!         real*8 :: dip3(1:MAX_IACT_PARTNERS)
+!         real*8 :: quad1(1:MAX_IACT_PARTNERS)
+!         real*8 :: quad2(1:MAX_IACT_PARTNERS)
+!         real*8 :: quad3(1:MAX_IACT_PARTNERS)
+!         real*8 :: xyquad(1:MAX_IACT_PARTNERS)
+!         real*8 :: yzquad(1:MAX_IACT_PARTNERS)
+!         real*8 :: zxquad(1:MAX_IACT_PARTNERS)
+!      end type mpdelta
       type(mpdelta), dimension(:), allocatable :: gpu
       integer :: gpu_id          ! to keep track of streams
 
@@ -55,10 +74,10 @@ module module_accelerator
 
       ! kernel data
       real*8, dimension(:,:), allocatable :: e_1, e_2, e_3, pot
-      type point
-         type(t_particle_results), pointer :: results
-         real*8, pointer :: work
-      end type point
+!      type point
+!         type(t_particle_results), pointer :: results
+!         real*8, pointer :: work
+!      end type point
       type(point), dimension(GPU_STREAMS) :: ptr
       real*8 :: e_1_, e_2_, e_3_, pot_
 
@@ -126,34 +145,11 @@ module module_accelerator
                ! wait for the stream...
                !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
 !!!               !$OMP taskwait on (gpu(gpu_id))
-               !$OMP taskwait on (queued(gpu_id))
-!!!               !$OMP taskwait
+!!!               !$OMP taskwait on (queued(gpu_id))
+               !$OMP taskwait
 
-               !$OMP target device(smp) copy_deps
-               !$OMP task firstprivate(gpu_id) inout(queued(gpu_id)) inout(gpu(gpu_id), ptr(gpu_id), eps2, acc)
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
-               ! move list, copy data
-               eps2 = acc%acc_queue(tmp_top)%eps
-               queued(gpu_id) = acc%acc_queue(tmp_top)%particle%queued
-               ptr(gpu_id)%results => acc%acc_queue(tmp_top)%particle%results
-               ptr(gpu_id)%work => acc%acc_queue(tmp_top)%particle%work
-               do idx = 1, queued(gpu_id)
-                  gpu(gpu_id)%delta1(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(1)
-                  gpu(gpu_id)%delta2(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(2)
-                  gpu(gpu_id)%delta3(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(3)
-                  gpu(gpu_id)%charge(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%charge
-                  gpu(gpu_id)%dip1(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(1)
-                  gpu(gpu_id)%dip2(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(2)
-                  gpu(gpu_id)%dip3(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(3)
-                  gpu(gpu_id)%quad1(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(1)
-                  gpu(gpu_id)%quad2(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(2)
-                  gpu(gpu_id)%quad3(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(3)
-                  gpu(gpu_id)%xyquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%xyquad
-                  gpu(gpu_id)%yzquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%yzquad
-                  gpu(gpu_id)%zxquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%zxquad
-               enddo
-               !$OMP end task
-
+               call fill_gpu_data(tmp_top, eps2, queued(gpu_id), ptr(gpu_id), gpu(gpu_id))
 
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
 
@@ -402,5 +398,39 @@ module module_accelerator
       return
 
    end subroutine dispatch_list
+
+   !$OMP target device(smp) copy_deps
+   !$OMP task firstprivate(tmp_top) inout(eps2, queued, ptr, gpu)
+   subroutine fill_gpu_data(tmp_top, eps2, queued, ptr, gpu)
+      implicit none
+      integer, intent(in), value :: tmp_top
+      real*8, intent(out) :: eps2
+      integer, intent(inout) :: queued
+      type(point), intent(inout) :: ptr
+      type(mpdelta), intent(inout) :: gpu
+
+      integer :: idx
+
+      ! move list, copy data
+      eps2 = acc%acc_queue(tmp_top)%eps
+      queued = acc%acc_queue(tmp_top)%particle%queued
+      ptr%results => acc%acc_queue(tmp_top)%particle%results
+      ptr%work => acc%acc_queue(tmp_top)%particle%work
+      do idx = 1, queued
+         gpu%delta1(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(1)
+         gpu%delta2(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(2)
+         gpu%delta3(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(3)
+         gpu%charge(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%charge
+         gpu%dip1(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(1)
+         gpu%dip2(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(2)
+         gpu%dip3(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(3)
+         gpu%quad1(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(1)
+         gpu%quad2(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(2)
+         gpu%quad3(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(3)
+         gpu%xyquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%xyquad
+         gpu%yzquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%yzquad
+         gpu%zxquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%zxquad
+      enddo
+   end subroutine fill_gpu_data
 
 end module module_accelerator
