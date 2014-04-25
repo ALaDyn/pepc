@@ -26,8 +26,9 @@ OMPSSCC    = oclmfc
 
 MACH       = oclmfc
 
-DEBUG      = 1
-INSTRUMENT = 0
+DEBUG      = 0
+INSTRUMENT = 1
+MONITOR    = 0
 
 RANLIB     = ranlib
 
@@ -81,6 +82,10 @@ ifeq ($(OMPSS), 1)
       FFLAGS  += --instrument
       CFLAGS  +=
       LDFLAGS += --instrument
+   endif
+   ifeq ($(MONITOR), 1)
+      CPPFLAGS += -DMONITOR
+      LDFLAGS  += -L/usr/local/OmpSs/packages/extrae/2.4.1-parastation-papi/lib -lnanostrace
    endif
 else
    CPPFLAGS += -DNO_NANOS

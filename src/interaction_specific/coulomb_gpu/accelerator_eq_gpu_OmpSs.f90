@@ -16,6 +16,7 @@ module module_accelerator
 
    type(t_critical_section), pointer :: queue_lock
 
+   !> Data structures to be fed to the GPU
    type :: mpdelta
       real*8 :: delta1(1:MAX_IACT_PARTNERS)
       real*8 :: delta2(1:MAX_IACT_PARTNERS)
@@ -31,10 +32,13 @@ module module_accelerator
       real*8 :: yzquad(1:MAX_IACT_PARTNERS)
       real*8 :: zxquad(1:MAX_IACT_PARTNERS)
    end type mpdelta
+
+   ! kernel data
    type point
       type(t_particle_results), pointer :: results
       real*8, pointer :: work
    end type point
+
    contains
    !>
    !> main routine to drive GPU
@@ -50,22 +54,6 @@ module module_accelerator
    
       type(c_ptr) :: acc_loop
 
-      !> Data structures to be fed to the GPU
-!      type :: mpdelta
-!         real*8 :: delta1(1:MAX_IACT_PARTNERS)
-!         real*8 :: delta2(1:MAX_IACT_PARTNERS)
-!         real*8 :: delta3(1:MAX_IACT_PARTNERS)
-!         real*8 :: charge(1:MAX_IACT_PARTNERS)
-!         real*8 :: dip1(1:MAX_IACT_PARTNERS)
-!         real*8 :: dip2(1:MAX_IACT_PARTNERS)
-!         real*8 :: dip3(1:MAX_IACT_PARTNERS)
-!         real*8 :: quad1(1:MAX_IACT_PARTNERS)
-!         real*8 :: quad2(1:MAX_IACT_PARTNERS)
-!         real*8 :: quad3(1:MAX_IACT_PARTNERS)
-!         real*8 :: xyquad(1:MAX_IACT_PARTNERS)
-!         real*8 :: yzquad(1:MAX_IACT_PARTNERS)
-!         real*8 :: zxquad(1:MAX_IACT_PARTNERS)
-!      end type mpdelta
       type(mpdelta), dimension(:), allocatable :: gpu
       integer :: gpu_id          ! to keep track of streams
 
@@ -74,10 +62,6 @@ module module_accelerator
 
       ! kernel data
       real*8, dimension(:,:), allocatable :: e_1, e_2, e_3, pot
-!      type point
-!         type(t_particle_results), pointer :: results
-!         real*8, pointer :: work
-!      end type point
       type(point), dimension(GPU_STREAMS) :: ptr
       real*8 :: e_1_, e_2_, e_3_, pot_
 
@@ -88,6 +72,10 @@ module module_accelerator
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 
       logical :: eps_update
+
+#ifdef MONITOR
+      external :: Extrae_event
+#endif
 
 #ifndef OMPSS_TASKS
 #ifndef NO_NANOS
@@ -103,7 +91,7 @@ module module_accelerator
       write(*,*) 'GPU thread on core ', acc%processor_id
 
       ! allocate GPU structures on heap...
-      allocate(e_1(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(e_1(MAX_IACT_PARTNERS, GPU_STREAMS)) ! this corresponds to iact+(strm-1)*MAX_IACT_PARTNERS
       allocate(e_2(MAX_IACT_PARTNERS, GPU_STREAMS))
       allocate(e_3(MAX_IACT_PARTNERS, GPU_STREAMS))
       allocate(pot(MAX_IACT_PARTNERS, GPU_STREAMS))
@@ -144,12 +132,20 @@ module module_accelerator
                gpu_id = mod(gpu_id,GPU_STREAMS) + 1
                ! wait for the stream...
                !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
-!!!               !$OMP taskwait on (gpu(gpu_id))
-!!!               !$OMP taskwait on (queued(gpu_id))
-               !$OMP taskwait
+               ! !! this task wait is obsolete once the fill_gpu_data task works !!
+               !$OMP taskwait on (gpu(gpu_id), ptr(gpu_id))
 
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
-               call fill_gpu_data(tmp_top, eps2, queued(gpu_id), ptr(gpu_id), gpu(gpu_id))
+!SEGFAULT               !$OMP target device(smp) copy_deps
+!SEGFAULT               !$OMP task inout(queued(:), ptr(:), gpu(gpu_id)) firstprivate(gpu_id, tmp_top) shared(eps2, acc)
+#ifdef MONITOR
+               call Extrae_event(66669, gpu_id)
+#endif
+               call fill_gpu_data(tmp_top, eps2, queued(gpu_id), ptr(gpu_id), gpu(gpu_id), acc)
+#ifdef MONITOR
+               call Extrae_event(66669, 0)
+#endif
+!SEGFAULT               !$OMP end task
 
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
 
@@ -159,6 +155,9 @@ module module_accelerator
 #ifndef NO_NANOS
                !$OMP target device(smp) copy_deps
                !$OMP task firstprivate(gpu_id) inout(gpu(gpu_id), eps2, queued(gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) private(dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6)
+#endif
+#ifdef MONITOR
+               call Extrae_event(66668, gpu_id)
 #endif
                do ccc = 1,1
                do idx = 1, queued(gpu_id)
@@ -236,7 +235,10 @@ module module_accelerator
                                + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                                     &
                               )
                end do
-            end do
+               end do
+#ifdef MONITOR
+               call Extrae_event(66668, 0)
+#endif
 #ifndef NO_NANOS
                !$OMP end task
 #endif
@@ -244,19 +246,25 @@ module module_accelerator
                ! get data from GPU
                if (gpu_id .eq. GPU_STREAMS) then
 #ifndef NO_NANOS
-!$!$                  !$OMP taskwait
 
                   !$OMP target device(smp) copy_deps
-                  !$OMP task inout(queued(1), queued(2), queued(3), queued(4), queued(5), queued(6), queued(7), queued(8)) 
-!!!                  !$OMP task in(e_1(:,GPU_STREAMS), e_2(:,GPU_STREAMS), e_3(:,GPU_STREAMS), pot(:,GPU_STREAMS), queued(GPU_STREAMS)) inout(ptr(GPU_STREAMS)) private(idx)
+!!!                  !$OMP task inout(queued(1), queued(2), queued(3), queued(4), queued(5), queued(6), queued(7), queued(8)) 
+                  !$OMP task inout(e_1(:,1), e_1(:,2), e_1(:,3), e_1(:,4), e_1(:,5), e_1(:,6), e_1(:,7), e_1(:,8), queued(:), ptr(1), ptr(2), ptr(3), ptr(4), ptr(5), ptr(6), ptr(7), ptr(8), e_2(:,:), e_3(:,:), pot(:,:)) private(idx)
 #endif
-!$!$                  write(*,*) 'flushing ACC - ', GPU_STREAMS,' entries, ',sum(queued(1:GPU_STREAMS)),' interactions'
                   do idx = 1,GPU_STREAMS
+#ifdef MONITOR
+                     call Extrae_event(66667, queued(idx))
+                     call Extrae_event(66670, idx)
+#endif
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
                      ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
                      ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
                      ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
+#ifdef MONITOR
+                     call Extrae_event(66667, 0)
+                     call Extrae_event(66670, 0)
+#endif
                   enddo
 #ifndef NO_NANOS
                   !$OMP end task
@@ -285,9 +293,10 @@ module module_accelerator
             end if
          end do
 
-! flush GPU buffers at end of timestep
+         ! flush GPU buffers at end of timestep
          if (atomic_load_int(acc%thread_status) .eq. ACC_THREAD_STATUS_FLUSH) then
 #ifndef NO_NANOS
+            ! need to wait until all tasks are finished (should be the case anyway)
             !$OMP taskwait
 #endif
             ! got signal to flush, so check if there is data to flush - so all work done...
@@ -296,11 +305,17 @@ module module_accelerator
                if ( .not. (gpu_id .eq. GPU_STREAMS) ) then
                   write(*,*) 'force flushing ACC - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
                   do idx = 1,gpu_id
+#ifdef MONITOR
+                     call Extrae_event(66666, queued(idx))
+#endif
                      ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
                      ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
                      ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
                      ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
                      ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
+#ifdef MONITOR
+                     call Extrae_event(66666, 0)
+#endif
                   enddo
                endif
                ! reset queue
@@ -313,7 +328,7 @@ module module_accelerator
 
       end do
 
-! free GPU memory???
+      ! free GPU memory???
 
       ! free queues and lock
       call critical_section_deallocate(queue_lock)
@@ -399,15 +414,16 @@ module module_accelerator
 
    end subroutine dispatch_list
 
-   !$OMP target device(smp) copy_deps
-   !$OMP task firstprivate(tmp_top) inout(eps2, queued, ptr, gpu)
-   subroutine fill_gpu_data(tmp_top, eps2, queued, ptr, gpu)
+!SEGFAULT   !$OMP target device(smp) copy_deps
+!SEGFAULT   !$OMP task firstprivate(tmp_top) inout(eps2, queued, ptr, gpu)
+   subroutine fill_gpu_data(tmp_top, eps2, queued, ptr, gpu, acc)
       implicit none
       integer, intent(in), value :: tmp_top
       real*8, intent(out) :: eps2
       integer, intent(inout) :: queued
       type(point), intent(inout) :: ptr
       type(mpdelta), intent(inout) :: gpu
+      type(t_acc), intent(inout) :: acc
 
       integer :: idx
 
