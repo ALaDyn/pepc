@@ -67,8 +67,8 @@ program pepc
 
     call set_default_parameters()
     call set_parameters()
-    call init_species()
     call init_boundaries()
+    call init_species()
 
     call init_rng()
     call init_periodicity()

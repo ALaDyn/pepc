@@ -33,6 +33,7 @@ module module_species
 !======================================================================================
 
     subroutine init_species()
+        use module_geometry
         implicit none
 
         integer, allocatable :: nfp(:)
@@ -164,7 +165,7 @@ module module_species
                             STOP
                         END IF
                         IF (root) write(*,'(a,i3,a,i3,a,i3)') "Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
-                                                               ,src_type(ispecies),"for species ",ispecies
+                                                               ,src_type(ispecies)," for species ",ispecies
                     END IF
                 ELSE IF ((src_type(ispecies)==1).or.(src_type(ispecies)==2).or.(src_type(ispecies)==3)) THEN !Volume Source
                     src_bnd(ispecies)=0
@@ -193,6 +194,7 @@ module module_species
             species(ispecies)%src_e3=src_e3(ispecies,:)
         END DO
 
+        tnpps(0)=count_wallparticles()
         call check_species()
 
         allocate(probe_start_x(0:nspecies-1),stat=rc)
