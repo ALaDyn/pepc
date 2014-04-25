@@ -20,7 +20,7 @@ module particlehandling
         type(t_particle), allocatable :: p_hits_logical_sheath(:,:,:)
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
         real*8 :: xp(3),xold(3)
-        real(KIND=8) v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),v_ran(1)
+        real(KIND=8) v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3)
 
 
         IF (ANY(boundaries(1:nb)%type==4)) allocate(p_hits_logical_sheath(0:nspecies-1,nb,sum(npps)),stat=rc)
@@ -56,10 +56,9 @@ module particlehandling
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
-                        !call random_gauss_list(v_ran,mu,sigma)
-                        !v_ran(1) = abs(v_ran(1))
-                        call random_gaussian_flux(v_ran(1),sigma)
-                        p(rp)%data%v = p(rp)%data%v + boundaries(ib)%n*v_ran(1)
+                        call random_gauss_list(v_new(1:1),mu,sigma)
+                        v_new(1) = abs(v_new(1))
+                        p(rp)%data%v = p(rp)%data%v + boundaries(ib)%n*v_new(1)
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
                         ib=0
@@ -70,8 +69,35 @@ module particlehandling
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(1:3),mu,sigma)
                         v_new(1) = abs(v_new(1))
-                        !call random_gauss_list(v_new(2:3),mu,sigma)
-                        !call random_gaussian_flux(v_new(1),sigma)
+                        t1=boundaries(ib)%e1/sqrt(dotproduct(boundaries(ib)%e1,boundaries(ib)%e1))
+                        t2(1)=boundaries(ib)%n(2)*t1(3) - boundaries(ib)%n(3)*t1(2)
+                        t2(2)=boundaries(ib)%n(3)*t1(1) - boundaries(ib)%n(1)*t1(3)
+                        t2(3)=boundaries(ib)%n(1)*t1(2) - boundaries(ib)%n(2)*t1(1)
+                        t2=t2/sqrt(dotproduct(t2,t2))
+                        p(rp)%data%v(1) = boundaries(ib)%n(1)*v_new(1) + t1(1)*v_new(2) + t2(1)*v_new(3)
+                        p(rp)%data%v(2) = boundaries(ib)%n(2)*v_new(1) + t1(2)*v_new(2) + t2(2)*v_new(3)
+                        p(rp)%data%v(3) = boundaries(ib)%n(3)*v_new(1) + t1(3)*v_new(2) + t2(3)*v_new(3)
+                        ran = rnd_num()
+                        p(rp)%x = xi + dt*ran*p(rp)%data%v
+                        ib=0
+                    ELSE IF (boundaries(ib)%type==7) THEN   !immediate Maxwellian flux refluxing normal to surface, tangential v conserved
+                        mu=0.0_8
+                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        xold = p(rp)%x-p(rp)%data%v*dt
+                        call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
+                        p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
+                        call random_gaussian_flux(v_new(1),sigma)
+                        p(rp)%data%v = p(rp)%data%v + boundaries(ib)%n*v_new(1)
+                        ran = rnd_num()
+                        p(rp)%x = xi + dt*ran*p(rp)%data%v
+                        ib=0
+                    ELSE IF (boundaries(ib)%type==8) THEN  !immediate Maxwellian flux refluxing normal to surface, tangential v resampled
+                        mu=0.0_8
+                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        xold = p(rp)%x-p(rp)%data%v*dt
+                        call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
+                        call random_gauss_list(v_new(2:3),mu,sigma)
+                        call random_gaussian_flux(v_new(1),sigma)
                         t1=boundaries(ib)%e1/sqrt(dotproduct(boundaries(ib)%e1,boundaries(ib)%e1))
                         t2(1)=boundaries(ib)%n(2)*t1(3) - boundaries(ib)%n(3)*t1(2)
                         t2(2)=boundaries(ib)%n(3)*t1(1) - boundaries(ib)%n(1)*t1(3)
@@ -94,10 +120,6 @@ module particlehandling
                     ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
                         npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
-
-
-         !               write(bnd_hits_out,'(3(i6.6),3(1pe16.7E3))') my_rank,ib,p(rp)%data%species,p(rp)%data%v
-
                         p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1
@@ -126,99 +148,104 @@ module particlehandling
         include 'mpif.h'
 
         integer :: ip
-        integer :: rc
         type(t_particle), allocatable, intent(inout) :: p(:)
         real*8 :: xold(3)
-        real(KIND=8) v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),v_ran(3),ran2,ran3
+        real(KIND=8) mu,sigma,ran,t1(3),t2(3),v_ran(3),ran2,ran3
 
-        real(KIND=8)       :: n1(3),e1(3),B_vector(3)
+        real(KIND=8)       :: n1(3),B_vector(3)
         real(KIND=8)       :: eps=1.0e-10
 
-        B_vector(1) = Bx
-        B_vector(2) = By
-        B_vector(3) = Bz
+        IF (retherm /= 0) THEN
 
-        IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
-            n1 = B_vector / sqrt(dotproduct(B_vector,B_vector))           ! normal vector along B
-        ELSE                                                              ! Without B Field
-            n1(1) = 1.0_8                                                 ! normal vector along x
-            n1(2) = 0.0_8
-            n1(3) = 0.0_8
-        END IF
-        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
-            t1(1) = -n1(2)                                            ! tangential vector
-            t1(2) = n1(1)
-            t1(3) = 0.0_8
-        ELSE
-            t1(1) = 1.0_8                                             ! tangential vector
-            t1(2) = 0.0_8
-            t1(3) = 0.0_8
-        END IF
-        t1 = t1 / sqrt(dotproduct(t1,t1))
-        t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
-        t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
-        t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
-        t2=t2/sqrt(dotproduct(t2,t2))
+            B_vector(1) = Bx
+            B_vector(2) = By
+            B_vector(3) = Bz
 
-        DO ip =1,sum(npps)
-            IF (sign(1._8,p(ip)%x(1)) /= sign(1._8,p(ip)%data%v(1))) CYCLE
+            IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
+                n1 = B_vector / sqrt(dotproduct(B_vector,B_vector))           ! normal vector along B
+            ELSE                                                              ! Without B Field
+                n1(1) = 1.0_8                                                 ! normal vector along x
+                n1(2) = 0.0_8
+                n1(3) = 0.0_8
+            END IF
+            IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                t1(1) = -n1(2)                                            ! tangential vector
+                t1(2) = n1(1)
+                t1(3) = 0.0_8
+            ELSE
+                t1(1) = 1.0_8                                             ! tangential vector
+                t1(2) = 0.0_8
+                t1(3) = 0.0_8
+            END IF
+            t1 = t1 / sqrt(dotproduct(t1,t1))
+            t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+            t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+            t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+            t2=t2/sqrt(dotproduct(t2,t2))
 
-            xold = p(ip)%x-p(ip)%data%v*dt
-            IF (sign(1._8,xold(1)) == sign(1._8,p(ip)%x(1))) CYCLE
+            DO ip =1,sum(npps)
+                IF (sign(1._8,p(ip)%x(1)) /= sign(1._8,p(ip)%data%v(1))) CYCLE
 
-            IF (.true.) THEN   !immediate half-Maxwellian refluxing normal to surface, tangential v conserved
+                xold = p(ip)%x-p(ip)%data%v*dt
+                IF (sign(1._8,xold(1)) == sign(1._8,p(ip)%x(1))) CYCLE
+
                 mu=0.0_8
                 sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
                 
-                ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
-                ! resample x = ran*dt*vx, y,z = ran
-                !call random_gauss_list(v_ran(2:3),mu,sigma)
-                !call random_gaussian_flux(v_ran(1),sigma)
-                !p(ip)%data%v(1) = v_ran(1)*sign(1._8,p(ip)%x(1))
-                !p(ip)%data%v(2) = v_ran(2)
-                !p(ip)%data%v(3) = v_ran(3)
-                !ran = rnd_num()
-                !ran2 = rnd_num()
-                !ran3 = rnd_num()
-                !p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
-                !p(ip)%x(2) = ymin + ran2*(ymax-ymin)
-               	!p(ip)%x(3) = zmin + ran3*(zmax-zmin)
+                IF (retherm == 1) THEN
+                    ! resample vx according to maxwellian flux source, don't touch vy,vz
+                    ! resample x = ran*dt*vx, don't touch y,z
+                    call random_gaussian_flux(v_ran(1),sigma)
+                    p(ip)%data%v(1) = v_ran(1)*sign(1._8,p(ip)%x(1))
+                    ran = rnd_num()
+                    p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+
+                ELSE IF (retherm == 2) THEN
+                    ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
+                    ! resample x = ran*dt*vx, y,z = ran
+                    call random_gauss_list(v_ran(2:3),mu,sigma)
+                    call random_gaussian_flux(v_ran(1),sigma)
+                    p(ip)%data%v(1) = v_ran(1)*sign(1._8,p(ip)%x(1))
+                    p(ip)%data%v(2) = v_ran(2)
+                    p(ip)%data%v(3) = v_ran(3)
+                    ran = rnd_num()
+                    ran2 = rnd_num()
+                    ran3 = rnd_num()
+                    p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                    p(ip)%x(2) = ymin + ran2*(ymax-ymin)
+                    p(ip)%x(3) = zmin + ran3*(zmax-zmin)
 
 
-                ! resample vpar according to maxwellian flux source, don't touch vperp
-                ! resample x = ran*dt*vx, don't touch y,z
-                !call random_gaussian_flux(v_ran(1),sigma)
-                !p(ip)%data%v = p(ip)%data%v - (dotproduct(p(ip)%data%v, n1) * n1)                       !this gives v - vpar
-                !p(ip)%data%v = p(ip)%data%v + (v_ran(1) * n1 *sign(1._8,p(ip)%x(1)) * sign(1._8,n1(1))  !this adds resampled vpar
-                !ran = rnd_num()
-                !p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                ELSE IF (retherm == 3) THEN
+                    ! resample vpar according to maxwellian flux source, don't touch vperp
+                    ! resample x = ran*dt*vx, don't touch y,z
+                    call random_gaussian_flux(v_ran(1),sigma)
+                    p(ip)%data%v = p(ip)%data%v - (dotproduct(p(ip)%data%v, n1) * n1)                       !this gives v - vpar
+                    p(ip)%data%v = p(ip)%data%v + (v_ran(1) * n1 *sign(1._8,p(ip)%x(1)) * sign(1._8,n1(1))) !this adds resampled vpar
+                    ran = rnd_num()
+                    p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
 
 
-                ! resample vpar according to maxwellian flux source, vperp1 and vperp2 according to Maxwellian source
-                ! resample x = ran*dt*vx, y,z = ran
-                call random_gaussian_flux(v_ran(1),sigma)
-                call random_gauss_list(v_ran(2:3),mu,sigma)
-                v_ran(1) = v_ran(1) * sign(1._8,p(ip)%x(1)) * sign(1._8,n1(1))
-                p(ip)%data%v(1) = n1(1)*v_ran(1) + t1(1)*v_ran(2) + t2(1)*v_ran(3) ! this gives the maxwellian flux
-                p(ip)%data%v(2) = n1(2)*v_ran(1) + t1(2)*v_ran(2) + t2(2)*v_ran(3) ! along n1 and gaussian
-                p(ip)%data%v(3) = n1(3)*v_ran(1) + t1(3)*v_ran(2) + t2(3)*v_ran(3) ! distribution along t1, t2
-                ran = rnd_num()
-                ran2 = rnd_num()
-                ran3 = rnd_num()
-                p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
-                p(ip)%x(2) = ymin + ran2*(ymax-ymin)
-                p(ip)%x(3) = zmin + ran3*(zmax-zmin)
+                ELSE IF (retherm == 4) THEN
+                    ! resample vpar according to maxwellian flux source, vperp1 and vperp2 according to Maxwellian source
+                    ! resample x = ran*dt*vx, y,z = ran
+                    call random_gaussian_flux(v_ran(1),sigma)
+                    call random_gauss_list(v_ran(2:3),mu,sigma)
+                    v_ran(1) = v_ran(1) * sign(1._8,p(ip)%x(1)) * sign(1._8,n1(1))
+                    p(ip)%data%v(1) = n1(1)*v_ran(1) + t1(1)*v_ran(2) + t2(1)*v_ran(3) ! this gives the maxwellian flux
+                    p(ip)%data%v(2) = n1(2)*v_ran(1) + t1(2)*v_ran(2) + t2(2)*v_ran(3) ! along n1 and gaussian
+                    p(ip)%data%v(3) = n1(3)*v_ran(1) + t1(3)*v_ran(2) + t2(3)*v_ran(3) ! distribution along t1, t2
+                    ran = rnd_num()
+                    ran2 = rnd_num()
+                    ran3 = rnd_num()
+                    p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                    p(ip)%x(2) = ymin + ran2*(ymax-ymin)
+                    p(ip)%x(3) = zmin + ran3*(zmax-zmin)
 
-       	       	! resample vx according	to maxwellian flux source, don't touch vy,vz
-    	       	! resample x = ran*dt*vx, don't touch y,z
-                !call random_gaussian_flux(v_ran(1),sigma)
-                !p(ip)%data%v(1) = v_ran(1)*sign(1._8,p(ip)%x(1))
-                !ran = rnd_num()
-                !p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
-                
 
-            END IF
-        END DO
+                END IF
+            END DO
+        END IF
     END SUBROUTINE
 
 
