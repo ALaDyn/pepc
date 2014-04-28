@@ -151,7 +151,7 @@ module module_species
             tnpps(ispecies)=nip(ispecies)
 
             IF (species(ispecies)%physical_particle) THEN
-                IF (src_type(ispecies)==0) THEN !surface source
+                IF (src_type(ispecies)==0) THEN !surface source (complete surface)
                     src_x0(ispecies,:)=0.
                     src_e1(ispecies,:)=0.
                     src_e2(ispecies,:)=0.
@@ -159,14 +159,32 @@ module module_species
                     IF ((src_bnd(ispecies)<=0).or.(src_bnd(ispecies)>nb)) THEN
                         IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
                         STOP
-                    ELSE
-                        IF(boundaries(src_bnd(ispecies))%type==2) THEN
-                            IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
-                            STOP
-                        END IF
-                        IF (root) write(*,'(a,i3,a,i3,a,i3)') "Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
-                                                               ,src_type(ispecies)," for species ",ispecies
                     END IF
+                    IF(boundaries(src_bnd(ispecies))%type==2) THEN
+                        IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
+                        STOP
+                    END IF
+                    IF (root) write(*,'(a,i3,a,i3,a,i3)') "Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
+                                                          ,src_type(ispecies)," for species ",ispecies
+
+                ELSE IF (src_type(ispecies)==4) THEN !surface source, circle at bnd_x0 + src_x0(1) * e1 +
+                                                     !src_x0(2) * e2 with r = src_x0(3)*|e1|
+                                                     !this is a first test and only works if |e1| ~ |e2|
+                                                     !and src_x0 reasonable
+                    src_e1(ispecies,:)=0.
+                    src_e2(ispecies,:)=0.
+                    src_e3(ispecies,:)=0.
+                    IF ((src_bnd(ispecies)<=0).or.(src_bnd(ispecies)>nb)) THEN
+                        IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
+                        STOP
+                    END IF
+                    IF(boundaries(src_bnd(ispecies))%type==2) THEN
+                        IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
+                        STOP
+                    END IF
+                    IF (root) write(*,'(a,i3,a,i3,a,i3)') "Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
+                                                          ,src_type(ispecies)," for species ",ispecies
+
                 ELSE IF ((src_type(ispecies)==1).or.(src_type(ispecies)==2).or.(src_type(ispecies)==3)) THEN !Volume Source
                     src_bnd(ispecies)=0
                     IF (root) write(*,'(a,i2,a,i2,a)') " == Volume source of type ",src_type(ispecies)," for species ",ispecies," set. Parameters:"

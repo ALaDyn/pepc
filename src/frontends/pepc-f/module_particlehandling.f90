@@ -820,6 +820,31 @@ module particlehandling
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
                     p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
                               dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
+                ELSE IF (species(p(ip)%data%species)%src_type==4) THEN                 !surface source
+                    call random_gauss_list(vhelp(2:3),mu,sigma)
+                    call random_gaussian_flux(vhelp(1),sigma)
+                    e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
+                    n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
+                    t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+                    t2=t2/sqrt(dotproduct(t2,t2))
+                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
+                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
+                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
+                    ran=rnd_num()
+                    ran1=rnd_num() * species(p(ip)%data%species)%src_x0(3) !radius
+                    ran2=rnd_num() * 2.0_8 * pi              !angle
+                    p(ip)%x = boundaries(species(p(ip)%data%species)%src_bnd)%x0 + &
+                              species(p(ip)%data%species)%src_x0(1)*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
+                              species(p(ip)%data%species)%src_x0(2)*boundaries(species(p(ip)%data%species)%src_bnd)%e2
+                              !now we are at the center of the plasma column
+                    p(ip)%x = p(ip)%x + ran1*sin(ran2)*t1 + ran1*cos(ran2)*t2
+                              !now we have a cylindrical plasma
+                    p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
+                              dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
+                              !and we moved the particle a little bit along n
                 ELSE IF (species(p(ip)%data%species)%src_type==1) THEN            ! Emmert source along x, Maxwellian perpendicular to x
                     call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
                     call random_gaussian_flux(p(ip)%data%v(1),sigma)

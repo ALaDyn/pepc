@@ -131,7 +131,7 @@ program pepc
                 IF (species(particles(ip)%data%species)%physical_particle .eqv. .false.) CYCLE
                 all_particles(size(particles)+imp) = particles(ip)
                 all_particles(size(particles)+imp)%data%q = -all_particles(size(particles)+imp)%data%q
-                all_particles(size(particles)+imp)%x(1) = -all_particles(size(particles)+imp)%x(1) + 2*dx
+                all_particles(size(particles)+imp)%x(1) = -all_particles(size(particles)+imp)%x(1) + 2*(xmax-xmin)
                 all_particles(size(particles)+imp)%data%species = -1
                 imp = imp+1
             END DO
