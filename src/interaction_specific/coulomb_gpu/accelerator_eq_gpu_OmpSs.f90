@@ -128,24 +128,44 @@ module module_accelerator
             if (acc%acc_queue(tmp_top)%entry_valid) then
                call atomic_read_barrier() ! make sure that reads of parts of the queue entry occurr in the correct order
 
+               !$omp taskwait
                ! find a stream
                gpu_id = mod(gpu_id,GPU_STREAMS) + 1
-               ! wait for the stream...
-               !    although this should not be necessary - we copy data back from GPU in a task, so streams are free
-               ! !! this task wait is obsolete once the fill_gpu_data task works !!
-               !$OMP taskwait on (gpu(gpu_id), ptr(gpu_id))
+write(*,*) loc(gpu(gpu_id)), loc(acc%acc_queue(tmp_top)) , loc(acc%acc_queue(tmp_top)%partner(1))
+               ! wait for the stream in a task
+               !$OMP target device(smp) copy_deps
+               !$OMP task firstprivate(gpu_id, tmp_top) private(idx, ccc, q_tmp) in(eps2) inout(gpu(gpu_id), ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) shared(acc, gpu, queued)
 
+write(*,*) 't', gpu_id, tmp_top
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
-!SEGFAULT               !$OMP target device(smp) copy_deps
-!SEGFAULT               !$OMP task inout(queued(:), ptr(:), gpu(gpu_id)) firstprivate(gpu_id, tmp_top) shared(eps2, acc)
 #ifdef MONITOR
                call Extrae_event(66669, gpu_id)
 #endif
-               call fill_gpu_data(tmp_top, eps2, queued(gpu_id), ptr(gpu_id), gpu(gpu_id), acc)
+               ! move list, copy data
+               eps2 = acc%acc_queue(tmp_top)%eps
+               queued(gpu_id) = acc%acc_queue(tmp_top)%particle%queued
+               ptr(gpu_id)%results => acc%acc_queue(tmp_top)%particle%results
+               ptr(gpu_id)%work => acc%acc_queue(tmp_top)%particle%work
+write(*,*) queued(gpu_id), size(gpu(gpu_id)%delta1)
+write(*,*) loc(gpu(gpu_id)), loc(acc%acc_queue(tmp_top)) , loc(acc%acc_queue(tmp_top)%partner(1))
+               do idx = 1, queued(gpu_id)
+                  gpu(gpu_id)%delta1(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(1)
+                  gpu(gpu_id)%delta2(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(2)
+                  gpu(gpu_id)%delta3(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(3)
+                  gpu(gpu_id)%charge(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%charge
+                  gpu(gpu_id)%dip1(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(1)
+                  gpu(gpu_id)%dip2(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(2)
+                  gpu(gpu_id)%dip3(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(3)
+                  gpu(gpu_id)%quad1(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(1)
+                  gpu(gpu_id)%quad2(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(2)
+                  gpu(gpu_id)%quad3(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(3)
+                  gpu(gpu_id)%xyquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%xyquad
+                  gpu(gpu_id)%yzquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%yzquad
+                  gpu(gpu_id)%zxquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%zxquad
+               enddo
 #ifdef MONITOR
                call Extrae_event(66669, 0)
 #endif
-!SEGFAULT               !$OMP end task
 
                WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
 
@@ -153,8 +173,9 @@ module module_accelerator
                !    update GPU data with gpu(gpu_id:gpu_id)
                !    update GPU data with eps2
 #ifndef NO_NANOS
-               !$OMP target device(smp) copy_deps
-               !$OMP task firstprivate(gpu_id) inout(gpu(gpu_id), eps2, queued(gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) private(dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6)
+!!!!               !$OMP target device(smp) copy_deps
+!!!               !$OMP task firstprivate(gpu_id) inout(gpu(gpu_id), eps2, queued(gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) private(dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6)
+!!!!               !$OMP task private(dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6)
 #endif
 #ifdef MONITOR
                call Extrae_event(66668, gpu_id)
@@ -240,36 +261,23 @@ module module_accelerator
                call Extrae_event(66668, 0)
 #endif
 #ifndef NO_NANOS
-               !$OMP end task
+!!!!               !$OMP end task
 #endif
 
                ! get data from GPU
-               if (gpu_id .eq. GPU_STREAMS) then
-#ifndef NO_NANOS
-
-                  !$OMP target device(smp) copy_deps
-!!!                  !$OMP task inout(queued(1), queued(2), queued(3), queued(4), queued(5), queued(6), queued(7), queued(8)) 
-                  !$OMP task inout(e_1(:,1), e_1(:,2), e_1(:,3), e_1(:,4), e_1(:,5), e_1(:,6), e_1(:,7), e_1(:,8), queued(:), ptr(1), ptr(2), ptr(3), ptr(4), ptr(5), ptr(6), ptr(7), ptr(8), e_2(:,:), e_3(:,:), pot(:,:)) private(idx)
-#endif
-                  do idx = 1,GPU_STREAMS
 #ifdef MONITOR
-                     call Extrae_event(66667, queued(idx))
-                     call Extrae_event(66670, idx)
+               call Extrae_event(66667, queued(idx))
+               call Extrae_event(66670, idx)
 #endif
-                     ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
-                     ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
-                     ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
-                     ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
-                     ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
+               ptr(gpu_id)%results%e(1) = ptr(gpu_id)%results%e(1) + sum(e_1(1:queued(gpu_id),gpu_id))
+               ptr(gpu_id)%results%e(2) = ptr(gpu_id)%results%e(2) + sum(e_2(1:queued(gpu_id),gpu_id))
+               ptr(gpu_id)%results%e(3) = ptr(gpu_id)%results%e(3) + sum(e_3(1:queued(gpu_id),gpu_id))
+               ptr(gpu_id)%results%pot  = ptr(gpu_id)%results%pot  + sum(pot(1:queued(gpu_id),gpu_id))
+               ptr(gpu_id)%work         = ptr(gpu_id)%work + queued(gpu_id) * WORKLOAD_PENALTY_INTERACTION
 #ifdef MONITOR
-                     call Extrae_event(66667, 0)
-                     call Extrae_event(66670, 0)
+               call Extrae_event(66667, 0)
+               call Extrae_event(66670, 0)
 #endif
-                  enddo
-#ifndef NO_NANOS
-                  !$OMP end task
-#endif
-               endif
 
                ! kill list
                call critical_section_enter(queue_lock)
@@ -286,6 +294,7 @@ module module_accelerator
                   acc%acc_queue(tmp_top)%entry_valid = .false.
 
                call critical_section_leave(queue_lock)
+               !$OMP end task
 
             else
                ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
@@ -366,6 +375,10 @@ module module_accelerator
       ! when this is called, the accelerator thread is up and running
       ! (we check its status before we continue from calc_force_prepare)
 
+#ifdef MONITOR
+                     call Extrae_event(66671, 1)
+#endif
+
       do
          if (atomic_fetch_and_decrement_int(acc%q_len) .gt. 1) then
             ! decrease queue indicator and check if we can add in one got
@@ -410,12 +423,16 @@ module module_accelerator
          end if
       end do
 
+#ifdef MONITOR
+                     call Extrae_event(66671, 0)
+#endif
+
       return
 
    end subroutine dispatch_list
 
-!SEGFAULT   !$OMP target device(smp) copy_deps
-!SEGFAULT   !$OMP task firstprivate(tmp_top) inout(eps2, queued, ptr, gpu)
+!#!#   !$OMP target device(smp) copy_deps
+!#!#   !$OMP task firstprivate(tmp_top) inout(eps2, queued, ptr, gpu, acc%acc_queue(tmp_top))
    subroutine fill_gpu_data(tmp_top, eps2, queued, ptr, gpu, acc)
       implicit none
       integer, intent(in), value :: tmp_top

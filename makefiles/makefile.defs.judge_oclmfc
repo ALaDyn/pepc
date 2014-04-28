@@ -28,7 +28,7 @@ MACH       = oclmfc
 
 DEBUG      = 0
 INSTRUMENT = 1
-MONITOR    = 0
+MONITOR    = 1
 
 RANLIB     = ranlib
 
