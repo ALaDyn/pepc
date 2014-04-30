@@ -1,10 +1,10 @@
 &pepcessential
 
 ! total number of particles
-tnp = 10010
+tnp = 1010
 
 ! number of time steps
-nt = 3
+nt = 1
 
 ! time step
 dt = 0.5e-2
@@ -20,7 +20,7 @@ domain_output = .false.
 reflecting_walls = .false.
 
 ! turn direct summantion test on/off
-particle_test = .false.
+particle_test = .true.
 !particle_direct = 2000
 
 ! size of the simulation box
