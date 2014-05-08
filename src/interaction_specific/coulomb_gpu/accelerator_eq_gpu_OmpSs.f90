@@ -204,18 +204,14 @@ module module_accelerator
 
 
                ! run (GPU) kernel
-               !    update GPU data with gpu(gpu_id:gpu_id)
-               !    update GPU data with eps2
 #ifndef NO_NANOS
                !$OMP target device(smp) copy_deps
-!!!               !$OMP task firstprivate(gpu_id) private(ccc, idx) inout(gpu(gpu_id), eps2, queued(gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), pot(:,gpu_id)) private(dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6)
                !$OMP task firstprivate(gpu_id) private(idx, ccc, dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6) shared(gpu, e_1, e_2, e_3, pot, queued, zer)
 #endif
 #ifdef MONITOR
                call Extrae_event(WORK, gpu_id)
                call Extrae_event(WORK_NO, queued(gpu_id))
 #endif
-!               write(*,*) 't ',loc(queued(gpu_id)), queued(gpu_id)
                do ccc = 1,20 ! have 20 iterations to waste more time and have longer tasks
                do idx = 1, queued(gpu_id)
              
@@ -338,37 +334,13 @@ module module_accelerator
             ! need to wait until all tasks are finished (should be the case anyway)
             !$OMP taskwait
 #endif
-            ! got signal to flush, so check if there is data to flush - so all work done...
-!            if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
-               ! check if finishing all work ended up using all streams - in which case the flush will have happend
-!               if ( .not. (gpu_id .eq. GPU_STREAMS) ) then
-!                  write(*,*) 'force flushing ACC - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
-!                  do idx = 1,gpu_id
-!#ifdef MONITOR
-!                     call Extrae_event(COPYBACK_FORCE_NO, queued(idx))
-!#endif
-!                     ptr(idx)%results%e(1) = ptr(idx)%results%e(1) + sum(e_1(1:queued(idx),idx))
-!                     ptr(idx)%results%e(2) = ptr(idx)%results%e(2) + sum(e_2(1:queued(idx),idx))
-!                     ptr(idx)%results%e(3) = ptr(idx)%results%e(3) + sum(e_3(1:queued(idx),idx))
-!                     ptr(idx)%results%pot  = ptr(idx)%results%pot  + sum(pot(1:queued(idx),idx))
-!                     ptr(idx)%work         = ptr(idx)%work + queued(idx) * WORKLOAD_PENALTY_INTERACTION
-!#ifdef MONITOR
-!                     zer = 0
-!                     call Extrae_event(COPYBACK_FORCE_NO, zer(1))
-!#endif
-!                  enddo
-!               endif
-               ! reset queue
-               gpu_id = 0
-               ! tell others we're ready again...
-               call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
-!            endif
-            ! we did not flush, since there is work left to do, entering do while checking for available data
+            ! reset queue
+            gpu_id = 0
+            ! tell others we're ready again...
+            call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
          endif
 
       end do
-
-      ! free GPU memory???
 
       ! free queues and lock
       call critical_section_deallocate(queue_lock)
