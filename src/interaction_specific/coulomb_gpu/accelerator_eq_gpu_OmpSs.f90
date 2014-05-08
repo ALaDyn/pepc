@@ -73,8 +73,6 @@ module module_accelerator
 
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 
-      logical :: eps_update
-
 #ifdef MONITOR
       external :: Extrae_event
 ! define the Event types
@@ -125,7 +123,6 @@ module module_accelerator
 
       ! initialise GPU variables
       gpu_id = 0
-      eps_update = .true.
 
       ! signal successfull start
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
@@ -145,38 +142,66 @@ module module_accelerator
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! wait for the stream in a task
                !$OMP target device(smp) copy_deps
-               !$OMP task firstprivate(gpu_id, tmp_top, eps2) private(idx, ccc, q_tmp) inout(gpu(gpu_id), ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) shared(acc, gpu, queued, zer)
+               !$OMP task firstprivate(gpu_id, tmp_top, eps2) private(tmp_particle, idx, ccc, q_tmp) inout(gpu(gpu_id), ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) shared(acc, gpu, queued, zer)
 
 #ifdef MONITOR
                call Extrae_event(FILL, gpu_id)
 #endif
-               ! move list, copy data
+               ! copy list
+               tmp_particle = acc%acc_queue(tmp_top)%particle
+               tmp_particle%queued = acc%acc_queue(tmp_top)%queued
+               tmp_particle%partner => acc%acc_queue(tmp_top)%partner
                eps2 = acc%acc_queue(tmp_top)%eps
-               queued(gpu_id) = acc%acc_queue(tmp_top)%particle%queued
-               ptr(gpu_id)%results => acc%acc_queue(tmp_top)%particle%results
-               ptr(gpu_id)%work => acc%acc_queue(tmp_top)%particle%work
+               WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
+
+               ! free list entry in acc_queue
+               ! (do this now so that the loop can issue more tasks)
+#ifdef MONITOR
+               call Extrae_event(CRIT_LOCK, gpu_id)
+#endif
+               call critical_section_enter(queue_lock)
+
+               nullify(acc%acc_queue(tmp_top)%partner)
+   
+               call atomic_store_int(acc%q_top, tmp_top)
+               q_tmp = atomic_fetch_and_increment_int(acc%q_len)
+
+               call critical_section_leave(queue_lock)
+#ifdef MONITOR
+               q_tmp = atomic_load_int(acc%q_len)
+               zer = q_tmp
+               call Extrae_event(LIST_LEN, zer(1))
+               zer = 0
+               call Extrae_event(CRIT_LOCK, zer(1))
+#endif
+               
+               ! copy data in GPU structures
+               queued(gpu_id) = tmp_particle%queued
+               ptr(gpu_id)%results => tmp_particle%results
+               ptr(gpu_id)%work => tmp_particle%work
                do idx = 1, queued(gpu_id)
-                  gpu(gpu_id)%delta1(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(1)
-                  gpu(gpu_id)%delta2(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(2)
-                  gpu(gpu_id)%delta3(idx) = acc%acc_queue(tmp_top)%partner(idx)%delta(3)
-                  gpu(gpu_id)%charge(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%charge
-                  gpu(gpu_id)%dip1(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(1)
-                  gpu(gpu_id)%dip2(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(2)
-                  gpu(gpu_id)%dip3(idx)   = acc%acc_queue(tmp_top)%partner(idx)%node%dip(3)
-                  gpu(gpu_id)%quad1(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(1)
-                  gpu(gpu_id)%quad2(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(2)
-                  gpu(gpu_id)%quad3(idx)  = acc%acc_queue(tmp_top)%partner(idx)%node%quad(3)
-                  gpu(gpu_id)%xyquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%xyquad
-                  gpu(gpu_id)%yzquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%yzquad
-                  gpu(gpu_id)%zxquad(idx) = acc%acc_queue(tmp_top)%partner(idx)%node%zxquad
+                  gpu(gpu_id)%delta1(idx) = tmp_particle%partner(idx)%delta(1)
+                  gpu(gpu_id)%delta2(idx) = tmp_particle%partner(idx)%delta(2)
+                  gpu(gpu_id)%delta3(idx) = tmp_particle%partner(idx)%delta(3)
+                  gpu(gpu_id)%charge(idx) = tmp_particle%partner(idx)%node%charge
+                  gpu(gpu_id)%dip1(idx)   = tmp_particle%partner(idx)%node%dip(1)
+                  gpu(gpu_id)%dip2(idx)   = tmp_particle%partner(idx)%node%dip(2)
+                  gpu(gpu_id)%dip3(idx)   = tmp_particle%partner(idx)%node%dip(3)
+                  gpu(gpu_id)%quad1(idx)  = tmp_particle%partner(idx)%node%quad(1)
+                  gpu(gpu_id)%quad2(idx)  = tmp_particle%partner(idx)%node%quad(2)
+                  gpu(gpu_id)%quad3(idx)  = tmp_particle%partner(idx)%node%quad(3)
+                  gpu(gpu_id)%xyquad(idx) = tmp_particle%partner(idx)%node%xyquad
+                  gpu(gpu_id)%yzquad(idx) = tmp_particle%partner(idx)%node%yzquad
+                  gpu(gpu_id)%zxquad(idx) = tmp_particle%partner(idx)%node%zxquad
                enddo
+
+               deallocate(tmp_particle%partner)
+               nullify(tmp_particle%partner)
 #ifdef MONITOR
                zer = 0
                call Extrae_event(FILL, zer(1))
 #endif
 
-               WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(tmp_top)%pen
-!               write(*,*) 'o ',loc(queued(gpu_id)), queued(gpu_id)
 
                ! run (GPU) kernel
                !    update GPU data with gpu(gpu_id:gpu_id)
@@ -191,7 +216,7 @@ module module_accelerator
                call Extrae_event(WORK_NO, queued(gpu_id))
 #endif
 !               write(*,*) 't ',loc(queued(gpu_id)), queued(gpu_id)
-               do ccc = 1,1
+               do ccc = 1,20 ! have 20 iterations to waste more time and have longer tasks
                do idx = 1, queued(gpu_id)
              
                   dist2     =         gpu(gpu_id)%delta1(idx) * gpu(gpu_id)%delta1(idx)
@@ -277,28 +302,6 @@ module module_accelerator
                !$OMP end task
 #endif
 
-               ! kill list
-#ifdef MONITOR
-               call Extrae_event(CRIT_LOCK, gpu_id)
-#endif
-               call critical_section_enter(queue_lock)
-
-               ! free lists
-               deallocate(acc%acc_queue(tmp_top)%partner)
-               nullify(acc%acc_queue(tmp_top)%partner)
-   
-               call atomic_store_int(acc%q_top, tmp_top)
-               q_tmp = atomic_fetch_and_increment_int(acc%q_len)
-
-               call critical_section_leave(queue_lock)
-#ifdef MONITOR
-               q_tmp = atomic_load_int(acc%q_len)
-               zer = q_tmp
-               call Extrae_event(LIST_LEN, zer(1))
-               zer = 0
-               call Extrae_event(CRIT_LOCK, zer(1))
-#endif
-
                ! wait for the task to finish. a global one will do here since we only 'posted' 1
                !$OMP taskwait
                ! get data from GPU
@@ -336,10 +339,10 @@ module module_accelerator
             !$OMP taskwait
 #endif
             ! got signal to flush, so check if there is data to flush - so all work done...
-            if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
+!            if ( .not. (atomic_load_int(acc%q_top) .ne. atomic_load_int(acc%q_bottom)) ) then
                ! check if finishing all work ended up using all streams - in which case the flush will have happend
-               if ( .not. (gpu_id .eq. GPU_STREAMS) ) then
-                  write(*,*) 'force flushing ACC - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
+!               if ( .not. (gpu_id .eq. GPU_STREAMS) ) then
+!                  write(*,*) 'force flushing ACC - ', gpu_id,' entries, ',sum(queued(1:gpu_id)),' interactions'
 !                  do idx = 1,gpu_id
 !#ifdef MONITOR
 !                     call Extrae_event(COPYBACK_FORCE_NO, queued(idx))
@@ -354,12 +357,12 @@ module module_accelerator
 !                     call Extrae_event(COPYBACK_FORCE_NO, zer(1))
 !#endif
 !                  enddo
-               endif
+!               endif
                ! reset queue
                gpu_id = 0
                ! tell others we're ready again...
                call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
-            endif
+!            endif
             ! we did not flush, since there is work left to do, entering do while checking for available data
          endif
 
