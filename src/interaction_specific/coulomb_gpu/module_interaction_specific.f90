@@ -18,6 +18,20 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
+#define DELTA1 (MAX_IACT_PARTNERS * (1-1))
+#define DELTA2 (MAX_IACT_PARTNERS * (2-1))
+#define DELTA3 (MAX_IACT_PARTNERS * (3-1))
+#define CHARGE (MAX_IACT_PARTNERS * (4-1))
+#define DIP1   (MAX_IACT_PARTNERS * (5-1))
+#define DIP2   (MAX_IACT_PARTNERS * (6-1))
+#define DIP3   (MAX_IACT_PARTNERS * (7-1))
+#define QUAD1  (MAX_IACT_PARTNERS * (8-1))
+#define QUAD2  (MAX_IACT_PARTNERS * (9-1))
+#define QUAD3  (MAX_IACT_PARTNERS * (10-1))
+#define XYQUAD (MAX_IACT_PARTNERS * (11-1))
+#define YZQUAD (MAX_IACT_PARTNERS * (12-1))
+#define ZXQUAD (MAX_IACT_PARTNERS * (13-1))
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Encapsulates anything that is directly involved in force calculation
@@ -525,7 +539,8 @@ module module_interaction_specific
 
           case (-1) ! allocate interaction list and start filling it
 
-             allocate(particle%partner(MAX_IACT_PARTNERS))
+             allocate(particle%partner(MAX_IACT_PARTNERS*13))   ! flat 1-D array, 13 '2-D' entries
+             allocate(particle%leaf(MAX_IACT_PARTNERS))
              particle%queued = 0
              call add_to_iact_list(particle, node, delta, node_is_leaf)
 
@@ -534,7 +549,8 @@ module module_interaction_specific
              ! compute list, which leaves us we NO list
              call compute_iact_list(particle)
              ! create new list
-             allocate(particle%partner(MAX_IACT_PARTNERS))
+             allocate(particle%partner(MAX_IACT_PARTNERS*13))   ! flat 1-D array, 13 '2-D' entries
+             allocate(particle%leaf(MAX_IACT_PARTNERS))
              particle%queued = 0
              ! add to new list
              call add_to_iact_list(particle, node, delta, node_is_leaf)
@@ -561,14 +577,63 @@ module module_interaction_specific
 
                 queued = particle%queued + 1
 
-                particle%partner(queued)%delta = delta
-                particle%partner(queued)%node  = node
-                particle%partner(queued)%leaf  = node_is_leaf
+                ! we store the interaction specific data in a 1-D array straight away
+                ! this saves 'repacking' for the GPU later and makes everything shorter?
+                call unpack_iact_data(queued, particle%partner, node, delta)
+                particle%leaf(queued)  = node_is_leaf
                 particle%queued = queued
 
              end subroutine add_to_iact_list
 
         end subroutine calc_force_per_interaction_thread
+
+        !> unpack data from types to 1-D array
+        subroutine unpack_iact_data(queued, partner, node, delta)
+           implicit none
+           integer, intent(in) :: queued
+           real*8 , intent(inout) :: partner(:)
+           type(t_tree_node_interaction_data), intent(in) :: node
+           real*8, intent(in) :: delta(3)
+
+           partner(DELTA1+queued) = delta(1)
+           partner(DELTA2+queued) = delta(2)
+           partner(DELTA3+queued) = delta(3)
+           partner(CHARGE+queued) = node%charge
+           partner(DIP1  +queued) = node%dip(1)
+           partner(DIP2  +queued) = node%dip(2)
+           partner(DIP3  +queued) = node%dip(3)
+           partner(QUAD1 +queued) = node%quad(1)
+           partner(QUAD2 +queued) = node%quad(2)
+           partner(QUAD3 +queued) = node%quad(3)
+           partner(XYQUAD+queued) = node%xyquad
+           partner(YZQUAD+queued) = node%yzquad
+           partner(ZXQUAD+queued) = node%zxquad
+
+        end subroutine unpack_iact_data
+
+        !> pack data from 1-D array in types
+        subroutine pack_iact_data(queued, partner, node, delta)
+           implicit none
+           integer, intent(in) :: queued
+           real*8 , intent(in) :: partner(:)
+           type(t_tree_node_interaction_data), intent(out) :: node
+           real*8, intent(out) :: delta(3)
+
+           delta(1)     = partner(DELTA1+queued)
+           delta(2)     = partner(DELTA2+queued)
+           delta(3)     = partner(DELTA3+queued)
+           node%charge  = partner(CHARGE+queued)
+           node%dip(1)  = partner(DIP1  +queued)
+           node%dip(2)  = partner(DIP2  +queued)
+           node%dip(3)  = partner(DIP3  +queued)
+           node%quad(1) = partner(QUAD1 +queued)
+           node%quad(2) = partner(QUAD2 +queued)
+           node%quad(3) = partner(QUAD3 +queued)
+           node%xyquad  = partner(XYQUAD+queued)
+           node%yzquad  = partner(YZQUAD+queued)
+           node%zxquad  = partner(ZXQUAD+queued)
+
+        end subroutine pack_iact_data
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
@@ -592,9 +657,8 @@ module module_interaction_specific
 
               do idx = 1, particle%queued
 
-                 node_is_leaf = particle%partner(idx)%leaf
-                 node  = particle%partner(idx)%node
-                 delta = particle%partner(idx)%delta
+                 node_is_leaf = particle%leaf(idx)
+                 call pack_iact_data(idx, particle%partner, node, delta)
                  dist2 = dot_product(delta, delta)
 
                  if (node_is_leaf) then
@@ -618,8 +682,8 @@ module module_interaction_specific
 
               do idx = 1, particle%queued
 
-                 node  = particle%partner(idx)%node
-                 delta = particle%partner(idx)%delta
+                 node_is_leaf = particle%leaf(idx)
+                 call pack_iact_data(idx, particle%partner, node, delta)
                  dist2 = dot_product(delta, delta)
 
                  call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
@@ -634,9 +698,8 @@ module module_interaction_specific
 
               do idx = 1, particle%queued
 
-                 node_is_leaf = particle%partner(idx)%leaf
-                 node  = particle%partner(idx)%node
-                 delta = particle%partner(idx)%delta
+                 node_is_leaf = particle%leaf(idx)
+                 call pack_iact_data(idx, particle%partner, node, delta)
                  dist2 = dot_product(delta, delta)
 
                  !  and Kelbg for particle-particle interaction
@@ -665,9 +728,11 @@ module module_interaction_specific
 
            end select
 
-           ! free space and refresh list
+           ! free space and refresh list (will free partners in other thread, won't need leaf any longer)
            particle%queued = -1
            nullify(particle%partner)
+           deallocate(particle%leaf)
+           nullify(particle%leaf)
 
            return
 

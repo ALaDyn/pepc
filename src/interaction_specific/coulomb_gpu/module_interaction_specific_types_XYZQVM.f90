@@ -55,14 +55,6 @@ module module_interaction_specific_types
       end type t_tree_node_interaction_data
       integer, private, parameter :: nprops_tree_node_interaction_data = 9
 
-      !> Data structure for storing interaction partners
-      type t_iact_partner
-         real*8 :: delta(3)
-         type(t_tree_node_interaction_data) :: node
-         logical :: leaf
-      end type t_iact_partner
-      integer, private, parameter :: nprops_partner_data = 3
-
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
          real*8 :: q
@@ -97,11 +89,11 @@ module module_interaction_specific_types
          integer :: pid                               !< particle owner
          type(t_particle_data) :: data                !< real physics (charge, etc.)
          type(t_particle_results), pointer :: results !< results of calc_force_etc and companions
-         integer :: queued = -1
-         type(t_iact_partner), pointer :: partner(:)
+         integer :: queued = -1                       !< counter for actually queued particles
+         real*8, pointer :: partner(:)                !< 1-D array to store all info about interaction partner (delta, tree_node_interaction_data)
+         logical, pointer :: leaf(:)                  !< 1-D array to store particle_is_leaf flag
          integer*8 :: my_idx = -1
       end type t_particle_thread
-      integer, private, parameter :: nprops_particle_thread = 10
 
       type, public :: t_acc_queue_entry
          type(t_particle_thread) :: particle
@@ -109,7 +101,7 @@ module module_interaction_specific_types
          real*8 :: eps, pen
          logical :: entry_valid
          integer :: queued
-         type(t_iact_partner), pointer :: partner(:)
+         real*8, pointer :: partner(:)
       end type
 
       type :: t_acc

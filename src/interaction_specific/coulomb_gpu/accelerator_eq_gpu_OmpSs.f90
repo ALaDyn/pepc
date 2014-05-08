@@ -1,3 +1,37 @@
+! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
+! 
+! Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+!                         Forschungszentrum Juelich GmbH,
+!                         Germany
+! 
+! PEPC is free software: you can redistribute it and/or modify
+! it under the terms of the GNU Lesser General Public License as published by
+! the Free Software Foundation, either version 3 of the License, or
+! (at your option) any later version.
+! 
+! PEPC is distributed in the hope that it will be useful,
+! but WITHOUT ANY WARRANTY; without even the implied warranty of
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+! GNU Lesser General Public License for more details.
+! 
+! You should have received a copy of the GNU Lesser General Public License
+! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
+!
+
+#define DELTA1 (MAX_IACT_PARTNERS * (1-1))
+#define DELTA2 (MAX_IACT_PARTNERS * (2-1))
+#define DELTA3 (MAX_IACT_PARTNERS * (3-1))
+#define CHARGE (MAX_IACT_PARTNERS * (4-1))
+#define DIP1   (MAX_IACT_PARTNERS * (5-1))
+#define DIP2   (MAX_IACT_PARTNERS * (6-1))
+#define DIP3   (MAX_IACT_PARTNERS * (7-1))
+#define QUAD1  (MAX_IACT_PARTNERS * (8-1))
+#define QUAD2  (MAX_IACT_PARTNERS * (9-1))
+#define QUAD3  (MAX_IACT_PARTNERS * (10-1))
+#define XYQUAD (MAX_IACT_PARTNERS * (11-1))
+#define YZQUAD (MAX_IACT_PARTNERS * (12-1))
+#define ZXQUAD (MAX_IACT_PARTNERS * (13-1))
+
 !>
 !> Accelerator module, in this case for a GPU using OmpSs with tasks (for the GPU).
 !>
@@ -180,19 +214,19 @@ module module_accelerator
                ptr(gpu_id)%results => tmp_particle%results
                ptr(gpu_id)%work => tmp_particle%work
                do idx = 1, queued(gpu_id)
-                  gpu(gpu_id)%delta1(idx) = tmp_particle%partner(idx)%delta(1)
-                  gpu(gpu_id)%delta2(idx) = tmp_particle%partner(idx)%delta(2)
-                  gpu(gpu_id)%delta3(idx) = tmp_particle%partner(idx)%delta(3)
-                  gpu(gpu_id)%charge(idx) = tmp_particle%partner(idx)%node%charge
-                  gpu(gpu_id)%dip1(idx)   = tmp_particle%partner(idx)%node%dip(1)
-                  gpu(gpu_id)%dip2(idx)   = tmp_particle%partner(idx)%node%dip(2)
-                  gpu(gpu_id)%dip3(idx)   = tmp_particle%partner(idx)%node%dip(3)
-                  gpu(gpu_id)%quad1(idx)  = tmp_particle%partner(idx)%node%quad(1)
-                  gpu(gpu_id)%quad2(idx)  = tmp_particle%partner(idx)%node%quad(2)
-                  gpu(gpu_id)%quad3(idx)  = tmp_particle%partner(idx)%node%quad(3)
-                  gpu(gpu_id)%xyquad(idx) = tmp_particle%partner(idx)%node%xyquad
-                  gpu(gpu_id)%yzquad(idx) = tmp_particle%partner(idx)%node%yzquad
-                  gpu(gpu_id)%zxquad(idx) = tmp_particle%partner(idx)%node%zxquad
+                  gpu(gpu_id)%delta1(idx) = tmp_particle%partner(DELTA1+idx)
+                  gpu(gpu_id)%delta2(idx) = tmp_particle%partner(DELTA2+idx)
+                  gpu(gpu_id)%delta3(idx) = tmp_particle%partner(DELTA3+idx)
+                  gpu(gpu_id)%charge(idx) = tmp_particle%partner(CHARGE+idx)
+                  gpu(gpu_id)%dip1(idx)   = tmp_particle%partner(DIP1  +idx)
+                  gpu(gpu_id)%dip2(idx)   = tmp_particle%partner(DIP2  +idx)
+                  gpu(gpu_id)%dip3(idx)   = tmp_particle%partner(DIP3  +idx)
+                  gpu(gpu_id)%quad1(idx)  = tmp_particle%partner(QUAD1 +idx)
+                  gpu(gpu_id)%quad2(idx)  = tmp_particle%partner(QUAD2 +idx)
+                  gpu(gpu_id)%quad3(idx)  = tmp_particle%partner(QUAD3 +idx)
+                  gpu(gpu_id)%xyquad(idx) = tmp_particle%partner(XYQUAD+idx)
+                  gpu(gpu_id)%yzquad(idx) = tmp_particle%partner(YZQUAD+idx)
+                  gpu(gpu_id)%zxquad(idx) = tmp_particle%partner(ZXQUAD+idx)
                enddo
 
                deallocate(tmp_particle%partner)
@@ -392,7 +426,7 @@ module module_accelerator
             ! thread-safe way of reserving storage for our request
             local_queue_bottom = atomic_mod_increment_and_fetch_int(acc%q_bottom, ACC_QUEUE_LENGTH)
    
-            if (local_queue_bottom == atomic_load_int(acc%q_top)) then
+            if (local_queue_bottom .eq. atomic_load_int(acc%q_top)) then
                ! we should not get here because of the busy-wait for free entries in the queue...
                write(*,*) 'ACC queue exhausted...'
                DEBUG_ERROR(*, "ACC_QUEUE_LENGTH is too small: ", ACC_QUEUE_LENGTH)
@@ -404,6 +438,7 @@ module module_accelerator
             ! store link to particle, so we know what forces to update
             acc%acc_queue(local_queue_bottom)%particle = particle
             ! move list information to queue, list info in particle will be deleted by calling subroutine...
+            !                                 \_ compute_iact_list will nullify particle%partner
             acc%acc_queue(local_queue_bottom)%queued = particle%queued
             acc%acc_queue(local_queue_bottom)%partner => particle%partner
             ! store epsilon and work_penalty to preserve original calc_force functionality
