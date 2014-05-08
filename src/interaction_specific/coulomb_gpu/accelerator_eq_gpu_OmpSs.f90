@@ -50,23 +50,6 @@ module module_accelerator
 
    type(t_critical_section), pointer :: queue_lock
 
-   !> Data structures to be fed to the GPU
-   type :: mpdelta
-      real*8 :: delta1(1:MAX_IACT_PARTNERS)
-      real*8 :: delta2(1:MAX_IACT_PARTNERS)
-      real*8 :: delta3(1:MAX_IACT_PARTNERS)
-      real*8 :: charge(1:MAX_IACT_PARTNERS)
-      real*8 :: dip1(1:MAX_IACT_PARTNERS)
-      real*8 :: dip2(1:MAX_IACT_PARTNERS)
-      real*8 :: dip3(1:MAX_IACT_PARTNERS)
-      real*8 :: quad1(1:MAX_IACT_PARTNERS)
-      real*8 :: quad2(1:MAX_IACT_PARTNERS)
-      real*8 :: quad3(1:MAX_IACT_PARTNERS)
-      real*8 :: xyquad(1:MAX_IACT_PARTNERS)
-      real*8 :: yzquad(1:MAX_IACT_PARTNERS)
-      real*8 :: zxquad(1:MAX_IACT_PARTNERS)
-   end type mpdelta
-
    ! kernel data
    type point
       type(t_particle_results), pointer :: results
@@ -90,7 +73,6 @@ module module_accelerator
    
       type(c_ptr) :: acc_loop
 
-      type(mpdelta), dimension(:), allocatable :: gpu
       integer :: gpu_id          ! to keep track of streams
 
       type(t_particle_thread) :: tmp_particle
@@ -139,7 +121,6 @@ module module_accelerator
       allocate(e_2(MAX_IACT_PARTNERS, GPU_STREAMS))
       allocate(e_3(MAX_IACT_PARTNERS, GPU_STREAMS))
       allocate(pot(MAX_IACT_PARTNERS, GPU_STREAMS))
-      allocate(gpu(1:GPU_STREAMS))
 
       ! signal we're starting...
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
@@ -176,7 +157,7 @@ module module_accelerator
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! wait for the stream in a task
                !$OMP target device(smp) copy_deps
-               !$OMP task firstprivate(gpu_id, tmp_top, eps2) private(tmp_particle, idx, ccc, q_tmp) inout(gpu(gpu_id), ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) shared(acc, gpu, queued, zer)
+               !$OMP task firstprivate(gpu_id, tmp_top, eps2) private(tmp_particle, idx, ccc, q_tmp) inout(ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) shared(acc, queued, zer)
 
 #ifdef MONITOR
                call Extrae_event(FILL, gpu_id)
@@ -213,24 +194,6 @@ module module_accelerator
                queued(gpu_id) = tmp_particle%queued
                ptr(gpu_id)%results => tmp_particle%results
                ptr(gpu_id)%work => tmp_particle%work
-               do idx = 1, queued(gpu_id)
-                  gpu(gpu_id)%delta1(idx) = tmp_particle%partner(DELTA1+idx)
-                  gpu(gpu_id)%delta2(idx) = tmp_particle%partner(DELTA2+idx)
-                  gpu(gpu_id)%delta3(idx) = tmp_particle%partner(DELTA3+idx)
-                  gpu(gpu_id)%charge(idx) = tmp_particle%partner(CHARGE+idx)
-                  gpu(gpu_id)%dip1(idx)   = tmp_particle%partner(DIP1  +idx)
-                  gpu(gpu_id)%dip2(idx)   = tmp_particle%partner(DIP2  +idx)
-                  gpu(gpu_id)%dip3(idx)   = tmp_particle%partner(DIP3  +idx)
-                  gpu(gpu_id)%quad1(idx)  = tmp_particle%partner(QUAD1 +idx)
-                  gpu(gpu_id)%quad2(idx)  = tmp_particle%partner(QUAD2 +idx)
-                  gpu(gpu_id)%quad3(idx)  = tmp_particle%partner(QUAD3 +idx)
-                  gpu(gpu_id)%xyquad(idx) = tmp_particle%partner(XYQUAD+idx)
-                  gpu(gpu_id)%yzquad(idx) = tmp_particle%partner(YZQUAD+idx)
-                  gpu(gpu_id)%zxquad(idx) = tmp_particle%partner(ZXQUAD+idx)
-               enddo
-
-               deallocate(tmp_particle%partner)
-               nullify(tmp_particle%partner)
 #ifdef MONITOR
                zer = 0
                call Extrae_event(FILL, zer(1))
@@ -240,7 +203,7 @@ module module_accelerator
                ! run (GPU) kernel
 #ifndef NO_NANOS
                !$OMP target device(smp) copy_deps
-               !$OMP task firstprivate(gpu_id) private(idx, ccc, dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6) shared(gpu, e_1, e_2, e_3, pot, queued, zer)
+               !$OMP task firstprivate(gpu_id) in(tmp_particle) private(idx, ccc, dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6) shared(e_1, e_2, e_3, pot, queued, zer)
 #endif
 #ifdef MONITOR
                call Extrae_event(WORK, gpu_id)
@@ -249,13 +212,13 @@ module module_accelerator
                do ccc = 1,20 ! have 20 iterations to waste more time and have longer tasks
                do idx = 1, queued(gpu_id)
              
-                  dist2     =         gpu(gpu_id)%delta1(idx) * gpu(gpu_id)%delta1(idx)
-                  dist2     = dist2 + gpu(gpu_id)%delta2(idx) * gpu(gpu_id)%delta2(idx)
-                  dist2     = dist2 + gpu(gpu_id)%delta3(idx) * gpu(gpu_id)%delta3(idx)
+                  dx = tmp_particle%partner(DELTA1+idx)
+                  dy = tmp_particle%partner(DELTA2+idx)
+                  dz = tmp_particle%partner(DELTA3+idx)
             
-                  dx = gpu(gpu_id)%delta1(idx)
-                  dy = gpu(gpu_id)%delta2(idx)
-                  dz = gpu(gpu_id)%delta3(idx)
+                  dist2     =         dx * dx
+                  dist2     = dist2 + dy * dy
+                  dist2     = dist2 + dz * dz
             
                   r  = sqrt(dist2+eps2) ! eps2 is added in calling routine to have plummer instead of coulomb here
                   rd = 1.d0/r
@@ -278,48 +241,48 @@ module module_accelerator
                   fd5 = 3.d0*dy*dz*rd5
                   fd6 = 3.d0*dx*dz*rd5
             
-                  pot(idx, gpu_id) = gpu(gpu_id)%charge(idx)*rd                                                          &  !  monopole term
-                        + (dx*gpu(gpu_id)%dip1(idx) + dy*gpu(gpu_id)%dip2(idx) + dz*gpu(gpu_id)%dip3(idx))*rd3           &  !  dipole
-                        + 0.5d0*(fd1*gpu(gpu_id)%quad1(idx)  + fd2*gpu(gpu_id)%quad2(idx)  + fd3*gpu(gpu_id)%quad3(idx)) &  !  quadrupole
-                        +        fd4*gpu(gpu_id)%xyquad(idx) + fd5*gpu(gpu_id)%yzquad(idx) + fd6*gpu(gpu_id)%zxquad(idx)
+                  pot(idx, gpu_id) = tmp_particle%partner(CHARGE+idx)*rd                                                          &  !  monopole term
+                        + (dx*tmp_particle%partner(DIP1  +idx) + dy*tmp_particle%partner(DIP2  +idx) + dz*tmp_particle%partner(DIP3  +idx))*rd3           &  !  dipole
+                        + 0.5d0*(fd1*tmp_particle%partner(QUAD1 +idx)  + fd2*tmp_particle%partner(QUAD2 +idx)  + fd3*tmp_particle%partner(QUAD3 +idx)) &  !  quadrupole
+                        +        fd4*tmp_particle%partner(XYQUAD+idx) + fd5*tmp_particle%partner(YZQUAD+idx) + fd6*tmp_particle%partner(ZXQUAD+idx)
             
-                  e_1(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dx*rd3                                                      &  ! monopole term
-                            + fd1*gpu(gpu_id)%dip1(idx) + fd4*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip3(idx)          &  ! dipole term
+                  e_1(idx, gpu_id) = tmp_particle%partner(CHARGE+idx)*dx*rd3                                                      &  ! monopole term
+                            + fd1*tmp_particle%partner(DIP1  +idx) + fd4*tmp_particle%partner(DIP2  +idx) + fd6*tmp_particle%partner(DIP3  +idx)          &  ! dipole term
                             + 3.d0   * (                                                                                 &  ! quadrupole term
                                0.5d0 * (                                                                                 &
-                                   ( 5.d0*dx3   *rd7 - 3.d0*dx*rd5 )*gpu(gpu_id)%quad1(idx)                              &
-                                 + ( 5.d0*dx*dy2*rd7 -      dx*rd5 )*gpu(gpu_id)%quad2(idx)                              &
-                                 + ( 5.d0*dx*dz2*rd7 -      dx*rd5 )*gpu(gpu_id)%quad3(idx)                              &
+                                   ( 5.d0*dx3   *rd7 - 3.d0*dx*rd5 )* tmp_particle%partner(QUAD1 +idx)                             &
+                                 + ( 5.d0*dx*dy2*rd7 -      dx*rd5 )* tmp_particle%partner(QUAD2 +idx)                             &
+                                 + ( 5.d0*dx*dz2*rd7 -      dx*rd5 )* tmp_particle%partner(QUAD3 +idx)                             &
                                )                                                                                         &
-                               + ( 5.d0*dy*dx2  *rd7 - dy*rd5 )*gpu(gpu_id)%xyquad(idx)                                  &
-                               + ( 5.d0*dz*dx2  *rd7 - dz*rd5 )*gpu(gpu_id)%zxquad(idx)                                  &
-                               + ( 5.d0*dx*dy*dz*rd7          )*gpu(gpu_id)%yzquad(idx)                                  &
+                               + ( 5.d0*dy*dx2  *rd7 - dy*rd5 )* tmp_particle%partner(XYQUAD+idx)                                 &
+                               + ( 5.d0*dz*dx2  *rd7 - dz*rd5 )* tmp_particle%partner(ZXQUAD+idx)                                 &
+                               + ( 5.d0*dx*dy*dz*rd7          )* tmp_particle%partner(YZQUAD+idx)                                 &
                               )
             
-                  e_2(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dy*rd3                                                      &
-                            + fd2*gpu(gpu_id)%dip2(idx) + fd4*gpu(gpu_id)%dip1(idx) + fd5*gpu(gpu_id)%dip3(idx)          &
+                  e_2(idx, gpu_id) = tmp_particle%partner(CHARGE+idx)*dy*rd3                                                      &
+                            + fd2*tmp_particle%partner(DIP2  +idx) + fd4*tmp_particle%partner(DIP1  +idx) + fd5*tmp_particle%partner(DIP3  +idx)          &
                             + 3 * (                                                                                      &
                                0.5d0 * (                                                                                 &
-                                   ( 5*dy3*rd7    - 3*dy*rd5 )*gpu(gpu_id)%quad2(idx)                                    &
-                                 + ( 5*dy*dx2*rd7 -   dy*rd5 )*gpu(gpu_id)%quad1(idx)                                    &
-                                 + ( 5*dy*dz2*rd7 -   dy*rd5 )*gpu(gpu_id)%quad3(idx)                                    &
+                                   ( 5*dy3*rd7    - 3*dy*rd5 )*tmp_particle%partner(QUAD2 +idx)                                    &
+                                 + ( 5*dy*dx2*rd7 -   dy*rd5 )*tmp_particle%partner(QUAD1 +idx)                                    &
+                                 + ( 5*dy*dz2*rd7 -   dy*rd5 )*tmp_particle%partner(QUAD3 +idx)                                    &
                                )                                                                                         &
-                               + ( 5*dx*dy2  *rd7 - dx*rd5 )*gpu(gpu_id)%xyquad(idx)                                     &
-                               + ( 5*dz*dy2  *rd7 - dz*rd5 )*gpu(gpu_id)%yzquad(idx)                                     &
-                               + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%zxquad(idx)                                     &
+                               + ( 5*dx*dy2  *rd7 - dx*rd5 )*tmp_particle%partner(XYQUAD+idx)                                     &
+                               + ( 5*dz*dy2  *rd7 - dz*rd5 )*tmp_particle%partner(YZQUAD+idx)                                     &
+                               + ( 5*dx*dy*dz*rd7          )*tmp_particle%partner(ZXQUAD+idx)                                     &
                               )
             
-                  e_3(idx, gpu_id) = gpu(gpu_id)%charge(idx)*dz*rd3                                                      &
-                            + fd3*gpu(gpu_id)%dip3(idx) + fd5*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip1(idx)          &
+                  e_3(idx, gpu_id) = tmp_particle%partner(CHARGE+idx)*dz*rd3                                                      &
+                            + fd3*tmp_particle%partner(DIP3  +idx) + fd5*tmp_particle%partner(DIP2  +idx) + fd6*tmp_particle%partner(DIP1  +idx)          &
                             + 3 * (                                                                                      &
                                0.5d0 * (                                                                                 &
-                                 + ( 5*dz3   *rd7 - 3*dz*rd5 )*gpu(gpu_id)%quad3(idx)                                    &
-                                 + ( 5*dz*dy2*rd7 -   dz*rd5 )*gpu(gpu_id)%quad2(idx)                                    &
-                                 + ( 5*dz*dx2*rd7 -   dz*rd5 )*gpu(gpu_id)%quad1(idx)                                    &
+                                 + ( 5*dz3   *rd7 - 3*dz*rd5 )*tmp_particle%partner(QUAD3 +idx)                                    &
+                                 + ( 5*dz*dy2*rd7 -   dz*rd5 )*tmp_particle%partner(QUAD2 +idx)                                    &
+                                 + ( 5*dz*dx2*rd7 -   dz*rd5 )*tmp_particle%partner(QUAD1 +idx)                                    &
                                               )                                                                          &
-                               + ( 5*dx*dz2  *rd7 - dx*rd5 )*gpu(gpu_id)%zxquad(idx)                                     &
-                               + ( 5*dy*dz2  *rd7 - dy*rd5 )*gpu(gpu_id)%yzquad(idx)                                     &
-                               + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                                     &
+                               + ( 5*dx*dz2  *rd7 - dx*rd5 )*tmp_particle%partner(ZXQUAD+idx)                                     &
+                               + ( 5*dy*dz2  *rd7 - dy*rd5 )*tmp_particle%partner(YZQUAD+idx)                                     &
+                               + ( 5*dx*dy*dz*rd7          )*tmp_particle%partner(XYQUAD+idx)                                     &
                               )
                end do
                end do
@@ -335,6 +298,9 @@ module module_accelerator
                ! wait for the task to finish. a global one will do here since we only 'posted' 1
                !$OMP taskwait
                ! get data from GPU
+               ! now free memory
+               deallocate(tmp_particle%partner)
+               nullify(tmp_particle%partner)
 #ifdef MONITOR
                call Extrae_event(COPYBACK_NO, queued(gpu_id))
                call Extrae_event(COPYBACK, gpu_id)
@@ -387,7 +353,6 @@ module module_accelerator
       deallocate(e_2)
       deallocate(e_3)
       deallocate(pot)
-      deallocate(gpu)
 
       write(*,*) 'GPU thread terminating'
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPED)
