@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -76,7 +76,7 @@ module module_checkpoint
               call pepc_write_parameters(filehandle)
               close(filehandle)
             endif
-            
+
             if (present(filename_out)) then
               filename_out = trim(filename)
             endif
@@ -99,7 +99,7 @@ module module_checkpoint
 
             dir = trim(directory)//"/binary/"
             write(filename,'(a,"particle_",i12.12,"_",i6.6,".bin")') trim(dir), itime, my_rank
-            call pepc_status("DUMP PARTICLES BINARY: "//filename)
+            call pepc_status("DUMP PARTICLES BINARY: "//trim(filename))
 
             if (firstcall) then
               call create_directory(trim(directory))
@@ -140,8 +140,8 @@ module module_checkpoint
 
             dir = trim(directory)//"/mpi/"
             write(filename,'(a,"particle_",i12.12,".mpi")') trim(dir), itime
-            call pepc_status("DUMP PARTICLES MPI: "//filename)
-            
+            call pepc_status("DUMP PARTICLES MPI: "//trim(filename))
+
             call MPI_COMM_RANK( MPI_COMM_WORLD, my_rank, ierr )
 
             if (firstcall) then
@@ -159,7 +159,7 @@ module module_checkpoint
             call MPI_FILE_OPEN(comm,filename,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
 
             if (ierr .ne. MPI_SUCCESS) then
-              DEBUG_ERROR(*, 'write_particles_mpiio(): file open failed', my_rank, ierr, filename)
+              DEBUG_ERROR(*, 'write_particles_mpiio(): file open failed', my_rank, ierr, trim(filename))
             end if
 
             ! Set file view to BYTE for header, only rank 0 writes it
@@ -239,24 +239,24 @@ module module_checkpoint
             integer(kind_default), optional, intent(in) :: nparticles_local ! this has to be kind_default - not kind_particle as it is parameter to MPI functions
             integer(kind_particle) :: n_totsum
             logical :: noparams_
-            
+
             noparams_ = .false.
             if (present(noparams)) noparams_ = noparams
 
 
-            call pepc_status("READ PARTICLES MPI: "//filename)
-            
-            call MPI_COMM_SIZE( MPI_COMM_WORLD, n_cpu,   ierr )
-            call MPI_COMM_RANK( MPI_COMM_WORLD, my_rank, ierr )
-            
+            call pepc_status("READ PARTICLES MPI: "//trim(filename))
+
+            call MPI_COMM_SIZE( comm, n_cpu,   ierr )
+            call MPI_COMM_RANK( comm, my_rank, ierr )
+
             if (utils_file_exists(trim(filename))) then
-            
+
               if (present(file_exists)) file_exists = .true.
 
               call MPI_FILE_OPEN(comm,trim(filename),MPI_MODE_RDONLY,MPI_INFO_NULL,fh,ierr)
 
               if (ierr .ne. MPI_SUCCESS) then
-                DEBUG_ERROR(*,'read_particles_mpiio_from_file(): file open failed', my_rank, ierr, filename)
+                DEBUG_ERROR(*,'read_particles_mpiio_from_file(): file open failed', my_rank, ierr, trim(filename))
               end if
 
               ! Set file view to BYTE for header, only rank 0 writes it
