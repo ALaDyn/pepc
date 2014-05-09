@@ -92,7 +92,7 @@ include_far_field_if_periodic = .false.
  curve_type = 1
 
  interaction_list_length_factor = 8
- num_threads = 4
+ num_threads = 6
 /
 
 &walk_para_pthreads
