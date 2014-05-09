@@ -115,8 +115,10 @@ program pepc
 
       call timings_GatherAndOutput(step, 0, step == 0)
 
-      write(*,'(a,es12.4)') " == time in force computation (s)                 : ", timer_pcomp
-      write(*,'(a,es12.4)') " == time in checkpoint I/O (s)                    : ", timer_chkpt
+      if (root) then
+        write(*,'(a,es12.4)') " == time in force computation (s)                 : ", timer_pcomp
+        write(*,'(a,es12.4)') " == time in checkpoint I/O (s)                    : ", timer_chkpt
+      end if
 
     else if (trim(mode) == "step") then
       call t_resume(timer_init)
