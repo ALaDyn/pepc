@@ -52,19 +52,19 @@ module module_accelerator
 
    !> Data structures to be fed to the GPU
    type :: mpdelta
-      real*8, pointer :: delta1(:)
-      real*8, pointer :: delta2(:)
-      real*8, pointer :: delta3(:)
-      real*8, pointer :: charge(:)
-      real*8, pointer :: dip1(:)
-      real*8, pointer :: dip2(:)
-      real*8, pointer :: dip3(:)
-      real*8, pointer :: quad1(:)
-      real*8, pointer :: quad2(:)
-      real*8, pointer :: quad3(:)
-      real*8, pointer :: xyquad(:)
-      real*8, pointer :: yzquad(:)
-      real*8, pointer :: zxquad(:)
+      real*8 :: delta1(1:MAX_IACT_PARTNERS)
+      real*8 :: delta2(1:MAX_IACT_PARTNERS)
+      real*8 :: delta3(1:MAX_IACT_PARTNERS)
+      real*8 :: charge(1:MAX_IACT_PARTNERS)
+      real*8 :: dip1(1:MAX_IACT_PARTNERS)
+      real*8 :: dip2(1:MAX_IACT_PARTNERS)
+      real*8 :: dip3(1:MAX_IACT_PARTNERS)
+      real*8 :: quad1(1:MAX_IACT_PARTNERS)
+      real*8 :: quad2(1:MAX_IACT_PARTNERS)
+      real*8 :: quad3(1:MAX_IACT_PARTNERS)
+      real*8 :: xyquad(1:MAX_IACT_PARTNERS)
+      real*8 :: yzquad(1:MAX_IACT_PARTNERS)
+      real*8 :: zxquad(1:MAX_IACT_PARTNERS)
    end type mpdelta
 
    ! kernel data
@@ -218,20 +218,23 @@ module module_accelerator
                ptr(gpu_id)%results => tmp_particle%results
                ptr(gpu_id)%work => tmp_particle%work
                do idx = 1, queued(gpu_id)
-                  gpu(gpu_id)%delta1 => tmp_particle%partner(DELTA1+1:)
-                  gpu(gpu_id)%delta2 => tmp_particle%partner(DELTA2+1:)
-                  gpu(gpu_id)%delta3 => tmp_particle%partner(DELTA3+1:)
-                  gpu(gpu_id)%charge => tmp_particle%partner(CHARGE+1:)
-                  gpu(gpu_id)%dip1   => tmp_particle%partner(DIP1  +1:)
-                  gpu(gpu_id)%dip2   => tmp_particle%partner(DIP2  +1:)
-                  gpu(gpu_id)%dip3   => tmp_particle%partner(DIP3  +1:)
-                  gpu(gpu_id)%quad1  => tmp_particle%partner(QUAD1 +1:)
-                  gpu(gpu_id)%quad2  => tmp_particle%partner(QUAD2 +1:)
-                  gpu(gpu_id)%quad3  => tmp_particle%partner(QUAD3 +1:)
-                  gpu(gpu_id)%xyquad => tmp_particle%partner(XYQUAD+1:)
-                  gpu(gpu_id)%yzquad => tmp_particle%partner(YZQUAD+1:)
-                  gpu(gpu_id)%zxquad => tmp_particle%partner(ZXQUAD+1:)
+                  gpu(gpu_id)%delta1(idx) = tmp_particle%partner(DELTA1+idx)
+                  gpu(gpu_id)%delta2(idx) = tmp_particle%partner(DELTA2+idx)
+                  gpu(gpu_id)%delta3(idx) = tmp_particle%partner(DELTA3+idx)
+                  gpu(gpu_id)%charge(idx) = tmp_particle%partner(CHARGE+idx)
+                  gpu(gpu_id)%dip1(idx)   = tmp_particle%partner(DIP1  +idx)
+                  gpu(gpu_id)%dip2(idx)   = tmp_particle%partner(DIP2  +idx)
+                  gpu(gpu_id)%dip3(idx)   = tmp_particle%partner(DIP3  +idx)
+                  gpu(gpu_id)%quad1(idx)  = tmp_particle%partner(QUAD1 +idx)
+                  gpu(gpu_id)%quad2(idx)  = tmp_particle%partner(QUAD2 +idx)
+                  gpu(gpu_id)%quad3(idx)  = tmp_particle%partner(QUAD3 +idx)
+                  gpu(gpu_id)%xyquad(idx) = tmp_particle%partner(XYQUAD+idx)
+                  gpu(gpu_id)%yzquad(idx) = tmp_particle%partner(YZQUAD+idx)
+                  gpu(gpu_id)%zxquad(idx) = tmp_particle%partner(ZXQUAD+idx)
                enddo
+
+               deallocate(tmp_particle%partner)
+               nullify(tmp_particle%partner)
 #ifdef MONITOR
                zer = 0
                call Extrae_event(FILL, zer(1))
@@ -338,9 +341,6 @@ module module_accelerator
                ! wait for the task to finish. a global one will do here since we only 'posted' 1
                !$OMP taskwait
                ! get data from GPU
-               ! now free memory
-               deallocate(tmp_particle%partner)
-               nullify(tmp_particle%partner)
 #ifdef MONITOR
                call Extrae_event(COPYBACK_NO, queued(gpu_id))
                call Extrae_event(COPYBACK, gpu_id)
