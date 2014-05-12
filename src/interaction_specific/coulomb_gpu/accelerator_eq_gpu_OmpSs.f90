@@ -75,8 +75,9 @@ module module_accelerator
 
       integer :: gpu_id          ! to keep track of streams
 
-      type(t_particle_thread) :: tmp_particle
+      type(t_particle_thread), target :: tmp_particle
       integer :: tmp_top, q_tmp
+      real*8, pointer, dimension(:) :: delta1, delta2, delta3, charge, dip1, dip2, dip3, quad1, quad2, quad3, xyquad, yzquad, zxquad
 
       ! kernel data
       real*8, dimension(:,:), allocatable :: e_1, e_2, e_3, pot
@@ -157,7 +158,10 @@ module module_accelerator
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! wait for the stream in a task
                !$OMP target device(smp) copy_deps
-               !$OMP task firstprivate(gpu_id, tmp_top, eps2) private(tmp_particle, idx, ccc, q_tmp) inout(ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) shared(acc, queued, zer)
+               !$OMP task firstprivate(gpu_id, tmp_top, eps2) &
+               !$OMP private(tmp_particle, idx, ccc, q_tmp) &
+               !$OMP inout(ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) &
+               !$OMP shared(zer)
 
 #ifdef MONITOR
                call Extrae_event(FILL, gpu_id)
@@ -203,18 +207,39 @@ module module_accelerator
                ! run (GPU) kernel
 #ifndef NO_NANOS
                !$OMP target device(smp) copy_deps
-               !$OMP task firstprivate(gpu_id) in(tmp_particle) private(idx, ccc, dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6) shared(e_1, e_2, e_3, pot, queued, zer)
+               !$OMP task firstprivate(gpu_id) &
+               !$OMP private(delta1, delta2, delta3, charge, dip1, dip2, dip3, quad1, quad2, quad3, xyquad, yzquad, zxquad) &
+               !$OMP shared(tmp_particle, queued(gpu_id)) &
+               !$OMP private(idx, ccc, dist2, dx, dy, dz, r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3, fd1, fd2, fd3, fd4, fd5, fd6) &
+               !$OMP inout(e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id)) &
+               !$OMP shared(zer)
 #endif
 #ifdef MONITOR
                call Extrae_event(WORK, gpu_id)
                call Extrae_event(WORK_NO, queued(gpu_id))
 #endif
+
+               ! get positions of 'individual arrays'
+               delta1 => tmp_particle%partner(DELTA1+1:)
+               delta2 => tmp_particle%partner(DELTA2+1:)
+               delta3 => tmp_particle%partner(DELTA3+1:)
+               charge => tmp_particle%partner(CHARGE+1:)
+               dip1   => tmp_particle%partner(DIP1  +1:)
+               dip2   => tmp_particle%partner(DIP2  +1:)
+               dip3   => tmp_particle%partner(DIP3  +1:)
+               quad1  => tmp_particle%partner(QUAD1 +1:)
+               quad2  => tmp_particle%partner(QUAD2 +1:)
+               quad3  => tmp_particle%partner(QUAD3 +1:)
+               xyquad => tmp_particle%partner(XYQUAD+1:)
+               yzquad => tmp_particle%partner(YZQUAD+1:)
+               zxquad => tmp_particle%partner(ZXQUAD+1:)
+
                do ccc = 1,20 ! have 20 iterations to waste more time and have longer tasks
                do idx = 1, queued(gpu_id)
              
-                  dx = tmp_particle%partner(DELTA1+idx)
-                  dy = tmp_particle%partner(DELTA2+idx)
-                  dz = tmp_particle%partner(DELTA3+idx)
+                  dx = delta1(idx)
+                  dy = delta2(idx)
+                  dz = delta3(idx)
             
                   dist2     =         dx * dx
                   dist2     = dist2 + dy * dy
@@ -241,48 +266,48 @@ module module_accelerator
                   fd5 = 3.d0*dy*dz*rd5
                   fd6 = 3.d0*dx*dz*rd5
             
-                  pot(idx, gpu_id) = tmp_particle%partner(CHARGE+idx)*rd                                                          &  !  monopole term
-                        + (dx*tmp_particle%partner(DIP1  +idx) + dy*tmp_particle%partner(DIP2  +idx) + dz*tmp_particle%partner(DIP3  +idx))*rd3           &  !  dipole
-                        + 0.5d0*(fd1*tmp_particle%partner(QUAD1 +idx)  + fd2*tmp_particle%partner(QUAD2 +idx)  + fd3*tmp_particle%partner(QUAD3 +idx)) &  !  quadrupole
-                        +        fd4*tmp_particle%partner(XYQUAD+idx) + fd5*tmp_particle%partner(YZQUAD+idx) + fd6*tmp_particle%partner(ZXQUAD+idx)
+                  pot(idx, gpu_id) = charge(idx)*rd                                                          &  !  monopole term
+                        + (dx*dip1(idx) + dy*dip2(idx) + dz*dip3(idx))*rd3           &  !  dipole
+                        + 0.5d0*(fd1*quad1(idx)  + fd2*quad2(idx)  + fd3*quad3(idx)) &  !  quadrupole
+                        +        fd4*xyquad(idx) + fd5*yzquad(idx) + fd6*zxquad(idx)
             
-                  e_1(idx, gpu_id) = tmp_particle%partner(CHARGE+idx)*dx*rd3                                                      &  ! monopole term
-                            + fd1*tmp_particle%partner(DIP1  +idx) + fd4*tmp_particle%partner(DIP2  +idx) + fd6*tmp_particle%partner(DIP3  +idx)          &  ! dipole term
+                  e_1(idx, gpu_id) = charge(idx)*dx*rd3                                                      &  ! monopole term
+                            + fd1*dip1(idx) + fd4*dip2(idx) + fd6*dip3(idx)          &  ! dipole term
                             + 3.d0   * (                                                                                 &  ! quadrupole term
                                0.5d0 * (                                                                                 &
-                                   ( 5.d0*dx3   *rd7 - 3.d0*dx*rd5 )* tmp_particle%partner(QUAD1 +idx)                             &
-                                 + ( 5.d0*dx*dy2*rd7 -      dx*rd5 )* tmp_particle%partner(QUAD2 +idx)                             &
-                                 + ( 5.d0*dx*dz2*rd7 -      dx*rd5 )* tmp_particle%partner(QUAD3 +idx)                             &
+                                   ( 5.d0*dx3   *rd7 - 3.d0*dx*rd5 )* quad1(idx)                             &
+                                 + ( 5.d0*dx*dy2*rd7 -      dx*rd5 )* quad2(idx)                             &
+                                 + ( 5.d0*dx*dz2*rd7 -      dx*rd5 )* quad3(idx)                             &
                                )                                                                                         &
-                               + ( 5.d0*dy*dx2  *rd7 - dy*rd5 )* tmp_particle%partner(XYQUAD+idx)                                 &
-                               + ( 5.d0*dz*dx2  *rd7 - dz*rd5 )* tmp_particle%partner(ZXQUAD+idx)                                 &
-                               + ( 5.d0*dx*dy*dz*rd7          )* tmp_particle%partner(YZQUAD+idx)                                 &
+                               + ( 5.d0*dy*dx2  *rd7 - dy*rd5 )* xyquad(idx)                                 &
+                               + ( 5.d0*dz*dx2  *rd7 - dz*rd5 )* zxquad(idx)                                 &
+                               + ( 5.d0*dx*dy*dz*rd7          )* yzquad(idx)                                 &
                               )
             
-                  e_2(idx, gpu_id) = tmp_particle%partner(CHARGE+idx)*dy*rd3                                                      &
-                            + fd2*tmp_particle%partner(DIP2  +idx) + fd4*tmp_particle%partner(DIP1  +idx) + fd5*tmp_particle%partner(DIP3  +idx)          &
+                  e_2(idx, gpu_id) = charge(idx)*dy*rd3                                                      &
+                            + fd2*dip2(idx) + fd4*dip1(idx) + fd5*dip3(idx)          &
                             + 3 * (                                                                                      &
                                0.5d0 * (                                                                                 &
-                                   ( 5*dy3*rd7    - 3*dy*rd5 )*tmp_particle%partner(QUAD2 +idx)                                    &
-                                 + ( 5*dy*dx2*rd7 -   dy*rd5 )*tmp_particle%partner(QUAD1 +idx)                                    &
-                                 + ( 5*dy*dz2*rd7 -   dy*rd5 )*tmp_particle%partner(QUAD3 +idx)                                    &
+                                   ( 5*dy3*rd7    - 3*dy*rd5 )*quad2(idx)                                    &
+                                 + ( 5*dy*dx2*rd7 -   dy*rd5 )*quad1(idx)                                    &
+                                 + ( 5*dy*dz2*rd7 -   dy*rd5 )*quad3(idx)                                    &
                                )                                                                                         &
-                               + ( 5*dx*dy2  *rd7 - dx*rd5 )*tmp_particle%partner(XYQUAD+idx)                                     &
-                               + ( 5*dz*dy2  *rd7 - dz*rd5 )*tmp_particle%partner(YZQUAD+idx)                                     &
-                               + ( 5*dx*dy*dz*rd7          )*tmp_particle%partner(ZXQUAD+idx)                                     &
+                               + ( 5*dx*dy2  *rd7 - dx*rd5 )*xyquad(idx)                                     &
+                               + ( 5*dz*dy2  *rd7 - dz*rd5 )*yzquad(idx)                                     &
+                               + ( 5*dx*dy*dz*rd7          )*zxquad(idx)                                     &
                               )
             
-                  e_3(idx, gpu_id) = tmp_particle%partner(CHARGE+idx)*dz*rd3                                                      &
-                            + fd3*tmp_particle%partner(DIP3  +idx) + fd5*tmp_particle%partner(DIP2  +idx) + fd6*tmp_particle%partner(DIP1  +idx)          &
+                  e_3(idx, gpu_id) = charge(idx)*dz*rd3                                                      &
+                            + fd3*dip3(idx) + fd5*dip2(idx) + fd6*dip1(idx)          &
                             + 3 * (                                                                                      &
                                0.5d0 * (                                                                                 &
-                                 + ( 5*dz3   *rd7 - 3*dz*rd5 )*tmp_particle%partner(QUAD3 +idx)                                    &
-                                 + ( 5*dz*dy2*rd7 -   dz*rd5 )*tmp_particle%partner(QUAD2 +idx)                                    &
-                                 + ( 5*dz*dx2*rd7 -   dz*rd5 )*tmp_particle%partner(QUAD1 +idx)                                    &
+                                 + ( 5*dz3   *rd7 - 3*dz*rd5 )*quad3(idx)                                    &
+                                 + ( 5*dz*dy2*rd7 -   dz*rd5 )*quad2(idx)                                    &
+                                 + ( 5*dz*dx2*rd7 -   dz*rd5 )*quad1(idx)                                    &
                                               )                                                                          &
-                               + ( 5*dx*dz2  *rd7 - dx*rd5 )*tmp_particle%partner(ZXQUAD+idx)                                     &
-                               + ( 5*dy*dz2  *rd7 - dy*rd5 )*tmp_particle%partner(YZQUAD+idx)                                     &
-                               + ( 5*dx*dy*dz*rd7          )*tmp_particle%partner(XYQUAD+idx)                                     &
+                               + ( 5*dx*dz2  *rd7 - dx*rd5 )*zxquad(idx)                                     &
+                               + ( 5*dy*dz2  *rd7 - dy*rd5 )*yzquad(idx)                                     &
+                               + ( 5*dx*dy*dz*rd7          )*xyquad(idx)                                     &
                               )
                end do
                end do

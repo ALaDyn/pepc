@@ -92,7 +92,7 @@ else
 endif
 #   CPPFLAGS += -DNO_NANOS
 
-#FFLAGS = ""
+#FFLAGS += -S -dA
 
 RM       = rm -rf
 
