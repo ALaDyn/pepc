@@ -48,4 +48,9 @@ prepare: $(SRC)
 	@echo "== preparing F90 file, origin : $@, $(filter %/$@, $(SRC_COPY))" 
 	@cp -p $(filter %/$@, $(SRC_COPY)) $(WORKDIR)
 
+%.cl:
+	@echo "== preparing OpenCL file, origin : $@, $(filter %/$@, $(SRC_COPY))" 
+	@cp -p $(filter %/$@, $(SRC_COPY)) $(WORKDIR)
+	@cp -p $(filter %/$@, $(SRC_COPY)) $(BINDIR)
+
 

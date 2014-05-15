@@ -28,6 +28,13 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
 #	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
 
+accelerator.o: accelerator.f90
+	@echo "== compiling F90 file :" $<
+	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
+	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
+	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< *.cl
+	@mv pp_accelerator.o $@
+
 %.o: %.f90
 	@echo "== compiling F90 file :" $<
 	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
