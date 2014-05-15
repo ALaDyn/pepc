@@ -64,9 +64,9 @@ else
 endif
 
 ifeq ($(OMPSS), 1)
-   FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive --ompss
+   FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive --ompss --variable=disable_final_clause_transformation:1 --opencl
    CFLAGS    = -Wall -DOMPSS_TASKS
-   LDFLAGS   = --Wn,-pthread,-fopenmp --ompss
+   LDFLAGS   = --Wn,-pthread,-fopenmp --ompss --opencl
    ifeq ($(DEBUG), 1)
       FFLAGS  += -g -k --Wn,-O0 --Wn,-fcheck=all
       CFLAGS  += -g
