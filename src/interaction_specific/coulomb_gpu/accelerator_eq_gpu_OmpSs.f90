@@ -90,7 +90,6 @@ module module_accelerator
    
       type(c_ptr) :: acc_loop
 
-      type(mpdelta), dimension(:), allocatable :: gpu
       integer :: gpu_id          ! to keep track of streams
 
       type(t_particle_thread), target :: tmp_particle
@@ -98,26 +97,30 @@ module module_accelerator
 
       ! kernel data
       real*8, dimension(:,:), allocatable :: e_1, e_2, e_3, pot
+real*8, dimension(:,:), allocatable :: pot_, e_1_, e_2_, e_3_
       type(point), dimension(GPU_STREAMS) :: ptr
-      real*8 :: e_1_, e_2_, e_3_, pot_
 
       ! GPU kernel stuff... move to a function again?
       integer :: idx, idx_, queued(GPU_STREAMS), ccc
+integer :: lloc
       real*8 :: dist2, eps2, WORKLOAD_PENALTY_INTERACTION
 
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 
+#define DBG_ARR 32
+real*8 :: debug_data(DBG_ARR)
       ! kernel interface
       interface
          !$omp target device(opencl) ndrange(1, queued, 128) file(ocl_kernel.cl) copy_deps
-         !$omp task in(queued, eps2, mp_data) out(pot, e_1, e_2, e_3)
-         subroutine ocl_gpu_kernel(queued, eps2, mp_data, pot, e_1, e_2, e_3)
+         !$omp task in(queued, eps2, partner, dummy) inout(pot, e_1, e_2, e_3, debug_data)
+         subroutine ocl_gpu_kernel(queued, eps2, partner, pot, e_1, e_2, e_3, dummy, debug_data)
             use module_interaction_specific_types
             implicit none
-            integer, value :: queued
+            integer, value :: queued, dummy
             real*8, value :: eps2
-            real*8 :: mp_data(13*MAX_IACT_PARTNERS)
+            real*8 :: partner(13*MAX_IACT_PARTNERS)
             real*8 :: pot(MAX_IACT_PARTNERS), e_1(MAX_IACT_PARTNERS), e_2(MAX_IACT_PARTNERS), e_3(MAX_IACT_PARTNERS)
+real*8 :: debug_data(DBG_ARR)
          end subroutine ocl_gpu_kernel
       end interface
 
@@ -153,7 +156,10 @@ module module_accelerator
       allocate(e_2(MAX_IACT_PARTNERS, GPU_STREAMS))
       allocate(e_3(MAX_IACT_PARTNERS, GPU_STREAMS))
       allocate(pot(MAX_IACT_PARTNERS, GPU_STREAMS))
-      allocate(gpu(1:GPU_STREAMS))
+      allocate(pot_(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(e_1_(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(e_2_(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(e_3_(MAX_IACT_PARTNERS, GPU_STREAMS))
 
       ! signal we're starting...
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
@@ -189,11 +195,12 @@ module module_accelerator
                gpu_id = mod(gpu_id,GPU_STREAMS) + 1
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! wait for the stream in a task
+         !$OMP taskwait
                !$OMP target device(smp) copy_deps
                !$OMP task firstprivate(gpu_id, tmp_top, eps2) &
-               !$OMP private(tmp_particle, idx, ccc, q_tmp) &
-               !$OMP inout(gpu(gpu_id), ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) &
-               !$OMP shared(acc, gpu, queued, zer)
+               !$OMP private(tmp_particle, idx, ccc, q_tmp, zer) &
+               !$OMP inout(ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) &
+               !$OMP shared(acc)
 
 #ifdef MONITOR
                call Extrae_event(FILL, gpu_id)
@@ -236,17 +243,40 @@ module module_accelerator
                zer = 0
                call Extrae_event(FILL, zer(1))
 #endif
-
+pot(:,gpu_id) = 0.d0
+pot_(:,gpu_id) = 0.d0
+e_1(:,gpu_id) = 0.d0
+e_1_(:,gpu_id) = 0.d0
+e_2(:,gpu_id) = 0.d0
+e_2_(:,gpu_id) = 0.d0
+e_3(:,gpu_id) = 0.d0
+e_3_(:,gpu_id) = 0.d0
                ! run (GPU) kernel
-!!!#define OCL_KERNEL 1
+#define OCL_KERNEL 1
 #ifdef OCL_KERNEL
-               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot(:,gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id))
+               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot(:,gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), gpu_id, debug_data)
 #else
                call smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot(:,gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), gpu_id)
 #endif
 
                ! wait for the task to finish. a global one will do here since we only 'posted' 1
+               write(*,*) pot(1,gpu_id), pot(queued(gpu_id),gpu_id), gpu_id, loc(pot(1,gpu_id)), ' bef'
                !$OMP taskwait
+!               write(*,*) debug_data(1:4)
+!               write(*,*) tmp_particle%partner(DELTA1+1), tmp_particle%partner(DELTA2+1), tmp_particle%partner(DELTA3+1), tmp_particle%partner(CHARGE+1)
+               write(*,*) pot(1,gpu_id), pot(queued(gpu_id),gpu_id), gpu_id, loc(pot(1,gpu_id)), '    GPU'
+               call smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot_(:,gpu_id), e_1_(:,gpu_id), e_2_(:,gpu_id), e_3_(:,gpu_id), gpu_id)
+               !$OMP taskwait
+               write(*,*) pot_(1,gpu_id), pot_(queued(gpu_id),gpu_id), gpu_id, loc(pot_(1,gpu_id)), '       CPU'
+               !diff the data
+               lloc = sum(maxloc(pot(:,gpu_id)-pot_(:,gpu_id)))
+               write(*,*) queued(gpu_id), lloc, pot(lloc,gpu_id), pot_(lloc,gpu_id), pot(lloc,gpu_id)-pot_(lloc,gpu_id) 
+               lloc = sum(maxloc(e_1(:,gpu_id)-e_1_(:,gpu_id)))
+               write(*,*) queued(gpu_id), lloc, e_1(lloc,gpu_id), e_1_(lloc,gpu_id), e_1(lloc,gpu_id)-e_1_(lloc,gpu_id) 
+               lloc = sum(maxloc(e_2(:,gpu_id)-e_2_(:,gpu_id)))
+               write(*,*) queued(gpu_id), lloc, e_2(lloc,gpu_id), e_2_(lloc,gpu_id), e_2(lloc,gpu_id)-e_2_(lloc,gpu_id) 
+               lloc = sum(maxloc(e_3(:,gpu_id)-e_3_(:,gpu_id)))
+               write(*,*) queued(gpu_id), lloc, e_3(lloc,gpu_id), e_3_(lloc,gpu_id), e_3(lloc,gpu_id)-e_3_(lloc,gpu_id) 
                ! get data from GPU
                ! now free memory
                deallocate(tmp_particle%partner)
@@ -306,7 +336,10 @@ module module_accelerator
       deallocate(e_2)
       deallocate(e_3)
       deallocate(pot)
-      deallocate(gpu)
+      deallocate(pot_)
+      deallocate(e_1_)
+      deallocate(e_2_)
+      deallocate(e_3_)
 
       write(*,*) 'GPU thread terminating'
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPED)
@@ -395,7 +428,7 @@ module module_accelerator
    end subroutine dispatch_list
 
    !$omp target device(smp) copy_deps
-   !$omp task in(queued, eps2, partner, id) out(pot, e_1, e_2, e_3)
+   !$omp task in(queued, eps2, partner, id) inout(pot, e_1, e_2, e_3)
    subroutine smp_kernel(queued, eps2, partner, pot, e_1, e_2, e_3, id)
       use module_interaction_specific_types
       implicit none
@@ -524,6 +557,8 @@ module module_accelerator
       call Extrae_event(WORK, zer(1))
       call Extrae_event(WORK_NO, zer(1))
 #endif
+
+      deallocate(gpu)
 
       return
 

@@ -1,5 +1,5 @@
 // !!!! GLOBAL DEFINE !!!!
-#define MAX_IACT_PARTNERS 1 * 256 * 1 * 2
+#define MAX_IACT_PARTNERS 2 * 256 * 2 * 2
 
 // define off-sets in our 1-D array
 #define DELTA1 (MAX_IACT_PARTNERS * (1-1))
@@ -24,7 +24,7 @@
 #error "Double precision floating point not supported by OpenCL implementation."
 #endif
 
-__kernel void ocl_gpu_kernel(int queued, double eps2, __global double* mp_data, __global double* pot, __global double* e_1, __global double* e_2, __global double* e_3)
+__kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, __global double* pot, __global double* e_1, __global double* e_2, __global double* e_3, int dummy, __global double* debug_data)
 {
    // index on GPU device to id array entry
    const int idx = get_global_id(0);
@@ -35,11 +35,18 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* mp_data, 
    double r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3;
    double fd1, fd2, fd3, fd4, fd5, fd6;
 
+   if (idx == 0)
+   {
+      debug_data[0] = partner[DELTA1+idx];
+      debug_data[1] = partner[DELTA2+idx];
+      debug_data[2] = partner[DELTA3+idx];
+      debug_data[3] = partner[CHARGE+idx];
+   }
    if (idx < queued)
    {
-      dx = mp_data[DELTA1+idx];
-      dy = mp_data[DELTA2+idx];
-      dz = mp_data[DELTA3+idx];
+      dx = partner[DELTA1+idx];
+      dy = partner[DELTA2+idx];
+      dz = partner[DELTA3+idx];
       dx2 = dx*dx;
       dy2 = dy*dy;
       dz2 = dz*dz;
@@ -66,48 +73,48 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* mp_data, 
       fd5 = 3.0*dy*dz*rd5;
       fd6 = 3.0*dx*dz*rd5;
 
-      pot[idx] = mp_data[CHARGE+idx]*rd
-	 + (dx*mp_data[DIP1+idx] + dy*mp_data[DIP2+idx] + dz*mp_data[DIP3+idx])*rd3
-	 +  0.5*(fd1*mp_data[QUAD1+idx]  + fd2*mp_data[QUAD2+idx]  + fd3*mp_data[QUAD3+idx])
-	 +       fd4*mp_data[XYQUAD+idx] + fd5*mp_data[YZQUAD+idx] + fd6*mp_data[ZXQUAD+idx];
+      pot[idx] = partner[CHARGE+idx]*rd
+	 + (dx*partner[DIP1+idx] + dy*partner[DIP2+idx] + dz*partner[DIP3+idx])*rd3
+	 +  0.5*(fd1*partner[QUAD1+idx]  + fd2*partner[QUAD2+idx]  + fd3*partner[QUAD3+idx])
+	 +       fd4*partner[XYQUAD+idx] + fd5*partner[YZQUAD+idx] + fd6*partner[ZXQUAD+idx];
 
-      e_1[idx] = mp_data[CHARGE+idx]*dx*rd3
-	 + fd1*mp_data[DIP1+idx] + fd4*mp_data[DIP2+idx] + fd6*mp_data[DIP3+idx]
+      e_1[idx] = partner[CHARGE+idx]*dx*rd3
+	 + fd1*partner[DIP1+idx] + fd4*partner[DIP2+idx] + fd6*partner[DIP3+idx]
 	 + 3.0   * (
 	       0.5 * (
-		  + ( 5.0*dx3   *rd7 - 3.0*dx*rd5 )*mp_data[QUAD1+idx]
-		  + ( 5.0*dx*dy2*rd7 -     dx*rd5 )*mp_data[QUAD2+idx]
-		  + ( 5.0*dx*dz2*rd7 -     dx*rd5 )*mp_data[QUAD3+idx]
+		  + ( 5.0*dx3   *rd7 - 3.0*dx*rd5 )*partner[QUAD1+idx]
+		  + ( 5.0*dx*dy2*rd7 -     dx*rd5 )*partner[QUAD2+idx]
+		  + ( 5.0*dx*dz2*rd7 -     dx*rd5 )*partner[QUAD3+idx]
 		  )
-	       + ( 5.0*dy*dx2  *rd7 - dy*rd5 )*mp_data[XYQUAD+idx]
-	       + ( 5.0*dz*dx2  *rd7 - dz*rd5 )*mp_data[ZXQUAD+idx]
-	       + ( 5.0*dx*dy*dz*rd7          )*mp_data[YZQUAD+idx]
+	       + ( 5.0*dy*dx2  *rd7 - dy*rd5 )*partner[XYQUAD+idx]
+	       + ( 5.0*dz*dx2  *rd7 - dz*rd5 )*partner[ZXQUAD+idx]
+	       + ( 5.0*dx*dy*dz*rd7          )*partner[YZQUAD+idx]
 	       );
 
-      e_2[idx] = mp_data[CHARGE+idx]*dy*rd3
-	 + fd2*mp_data[DIP2+idx] + fd4*mp_data[DIP1+idx] + fd5*mp_data[DIP3+idx]
+      e_2[idx] = partner[CHARGE+idx]*dy*rd3
+	 + fd2*partner[DIP2+idx] + fd4*partner[DIP1+idx] + fd5*partner[DIP3+idx]
 	 + 3.0 * (
 	       0.5 * (
-		  + ( 5.0*dy3*rd7    - 3.0*dy*rd5 )*mp_data[QUAD2+idx]
-		  + ( 5.0*dy*dx2*rd7 -     dy*rd5 )*mp_data[QUAD1+idx]
-		  + ( 5.0*dy*dz2*rd7 -     dy*rd5 )*mp_data[QUAD3+idx]
+		  + ( 5.0*dy3*rd7    - 3.0*dy*rd5 )*partner[QUAD2+idx]
+		  + ( 5.0*dy*dx2*rd7 -     dy*rd5 )*partner[QUAD1+idx]
+		  + ( 5.0*dy*dz2*rd7 -     dy*rd5 )*partner[QUAD3+idx]
 		  )
-	       + ( 5.0*dx*dy2  *rd7 - dx*rd5 )*mp_data[XYQUAD+idx]
-	       + ( 5.0*dz*dy2  *rd7 - dz*rd5 )*mp_data[YZQUAD+idx]
-	       + ( 5.0*dx*dy*dz*rd7          )*mp_data[ZXQUAD+idx]
+	       + ( 5.0*dx*dy2  *rd7 - dx*rd5 )*partner[XYQUAD+idx]
+	       + ( 5.0*dz*dy2  *rd7 - dz*rd5 )*partner[YZQUAD+idx]
+	       + ( 5.0*dx*dy*dz*rd7          )*partner[ZXQUAD+idx]
 	       );
 
-      e_3[idx] = mp_data[CHARGE+idx]*dz*rd3
-	 + fd3*mp_data[DIP3+idx] + fd5*mp_data[DIP2+idx] + fd6*mp_data[DIP1+idx]
+      e_3[idx] = partner[CHARGE+idx]*dz*rd3
+	 + fd3*partner[DIP3+idx] + fd5*partner[DIP2+idx] + fd6*partner[DIP1+idx]
 	 + 3.0 * (
 	       0.5 * (
-		  + ( 5.0*dz3   *rd7 - 3.0*dz*rd5 )*mp_data[QUAD3+idx]
-		  + ( 5.0*dz*dy2*rd7 -     dz*rd5 )*mp_data[QUAD2+idx]
-		  + ( 5.0*dz*dx2*rd7 -     dz*rd5 )*mp_data[QUAD1+idx]
+		  + ( 5.0*dz3   *rd7 - 3.0*dz*rd5 )*partner[QUAD3+idx]
+		  + ( 5.0*dz*dy2*rd7 -     dz*rd5 )*partner[QUAD2+idx]
+		  + ( 5.0*dz*dx2*rd7 -     dz*rd5 )*partner[QUAD1+idx]
 		  )
-	       + ( 5.0*dx*dz2  *rd7 - dx*rd5 )*mp_data[ZXQUAD+idx]
-	       + ( 5.0*dy*dz2  *rd7 - dy*rd5 )*mp_data[YZQUAD+idx]
-	       + ( 5.0*dx*dy*dz*rd7          )*mp_data[XYQUAD+idx]
+	       + ( 5.0*dx*dz2  *rd7 - dx*rd5 )*partner[ZXQUAD+idx]
+	       + ( 5.0*dy*dz2  *rd7 - dy*rd5 )*partner[YZQUAD+idx]
+	       + ( 5.0*dx*dy*dz*rd7          )*partner[XYQUAD+idx]
 	       );
    }
 }
