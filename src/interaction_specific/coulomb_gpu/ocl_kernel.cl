@@ -35,13 +35,6 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
    double r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3;
    double fd1, fd2, fd3, fd4, fd5, fd6;
 
-   if (idx == 0)
-   {
-      debug_data[0] = partner[DELTA1+idx];
-      debug_data[1] = partner[DELTA2+idx];
-      debug_data[2] = partner[DELTA3+idx];
-      debug_data[3] = partner[CHARGE+idx];
-   }
    if (idx < queued)
    {
       dx = partner[DELTA1+idx];
