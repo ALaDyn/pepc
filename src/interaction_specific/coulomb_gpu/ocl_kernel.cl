@@ -24,7 +24,7 @@
 #error "Double precision floating point not supported by OpenCL implementation."
 #endif
 
-__kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, __global double* pot, __global double* e_1, __global double* e_2, __global double* e_3, int dummy, __global double* debug_data)
+__kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, __global double* pot, __global double* e_1, __global double* e_2, __global double* e_3, int dummy)
 {
    // index on GPU device to id array entry
    const int idx = get_global_id(0);

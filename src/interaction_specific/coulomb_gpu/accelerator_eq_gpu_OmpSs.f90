@@ -105,20 +105,17 @@ module module_accelerator
 
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 
-#define DBG_ARR 32
-      real*8 :: debug_data(DBG_ARR)
       ! kernel interface
       interface
          !$omp target device(opencl) ndrange(1, queued, 128) file(ocl_kernel.cl) copy_deps
-         !$omp task in(queued, eps2, partner, dummy) inout(pot, e_1, e_2, e_3, debug_data)
-         subroutine ocl_gpu_kernel(queued, eps2, partner, pot, e_1, e_2, e_3, dummy, debug_data)
+         !$omp task in(queued, eps2, partner, dummy) out(pot(1:queued), e_1(1:queued), e_2, e_3)
+         subroutine ocl_gpu_kernel(queued, eps2, partner, pot, e_1, e_2, e_3, dummy)
             use module_interaction_specific_types
             implicit none
             integer, value :: queued, dummy
             real*8, value :: eps2
             real*8 :: partner(13*MAX_IACT_PARTNERS)
             real*8 :: pot(MAX_IACT_PARTNERS), e_1(MAX_IACT_PARTNERS), e_2(MAX_IACT_PARTNERS), e_3(MAX_IACT_PARTNERS)
-            real*8 :: debug_data(DBG_ARR)
          end subroutine ocl_gpu_kernel
       end interface
 
@@ -240,7 +237,7 @@ module module_accelerator
                ! run (GPU) kernel
 #define OCL_KERNEL 1
 #ifdef OCL_KERNEL
-               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot(:,gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), gpu_id, debug_data)
+               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot(1:queued(gpu_id),gpu_id), e_1(1:queued(gpu_id),gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), gpu_id)
 #else
                call smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot(:,gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), gpu_id)
 #endif
