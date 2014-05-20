@@ -114,7 +114,7 @@ module particlehandling
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
-                        call random_drifting_gaussian_flux(vnew(1),maxw_flux_table_F(p(rp)%data%species,:),maxw_flux_table_v(p(rp)%data%species,:))
+                        call random_drifting_gaussian_flux(v_new(1),maxw_flux_table_F(p(rp)%data%species,:),maxw_flux_table_v(p(rp)%data%species,:))
                         p(rp)%data%v = p(rp)%data%v + boundaries(ib)%n*v_new(1)
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
@@ -123,7 +123,7 @@ module particlehandling
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(2:3),mu,sigma)
-                        call random_drifting_gaussian_flux(vnew(1),maxw_flux_table_F(p(rp)%data%species,:),maxw_flux_table_v(p(rp)%data%species,:))
+                        call random_drifting_gaussian_flux(v_new(1),maxw_flux_table_F(p(rp)%data%species,:),maxw_flux_table_v(p(rp)%data%species,:))
                         t1=boundaries(ib)%e1/sqrt(dotproduct(boundaries(ib)%e1,boundaries(ib)%e1))
                         t2(1)=boundaries(ib)%n(2)*t1(3) - boundaries(ib)%n(3)*t1(2)
                         t2(2)=boundaries(ib)%n(3)*t1(1) - boundaries(ib)%n(1)*t1(3)
