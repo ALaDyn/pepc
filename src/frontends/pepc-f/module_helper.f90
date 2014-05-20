@@ -27,7 +27,6 @@ module helper
 
   use module_pepc_types
   use variables
-  use zufall
   use module_cmdline
 
   public :: QsortC
@@ -82,6 +81,24 @@ module helper
         END DO
 
     end subroutine Partition
+
+!======================================================================================
+  subroutine linspace(first, last, arr)
+    implicit none
+
+    real(KIND=8), intent(in) :: first, last
+    real(KIND=8), intent(out) :: arr(:)
+
+    integer :: rc,i,n
+    real(KIND=8) :: delta
+
+    n=size(arr)
+    delta = (last-first)/(n-1)
+
+    do i=1,n
+        arr(i) = first + (i-1)*delta
+    end do
+  end subroutine
 
 !======================================================================================
 
@@ -235,6 +252,42 @@ module helper
 
   end subroutine
 
+
+!======================================================================================
+  subroutine find_yinx(y,x,l,u,x_l,x_u)
+    implicit none
+
+    real(KIND=8), intent(in) :: y
+    real(KIND=8), intent(in), dimension(:) :: x
+    integer, intent(out) :: l,u
+    real(KIND=8), intent(out) :: x_l,x_u
+
+    integer :: n,uold
+
+    n = size(x)
+    if ((y<x(1)) .or. (y>x(n))) then
+        l=-1
+        u=-1
+        x_l=0._8
+        x_u=0._8
+    else
+        u = n
+        uold = u
+        l = 1
+        do while (.True.)
+            if ((u - l == 1) .and. (x(u) > y)) exit
+            if (x(u) > y) then
+                uold = u
+                u = l +(u-l)/2
+            else
+                l = u
+                u = uold
+            end if
+        end do
+        x_l = x(l)
+        x_u = x(u)
+    end if
+  end subroutine
 
 
 !=======================================================================================

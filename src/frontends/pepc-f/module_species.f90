@@ -46,12 +46,13 @@ module module_species
         integer, allocatable :: src_type(:),src_bnd(:)
         real(KIND=8), allocatable :: src_x0(:,:)
         real(KIND=8), allocatable :: src_e1(:,:),src_e2(:,:),src_e3(:,:)
+        real(KIND=8), allocatable :: src_v0(:)
 
 
         integer :: ns,ns_max
         integer :: rc,ispecies,fid=12
 
-        namelist /species_nml/ src_t,ns,nip,nfp,mass,charge,physical_particle,name,src_type,src_bnd,src_x0,src_e1,src_e2,src_e3
+        namelist /species_nml/ src_t,ns,nip,nfp,mass,charge,physical_particle,name,src_type,src_bnd,src_x0,src_e1,src_e2,src_e3,src_v0
 
         ns=0
         ns_max=1000
@@ -74,6 +75,7 @@ module module_species
         allocate(src_e1(0:ns_max,3),stat=rc)
         allocate(src_e2(0:ns_max,3),stat=rc)
         allocate(src_e3(0:ns_max,3),stat=rc)
+        allocate(src_v0(0:ns_max),stat=rc)
 
 
         IF(root) write(*,'(a,a)') " == reading parameter file, section species: ", trim(input_file)
@@ -93,6 +95,7 @@ module module_species
         deallocate(src_e1)
         deallocate(src_e2)
         deallocate(src_e3)
+        deallocate(src_v0)
 
 
         allocate(nfp(0:ns-1),stat=rc)
@@ -108,6 +111,7 @@ module module_species
         allocate(src_e1(0:ns-1,3),stat=rc)
         allocate(src_e2(0:ns-1,3),stat=rc)
         allocate(src_e3(0:ns-1,3),stat=rc)
+        allocate(src_v0(0:ns-1),stat=rc)
         nfp=0
         nip=0
         mass=0.
@@ -117,6 +121,7 @@ module module_species
         src_t=0.
         src_type=0
         src_bnd=0
+        src_v0=0
         src_x0=0
         src_e1=0
         src_e2=0
@@ -151,7 +156,24 @@ module module_species
             tnpps(ispecies)=nip(ispecies)
 
             IF (species(ispecies)%physical_particle) THEN
-                IF (src_type(ispecies)==0) THEN !surface source (complete surface)
+                IF (src_type(ispecies)==0) THEN !surface source (whole surface)
+                    src_x0(ispecies,:)=0.
+                    src_e1(ispecies,:)=0.
+                    src_e2(ispecies,:)=0.
+                    src_e3(ispecies,:)=0.
+                    src_v0(ispecies)=0.
+                    IF ((src_bnd(ispecies)<=0).or.(src_bnd(ispecies)>nb)) THEN
+                        IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
+                        STOP
+                    END IF
+                    IF(boundaries(src_bnd(ispecies))%type==2) THEN
+                        IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
+                        STOP
+                    END IF
+                    IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
+                                                          ,src_type(ispecies)," for species ",ispecies
+
+                ELSE IF (src_type(ispecies)==5) THEN !surface source, exactly like type=0, but with a flux from a drifting Maxwellian
                     src_x0(ispecies,:)=0.
                     src_e1(ispecies,:)=0.
                     src_e2(ispecies,:)=0.
@@ -164,7 +186,7 @@ module module_species
                         IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
                         STOP
                     END IF
-                    IF (root) write(*,'(a,i3,a,i3,a,i3)') "Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
+                    IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
                                                           ,src_type(ispecies)," for species ",ispecies
 
                 ELSE IF (src_type(ispecies)==4) THEN !surface source, circle at bnd_x0 + src_x0(1) * e1 +
@@ -174,6 +196,7 @@ module module_species
                     src_e1(ispecies,:)=0.
                     src_e2(ispecies,:)=0.
                     src_e3(ispecies,:)=0.
+                    src_v0(ispecies)=0.
                     IF ((src_bnd(ispecies)<=0).or.(src_bnd(ispecies)>nb)) THEN
                         IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
                         STOP
@@ -182,11 +205,12 @@ module module_species
                         IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
                         STOP
                     END IF
-                    IF (root) write(*,'(a,i3,a,i3,a,i3)') "Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
+                    IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
                                                           ,src_type(ispecies)," for species ",ispecies
 
                 ELSE IF ((src_type(ispecies)==1).or.(src_type(ispecies)==2).or.(src_type(ispecies)==3)) THEN !Volume Source
                     src_bnd(ispecies)=0
+                    src_v0(ispecies)=0.
                     IF (root) write(*,'(a,i2,a,i2,a)') " == Volume source of type ",src_type(ispecies)," for species ",ispecies," set. Parameters:"
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == x0: ",src_x0(ispecies,:)
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == e1: ",src_e1(ispecies,:)
@@ -203,6 +227,7 @@ module module_species
                 src_e3(ispecies,:)=0.
                 src_type(ispecies)=0
                 src_bnd(ispecies)=0
+                src_v0(ispecies)=0.
             END IF
             species(ispecies)%src_type=src_type(ispecies)
             species(ispecies)%src_bnd=src_bnd(ispecies)
@@ -210,8 +235,10 @@ module module_species
             species(ispecies)%src_e1=src_e1(ispecies,:)
             species(ispecies)%src_e2=src_e2(ispecies,:)
             species(ispecies)%src_e3=src_e3(ispecies,:)
+            species(ispecies)%src_v0=src_v0(ispecies)
         END DO
 
+        call init_maxw_flux_tables(1000)
         tnpps(0)=count_wallparticles()
         call check_species()
 
@@ -237,6 +264,44 @@ module module_species
     end subroutine init_species
 
 
+!==================================================================================
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> initialize tables for sampling of random numbers from a drifting
+    !> Maxwellian flux
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    SUBROUTINE init_maxw_flux_tables(N)
+        use helper
+        implicit none
+
+        integer,intent(in) :: N
+        integer :: rc,i,ispecies
+        real(KIND=8) :: v0,numer,denomi,v,vth,sqrt2
+
+        allocate(maxw_flux_table_F(0:nspecies-1,N),stat=rc)
+        allocate(maxw_flux_table_v(0:nspecies-1,N),stat=rc)
+        maxw_flux_table_v = 0._8
+        maxw_flux_table_F = 0._8
+
+        sqrt2=sqrt(2._8)
+
+        DO ispecies=0,nspecies-1
+            IF (species(ispecies)%src_type == 5) THEN
+                vth = sqrt(species(ispecies)%src_t*e/species(ispecies)%m)
+                v0 = species(ispecies)%src_v0
+                call linspace(0._8,7._8*max(v0,vth),maxw_flux_table_v(ispecies,:))
+                DO i=1,N
+                    v = maxw_flux_table_v(ispecies,i)
+                    numer=exp(-(v0/(sqrt2*vth))**2)-exp(-((v-v0)/(sqrt2*vth))**2)+sqrt(pi)*v0/(sqrt2*vth)*(erf((v-v0)/(sqrt2*vth))+erf(v0/(sqrt2*vth)))
+                    denomi = exp(-(v0/(sqrt2*vth))**2) + sqrt(pi)*v0/(sqrt2*vth)*(1+erf(v0/(sqrt2*vth)))
+                    maxw_flux_table_F(ispecies,i) = numer / denomi
+                END DO
+            END IF
+        END DO
+
+
+    end subroutine
 !======================================================================================
 
     subroutine check_species()

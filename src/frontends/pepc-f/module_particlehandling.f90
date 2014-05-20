@@ -3,6 +3,7 @@ module particlehandling
     use module_pepc_types
     use helper
     use module_geometry
+    use zufall
     use output
     implicit none
 
@@ -98,6 +99,31 @@ module particlehandling
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(2:3),mu,sigma)
                         call random_gaussian_flux(v_new(1),sigma)
+                        t1=boundaries(ib)%e1/sqrt(dotproduct(boundaries(ib)%e1,boundaries(ib)%e1))
+                        t2(1)=boundaries(ib)%n(2)*t1(3) - boundaries(ib)%n(3)*t1(2)
+                        t2(2)=boundaries(ib)%n(3)*t1(1) - boundaries(ib)%n(1)*t1(3)
+                        t2(3)=boundaries(ib)%n(1)*t1(2) - boundaries(ib)%n(2)*t1(1)
+                        t2=t2/sqrt(dotproduct(t2,t2))
+                        p(rp)%data%v(1) = boundaries(ib)%n(1)*v_new(1) + t1(1)*v_new(2) + t2(1)*v_new(3)
+                        p(rp)%data%v(2) = boundaries(ib)%n(2)*v_new(1) + t1(2)*v_new(2) + t2(2)*v_new(3)
+                        p(rp)%data%v(3) = boundaries(ib)%n(3)*v_new(1) + t1(3)*v_new(2) + t2(3)*v_new(3)
+                        ran = rnd_num()
+                        p(rp)%x = xi + dt*ran*p(rp)%data%v
+                        ib=0
+                    ELSE IF (boundaries(ib)%type==9) THEN   !immediate drifting Maxwellian flux refluxing normal to surface, tangential v conserved
+                        xold = p(rp)%x-p(rp)%data%v*dt
+                        call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
+                        p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
+                        call random_drifting_gaussian_flux(vnew(1),maxw_flux_table_F(p(rp)%data%species,:),maxw_flux_table_v(p(rp)%data%species,:))
+                        p(rp)%data%v = p(rp)%data%v + boundaries(ib)%n*v_new(1)
+                        ran = rnd_num()
+                        p(rp)%x = xi + dt*ran*p(rp)%data%v
+                        ib=0
+                    ELSE IF (boundaries(ib)%type==10) THEN  !immediate drifting Maxwellian flux refluxing normal to surface, tangential v resampled
+                        xold = p(rp)%x-p(rp)%data%v*dt
+                        call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
+                        call random_gauss_list(v_new(2:3),mu,sigma)
+                        call random_drifting_gaussian_flux(vnew(1),maxw_flux_table_F(p(rp)%data%species,:),maxw_flux_table_v(p(rp)%data%species,:))
                         t1=boundaries(ib)%e1/sqrt(dotproduct(boundaries(ib)%e1,boundaries(ib)%e1))
                         t2(1)=boundaries(ib)%n(2)*t1(3) - boundaries(ib)%n(3)*t1(2)
                         t2(2)=boundaries(ib)%n(3)*t1(1) - boundaries(ib)%n(1)*t1(3)
@@ -799,9 +825,30 @@ module particlehandling
                         CYCLE
                     END IF
                 END IF
-                IF (species(p(ip)%data%species)%src_type==0) THEN                 !surface source
+                IF (species(p(ip)%data%species)%src_type==0) THEN                 !surface source (Maxwellian Flux)
                     call random_gauss_list(vhelp(2:3),mu,sigma)
                     call random_gaussian_flux(vhelp(1),sigma)
+                    e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
+                    n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
+                    t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+                    t2=t2/sqrt(dotproduct(t2,t2))
+                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
+                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
+                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
+                    ran=rnd_num()
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = boundaries(species(p(ip)%data%species)%src_bnd)%x0 + &
+                              ran1*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
+                              ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
+                    p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
+                              dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
+                ELSE IF (species(p(ip)%data%species)%src_type==5) THEN                 !surface source (drifting Maxwellian Flux)
+                    call random_gauss_list(vhelp(2:3),mu,sigma)
+                    call random_drifting_gaussian_flux(vhelp(1),maxw_flux_table_F(p(ip)%data%species,:),maxw_flux_table_v(p(ip)%data%species,:))
                     e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
                     n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
                     t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector

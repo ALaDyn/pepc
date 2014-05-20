@@ -123,5 +123,8 @@ module variables
   namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval, vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm
   namelist /walk_para_smpss/ chunk_size_default
 
+  real(KIND=8),allocatable :: maxw_flux_table_F(:,:)
+  real(KIND=8),allocatable :: maxw_flux_table_v(:,:)
+
 
 end module

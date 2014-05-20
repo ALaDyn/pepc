@@ -37,6 +37,8 @@ MODULE zufall
         end if
     end subroutine
 
+!======================================================================================
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> fills list with gaussian random numbers
@@ -65,6 +67,67 @@ MODULE zufall
   END SUBROUTINE
 
 !======================================================================================
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Samples random number x distributed according to
+    !> f(v)=m/T * v * exp(-m/(2T)*(v-v0)**2), vtherm=sqrt(T/m)
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       SUBROUTINE random_drifting_gaussian_flux(x,F_table,v_table)
+        use helper
+        implicit none
+
+        real*8, intent(inout) :: x
+        real*8, intent(in)  :: F_table(:),v_table(:)
+        real*8  ::y,v_u,v_l,F_u,F_l
+        integer :: u,l
+
+        u=0
+        l=0
+        F_u=0._8
+        F_l=0._8
+
+        y=rnd_num()
+        call find_yinx(y,F_table,l,u,F_l,F_u)
+
+        v_u = v_table(u)
+        v_l = v_table(l)
+        x=v_l+(v_u-v_l)*(y-F_l)/(F_u-F_l)
+
+
+    END SUBROUTINE
+!======================================================================================
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Fills "list" with random numbers distributed according to
+    !> f(v)=m/T * v * exp(-m/(2T)*(v-v0)**2), vtherm=sqrt(T/m)
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       SUBROUTINE random_drifting_gaussian_flux_list(list,F_table,v_table)
+        use helper
+        implicit none
+
+        real*8, intent(inout) :: list(:)
+        real*8, intent(in)  :: F_table(:),v_table(:)
+        real*8  ::y,v_u,v_l,F_u,F_l
+        integer :: n,i,u,l
+
+        n  = size(list)
+
+        DO i=1, n
+            y=rnd_num()
+            call find_yinx(y,F_table,l,u,F_l,F_u)
+            v_u = v_table(u)
+            v_l = v_table(l)
+            list(i)=v_l+(v_u-v_l)*(y-F_l)/(F_u-F_l)
+        END DO
+
+    END SUBROUTINE
+!======================================================================================
+
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Fills "list" with random numbers distributed according to
@@ -87,9 +150,9 @@ MODULE zufall
         END DO
   
     END SUBROUTINE
-
-
 !======================================================================================
+
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Generates random numbers(x) distributed according to
@@ -107,6 +170,7 @@ MODULE zufall
         x=vtherm*sqrt(-2.*log(1-y))          
           
     END SUBROUTINE
+!======================================================================================
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
