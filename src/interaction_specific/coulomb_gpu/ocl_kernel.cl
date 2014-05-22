@@ -33,13 +33,30 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
 {
    // index on GPU device to id array entry
    const int idx = get_global_id(0);
+   const int local_index = get_local_id(0);
+   const int local_size = get_local_size(0);
 
-   // local temp variables
-   double dist2;
-   double dx, dy, dz;
-   double r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3;
-   double fd1, fd2, fd3, fd4, fd5, fd6;
+   // private temp variables
+   __private double dist2;
+   __private double dx, dy, dz;
+   __private double r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3;
+   __private double fd1, fd2, fd3, fd4, fd5, fd6;
 
+   // local buffer for global Data
+   __local double pot_local[128];
+   __local double e_1_local[128];
+   __local double e_2_local[128];
+   __local double e_3_local[128];
+
+   if (idx >= queued)
+   {
+      pot_local[local_index] = 0.0;
+      e_1_local[local_index] = 0.0;
+      e_2_local[local_index] = 0.0;
+      e_3_local[local_index] = 0.0;
+   }
+
+   // compute individal interactions (work item)
    if (idx < queued)
    {
       dx = partner[DELTA1+idx];
@@ -71,48 +88,70 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
       fd5 = 3.0*dy*dz*rd5;
       fd6 = 3.0*dx*dz*rd5;
 
-      results[POT+idx] = partner[CHARGE+idx]*rd
-	 + (dx*partner[DIP1+idx] + dy*partner[DIP2+idx] + dz*partner[DIP3+idx])*rd3
-	 +  0.5*(fd1*partner[QUAD1+idx]  + fd2*partner[QUAD2+idx]  + fd3*partner[QUAD3+idx])
-	 +       fd4*partner[XYQUAD+idx] + fd5*partner[YZQUAD+idx] + fd6*partner[ZXQUAD+idx];
+      pot_local[local_index] = partner[CHARGE+idx]*rd
+         + (dx*partner[DIP1+idx] + dy*partner[DIP2+idx] + dz*partner[DIP3+idx])*rd3
+         +  0.5*(fd1*partner[QUAD1+idx]  + fd2*partner[QUAD2+idx]  + fd3*partner[QUAD3+idx])
+         +       fd4*partner[XYQUAD+idx] + fd5*partner[YZQUAD+idx] + fd6*partner[ZXQUAD+idx];
 
-      results[E_1+idx] = partner[CHARGE+idx]*dx*rd3
-	 + fd1*partner[DIP1+idx] + fd4*partner[DIP2+idx] + fd6*partner[DIP3+idx]
-	 + 3.0   * (
-	       0.5 * (
-		  + ( 5.0*dx3   *rd7 - 3.0*dx*rd5 )*partner[QUAD1+idx]
-		  + ( 5.0*dx*dy2*rd7 -     dx*rd5 )*partner[QUAD2+idx]
-		  + ( 5.0*dx*dz2*rd7 -     dx*rd5 )*partner[QUAD3+idx]
-		  )
-	       + ( 5.0*dy*dx2  *rd7 - dy*rd5 )*partner[XYQUAD+idx]
-	       + ( 5.0*dz*dx2  *rd7 - dz*rd5 )*partner[ZXQUAD+idx]
-	       + ( 5.0*dx*dy*dz*rd7          )*partner[YZQUAD+idx]
-	       );
+      e_1_local[local_index] = partner[CHARGE+idx]*dx*rd3
+         + fd1*partner[DIP1+idx] + fd4*partner[DIP2+idx] + fd6*partner[DIP3+idx]
+         + 3.0   * (
+               0.5 * (
+                  + ( 5.0*dx3   *rd7 - 3.0*dx*rd5 )*partner[QUAD1+idx]
+                  + ( 5.0*dx*dy2*rd7 -     dx*rd5 )*partner[QUAD2+idx]
+                  + ( 5.0*dx*dz2*rd7 -     dx*rd5 )*partner[QUAD3+idx]
+                  )
+               + ( 5.0*dy*dx2  *rd7 - dy*rd5 )*partner[XYQUAD+idx]
+               + ( 5.0*dz*dx2  *rd7 - dz*rd5 )*partner[ZXQUAD+idx]
+               + ( 5.0*dx*dy*dz*rd7          )*partner[YZQUAD+idx]
+               );
 
-      results[E_2+idx] = partner[CHARGE+idx]*dy*rd3
-	 + fd2*partner[DIP2+idx] + fd4*partner[DIP1+idx] + fd5*partner[DIP3+idx]
-	 + 3.0 * (
-	       0.5 * (
-		  + ( 5.0*dy3*rd7    - 3.0*dy*rd5 )*partner[QUAD2+idx]
-		  + ( 5.0*dy*dx2*rd7 -     dy*rd5 )*partner[QUAD1+idx]
-		  + ( 5.0*dy*dz2*rd7 -     dy*rd5 )*partner[QUAD3+idx]
-		  )
-	       + ( 5.0*dx*dy2  *rd7 - dx*rd5 )*partner[XYQUAD+idx]
-	       + ( 5.0*dz*dy2  *rd7 - dz*rd5 )*partner[YZQUAD+idx]
-	       + ( 5.0*dx*dy*dz*rd7          )*partner[ZXQUAD+idx]
-	       );
+      e_2_local[local_index] = partner[CHARGE+idx]*dy*rd3
+         + fd2*partner[DIP2+idx] + fd4*partner[DIP1+idx] + fd5*partner[DIP3+idx]
+         + 3.0 * (
+               0.5 * (
+                  + ( 5.0*dy3*rd7    - 3.0*dy*rd5 )*partner[QUAD2+idx]
+                  + ( 5.0*dy*dx2*rd7 -     dy*rd5 )*partner[QUAD1+idx]
+                  + ( 5.0*dy*dz2*rd7 -     dy*rd5 )*partner[QUAD3+idx]
+                  )
+               + ( 5.0*dx*dy2  *rd7 - dx*rd5 )*partner[XYQUAD+idx]
+               + ( 5.0*dz*dy2  *rd7 - dz*rd5 )*partner[YZQUAD+idx]
+               + ( 5.0*dx*dy*dz*rd7          )*partner[ZXQUAD+idx]
+               );
 
-      results[E_3+idx] = partner[CHARGE+idx]*dz*rd3
-	 + fd3*partner[DIP3+idx] + fd5*partner[DIP2+idx] + fd6*partner[DIP1+idx]
-	 + 3.0 * (
-	       0.5 * (
-		  + ( 5.0*dz3   *rd7 - 3.0*dz*rd5 )*partner[QUAD3+idx]
-		  + ( 5.0*dz*dy2*rd7 -     dz*rd5 )*partner[QUAD2+idx]
-		  + ( 5.0*dz*dx2*rd7 -     dz*rd5 )*partner[QUAD1+idx]
-		  )
-	       + ( 5.0*dx*dz2  *rd7 - dx*rd5 )*partner[ZXQUAD+idx]
-	       + ( 5.0*dy*dz2  *rd7 - dy*rd5 )*partner[YZQUAD+idx]
-	       + ( 5.0*dx*dy*dz*rd7          )*partner[XYQUAD+idx]
-	       );
+      e_3_local[local_index] = partner[CHARGE+idx]*dz*rd3
+         + fd3*partner[DIP3+idx] + fd5*partner[DIP2+idx] + fd6*partner[DIP1+idx]
+         + 3.0 * (
+               0.5 * (
+                  + ( 5.0*dz3   *rd7 - 3.0*dz*rd5 )*partner[QUAD3+idx]
+                  + ( 5.0*dz*dy2*rd7 -     dz*rd5 )*partner[QUAD2+idx]
+                  + ( 5.0*dz*dx2*rd7 -     dz*rd5 )*partner[QUAD1+idx]
+                  )
+               + ( 5.0*dx*dz2  *rd7 - dx*rd5 )*partner[ZXQUAD+idx]
+               + ( 5.0*dy*dz2  *rd7 - dy*rd5 )*partner[YZQUAD+idx]
+               + ( 5.0*dx*dy*dz*rd7          )*partner[XYQUAD+idx]
+               );
    }
+
+   barrier(CLK_LOCAL_MEM_FENCE);
+
+   // now reduce local data to global results
+   for(int offset = local_size / 2;
+         offset > 0;
+         offset >>= 1) {
+      if (local_index < offset) {
+         pot_local[local_index] += pot_local[local_index + offset];
+         e_1_local[local_index] += e_1_local[local_index + offset];
+         e_2_local[local_index] += e_2_local[local_index + offset];
+         e_3_local[local_index] += e_3_local[local_index + offset];
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+   }
+   if (local_index == 0) {
+      results[(((queued-1)/128 + 1 ) * (1-1))+get_group_id(0)] = pot_local[0];
+      results[(((queued-1)/128 + 1 ) * (1-1))+get_group_id(0)] = e_1_local[0];
+      results[(((queued-1)/128 + 1 ) * (2-1))+get_group_id(0)] = e_2_local[0];
+      results[(((queued-1)/128 + 1 ) * (3-1))+get_group_id(0)] = e_3_local[0];
+   }
+
 }

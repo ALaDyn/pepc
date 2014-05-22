@@ -120,18 +120,19 @@ module module_accelerator
             integer, value :: queued, id
             real*8, value :: eps2
             real*8 :: partner(13*MAX_IACT_PARTNERS)
-            real*8 :: results(4*MAX_IACT_PARTNERS)
+            real*8 :: results(4*((queued-1)/128 + 1 ))
+!$!            real*8 :: results(4*MAX_IACT_PARTNERS)
          end subroutine ocl_gpu_kernel
-         !$omp target device(smp) implements(ocl_gpu_kernel) copy_deps
-         !$omp task in(queued, eps2, partner, id) out(results)
-         subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
-            use module_interaction_specific_types
-            implicit none
-            integer, value :: queued, id
-            real*8, value :: eps2
-            real*8 :: partner(13*MAX_IACT_PARTNERS)
-            real*8 :: results(4*MAX_IACT_PARTNERS)
-         end subroutine ocl_smp_kernel
+!$!         !$omp target device(smp) implements(ocl_gpu_kernel) copy_deps
+!$!         !$omp task in(queued, eps2, partner, id) out(results)
+!$!         subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
+!$!            use module_interaction_specific_types
+!$!            implicit none
+!$!            integer, value :: queued, id
+!$!            real*8, value :: eps2
+!$!            real*8 :: partner(13*MAX_IACT_PARTNERS)
+!$!            real*8 :: results(4*MAX_IACT_PARTNERS)
+!$!         end subroutine ocl_smp_kernel
       end interface
 
 #ifdef MONITOR
@@ -248,7 +249,27 @@ module module_accelerator
                ! run (GPU) kernel
 #define OCL_KERNEL 1
 #ifdef OCL_KERNEL
-               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(:,gpu_id), gpu_id)
+!$!            !$OMP taskwait
+!$!               results(:,gpu_id) = 0.d0
+               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(1:4*( (queued(gpu_id)-1)/128 + 1 ),gpu_id), gpu_id)
+!$!            !$OMP taskwait
+!$!            write(*,*) 'ocl ',results(E_1+1, gpu_id), results(E_1+1+2, gpu_id), results(E_1+(queued(gpu_id)/128), gpu_id), sum(results((E_1+1):(E_1+queued(gpu_id)),gpu_id))
+!$!            !$OMP task private(ccc) in(results(:,gpu_id), queued)
+!$!            do ccc = 1,queued(gpu_id)/128 +2
+!$!               write(54,*) 'ocl ', ccc, results(E_1+ccc, gpu_id), gpu_id, queued(gpu_id), queued(gpu_id)/128, sum(results(E_1+1:E_1+ccc, gpu_id))
+!$!            enddo
+!$!            !$OMP end task
+!$!            call smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(:,gpu_id), gpu_id)
+!$!            !$OMP taskwait
+!$!            write(*,*) 'smp ',sum(results(E_1+1:E_1+128,gpu_id)), sum(results(E_1+1+(2)*128:E_1+(2)*128+128,gpu_id)), &
+!$!               sum(results(E_1+1+(queued(gpu_id)/128 - 1)*128:E_1+(queued(gpu_id)/128 - 1)*128+128,gpu_id))
+!$!            !$OMP task private(ccc) in(results(:,gpu_id), queued)
+!$!            do ccc = 1,queued(gpu_id)/128 +2
+!$!              write(55,*) 'smp ', ccc, sum(results(E_1+(ccc-1)*128+1:E_1+ccc*128,gpu_id)), gpu_id, queued(gpu_id), queued(gpu_id)/128, sum(results(E_1+1:E_1+ccc*128,gpu_id))
+!$!            enddo
+!$!            !$OMP end task
+!$!            write(*,*) 'smp ',results(E_1+1, gpu_id), results(E_1+queued(gpu_id), gpu_id), sum(results((E_1+1):(E_1+queued(gpu_id)),gpu_id))
+!$!            !$OMP taskwait
 #else
                call smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(:,gpu_id), gpu_id)
 #endif
@@ -263,10 +284,10 @@ module module_accelerator
                call Extrae_event(COPYBACK_NO, queued(gpu_id))
                call Extrae_event(COPYBACK, gpu_id)
 #endif
-               ptr(gpu_id)%results%e(1) = ptr(gpu_id)%results%e(1) + sum(results((E_1+1):(E_1+queued(gpu_id)),gpu_id))
-               ptr(gpu_id)%results%e(2) = ptr(gpu_id)%results%e(2) + sum(results((E_2+1):(E_2+queued(gpu_id)),gpu_id))
-               ptr(gpu_id)%results%e(3) = ptr(gpu_id)%results%e(3) + sum(results((E_3+1):(E_3+queued(gpu_id)),gpu_id))
-               ptr(gpu_id)%results%pot  = ptr(gpu_id)%results%pot  + sum(results((POT+1):(POT+queued(gpu_id)),gpu_id))
+               ptr(gpu_id)%results%e(1) = ptr(gpu_id)%results%e(1) + sum(results(((((queued(gpu_id)-1)/128 + 1 ) * (1-1))+1):((((queued(gpu_id)-1)/128 + 1 ) * (1-1))+( (queued(gpu_id)-1)/128 + 1 )),gpu_id))
+               ptr(gpu_id)%results%e(2) = ptr(gpu_id)%results%e(2) + sum(results(((((queued(gpu_id)-1)/128 + 1 ) * (1-1))+1):((((queued(gpu_id)-1)/128 + 1 ) * (1-1))+( (queued(gpu_id)-1)/128 + 1 )),gpu_id))
+               ptr(gpu_id)%results%e(3) = ptr(gpu_id)%results%e(3) + sum(results(((((queued(gpu_id)-1)/128 + 1 ) * (2-1))+1):((((queued(gpu_id)-1)/128 + 1 ) * (2-1))+( (queued(gpu_id)-1)/128 + 1 )),gpu_id))
+               ptr(gpu_id)%results%pot  = ptr(gpu_id)%results%pot  + sum(results(((((queued(gpu_id)-1)/128 + 1 ) * (3-1))+1):((((queued(gpu_id)-1)/128 + 1 ) * (3-1))+( (queued(gpu_id)-1)/128 + 1 )),gpu_id))
                ptr(gpu_id)%work         = ptr(gpu_id)%work + queued(gpu_id) * WORKLOAD_PENALTY_INTERACTION
 #ifdef MONITOR
                zer = 0
