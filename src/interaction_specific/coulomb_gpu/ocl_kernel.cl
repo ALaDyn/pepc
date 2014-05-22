@@ -148,10 +148,10 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
       barrier(CLK_LOCAL_MEM_FENCE);
    }
    if (local_index == 0) {
-      results[POT+get_group_id(0)] = pot_local[0];
-      results[E_1+get_group_id(0)] = e_1_local[0];
-      results[E_2+get_group_id(0)] = e_2_local[0];
-      results[E_3+get_group_id(0)] = e_3_local[0];
+      results[(((queued-1)/128 + 1 ) * (1-1))+get_group_id(0)] = pot_local[0];
+      results[(((queued-1)/128 + 1 ) * (2-1))+get_group_id(0)] = e_1_local[0];
+      results[(((queued-1)/128 + 1 ) * (3-1))+get_group_id(0)] = e_2_local[0];
+      results[(((queued-1)/128 + 1 ) * (4-1))+get_group_id(0)] = e_3_local[0];
    }
 
 }
