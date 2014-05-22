@@ -32,6 +32,11 @@
 #define YZQUAD (MAX_IACT_PARTNERS * (12-1))
 #define ZXQUAD (MAX_IACT_PARTNERS * (13-1))
 
+#define POT    (MAX_IACT_PARTNERS * (1-1))
+#define E_1    (MAX_IACT_PARTNERS * (1-1))
+#define E_2    (MAX_IACT_PARTNERS * (2-1))
+#define E_3    (MAX_IACT_PARTNERS * (3-1))
+
 !>
 !> Accelerator module, in this case for a GPU using OmpSs with tasks (for the GPU).
 !>
@@ -96,7 +101,7 @@ module module_accelerator
       integer :: tmp_top, q_tmp
 
       ! kernel data
-      real*8, dimension(:,:), allocatable :: e_1, e_2, e_3, pot
+      real*8, dimension(:,:), allocatable :: results
       type(point), dimension(GPU_STREAMS) :: ptr
 
       ! GPU kernel stuff... move to a function again?
@@ -108,15 +113,25 @@ module module_accelerator
       ! kernel interface
       interface
          !$omp target device(opencl) ndrange(1, queued, 128) file(ocl_kernel.cl) copy_deps
-         !$omp task in(queued, eps2, partner, dummy) out(pot(1:queued), e_1(1:queued), e_2, e_3)
-         subroutine ocl_gpu_kernel(queued, eps2, partner, pot, e_1, e_2, e_3, dummy)
+         !$omp task in(queued, eps2, partner, id) out(results)
+         subroutine ocl_gpu_kernel(queued, eps2, partner, results, id)
             use module_interaction_specific_types
             implicit none
-            integer, value :: queued, dummy
+            integer, value :: queued, id
             real*8, value :: eps2
             real*8 :: partner(13*MAX_IACT_PARTNERS)
-            real*8 :: pot(MAX_IACT_PARTNERS), e_1(MAX_IACT_PARTNERS), e_2(MAX_IACT_PARTNERS), e_3(MAX_IACT_PARTNERS)
+            real*8 :: results(4*MAX_IACT_PARTNERS)
          end subroutine ocl_gpu_kernel
+         !$omp target device(smp) implements(ocl_gpu_kernel) copy_deps
+         !$omp task in(queued, eps2, partner, id) out(results)
+         subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
+            use module_interaction_specific_types
+            implicit none
+            integer, value :: queued, id
+            real*8, value :: eps2
+            real*8 :: partner(13*MAX_IACT_PARTNERS)
+            real*8 :: results(4*MAX_IACT_PARTNERS)
+         end subroutine ocl_smp_kernel
       end interface
 
 #ifdef MONITOR
@@ -147,10 +162,7 @@ module module_accelerator
       write(*,*) 'GPU thread on core ', acc%processor_id
 
       ! allocate GPU structures on heap...
-      allocate(e_1(MAX_IACT_PARTNERS, GPU_STREAMS)) ! this corresponds to iact+(strm-1)*MAX_IACT_PARTNERS
-      allocate(e_2(MAX_IACT_PARTNERS, GPU_STREAMS))
-      allocate(e_3(MAX_IACT_PARTNERS, GPU_STREAMS))
-      allocate(pot(MAX_IACT_PARTNERS, GPU_STREAMS))
+      allocate(results(4*MAX_IACT_PARTNERS, GPU_STREAMS)) ! this corresponds to iact+(strm-1)*MAX_IACT_PARTNERS
 
       ! signal we're starting...
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
@@ -186,11 +198,10 @@ module module_accelerator
                gpu_id = mod(gpu_id,GPU_STREAMS) + 1
                if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
                ! wait for the stream in a task
-         !$OMP taskwait
                !$OMP target device(smp) copy_deps
                !$OMP task firstprivate(gpu_id, tmp_top, eps2) &
                !$OMP private(tmp_particle, idx, ccc, q_tmp, zer) &
-               !$OMP inout(ptr(gpu_id), acc%acc_queue(tmp_top), e_1(1,gpu_id), e_2(1,gpu_id), e_3(1,gpu_id), pot(1,gpu_id), queued(gpu_id)) &
+               !$OMP inout(ptr(gpu_id), acc%acc_queue(tmp_top), results(:,gpu_id), queued(gpu_id)) &
                !$OMP shared(acc)
 
 #ifdef MONITOR
@@ -237,9 +248,9 @@ module module_accelerator
                ! run (GPU) kernel
 #define OCL_KERNEL 1
 #ifdef OCL_KERNEL
-               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot(1:queued(gpu_id),gpu_id), e_1(1:queued(gpu_id),gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), gpu_id)
+               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(:,gpu_id), gpu_id)
 #else
-               call smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), pot(:,gpu_id), e_1(:,gpu_id), e_2(:,gpu_id), e_3(:,gpu_id), gpu_id)
+               call smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(:,gpu_id), gpu_id)
 #endif
 
                ! wait for the task to finish. a global one will do here since we only 'posted' 1
@@ -252,10 +263,10 @@ module module_accelerator
                call Extrae_event(COPYBACK_NO, queued(gpu_id))
                call Extrae_event(COPYBACK, gpu_id)
 #endif
-               ptr(gpu_id)%results%e(1) = ptr(gpu_id)%results%e(1) + sum(e_1(1:queued(gpu_id),gpu_id))
-               ptr(gpu_id)%results%e(2) = ptr(gpu_id)%results%e(2) + sum(e_2(1:queued(gpu_id),gpu_id))
-               ptr(gpu_id)%results%e(3) = ptr(gpu_id)%results%e(3) + sum(e_3(1:queued(gpu_id),gpu_id))
-               ptr(gpu_id)%results%pot  = ptr(gpu_id)%results%pot  + sum(pot(1:queued(gpu_id),gpu_id))
+               ptr(gpu_id)%results%e(1) = ptr(gpu_id)%results%e(1) + sum(results((E_1+1):(E_1+queued(gpu_id)),gpu_id))
+               ptr(gpu_id)%results%e(2) = ptr(gpu_id)%results%e(2) + sum(results((E_2+1):(E_2+queued(gpu_id)),gpu_id))
+               ptr(gpu_id)%results%e(3) = ptr(gpu_id)%results%e(3) + sum(results((E_3+1):(E_3+queued(gpu_id)),gpu_id))
+               ptr(gpu_id)%results%pot  = ptr(gpu_id)%results%pot  + sum(results((POT+1):(POT+queued(gpu_id)),gpu_id))
                ptr(gpu_id)%work         = ptr(gpu_id)%work + queued(gpu_id) * WORKLOAD_PENALTY_INTERACTION
 #ifdef MONITOR
                zer = 0
@@ -299,10 +310,7 @@ module module_accelerator
       call atomic_deallocate_int(acc%q_len)
 
       ! free GPU structures
-      deallocate(e_1)
-      deallocate(e_2)
-      deallocate(e_3)
-      deallocate(pot)
+      deallocate(results)
 
       write(*,*) 'GPU thread terminating'
       call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPED)
@@ -391,14 +399,14 @@ module module_accelerator
    end subroutine dispatch_list
 
    !$omp target device(smp) copy_deps
-   !$omp task in(queued, eps2, partner, id) inout(pot, e_1, e_2, e_3)
-   subroutine smp_kernel(queued, eps2, partner, pot, e_1, e_2, e_3, id)
+   !$omp task in(queued, eps2, partner, id) out(results)
+   subroutine smp_kernel(queued, eps2, partner, results, id)
       use module_interaction_specific_types
       implicit none
       integer, value :: queued, id
       real*8, value :: eps2
       real*8 :: partner(13*MAX_IACT_PARTNERS)
-      real*8 :: pot(MAX_IACT_PARTNERS), e_1(MAX_IACT_PARTNERS), e_2(MAX_IACT_PARTNERS), e_3(MAX_IACT_PARTNERS)
+      real*8 :: results(4*MAX_IACT_PARTNERS)
 
       type(mpdelta), dimension(:), allocatable :: gpu
       integer :: idx, gpu_id, zer(1)
@@ -471,12 +479,12 @@ module module_accelerator
          fd5 = 3.d0*dy*dz*rd5
          fd6 = 3.d0*dx*dz*rd5
 
-         pot(idx) = gpu(gpu_id)%charge(idx)*rd                                                               &  !  monopole term
+         results(POT+idx) = gpu(gpu_id)%charge(idx)*rd                                                               &  !  monopole term
             + (dx*gpu(gpu_id)%dip1(idx) + dy*gpu(gpu_id)%dip2(idx) + dz*gpu(gpu_id)%dip3(idx))*rd3           &  !  dipole
             + 0.5d0*(fd1*gpu(gpu_id)%quad1(idx)  + fd2*gpu(gpu_id)%quad2(idx)  + fd3*gpu(gpu_id)%quad3(idx)) &  !  quadrupole
             +        fd4*gpu(gpu_id)%xyquad(idx) + fd5*gpu(gpu_id)%yzquad(idx) + fd6*gpu(gpu_id)%zxquad(idx)
 
-         e_1(idx) = gpu(gpu_id)%charge(idx)*dx*rd3                                                           &  ! monopole term
+         results(E_1+idx) = gpu(gpu_id)%charge(idx)*dx*rd3                                                           &  ! monopole term
             + fd1*gpu(gpu_id)%dip1(idx) + fd4*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip3(idx)              &  ! dipole term
             + 3.d0   * (                                                                                     &  ! quadrupole term
             0.5d0 * (                                                                                        &
@@ -489,7 +497,7 @@ module module_accelerator
             + ( 5.d0*dx*dy*dz*rd7          )*gpu(gpu_id)%yzquad(idx)                                         &
             )
 
-         e_2(idx) = gpu(gpu_id)%charge(idx)*dy*rd3                                                           &
+         results(E_2+idx) = gpu(gpu_id)%charge(idx)*dy*rd3                                                           &
             + fd2*gpu(gpu_id)%dip2(idx) + fd4*gpu(gpu_id)%dip1(idx) + fd5*gpu(gpu_id)%dip3(idx)              &
             + 3 * (                                                                                          &
             0.5d0 * (                                                                                        &
@@ -502,7 +510,7 @@ module module_accelerator
             + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%zxquad(idx)                                            &
             )
 
-         e_3(idx) = gpu(gpu_id)%charge(idx)*dz*rd3                                                           &
+         results(E_3+idx) = gpu(gpu_id)%charge(idx)*dz*rd3                                                           &
             + fd3*gpu(gpu_id)%dip3(idx) + fd5*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip1(idx)              &
             + 3 * (                                                                                          &
             0.5d0 * (                                                                                        &
@@ -528,3 +536,139 @@ module module_accelerator
    end subroutine smp_kernel
 
 end module module_accelerator
+
+subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
+   use module_accelerator, only: mpdelta
+   use module_interaction_specific_types
+   implicit none
+   integer, value :: queued, id
+   real*8, value :: eps2
+   real*8 :: partner(13*MAX_IACT_PARTNERS)
+   real*8 :: results(4*MAX_IACT_PARTNERS)
+
+   type(mpdelta), dimension(:), allocatable :: gpu
+   integer :: idx, gpu_id, zer(1)
+   real*8 :: dist2
+   real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
+#ifdef MONITOR
+   external :: Extrae_event
+#endif
+
+   gpu_id = 1
+   zer = id
+   allocate(gpu(gpu_id))
+
+#ifdef MONITOR
+   call Extrae_event(FILL, zer(1))
+#endif
+   do idx = 1, queued
+      gpu(gpu_id)%delta1(idx) = partner(DELTA1+idx)
+      gpu(gpu_id)%delta2(idx) = partner(DELTA2+idx)
+      gpu(gpu_id)%delta3(idx) = partner(DELTA3+idx)
+      gpu(gpu_id)%charge(idx) = partner(CHARGE+idx)
+      gpu(gpu_id)%dip1(idx)   = partner(DIP1  +idx)
+      gpu(gpu_id)%dip2(idx)   = partner(DIP2  +idx)
+      gpu(gpu_id)%dip3(idx)   = partner(DIP3  +idx)
+      gpu(gpu_id)%quad1(idx)  = partner(QUAD1 +idx)
+      gpu(gpu_id)%quad2(idx)  = partner(QUAD2 +idx)
+      gpu(gpu_id)%quad3(idx)  = partner(QUAD3 +idx)
+      gpu(gpu_id)%xyquad(idx) = partner(XYQUAD+idx)
+      gpu(gpu_id)%yzquad(idx) = partner(YZQUAD+idx)
+      gpu(gpu_id)%zxquad(idx) = partner(ZXQUAD+idx)
+
+   enddo
+#ifdef MONITOR
+   zer = 0
+   call Extrae_event(FILL, zer(1))
+
+   zer = id
+   call Extrae_event(WORK, zer(1))
+   zer = queued
+   call Extrae_event(WORK_NO, zer(1))
+#endif
+
+   do idx = 1, queued
+
+      dx = gpu(gpu_id)%delta1(idx)
+      dy = gpu(gpu_id)%delta2(idx)
+      dz = gpu(gpu_id)%delta3(idx)
+      dx2 = dx*dx
+      dy2 = dy*dy
+      dz2 = dz*dz
+      dx3 = dx*dx2
+      dy3 = dy*dy2
+      dz3 = dz*dz2
+
+      dist2     =         dx2
+      dist2     = dist2 + dy2
+      dist2     = dist2 + dz2
+
+      r  = sqrt(dist2+eps2) ! eps2 is added in calling routine to have plummer instead of coulomb here
+      rd = 1.d0/r
+      rd2 = rd *rd
+      rd3 = rd *rd2
+      rd5 = rd3*rd2
+      rd7 = rd5*rd2
+
+      fd1 = 3.d0*dx2*rd5 - rd3
+      fd2 = 3.d0*dy2*rd5 - rd3
+      fd3 = 3.d0*dz2*rd5 - rd3
+      fd4 = 3.d0*dx*dy*rd5
+      fd5 = 3.d0*dy*dz*rd5
+      fd6 = 3.d0*dx*dz*rd5
+
+      results(POT+idx) = gpu(gpu_id)%charge(idx)*rd                                                               &  !  monopole term
+         + (dx*gpu(gpu_id)%dip1(idx) + dy*gpu(gpu_id)%dip2(idx) + dz*gpu(gpu_id)%dip3(idx))*rd3           &  !  dipole
+         + 0.5d0*(fd1*gpu(gpu_id)%quad1(idx)  + fd2*gpu(gpu_id)%quad2(idx)  + fd3*gpu(gpu_id)%quad3(idx)) &  !  quadrupole
+         +        fd4*gpu(gpu_id)%xyquad(idx) + fd5*gpu(gpu_id)%yzquad(idx) + fd6*gpu(gpu_id)%zxquad(idx)
+
+      results(E_1+idx) = gpu(gpu_id)%charge(idx)*dx*rd3                                                           &  ! monopole term
+         + fd1*gpu(gpu_id)%dip1(idx) + fd4*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip3(idx)              &  ! dipole term
+         + 3.d0   * (                                                                                     &  ! quadrupole term
+         0.5d0 * (                                                                                        &
+         ( 5.d0*dx3   *rd7 - 3.d0*dx*rd5 )*gpu(gpu_id)%quad1(idx)                                         &
+         + ( 5.d0*dx*dy2*rd7 -      dx*rd5 )*gpu(gpu_id)%quad2(idx)                                       &
+         + ( 5.d0*dx*dz2*rd7 -      dx*rd5 )*gpu(gpu_id)%quad3(idx)                                       &
+         )                                                                                                &
+         + ( 5.d0*dy*dx2  *rd7 - dy*rd5 )*gpu(gpu_id)%xyquad(idx)                                         &
+         + ( 5.d0*dz*dx2  *rd7 - dz*rd5 )*gpu(gpu_id)%zxquad(idx)                                         &
+         + ( 5.d0*dx*dy*dz*rd7          )*gpu(gpu_id)%yzquad(idx)                                         &
+         )
+
+      results(E_2+idx) = gpu(gpu_id)%charge(idx)*dy*rd3                                                           &
+         + fd2*gpu(gpu_id)%dip2(idx) + fd4*gpu(gpu_id)%dip1(idx) + fd5*gpu(gpu_id)%dip3(idx)              &
+         + 3 * (                                                                                          &
+         0.5d0 * (                                                                                        &
+         ( 5*dy3*rd7    - 3*dy*rd5 )*gpu(gpu_id)%quad2(idx)                                               &
+         + ( 5*dy*dx2*rd7 -   dy*rd5 )*gpu(gpu_id)%quad1(idx)                                             &
+         + ( 5*dy*dz2*rd7 -   dy*rd5 )*gpu(gpu_id)%quad3(idx)                                             &
+         )                                                                                                &
+         + ( 5*dx*dy2  *rd7 - dx*rd5 )*gpu(gpu_id)%xyquad(idx)                                            &
+         + ( 5*dz*dy2  *rd7 - dz*rd5 )*gpu(gpu_id)%yzquad(idx)                                            &
+         + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%zxquad(idx)                                            &
+         )
+
+      results(E_3+idx) = gpu(gpu_id)%charge(idx)*dz*rd3                                                           &
+         + fd3*gpu(gpu_id)%dip3(idx) + fd5*gpu(gpu_id)%dip2(idx) + fd6*gpu(gpu_id)%dip1(idx)              &
+         + 3 * (                                                                                          &
+         0.5d0 * (                                                                                        &
+         + ( 5*dz3   *rd7 - 3*dz*rd5 )*gpu(gpu_id)%quad3(idx)                                             &
+         + ( 5*dz*dy2*rd7 -   dz*rd5 )*gpu(gpu_id)%quad2(idx)                                             &
+         + ( 5*dz*dx2*rd7 -   dz*rd5 )*gpu(gpu_id)%quad1(idx)                                             &
+         )                                                                                                &
+         + ( 5*dx*dz2  *rd7 - dx*rd5 )*gpu(gpu_id)%zxquad(idx)                                            &
+         + ( 5*dy*dz2  *rd7 - dy*rd5 )*gpu(gpu_id)%yzquad(idx)                                            &
+         + ( 5*dx*dy*dz*rd7          )*gpu(gpu_id)%xyquad(idx)                                            &
+         )
+   end do
+#ifdef MONITOR
+   zer = 0
+   call Extrae_event(WORK, zer(1))
+   call Extrae_event(WORK_NO, zer(1))
+#endif
+
+   deallocate(gpu)
+
+   return
+
+end subroutine ocl_smp_kernel

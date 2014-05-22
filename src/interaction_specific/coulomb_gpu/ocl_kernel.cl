@@ -1,5 +1,5 @@
 // !!!! GLOBAL DEFINE !!!!
-#define MAX_IACT_PARTNERS 2 * 256 * 2 * 2
+#define MAX_IACT_PARTNERS 8 * 256 * 2 * 2
 
 // define off-sets in our 1-D array
 #define DELTA1 (MAX_IACT_PARTNERS * (1-1))
@@ -16,6 +16,11 @@
 #define YZQUAD (MAX_IACT_PARTNERS * (12-1))
 #define ZXQUAD (MAX_IACT_PARTNERS * (13-1))
 
+#define POT    (MAX_IACT_PARTNERS * (1-1))
+#define E_1    (MAX_IACT_PARTNERS * (1-1))
+#define E_2    (MAX_IACT_PARTNERS * (2-1))
+#define E_3    (MAX_IACT_PARTNERS * (3-1))
+
 #ifdef cl_khr_fp64
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #elif defined(cl_amd_fp64)
@@ -24,7 +29,7 @@
 #error "Double precision floating point not supported by OpenCL implementation."
 #endif
 
-__kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, __global double* pot, __global double* e_1, __global double* e_2, __global double* e_3, int dummy)
+__kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, __global double* results, int dummy)
 {
    // index on GPU device to id array entry
    const int idx = get_global_id(0);
@@ -66,12 +71,12 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
       fd5 = 3.0*dy*dz*rd5;
       fd6 = 3.0*dx*dz*rd5;
 
-      pot[idx] = partner[CHARGE+idx]*rd
+      results[POT+idx] = partner[CHARGE+idx]*rd
 	 + (dx*partner[DIP1+idx] + dy*partner[DIP2+idx] + dz*partner[DIP3+idx])*rd3
 	 +  0.5*(fd1*partner[QUAD1+idx]  + fd2*partner[QUAD2+idx]  + fd3*partner[QUAD3+idx])
 	 +       fd4*partner[XYQUAD+idx] + fd5*partner[YZQUAD+idx] + fd6*partner[ZXQUAD+idx];
 
-      e_1[idx] = partner[CHARGE+idx]*dx*rd3
+      results[E_1+idx] = partner[CHARGE+idx]*dx*rd3
 	 + fd1*partner[DIP1+idx] + fd4*partner[DIP2+idx] + fd6*partner[DIP3+idx]
 	 + 3.0   * (
 	       0.5 * (
@@ -84,7 +89,7 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
 	       + ( 5.0*dx*dy*dz*rd7          )*partner[YZQUAD+idx]
 	       );
 
-      e_2[idx] = partner[CHARGE+idx]*dy*rd3
+      results[E_2+idx] = partner[CHARGE+idx]*dy*rd3
 	 + fd2*partner[DIP2+idx] + fd4*partner[DIP1+idx] + fd5*partner[DIP3+idx]
 	 + 3.0 * (
 	       0.5 * (
@@ -97,7 +102,7 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
 	       + ( 5.0*dx*dy*dz*rd7          )*partner[ZXQUAD+idx]
 	       );
 
-      e_3[idx] = partner[CHARGE+idx]*dz*rd3
+      results[E_3+idx] = partner[CHARGE+idx]*dz*rd3
 	 + fd3*partner[DIP3+idx] + fd5*partner[DIP2+idx] + fd6*partner[DIP1+idx]
 	 + 3.0 * (
 	       0.5 * (
