@@ -33,9 +33,9 @@
 #define ZXQUAD (MAX_IACT_PARTNERS * (13-1))
 
 #define POT    (MAX_IACT_PARTNERS * (1-1))
-#define E_1    (MAX_IACT_PARTNERS * (1-1))
-#define E_2    (MAX_IACT_PARTNERS * (2-1))
-#define E_3    (MAX_IACT_PARTNERS * (3-1))
+#define E_1    (MAX_IACT_PARTNERS * (2-1))
+#define E_2    (MAX_IACT_PARTNERS * (3-1))
+#define E_3    (MAX_IACT_PARTNERS * (4-1))
 
 !>
 !> Accelerator module, in this case for a GPU using OmpSs with tasks (for the GPU).
