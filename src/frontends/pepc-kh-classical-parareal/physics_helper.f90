@@ -3,13 +3,7 @@ module physics_helper
 
   implicit none
 
-  type physics_nml_t
-    real(kind=8) :: m_ratio, T_ratio, B0, shear_halfwidth, shear_strength
-    real(kind=8), dimension(3) :: l_plasma
-    integer(kind = kind_particle) :: ni
-  end type physics_nml_t
-
-  real(kind = 8), parameter :: force_const = 0.159154943D0
+  real(kind = 8), parameter :: force_const = 0.15915494309189533577D0
 
   integer, parameter :: file_energy = 70
 
@@ -32,22 +26,7 @@ contains
     character(*), intent(in) :: file_name
     type(physics_pars_t), intent(out) :: physics_pars
 
-    type(physics_nml_t) :: physics_nml
-
-    call read_in_physics_params(file_name, physics_nml)
-
-    physics_pars%B0 = physics_nml%B0
-    physics_pars%l_plasma = physics_nml%l_plasma
-    physics_pars%vte = 1.0D0
-    physics_pars%vti = physics_pars%vte * sqrt(physics_nml%T_ratio / physics_nml%m_ratio)
-    physics_pars%qe  = -physics_pars%l_plasma(1) * physics_pars%l_plasma(2) / physics_nml%ni
-    physics_pars%qi  = abs(physics_pars%qe)
-    physics_pars%me  = physics_pars%qi
-    physics_pars%mi  = physics_nml%m_ratio * physics_pars%qi
-    physics_pars%shear_halfwidth = physics_nml%shear_halfwidth
-    physics_pars%shear_velocity = physics_nml%shear_strength * physics_pars%qi * &
-      physics_pars%B0 / physics_pars%mi * physics_pars%shear_halfwidth
-    physics_pars%ni  = physics_nml%ni
+    call read_in_physics_params(file_name, physics_pars)
 
     t_lattice_1 = [ physics_pars%l_plasma(1), 0.0D0, 0.0D0 ]
     t_lattice_2 = [ 0.0D0, physics_pars%l_plasma(2), 0.0D0 ]
@@ -62,13 +41,14 @@ contains
   end subroutine setup_physics
 
 
-  subroutine read_in_physics_params(file_name, physics_namelist)
+  subroutine read_in_physics_params(file_name, physics_pars)
     use module_pepc_types, only: kind_particle
     use mpi
+    use encap
     implicit none
 
     character(*), intent(in) :: file_name
-    type(physics_nml_t), intent(out) :: physics_namelist
+    type(physics_pars_t), intent(out) :: physics_pars
 
     real(kind=8) :: m_ratio = 100.0D0
     real(kind=8) :: T_ratio = 1.0D0
@@ -87,13 +67,18 @@ contains
     read(param_file_id, NML=physics_nml)
     close(param_file_id)
 
-    physics_namelist%m_ratio = m_ratio
-    physics_namelist%T_ratio = T_ratio
-    physics_namelist%B0 = B0
-    physics_namelist%l_plasma = l_plasma
-    physics_namelist%shear_halfwidth = shear_halfwidth
-    physics_namelist%shear_strength = shear_strength
-    physics_namelist%ni = ni
+    physics_pars%B0 = B0
+    physics_pars%l_plasma = l_plasma
+    physics_pars%vte = 1.0D0
+    physics_pars%vti = physics_pars%vte * sqrt(T_ratio / m_ratio)
+    physics_pars%qe  = -physics_pars%l_plasma(1) * physics_pars%l_plasma(2) / ni
+    physics_pars%qi  = abs(physics_pars%qe)
+    physics_pars%me  = physics_pars%qi
+    physics_pars%mi  = m_ratio * physics_pars%qi
+    physics_pars%shear_halfwidth = shear_halfwidth
+    physics_pars%shear_velocity = shear_strength * physics_pars%qi * &
+      physics_pars%B0 / physics_pars%mi * physics_pars%shear_halfwidth
+    physics_pars%ni  = ni
   end subroutine read_in_physics_params
 
 
@@ -130,22 +115,22 @@ contains
   end subroutine write_physics_params
 
 
-  subroutine load_particles(pepc_pars, nresume, p)
+  subroutine load_particles(nresume, pepc_pars, ps)
     use module_pepc_types, only: t_particle
     use module_debug
     use module_checkpoint
     use encap
     implicit none
 
-    type(pepc_pars_t), intent(inout) :: pepc_pars
-    type(t_particle), allocatable, dimension(:), intent(inout) :: p
     integer, intent(in) :: nresume
+    type(pepc_pars_t), intent(inout) :: pepc_pars
+    type(t_particle), allocatable, dimension(:), intent(inout) :: ps
 
     integer :: dummy_nresume
-    character(len = 255) :: dummy_file_name
+    character(len = 16384) :: dummy_file_name
 
-    call read_particles_mpiio(nresume, pepc_pars%pepc_comm%mpi_comm, &
-      dummy_nresume, pepc_pars%np, p, dummy_file_name)
+    call read_particles_mpiio(nresume, pepc_pars%pepc_comm%mpi_comm, dummy_nresume, pepc_pars%np, ps, dummy_file_name, &
+      noparams = .true.)
 
     if (dummy_nresume .ne. nresume) then
       DEBUG_ERROR(*, "Resume timestep mismatch, parameter file says: ", nresume, " checkpoint file says: ", dummy_nresume)
@@ -156,6 +141,24 @@ contains
       print *, "   resuming with ", pepc_pars%np, " particles."
       print *, ""
     end if
+  end subroutine
+
+
+  subroutine load_particles_from_filename(file_name, pepc_pars, ps)
+    use module_pepc_types, only: t_particle
+    use module_debug
+    use module_checkpoint
+    use encap
+    implicit none
+
+    character(*), intent(in) :: file_name
+    type(pepc_pars_t), intent(inout) :: pepc_pars
+    type(t_particle), allocatable, intent(inout) :: ps(:)
+
+    integer :: dummy_nresume
+
+    call read_particles_mpiio_from_filename(pepc_pars%pepc_comm%mpi_comm, dummy_nresume, pepc_pars%np, ps, file_name, &
+      noparams = .true.)
   end subroutine
 
 
@@ -309,7 +312,7 @@ contains
     !print *, "nihist: ", nihist
     !print *, "sum nihist: ", sum(nihist)
 
-    ! (6), (7) calculate the net charge density by the Poisson equation from the electric field 
+    ! (6), (7) calculate the net charge density by the Poisson equation from the electric field
     ! and calculate the electron density by subtracting the charge density from the ion density
     nehist = 0
     do ic = 1, nhist

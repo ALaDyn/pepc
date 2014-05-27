@@ -3,11 +3,6 @@ module field_helper
 
   character(*), parameter, private :: field_dir = "fields"
 
-  type field_grid_nml_t
-    integer, dimension(2) :: n
-    real(kind = 8), dimension(2) :: offset, extent
-  end type field_grid_nml_t
-
 contains
 
   subroutine setup_field_grid(file_name, pepc_comm, field_grid)
@@ -19,24 +14,19 @@ contains
     type(pepc_comm_t), intent(in) :: pepc_comm
     type(field_grid_t), intent(out) :: field_grid
 
-    type(field_grid_nml_t) :: field_grid_nml
     integer(kind_default) :: mpi_size, mpi_rank
     integer(kind_particle) :: ipl, ipg, ix, iy
 
     call create_directory(field_dir)
 
-    call read_in_field_grid_params(file_name, field_grid_nml)
-
     mpi_rank = int(pepc_comm%mpi_rank, kind = kind(mpi_rank))
     mpi_size = int(pepc_comm%mpi_size, kind = kind(mpi_size))
 
-    field_grid%n = field_grid_nml%n
+    call read_in_field_grid_params(file_name, field_grid)
     field_grid%ntot = product(field_grid%n)
     field_grid%nl = field_grid%ntot / mpi_size
     if (mpi_rank < mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) &
       field_grid%nl = field_grid%nl + 1
-    field_grid%offset = field_grid_nml%offset
-    field_grid%extent = field_grid_nml%extent
     field_grid%dx = field_grid%extent / field_grid%n
 
     if (mpi_rank == 0) then
@@ -77,12 +67,13 @@ contains
   end subroutine setup_field_grid
 
 
-  subroutine read_in_field_grid_params(file_name, field_grid_namelist)
+  subroutine read_in_field_grid_params(file_name, field_grid)
     use mpi
+    use encap
     implicit none
 
     character(*), intent(in) :: file_name
-    type(field_grid_nml_t), intent(out) :: field_grid_namelist
+    type(field_grid_t), intent(out) :: field_grid
 
     integer, dimension(2) :: n = [ 0, 0 ]
     real(kind=8), dimension(2) :: offset = [ 0.0D0, 0.0D0 ]
@@ -97,9 +88,9 @@ contains
     read(param_file_id, NML=field_grid_nml)
     close(param_file_id)
 
-    field_grid_namelist%n = n
-    field_grid_namelist%offset = offset
-    field_grid_namelist%extent = extent
+    field_grid%n = n
+    field_grid%offset = offset
+    field_grid%extent = extent
   end subroutine read_in_field_grid_params
 
 

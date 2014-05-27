@@ -1,11 +1,6 @@
 module time_helper
   implicit none
 
-  type time_nml_t
-    real(kind=8) :: dt, tresume
-    integer :: nsteps, nresume
-  end type time_nml_t
-
 contains
 
   function time_of_step(step, time_p)
@@ -27,14 +22,7 @@ contains
     type(pepc_comm_t), intent(in) :: pepc_comm
     type(time_pars_t), intent(out) :: time_pars
 
-    type(time_nml_t) :: time_nml
-
-    call read_in_time_params(file_name, time_nml)
-
-    time_pars%dt = time_nml%dt
-    time_pars%tresume = time_nml%tresume
-    time_pars%nsteps = time_nml%nsteps
-    time_pars%nresume = time_nml%nresume
+    call read_in_time_params(file_name, time_pars)
 
     if (pepc_comm%mpi_rank == 0) then
         print *, "== [setup_time]"
@@ -47,12 +35,13 @@ contains
   end subroutine setup_time
 
 
-  subroutine read_in_time_params(file_name, time_namelist)
+  subroutine read_in_time_params(file_name, time_pars)
     use mpi
+    use encap
     implicit none
 
     character(*), intent(in) :: file_name
-    type(time_nml_t), intent(out) :: time_namelist
+    type(time_pars_t), intent(out) :: time_pars
 
     real(kind=8) :: dt = 0.
     real(kind=8) :: tresume = 0.
@@ -68,10 +57,10 @@ contains
     read(param_file_id, NML=time_nml)
     close(param_file_id)
 
-    time_namelist%dt = dt
-    time_namelist%tresume = tresume
-    time_namelist%nsteps = nsteps
-    time_namelist%nresume = nresume
+    time_pars%dt = dt
+    time_pars%tresume = tresume
+    time_pars%nsteps = nsteps
+    time_pars%nresume = nresume
   end subroutine read_in_time_params
 
 
