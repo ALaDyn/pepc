@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -40,7 +40,6 @@ module module_pepc_wrappers
     !>
     !>   Returns fields Ex, Ey, Ez and potential pot excluding external terms
     !>   @param[in] np_local local number of particles
-    !>   @param[in] npart_total total particle number
     !>   @param[in] p_x dimension(1:np_local) - x-component of particle coordinates
     !>   @param[in] p_y dimension(1:np_local) - y-component of particle coordinates
     !>   @param[in] p_z dimension(1:np_local) - z-component of particle coordinates
@@ -52,10 +51,6 @@ module module_pepc_wrappers
     !>   @param[out] p_Ez dimension(1:np_local) - z-component of electric field
     !>   @param[out] p_pot dimension(1:np_local) - electric potential
     !>   @param[in] itime current simulation timestep number
-    !>   @param[in] weighted selector for load balancing
-    !>   @param[in] curve_type selector for type of space filling curve
-    !>   @param[in] num_neighbours number of neighbour boxes to be considered during tree walk
-    !>   @param[in] neighbours shift vectors to neighbour boxes
     !>   @param[in] no_dealloc if set to .true., deallocation of tree-structures is prevented to allow for front-end triggered diagnostics
     !>
     !>  TODO: update function documentation
@@ -73,9 +68,9 @@ module module_pepc_wrappers
         real*8, dimension(np_local) :: p_w ! work loads
         logical, intent(in) :: no_dealloc
         real*8, intent(in) :: force_const
-        
+
         integer :: i
-        
+
         if (allocated(particles))        deallocate(particles)
         allocate(particles(1:np_local))
 
@@ -91,7 +86,7 @@ module module_pepc_wrappers
 
         call pepc_particleresults_clear(particles)
         call pepc_grow_and_traverse(particles, itime=itime, no_dealloc=no_dealloc, no_restore=.false.)
-        
+
         np_local = size(particles)
 
         ! read data from particle_coordinates, particle_results, particle_properties

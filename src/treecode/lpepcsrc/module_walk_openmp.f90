@@ -554,7 +554,6 @@ module module_walk
     use module_tree_node
     use module_tree_communicator, only: tree_node_fetch_children
     use module_interaction_specific
-    use module_spacefilling, only : is_ancestor_of_particle
     use module_debug
     #ifndef NO_SPATIAL_INTERACTION_CUTOFF
     use module_mirror_boxes, only : spatial_interaction_cutoff

@@ -281,7 +281,7 @@ module module_vtk_helpers
     type(t_tree_node_interaction_data), dimension(:), allocatable :: bdata
 
     integer, dimension(:, :), allocatable :: mirror_indices
-    real*8 :: bx, by, bz
+    real*8 :: bx(3)
 
     real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
                                                              0., 0., 1., &
@@ -320,12 +320,10 @@ module module_vtk_helpers
       bcornersoffsets(i) = 8*i
 
       ! compute real center coordinate
-      call key_to_coord(t%bounding_box, bkey, bx, by, bz)
+      call key_to_coord(t%bounding_box, bkey, bx)
 
       if ( present(node_vbox) ) then
-        bx = bx + node_vbox(i, 1)
-        by = by + node_vbox(i, 2)
-        bz = bz + node_vbox(i, 3)
+        bx(:) = bx(:) + node_vbox(i, :)
 
         mirror_indices(i, 1:3) = lattice_indices(node_vbox(i, 1:3))
         mirror_level(i) = maxval(abs(mirror_indices(i, :)))
@@ -334,9 +332,9 @@ module module_vtk_helpers
       do j=1,8
         bcornersidx(8*(i-1)+j) = 8*(i-1)+j - 1
         bshift(1:3) = box_shift(1:3,j) * bsize(1:3)
-        bcornersx(8*(i-1)+j)   = bx + bshift(1)
-        bcornersy(8*(i-1)+j)   = by + bshift(2)
-        bcornersz(8*(i-1)+j)   = bz + bshift(3)
+        bcornersx(8*(i-1)+j)   = bx(1) + bshift(1)
+        bcornersy(8*(i-1)+j)   = bx(2) + bshift(2)
+        bcornersz(8*(i-1)+j)   = bx(3) + bshift(3)
       end do
     end do
 
@@ -417,7 +415,7 @@ module module_vtk_helpers
     integer, dimension(:), allocatable :: blevel, mirror_level
 
     integer, dimension(:, :), allocatable :: mirror_indices
-    real*8 :: bx, by, bz
+    real*8 :: bx(3)
 
     real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
                                                              0., 0., 1., &
@@ -448,12 +446,10 @@ module module_vtk_helpers
       bcornersoffsets(i) = 8*i
 
       ! compute real center coordinate
-      call key_to_coord(bounding_box, keys(i), bx, by, bz)
+      call key_to_coord(bounding_box, keys(i), bx)
 
       if ( present(key_vbox) ) then
-        bx = bx + key_vbox(i, 1)
-        by = by + key_vbox(i, 2)
-        bz = bz + key_vbox(i, 3)
+        bx(:) = bx(:) + key_vbox(i, :)
 
         mirror_indices(i, 1:3) = lattice_indices(key_vbox(i, 1:3))
         mirror_level(i) = maxval(abs(mirror_indices(i, :)))
@@ -462,9 +458,9 @@ module module_vtk_helpers
       do j=1,8
         bcornersidx(8*(i-1)+j) = 8*(i-1)+j - 1
         bshift(1:3) = box_shift(1:3,j) * bsize(1:3)
-        bcornersx(8*(i-1)+j)   = bx + bshift(1)
-        bcornersy(8*(i-1)+j)   = by + bshift(2)
-        bcornersz(8*(i-1)+j)   = bz + bshift(3)
+        bcornersx(8*(i-1)+j)   = bx(1) + bshift(1)
+        bcornersy(8*(i-1)+j)   = bx(2) + bshift(2)
+        bcornersz(8*(i-1)+j)   = bx(3) + bshift(3)
       end do
     end do
 

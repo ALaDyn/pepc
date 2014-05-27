@@ -94,7 +94,7 @@ contains
          my_rank
     
     use module_spacefilling, only: &
-         veccoord_to_key_lastlevel, &
+         coord_to_key, &
          key_to_coord
 
     use module_mirror_boxes, only: &
@@ -286,7 +286,7 @@ contains
        
           write( 99, '(i6.6,3(E12.5),i6,O30)' ) local_particle_index, particles(local_particle_index)%x(1), particles(local_particle_index)%x(2), particles(local_particle_index)%x(3), particles(local_particle_index)%label, particles(local_particle_index)%key
           do actual_neighbour = 1, num_neighbour_particles
-             write(99,*) veccoord_to_key_lastlevel(t%bounding_box, positions( 1:3, actual_neighbour, local_particle_index))
+             write(99,*) coord_to_key(t%bounding_box, positions( 1:3, actual_neighbour, local_particle_index))
           end do
           
        end do
@@ -410,13 +410,13 @@ contains
        do index_in_result_neighbour_list = 1, num_neighbour_particles
 
           actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(index_in_result_neighbour_list))
-          node_key = veccoord_to_key_lastlevel(t%bounding_box, actual_node%interaction_data%coc)
+          node_key = coord_to_key(t%bounding_box, actual_node%interaction_data%coc)
 
           found = .false.
           
           do index_in_test_neighbour_list = 1, num_neighbour_particles   ! ignore particle self (num_neighbour_particles+1)
              
-             neighbour_key = veccoord_to_key_lastlevel(t%bounding_box, positions( 1:3, index_in_test_neighbour_list, local_particle_index))
+             neighbour_key = coord_to_key(t%bounding_box, positions( 1:3, index_in_test_neighbour_list, local_particle_index))
 
              if( node_key .eq. neighbour_key ) then
                 found = .true.

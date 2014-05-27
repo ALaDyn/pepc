@@ -69,6 +69,10 @@
 
 #define DEBUG_ASSERT_MSG(cond, fmt, ...) ! Assertion: cond
 
+#define DEBUG_PURE pure
+
+#define DEBUG_ELEMENTAL elemental
+
 #else
 
 #define DEBUG_ASSERT_MSG(cond, fmt, ...) \
@@ -88,6 +92,9 @@
         if (.not. (cond)) then; \
           DEBUG_ERROR('("Assertion failed: ", a)', DEBUG_STRINGIFY(cond)); \
         end if;
+
+#define DEBUG_PURE
+#define DEBUG_ELEMENTAL
 
 #endif
 

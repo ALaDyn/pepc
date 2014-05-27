@@ -135,10 +135,6 @@ module module_walk
       integer(kind_level) :: childlevel
       integer :: ichild
 
-      if (l == nlev) then ! no more levels left, cannot split
-        DEBUG_ERROR(*, "walk_simple: insufficient key resolution in tile formation.")
-      end if
-
       np = size(p, kind = kind_particle)
 
       if (np == 0) then
@@ -147,6 +143,10 @@ module module_walk
         num_walk_tiles = num_walk_tiles + 1
         walk_tiles(num_walk_tiles)%p => p(:)
       else
+        if (l >= nlev) then ! no more levels left, cannot split
+          DEBUG_ERROR(*, "walk_simple: insufficient key resolution in tile formation.")
+        end if
+
         childlevel = l + 1
         pstart = 1
         pend = pstart - 1
@@ -156,7 +156,7 @@ module module_walk
           pend = pstart - 1
           do
             if (pend == np) exit
-            if (.not. is_ancestor_of_particle(p(pend + 1)%key, childkey, childlevel)) exit
+            if (.not. is_ancestor_of_particle(childkey, childlevel, p(pend + 1)%key)) exit
             pend = pend + 1
           end do
 

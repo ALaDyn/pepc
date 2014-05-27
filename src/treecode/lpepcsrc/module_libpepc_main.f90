@@ -24,7 +24,6 @@
 module module_libpepc_main
     use module_debug, only : debug_level
     use treevars, only : np_mult, interaction_list_length_factor, num_threads, idim
-    use module_spacefilling, only : curve_type
     use module_domains, only: weighted
     use module_box, only: force_cubic_domain
     use module_mirror_boxes, only: mirror_box_layers, periodicity
@@ -32,6 +31,8 @@ module module_libpepc_main
 
     implicit none
     private
+
+    integer :: curve_type = 1
 
     public libpepc_restore_particles
     public libpepc_traverse_tree
@@ -49,12 +50,15 @@ module module_libpepc_main
     !> reads libpepc-specific parameters from file
     !>
     subroutine libpepc_read_parameters(filehandle)
-        use module_debug, only: pepc_status
+        use module_debug
         implicit none
         integer, intent(in) :: filehandle
 
         call pepc_status("READ PARAMETERS, section libpepc")
         read(filehandle,NML=libpepc)
+        if (curve_type /= 1) then
+          DEBUG_ERROR(*, "only curve_type = 1 is supported!")
+        end if
     end subroutine libpepc_read_parameters
 
 
