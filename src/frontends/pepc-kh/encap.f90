@@ -29,7 +29,7 @@ module encap
     integer(kind = kind_particle) :: ntot, nl
     real(kind = 8), dimension(2) :: offset, extent, dx
     type(t_particle), dimension(:), allocatable :: p
-    real(kind = 8), dimension(:,:), allocatable :: ne, ni, vex, vey, vix, viy
+    real(kind = 8), dimension(:,:), allocatable :: ne, ni, vex, vey, vix, viy, ne_from_left, ni_from_left
   end type field_grid_t
 
 end module encap

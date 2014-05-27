@@ -12,6 +12,11 @@ module physics_helper
 
    integer, parameter :: file_energy = 70
 
+   integer, parameter :: LABEL_ELECTRON_LEFT  = -1
+   integer, parameter :: LABEL_ELECTRON_RIGHT = +1
+   integer, parameter :: LABEL_ION_LEFT       = -2
+   integer, parameter :: LABEL_ION_RIGHT      = +2
+
 contains
 
 
