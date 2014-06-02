@@ -60,7 +60,8 @@ module module_coulomb_kernels
       real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kfp), intent(out) ::  exyz(3), phi
 
-      real(kfp) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
+      real(kfp) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6, m2rd5, m5rd7, &
+        pre1, pre2x, pre2y, pre2z, preQ1, preQ2, preQ3
 
       dx = d(1)
       dy = d(2)
@@ -87,6 +88,16 @@ module module_coulomb_kernels
       fd5 = three*dy*dz*rd5
       fd6 = three*dx*dz*rd5
 
+      m2rd5 = two*rd5
+      m5rd7 = five*rd7
+      pre1 = m5rd7*dx*dy*dz
+      pre2x = m5rd7*dx2 - rd5
+      pre2y = m5rd7*dy2 - rd5
+      pre2z = m5rd7*dz2 - rd5
+      preQ1 = pre2x*t%quad(1)
+      preQ2 = pre2x*t%quad(2)
+      preQ3 = pre2x*t%quad(3)
+
       phi = t%charge*rd                                             &  !  monopole term
             + (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !  dipole
             + half*(fd1*t%quad(1) + fd2*t%quad(2) + fd3*t%quad(3))  &  !  quadrupole
@@ -95,40 +106,40 @@ module module_coulomb_kernels
       exyz(1) = t%charge*dx*rd3                                     &  ! monopole term
                 + fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3)        &  ! dipole term
                 + three * (                                         &  ! quadrupole term
-                   half * (                                         &
-                       ( five*dx3   *rd7 - three*dx*rd5 )*t%quad(1) &
-                     + ( five*dx*dy2*rd7 -       dx*rd5 )*t%quad(2) &
-                     + ( five*dx*dz2*rd7 -       dx*rd5 )*t%quad(3) &
+                   half * dx * (                                    &
+                       ( pre2x - m2rd5 )*t%quad(1)                  &
+                     + preQ2                                        &
+                     + preQ3                                        &
                    )                                                &
-                   + ( five*dy*dx2  *rd7 - dy*rd5 )*t%xyquad        &
-                   + ( five*dz*dx2  *rd7 - dz*rd5 )*t%zxquad        &
-                   + ( five*dx*dy*dz*rd7          )*t%yzquad        &
+                   + dy*pre2x*t%xyquad                              &
+                   + dz*pre2x*t%zxquad                              &
+                   + pre1*t%yzquad                                  &
                   )
 
       exyz(2) = t%charge*dy*rd3                                     &
                 + fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3)        &
                 + three * (                                         &
-                   half * (                                         &
-                       ( five*dy3*rd7    - three*dy*rd5 )*t%quad(2) &
-                     + ( five*dy*dx2*rd7 -       dy*rd5 )*t%quad(1) &
-                     + ( five*dy*dz2*rd7 -       dy*rd5 )*t%quad(3) &
+                   half * dy * (                                    &
+                       ( pre2y - m2rd5 )*t%quad(2)                  &
+                     + preQ1                                        &
+                     + preQ3                                        &
                    )                                                &
-                   + ( five*dx*dy2  *rd7 - dx*rd5 )*t%xyquad        &
-                   + ( five*dz*dy2  *rd7 - dz*rd5 )*t%yzquad        &
-                   + ( five*dx*dy*dz*rd7          )*t%zxquad        &
+                   + dx*pre2y*t%xyquad                              &
+                   + dz*pre2y*t%yzquad                              &
+                   + pre1*t%zxquad                                  &
                   )
 
       exyz(3) = t%charge*dz*rd3                                     &
                 + fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1)        &
                 + three * (                                         &
-                   half * (                                         &
-                     + ( five*dz3   *rd7 - three*dz*rd5 )*t%quad(3) &
-                     + ( five*dz*dy2*rd7 -       dz*rd5 )*t%quad(2) &
-                     + ( five*dz*dx2*rd7 -       dz*rd5 )*t%quad(1) &
+                   half * dz * (                                    &
+                     + ( pre2z - m2rd5 )*t%quad(3)                  &
+                     + preQ2                                        &
+                     + preQ1                                        &
                    )                                                &
-                   + ( five*dx*dz2  *rd7 - dx*rd5 )*t%zxquad        &
-                   + ( five*dy*dz2  *rd7 - dy*rd5 )*t%yzquad        &
-                   + ( five*dx*dy*dz*rd7          )*t%xyquad        &
+                   + dx*pre2z*t%zxquad                              &
+                   + dy*pre2z*t%yzquad                              &
+                   + pre1*t%xyquad                                  &
                   )
     end subroutine calc_force_coulomb_3D
 
