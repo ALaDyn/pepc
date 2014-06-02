@@ -75,6 +75,7 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
       const double fd5 = 3.0*dy*dz*rd5;
       const double fd6 = 3.0*dx*dz*rd5;
 
+      const double m2rd5=2.0*rd5;
       const double m5rd7=5.0*rd7;
       const double pre1=m5rd7*dx*dy*dz;
       const double pre2x=m5rd7*dx2 - rd5;
@@ -93,7 +94,7 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
          + fd1*partner[DIP1+idx] + fd4*partner[DIP2+idx] + fd6*partner[DIP3+idx]
          + 3.0   * (
                0.5 * dx * (
-                  + ( pre2x - 2.0*rd5 )*partner[QUAD1+idx]
+                  + ( pre2x - m2rd5 )*partner[QUAD1+idx]
                   + preQ2
                   + preQ3
                   )
@@ -106,7 +107,7 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
          + fd2*partner[DIP2+idx] + fd4*partner[DIP1+idx] + fd5*partner[DIP3+idx]
          + 3.0 * (
                0.5 * dy * (
-                  + ( pre2y - 2.0*rd5 )*partner[QUAD2+idx]
+                  + ( pre2y - m2rd5 )*partner[QUAD2+idx]
                   + preQ1
                   + preQ3
                   )
@@ -119,9 +120,9 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
          + fd3*partner[DIP3+idx] + fd5*partner[DIP2+idx] + fd6*partner[DIP1+idx]
          + 3.0 * (
                0.5 * dz * (
-                  + ( pre2z - 2.0*rd5 )*partner[QUAD3+idx]
-                  + pre2y * partner[QUAD2+idx]
-                  + pre2x * partner[QUAD1+idx]
+                  + ( pre2z - m2rd5 )*partner[QUAD3+idx]
+                  + preQ2
+                  + preQ1
                   )
                + dx * pre2z * partner[ZXQUAD+idx]
                + dy * pre2z * partner[YZQUAD+idx]
