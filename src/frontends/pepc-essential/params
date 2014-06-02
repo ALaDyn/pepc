@@ -1,10 +1,10 @@
 &pepcessential
 
 ! total number of particles
-tnp = 5010
+tnp = 50010
 
 ! number of time steps
-nt = 2
+nt = 1
 
 ! time step
 dt = 0.5e-2

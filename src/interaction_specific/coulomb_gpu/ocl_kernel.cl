@@ -1,5 +1,5 @@
 // !!!! GLOBAL DEFINE !!!!
-#define MAX_IACT_PARTNERS 8 * 256 * 2 * 2
+#define MAX_IACT_PARTNERS 16 * 256 * 2 * 2
 
 // define off-sets in our 1-D array
 #define DELTA1 (MAX_IACT_PARTNERS * (1-1))
@@ -16,11 +16,6 @@
 #define YZQUAD (MAX_IACT_PARTNERS * (12-1))
 #define ZXQUAD (MAX_IACT_PARTNERS * (13-1))
 
-#define POT    (MAX_IACT_PARTNERS * (1-1))
-#define E_1    (MAX_IACT_PARTNERS * (2-1))
-#define E_2    (MAX_IACT_PARTNERS * (3-1))
-#define E_3    (MAX_IACT_PARTNERS * (4-1))
-
 #ifdef cl_khr_fp64
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #elif defined(cl_amd_fp64)
@@ -35,12 +30,6 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
    const int idx = get_global_id(0);
    const int local_index = get_local_id(0);
    const int local_size = get_local_size(0);
-
-   // private temp variables
-   __private double dist2;
-   __private double dx, dy, dz;
-   __private double r, rd, rd2, rd3, rd5, rd7, dx2, dy2, dz2, dx3, dy3, dz3;
-   __private double fd1, fd2, fd3, fd4, fd5, fd6;
 
    // local buffer for global Data
    __local double pot_local[128];
@@ -59,34 +48,41 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
    // compute individal interactions (work item)
    if (idx < queued)
    {
-      dx = partner[DELTA1+idx];
-      dy = partner[DELTA2+idx];
-      dz = partner[DELTA3+idx];
-      dx2 = dx*dx;
-      dy2 = dy*dy;
-      dz2 = dz*dz;
-      dx3 = dx*dx2;
-      dy3 = dy*dy2;
-      dz3 = dz*dz2;
+      // private temp variables
+      const double dx = partner[DELTA1+idx];
+      const double dy = partner[DELTA2+idx];
+      const double dz = partner[DELTA3+idx];
+      const double dx2 = dx*dx;
+      const double dy2 = dy*dy;
+      const double dz2 = dz*dz;
+      const double dx3 = dx*dx2;
+      const double dy3 = dy*dy2;
+      const double dz3 = dz*dz2;
 
-      dist2 =         dx2;
-      dist2 = dist2 + dy2;
-      dist2 = dist2 + dz2;
+      const double dist2 = dx2 + dy2 + dz2;
 
-      // r  = sqrt(dist2+eps2);
-      //rd = 1.0 / r;
-      rd = rsqrt(dist2+eps2);
-      rd2 = rd *rd;
-      rd3 = rd *rd2;
-      rd5 = rd3*rd2;
-      rd7 = rd5*rd2;
+      // more private temp variables
+      const double rd = rsqrt(dist2+eps2);
+      const double rd2 = rd *rd;
+      const double rd3 = rd *rd2;
+      const double rd5 = rd3*rd2;
+      const double rd7 = rd5*rd2;
 
-      fd1 = 3.0*dx2*rd5 - rd3;
-      fd2 = 3.0*dy2*rd5 - rd3;
-      fd3 = 3.0*dz2*rd5 - rd3;
-      fd4 = 3.0*dx*dy*rd5;
-      fd5 = 3.0*dy*dz*rd5;
-      fd6 = 3.0*dx*dz*rd5;
+      const double fd1 = 3.0*dx2*rd5 - rd3;
+      const double fd2 = 3.0*dy2*rd5 - rd3;
+      const double fd3 = 3.0*dz2*rd5 - rd3;
+      const double fd4 = 3.0*dx*dy*rd5;
+      const double fd5 = 3.0*dy*dz*rd5;
+      const double fd6 = 3.0*dx*dz*rd5;
+
+      const double m5rd7=5.0*rd7;
+      const double pre1=m5rd7*dx*dy*dz;
+      const double pre2x=m5rd7*dx2 - rd5;
+      const double pre2y=m5rd7*dy2 - rd5;
+      const double pre2z=m5rd7*dz2 - rd5;
+      const double preQ1=pre2x*partner[QUAD1+idx];
+      const double preQ2=pre2y*partner[QUAD2+idx];
+      const double preQ3=pre2z*partner[QUAD3+idx];
 
       pot_local[local_index] = partner[CHARGE+idx]*rd
          + (dx*partner[DIP1+idx] + dy*partner[DIP2+idx] + dz*partner[DIP3+idx])*rd3
@@ -96,40 +92,40 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
       e_1_local[local_index] = partner[CHARGE+idx]*dx*rd3
          + fd1*partner[DIP1+idx] + fd4*partner[DIP2+idx] + fd6*partner[DIP3+idx]
          + 3.0   * (
-               0.5 * (
-                  + ( 5.0*dx3   *rd7 - 3.0*dx*rd5 )*partner[QUAD1+idx]
-                  + ( 5.0*dx*dy2*rd7 -     dx*rd5 )*partner[QUAD2+idx]
-                  + ( 5.0*dx*dz2*rd7 -     dx*rd5 )*partner[QUAD3+idx]
+               0.5 * dx * (
+                  + ( pre2x - 2.0*rd5 )*partner[QUAD1+idx]
+                  + preQ2
+                  + preQ3
                   )
-               + ( 5.0*dy*dx2  *rd7 - dy*rd5 )*partner[XYQUAD+idx]
-               + ( 5.0*dz*dx2  *rd7 - dz*rd5 )*partner[ZXQUAD+idx]
-               + ( 5.0*dx*dy*dz*rd7          )*partner[YZQUAD+idx]
+               + dy * pre2x * partner[XYQUAD+idx]
+               + dz * pre2x * partner[ZXQUAD+idx]
+               + pre1 * partner[YZQUAD+idx]
                );
 
       e_2_local[local_index] = partner[CHARGE+idx]*dy*rd3
          + fd2*partner[DIP2+idx] + fd4*partner[DIP1+idx] + fd5*partner[DIP3+idx]
          + 3.0 * (
-               0.5 * (
-                  + ( 5.0*dy3*rd7    - 3.0*dy*rd5 )*partner[QUAD2+idx]
-                  + ( 5.0*dy*dx2*rd7 -     dy*rd5 )*partner[QUAD1+idx]
-                  + ( 5.0*dy*dz2*rd7 -     dy*rd5 )*partner[QUAD3+idx]
+               0.5 * dy * (
+                  + ( pre2y - 2.0*rd5 )*partner[QUAD2+idx]
+                  + preQ1
+                  + preQ3
                   )
-               + ( 5.0*dx*dy2  *rd7 - dx*rd5 )*partner[XYQUAD+idx]
-               + ( 5.0*dz*dy2  *rd7 - dz*rd5 )*partner[YZQUAD+idx]
-               + ( 5.0*dx*dy*dz*rd7          )*partner[ZXQUAD+idx]
+               + dx * pre2y * partner[XYQUAD+idx]
+               + dz * pre2y * partner[YZQUAD+idx]
+               + pre1 * partner[ZXQUAD+idx]
                );
 
       e_3_local[local_index] = partner[CHARGE+idx]*dz*rd3
          + fd3*partner[DIP3+idx] + fd5*partner[DIP2+idx] + fd6*partner[DIP1+idx]
          + 3.0 * (
-               0.5 * (
-                  + ( 5.0*dz3   *rd7 - 3.0*dz*rd5 )*partner[QUAD3+idx]
-                  + ( 5.0*dz*dy2*rd7 -     dz*rd5 )*partner[QUAD2+idx]
-                  + ( 5.0*dz*dx2*rd7 -     dz*rd5 )*partner[QUAD1+idx]
+               0.5 * dz * (
+                  + ( pre2z - 2.0*rd5 )*partner[QUAD3+idx]
+                  + pre2y * partner[QUAD2+idx]
+                  + pre2x * partner[QUAD1+idx]
                   )
-               + ( 5.0*dx*dz2  *rd7 - dx*rd5 )*partner[ZXQUAD+idx]
-               + ( 5.0*dy*dz2  *rd7 - dy*rd5 )*partner[YZQUAD+idx]
-               + ( 5.0*dx*dy*dz*rd7          )*partner[XYQUAD+idx]
+               + dx * pre2z * partner[ZXQUAD+idx]
+               + dy * pre2z * partner[YZQUAD+idx]
+               + pre1 * partner[XYQUAD+idx]
                );
    }
 
