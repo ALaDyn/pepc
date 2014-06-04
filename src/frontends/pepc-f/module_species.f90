@@ -57,12 +57,7 @@ module module_species
         ns=0
         ns_max=1000
 
-         !integer :: source_type=0
-         !real(KIND=8) :: x0_src(3)
-         !real(KIND=8) :: e1_src(3),e2_src(3),e3_src(3)
-         !integer :: source_boundary
-
-        allocate(nfp(0:ns_max),stat=rc)
+                allocate(nfp(0:ns_max),stat=rc)
         allocate(nip(0:ns_max),stat=rc)
         allocate(mass(0:ns_max),stat=rc)
         allocate(src_t(0:ns_max),stat=rc)

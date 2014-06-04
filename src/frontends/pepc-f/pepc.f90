@@ -47,14 +47,12 @@ program pepc
     ! timing variables
     real*8 :: timer(20)
     integer :: rc,ip,imp,irp
-    !real*8 :: davor,danach
 
 
     !!! initialize pepc library and MPI
     call pepc_initialize("pepc-f", my_rank, n_ranks, .true.)
 
     root = my_rank.eq.0
-
 
     !temporary aux variables
     diags=.false.

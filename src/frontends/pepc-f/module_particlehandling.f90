@@ -670,11 +670,7 @@ module particlehandling
         implicit none
     
         type(t_particle), intent(inout), allocatable :: p(:)
-        integer :: ip,ispecies,i,j
-
-        open(1234,file=trim(input_file))
-        read(1234,NML=probe_positions)
-        close(1234)
+        integer :: ip,ispecies,i
 
         ip=0
         DO ispecies=1,nspecies-1
@@ -693,25 +689,7 @@ module particlehandling
                     p(ip)%work        = 1.0_8
                 END DO
             ELSE
-                j=0
-                DO i=1, npps(ispecies)
-                    ip = ip + 1
-                    p(ip)%data%B(1)=Bx
-                    p(ip)%data%B(2)=By
-                    p(ip)%data%B(3)=Bz
-                    p(ip)%label       = my_rank * (SUM(tnpps(1:nspecies-1)) / n_ranks) + ip
-                    p(ip)%data%q      = species(ispecies)%q*fsup
-                    p(ip)%data%m      = species(ispecies)%m*fsup
-                    p(ip)%data%species= species(ispecies)%indx
-                    p(ip)%results%e   = 0.0_8
-                    p(ip)%results%pot = 0.0_8
-                    p(ip)%work        = 1.0_8
-                    p(ip)%x(1) = probe_start_x(ispecies) + (j+0.5) * (probe_end_x(ispecies) - probe_start_x(ispecies)) / species(ispecies)%nip
-                    p(ip)%x(2) = probe_start_y(ispecies) + (j+0.5) * (probe_end_y(ispecies) - probe_start_y(ispecies)) / species(ispecies)%nip
-                    p(ip)%x(3) = probe_start_z(ispecies) + (j+0.5) * (probe_end_z(ispecies) - probe_start_z(ispecies)) / species(ispecies)%nip
-                    p(ip)%data%v = 0.
-                    j=j+1
-                END DO
+                call init_probes(ispecies,ip,p)
             END IF
         END DO
 
@@ -732,10 +710,70 @@ module particlehandling
 
         call source(p)
         
-
-        next_label = SUM(tnpps)+1
+        next_label = SUM(tnpps(1:nspecies-1))+1
   
     END SUBROUTINE init_particles
+
+!======================================================================================
+
+    SUBROUTINE init_probes(ispecies,ip,p)
+        implicit none
+
+        type(t_particle), intent(inout), allocatable :: p(:)
+        integer, intent(in) :: ispecies
+        integer, intent(inout) :: ip
+        integer :: j,i
+
+
+        j=0
+        DO i=1, npps(ispecies)
+            ip = ip + 1
+            p(ip)%data%B(1)=Bx
+            p(ip)%data%B(2)=By
+            p(ip)%data%B(3)=Bz
+            p(ip)%label       = my_rank * (SUM(tnpps(1:nspecies-1)) / n_ranks) + ip
+            p(ip)%data%q      = species(ispecies)%q*fsup
+            p(ip)%data%m      = species(ispecies)%m*fsup
+            p(ip)%data%species= species(ispecies)%indx
+            p(ip)%results%e   = 0.0_8
+            p(ip)%results%pot = 0.0_8
+            p(ip)%work        = 1.0_8
+            p(ip)%x(1) = probe_start_x(ispecies) + (j+0.5) * (probe_end_x(ispecies) - probe_start_x(ispecies)) / species(ispecies)%nip
+            p(ip)%x(2) = probe_start_y(ispecies) + (j+0.5) * (probe_end_y(ispecies) - probe_start_y(ispecies)) / species(ispecies)%nip
+            p(ip)%x(3) = probe_start_z(ispecies) + (j+0.5) * (probe_end_z(ispecies) - probe_start_z(ispecies)) / species(ispecies)%nip
+            p(ip)%data%v = 0.
+            j=j+1
+        END DO
+
+    END SUBROUTINE init_probes
+
+!======================================================================================
+
+    SUBROUTINE remove_all_probes(ispecies,p)
+        implicit none
+        include 'mpif.h'
+
+        type(t_particle), intent(inout), allocatable :: p(:)
+        integer, intent(in) :: ispecies
+        integer :: i,j
+
+        IF (.not. species(ispecies)%physical_particle) THEN
+            j = sum(npps)
+            i = 1
+            DO WHILE (i <= j)
+                IF (i > j) EXIT
+                IF (p(i)%data%species  == ispecies) THEN
+                    p(i) = p(j)
+                    j = j - 1
+                    i = i - 1
+                    npps(ispecies) = npps(ispecies) - 1
+                END IF
+                i = i + 1
+            END DO
+            call reallocate_particles(p,j,j)
+            call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+        END IF
+    END SUBROUTINE remove_all_probes
 
 !======================================================================================
 
