@@ -181,7 +181,21 @@ module particlehandling
         real(KIND=8)       :: n1(3),B_vector(3)
         real(KIND=8)       :: eps=1.0e-10
 
-        IF (retherm /= 0) THEN
+
+        IF (retherm < 0) THEN
+           DO ip =1,sum(npps)
+               IF (species(p(ip)%data%species)%physical_particle) THEN
+                   IF (p(ip)%x(1) > species(p(ip)%data%species)%src_e1(1)) CYCLE
+                   mu=0.0_8
+                   sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
+                   call random_gauss_list(v_ran(1:3),mu,sigma)
+                   p(ip)%data%v = v_ran
+               END IF
+           END DO
+        END IF
+
+
+        IF (retherm > 0) THEN
 
             B_vector(1) = Bx
             B_vector(2) = By
