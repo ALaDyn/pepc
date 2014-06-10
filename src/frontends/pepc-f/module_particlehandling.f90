@@ -186,9 +186,12 @@ module particlehandling
            DO ip =1,sum(npps)
                IF (species(p(ip)%data%species)%physical_particle) THEN
                    IF (p(ip)%x(1) > species(p(ip)%data%species)%src_e1(1)) CYCLE
+                   xold(1) = p(ip)%x(1) - dt * p(ip)%data%v(1)
+                   IF (xold(1) < species(p(ip)%data%species)%src_e1(1)) CYCLE
                    mu=0.0_8
                    sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
-                   call random_gauss_list(v_ran(1:3),mu,sigma)
+                   call random_gauss_list(v_ran(2:3),mu,sigma)
+                   call random_gaussian_flux(v_ran(1),sigma)
                    p(ip)%data%v = v_ran
                END IF
            END DO
