@@ -26,8 +26,6 @@ module particlehandling
 
         IF (ANY(boundaries(1:nb)%type==4)) allocate(p_hits_logical_sheath(0:nspecies-1,nb,sum(npps)),stat=rc)
 
-        !write(bnd_hits_out,*) "Timestep:",step
-
         rp=sum(npps)
         ib=1
         DO WHILE (rp >= 1)
@@ -156,7 +154,6 @@ module particlehandling
             rp = rp-1
         END DO
 
-        !write(bnd_hits_out,*)
 
 
 
@@ -192,7 +189,7 @@ module particlehandling
                    sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
                    call random_gauss_list(v_ran(2:3),mu,sigma)
                    call random_gaussian_flux(v_ran(1),sigma)
-                   p(ip)%data%v = v_ran
+                   p(ip)%data%v = -v_ran
                END IF
            END DO
         END IF
