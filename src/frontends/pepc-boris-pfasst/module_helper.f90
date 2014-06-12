@@ -157,6 +157,7 @@ module pepcboris_helper
     integer(kind_particle) :: i
     real*8 :: myrand(3)
 
+    ! FIXME: Random numbers used here are not guaranteed to be repeatable in subsequent runs (but at least this works for cub, juropa, zam862)
     select case (pepcboris_nml%particle_config)
       case (0)
         ! single particle at specified position
@@ -181,6 +182,20 @@ module pepcboris_helper
           call random_number(myrand)
           particles(i)%data%v = pepcboris_nml%setup_params(PARAMS_VX0:PARAMS_VZ0) &
                               + pepcboris_nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_8)
+          particles(i)%label  = i
+          particles(i)%work   = 1.
+        end do
+      case (2)
+        ! randomly placed particles
+        allocate(particles(pepcboris_nml%numparts))
+
+        do i=1,pepcboris_nml%numparts
+          call random_number(myrand)
+          particles(i)%x      = pepcboris_nml%setup_params(PARAMS_RADIUS)*(myrand - 0.5_8)
+          particles(i)%data%q = 1.
+          particles(i)%data%m = 1.
+          call random_number(myrand)
+          particles(i)%data%v = pepcboris_nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_8)
           particles(i)%label  = i
           particles(i)%work   = 1.
         end do
