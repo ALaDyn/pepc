@@ -95,7 +95,7 @@ program pepc
   ! initial particle dump
   if (pepcboris_nml%root_stdio) then
     call dump_particles(VTK_STEP_FIRST, 0, 0._8, particles, MPI_COMM_SPACE, do_average=.false.)
-    call dump_energy(0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+    call dump_energy(0, 0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
   endif
 
   select case (pepcboris_nml%workingmode)
@@ -150,7 +150,7 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, clearresults=.true.)
           call update_velocities_velocity_verlet_boris(particles, dt)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
       end associate
 
@@ -167,7 +167,7 @@ program pepc
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, clearresults=.true.)
           call update_velocities_velocity_verlet_boris_tanalpha(particles, dt)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
       end associate
 
@@ -185,7 +185,7 @@ program pepc
           call update_velocities_boris(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, that is why we have to average over old and new velocities
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.true.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.true.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.true.)
         end do
       end associate
 
@@ -203,7 +203,7 @@ program pepc
           call update_velocities_tajima_implicit(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, that is why we have to average over old and new velocities
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.true.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.true.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.true.)
         end do
       end associate
 
@@ -221,7 +221,7 @@ program pepc
           call update_velocities_tajima_explicit(particles, dt)
           ! ATTENTION: here, velocities are defined on timestep step+1/2, that is why we have to average over old and new velocities
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.true.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.true.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.true.)
         end do
       end associate
 
@@ -235,7 +235,7 @@ program pepc
           call kick_cyclotronic(particles, dt)
           call drift_cyclotronic(particles, dt/2._8)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
       end associate
 
@@ -249,7 +249,7 @@ program pepc
           call kick_cyclotronic(particles, dt)
           call drift_cyclotronic(particles, dt/2._8, no_tan_trans=.true.)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
       end associate
 
@@ -264,7 +264,7 @@ program pepc
           call kick_boris_patacchini(particles, dt)
           call push_particles(particles, dt/2._8)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
       end associate
 
@@ -279,7 +279,7 @@ program pepc
           call kick_boris_patacchini(particles, dt, no_tan_trans=.true.)
           call push_particles(particles, dt/2._8)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
       end associate
 
@@ -291,7 +291,7 @@ program pepc
           call print_timestep(step, nt, dt)
           call push_matrix_verlet(particles, dt)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-          call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+          call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
       end associate
 
@@ -336,7 +336,7 @@ program pepc
               params(PARAMS_VZ0) * cos(sqrttwo*params(PARAMS_OMEGAE)*step*dt)
 
             call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
-            call dump_energy(step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+            call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
           end do
         end block
       end associate

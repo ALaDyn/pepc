@@ -82,6 +82,8 @@ module pepcboris_helper
     ! time variables
     real*8  :: dt  !< timestep (in simunits), set via pfasst parameters
     integer :: nt  !< number of timesteps, set via pfasst parameters
+    ! dump step modulus
+    integer :: dumpstep = 1
     ! configuration variables
     integer :: particle_config = 0
     integer :: dumptype = 0
@@ -226,11 +228,11 @@ module pepcboris_helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    integer :: particle_config, workingmode, dumptype
+    integer :: particle_config, workingmode, dumptype, dumpstep
     integer(kind_particle) :: numparts
     real*8 :: setup_params(PARAMS_MAXIDX)
 
-    namelist /pepcborispfasst/ particle_config, setup_params, workingmode, dumptype, numparts
+    namelist /pepcborispfasst/ particle_config, setup_params, workingmode, dumptype, numparts, dumpstep
 
     ! frontend parameters
     particle_config = pepcboris_nml%particle_config
@@ -238,6 +240,7 @@ module pepcboris_helper
     workingmode     = pepcboris_nml%workingmode
     dumptype        = pepcboris_nml%dumptype
     numparts        = pepcboris_nml%numparts
+    dumpstep        = pepcboris_nml%dumpstep
 
     ! pepc parameters
     theta2      = 0.36
@@ -261,6 +264,7 @@ module pepcboris_helper
     pepcboris_nml%workingmode     = workingmode
     pepcboris_nml%dumptype        = dumptype
     pepcboris_nml%numparts        = numparts
+    pepcboris_nml%dumpstep        = dumpstep
 
     ! derived from pfasst parameters
     pepcboris_nml%dt = dt
@@ -272,6 +276,7 @@ module pepcboris_helper
       write(*,'(a,es12.4)')    ' == time step            : ', pepcboris_nml%dt
       write(*,'(a,es12.4)')    ' == final time           : ', pepcboris_nml%dt*pepcboris_nml%nt
       write(*,'(a,i12)')       ' == dumptype             : ', pepcboris_nml%dumptype
+      write(*,'(a,i12)')       ' == dumpstep             : ', pepcboris_nml%dumpstep
     end if
 
     call pepc_prepare(dim)

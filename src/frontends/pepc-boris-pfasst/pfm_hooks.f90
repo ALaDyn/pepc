@@ -70,7 +70,7 @@ contains
     if (pepcboris_nml%root_file) then
       ! do diagnostics etc here
       call dump_particles(VTK_STEP_NORMAL, step, state%dt, particles, levelctx%comm, do_average=.false.)
-      call dump_energy(t, particles, levelctx, levelctx%comm, do_average=.false.)
+      call dump_energy(step, t, particles, levelctx, levelctx%comm, do_average=.false.)
       call dump_iterations(step, state%dt, state%hook, state%iter, level%residual)
    endif
 

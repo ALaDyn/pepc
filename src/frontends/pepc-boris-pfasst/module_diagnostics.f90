@@ -34,6 +34,13 @@ module pepcboris_diagnostics
   real*8, allocatable, public :: vold(:,:)
 
   contains
+  
+  logical function dontdump(step)
+    use pepcboris_helper
+    implicit none
+    integer, intent(in) :: step
+    dontdump = .not. ((step == 1) .or. (step == pepcboris_nml%nt) .or. (mod(step, pepcboris_nml%dumpstep) == 0) )
+  end function
 
   subroutine backup_velocities(particles)
     use module_pepc_types
@@ -57,6 +64,8 @@ module pepcboris_diagnostics
     real*8, intent(in) :: dt
 
     character(len=PARALLELDUMP_MAXLEN) :: line
+
+    if (dontdump(step)) return
 
     write(line,*) step*dt, step, hook, niter, residual
     call paralleldump_dump(pepcboris_nml%workingmode + IFILE_SUMMAND_NITER, line)
@@ -82,6 +91,9 @@ module pepcboris_diagnostics
     real*8 :: avg(3,4), delt(3)
 
     character(len=PARALLELDUMP_MAXLEN) :: line
+
+    if (dontdump(step)) return
+
     istream  = pepcboris_nml%workingmode + IFILE_SUMMAND_PARTICLES
     dumptype = pepcboris_nml%dumptype
 
@@ -163,7 +175,7 @@ module pepcboris_diagnostics
     end subroutine
   end subroutine
 
-  subroutine dump_energy(t, particles, level_params, comm, do_average)
+  subroutine dump_energy(step, t, particles, level_params, comm, do_average)
     use module_pepc_types
     use pepcboris_paralleldump
     use pfm_encap, only : level_params_t
@@ -171,6 +183,7 @@ module pepcboris_diagnostics
     use pepcboris_helper, only : IFILE_SUMMAND_ENERGY, pepcboris_nml
     use module_debug
     implicit none
+    integer, intent(in) :: step
     real*8, intent(in) :: t
     type(t_particle), intent(in) :: particles(:)
     type(level_params_t), intent(in) :: level_params
@@ -181,6 +194,8 @@ module pepcboris_diagnostics
     type(t_particle), allocatable :: particles_tmp(:)
     real*8 :: epot, ekin, etot, vtmp(3)
     character(len=PARALLELDUMP_MAXLEN) :: line
+
+    if (dontdump(step)) return
 
     epot = 0.
     ekin = 0.
