@@ -21,7 +21,9 @@ module particlehandling
         type(t_particle), allocatable :: p_hits_logical_sheath(:,:,:)
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
         real*8 :: xp(3),xold(3)
-        real(KIND=8) v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3)
+        real(KIND=8) :: v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3)
+        real(KIND=8) :: part_energy,part_angle
+        integer :: energy_bin,angle_bin
 
 
         IF (ANY(boundaries(1:nb)%type==4)) allocate(p_hits_logical_sheath(0:nspecies-1,nb,sum(npps)),stat=rc)
@@ -144,6 +146,14 @@ module particlehandling
                     ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
                         npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
+                        part_energy = (p(rp)%data%v(1)**2+p(rp)%data%v(2)**2+p(rp)%data%v(3)**2) * 0.5 * species(p(rp)%data%species)%m / e
+                        energy_bin = int(part_energy / ehit_max(p(rp)%data%species) * nbins_energy_resolved_hits) + 1
+                        energy_bin = min(energy_bin,nbins_energy_resolved_hits+1)
+                        energy_resolved_hits(p(rp)%data%species,ib,energy_bin) = energy_resolved_hits(p(rp)%data%species,ib,energy_bin) + 1
+                        part_angle = acos( dotproduct(p(rp)%data%v/sqrt(dotproduct(p(rp)%data%v,p(rp)%data%v)),  boundaries(ib)%n) ) - pi/2.
+                        angle_bin = int(part_angle / (pi/2.) * nbins_angle_resolved_hits)
+                        angle_resolved_hits(p(rp)%data%species,ib,angle_bin) = angle_resolved_hits(p(rp)%data%species,ib,angle_bin) + 1
+                        write(*,*) rp,p(rp)%data%v,part_angle/(pi/2.)*90.
                         p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1

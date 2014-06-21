@@ -112,6 +112,16 @@ module variables
   type(t_species), allocatable :: species(:)
   integer :: nspecies    ! number of species
 
+
+  !variables for detailed boundary hit statistics
+  integer :: last_diag_output=0
+  integer :: nbins_energy_resolved_hits=50
+  real(KIND=8), allocatable :: ehit_max(:)
+  integer, allocatable :: energy_resolved_hits(:,:,:)
+  integer :: nbins_angle_resolved_hits=45
+  integer, allocatable :: angle_resolved_hits(:,:,:)
+
+
   !temp testing variables
   integer :: spiegelladung=0
   integer :: retherm=0

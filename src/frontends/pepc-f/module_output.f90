@@ -186,8 +186,6 @@ MODULE output
         if(root) write(filehandle,'(a,(1pe16.7E3))') "Average potential energy [eV]      : ",epot
 
 
-
-
     END SUBROUTINE  energy_output
 
 !===============================================================================
@@ -227,6 +225,91 @@ MODULE output
         write(filehandle,*)
 
     END SUBROUTINE timing_output
+
+!===============================================================================
+
+    SUBROUTINE energy_resolved_hits_output(ispecies)
+        use module_utils
+        implicit none
+        include 'mpif.h'
+
+        integer, intent(in) :: ispecies
+        integer :: rc,ib,ibins,tmp_filehandle=2345
+        real(KIND=8) :: binwidth,emin,emax
+        integer :: hits(nb, nbins_energy_resolved_hits+1)
+        character(100) :: tmp_file,format,dir
+
+        hits=0
+
+        call MPI_ALLREDUCE(energy_resolved_hits(ispecies,:,:), hits, (nbins_energy_resolved_hits+1)*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+
+        dir = "./energy_resolved_hits/"
+        write(tmp_file,'(a,"erh_species_",i3.3,".dat")') trim(dir), ispecies
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"es13.5)"
+
+        binwidth = ehit_max(ispecies)/nbins_energy_resolved_hits
+
+        IF(root) THEN
+            IF (last_diag_output == 0) call create_directory(trim(dir))
+            open(unit=tmp_filehandle,file=trim(tmp_file),status='UNKNOWN',position='APPEND')
+            write(tmp_filehandle,'(a,i6,a,i6,a)')"---------------------- TIMESTEPS: ",last_diag_output+1," - ",step," -----------------"
+            DO ibins=1,nbins_energy_resolved_hits+1
+                emin = (ibins-1)*binwidth
+                emax = ibins*binwidth
+                IF (ibins == nbins_energy_resolved_hits+1) emax = 1.e32
+                write(tmp_filehandle,format) emin,emax,hits(:,ibins)/DBLE(step-last_diag_output)
+            END DO
+            write(tmp_filehandle,*)""
+            write(tmp_filehandle,*)"############################################################################################################"
+            write(tmp_filehandle,*)"    ====================================================================================================    "
+            write(tmp_filehandle,*)"############################################################################################################"
+            write(tmp_filehandle,*)""
+            close(tmp_filehandle)
+        END IF
+
+    END SUBROUTINE energy_resolved_hits_output
+
+!===============================================================================
+
+    SUBROUTINE angle_resolved_hits_output(ispecies)
+        use module_utils
+        implicit none
+        include 'mpif.h'
+
+        integer, intent(in) :: ispecies
+        integer :: rc,ib,ibins,tmp_filehandle=2345
+        real(KIND=8) :: binwidth,betamin,betamax
+        integer :: hits(nb, nbins_angle_resolved_hits)
+        character(100) :: tmp_file,format,dir
+
+        hits=0
+
+        call MPI_ALLREDUCE(angle_resolved_hits(ispecies,:,:), hits, (nbins_angle_resolved_hits)*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+
+        dir = "./angular_resolved_hits/"
+        write(tmp_file,'(a,"arh_species_",i3.3,".dat")') trim(dir), ispecies
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"es13.5)"
+
+        binwidth = 90./nbins_angle_resolved_hits
+
+        IF(root) THEN
+            IF (last_diag_output == 0) call create_directory(trim(dir))
+            open(unit=tmp_filehandle,file=trim(tmp_file),status='UNKNOWN',position='APPEND')
+            write(tmp_filehandle,'(a,i6,a,i6,a)')"---------------------- TIMESTEPS: ",last_diag_output+1," - ",step," -----------------"
+            DO ibins=1,nbins_angle_resolved_hits
+                betamin = (ibins-1)*binwidth
+                betamax = ibins*binwidth
+                write(tmp_filehandle,format) betamin,betamax,hits(:,ibins)/DBLE(step-last_diag_output)
+            END DO
+            write(tmp_filehandle,*)""
+            write(tmp_filehandle,*)"############################################################################################################"
+            write(tmp_filehandle,*)"    ====================================================================================================    "
+            write(tmp_filehandle,*)"############################################################################################################"
+            write(tmp_filehandle,*)""
+            close(tmp_filehandle)
+        END IF
+
+    END SUBROUTINE angle_resolved_hits_output
 
 !===============================================================================
 
@@ -277,6 +360,8 @@ MODULE output
                 IF(diag_interval.ne.0) THEN
                     IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
                         call x_and_v_output(ispecies,filehandle)
+                        call energy_resolved_hits_output(ispecies)
+                        call angle_resolved_hits_output(ispecies)
                     END IF
                 END IF
 
@@ -297,6 +382,14 @@ MODULE output
             END IF
 
         END DO
+
+        IF(diag_interval.ne.0) THEN
+            IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
+                last_diag_output=step
+                energy_resolved_hits = 0
+                angle_resolved_hits = 0
+            END IF
+        END IF
 
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a)')"=================================== Info on boundaries ========================================="

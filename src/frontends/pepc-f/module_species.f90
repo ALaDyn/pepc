@@ -233,6 +233,18 @@ module module_species
             species(ispecies)%src_v0=src_v0(ispecies)
         END DO
 
+        allocate(ehit_max(0:nspecies-1),stat=rc)
+        allocate(energy_resolved_hits(0:nspecies-1,nb,nbins_energy_resolved_hits+1),stat=rc)
+        allocate(angle_resolved_hits(0:nspecies-1,nb,nbins_angle_resolved_hits),stat=rc)
+        energy_resolved_hits = 0
+        angle_resolved_hits = 0
+        ehit_max=0.0_8
+        DO ispecies=0,nspecies-1
+            IF (species(ispecies)%physical_particle) THEN
+                ehit_max(ispecies) = 5. * species(ispecies)%src_t
+            END IF
+        END DO
+
         call init_maxw_flux_tables(1000)
         tnpps(0)=count_wallparticles()
         call check_species()
