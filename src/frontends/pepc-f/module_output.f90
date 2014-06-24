@@ -250,7 +250,7 @@ MODULE output
         binwidth = ehit_max(ispecies)/nbins_energy_resolved_hits
 
         IF(root) THEN
-            IF (last_diag_output == 0) call create_directory(trim(dir))
+            IF (last_diag_output == startstep) call create_directory(trim(dir))
             open(unit=tmp_filehandle,file=trim(tmp_file),status='UNKNOWN',position='APPEND')
             write(tmp_filehandle,'(a,i6,a,i6,a)')"---------------------- TIMESTEPS: ",last_diag_output+1," - ",step," -----------------"
             DO ibins=1,nbins_energy_resolved_hits+1
@@ -293,7 +293,7 @@ MODULE output
         binwidth = 90./nbins_angle_resolved_hits
 
         IF(root) THEN
-            IF (last_diag_output == 0) call create_directory(trim(dir))
+            IF (last_diag_output == startstep) call create_directory(trim(dir))
             open(unit=tmp_filehandle,file=trim(tmp_file),status='UNKNOWN',position='APPEND')
             write(tmp_filehandle,'(a,i6,a,i6,a)')"---------------------- TIMESTEPS: ",last_diag_output+1," - ",step," -----------------"
             DO ibins=1,nbins_angle_resolved_hits
