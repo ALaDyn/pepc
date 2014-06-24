@@ -555,59 +555,36 @@ MODULE output
         implicit none
         include 'mpif.h'
 
-        integer :: ispecies,ns,rc
+        integer :: ispecies,ns
         integer*8 :: npart
         integer, parameter :: fid = 666
 
         integer :: ib,nbnd
-        real(KIND=8),allocatable :: x0(:,:)
-        real(KIND=8),allocatable :: e1(:,:)
-        real(KIND=8),allocatable :: e2(:,:)
-        real(KIND=8),allocatable :: n(:,:)
-        integer,allocatable :: type(:)
-        integer,allocatable :: opposite_bnd(:)
-        logical,allocatable :: reflux_particles(:)
-        integer,allocatable :: nwp(:)
+        real(KIND=8) :: x0(nb,3)
+        real(KIND=8) :: e1(nb,3)
+        real(KIND=8) :: e2(nb,3)
+        real(KIND=8) :: n(nb,3)
+        integer :: type(nb)
+        integer :: opposite_bnd(nb)
+        logical :: reflux_particles(nb)
+        integer :: nwp(nb)
 
-        integer,allocatable :: nfp(:)
-        integer,allocatable :: nip(:)
-        real(KIND=8),allocatable :: mass(:)
-        real(KIND=8),allocatable :: charge(:)
-        real(KIND=8),allocatable :: src_t(:)
-        logical,allocatable :: physical_particle(:)
-        character(255),allocatable :: name(:)
-        real(KIND=8),allocatable :: src_x0(:,:)
-        real(KIND=8),allocatable :: src_e1(:,:)
-        real(KIND=8),allocatable :: src_e2(:,:)
-        real(KIND=8),allocatable :: src_e3(:,:)
-        integer,allocatable :: src_type(:)
-        integer,allocatable :: src_bnd(:)
+        integer :: nfp(0:nspecies-1)
+        integer :: nip(0:nspecies-1)
+        real(KIND=8) :: mass(0:nspecies-1)
+        real(KIND=8) :: charge(0:nspecies-1)
+        real(KIND=8) :: src_t(0:nspecies-1)
+        logical :: physical_particle(0:nspecies-1)
+        character(255) :: name(0:nspecies-1)
+        real(KIND=8) :: src_x0(0:nspecies-1,3)
+        real(KIND=8) :: src_e1(0:nspecies-1,3)
+        real(KIND=8) :: src_e2(0:nspecies-1,3)
+        real(KIND=8) :: src_e3(0:nspecies-1,3)
+        integer :: src_type(0:nspecies-1)
+        integer :: src_bnd(0:nspecies-1)
 
         namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
         namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type
-
-        allocate(x0(nb,3),stat=rc)
-        allocate(e1(nb,3),stat=rc)
-        allocate(e2(nb,3),stat=rc)
-        allocate(n(nb,3),stat=rc)
-        allocate(type(nb),stat=rc)
-        allocate(opposite_bnd(nb),stat=rc)
-        allocate(reflux_particles(nb),stat=rc)
-        allocate(nwp(nb),stat=rc)
-
-        allocate(nfp(0:nspecies-1),stat=rc)
-        allocate(nip(0:nspecies-1),stat=rc)
-        allocate(mass(0:nspecies-1),stat=rc)
-        allocate(charge(0:nspecies-1),stat=rc)
-        allocate(src_t(0:nspecies-1),stat=rc)
-        allocate(physical_particle(0:nspecies-1),stat=rc)
-        allocate(name(0:nspecies-1),stat=rc)
-        allocate(src_x0(0:nspecies-1,3),stat=rc)
-        allocate(src_e1(0:nspecies-1,3),stat=rc)
-        allocate(src_e2(0:nspecies-1,3),stat=rc)
-        allocate(src_e3(0:nspecies-1,3),stat=rc)
-        allocate(src_type(0:nspecies-1),stat=rc)
-        allocate(src_bnd(0:nspecies-1),stat=rc)
 
 
         if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
