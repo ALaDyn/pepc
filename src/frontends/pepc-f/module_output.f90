@@ -286,7 +286,7 @@ MODULE output
 
         call MPI_ALLREDUCE(angle_resolved_hits(ispecies,:,:), hits, (nbins_angle_resolved_hits)*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
 
-        dir = "./angular_resolved_hits/"
+        dir = "./angle_resolved_hits/"
         write(tmp_file,'(a,"arh_species_",i3.3,".dat")') trim(dir), ispecies
         write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"es13.5)"
 
@@ -360,8 +360,8 @@ MODULE output
                 IF(diag_interval.ne.0) THEN
                     IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
                         call x_and_v_output(ispecies,filehandle)
-                        call energy_resolved_hits_output(ispecies)
-                        call angle_resolved_hits_output(ispecies)
+                        IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
+                        IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
                     END IF
                 END IF
 

@@ -114,8 +114,10 @@ module variables
 
 
   !variables for detailed boundary hit statistics
-  integer :: last_diag_output=0
-  integer :: nbins_energy_resolved_hits=50
+  logical :: bool_energy_resolved_hits
+  logical :: bool_angle_resolved_hits
+  integer :: last_diag_output
+  integer :: nbins_energy_resolved_hits=80
   real(KIND=8), allocatable :: ehit_max(:)
   integer, allocatable :: energy_resolved_hits(:,:,:)
   integer :: nbins_angle_resolved_hits=45
@@ -130,7 +132,7 @@ module variables
   real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)
 
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
-  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval, vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm
+  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval, vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm, bool_angle_resolved_hits, bool_energy_resolved_hits
   namelist /walk_para_smpss/ chunk_size_default
 
   real(KIND=8),allocatable :: maxw_flux_table_F(:,:)

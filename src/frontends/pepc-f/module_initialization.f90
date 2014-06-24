@@ -64,6 +64,9 @@ module module_initialization
       zmax            = 0.
       zmin            = 0.
 
+      bool_energy_resolved_hits = .true.
+      bool_angle_resolved_hits = .true.
+
   end subroutine set_default_parameters
 
 
@@ -134,6 +137,7 @@ module module_initialization
         startstep=0
         step=0
     END IF
+    last_diag_output = startstep
 
     call pepc_read_parameters_from_file_name(trim(input_file))
 

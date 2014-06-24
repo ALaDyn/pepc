@@ -153,7 +153,6 @@ module particlehandling
                         part_angle = acos( dotproduct(p(rp)%data%v/sqrt(dotproduct(p(rp)%data%v,p(rp)%data%v)),  boundaries(ib)%n) ) - pi/2.
                         angle_bin = int(part_angle / (pi/2.) * nbins_angle_resolved_hits)
                         angle_resolved_hits(p(rp)%data%species,ib,angle_bin) = angle_resolved_hits(p(rp)%data%species,ib,angle_bin) + 1
-                        write(*,*) rp,p(rp)%data%v,part_angle/(pi/2.)*90.
                         p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1

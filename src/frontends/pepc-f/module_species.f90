@@ -241,7 +241,7 @@ module module_species
         ehit_max=0.0_8
         DO ispecies=0,nspecies-1
             IF (species(ispecies)%physical_particle) THEN
-                ehit_max(ispecies) = 5. * species(ispecies)%src_t
+                ehit_max(ispecies) = 8. * species(ispecies)%src_t
             END IF
         END DO
 
