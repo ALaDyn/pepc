@@ -234,7 +234,7 @@ MODULE output
         include 'mpif.h'
 
         integer, intent(in) :: ispecies
-        integer :: rc,ib,ibins,tmp_filehandle=2345
+        integer :: rc,ibins,tmp_filehandle=2345
         real(KIND=8) :: binwidth,emin,emax
         integer :: hits(nb, nbins_energy_resolved_hits+1)
         character(100) :: tmp_file,format,dir
@@ -277,7 +277,7 @@ MODULE output
         include 'mpif.h'
 
         integer, intent(in) :: ispecies
-        integer :: rc,ib,ibins,tmp_filehandle=2345
+        integer :: rc,ibins,tmp_filehandle=2345
         real(KIND=8) :: binwidth,betamin,betamax
         integer :: hits(nb, nbins_angle_resolved_hits)
         character(100) :: tmp_file,format,dir

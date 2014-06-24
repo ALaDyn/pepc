@@ -89,7 +89,7 @@ module helper
     real(KIND=8), intent(in) :: first, last
     real(KIND=8), intent(out) :: arr(:)
 
-    integer :: rc,i,n
+    integer :: i,n
     real(KIND=8) :: delta
 
     n=size(arr)

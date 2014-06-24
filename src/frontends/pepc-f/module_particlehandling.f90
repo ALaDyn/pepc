@@ -163,9 +163,6 @@ module particlehandling
             rp = rp-1
         END DO
 
-
-
-
         IF (ANY(boundaries(1:nb)%type==4)) call treat_logical_sheath_boundaries(p,hits,reflux,p_hits_logical_sheath)
         IF (ANY(boundaries(1:nb)%type==4)) deallocate(p_hits_logical_sheath)
 
@@ -804,7 +801,7 @@ module particlehandling
         implicit none
 
         type(t_particle), intent(inout) :: p(:)
-        real :: ran1,ran2
+        real(KIND=8) :: ran1,ran2
         integer :: ip,ib
         logical :: hit
 
@@ -829,9 +826,9 @@ module particlehandling
 
     SUBROUTINE source(p)
         type(t_particle),intent(inout),allocatable :: p(:)
-        real               :: ran,ran1,ran2
+        real(KIND=8)       :: ran,ran1,ran2
         integer            :: n,ip,ib
-        real*8             :: mu,sigma
+        real(KIND=8)       :: mu,sigma
         real(KIND=8)       :: t1(3),t2(3),n1(3),e1(3),vhelp(3),B_vector(3)
         real(KIND=8)       :: eps=1.0e-10
 
@@ -850,9 +847,6 @@ module particlehandling
         ELSE
             n=0
         END IF
-
-
-
 
 
         DO ip=1, n
