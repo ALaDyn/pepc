@@ -2,15 +2,27 @@
 
   ! initial particle setup
   ! 0 --> one single lonely particle at a position given by PARAMS_X0, _Y0, _Z0 with velocities _VX0, _VY0, _VZ0
-  particle_config = 0
+  ! 1 --> N=numparts particles randomly around a position given by PARAMS_X0, _Y0, _Z0 with velocities _VX0, _VY0, _VZ0
+  2 --> N=numparts particles randomly (box size RADIUS, velocity spread VELOCITY_SPREAD)
+  particle_config = 2
+  ! number of particles for particle_config=1
+  numparts=500
+  
+  ! dumptype
+  ! 0 - no particle dump
+  ! 1 - dump particle trajectory to fort.XX
+  ! 2 - dump particle trajectory to particles.timeseries.vtk
+  ! 3 - dump average particle trajectory to fort.2XX
+  ! 4 - same as 2 and 3
+  dumptype = 4
   
   ! physics parameters
-  !              X0   Y0  Z0  VX0 VY0 VZ0 OMEGAE OMEGAB
-  setup_params = 1.0 0.0 0.0 1.0 0.0 1.0 5.0    25.0
+  !              X0    Y0   Z0   VX0    VY0  VZ0    OMEGAE  OMEGAB  RADIUS  VELOCITY_SPREAD
+  setup_params = 10.0  0.0  0.0  100.0  0.0  100.0  4.9     25.0    0.1    5.0
 
   ! choice of integrator  
   ! 1  - WM_BORIS
-  ! 2  - WM_BORIS_SDC
+  ! 2  - WM_BORIS_SDC_REF (ignores nlevels, i.e. sets it to 1 and only uses first entry in level-dependent params)
   ! 3  - WM_ANALYTIC
   ! 4  - WM_CYCLOTRONIC
   ! 5  - WM_BORIS_PATACCHINI
@@ -21,33 +33,50 @@
   ! 10 - WM_MATRIX_VERLET
   ! 11 - WM_CYCLOTRONIC_NOTAN
   ! 12 - WM_BORIS_PATACCHINI_NOTAN
-  workingmode = 1
+  ! 13 - WM_BORIS_MLSDC
+  ! 14 - WM_BORIS_SDC (the same as WM_BORIS_SDC, just to produce a different set of results and keep the original data)
+  workingmode = 14
 /
 
 &pfasst
   ! physical simulation end time (in fs)
-  tend    = 8.0
+  tend    = 16.0
   
-  nsteps  = 128
-  niter   = 1
-  nlevels = 1
+  nsteps  = 512
+  niter   = 4
+  nlevels = 2
   
-  ! level parameters (one entry per level and line)
-  nsweeps = 1
-  nnodes  = 2
+  ! SDC node type
+  ! 1 - SDC_GAUSS_LOBATTO
+  ! 2 - SDC_GAUSS_RADAU
+  ! 3 - SDC_CLENSHAW_CURTIS
+  ! 4 - SDC_UNIFORM
+  ! 5 - SDC_GAUSS_LEGENDRE
+  ! 100 - SDC_PROPER_NODES
+  qtype = 1
+  
+  ! level parameters (one entry per level and line, finer levels are more left, coarser levels more right)
+  nsweeps = 1 1
+  nnodes  = 5 5
   ! true  --> evaluate forces directly: O(N**2) but exact
   ! false --> evaluate forces with PEPC: O(N log N) but multipole approximation
-  directforce = .true.
+  directforce = .true. .true.
+  ! 1st digit: 0 - no external field, 1 - full external field
+  ! 2nd digit: 0 - no internal field, 1 - full internal field
+  feval_mode = 11 11
   ! multipole acceptance parameter
-  theta   = 0.3
+  theta   = 0.5 0.5
+  ! end of level parameters
   
-  res_tol = 0.
+  res_tol = 1.e-99
   
   num_space_instances = 1
   color_space_div     = .true.
   color_time_div      = .true.
   
-  echo_timings        = .true.
+  ! create fort.601 files with timings
+  echo_timings        = .false.
+  ! unused
   echo_errors         = .true.
 /
 
@@ -81,5 +110,5 @@
 
 &calc_force_coulomb
   ! square of plummer potential screening parameter
-  eps2 = 0.
+  eps2 = 0.05
 /

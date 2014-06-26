@@ -1,5 +1,6 @@
 module pfm_helper
   use module_debug
+  use pf_mod_dtype, only : SDC_DEFAULT_NODES => SDC_GAUSS_LOBATTO
   implicit none
   private
   save
@@ -15,6 +16,7 @@ module pfm_helper
     !> pfasst parameter collection
     type pf_nml_t
         integer :: niter                = 1
+        integer :: qtype                = SDC_DEFAULT_NODES
         integer :: nlevels              = 1!max_nlevels
         integer :: num_space_instances  = 1
         logical :: color_space_div      = .true.
@@ -157,7 +159,7 @@ module pfm_helper
 
     !> Fill PFASST object pf (generated earlier), mostly with read-in or derived parameters
     subroutine pfm_fill_pfasst_object(pf, encap, sweeper, pf_nml, level_params)
-        use pf_mod_dtype, only: pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK, SDC_GAUSS_LOBATTO
+        use pf_mod_dtype, only: pf_pfasst_t, pf_sweeper_t, PF_WINDOW_BLOCK
         use pfm_encap, only : pf_encap_t, level_params_t
         use pfm_transfer, only : interpolate, restrict
         use pepcboris_helper, only: pepcboris_nml
@@ -192,7 +194,7 @@ module pfm_helper
         end do
 
         pf%niters       = pf_nml%niter
-        pf%qtype        = SDC_GAUSS_LOBATTO
+        pf%qtype        = pf_nml%qtype
         pf%echo_timings = pf_nml%echo_timings .and. pepcboris_nml%rank_space == 0
         pf%window       = PF_WINDOW_BLOCK
         pf%rel_res_tol  = pf_nml%res_tol
@@ -209,6 +211,7 @@ module pfm_helper
         integer, intent(in) :: rank, comm
 
         integer :: niter
+        integer :: qtype
         integer :: nlevels
         integer :: num_space_instances
         logical :: echo_errors
@@ -224,7 +227,7 @@ module pfm_helper
         logical, dimension(max_nlevels) :: directforce
         integer, dimension(max_nlevels) :: feval_mode
 
-        namelist /pfasst/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div, theta, directforce, fevaL_mode
+        namelist /pfasst/ niter, num_space_instances, nlevels, nnodes, echo_timings, echo_errors, tend, nsteps, nsweeps, res_tol, color_space_div, color_time_div, theta, directforce, fevaL_mode, qtype
 
         logical :: available
         character(len=255) :: file_name
@@ -232,6 +235,7 @@ module pfm_helper
         integer, parameter :: para_file_id = 10
 
         niter               = pf_namelist%niter
+        qtype               = pf_namelist%qtype
         nlevels             = pf_namelist%nlevels
         num_space_instances = pf_namelist%num_space_instances
         echo_errors         = pf_namelist%echo_errors
@@ -279,6 +283,7 @@ module pfm_helper
         end if
 
         pf_namelist%niter                  = niter
+        pf_namelist%qtype                  = qtype
         pf_namelist%nlevels                = nlevels
         pf_namelist%num_space_instances    = num_space_instances
         pf_namelist%color_space_div        = color_space_div
