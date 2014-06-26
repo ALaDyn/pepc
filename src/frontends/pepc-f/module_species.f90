@@ -233,17 +233,27 @@ module module_species
             species(ispecies)%src_v0=src_v0(ispecies)
         END DO
 
-        allocate(ehit_max(0:nspecies-1),stat=rc)
-        allocate(energy_resolved_hits(0:nspecies-1,nb,nbins_energy_resolved_hits+1),stat=rc)
-        allocate(angle_resolved_hits(0:nspecies-1,nb,nbins_angle_resolved_hits),stat=rc)
-        energy_resolved_hits = 0
-        angle_resolved_hits = 0
-        ehit_max=0.0_8
-        DO ispecies=0,nspecies-1
-            IF (species(ispecies)%physical_particle) THEN
-                ehit_max(ispecies) = 8. * species(ispecies)%src_t
-            END IF
-        END DO
+
+        IF (bool_energy_resolved_hits) THEN
+            allocate(ehit_max(0:nspecies-1),stat=rc)
+            allocate(energy_resolved_hits(0:nspecies-1,nb,nbins_energy_resolved_hits+1),stat=rc)
+            energy_resolved_hits = 0
+            ehit_max=0.0_8
+            DO ispecies=0,nspecies-1
+                IF (species(ispecies)%physical_particle) THEN
+                    ehit_max(ispecies) = 10. * species(ispecies)%src_t
+                END IF
+            END DO
+        END IF
+        IF (bool_angle_resolved_hits) THEN
+            allocate(angle_resolved_hits(0:nspecies-1,nb,nbins_angle_resolved_hits),stat=rc)
+            angle_resolved_hits = 0
+        END IF
+        IF (bool_space_resolved_hits) THEN
+            allocate(space_resolved_hits(0:nspecies-1,nb,nbins_e1_space_resolved_hits,nbins_e2_space_resolved_hits),stat=rc)
+            space_resolved_hits = 0
+        END IF
+
 
         call init_maxw_flux_tables(1000)
         tnpps(0)=count_wallparticles()

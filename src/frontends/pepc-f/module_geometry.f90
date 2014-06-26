@@ -209,7 +209,7 @@ module module_geometry
 
 !======================================================================================
 
-    subroutine hit_wall(p,wall,hit)
+    subroutine hit_wall(p,wall,hit,x_hit,x_hit_rel)
         use module_pepc_types
         use variables
         implicit none
@@ -217,9 +217,12 @@ module module_geometry
         type(t_particle), intent(in) :: p
         type(t_boundary), intent(in) :: wall
         logical,intent(out) :: hit
-        real*8 :: xold(3),x(3),intersect(3),n(3),deltax(3)
+        real*8 :: xold(3),x(3),n(3),deltax(3)
+        real(KIND=8), intent(out) :: x_hit(3),x_hit_rel(2)
 
         hit=.false.
+        x_hit=0.0_8
+        x_hit_rel=0.0_8
 
         if (species(p%data%species)%physical_particle .eqv. .false.) then
             hit = .false.
@@ -237,8 +240,8 @@ module module_geometry
         x = p%x
         xold = p%x - dt*p%data%v
 
-        call get_intersect(xold,x,wall,intersect)
-        call check_hit(intersect(1),intersect(2),intersect(3),wall,hit)
+        call get_intersect(xold,x,wall,x_hit)
+        call check_hit(x_hit(1),x_hit(2),x_hit(3),wall,hit,x_hit_rel)
 
 
         return
@@ -357,12 +360,15 @@ module module_geometry
 
 !======================================================================================
 
-    subroutine check_hit(px,py,pz,wall,hit)
+    subroutine check_hit(px,py,pz,wall,hit,x_hit_rel)
         type(t_boundary), intent(in) :: wall
         logical,intent(out) :: hit
         real*8,intent(in) :: px,py,pz
         real*8 :: eps=1.0e-10
         real*8 :: y(3),a(3),b(3),lambda,mu,dist
+        real(KIND=8), intent(out) :: x_hit_rel(2)
+
+        x_hit_rel=0.0_8
 
         a=wall%e1
         b=wall%e2
@@ -418,6 +424,8 @@ module module_geometry
             if ((lambda<1.).and.(mu<1.) .and. (mu>0.) .and. (lambda>0.)) then
                 !write(*,*) "Der Punkt liegt in der Flaeche"
                 hit=.true.
+                x_hit_rel(1) = lambda
+                x_hit_rel(2) = mu
             else
                 !write(*,*) "Der Punkt liegt nicht in der Flaeche",lambda,mu,wall%indx
                 !write(*,*) px,py,pz

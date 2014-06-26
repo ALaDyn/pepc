@@ -245,7 +245,7 @@ MODULE output
 
         dir = "./energy_resolved_hits/"
         write(tmp_file,'(a,"erh_species_",i3.3,".dat")') trim(dir), ispecies
-        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"es13.5)"
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i6)"
 
         binwidth = ehit_max(ispecies)/nbins_energy_resolved_hits
 
@@ -257,7 +257,7 @@ MODULE output
                 emin = (ibins-1)*binwidth
                 emax = ibins*binwidth
                 IF (ibins == nbins_energy_resolved_hits+1) emax = 1.e32
-                write(tmp_filehandle,format) emin,emax,hits(:,ibins)/DBLE(step-last_diag_output)
+                write(tmp_filehandle,format) emin,emax,hits(:,ibins)
             END DO
             write(tmp_filehandle,*)""
             write(tmp_filehandle,*)"############################################################################################################"
@@ -288,7 +288,7 @@ MODULE output
 
         dir = "./angle_resolved_hits/"
         write(tmp_file,'(a,"arh_species_",i3.3,".dat")') trim(dir), ispecies
-        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"es13.5)"
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i6)"
 
         binwidth = 90./nbins_angle_resolved_hits
 
@@ -299,7 +299,7 @@ MODULE output
             DO ibins=1,nbins_angle_resolved_hits
                 betamin = (ibins-1)*binwidth
                 betamax = ibins*binwidth
-                write(tmp_filehandle,format) betamin,betamax,hits(:,ibins)/DBLE(step-last_diag_output)
+                write(tmp_filehandle,format) betamin,betamax,hits(:,ibins)
             END DO
             write(tmp_filehandle,*)""
             write(tmp_filehandle,*)"############################################################################################################"
@@ -310,6 +310,47 @@ MODULE output
         END IF
 
     END SUBROUTINE angle_resolved_hits_output
+
+!===============================================================================
+
+    SUBROUTINE space_resolved_hits_output(ispecies)
+        use module_utils
+        implicit none
+        include 'mpif.h'
+
+        integer, intent(in) :: ispecies
+        integer :: rc,ibins,ibnd,tmp_filehandle=2345
+        integer :: hits(nb, nbins_e1_space_resolved_hits, nbins_e2_space_resolved_hits)
+        character(100) :: tmp_file,format,dir
+
+        hits=0
+
+        call MPI_ALLREDUCE(space_resolved_hits(ispecies,:,:,:), hits, nbins_e1_space_resolved_hits*nbins_e2_space_resolved_hits*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+
+        dir = "./space_resolved_hits/"
+        write(format,'(a,i3,a)') "(",nbins_e2_space_resolved_hits  ,"i6)"
+
+
+        IF(root) THEN
+            IF ((last_diag_output == startstep) ) call create_directory(trim(dir))
+            DO ibnd=1,nb
+                IF (boundaries(ibnd)%type /= 0) CYCLE
+                write(tmp_file,'(a,"srh_species_",i3.3,"_bnd_",i3.3,".dat")') trim(dir), ispecies, ibnd
+                open(unit=tmp_filehandle,file=trim(tmp_file),status='UNKNOWN',position='APPEND')
+                write(tmp_filehandle,'(a,i6,a,i6,a)')"---------------------- TIMESTEPS: ",last_diag_output+1," - ",step," -----------------"
+                DO ibins=1,nbins_e1_space_resolved_hits
+                    write(tmp_filehandle,format) hits(ibnd,ibins,:)
+                END DO
+                write(tmp_filehandle,*)""
+                write(tmp_filehandle,*)"############################################################################################################"
+                write(tmp_filehandle,*)"    ====================================================================================================    "
+                write(tmp_filehandle,*)"############################################################################################################"
+                write(tmp_filehandle,*)""
+                close(tmp_filehandle)
+            END DO
+        END IF
+
+    END SUBROUTINE space_resolved_hits_output
 
 !===============================================================================
 
@@ -362,6 +403,7 @@ MODULE output
                         call x_and_v_output(ispecies,filehandle)
                         IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
                         IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
+                        IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
                     END IF
                 END IF
 
@@ -388,6 +430,7 @@ MODULE output
                 last_diag_output=step
                 energy_resolved_hits = 0
                 angle_resolved_hits = 0
+                space_resolved_hits = 0
             END IF
         END IF
 

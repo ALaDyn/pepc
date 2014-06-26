@@ -247,6 +247,7 @@ MODULE diagnostics
         integer :: n_particles
         integer :: ip, rc
         logical :: hit
+        real(KIND=8) :: x_hit_rel(2)
 
         real(KIND=8) :: get_avg_wallpotential
         real(KIND=8) :: potsum
@@ -258,7 +259,7 @@ MODULE diagnostics
 
         DO ip=1,n_particles
             IF(p(ip)%data%species/=0) CYCLE
-            call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit)
+            call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit,x_hit_rel)
             IF (hit) potsum=potsum+p(ip)%results%pot*fc
         END DO
 

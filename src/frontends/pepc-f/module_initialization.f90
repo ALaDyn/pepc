@@ -66,9 +66,13 @@ module module_initialization
 
       bool_energy_resolved_hits = .true.
       bool_angle_resolved_hits = .true.
+      bool_space_resolved_hits = .true.
+      nbins_energy_resolved_hits = 80
+      nbins_angle_resolved_hits = 45
+      nbins_e1_space_resolved_hits = 10
+      nbins_e2_space_resolved_hits = 10
 
   end subroutine set_default_parameters
-
 
 !======================================================================================
 
@@ -185,7 +189,7 @@ module module_initialization
     integer, parameter :: fid = 666
     integer(kind_particle) :: global_max_label,local_max_label
     integer :: ip,ib,ispecies,i,j,rc
-    real(KIND=8) :: q_loc(nb),q_glob(nb)
+    real(KIND=8) :: q_loc(nb),q_glob(nb),x_hit_rel(2)
     logical :: hit
 
     !read probe positions
@@ -215,7 +219,7 @@ module module_initialization
     DO ip=1, size(particles)
         IF (particles(ip)%data%species/=0) CYCLE
         DO ib=1,nb
-            call check_hit(particles(ip)%x(1),particles(ip)%x(2),particles(ip)%x(3),boundaries(ib),hit)
+            call check_hit(particles(ip)%x(1),particles(ip)%x(2),particles(ip)%x(3),boundaries(ib),hit,x_hit_rel)
             IF(hit) THEN
                 q_loc(ib) = q_loc(ib) + particles(ip)%data%q
             END IF
