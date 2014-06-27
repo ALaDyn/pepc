@@ -125,7 +125,7 @@ program pepc
       !call pf_add_hook(pf, pf_nml%nlevels, PF_PRE_STEP, dump_particles_hook)
 
       ! some informative output about what we are actually doing
-      if (pepcboris_nml%rank_world == 0) call pf_print_options(pf)
+      if (pepcboris_nml%rank_world == 0) call pf_print_options(pf, unitno=6, show_mats=.true.)
 
       ! Here we go       pfasst-object, initial value, dt, t_end, number of steps, final solution
       call pf_pfasst_run(pf, c_loc(y0), pf_nml%tend/pf_nml%nsteps, pf_nml%tend, nsteps=pf_nml%nsteps, qend=c_loc(yend))

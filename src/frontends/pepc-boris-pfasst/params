@@ -3,7 +3,7 @@
   ! initial particle setup
   ! 0 --> one single lonely particle at a position given by PARAMS_X0, _Y0, _Z0 with velocities _VX0, _VY0, _VZ0
   ! 1 --> N=numparts particles randomly around a position given by PARAMS_X0, _Y0, _Z0 with velocities _VX0, _VY0, _VZ0
-  2 --> N=numparts particles randomly (box size RADIUS, velocity spread VELOCITY_SPREAD)
+  ! 2 --> N=numparts particles randomly (box size RADIUS, velocity spread VELOCITY_SPREAD)
   particle_config = 2
   ! number of particles for particle_config=1
   numparts=500
@@ -52,7 +52,9 @@
   ! 3 - SDC_CLENSHAW_CURTIS
   ! 4 - SDC_UNIFORM
   ! 5 - SDC_GAUSS_LEGENDRE
-  ! 100 - SDC_PROPER_NODES
+  ! 2**8  - SDC_PROPER_NODES
+  ! 2**9  - SDC_COMPOSITE_NODES
+  ! 2**10 - SDC_NO_LEFT
   qtype = 1
   
   ! level parameters (one entry per level and line, finer levels are more left, coarser levels more right)
