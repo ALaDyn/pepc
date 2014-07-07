@@ -229,6 +229,11 @@ module module_geometry
             return
         end if
 
+        if (wall%type < 0) then !virtual boundary
+            hit = .false.
+            return
+        end if
+
         n=wall%n
         deltax=p%x-wall%x0
 

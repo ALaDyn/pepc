@@ -206,7 +206,8 @@ module particlehandling
                         sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
                         call random_gauss_list(v_ran(2:3),mu,sigma)
                         call random_gaussian_flux(v_ran(1),sigma)
-                        p(ip)%data%v = v_ran
+                        p(ip)%data%v(2:3) = v_ran(2:3)
+                        p(ip)%data%v(1) = sign(1._8,p(ip)%data%v(1)) * v_ran(1)
                     END IF
                 END DO
             END IF
@@ -723,6 +724,7 @@ module particlehandling
         real(KIND=8)       :: mu,sigma
         real(KIND=8)       :: t1(3),t2(3),n1(3),e1(3),vhelp(3),B_vector(3)
         real(KIND=8)       :: eps=1.0e-10
+        integer            :: direction=1
 
         logical :: init_uniform_gaussian
 
@@ -772,13 +774,18 @@ module particlehandling
                         CYCLE
                     END IF
                 END IF
-                IF (species(p(ip)%data%species)%src_type==0) THEN                 !surface source (Maxwellian Flux)
+                IF ((species(p(ip)%data%species)%src_type==0) .OR. (species(p(ip)%data%species)%src_type==-1)) THEN !surface source (Maxwellian Flux)
+                    IF (species(p(ip)%data%species)%src_type==0) THEN
+                        direction = 1
+                    ELSE
+                        direction = -1
+                    END IF
                     call random_gauss_list(vhelp(2:3),mu,sigma)
                     call random_gaussian_flux(vhelp(1),sigma)
                     e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
-                    n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
-                    t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector
-                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+                    n1 = direction * boundaries(species(p(ip)%data%species)%src_bnd)%n  ! n1 = normal vector on src_bnd (inverted if src_type=-1)
+                    t1 = e1 / sqrt(dotproduct(e1,e1))                                   ! t1 = tangential vector
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                                   ! t2 = n1 x t1 (2nd tangential vector)
                     t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
                     t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
                     t2=t2/sqrt(dotproduct(t2,t2))
@@ -791,8 +798,7 @@ module particlehandling
                     p(ip)%x = boundaries(species(p(ip)%data%species)%src_bnd)%x0 + &
                               ran1*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
-                    p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
-                              dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
+                    p(ip)%x = p(ip)%x + n1 * dotproduct(n1,p(ip)%data%v) * dt * ran
                 ELSE IF (species(p(ip)%data%species)%src_type==5) THEN                 !surface source (drifting Maxwellian Flux)
                     call random_gauss_list(vhelp(2:3),mu,sigma)
                     call random_drifting_gaussian_flux(vhelp(1),maxw_flux_table_F(p(ip)%data%species,:),maxw_flux_table_v(p(ip)%data%species,:))
@@ -814,7 +820,7 @@ module particlehandling
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
                     p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
                               dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
-                ELSE IF (species(p(ip)%data%species)%src_type==4) THEN                 !surface source
+                ELSE IF (species(p(ip)%data%species)%src_type==4) THEN                 !surface source (plasma column)
                     call random_gauss_list(vhelp(2:3),mu,sigma)
                     call random_gaussian_flux(vhelp(1),sigma)
                     e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1

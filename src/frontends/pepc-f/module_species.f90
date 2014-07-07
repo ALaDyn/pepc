@@ -151,7 +151,7 @@ module module_species
             tnpps(ispecies)=nip(ispecies)
 
             IF (species(ispecies)%physical_particle) THEN
-                IF (src_type(ispecies)==0) THEN !surface source (whole surface)
+                IF ((src_type(ispecies)==0) .OR. (src_type(ispecies)==-1)) THEN !surface source (whole surface)
                     src_x0(ispecies,:)=0.
                     src_e1(ispecies,:)=0.
                     src_e2(ispecies,:)=0.
