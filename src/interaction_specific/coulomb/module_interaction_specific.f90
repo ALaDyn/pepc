@@ -87,6 +87,7 @@ module module_interaction_specific
         integer :: nchild, j
 
         real*8 :: shift(1:3)
+        real*8, parameter :: half = 0.5_8
 
         nchild = size(children)
 
@@ -106,7 +107,7 @@ module module_interaction_specific
         else
           ! use geometric center
           do j=1,nchild
-            parent%coc(1:3) = parent%coc(1:3) +   children(j)%coc(1:3)
+            parent%coc(1:3) = parent%coc(1:3) + children(j)%coc(1:3)
           end do
 
          parent%coc(1:3) = parent%coc(1:3) / nchild
@@ -123,14 +124,14 @@ module module_interaction_specific
           shift(1:3) = parent%coc(1:3) - children(j)%coc
 
           ! dipole moment
-          parent%dip = parent%dip + children(j)%dip - children(j)%charge*shift(1:3)
+          parent%dip = parent%dip + children(j)%dip + children(j)%charge * shift(1:3)
 
           ! quadrupole moment
-          parent%quad(1:3) = parent%quad(1:3) + children(j)%quad(1:3) - 2*children(j)%dip(1:3)*shift(1:3) + children(j)%charge*shift(1:3)**2
+          parent%quad(1:3) = parent%quad(1:3) + children(j)%quad(1:3) + children(j)%dip(1:3) * shift(1:3) + half * children(j)%charge * shift(1:3)**2
 
-          parent%xyquad = parent%xyquad + children(j)%xyquad - children(j)%dip(1)*shift(2) - children(j)%dip(2)*shift(1) + children(j)%charge*shift(1)*shift(2)
-          parent%yzquad = parent%yzquad + children(j)%yzquad - children(j)%dip(2)*shift(3) - children(j)%dip(3)*shift(2) + children(j)%charge*shift(2)*shift(3)
-          parent%zxquad = parent%zxquad + children(j)%zxquad - children(j)%dip(3)*shift(1) - children(j)%dip(1)*shift(3) + children(j)%charge*shift(3)*shift(1)
+          parent%xyquad = parent%xyquad + children(j)%xyquad + children(j)%dip(1) * shift(2) + children(j)%dip(2) * shift(1) + children(j)%charge * shift(1) * shift(2)
+          parent%yzquad = parent%yzquad + children(j)%yzquad + children(j)%dip(2) * shift(3) + children(j)%dip(3) * shift(2) + children(j)%charge * shift(2) * shift(3)
+          parent%zxquad = parent%zxquad + children(j)%zxquad + children(j)%dip(3) * shift(1) + children(j)%dip(1) * shift(3) + children(j)%charge * shift(3) * shift(1)
         end do
 
         parent%bmax = maxval(sqrt((parent%coc(1)-children(1:nchild)%coc(1))**2+(parent%coc(2)-children(1:nchild)%coc(2))**2+(parent%coc(3)-children(1:nchild)%coc(3))**2) + children(1:nchild)%bmax)

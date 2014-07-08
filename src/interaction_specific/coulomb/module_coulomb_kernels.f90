@@ -35,6 +35,7 @@ module module_coulomb_kernels
     real(kfp), parameter :: three   =  3._kfp
     real(kfp), parameter :: four    =  4._kfp
     real(kfp), parameter :: five    =  5._kfp
+    real(kfp), parameter :: six     =  6._kfp
     real(kfp), parameter :: eight   =  8._kfp
     real(kfp), parameter :: nine    =  9._kfp
     real(kfp), parameter :: half    =  0.5_kfp
@@ -99,14 +100,14 @@ module module_coulomb_kernels
       preQ3 = pre2z*t%quad(3)
 
       phi = t%charge*rd                                             &  !  monopole term
-            + (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !  dipole
-            + half*(fd1*t%quad(1) + fd2*t%quad(2) + fd3*t%quad(3))  &  !  quadrupole
-            +       fd4*t%xyquad  + fd5*t%yzquad  + fd6*t%zxquad
+            - (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !  dipole
+            + fd1*t%quad(1) + fd2*t%quad(2) + fd3*t%quad(3)         &  !  quadrupole
+            + fd4*t%xyquad  + fd5*t%yzquad  + fd6*t%zxquad
 
       exyz(1) = t%charge*dx*rd3                                     &  ! monopole term
-                + fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3)        &  ! dipole term
+                - (fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3))      &  ! dipole term
                 + three * (                                         &  ! quadrupole term
-                   half * dx * (                                    &
+                   dx * (                                           &
                        ( pre2x - m2rd5 )*t%quad(1)                  &
                      + preQ2                                        &
                      + preQ3                                        &
@@ -117,9 +118,9 @@ module module_coulomb_kernels
                   )
 
       exyz(2) = t%charge*dy*rd3                                     &
-                + fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3)        &
+                - (fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3))      &
                 + three * (                                         &
-                   half * dy * (                                    &
+                   dy * (                                           &
                        ( pre2y - m2rd5 )*t%quad(2)                  &
                      + preQ1                                        &
                      + preQ3                                        &
@@ -130,9 +131,9 @@ module module_coulomb_kernels
                   )
 
       exyz(3) = t%charge*dz*rd3                                     &
-                + fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1)        &
+                - (fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1))      &
                 + three * (                                         &
-                   half * dz * (                                    &
+                   dz * (                                           &
                      + ( pre2z - m2rd5 )*t%quad(3)                  &
                      + preQ2                                        &
                      + preQ1                                        &
@@ -173,25 +174,25 @@ module module_coulomb_kernels
       dx3 = dx2*dx
       dy3 = dy2*dy
 
-      phi = - half*t%charge*log(d2)              & !  monopole term
-           + (dx*t%dip(1) + dy*t%dip(2))*rd2     & !  dipole
-           + half*(t%quad(1)*(dx2*rd4 - rd2)     & ! quadrupole
-           +       t%quad(2)*(dy2*rd4 - rd2))    &
-           + t%xyquad*dx*dy*rd4
+      phi = - half * t%charge * log(d2)            & !  monopole term
+           - (dx * t%dip(1) + dy * t%dip(2)) * rd2 & !  dipole
+           + t%quad(1) * (two * dx2 * rd4 - rd2)   & ! quadrupole
+           + t%quad(2) * (two * dy2 * rd4 - rd2)   &
+           + two * t%xyquad * dx * dy * rd4
 
-      exy(1) = t%charge*dx*rd2                            & ! monopole
-           + t%dip(1)*(two*dx2  *rd4 - rd2)               & ! dipole
-           + t%dip(2)* two*dx*dy*rd4                      &
-           + t%quad(1)*(four *dx3    *rd6 - three*dx*rd4) & ! quadrupole
-           + t%quad(2)*(four *dx *dy2*rd6 -       dx*rd4) &
-           + t%xyquad *(eight*dx2*dy *rd6 -   two*dy*rd4)
+      exy(1) = t%charge * dx * rd2                                 & ! monopole
+           - t%dip(1) * (two * dx2 * rd4 - rd2)                    & ! dipole
+           - t%dip(2) * two * dx * dy * rd4                        &
+           + t%quad(1) * (eight * dx3 * rd6 - six * dx * rd4)      & ! quadrupole
+           + t%quad(2) * (eight * dx * dy2 * rd6 - two * dx * rd4) &
+           + t%xyquad * (eight * dx2 * dy * rd6 - two * dy * rd4)
 
-      exy(2) = t%charge*dy*rd2                            & ! monopole
-           + t%dip(2)*(two*dy2  *rd4 - rd2)               & ! dipole
-           + t%dip(1)* two*dx*dy*rd4                      &
-           + t%quad(2)*(four *dy3    *rd6 - three*dy*rd4) & ! quadrupole
-           + t%quad(1)*(four *dy *dx2*rd6 -       dy*rd4) &
-           + t%xyquad *(eight*dy2*dx *rd6 -   two*dx*rd4)
+      exy(2) = t%charge * dy * rd2                                 & ! monopole
+           - t%dip(2) * (two * dy2 * rd4 - rd2)                    & ! dipole
+           - t%dip(1) * two * dx * dy * rd4                        &
+           + t%quad(2) * (eight * dy3 * rd6 - six * dy * rd4)      & ! quadrupole
+           + t%quad(1) * (eight * dy * dx2 * rd6 - two * dy * rd4) &
+           + t%xyquad * (eight * dy2 * dx * rd6 - two * dx * rd4)
     end subroutine calc_force_coulomb_2D
 
 
