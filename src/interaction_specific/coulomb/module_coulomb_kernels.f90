@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -26,7 +26,7 @@ module module_coulomb_kernels
   implicit none
   save
   private
-  
+
     integer, parameter :: kfp       =  8 ! numeric precision (kind value)
     ! shortcut notations
     real(kfp), parameter :: zero    =  0._kfp
@@ -45,9 +45,9 @@ module module_coulomb_kernels
     public calc_force_coulomb_2D_direct
     public calc_force_LJ
     public calc_force_kelbg_3D_direct
-  
+
   contains
-  
+
     !>
     !> Calculates 3D Coulomb interaction of particle p with tree node inode
     !> that is shifted by the lattice vector vbox
@@ -95,8 +95,8 @@ module module_coulomb_kernels
       pre2y = m5rd7*dy2 - rd5
       pre2z = m5rd7*dz2 - rd5
       preQ1 = pre2x*t%quad(1)
-      preQ2 = pre2x*t%quad(2)
-      preQ3 = pre2x*t%quad(3)
+      preQ2 = pre2y*t%quad(2)
+      preQ3 = pre2z*t%quad(3)
 
       phi = t%charge*rd                                             &  !  monopole term
             + (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !  dipole
@@ -148,9 +148,9 @@ module module_coulomb_kernels
     !> Calculates 2D Coulomb interaction of particle p with tree node inode
     !> that is shifted by the lattice vector vbox
     !> results are returned in exy, phi
-    !> Unregularized force law is: 
-    !>   Phi = -2q log R 
-    !>   Ex = -dPhi/dx = 2 q x/R^2 etc 
+    !> Unregularized force law is:
+    !>   Phi = -2q log R
+    !>   Ex = -dPhi/dx = 2 q x/R^2 etc
     !>
     subroutine calc_force_coulomb_2D(t, d, d2, exy, phi)
       implicit none
@@ -173,28 +173,28 @@ module module_coulomb_kernels
       dx3 = dx2*dx
       dy3 = dy2*dy
 
-      phi = - half*t%charge*log(d2)              & !  monopole term 
+      phi = - half*t%charge*log(d2)              & !  monopole term
            + (dx*t%dip(1) + dy*t%dip(2))*rd2     & !  dipole
            + half*(t%quad(1)*(dx2*rd4 - rd2)     & ! quadrupole
            +       t%quad(2)*(dy2*rd4 - rd2))    &
            + t%xyquad*dx*dy*rd4
-          
-      exy(1) = t%charge*dx*rd2                            & ! monopole 
+
+      exy(1) = t%charge*dx*rd2                            & ! monopole
            + t%dip(1)*(two*dx2  *rd4 - rd2)               & ! dipole
-           + t%dip(2)* two*dx*dy*rd4                      &  
+           + t%dip(2)* two*dx*dy*rd4                      &
            + t%quad(1)*(four *dx3    *rd6 - three*dx*rd4) & ! quadrupole
            + t%quad(2)*(four *dx *dy2*rd6 -       dx*rd4) &
-           + t%xyquad *(eight*dx2*dy *rd6 -   two*dy*rd4) 
-          
-      exy(2) = t%charge*dy*rd2                            & ! monopole 
+           + t%xyquad *(eight*dx2*dy *rd6 -   two*dy*rd4)
+
+      exy(2) = t%charge*dy*rd2                            & ! monopole
            + t%dip(2)*(two*dy2  *rd4 - rd2)               & ! dipole
            + t%dip(1)* two*dx*dy*rd4                      &
            + t%quad(2)*(four *dy3    *rd6 - three*dy*rd4) & ! quadrupole
            + t%quad(1)*(four *dy *dx2*rd6 -       dy*rd4) &
-           + t%xyquad *(eight*dy2*dx *rd6 -   two*dx*rd4) 
+           + t%xyquad *(eight*dy2*dx *rd6 -   two*dx*rd4)
     end subroutine calc_force_coulomb_2D
 
-        
+
     !>
     !> CALC_FORCE_LJ
     !>
@@ -220,7 +220,7 @@ module module_coulomb_kernels
       else
           aii2_r2 = aii2/epsc2
       endif
-          
+
       aii4_r4 = aii2_r2*aii2_r2
 
       flj = two*(aii4_r4*aii4_r4) - aii4_r4
@@ -231,7 +231,7 @@ module module_coulomb_kernels
       !  forces
       r     = sqrt(r2)
       fljrd = flj/r
-          
+
       exyz = d*fljrd
     end subroutine calc_force_LJ
 
