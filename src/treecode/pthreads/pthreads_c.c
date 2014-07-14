@@ -52,7 +52,6 @@
 #include <stdbool.h>
 #endif
 
-pthread_rwlock_t *my_rwlocks;
 pthread_attr_t thread_attr;
 
 const int THREAD_TYPE_DEFAULT = 0;
