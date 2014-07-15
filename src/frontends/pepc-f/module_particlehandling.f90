@@ -799,11 +799,16 @@ module particlehandling
                               ran1*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
                     p(ip)%x = p(ip)%x + n1 * dotproduct(n1,p(ip)%data%v) * dt * ran
-                ELSE IF (species(p(ip)%data%species)%src_type==5) THEN                 !surface source (drifting Maxwellian Flux)
+                ELSE IF ((species(p(ip)%data%species)%src_type == 5) .OR. (species(p(ip)%data%species)%src_type == -5)) THEN                 !surface source (drifting Maxwellian Flux)
+                    IF (species(p(ip)%data%species)%src_type > 0) THEN
+                        direction = 1
+                    ELSE
+                        direction = -1
+                    END IF
                     call random_gauss_list(vhelp(2:3),mu,sigma)
                     call random_drifting_gaussian_flux(vhelp(1),maxw_flux_table_F(p(ip)%data%species,:),maxw_flux_table_v(p(ip)%data%species,:))
                     e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
-                    n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
+                    n1 = direction * boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
                     t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector
                     t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
                     t2(2) = n1(3)*t1(1) - n1(1)*t1(3)

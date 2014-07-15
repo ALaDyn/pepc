@@ -168,8 +168,8 @@ module module_species
                     IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
                                                           ,src_type(ispecies)," for species ",ispecies
 
-                ELSE IF (src_type(ispecies)==5) THEN !surface source, exactly like type=0, but with a flux from a drifting Maxwellian
-                    src_x0(ispecies,:)=0.
+                ELSE IF ((src_type(ispecies)==5) .OR. (src_type(ispecies)==-5)) THEN ! surface source, exactly like type=0,
+                    src_x0(ispecies,:)=0.                                            ! but with a flux from a drifting Maxwellian
                     src_e1(ispecies,:)=0.
                     src_e2(ispecies,:)=0.
                     src_e3(ispecies,:)=0.
