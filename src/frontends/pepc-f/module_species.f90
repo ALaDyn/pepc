@@ -304,7 +304,7 @@ module module_species
         sqrt2=sqrt(2._8)
 
         DO ispecies=0,nspecies-1
-            IF (species(ispecies)%src_type == 5) THEN
+            IF ((species(ispecies)%src_type == 5) .OR. (species(ispecies)%src_type == -5)) THEN
                 vth = sqrt(species(ispecies)%src_t*e/species(ispecies)%m)
                 v0 = species(ispecies)%src_v0
                 call linspace(0._8,7._8*max(v0,vth),maxw_flux_table_v(ispecies,:))

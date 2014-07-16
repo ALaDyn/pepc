@@ -823,8 +823,7 @@ module particlehandling
                     p(ip)%x = boundaries(species(p(ip)%data%species)%src_bnd)%x0 + &
                               ran1*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
-                    p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
-                              dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
+                    p(ip)%x = p(ip)%x + n1 * dotproduct(n1,p(ip)%data%v) * dt * ran
                 ELSE IF (species(p(ip)%data%species)%src_type==4) THEN                 !surface source (plasma column)
                     call random_gauss_list(vhelp(2:3),mu,sigma)
                     call random_gaussian_flux(vhelp(1),sigma)
