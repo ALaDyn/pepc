@@ -22,6 +22,7 @@
 !> diagnostics and output for pepc-andreev
 !>
 module pepca_diagnostics
+  use module_pepc_kinds
   implicit none
   private
   save

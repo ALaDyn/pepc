@@ -28,6 +28,7 @@
 
 module module_sph
   
+  use module_pepc_kinds
   use module_interaction_specific_types, only: &
        num_neighbour_particles
   
@@ -642,8 +643,7 @@ contains
 
     use module_pepc_types, only: &
          t_particle, &
-         t_tree_node, &
-         kind_node
+         t_tree_node
 
     ! only for sort test
     use module_sort

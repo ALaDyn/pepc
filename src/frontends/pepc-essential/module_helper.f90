@@ -22,6 +22,7 @@
 !> helper module
 !>
 module helper
+  use module_pepc_kinds
   use module_pepc_types
   use module_timings
   implicit none
@@ -50,14 +51,19 @@ module helper
   logical :: particle_test        ! check tree code results against direct summation
   logical :: reflecting_walls     ! reflect particles at walls
   integer :: diag_interval        ! number of timesteps between all diagnostics and IO
-  real*8  :: plasma_dimensions(3) ! size of the simulation box
+  real(kind_physics) :: plasma_dimensions(3) ! size of the simulation box
 
   integer, parameter :: particle_direct = -1 ! number of particle for direct summation
 
   ! particle data (position, velocity, mass, charge)
-  type(t_particle), allocatable :: particles(:)
-  real*8, allocatable           :: direct_L2(:)
+  type(t_particle), allocatable   :: particles(:)
+  real(kind_physics), allocatable :: direct_L2(:)
+  
 
+  interface random
+    module procedure random8, random16
+  end interface
+  
   contains
 
   subroutine set_parameter()
@@ -214,7 +220,7 @@ module helper
     type(t_particle_results), allocatable :: trslt(:)
     integer(kind_particle)                :: tn, tn_global, ti
     integer                               :: rc
-    real*8                                :: L2sum_local, L2sum_global, L2
+    real(kind_physics)                    :: L2sum_local, L2sum_global, L2
 
     call timer_start(t_user_directsum)
 
@@ -344,12 +350,12 @@ module helper
   subroutine random_gauss(list)
     implicit none
 
-    real*8, intent(inout) :: list(:)
+    real(kind_physics), intent(inout) :: list(:)
 
-    real*8  :: v(2), pi, r, p
+    real(kind_physics) :: v(2), pi, r, p
     integer :: n, i
 
-    pi = 2.0_8*acos(0.0_8)
+    pi = 2.0_kind_physics*acos(0.0_kind_physics)
     n  = size(list)
 
     do i=1, n, 2
@@ -366,7 +372,7 @@ module helper
   end subroutine
 
 
-  subroutine random(array)
+  subroutine random8(array)
     implicit none
     real*8 :: array(:)
     integer :: i
@@ -374,7 +380,18 @@ module helper
     do i = 1,size(array)
        array(i) = par_rand()
     end do
-  end subroutine random
+  end subroutine random8
+
+
+  subroutine random16(array)
+    implicit none
+    real*16 :: array(:)
+    integer :: i
+
+    do i = 1,size(array)
+       array(i) = par_rand()
+    end do
+  end subroutine random16
 
 
   !>

@@ -23,6 +23,7 @@
 !> nothing is obligatory for the treecode here
 !>
 module module_pepc_wrappers
+     use module_pepc_kinds
      use module_pepc_types, only : t_particle
      use module_interaction_specific_types, only : t_particle_data, EMPTY_PARTICLE_RESULTS
      implicit none
@@ -61,11 +62,11 @@ module module_pepc_wrappers
         implicit none
         integer, intent(inout) :: np_local  ! # particles on this CPU
         integer, intent(in) :: itime  ! timestep
-        real*8, intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
-        real*8, intent(in), dimension(np_local) :: p_q ! charges, masses
+        real(kind_physics), intent(in), dimension(np_local) :: p_x, p_y, p_z  ! coords and velocities: x1,x2,x3, y1,y2,y3, etc
+        real(kind_physics), intent(in), dimension(np_local) :: p_q ! charges, masses
         integer, intent(in), dimension(np_local) :: p_label  ! particle label
-        real*8, intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
-        real*8, dimension(np_local) :: p_w ! work loads
+        real(kind_physics), intent(out), dimension(np_local) :: p_ex, p_ey, p_ez, p_pot  ! fields and potential to return
+        real(kind_physics), dimension(np_local) :: p_w ! work loads
         logical, intent(in) :: no_dealloc
         real*8, intent(in) :: force_const
 
@@ -108,9 +109,9 @@ module module_pepc_wrappers
       use module_pepc
       implicit none
       integer, intent(in) :: ngp
-      real*8, intent(in) :: p_x(ngp), p_y(ngp), p_z(ngp)
+      real(kind_physics), intent(in) :: p_x(ngp), p_y(ngp), p_z(ngp)
       integer, intent(in) :: p_label(ngp)
-      real*8, intent(out) :: p_Ex(ngp), p_Ey(ngp), p_Ez(ngp), p_pot(ngp)
+      real(kind_physics), intent(out) :: p_Ex(ngp), p_Ey(ngp), p_Ez(ngp), p_pot(ngp)
       integer, intent(in) :: num_neighbour_boxes !< number of shift vectors in neighbours list (must be at least 1 since [0, 0, 0] has to be inside the list)
       integer, intent(in) :: neighbour_boxes(3, num_neighbour_boxes) ! list with shift vectors to neighbour boxes that shall be included in interaction calculation, at least [0, 0, 0] should be inside this list
       real*8, intent(in) :: force_const

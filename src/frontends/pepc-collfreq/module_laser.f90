@@ -24,6 +24,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_laser
+    use module_pepc_kinds
     implicit none
     save
     private

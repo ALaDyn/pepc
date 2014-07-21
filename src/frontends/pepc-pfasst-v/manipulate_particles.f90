@@ -19,7 +19,7 @@
 !
 
 module manipulate_particles
-
+    use module_pepc_kinds
     implicit none
 
 contains

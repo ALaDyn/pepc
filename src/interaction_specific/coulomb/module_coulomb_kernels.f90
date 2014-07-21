@@ -22,23 +22,23 @@
 !> Encapsulates the low-level kernels for Coulomb- and similar interactions
 !>
 module module_coulomb_kernels
+  use module_pepc_kinds
   use module_pepc_types
   implicit none
   save
   private
 
-    integer, parameter :: kfp       =  8 ! numeric precision (kind value)
     ! shortcut notations
-    real(kfp), parameter :: zero    =  0._kfp
-    real(kfp), parameter :: one     =  1._kfp
-    real(kfp), parameter :: two     =  2._kfp
-    real(kfp), parameter :: three   =  3._kfp
-    real(kfp), parameter :: four    =  4._kfp
-    real(kfp), parameter :: five    =  5._kfp
-    real(kfp), parameter :: six     =  6._kfp
-    real(kfp), parameter :: eight   =  8._kfp
-    real(kfp), parameter :: nine    =  9._kfp
-    real(kfp), parameter :: half    =  0.5_kfp
+    real(kind_physics), parameter :: zero    =  0._kind_physics
+    real(kind_physics), parameter :: one     =  1._kind_physics
+    real(kind_physics), parameter :: two     =  2._kind_physics
+    real(kind_physics), parameter :: three   =  3._kind_physics
+    real(kind_physics), parameter :: four    =  4._kind_physics
+    real(kind_physics), parameter :: five    =  5._kind_physics
+    real(kind_physics), parameter :: six     =  6._kind_physics
+    real(kind_physics), parameter :: eight   =  8._kind_physics
+    real(kind_physics), parameter :: nine    =  9._kind_physics
+    real(kind_physics), parameter :: half    =  0.5_kind_physics
 
     public calc_force_coulomb_3D
     public calc_force_coulomb_3D_direct
@@ -58,10 +58,10 @@ module module_coulomb_kernels
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-      real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kfp), intent(out) ::  exyz(3), phi
+      real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3), phi
 
-      real(kfp) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6, m2rd5, m5rd7, &
+      real(kind_physics) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6, m2rd5, m5rd7, &
         pre1, pre2x, pre2y, pre2z, preQ1, preQ2, preQ3
 
       dx = d(1)
@@ -157,10 +157,10 @@ module module_coulomb_kernels
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-      real(kfp), intent(in) :: d(2), d2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kfp), intent(out) ::  exy(1:2),phi
+      real(kind_physics), intent(in) :: d(2), d2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exy(1:2),phi
 
-      real(kfp) :: dx,dy,rd2,rd4,rd6,dx2,dy2,dx3,dy3
+      real(kind_physics) :: dx,dy,rd2,rd4,rd6,dx2,dy2,dx3,dy3
 
       dx = d(1)
       dy = d(2)
@@ -207,13 +207,13 @@ module module_coulomb_kernels
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-      real(kfp), intent(in) :: d(3), r2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kfp), intent(out) ::  exyz(3), phi
-      real(kfp), intent(in) :: aii2
-      real(kfp) :: flj, epsc2, aii2_r2,aii4_r4, r, fljrd
+      real(kind_physics), intent(in) :: d(3), r2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3), phi
+      real(kind_physics), intent(in) :: aii2
+      real(kind_physics) :: flj, epsc2, aii2_r2,aii4_r4, r, fljrd
 
       ! epsc should be > a_ii to get evenly spaced ions
-      epsc2 = 0.8_kfp * aii2
+      epsc2 = 0.8_kind_physics * aii2
 
       ! Force is repulsive up to and just beyond aii
       if (r2 > epsc2) then
@@ -246,10 +246,10 @@ module module_coulomb_kernels
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-      real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kfp), intent(out) ::  exyz(3), phi
+      real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3), phi
 
-      real(kfp) :: rd,r,rd3charge
+      real(kind_physics) :: rd,r,rd3charge
 
       r         = sqrt(dist2) ! eps2 is added in calling routine to have plummer intead of coulomb here
       rd        = one/r
@@ -272,10 +272,10 @@ module module_coulomb_kernels
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-      real(kfp), intent(in) :: d(2), d2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kfp), intent(out) ::  exy(2), phi
+      real(kind_physics), intent(in) :: d(2), d2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exy(2), phi
 
-      real(kfp) :: rd2charge
+      real(kind_physics) :: rd2charge
 
       phi       = - half*t%charge*log(d2)
       rd2charge = t%charge/d2
@@ -293,12 +293,12 @@ module module_coulomb_kernels
 
       type(t_particle), intent(inout) :: particle
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-      real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kfp), intent(out) ::  exyz(3), phi
-      real(kfp), intent(in) :: kelbg_invsqrttemp
-      real(kfp) :: rd,r,rd3
-      real(kfp), parameter :: sqrtpi = sqrt(acos(-1.0_8))
-      real(kfp) :: ome, rol, lambda, q, fprefac
+      real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3), phi
+      real(kind_physics), intent(in) :: kelbg_invsqrttemp
+      real(kind_physics) :: rd,r,rd3
+      real(kind_physics), parameter :: sqrtpi = sqrt(acos(-1.0_8))
+      real(kind_physics) :: ome, rol, lambda, q, fprefac
 
       q = t%charge
 

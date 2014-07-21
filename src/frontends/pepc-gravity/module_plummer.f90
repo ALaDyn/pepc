@@ -3,6 +3,7 @@
 ! See Aarseth, SJ, Henon, M, & Wielen, R (1974) Astr & Ap, 37, 183.
 
 module plummer
+  use module_pepc_kinds
   use module_pepc_types
 
   implicit none

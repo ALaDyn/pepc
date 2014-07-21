@@ -23,7 +23,7 @@
 !>
 module module_domains
   use module_comm_env, only: t_comm_env
-  use module_pepc_types
+  use module_pepc_kinds
   implicit none
   save
   private
@@ -138,7 +138,7 @@ module module_domains
     interface
       subroutine slsort_keys(nin, nmax, keys, workload, balance_weight, max_imbalance, nout, indxl, &
         irnkl, scounts, rcounts, sdispls, rdispls, keys2, irnkl2, size, rank, comm)
-        use module_pepc_types
+        use module_pepc_kinds
         integer(kind_particle), intent(in) :: nin
         integer(kind_particle), intent(in) :: nmax
         integer(kind_key), intent(inout) :: keys(*)

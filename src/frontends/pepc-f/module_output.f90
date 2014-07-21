@@ -5,6 +5,7 @@
 !!!!!!!!!!!!!!!!!!!!
 
 MODULE output
+    use module_pepc_kinds
     use variables
     use helper
 

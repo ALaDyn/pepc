@@ -22,6 +22,7 @@
 !> Helper functions for checkpointing and restarting purposes
 !>
 module module_checkpoint
+      use module_pepc_kinds
       implicit none
       include 'mpif.h'
 

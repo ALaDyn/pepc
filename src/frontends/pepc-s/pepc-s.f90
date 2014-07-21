@@ -41,6 +41,7 @@ module module_pepcs
                           lat_period,          &
                           lat_corr,            &
                           eps, theta, db_level) bind(c,name='pepc')
+        use module_pepc_kinds
         use module_pepc_types
         use module_fmm_framework
         use module_mirror_boxes

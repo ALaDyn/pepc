@@ -26,6 +26,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_interaction_specific
+     use module_pepc_kinds
      use module_pepc_types
      use module_interaction_specific_types
      implicit none

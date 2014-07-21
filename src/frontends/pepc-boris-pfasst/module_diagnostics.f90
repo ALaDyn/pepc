@@ -22,6 +22,7 @@
 !> helper module
 !>
 module pepcboris_diagnostics
+  use module_pepc_kinds
   implicit none
   private
   save
@@ -31,7 +32,7 @@ module pepcboris_diagnostics
   public dump_energy
   public backup_velocities
 
-  real*8, allocatable, public :: vold(:,:)
+  real(kind_physics), allocatable, public :: vold(:,:)
 
   contains
   
@@ -43,6 +44,8 @@ module pepcboris_diagnostics
   end function
 
   subroutine backup_velocities(particles)
+    use pf_mod_dtype
+    use module_pepc_kinds
     use module_pepc_types
     implicit none
     type(t_particle), intent(in) :: particles(:)
@@ -56,12 +59,13 @@ module pepcboris_diagnostics
   end subroutine
 
   subroutine dump_iterations(step, dt, hook, niter, residual)
+    use pf_mod_dtype
     use pepcboris_helper
     use pepcboris_paralleldump
     implicit none
     integer, intent(in) :: step, niter, hook
-    real*8, intent(in) :: residual
-    real*8, intent(in) :: dt
+    real(pfdp), intent(in) :: residual
+    real(pfdp), intent(in) :: dt
 
     character(len=PARALLELDUMP_MAXLEN) :: line
 
@@ -72,6 +76,8 @@ module pepcboris_diagnostics
   end subroutine
 
   subroutine dump_particles(vtk_step, step, dt, particles, comm, do_average)
+    use pf_mod_dtype
+    use module_pepc_kinds
     use module_pepc_types
     use module_pepc
     use module_debug
@@ -82,13 +88,13 @@ module pepcboris_diagnostics
     implicit none
     integer, intent(in) :: vtk_step
     integer, intent(in) :: step
-    real*8, intent(in) :: dt
+    real(pfdp), intent(in) :: dt
     type(t_particle), intent(in) :: particles(:)
     integer, intent(in) :: comm
     logical, intent(in) :: do_average
     integer(kind_particle) :: p
     integer :: istream, dumptype
-    real*8 :: avg(3,4), delt(3)
+    real(kind_physics) :: avg(3,4), delt(3)
 
     character(len=PARALLELDUMP_MAXLEN) :: line
 
@@ -119,7 +125,7 @@ module pepcboris_diagnostics
       case (2,4)
         ! vtk output
         ! FIXME: I am rather sure that this will not work with time-parallel execution
-        call vtk_write_particles("particles", comm, step, step*dt, vtk_step, particles, particle_output_data)
+        call vtk_write_particles("particles", comm, step, real(step*dt, kind(1._8)), vtk_step, particles, particle_output_data)
     end select
 
     select case (dumptype)
@@ -176,6 +182,8 @@ module pepcboris_diagnostics
   end subroutine
 
   subroutine dump_energy(step, t, particles, level_params, comm, do_average)
+    use pf_mod_dtype
+    use module_pepc_kinds
     use module_pepc_types
     use pepcboris_paralleldump
     use pfm_encap, only : level_params_t
@@ -184,7 +192,7 @@ module pepcboris_diagnostics
     use module_debug
     implicit none
     integer, intent(in) :: step
-    real*8, intent(in) :: t
+    real(pfdp), intent(in) :: t
     type(t_particle), intent(in) :: particles(:)
     type(level_params_t), intent(in) :: level_params
     integer(kind_default), intent(in) :: comm
@@ -192,7 +200,7 @@ module pepcboris_diagnostics
 
     integer(kind_particle) :: p
     type(t_particle), allocatable :: particles_tmp(:)
-    real*8 :: epot, ekin, etot, vtmp(3)
+    real(kind_physics) :: epot, ekin, etot, vtmp(3)
     character(len=PARALLELDUMP_MAXLEN) :: line
 
     if (dontdump(step)) return

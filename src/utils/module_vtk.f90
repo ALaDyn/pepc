@@ -86,6 +86,9 @@ module module_vtk
           procedure :: write_data_array_Real8_1  => vtkfile_write_data_array_Real8_1
           procedure :: write_data_array_Real8_2  => vtkfile_write_data_array_Real8_2
           procedure :: write_data_array_Real8_3  => vtkfile_write_data_array_Real8_3
+          procedure :: write_data_array_Real16_1  => vtkfile_write_data_array_Real16_1
+          procedure :: write_data_array_Real16_2  => vtkfile_write_data_array_Real16_2
+          procedure :: write_data_array_Real16_3  => vtkfile_write_data_array_Real16_3
 
           procedure :: write_data_array_Real8_1_field3  => vtkfile_write_data_array_Real8_1_field3
           procedure :: write_data_array_Real8_3_field3  => vtkfile_write_data_array_Real8_3_field3
@@ -106,6 +109,9 @@ module module_vtk
                                             write_data_array_Real8_1,  & ! ...
                                             write_data_array_Real8_2,  &
                                             write_data_array_Real8_3,  &
+                                            write_data_array_Real16_1, & ! ...
+                                            write_data_array_Real16_2, &
+                                            write_data_array_Real16_3, &
                                             write_data_array_Real8_1_field3,  &
                                             write_data_array_Real8_3_field3,  &
                                             write_data_array_Int4_1,   &
@@ -448,6 +454,130 @@ module module_vtk
         endif
         write(vtk%filehandle, '("</DataArray>")')
      end subroutine vtkfile_write_data_array_Real8_3
+
+
+     subroutine vtkfile_write_data_array_Real16_1(vtk, name, data, scale)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer :: ndata, i
+        real*16 :: data(:)
+        real*16, optional, intent(in) :: scale
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 1, "Float64")
+
+        ndata = size(data, kind=kind(ndata))
+
+        if (vtk%binary) then
+          numbytes = ndata*1*8
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          if (present(scale)) then
+            do i=1,ndata
+              call base64%encode(data(i)*scale)
+            end do
+          else
+            do i=1,ndata
+              call base64%encode(data(i))
+            end do
+          end if
+          call base64%finish()
+        else
+          if (present(scale)) then
+            do i=1,ndata
+              write(vtk%filehandle, '(G14.6)') data(i)*scale
+            end do
+          else
+            do i=1,ndata
+              write(vtk%filehandle, '(G14.6)') data(i)
+            end do
+          endif
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_array_Real16_1
+
+
+     subroutine vtkfile_write_data_array_Real16_2(vtk, name, data1, data2)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer :: ndata, i
+        real*16 :: data1(:), data2(:)
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 2, "Float64")
+
+        ndata = size(data1, kind=kind(ndata))
+
+        if (vtk%binary) then
+          numbytes = ndata*3*8
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          do i=1,ndata
+            call base64%encode(data1(i))
+            call base64%encode(data2(i))
+          end do
+          call base64%finish()
+        else
+          do i=1,ndata
+          write(vtk%filehandle, '(3G14.6)') data1(i), data2(i)
+          end do
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_array_Real16_2
+
+
+     subroutine vtkfile_write_data_array_Real16_3(vtk, name, data1, data2, data3, scale)
+        implicit none
+        class(vtkfile) :: vtk
+        character(*) :: name
+        integer :: ndata, i
+        real*16 :: data1(:), data2(:), data3(:)
+        real*16, optional, intent(in) :: scale
+        integer*4 :: numbytes
+        type(base64_encoder) :: base64
+        call vtk%write_data_array_header(name, 3, "Float64")
+
+        ndata = size(data1, kind=kind(ndata))
+
+        if (vtk%binary) then
+          numbytes = ndata*3*8
+          call base64%start(vtk%filehandle, bigendian)
+          call base64%encode(numbytes)
+          call base64%finish()
+          call base64%start(vtk%filehandle, bigendian)
+          if (present(scale)) then
+            do i=1,ndata
+              call base64%encode(scale*data1(i))
+              call base64%encode(scale*data2(i))
+              call base64%encode(scale*data3(i))
+            end do
+          else
+            do i=1,ndata
+              call base64%encode(data1(i))
+              call base64%encode(data2(i))
+              call base64%encode(data3(i))
+            end do
+          endif
+          call base64%finish()
+        else
+          if (present(scale)) then
+            do i=1,ndata
+              write(vtk%filehandle, '(3G14.6)') scale*data1(i), scale*data2(i), scale*data3(i)
+            end do
+          else
+            do i=1,ndata
+              write(vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
+            end do
+          endif
+        endif
+        write(vtk%filehandle, '("</DataArray>")')
+     end subroutine vtkfile_write_data_array_Real16_3
 
 
      subroutine vtkfile_write_data_array_Real8_1_field3(vtk, name, data)

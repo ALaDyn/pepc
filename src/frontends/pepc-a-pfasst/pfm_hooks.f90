@@ -1,4 +1,5 @@
 module pfm_hooks
+  use module_pepc_kinds
   implicit none
   save
   private

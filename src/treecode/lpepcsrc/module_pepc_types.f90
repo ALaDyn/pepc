@@ -22,6 +22,7 @@
 !> Contains all lpepc-specific types and routines for registering them to MPI
 !>
 module module_pepc_types
+  use module_pepc_kinds
   use module_interaction_specific_types
   implicit none
   
@@ -33,24 +34,6 @@ module module_pepc_types
   public :: t_particle_results
   public :: t_tree_node_interaction_data
   
-  ! ATTENTION: if kind_particle, kind_default, or kind_key are modified, respective adaptions have to be performed in the first 50 lines of sl_pepckeys.h (just grep for the modified kind_XX values)
-  integer, public, parameter :: kind_particle     = kind(1_8) ! ATTENTION, see above
-  integer, public, parameter :: MPI_KIND_PARTICLE = MPI_INTEGER8
-  integer, public, parameter :: kind_node         = kind_particle
-  integer, public, parameter :: MPI_KIND_NODE     = MPI_KIND_PARTICLE
-  integer, public, parameter :: kind_key          = kind(1_8) ! ATTENTION, see above
-  integer, public, parameter :: MPI_KIND_KEY      = MPI_INTEGER8
-  integer, public, parameter :: kind_byte         = kind(1_1)
-  integer, public, parameter :: MPI_KIND_BYTE     = MPI_BYTE
-  integer, public, parameter :: kind_level        = kind(1_1)
-  integer, public, parameter :: MPI_KIND_LEVEL    = MPI_BYTE
-  
-  integer, public, parameter :: kind_default      = kind(1_4) !< default integer kind as the MPI standard calls it. This should be kind(1). We use kind(1_4) instead to allow for switching the default integer kind with certain compiler command line parameters  ! ATTENTION, see above
-  integer, public, parameter :: MPI_KIND_DEFAULT  = MPI_INTEGER
-  integer, public, parameter :: kind_pe           = kind_default !< this has to be of default integer kind - otherwise MPI gets angry if we use an owner as target rank of an MPI operation
-  integer, public, parameter :: MPI_KIND_PE       = MPI_INTEGER
-  integer, public, parameter :: kind_dim          = kind_level
-
       integer, public :: MPI_TYPE_particle_data,     &
                          MPI_TYPE_tree_node_interaction_data,   &
                          MPI_TYPE_particle_results,  &
@@ -62,8 +45,8 @@ module module_pepc_types
       !> Data structure for shipping single particles
       integer, private, parameter :: nprops_particle = 7 ! # particle properties to ship
       type, public :: t_particle
-         real*8 :: x(1:3)      !< coordinates
-         real*8 :: work        !< work load from force sum
+         real(kind_physics) :: x(1:3)      !< coordinates
+         real*8 :: work        !< work load from force sum, ATTENTION: the sorting library relies on this being a real*8
          integer(kind_key) :: key      !< particle key, i.e. key on highest tree level
          integer(kind_node) :: node_leaf !< node index of corresponding leaf (tree node)
          integer(kind_particle) :: label     !< particle label (only for diagnostic purposes, can be used freely by the frontend
@@ -139,7 +122,7 @@ module module_pepc_types
 
         ! register particle type
         blocklengths(1:nprops_particle)  = [3, 1, 1, 1, 1, 1, 1]
-        types(1:nprops_particle)         = [MPI_REAL8, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PARTICLE, &
+        types(1:nprops_particle)         = [MPI_KIND_PHYSICS, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PARTICLE, &
           MPI_TYPE_particle_data, MPI_TYPE_particle_results]
         call MPI_GET_ADDRESS( dummy_particle,           address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle%x,         address(1), ierr )

@@ -22,6 +22,7 @@
 !> trajectory integration routines
 !>
 module pepcboris_integrator
+  use module_pepc_kinds
   implicit none
   private
 
@@ -46,7 +47,7 @@ module pepcboris_integrator
     public push_matrix_verlet
 
 
-    real*8, allocatable, public :: eold(:,:)
+    real(kind_physics), allocatable, public :: eold(:,:)
 
   contains
 
@@ -56,10 +57,10 @@ module pepcboris_integrator
       use pepcboris_helper
       implicit none
       type(t_particle), intent(inout) :: p(:)
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       integer(kind_particle) :: ip
-      real*8, dimension(3) :: B0
-      real*8 :: beta, lambda, phase
+      real(kind_physics), dimension(3) :: B0
+      real(kind_physics) :: beta, lambda, phase
 
       B0 = get_magnetic_field()
       phase = pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8
@@ -75,9 +76,9 @@ module pepcboris_integrator
         ! charge/mass*time-constant
         beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
 
-        p(ip)%x(:) = p(ip)%x(:) + dt * ( p(ip)%data%v(:) + beta * cross_prod_plus(p(ip)%data%v, lambda*B0, p(ip)%results%e*[lambda,lambda,1._8]) )
+        p(ip)%x(:) = p(ip)%x(:) + dt * ( p(ip)%data%v(:) + beta * cross_prod_plus(p(ip)%data%v, lambda*B0, p(ip)%results%e*[lambda,lambda,1._kind_physics]) )
 
-        eold(1:3, ip) = p(ip)%results%e(:)*[lambda,lambda,1._8]
+        eold(1:3, ip) = p(ip)%results%e(:)*[lambda,lambda,1._kind_physics]
       end do
     end subroutine
 
@@ -87,14 +88,14 @@ module pepcboris_integrator
       use pepcboris_helper
       implicit none
 
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
 
       integer(kind_particle) :: ip
-      real*8 :: beta, gam, lambda, phase
-      real*8, dimension(3) :: uminus, uprime, uplus, t, s
+      real(kind_physics) :: beta, gam, lambda, phase
+      real(kind_physics), dimension(3) :: uminus, uprime, uplus, t, s
 
-      real*8, dimension(3) :: B0, Eavg
+      real(kind_physics), dimension(3) :: B0, Eavg
 
       B0 = get_magnetic_field()
       phase = pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8
@@ -105,7 +106,7 @@ module pepcboris_integrator
       endif
 
       do ip = 1, size(p, kind=kind_particle)
-        Eavg(:) = (p(ip)%results%e(:)*[lambda,lambda,1._8] + eold(:,ip)) / 2._8
+        Eavg(:) = (p(ip)%results%e(:)*[lambda,lambda,1._kind_physics] + eold(:,ip)) / 2._kind_physics
 
         ! charge/mass*time-constant
         beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
@@ -131,10 +132,10 @@ module pepcboris_integrator
       use pepcboris_helper
       implicit none
       type(t_particle), intent(inout) :: p(:)
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       integer(kind_particle) :: ip
-      real*8, dimension(3) :: B0
-      real*8 :: beta
+      real(kind_physics), dimension(3) :: B0
+      real(kind_physics) :: beta
 
       B0 = get_magnetic_field()
 
@@ -155,14 +156,14 @@ module pepcboris_integrator
       use pepcboris_helper
       implicit none
 
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
 
       integer(kind_particle) :: ip
-      real*8 :: beta, gam
-      real*8, dimension(3) :: uminus, uprime, uplus, t, s
+      real(kind_physics) :: beta, gam
+      real(kind_physics), dimension(3) :: uminus, uprime, uplus, t, s
 
-      real*8, dimension(3) :: B0, Eavg
+      real(kind_physics), dimension(3) :: B0, Eavg
 
       B0 = get_magnetic_field()
 
@@ -192,8 +193,8 @@ module pepcboris_integrator
       use module_pepc_types
       implicit none
       type(t_particle), intent(inout) :: p(:)
-      real*8, intent(in) :: dt
-      real*8 :: gam
+      real(kind_physics), intent(in) :: dt
+      real(kind_physics) :: gam
       integer(kind_particle) :: ip
 
       do ip = 1, size(p, kind=kind_particle)
@@ -207,13 +208,13 @@ module pepcboris_integrator
       use module_pepc_types
       use pepcboris_helper
       implicit none
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
       integer(kind_particle) :: ip
-      real*8 :: beta, gam
-      real*8, dimension(3) :: uminus, uprime, uplus, t, s
+      real(kind_physics) :: beta, gam
+      real(kind_physics), dimension(3) :: uminus, uprime, uplus, t, s
 
-      real*8, dimension(3) :: B0
+      real(kind_physics), dimension(3) :: B0
 
       B0 = get_magnetic_field()
 
@@ -242,21 +243,21 @@ module pepcboris_integrator
       use module_math_tools, only: inverse3
       use pepcboris_helper
       implicit none
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
       integer(kind_particle) :: ip
 
-      real*8:: B(3), absB, R(3,3), ImeR(3,3), ImeRinv(3,3), IpeR(3,3)
+      real(kind_physics):: B(3), absB, R(3,3), ImeR(3,3), ImeRinv(3,3), IpeR(3,3)
 
-      real*8, dimension(3,3) :: I = transpose( &
-                                    reshape([1._8, 0._8, 0._8, &
-                                             0._8, 1._8, 0._8, &
-                                             0._8, 0._8, 1._8], shape(I)))
+      real(kind_physics), dimension(3,3) :: I = transpose( &
+                                    reshape([1._kind_physics, 0._kind_physics, 0._kind_physics, &
+                                             0._kind_physics, 1._kind_physics, 0._kind_physics, &
+                                             0._kind_physics, 0._kind_physics, 1._kind_physics], shape(I)))
       B    = get_magnetic_field()
       absB = sqrt(dot_product(B, B))
-      R    = transpose(reshape([ 0._8,  B(3), -B(2), &
-                                -B(3),  0._8,  B(1), &
-                                 B(2), -B(1),  0._8], shape(R))) / absB
+      R    = transpose(reshape([ 0._kind_physics,  B(3), -B(2), &
+                                -B(3),  0._kind_physics,  B(1), &
+                                 B(2), -B(1),  0._kind_physics], shape(R))) / absB
 
       IpeR = I + pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8 * R
       ImeR = I - pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8 * R
@@ -274,23 +275,24 @@ module pepcboris_integrator
       use module_math_tools, only: inverse3
       use pepcboris_helper
       implicit none
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       type(t_particle), intent(inout) :: p(:)
       integer(kind_particle) :: ip
 
-      real*8:: B(3), absB, R(3,3), IpetwoR(3,3), Edt(3)
+      real(kind_physics) :: B(3), absB, R(3,3), IpetwoR(3,3), Edt(3)
 
-      real*8, dimension(3,3) :: I = transpose( &
-                                    reshape([1._8, 0._8, 0._8, &
-                                             0._8, 1._8, 0._8, &
-                                             0._8, 0._8, 1._8], shape(I)))
+      real(kind_physics), dimension(3,3) :: I = transpose( &
+                                    reshape([1._kind_physics, 0._kind_physics, 0._kind_physics, &
+                                             0._kind_physics, 1._kind_physics, 0._kind_physics, &
+                                             0._kind_physics, 0._kind_physics, 1._kind_physics], shape(I)))
+     
       B    = get_magnetic_field()
       absB = sqrt(dot_product(B, B))
-      R    = transpose(reshape([ 0._8,  B(3), -B(2), &
-                                -B(3),  0._8,  B(1), &
-                                 B(2), -B(1),  0._8], shape(R))) / absB
+      R    = transpose(reshape([ 0._kind_physics,  B(3), -B(2), &
+                                -B(3),  0._kind_physics,  B(1), &
+                                 B(2), -B(1),  0._kind_physics], shape(R))) / absB
 
-      IpetwoR = I + 2._8*pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8 * R
+      IpetwoR = I + 2._kind_physics*pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._kind_physics * R
 
       do ip = 1, size(p, kind=kind_particle)
         Edt = p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * dt / 2._8
@@ -304,7 +306,7 @@ module pepcboris_integrator
       use module_pepc_types
       implicit none
       type(t_particle), intent(inout) :: p(:)
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       integer(kind_particle) :: ip
 
       do ip = 1, size(p, kind=kind_particle)
@@ -318,10 +320,10 @@ module pepcboris_integrator
       use module_debug
       implicit none
       type(t_particle), intent(inout) :: p(:)
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       logical, optional, intent(in) :: no_tan_trans
       integer(kind_particle) :: ip
-      real*8 :: vprime(2), phi, Omega, B0(3), c, s
+      real(kind_physics) :: vprime(2), phi, Omega, B0(3), c, s
 
       B0 = get_magnetic_field()
 
@@ -356,11 +358,11 @@ module pepcboris_integrator
       use module_debug
       implicit none
       type(t_particle), intent(inout) :: p(:)
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       logical, optional, intent(in) :: no_tan_trans
       integer(kind_particle) :: ip
 
-      real*8 :: vstar(3), vsstar(3), phi, Omega, B0(3), c, s
+      real(kind_physics) :: vstar(3), vsstar(3), phi, Omega, B0(3), c, s
 
       B0 = get_magnetic_field()
 
@@ -392,10 +394,10 @@ module pepcboris_integrator
       use module_debug
       implicit none
       type(t_particle), intent(inout) :: p(:)
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       integer(kind_particle) :: ip
 
-      real*8 :: A,B,C,D,E,M1,M2,M3,M4,M(6,6),bla(6)
+      real(kind_physics) :: A,B,C,D,E,M1,M2,M3,M4,M(6,6),bla(6)
 
       A = -pepcboris_nml%setup_params(PARAMS_OMEGAE)**2*dt
       B =  A*dt
@@ -409,12 +411,12 @@ module pepcboris_integrator
       M4 = 2._8*dt*pepcboris_nml%setup_params(PARAMS_OMEGAB)*(B-2)/(D+4)
 
       M  = transpose(reshape( &
-            [1._8-B/2._8,        0._8,      dt,  C/2._8,   0._8, 0._8, &
-                    0._8, 1._8-B/2._8, -C/2._8,      dt,   0._8, 0._8, &
-                      M1,          M2,      M3,     -M4,   0._8, 0._8, &
-                     -M2,          M1,      M4,      M3,   0._8, 0._8, &
-                    0._8,        0._8,    0._8,    0._8,   1+E ,   dt, &
-                    0._8,        0._8,    0._8,    0._8,A*(2+E),  1+E], shape(M)))
+            [1._8-B/2._kind_physics, 0._kind_physics,                   1._kind_physics*dt, C/2._kind_physics,   0._kind_physics, 0._kind_physics, &
+                    0._kind_physics, 1._kind_physics-B/2._kind_physics, -C/2._kind_physics,  1._kind_physics*dt, 0._kind_physics, 0._kind_physics, &
+                      M1,            M2,                                M3,                 -M4,                 0._kind_physics, 0._kind_physics, &
+                     -M2,            M1,                                M4,                  M3,                 0._kind_physics, 0._kind_physics, &
+                    0._kind_physics, 0._kind_physics,                   0._kind_physics,      0._kind_physics,   1+E ,            1._kind_physics*dt, &
+                    0._kind_physics, 0._kind_physics,                   0._kind_physics,      0._kind_physics,   A*(2+E),         1+E], shape(M)))
 
       do ip = 1, size(p, kind=kind_particle)
         bla = [p(ip)%x(1), p(ip)%x(2), p(ip)%data%v(1), p(ip)%data%v(2), p(ip)%x(3), p(ip)%data%v(3)]

@@ -19,6 +19,7 @@
 !
 
 module module_nn
+  use module_pepc_kinds
   implicit none
   private
 
@@ -30,7 +31,7 @@ module module_nn
     use module_tree, only: t_tree
     use treevars, only: nlev
     use module_tree_node, only: NODE_INVALID
-    use module_pepc_types, only: t_particle, t_tree_node, kind_node
+    use module_pepc_types, only: t_particle, t_tree_node
     use module_interaction_specific_types, only: num_neighbour_particles
     use module_debug
     implicit none

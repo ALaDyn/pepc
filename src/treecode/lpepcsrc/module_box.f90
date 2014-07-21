@@ -22,6 +22,7 @@
 !> Defines a derived type that represents boxes and associated procedures.
 !>
 module module_box
+  use module_pepc_kinds, only: kind_physics, MPI_KIND_PHYSICS
   implicit none
   private
 
@@ -31,9 +32,9 @@ module module_box
   !> Derived type that represents a rectangular cuboid.
   !>
   type, public :: t_box
-    real*8 :: boxmin(3) !< front lower left corner of the box
-    real*8 :: boxmax(3) !< back upper right corner of the box
-    real*8 :: boxsize(3) !< the box diagonal connecting `boxmin` to `boxmax`
+    real(kind_physics) :: boxmin(3) !< front lower left corner of the box
+    real(kind_physics) :: boxmax(3) !< back upper right corner of the box
+    real(kind_physics) :: boxsize(3) !< the box diagonal connecting `boxmin` to `boxmax`
   end type t_box
 
   public :: box_create
@@ -46,7 +47,8 @@ module module_box
   !>
   subroutine box_create(b, p, c)
     use module_comm_env, only: t_comm_env
-    use module_pepc_types
+    use module_pepc_kinds, only: kind_default
+    use module_pepc_types, only: t_particle
     use module_debug
     implicit none
     include 'mpif.h'
@@ -56,7 +58,7 @@ module module_box
     type(t_comm_env), intent(in) :: c !< communication environment
 
     integer(kind_default) :: ierr
-    real*8 :: min_local(3), max_local(3)
+    real(kind_physics) :: min_local(3), max_local(3)
 
     ! Find limits of local simulation region
     min_local(1) = minval(p(:)%x(1))
@@ -72,8 +74,8 @@ module module_box
     endif
 
     ! Find global limits
-    call MPI_ALLREDUCE(min_local, b%boxmin, 3, MPI_REAL8, MPI_MIN, c%comm, ierr)
-    call MPI_ALLREDUCE(max_local, b%boxmax, 3, MPI_REAL8, MPI_MAX, c%comm, ierr)
+    call MPI_ALLREDUCE(min_local, b%boxmin, 3, MPI_KIND_PHYSICS, MPI_MIN, c%comm, ierr)
+    call MPI_ALLREDUCE(max_local, b%boxmax, 3, MPI_KIND_PHYSICS, MPI_MAX, c%comm, ierr)
 
     ! Safety margin - put buffer region around particles
     b%boxsize = b%boxmax - b%boxmin

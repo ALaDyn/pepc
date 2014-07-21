@@ -29,6 +29,7 @@ subroutine density_helmholtz
 
   use physvars
   use module_laser
+  use module_pepc_kinds
   use module_pepc_types
 
   implicit none

@@ -21,6 +21,7 @@
 program pepc
   ! pepc modules
   use module_pepc
+  use module_pepc_kinds
   use module_pepc_types
   use module_timings
   use module_debug
@@ -30,7 +31,8 @@ program pepc
   use pepcboris_integrator
   use pepcboris_diagnostics
   use pepcboris_paralleldump
-
+  
+  use pf_mod_dtype
   use pf_mod_verlet, only: pf_verlet_create, pf_verlet_destroy
   use pfm_helper
   use pfm_encap
@@ -94,8 +96,8 @@ program pepc
   endif
   ! initial particle dump
   if (pepcboris_nml%root_stdio) then
-    call dump_particles(VTK_STEP_FIRST, 0, 0._8, particles, MPI_COMM_SPACE, do_average=.false.)
-    call dump_energy(0, 0._8, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
+    call dump_particles(VTK_STEP_FIRST, 0, 0._pfdp, particles, MPI_COMM_SPACE, do_average=.false.)
+    call dump_energy(0, 0._pfdp, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
   endif
 
   select case (pepcboris_nml%workingmode)
@@ -300,9 +302,9 @@ program pepc
                  nt => pepcboris_nml%nt, &
                  params => pepcboris_nml%setup_params)
         block
-          complex*16 :: u, udot, Rp, Rm
-          real*8 :: Omegap, Omegam, Rscrm, Rscrp, Iscrm, Iscrp, Omegasq
-          complex*16, parameter :: ic = (0._8,1._8)
+          complex(kind_physics) :: u, udot, Rp, Rm
+          real(kind_physics) :: Omegap, Omegam, Rscrm, Rscrp, Iscrm, Iscrp, Omegasq
+          complex*16, parameter :: ic = (0._8, 1._8)
           real*8, parameter :: sqrttwo = sqrt(2._8)
 
           Omegasq = sqrt((params(PARAMS_OMEGAB)**2)/4._8 - params(PARAMS_OMEGAE)**2)
@@ -360,7 +362,7 @@ program pepc
   contains
     subroutine print_timestep(step, nt, dt)
       implicit none
-      real*8, intent(in) :: dt
+      real(kind_physics), intent(in) :: dt
       integer, intent(in) :: step, nt
 
       if(pepcboris_nml%rank_world==0) then

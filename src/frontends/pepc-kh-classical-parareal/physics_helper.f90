@@ -1,5 +1,5 @@
 module physics_helper
-  use module_pepc_types, only: kind_particle
+  use module_pepc_kinds
 
   implicit none
 
@@ -16,7 +16,6 @@ contains
 
   subroutine setup_physics(file_name, physics_pars)
     use module_pepc, only: pepc_prepare
-    use module_pepc_types, only: kind_dim
     use module_mirror_boxes, only: mirror_box_layers, t_lattice_1, t_lattice_2, t_lattice_3, &
       periodicity, spatial_interaction_cutoff
     use module_interaction_specific, only: include_far_field_if_periodic
@@ -42,7 +41,6 @@ contains
 
 
   subroutine read_in_physics_params(file_name, physics_pars)
-    use module_pepc_types, only: kind_particle
     use mpi
     use encap
     implicit none
@@ -163,7 +161,7 @@ contains
 
 
   subroutine setup_particles(pepc_pars, physics_pars, p)
-    use module_pepc_types, only: t_particle, kind_particle, kind_default
+    use module_pepc_types, only: t_particle
     use module_mirror_boxes, only: constrain_periodic
     use module_debug
     use module_rng

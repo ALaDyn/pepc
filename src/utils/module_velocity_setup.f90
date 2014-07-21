@@ -22,6 +22,7 @@
 !>  Encapsulates functions for setting up particle velocities with different models
 !>
 module module_velocity_setup
+      use module_pepc_kinds
       use physvars
       use module_pepc_types
       implicit none

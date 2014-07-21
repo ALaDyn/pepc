@@ -22,20 +22,21 @@
 !>  Encapsulates functions for periodic boundary conditions
 !>
 module module_mirror_boxes
+    use module_pepc_kinds, only: kind_physics
     implicit none
     private
 
       ! lattice basis vectors
-      real*8, public :: t_lattice_1(3) = [1, 0, 0] !< 1st vector of lattice basis
-      real*8, public :: t_lattice_2(3) = [0, 1, 0] !< 2nd vector of lattice basis
-      real*8, public :: t_lattice_3(3) = [0, 0, 1] !< 3rd vector of lattice basis
-      real*8, public :: Lattice(3,3) !< holds the lattice transformation matrix
-      real*8, public :: LatticeInv(3,3) !< holds the inverse lattice transformation matrix
-      real*8, public :: LatticeCenter(3) !< holds the central point of the lattice box
-      real*8, public :: LatticeOrigin(3) = [0., 0., 0.] !< holds the lattice origin - can be modified by calling program
+      real(kind_physics), public :: t_lattice_1(3) = [1, 0, 0] !< 1st vector of lattice basis
+      real(kind_physics), public :: t_lattice_2(3) = [0, 1, 0] !< 2nd vector of lattice basis
+      real(kind_physics), public :: t_lattice_3(3) = [0, 0, 1] !< 3rd vector of lattice basis
+      real(kind_physics), public :: Lattice(3,3) !< holds the lattice transformation matrix
+      real(kind_physics), public :: LatticeInv(3,3) !< holds the inverse lattice transformation matrix
+      real(kind_physics), public :: LatticeCenter(3) !< holds the central point of the lattice box
+      real(kind_physics), public :: LatticeOrigin(3) = [0., 0., 0.] !< holds the lattice origin - can be modified by calling program
       logical, public :: periodicity(3) = [.false., .false., .false.]  !< boolean switches for determining periodicity directions
       integer, public :: mirror_box_layers = 1 !< size of near-field layer (nmber of shells)
-      real*8, public :: unit_box_volume = 1.0 !< volume box that is spanned by t_lattice_1..3, is initialized in calc_neighour_boxes()
+      real(kind_physics), public :: unit_box_volume = 1.0 !< volume box that is spanned by t_lattice_1..3, is initialized in calc_neighour_boxes()
       !> variables that should not be written to
       integer, public :: num_neighbour_boxes = 1
       integer, dimension(:,:), allocatable, public :: neighbour_boxes !dimensions in 3D case (3,27)
@@ -48,7 +49,7 @@ module module_mirror_boxes
       !> all nodes, where any(abs(coc(1:3)-particle_position(1:3)) > spatial_interaction_cutoff(1:3) are
       !> ignored when calculating interactions (for convenient minimum image method, where only half
       !> of the mirror boxes is included)
-      real*8 , public :: spatial_interaction_cutoff(3) = huge(0._8) * [1., 1., 1.]
+      real(kind_physics) , public :: spatial_interaction_cutoff(3) = huge(0._kind_physics) * [1., 1., 1.]
       #endif
 
       public neighbour_boxes_prepare
@@ -72,7 +73,7 @@ module module_mirror_boxes
         function lattice_vect(ijk)
           implicit none
           integer, intent(in) :: ijk(3)
-          real*8 :: lattice_vect(3)
+          real(kind_physics) :: lattice_vect(3)
 
           lattice_vect = ijk(1)*t_lattice_1 + ijk(2)*t_lattice_2 + ijk(3)*t_lattice_3
         end function lattice_vect
@@ -85,7 +86,7 @@ module module_mirror_boxes
         !>
         function lattice_indices(xyz)
           implicit none
-          real*8, intent(in) :: xyz(3)
+          real(kind_physics), intent(in) :: xyz(3)
           integer :: lattice_indices(3)
 
           lattice_indices = floor(matmul(xyz, LatticeInv))
@@ -179,6 +180,7 @@ module module_mirror_boxes
         !> back into it
         !>
         subroutine constrain_periodic(particles)
+            use module_pepc_kinds, only: kind_particle
             use module_math_tools
             use module_pepc_types
 
@@ -187,7 +189,7 @@ module module_mirror_boxes
             type(t_particle), intent(inout) :: particles(:)
             
             integer(kind_particle) :: np_local, p
-            real*8 :: lattice_coord(3), real_coord(3), latticewalls(3)
+            real(kind_physics) :: lattice_coord(3), real_coord(3), latticewalls(3)
 
             np_local = size(particles, kind=kind_particle)
             
@@ -221,9 +223,9 @@ module module_mirror_boxes
         !>
         !>  returns |r|^2
         !>
-        real*8 function normsq(r)
+        real(kind_physics) function normsq(r)
           implicit none
-          real*8, intent(in) :: r(3)
+          real(kind_physics), intent(in) :: r(3)
 
           normsq = dot_product(r, r)
         end function
@@ -265,12 +267,13 @@ module module_mirror_boxes
         !>  otherweise LatticeOrigin or LatticeCenter are invalid
         !>
         logical function check_lattice_boundaries(particles)
+          use module_pepc_kinds, only: kind_particle
           use module_pepc_types
           use module_debug
           implicit none
           type (t_particle), dimension(:), intent(in) :: particles
           integer(kind_particle) :: p
-          real*8 :: lattice_coord(3)
+          real(kind_physics) :: lattice_coord(3)
           
           check_lattice_boundaries = .true.
           

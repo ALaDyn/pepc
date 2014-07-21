@@ -24,6 +24,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_energy
+    use module_pepc_kinds
     use physvars
     implicit none
     private

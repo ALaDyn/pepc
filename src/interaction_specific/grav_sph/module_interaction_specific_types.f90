@@ -23,6 +23,7 @@
 !> all subroutines and types within this module are obligatory
 !>
 module module_interaction_specific_types
+      use module_pepc_kinds
       implicit none
 
       integer, parameter :: max_neighbour_particles = 50

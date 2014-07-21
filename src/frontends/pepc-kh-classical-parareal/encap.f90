@@ -1,4 +1,5 @@
 module encap
+  use module_pepc_kinds
   use module_pepc_types
   use iso_c_binding
   implicit none

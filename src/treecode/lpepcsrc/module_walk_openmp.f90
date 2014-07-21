@@ -93,6 +93,7 @@
 module module_walk
   use, intrinsic :: iso_c_binding
   use module_tree, only: t_tree
+  use module_pepc_kinds
   use module_pepc_types
   use module_atomic_ops, only: t_atomic_int
   implicit none
@@ -121,7 +122,7 @@ module module_walk
   ! variables for adjusting the thread's workload
   integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
 
-  real*8 :: vbox(3)
+  real(kind_physics) :: vbox(3)
   integer :: todo_list_length, defer_list_length, num_particles
   type(t_particle), pointer, dimension(:) :: particle_data
   type(t_tree), pointer :: walk_tree
@@ -257,7 +258,7 @@ module module_walk
     implicit none
     include 'mpif.h'
 
-    real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
+    real(kind_physics), intent(in) :: vbox_(3) !< real space shift vector of box to be processed
 
     integer :: ith
     integer(kind_particle) :: num_processed_particles
@@ -479,7 +480,6 @@ module module_walk
     contains
 
     subroutine swap_defer_lists()
-      use module_pepc_types, only: kind_node
       implicit none
       integer(kind_node), dimension(:), pointer :: tmp_list
 
@@ -576,7 +576,7 @@ module module_walk
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
-    real*8 :: dist2, delta(3), shifted_particle_position(3)
+    real(kind_physics) :: dist2, delta(3), shifted_particle_position(3)
     logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
 

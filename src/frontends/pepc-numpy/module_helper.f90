@@ -24,6 +24,7 @@
 
 module helper
 
+  use module_pepc_kinds
   use module_pepc_types
   use variables
 

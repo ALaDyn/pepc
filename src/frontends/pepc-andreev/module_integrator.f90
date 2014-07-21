@@ -22,6 +22,7 @@
 !> trajectory integration routines
 !>
 module pepca_integrator
+  use module_pepc_kinds
   implicit none
   private
   

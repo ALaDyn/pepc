@@ -1,5 +1,6 @@
 module pfm_encap
   use iso_c_binding
+  use module_pepc_kinds
   use module_pepc_types
   use module_debug
   use pf_mod_dtype
@@ -11,7 +12,7 @@ module pfm_encap
     integer :: level
     integer :: nparts
     integer :: dim
-    real*8 :: theta
+    real(kind_physics) :: theta
     logical :: directforce
     integer :: feval_mode
     integer(kind_default) :: comm
@@ -19,8 +20,8 @@ module pfm_encap
 
   !> Data encapsulation: data and parameters which will be filled in encap_create using ctx
   type :: app_data_t
-    real*8, dimension(:,:), allocatable :: x
-    real*8, dimension(:,:), allocatable :: v
+    real(kind_physics), dimension(:,:), allocatable :: x
+    real(kind_physics), dimension(:,:), allocatable :: v
     type(level_params_t) :: params
     type(t_particle), pointer :: particles(:) !< this is a pointer to blueprint particles: x and v are stored in app_data_t structure, all other properties are stores here, see encap_to_particles() for details
   end type app_data_t

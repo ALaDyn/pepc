@@ -26,6 +26,7 @@
 !> i.e. shifting along the tree, computing forces between particles and cluster, etc.
 !>
 module module_interaction_specific
+  use module_pepc_kinds
   use module_pepc_types
   use module_interaction_specific_types
   use module_multipole

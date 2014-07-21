@@ -23,7 +23,7 @@
 !> Contains procedures to construct a tree from a collection of particles.
 !>
 module module_tree_grow
-  use module_pepc_types
+  use module_pepc_kinds
   implicit none
   private
 
@@ -36,7 +36,7 @@ module module_tree_grow
   !> to other MPI ranks if necessary (i.e. reallocates particles and changes np_local)
   !>
   subroutine tree_grow(t, p)
-    use module_pepc_types, only: t_particle, t_tree_node, kind_node
+    use module_pepc_types, only: t_particle, t_tree_node
     use module_timings
     use module_tree, only: t_tree, tree_create, tree_check, tree_dump
     use module_domains, only: domain_decompose
@@ -147,7 +147,7 @@ module module_tree_grow
   subroutine tree_exchange(t, num_local_branch_nodes, local_branch_nodes, branch_nodes)
     use module_tree, only: t_tree, tree_insert_node
     use module_tree_node, only: tree_node_pack, tree_node_unpack, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE
-    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, kind_node
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package
     use module_debug, only : pepc_status
     use module_timings
     use module_debug
@@ -237,7 +237,7 @@ module module_tree_grow
   !>
   subroutine tree_exchange_branches(t, p, bp, bn)
     use module_tree, only: t_tree
-    use module_pepc_types, only: t_particle, kind_node
+    use module_pepc_types, only: t_particle, t_tree_node
     use module_debug, only: pepc_status
     use module_tree_node
     use module_timings
@@ -420,7 +420,7 @@ module module_tree_grow
     use module_timings
     use module_sort, only: sort
     use module_spacefilling, only: level_from_key, parent_key_from_key
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types, only: t_tree_node
     use module_debug
     implicit none
 
@@ -624,7 +624,7 @@ module module_tree_grow
     recursive subroutine insert_helper(t, k, l, ki, pi)
       use module_tree, only: t_tree, tree_insert_node, tree_insert_node_at_index, &
         tree_provision_node, tree_node_connect_children
-      use module_pepc_types, only: t_tree_node, kind_node
+      use module_pepc_types, only: t_tree_node
       use module_tree_node
       use module_spacefilling, only: child_key_from_parent_key, is_ancestor_of_particle
       implicit none
@@ -740,7 +740,7 @@ module module_tree_grow
   !>
   subroutine tree_node_create_from_children(t, parent, children, k)
     use module_tree, only: t_tree
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types, only: t_tree_node
     use module_tree_node, only: NODE_INVALID
     implicit none
 
@@ -762,7 +762,7 @@ module module_tree_grow
   !> leaves links to node's relatives untouched
   !>
   subroutine tree_node_update_from_children(t, parent, children, k)
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types, only: t_tree_node
     use module_interaction_specific_types, only: t_tree_node_interaction_data
     use module_tree_node
     use module_interaction_specific, only : shift_multipoles_up

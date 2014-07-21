@@ -25,6 +25,7 @@
 
 module module_initialization
 
+  use module_pepc_kinds
   use module_pepc_types
   use module_geometry
   use variables

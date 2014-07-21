@@ -20,6 +20,7 @@
 
 program pepc
   use module_pepc
+  use module_pepc_kinds
   use module_pepc_types
   use module_timings
   use module_debug

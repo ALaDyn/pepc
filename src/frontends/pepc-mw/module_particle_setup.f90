@@ -25,6 +25,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_particle_setup
+      use module_pepc_kinds
       use physvars
       use module_mirror_boxes, only : LatticeOrigin
       implicit none

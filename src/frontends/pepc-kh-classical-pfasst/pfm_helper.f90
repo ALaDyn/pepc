@@ -1,4 +1,5 @@
 module pfm_helper
+  use module_pepc_kinds
   use module_debug
   implicit none
   private

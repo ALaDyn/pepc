@@ -22,6 +22,7 @@
 !> helper module
 !>
 module pepcboris_helper
+  use module_pepc_kinds
   use module_pepc_types
   use module_timings
   implicit none
@@ -80,14 +81,14 @@ module pepcboris_helper
     integer(kind_pe) :: rank_time,  nrank_time
     integer(kind_default) :: comm_space, comm_time
     ! time variables
-    real*8  :: dt  !< timestep (in simunits), set via pfasst parameters
+    real(kind_physics) :: dt  !< timestep (in simunits), set via pfasst parameters
     integer :: nt  !< number of timesteps, set via pfasst parameters
     ! dump step modulus
     integer :: dumpstep = 1
     ! configuration variables
     integer :: particle_config = 0
     integer :: dumptype = 0
-    real*8 :: setup_params(PARAMS_MAXIDX) = 0.
+    real(kind_physics) :: setup_params(PARAMS_MAXIDX) = 0.
     ! number of particles per species and rank, will be set automatically later
     integer(kind_particle) :: numparts = 100
     ! use PFASST
@@ -118,7 +119,7 @@ module pepcboris_helper
   subroutine pepcboris_init(particles, dt, nt)
     implicit none
     type(t_particle), allocatable, target, intent(out) :: particles(:)
-    real*8, intent(in)  :: dt
+    real(kind_physics), intent(in)  :: dt
     integer, intent(in) :: nt
 
     call set_parameter(dt, nt)
@@ -130,8 +131,8 @@ module pepcboris_helper
   pure function cross_prod(a, b)
     implicit none
 
-    real*8, dimension(3), intent(in) :: a, b
-    real*8, dimension(3) :: cross_prod
+    real(kind_physics), dimension(3), intent(in) :: a, b
+    real(kind_physics), dimension(3) :: cross_prod
 
     cross_prod(1) = a(2) * b(3) - a(3) * b(2)
     cross_prod(2) = a(3) * b(1) - a(1) * b(3)
@@ -142,8 +143,8 @@ module pepcboris_helper
   pure function cross_prod_plus(a, b, c)
     implicit none
 
-    real*8, dimension(3), intent(in) :: a, b, c
-    real*8, dimension(3) :: cross_prod_plus
+    real(kind_physics), dimension(3), intent(in) :: a, b, c
+    real(kind_physics), dimension(3) :: cross_prod_plus
 
     cross_prod_plus(1) = a(2) * b(3) - a(3) * b(2) + c(1)
     cross_prod_plus(2) = a(3) * b(1) - a(1) * b(3) + c(2)
@@ -157,7 +158,7 @@ module pepcboris_helper
     implicit none
     type(t_particle), allocatable, target, intent(out) :: particles(:)
     integer(kind_particle) :: i
-    real*8 :: myrand(3)
+    real(kind_physics) :: myrand(3)
 
     ! FIXME: Random numbers used here are not guaranteed to be repeatable in subsequent runs (but at least this works for cub, juropa, zam862)
     select case (pepcboris_nml%particle_config)
@@ -209,9 +210,9 @@ module pepcboris_helper
 
   function get_magnetic_field()
     implicit none
-    real*8, dimension(3) :: get_magnetic_field
+    real(kind_physics), dimension(3) :: get_magnetic_field
 
-    get_magnetic_field = [0.0_8, 0.0_8, pepcboris_nml%setup_params(PARAMS_OMEGAB)] ! FIXME * m/Q
+    get_magnetic_field = [0.0_kind_physics, 0.0_kind_physics, pepcboris_nml%setup_params(PARAMS_OMEGAB)] ! FIXME * m/Q
   end function
 
   subroutine set_parameter(dt, nt)
@@ -221,7 +222,7 @@ module pepcboris_helper
     use treevars, only : num_threads, np_mult
     implicit none
 
-    real*8, intent(in)  :: dt
+    real(kind_physics), intent(in)  :: dt
     integer, intent(in) :: nt
 
     integer, parameter :: fid = 12
@@ -230,7 +231,7 @@ module pepcboris_helper
 
     integer :: particle_config, workingmode, dumptype, dumpstep
     integer(kind_particle) :: numparts
-    real*8 :: setup_params(PARAMS_MAXIDX)
+    real(kind_physics) :: setup_params(PARAMS_MAXIDX)
 
     namelist /pepcborispfasst/ particle_config, setup_params, workingmode, dumptype, numparts, dumpstep
 

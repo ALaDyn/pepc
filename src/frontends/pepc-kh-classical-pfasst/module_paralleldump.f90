@@ -32,6 +32,7 @@
 !> in this implementation, MPI-internal buffers are used for buffering the output
 !> lets hope they do not overflow :-)
 module pepcboris_paralleldump
+  use module_pepc_kinds
   use module_pepc_types
   implicit none
   include 'mpif.h'

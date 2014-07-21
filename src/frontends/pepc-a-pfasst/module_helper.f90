@@ -22,6 +22,7 @@
 !> helper module
 !>
 module pepca_helper
+  use module_pepc_kinds
   use module_pepc_types
   use module_timings
   use pepca_units

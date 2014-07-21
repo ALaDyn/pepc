@@ -19,7 +19,7 @@
 !
 
 module module_directsum
-
+      use module_pepc_kinds
       implicit none
 
       integer, parameter :: MPI_TAG_DIRECT_DATA_PACKAGE_SIZE = 47
@@ -33,6 +33,7 @@ module module_directsum
         !>
         subroutine directforce(particles, testidx, ntest, directresults, comm)
           use module_pepc_types
+	  use module_pepc_kinds
           use module_interaction_specific_types
           use module_interaction_specific
           use omp_lib
@@ -55,7 +56,7 @@ module module_directsum
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
-          real*8 :: delta(3)
+          real(kind_physics) :: delta(3)
           integer :: ibox
           type(t_particle) :: latticeparticles(ntest)
 

@@ -1,4 +1,5 @@
 module pepc_helper
+  use module_pepc_kinds
   use encap, only : WM_BENEDIKT
 
    implicit none
@@ -44,7 +45,7 @@ contains
    subroutine pepc_setup(pepc_pars)
       use encap
       use module_pepc
-      use module_pepc_types, only: t_particle, kind_dim, kind_particle
+      use module_pepc_types, only: t_particle
       implicit none
 
       type(pepc_pars_t), intent(inout) :: pepc_pars

@@ -22,7 +22,7 @@
 !> Contains mapper functions for space-filling curves
 !>
 module module_spacefilling
-      use module_pepc_types
+      use module_pepc_kinds
       implicit none
 
       integer(kind_key), parameter, public :: KEY_INVALID = 0_kind_key
@@ -205,9 +205,9 @@ module module_spacefilling
           integer(kind_key) :: intcoord(idim)
 
           type(t_box), intent(in) :: b
-          real*8, intent(in) :: x(3)
+          real(kind_physics), intent(in) :: x(3)
 
-          real*8 :: s(3)
+          real(kind_physics) :: s(3)
 
           s = b%boxsize / 2_kind_key**nlev       ! refinement length
           intcoord = coord_to_intcoord_with_refinement_length(b, s, x)
@@ -215,7 +215,6 @@ module module_spacefilling
 
 
         function coord_to_intcoord_with_refinement_length(b, s, x) result(intcoord)
-          use module_pepc_types, only: kind_key
           use module_box, only: t_box
           use treevars, only: idim
           implicit none
@@ -223,8 +222,8 @@ module module_spacefilling
           integer(kind_key) :: intcoord(idim)
 
           type(t_box), intent(in) :: b
-          real*8, intent(in) :: s(3)
-          real*8, intent(in) :: x(3)
+          real(kind_physics), intent(in) :: s(3)
+          real(kind_physics), intent(in) :: x(3)
 
           intcoord(:) = int(( x(1:idim) - b%boxmin(1:idim) ) / s(1:idim), kind = kind_key) ! partial keys
         end function coord_to_intcoord_with_refinement_length
@@ -235,7 +234,7 @@ module module_spacefilling
         !>
         subroutine compute_particle_keys(b, particles)
           use treevars, only: idim, nlev
-          use module_pepc_types, only: t_particle, kind_particle
+          use module_pepc_types, only: t_particle
           use module_box, only: t_box
           use module_debug
           implicit none
@@ -243,7 +242,7 @@ module module_spacefilling
           type(t_box), intent(in) :: b
           type(t_particle), intent(inout) :: particles(:)
 
-          real*8 :: s(3)
+          real(kind_physics) :: s(3)
           integer(kind_particle) :: j, nl
 
           nl = ubound(particles, 1)
@@ -280,7 +279,7 @@ module module_spacefilling
 
           integer(kind_key) :: coord_to_key
           type(t_box), intent(in) :: b
-          real*8, intent(in) :: x(3)
+          real(kind_physics), intent(in) :: x(3)
 
           ! construct particle keys
           select case (idim)
@@ -466,10 +465,10 @@ module module_spacefilling
 
           type(t_box), intent(in) :: b
           integer(kind_key), intent(in) :: key
-          real*8, intent(inout) :: x(3)
+          real(kind_physics), intent(inout) :: x(3)
 
           integer(kind_key) :: ic(idim)
-          real*8 :: s(idim)
+          real(kind_physics) :: s(idim)
 
           ! construct particle coordiantes
           select case (idim)
@@ -483,7 +482,7 @@ module module_spacefilling
 
           s = b%boxsize(1:idim) / 2_kind_key**nlev       ! refinement length
 
-          x(1:idim) = (real(ic, kind(1._8)) + 0.5_8) * s + b%boxmin(1:idim)
+          x(1:idim) = (real(ic, kind_physics) + 0.5_kind_physics) * s + b%boxmin(1:idim)
         end subroutine key_to_coord
 
 

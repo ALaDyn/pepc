@@ -1,4 +1,5 @@
 module pfm_feval
+    use module_pepc_kinds
     use pfm_encap
     use pf_mod_mpi
     use module_debug

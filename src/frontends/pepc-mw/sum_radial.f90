@@ -37,6 +37,7 @@ subroutine sum_radial(timestamp)
   use physvars
   use module_units
   use module_utils
+  use module_pepc_kinds
   use module_pepc_types
   implicit none
   include 'mpif.h'

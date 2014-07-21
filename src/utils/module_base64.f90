@@ -40,14 +40,15 @@ module module_base64
 
       contains
            procedure :: getnextbyte    => base64_encoder_getnextbyte
-           procedure :: flushbuffer  => base64_encoder_flushbuffer
-           generic   :: encode       => encode_real8, encode_real4, encode_int8, encode_int4
-           procedure :: finish       => base64_encoder_finish
-           procedure :: start        => base64_encoder_start
-           procedure :: encode_real8 => base64_encoder_encode_real8
-           procedure :: encode_real4 => base64_encoder_encode_real4
-           procedure :: encode_int8  => base64_encoder_encode_int8
-           procedure :: encode_int4  => base64_encoder_encode_int4
+           procedure :: flushbuffer   => base64_encoder_flushbuffer
+           generic   :: encode        => encode_real16, encode_real8, encode_real4, encode_int8, encode_int4
+           procedure :: finish        => base64_encoder_finish
+           procedure :: start         => base64_encoder_start
+           procedure :: encode_real16 => base64_encoder_encode_real16
+           procedure :: encode_real8  => base64_encoder_encode_real8
+           procedure :: encode_real4  => base64_encoder_encode_real4
+           procedure :: encode_int8   => base64_encoder_encode_int8
+           procedure :: encode_int4   => base64_encoder_encode_int4
     end type base64_encoder
 
     contains
@@ -110,6 +111,18 @@ module module_base64
         base64%istream   = istream_
         base64%bigendian = bigendian_
       end subroutine base64_encoder_start
+
+
+      subroutine base64_encoder_encode_real16(base64, data)
+        implicit none
+        class(base64_encoder) :: base64
+        real*16, intent(in), value :: data
+	real*8 :: rtmp
+        integer*8 :: tmp
+	rtmp = real(data, kind(rtmp))
+        tmp = transfer(data, rtmp)
+        call base64%encode_int8(tmp)
+      end subroutine base64_encoder_encode_real16
 
 
       subroutine base64_encoder_encode_real8(base64, data)

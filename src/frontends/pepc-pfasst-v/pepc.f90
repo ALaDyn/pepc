@@ -40,6 +40,7 @@ program pepcv
   use pfasst_helper_module
   use pfasst_calc_module
   use pfasst_run_module
+  use module_pepc_kinds
   use module_pepc_types
   implicit none
 

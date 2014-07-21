@@ -27,6 +27,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_fmm_periodicity
+      use module_pepc_kinds
       use module_mirror_boxes, only: lattice_vect
       implicit none
       include 'mpif.h'

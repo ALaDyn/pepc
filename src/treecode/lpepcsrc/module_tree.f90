@@ -28,6 +28,7 @@ module module_tree
     use module_domains, only: t_decomposition
     use pthreads_stuff, only: t_pthread_with_type
     use module_atomic_ops, only: t_atomic_int
+    use module_pepc_kinds
     use module_pepc_types
     use, intrinsic :: iso_c_binding
     implicit none
@@ -96,7 +97,7 @@ module module_tree
       integer(kind_node) :: nodes_nentries   !< number of entries present in nodes array
       integer(kind_node) :: node_root        !< index of the root node in nodes-array
       
-      real*8, allocatable :: boxlength2(:) !< precomputed square of maximum edge length of boxes for different levels - used for MAC evaluation
+      real(kind_physics), allocatable :: boxlength2(:) !< precomputed square of maximum edge length of boxes for different levels - used for MAC evaluation
       
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
       type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
@@ -347,7 +348,7 @@ module module_tree
     !> previously provisioned using `tree_provision_node`.
     !>
     subroutine tree_insert_node_at_index(t, i, n)
-      use module_pepc_types, only: t_tree_node, kind_node
+      use module_pepc_types, only: t_tree_node
       use module_tree_node, only: tree_node_is_leaf
       use module_debug
       implicit none
@@ -374,7 +375,7 @@ module module_tree
     !> inserts the tree node `n` into the tree `t`.
     !>
     subroutine tree_insert_node(t, n, entry_pointer)
-      use module_pepc_types, only: t_tree_node, kind_node
+      use module_pepc_types, only: t_tree_node
       use module_debug
       implicit none
 
@@ -441,7 +442,6 @@ module module_tree
     !> `n` via `first_child` within tree `t`
     !>
     subroutine tree_node_connect_children(t, n, c)
-      use module_pepc_types, only: kind_node
       use module_tree_node, only: NODE_INVALID
       use module_debug
       implicit none
@@ -473,7 +473,7 @@ module module_tree
     !>
     function tree_check(t, callpoint)
       use module_debug
-      use module_pepc_types, only: t_tree_node, kind_node
+      use module_pepc_types, only: t_tree_node
       use module_debug
       implicit none
 

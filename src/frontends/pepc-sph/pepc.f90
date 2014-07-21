@@ -43,6 +43,8 @@ program pepce
   ! TODO: use omp_lib, only: ...
   use omp_lib
   
+  use module_pepc_kinds
+
   use module_pepc_types
 
   use treevars, only: &

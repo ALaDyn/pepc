@@ -1,4 +1,5 @@
 module time_helper
+  use module_pepc_kinds
   implicit none
 
 contains

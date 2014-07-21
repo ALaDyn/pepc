@@ -1,4 +1,5 @@
 module pepc_helper
+  use module_pepc_kinds
   implicit none
 
 contains
@@ -7,7 +8,7 @@ contains
     use constants
     use encap
     use module_pepc
-    use module_pepc_types, only: t_particle, kind_dim, kind_particle
+    use module_pepc_types, only: t_particle
     implicit none
 
     character(*), intent(in) :: file_name

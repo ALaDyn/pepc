@@ -1,5 +1,6 @@
 module pfm_encap
   use iso_c_binding
+  use module_pepc_kinds
   use module_pepc_types
   use module_debug
   use pf_mod_dtype

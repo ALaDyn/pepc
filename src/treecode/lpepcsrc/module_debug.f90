@@ -22,7 +22,7 @@
 !>  Encapsulates some debugging and i/o specific routines
 !>
 module module_debug
-     use module_pepc_types
+     use module_pepc_kinds
      implicit none
      save
      private

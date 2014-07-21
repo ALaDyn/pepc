@@ -1,4 +1,5 @@
 module pfm_feval
+    use module_pepc_kinds
     use pfm_encap
     use pf_mod_mpi
     use module_debug
@@ -190,13 +191,14 @@ module pfm_feval
     !> compile full right-hand side using the E-field and particle data
     subroutine build_rhs(Eptr, Qptr, level, ctx, rhsptr)
       use module_pepc
+      use module_pepc_kinds
       use iso_c_binding, only : c_ptr, c_int, c_f_pointer
       use module_debug, only : dbg, DBG_STATS, pepc_status
       use pepcboris_helper
       implicit none
       type(c_ptr),    intent(in), value :: Eptr, rhsptr, ctx, Qptr
       integer(c_int), intent(in)        :: level
-      real*8 :: B0(3)
+      real(kind_physics) :: B0(3)
 
       type(t_particle), allocatable :: particles(:)
       type(app_data_t), pointer :: E,rhs,Q
@@ -230,6 +232,7 @@ module pfm_feval
     !> solve for the updated velocity, e.g. using the Boris solver
     subroutine impl_solver(vptr, level, ctx, v_oldptr, E_oldptr, E_newptr, SDCintptr, dt)
       use module_pepc
+      use module_pepc_kinds
       use iso_c_binding, only : c_ptr, c_int, c_f_pointer
       use module_debug, only : dbg, DBG_STATS, pepc_status
       use pepcboris_helper
@@ -238,8 +241,8 @@ module pfm_feval
       integer(c_int), intent(in)        :: level
       real(pfdp),     intent(in)        :: dt
 
-      real*8               :: beta, gam
-      real*8, dimension(3) :: B0, uminus, uprime, uplus, t, s, Emean
+      real(kind_physics)               :: beta, gam
+      real(kind_physics), dimension(3) :: B0, uminus, uprime, uplus, t, s, Emean
 
       type(t_particle), allocatable :: particles(:)
       type(app_data_t), pointer :: v, v_old, E_new, E_old, SDCint
@@ -305,14 +308,15 @@ module pfm_feval
     end subroutine
 
     subroutine apply_external_field(nml, particles)
+      use module_pepc_kinds
       use module_pepc_types
       use pepcboris_helper
       implicit none
       type(t_particle), target, intent(inout) :: particles(:)
       type(pepcboris_nml_t), intent(in) :: nml
       integer(kind_particle) :: p
-      real*8, parameter :: w(3) = [1._8, 1._8, -2._8]
-      real*8 :: w2
+      real(kind_physics), parameter :: w(3) = [1._kind_physics, 1._kind_physics, -2._kind_physics]
+      real(kind_physics) :: w2
 
       w2 = nml%setup_params(PARAMS_OMEGAE)**2
 

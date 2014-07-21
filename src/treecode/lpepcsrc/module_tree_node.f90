@@ -22,7 +22,7 @@
 !>  Encapsulates functions for accessing, manipulating, and verifying hash table data
 !>
 module module_tree_node
-    use module_pepc_types
+    use module_pepc_kinds
     implicit none
     private
 
@@ -54,7 +54,7 @@ module module_tree_node
     !> Otherwise, `.false.` is returned and `fc` points to `null()`.
     !>
     function tree_node_get_first_child(p) result(fc)
-      use module_pepc_types, only: t_tree_node, kind_node
+      use module_pepc_types, only: t_tree_node
       use module_atomic_ops
       implicit none
 
@@ -80,7 +80,7 @@ module module_tree_node
     !> In this context, "next" is defined by the ordering of the node keys.
     !>
     function tree_node_get_next_sibling(n) result(s)
-      use module_pepc_types, only: t_tree_node, kind_node
+      use module_pepc_types, only: t_tree_node
       implicit none
 
       integer(kind_node) :: s
@@ -94,6 +94,7 @@ module module_tree_node
     !> checks whether `n` is a leaf or twig node
     !>
     function tree_node_is_leaf(n)
+      use module_pepc_types, only: t_tree_node
       implicit none
       type(t_tree_node), intent(in) :: n
       logical :: tree_node_is_leaf
@@ -106,6 +107,7 @@ module module_tree_node
     !> checks whether `n` is a root node
     !>
     function tree_node_is_root(n)
+      use module_pepc_types, only: t_tree_node
       implicit none
       type(t_tree_node), intent(in) :: n
 
@@ -120,6 +122,7 @@ module module_tree_node
     !> to be requested from remote ranks
     !>
     function tree_node_children_available(n)
+      use module_pepc_types, only: t_tree_node
       implicit none
       type(t_tree_node), intent(in) :: n
       logical :: tree_node_children_available
@@ -129,7 +132,7 @@ module module_tree_node
 
 
     subroutine tree_node_pack(n, p)
-      use module_pepc_types, only: t_tree_node_package
+      use module_pepc_types, only: t_tree_node_package, t_tree_node
       implicit none
 
       type(t_tree_node), intent(in) :: n
@@ -148,7 +151,7 @@ module module_tree_node
 
 
     subroutine tree_node_unpack(p, n)
-      use module_pepc_types, only: t_tree_node_package
+      use module_pepc_types, only: t_tree_node_package, t_tree_node
       implicit none
 
       type(t_tree_node_package), intent(in) :: p

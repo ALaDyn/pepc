@@ -23,7 +23,7 @@
 !> associated procedures.
 !>
 module module_comm_env
-  use module_pepc_types
+  use module_pepc_kinds
   implicit none
   private
 

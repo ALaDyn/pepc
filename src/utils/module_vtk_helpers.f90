@@ -22,6 +22,7 @@
 !>  Encapsulates helper functions for outputting different data formats to vtk files
 !>
 module module_vtk_helpers
+  use module_pepc_kinds
   implicit none
   private
 
@@ -72,7 +73,7 @@ module module_vtk_helpers
     end interface
 
     optional :: helper_func
-    real*8, intent(in), optional :: coord_scale
+    real(kind_physics), intent(in), optional :: coord_scale
 
     integer(kind_particle) :: i, np
     integer(kind_pe) :: mpi_rank, mpi_size
@@ -135,8 +136,8 @@ module module_vtk_helpers
     real*8, intent(in) :: tsim
     type(t_tree), intent(in) :: t
     integer(kind_node), dimension(:), intent(in) :: nodes
-    real*8, dimension(:,:), intent(in), optional :: node_vbox
-    real*8, intent(in), optional :: coord_scale
+    real(kind_physics), dimension(:,:), intent(in), optional :: node_vbox
+    real(kind_physics), intent(in), optional :: coord_scale
 
     interface
       subroutine helper_func(d, vtkf)
@@ -153,7 +154,7 @@ module module_vtk_helpers
     type(t_tree_node), pointer :: bnode
     integer(kind_node) :: i, num_nodes
     integer(kind_default) :: mpi_rank, mpi_size, ierr
-    real*8, dimension(:), allocatable  :: bcocx, bcocy, bcocz
+    real(kind_physics), dimension(:), allocatable  :: bcocx, bcocy, bcocz
     integer, dimension(:), allocatable :: bowner, blevel, mirror_level
     integer*8, dimension(:), allocatable :: bleaves, bdescendants
     type(t_tree_node_interaction_data), dimension(:), allocatable :: bdata
@@ -253,8 +254,8 @@ module module_vtk_helpers
     real*8, intent(in) :: tsim
     type(t_tree), intent(in) :: t
     integer(kind_node), dimension(:), intent(in) :: nodes
-    real*8, dimension(:,:), intent(in), optional :: node_vbox
-    real*8, intent(in), optional :: coord_scale
+    real(kind_physics), dimension(:,:), intent(in), optional :: node_vbox
+    real(kind_physics), intent(in), optional :: coord_scale
 
     interface
       subroutine helper_func(d, vtkf)
@@ -273,15 +274,15 @@ module module_vtk_helpers
     integer(kind_default) :: mpi_rank, mpi_size, ierr
     integer :: j
     integer(kind_key) :: bkey
-    real*8 :: bsize(3)
-    real*8, dimension(:), allocatable  :: bcornersx, bcornersy, bcornersz
+    real(kind_physics) :: bsize(3)
+    real(kind_physics), dimension(:), allocatable  :: bcornersx, bcornersy, bcornersz
     integer(kind_node), dimension(:), allocatable :: bcornersidx, bcornersoffsets
     integer, dimension(:), allocatable :: bowner, blevel, mirror_level
     integer*8, dimension(:), allocatable :: bleaves, bdescendants
     type(t_tree_node_interaction_data), dimension(:), allocatable :: bdata
 
     integer, dimension(:, :), allocatable :: mirror_indices
-    real*8 :: bx(3)
+    real(kind_physics) :: bx(3)
 
     real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
                                                              0., 0., 1., &
@@ -291,7 +292,7 @@ module module_vtk_helpers
                                                              1., 0., 1., &
                                                              1., 1., 0., &
                                                              1., 1., 1. ], shape(box_shift))
-    real*8, dimension(3) :: bshift
+    real(kind_physics), dimension(3) :: bshift
     type(vtkfile_unstructured_grid) :: vtk
 
     call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
@@ -403,19 +404,19 @@ module module_vtk_helpers
     real*8, intent(in) :: tsim
     type(t_box), intent(in) :: bounding_box
     integer(kind_key), dimension(:), intent(in) :: keys, colors
-    real*8, dimension(:,:), intent(in), optional :: key_vbox
-    real*8, intent(in), optional :: coord_scale
+    real(kind_physics), dimension(:,:), intent(in), optional :: key_vbox
+    real(kind_physics), intent(in), optional :: coord_scale
 
     integer(kind_node) :: i, num_keys
     integer(kind_default) :: mpi_rank, mpi_size, ierr
     integer :: j
-    real*8 :: bsize(3)
-    real*8, dimension(:), allocatable  :: bcornersx, bcornersy, bcornersz
+    real(kind_physics) :: bsize(3)
+    real(kind_physics), dimension(:), allocatable  :: bcornersx, bcornersy, bcornersz
     integer(kind_node), dimension(:), allocatable :: bcornersidx, bcornersoffsets
     integer, dimension(:), allocatable :: blevel, mirror_level
 
     integer, dimension(:, :), allocatable :: mirror_indices
-    real*8 :: bx(3)
+    real(kind_physics) :: bx(3)
 
     real, parameter, dimension(3,8) :: box_shift = reshape([ 0., 0., 0., &
                                                              0., 0., 1., &
@@ -425,7 +426,7 @@ module module_vtk_helpers
                                                              1., 0., 1., &
                                                              1., 1., 0., &
                                                              1., 1., 1. ], shape(box_shift))
-    real*8, dimension(3) :: bshift
+    real(kind_physics), dimension(3) :: bshift
     type(vtkfile_unstructured_grid) :: vtk
 
     call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
@@ -512,7 +513,7 @@ module module_vtk_helpers
 
     integer(kind_node), intent(in) :: interaction_nodelist(:,:)
     integer(kind_node), intent(in) :: no_interaction_partners(:)
-    real*8, intent(in) :: interaction_vbox(:,:,:)
+    real(kind_physics), intent(in) :: interaction_vbox(:,:,:)
 
     interface
       subroutine helper_func(d, vtkf)
@@ -559,7 +560,8 @@ module module_vtk_helpers
   !> Writes the tree leaves into a vtk file.
   !>
   subroutine vtk_write_leaves(step, tsim, vtk_step, t, helper_func, coord_scale)
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types, only: t_tree_node
+    use module_pepc_kinds, only: kind_node, kind_physics
     use module_tree, only: t_tree, tree_allocated
     use module_debug
     implicit none
@@ -568,7 +570,7 @@ module module_vtk_helpers
     integer, intent(in) :: vtk_step
     real*8, intent(in) :: tsim
     type(t_tree), intent(in) :: t
-    real*8, intent(in), optional :: coord_scale
+    real(kind_physics), intent(in), optional :: coord_scale
 
     interface
       subroutine helper_func(d, vtkf)
@@ -605,7 +607,7 @@ module module_vtk_helpers
     recursive subroutine collect_leaves(t, nidx)
       use module_tree_node
       use module_tree, only: t_tree
-      use module_pepc_types, only: kind_node
+      use module_pepc_kinds, only: kind_node
       implicit none
 
       type(t_tree), intent(in) :: t
@@ -642,7 +644,8 @@ module module_vtk_helpers
   !> Writes the tree branches structure into a vtk file.
   !>
   subroutine vtk_write_branches(step, tsim, vtk_step, t, helper_func, coord_scale)
-    use module_pepc_types, only: t_tree_node, kind_node
+    use module_pepc_types, only: t_tree_node
+    use module_pepc_kinds, only: kind_node, kind_physics
     use module_tree, only: t_tree, tree_allocated
     use module_debug
     implicit none
@@ -651,7 +654,7 @@ module module_vtk_helpers
     integer, intent(in) :: vtk_step
     real*8, intent(in) :: tsim
     type(t_tree), intent(in) :: t
-    real*8, intent(in), optional :: coord_scale
+    real(kind_physics), intent(in), optional :: coord_scale
 
     interface
       subroutine helper_func(d, vtkf)
@@ -695,7 +698,7 @@ module module_vtk_helpers
     recursive subroutine collect_branches(t, nidx)
       use module_tree_node
       use module_tree, only: t_tree
-      use module_pepc_types, only: kind_node
+      use module_pepc_kinds, only: kind_node
       implicit none
 
       type(t_tree), intent(in) :: t
@@ -732,6 +735,7 @@ module module_vtk_helpers
   subroutine vtk_write_spacecurve(step, tsim, vtk_step, particles, coord_scale)
     use treevars, only: MPI_COMM_lpepc
     use module_vtk
+    use module_pepc_kinds, only: kind_particle, kind_physics
     use module_pepc_types
     implicit none
 
@@ -741,7 +745,7 @@ module module_vtk_helpers
     integer, intent(in) :: vtk_step
     real*8, intent(in) :: tsim
     type(t_particle), intent(in) :: particles(:)
-    real*8, intent(in), optional :: coord_scale
+    real(kind_physics), intent(in), optional :: coord_scale
 
     type(vtkfile_unstructured_grid) :: vtk
     integer(kind_particle) :: i, npp

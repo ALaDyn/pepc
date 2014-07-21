@@ -23,6 +23,7 @@
 !!!!!!!!!!!!!!!!!!!!
 
 module variables
+  use module_pepc_kinds
   use module_pepc_types
   use module_geometry_types
   use module_species_types

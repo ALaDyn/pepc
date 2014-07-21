@@ -24,6 +24,7 @@
 !> i.e. shifting along the tree, computing forces between particles and cluster, etc.
 !>
 module module_interaction_specific
+     use module_pepc_kinds, only: kind_physics
      use module_pepc_types
      use module_interaction_specific_types
      implicit none
@@ -33,9 +34,9 @@ module module_interaction_specific
       integer, public :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
       integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
       logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
-      real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
-      real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
-      real*8, public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
+      real(kind_physics), public  :: theta2       = 0.36  !< square of multipole opening angle
+      real(kind_physics), public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
+      real(kind_physics), public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
@@ -63,7 +64,7 @@ module module_interaction_specific
       !>
       subroutine multipole_from_particle(particle_pos, particle, multipole)
         implicit none
-        real*8, intent(in) :: particle_pos(3)
+        real(kind_physics), intent(in) :: particle_pos(3)
         type(t_particle_data), intent(in) :: particle
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
@@ -86,8 +87,8 @@ module module_interaction_specific
 
         integer :: nchild, j
 
-        real*8 :: shift(1:3)
-        real*8, parameter :: half = 0.5_8
+        real(kind_physics) :: shift(1:3)
+        real(kind_physics), parameter :: half = 0.5_kind_physics
 
         nchild = size(children)
 
@@ -222,7 +223,7 @@ module module_interaction_specific
         integer(kind_particle), intent(in) :: npart_total !< total number of particles
         integer(kind_node), intent(out) :: nintmax !< maximum number of interactions per particle
 
-        real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
+        real(kind_physics) :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
         ! Estimate of interaction list length - Hernquist expression
         ! applies for BH-MAC
@@ -248,8 +249,8 @@ module module_interaction_specific
 
         logical :: mac
         type(t_tree_node_interaction_data), intent(in) :: node
-        real*8, intent(in) :: dist2
-        real*8, intent(in) :: boxlength2
+        real(kind_physics), intent(in) :: dist2
+        real(kind_physics), intent(in) :: boxlength2
 
         select case (mac_select)
             case (0)
@@ -294,7 +295,7 @@ module module_interaction_specific
         type(t_tree_node_interaction_data), intent(in) :: node
         integer(kind_node), intent(in) :: node_idx
         type(t_particle), intent(inout) :: particle
-        real*8, intent(in) :: vbox(3), delta(3), dist2
+        real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
       end subroutine
 
 
@@ -313,9 +314,9 @@ module module_interaction_specific
         type(t_tree_node_interaction_data), intent(in) :: node
         integer(kind_node), intent(in) :: node_idx
         type(t_particle), intent(inout) :: particle
-        real*8, intent(in) :: vbox(3), delta(3), dist2
+        real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
 
-        real*8 :: exyz(3), phic
+        real(kind_physics) :: exyz(3), phic
 
         select case (force_law)
           case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
@@ -355,9 +356,9 @@ module module_interaction_specific
         type(t_tree_node_interaction_data), intent(in) :: node
         integer(kind_node), intent(in) :: node_idx
         type(t_particle), intent(inout) :: particle
-        real*8, intent(in) :: vbox(3), delta(3), dist2
+        real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
 
-        real*8 :: exyz(3), phic
+        real(kind_physics) :: exyz(3), phic
 
         select case (force_law)
           case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
@@ -396,7 +397,7 @@ module module_interaction_specific
           implicit none
 
           type(t_particle), intent(inout) :: particles(:)
-          real*8 :: e_lattice(3), phi_lattice
+          real(kind_physics) :: e_lattice(3), phi_lattice
           integer(kind_particle) :: p
 
           call pepc_status('CALC FORCE PER PARTICLE')

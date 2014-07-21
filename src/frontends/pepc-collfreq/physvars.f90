@@ -19,6 +19,7 @@
 !
 
 module physvars
+  use module_pepc_kinds
   use module_pepc_types
 
   !  physics data

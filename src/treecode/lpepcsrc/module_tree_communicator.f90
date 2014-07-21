@@ -45,6 +45,7 @@ module module_tree_communicator
   use module_tree, only: t_request_queue_entry, t_tree_communicator, TREE_COMM_REQUEST_QUEUE_LENGTH, TREE_COMM_ANSWER_BUFF_LENGTH, &
     TREE_COMM_THREAD_STATUS_STOPPED, TREE_COMM_THREAD_STATUS_STARTING, TREE_COMM_THREAD_STATUS_STARTED, &
     TREE_COMM_THREAD_STATUS_STOPPING, TREE_COMM_THREAD_STATUS_WAITING
+  use module_pepc_kinds
   use module_pepc_types
   implicit none
   private
@@ -246,7 +247,7 @@ module module_tree_communicator
     type(t_tree_node), target, intent(inout) :: n
     integer(kind_node), intent(in) :: nidx
     type(t_particle), intent(in), optional :: particle
-    real*8, intent(in), optional :: pos(3)
+    real(kind_physics), intent(in), optional :: pos(3)
 
     integer :: local_queue_bottom
 
@@ -399,7 +400,7 @@ module module_tree_communicator
   !>
   subroutine answer_request_simple(t, req, ipe_sender)
     use module_tree, only: t_tree
-    use module_pepc_types, only : t_tree_node, t_tree_node_package, kind_node
+    use module_pepc_types, only : t_tree_node, t_tree_node_package
     use module_tree_node
     use module_debug
     implicit none
@@ -447,7 +448,7 @@ module module_tree_communicator
   subroutine answer_request_eager(t, request, ipe_sender)
     use module_tree, only: t_tree
     use module_pepc_types, only : t_tree_node, &
-      t_tree_node_package, t_request_eager, kind_node
+      t_tree_node_package, t_request_eager
     use module_tree_node
     use module_debug
     implicit none
@@ -495,14 +496,14 @@ module module_tree_communicator
 
       recursive subroutine eager_collect_traverse(node)
         use module_interaction_specific, only : mac
-        use module_pepc_types, only: kind_node, t_tree_node
+        use module_pepc_types, only: t_tree_node
         implicit none
         integer(kind_node), intent(in) :: node
 
         integer(kind_node) :: n, s
         type(t_tree_node), pointer :: n_ptr
-        real*8 :: dist2
-        real*8 :: delta(3)
+        real(kind_physics) :: dist2
+        real(kind_physics) :: delta(3)
 
         n = node
 
@@ -538,7 +539,7 @@ module module_tree_communicator
   !>
   subroutine unpack_data(t, child_data, num_children, ipe_sender)
     use module_tree, only: t_tree, tree_insert_node
-    use module_pepc_types, only: t_tree_node, t_tree_node_package, kind_node
+    use module_pepc_types, only: t_tree_node, t_tree_node_package
     use module_tree_node
     use module_spacefilling, only: parent_key_from_key
     use module_atomic_ops, only: atomic_write_barrier
@@ -573,7 +574,6 @@ module module_tree_communicator
     contains
 
     recursive subroutine unpack_children(parent_idx, toplvl)
-      use module_pepc_types, only: kind_node
       use module_tree_node, only: NODE_INVALID
       use module_tree, only: tree_node_connect_children
       implicit none

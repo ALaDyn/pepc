@@ -24,6 +24,7 @@
 !>
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_pusher
+    use module_pepc_kinds
     use module_units
     use module_histogram
     implicit none

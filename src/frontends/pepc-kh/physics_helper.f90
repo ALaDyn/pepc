@@ -1,5 +1,5 @@
 module physics_helper
-
+   use module_pepc_kinds
    implicit none
 
    type physics_nml_t
@@ -22,7 +22,7 @@ contains
 
    subroutine setup_physics(physics_pars, time_pars, p, pepc_pars)
       use module_pepc, only: pepc_prepare
-      use module_pepc_types, only: t_particle, kind_dim
+      use module_pepc_types, only: t_particle
       use module_checkpoint
       use module_debug
       use module_mirror_boxes, only: mirror_box_layers, t_lattice_1, t_lattice_2, t_lattice_3, &

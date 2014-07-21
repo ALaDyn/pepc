@@ -1,4 +1,5 @@
 module field_helper
+   use module_pepc_kinds
    implicit none
 
   character(*), parameter, private :: field_dir = "fields"

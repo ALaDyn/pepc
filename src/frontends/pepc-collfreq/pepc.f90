@@ -34,6 +34,7 @@ program pepc
 
   use module_prepare
   use module_namelist
+  use module_pepc_kinds
   use module_pepc_types
   use physvars
   use module_timings

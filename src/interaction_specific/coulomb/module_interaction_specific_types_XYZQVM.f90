@@ -23,20 +23,21 @@
 !> all subroutines and types within this module are obligatory
 !>
 module module_interaction_specific_types
+      use module_pepc_kinds
       implicit none
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
-         real*8 :: q
-         real*8 :: v(3)
-         real*8 :: m
+         real(kind_physics) :: q
+         real(kind_physics) :: v(3)
+         real(kind_physics) :: m
       end type t_particle_data
       integer, private, parameter :: nprops_particle_data = 3
 
       !> Data structure for shipping results
       type t_particle_results
-         real*8, dimension(3) :: e
-         real*8 :: pot
+         real(kind_physics), dimension(3) :: e
+         real(kind_physics) :: pot
       end type t_particle_results
       integer, private, parameter :: nprops_particle_results = 2
 
@@ -44,15 +45,15 @@ module module_interaction_specific_types
 
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
-        real*8 :: coc(3)     ! centre of charge
-        real*8 :: charge     ! net charge sum
-        real*8 :: abs_charge !  absolute charge sum
-        real*8 :: dip(3)     ! dipole moment
-        real*8 :: quad(3)    ! diagonal quadrupole moments
-        real*8 :: xyquad     ! other quadrupole moments
-        real*8 :: yzquad
-        real*8 :: zxquad
-        real*8 :: bmax
+        real(kind_physics) :: coc(3)     ! centre of charge
+        real(kind_physics) :: charge     ! net charge sum
+        real(kind_physics) :: abs_charge !  absolute charge sum
+        real(kind_physics) :: dip(3)     ! dipole moment
+        real(kind_physics) :: quad(3)    ! diagonal quadrupole moments
+        real(kind_physics) :: xyquad     ! other quadrupole moments
+        real(kind_physics) :: yzquad
+        real(kind_physics) :: zxquad
+        real(kind_physics) :: bmax
       end type t_tree_node_interaction_data
       integer, private, parameter :: nprops_tree_node_interaction_data = 9
 
@@ -115,7 +116,7 @@ module module_interaction_specific_types
 
         ! register particle data type
         blocklengths(1:nprops_particle_data)  = [1, 3, 1]
-        types(1:nprops_particle_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        types(1:nprops_particle_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
         call MPI_GET_ADDRESS( dummy_particle_data,   address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%q, address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%v, address(2), ierr )
@@ -126,7 +127,7 @@ module module_interaction_specific_types
 
         ! register results data type
         blocklengths(1:nprops_particle_results)  = [3, 1]
-        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_REAL8]
+        types(1:nprops_particle_results)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
         call MPI_GET_ADDRESS( dummy_particle_results,      address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%e,    address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%pot,  address(2), ierr )
@@ -136,7 +137,7 @@ module module_interaction_specific_types
 
         ! register multipole data type
         blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 3, 3, 1, 1, 1, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        types(1:nprops_tree_node_interaction_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )

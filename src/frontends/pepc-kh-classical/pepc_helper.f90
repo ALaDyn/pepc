@@ -1,5 +1,5 @@
 module pepc_helper
-
+   use module_pepc_kinds
    implicit none
 
    type pepc_nml_t
@@ -19,7 +19,7 @@ contains
       use constants
       use encap
       use module_pepc
-      use module_pepc_types, only: t_particle, kind_dim, kind_particle
+      use module_pepc_types, only: t_particle
       implicit none
 
       type(pepc_pars_t), intent(out) :: pepc_pars

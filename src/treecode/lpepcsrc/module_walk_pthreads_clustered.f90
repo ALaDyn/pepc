@@ -93,6 +93,7 @@
 module module_walk
   use, intrinsic :: iso_c_binding
   use module_tree, only: t_tree
+  use module_pepc_kinds
   use module_pepc_types
   use module_atomic_ops, only: t_atomic_int
   use pthreads_stuff, only: t_pthread_with_type
@@ -121,7 +122,7 @@ module module_walk
   ! variables for adjusting the thread's workload
   integer, public :: max_clusters_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
 
-  real*8 :: vbox(3)
+  real(kind_physics) :: vbox(3)
   integer :: todo_list_length, defer_list_length, num_clusters
   type(t_particle), pointer, dimension(:) :: particle_data
   type(t_tree), pointer :: walk_tree
@@ -133,7 +134,7 @@ module module_walk
 
   type t_thread_cluster_data
     type(t_cluster_data) :: d
-    real*8 :: cluster_centre(3) !< cluster center, already shifted by vbox
+    real(kind_physics) :: cluster_centre(3) !< cluster center, already shifted by vbox
   end type
 
   type(t_cluster_data), allocatable, dimension(:) :: particle_clusters
@@ -268,7 +269,7 @@ module module_walk
     implicit none
     include 'mpif.h'
 
-    real*8, intent(in) :: vbox_(3) !< real space shift vector of box to be processed
+    real(kind_physics), intent(in) :: vbox_(3) !< real space shift vector of box to be processed
 
     integer :: ith
     integer(kind_particle) :: num_processed_clusters
@@ -365,7 +366,6 @@ module module_walk
 
 
   subroutine identify_particle_clusters()
-    use module_pepc_types, only: kind_particle, kind_key
     use module_spacefilling, only : level_from_key
     use module_vtk
     use module_vtk_helpers
@@ -542,7 +542,6 @@ module module_walk
     contains
 
     subroutine swap_defer_lists()
-      use module_pepc_types, only: kind_node
       implicit none
       integer(kind_node), dimension(:), pointer :: tmp_list
 
@@ -641,14 +640,14 @@ module module_walk
         type(t_tree_node_interaction_data), intent(in) :: node
         integer(kind_node), intent(in) :: node_idx
         type(t_particle), intent(inout) :: particle
-        real*8, intent(in) :: vbox(3), delta(3), dist2
+        real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
       end subroutine
     end interface
 
     integer :: todo_list_entries
     type(t_tree_node), pointer :: walk_node
     integer(kind_node) :: walk_node_idx
-    real*8 :: dist2, delta(3)
+    real(kind_physics) :: dist2, delta(3)
     logical :: is_leaf
     integer(kind_node) :: num_interactions, num_mac_evaluations, num_post_request
     integer(kind_particle) :: p
@@ -713,7 +712,7 @@ module module_walk
     subroutine calc_force_for_cluster(calc_force, calc_force_self)
       implicit none
       procedure(t_calc_force) :: calc_force, calc_force_self
-      real*8 :: pdist2, pdelta(3)
+      real(kind_physics) :: pdist2, pdelta(3)
       integer(kind_particle) :: ipart
 
       do ipart=cluster%first,cluster%last

@@ -22,6 +22,7 @@
 !> global declarations for pepc-andreev
 !>
 module pepca_globals
+  use module_pepc_kinds
   use module_pepc_types
   implicit none
   save

@@ -26,7 +26,8 @@
 !>
 module module_walk
   use module_tree, only: t_tree
-  use module_pepc_types, only: t_particle, kind_particle
+  use module_pepc_types, only: t_particle
+  use module_pepc_kinds
   implicit none
   private
 
@@ -121,7 +122,6 @@ module module_walk
     contains
 
     recursive subroutine tree_walk_init_aux(k, l, p)
-      use module_pepc_types, only: kind_key, kind_level, kind_node
       use module_spacefilling, only: child_key_from_parent_key, is_ancestor_of_particle
       use treevars, only: idim, nlev
       implicit none
@@ -187,7 +187,7 @@ module module_walk
     use omp_lib
     implicit none
 
-    real*8, intent(in) :: vbox(3) !< lattice vector
+    real(kind_physics), intent(in) :: vbox(3) !< lattice vector
 
     integer(kind_particle) :: i
 
@@ -212,19 +212,19 @@ module module_walk
 
 
   subroutine tree_walk_single(tl, vbox)
-    use module_pepc_types, only: kind_node, kind_level
     use module_debug
     use treevars, only: nlev
     implicit none
 
     type(t_walk_tile), intent(inout) :: tl
-    real*8, intent(in) :: vbox(3)
+    real(kind_physics), intent(in) :: vbox(3)
 
     type(t_particle) :: p(TILE_SIZE)
     integer(kind_node) :: ni
     integer(kind_particle) :: ip, np
     integer(kind_level) :: i
-    real*8 :: b2(0:nlev), num_int, num_mac
+    real(kind_physics) :: b2(0:nlev)
+    real*8 :: num_int, num_mac
 
     num_int = 0.0_8
     num_mac = 0.0_8
@@ -271,7 +271,7 @@ module module_walk
 
       type(t_tree_node), pointer :: node
       integer(kind_node) :: ns
-      real*8 :: d2(TILE_SIZE), d(3, TILE_SIZE)
+      real(kind_physics) :: d2(TILE_SIZE), d(3, TILE_SIZE)
 
       node => walk_tree%nodes(n)
 

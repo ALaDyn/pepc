@@ -24,6 +24,7 @@
 !> functions to calculate the biggest power in given interval
 !>
 module module_math_tools
+      use module_pepc_kinds, only: kind_physics
       implicit none
       save
       private
@@ -43,8 +44,8 @@ module module_math_tools
         !>
         function cross_product3(a, b)
           implicit none
-          real*8, dimension(1:3) :: cross_product3
-          real*8, dimension(1:3), intent(in) :: a, b
+          real(kind_physics), dimension(1:3) :: cross_product3
+          real(kind_physics), dimension(1:3), intent(in) :: a, b
 
           cross_product3(1) = a(2)*b(3) - a(3)*b(2)
           cross_product3(2) = a(3)*b(1) - a(1)*b(3)
@@ -54,11 +55,11 @@ module module_math_tools
 
 
         !>
-        !> Determinant of a real*8 2x2 matrix
+        !> Determinant of a real(kind_physics) 2x2 matrix
         !>
-        real*8 function det2(mat)
+        real(kind_physics) function det2(mat)
           implicit none
-          real*8, intent(in) :: mat(1:2,1:2)
+          real(kind_physics), intent(in) :: mat(1:2,1:2)
 
           det2 = mat(1,1)*mat(2,2) - mat(1,2)*mat(2,1)
 
@@ -66,11 +67,11 @@ module module_math_tools
 
 
         !>
-        !> Determinant of a real*8 2x2 matrix that is saved as a vector (columns first)
+        !> Determinant of a real(kind_physics) 2x2 matrix that is saved as a vector (columns first)
         !>
-        real*8 function det2f(mat)
+        real(kind_physics) function det2f(mat)
           implicit none
-          real*8, intent(in) :: mat(1:4)
+          real(kind_physics), intent(in) :: mat(1:4)
 
           det2f = mat(1)*mat(4)-mat(2)*mat(3)
 
@@ -78,11 +79,11 @@ module module_math_tools
 
 
         !>
-        !> Determinant of a real*8 3x3 matrix
+        !> Determinant of a real(kind_physics) 3x3 matrix
         !>
-        real*8 function det3(mat)
+        real(kind_physics) function det3(mat)
           implicit none
-          real*8, intent(in) :: mat(1:3,1:3)
+          real(kind_physics), intent(in) :: mat(1:3,1:3)
 
           det3 = mat(1,1)*mat(2,2)*mat(3,3) + mat(1,2)*mat(2,3)*mat(3,1) + mat(1,3)*mat(2,1)*mat(3,2) &
                - mat(1,3)*mat(2,2)*mat(3,1) - mat(1,2)*mat(2,1)*mat(3,3) - mat(1,1)*mat(2,3)*mat(3,2)
@@ -93,12 +94,12 @@ module module_math_tools
         !>
         !>
         !>
-        real*8 function cofact(mat, i, j)
+        real(kind_physics) function cofact(mat, i, j)
           implicit none
-          real*8, intent(in) :: mat(1:3,1:3)
+          real(kind_physics), intent(in) :: mat(1:3,1:3)
           integer, intent(in) :: i, j
 
-          real*8 :: cf(1:2,1:2)
+          real(kind_physics) :: cf(1:2,1:2)
 
           cf(1:i-1,1:j-1) = mat(1  :i-1,1  :j-1)
           cf(i:   ,1:j-1) = mat(i+1:   ,1  :j-1)
@@ -117,11 +118,11 @@ module module_math_tools
         !>
         function inverse3(m)
           implicit none
-          real*8, intent(in) :: m(1:3,1:3)
+          real(kind_physics), intent(in) :: m(1:3,1:3)
 
-          real*8 :: inverse3(1:3,1:3)
-          real*8 :: test(1:3,1:3)
-          real*8 :: det
+          real(kind_physics) :: inverse3(1:3,1:3)
+          real(kind_physics) :: test(1:3,1:3)
+          real(kind_physics) :: det
           integer :: i,j
           logical :: failed
 

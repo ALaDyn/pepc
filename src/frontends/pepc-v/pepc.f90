@@ -36,6 +36,7 @@ program pepcv
   use module_timings
   use files
   use diagnostics
+  use module_pepc_kinds
   use module_pepc_types
   use module_interaction_specific, only: theta2
   implicit none

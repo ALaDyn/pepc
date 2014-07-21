@@ -1,6 +1,7 @@
 module pfm_helper
+  use module_pepc_kinds
   use module_debug
-  use pf_mod_dtype, only : SDC_DEFAULT_NODES => SDC_GAUSS_LOBATTO
+  use pf_mod_dtype, only : SDC_DEFAULT_NODES => SDC_GAUSS_LOBATTO, pfdp
   implicit none
   private
   save
@@ -23,12 +24,12 @@ module pfm_helper
         logical :: color_time_div       = .true.
         logical :: echo_errors          = .true.
         logical :: echo_timings         = .false.
-        real(kind=8) :: tend            = 1.
-        real(kind=8) :: res_tol         = 0d0
+        real(pfdp) :: tend              = 1.
+        real(pfdp) :: res_tol           = 0.
         integer :: nsteps               = 1
         integer, dimension(max_nlevels) :: nsweeps = 1
         integer, dimension(max_nlevels) :: nnodes  = 3
-        real*8, dimension(max_nlevels)  :: theta = 0.3
+        real(kind_physics), dimension(max_nlevels)  :: theta = 0.3
         logical, dimension(max_nlevels) :: directforce = .true. ! PEPC does not support single-particle-invocation
         integer, dimension(max_nlevels) :: feval_mode = 11
     end type pf_nml_t
@@ -218,12 +219,12 @@ module pfm_helper
         logical :: echo_timings
         logical :: color_space_div
         logical :: color_time_div
-        real(kind=8) :: tend
-        real(kind=8) :: res_tol
+        real(pfdp) :: tend
+        real(pfdp) :: res_tol
         integer :: nsteps
         integer, dimension(max_nlevels) :: nsweeps
         integer, dimension(max_nlevels) :: nnodes
-        real*8, dimension(max_nlevels) :: theta
+        real(kind_physics), dimension(max_nlevels) :: theta
         logical, dimension(max_nlevels) :: directforce
         integer, dimension(max_nlevels) :: feval_mode
 

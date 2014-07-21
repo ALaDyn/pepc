@@ -24,6 +24,7 @@
 !>
 module module_pepc
     use module_tree, only: t_tree
+    use module_pepc_kinds
     use module_pepc_types
     implicit none
     private
