@@ -118,7 +118,6 @@ program pepc
 
         ! Remove particles that left the simulation domain and reflux particles
         call hits_on_boundaries(particles)
-        call check_for_leakage(particles)
         timer(5) = get_time()
 
 

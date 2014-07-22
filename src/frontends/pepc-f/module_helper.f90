@@ -113,8 +113,12 @@ module helper
 !======================================================================================
   subroutine init_files()
       implicit none
+      character(100) :: ph_timing_file
 
-      !if(root) open(unit=timing_out,file='timing.out',status='UNKNOWN',position='APPEND')
+      IF (bool_particle_handling_timing) THEN
+          write(ph_timing_file,'("ph_timing_",i4.4,".dat")') my_rank
+          open(unit=timing_out,file=trim(ph_timing_file),status='UNKNOWN',position='APPEND')
+      END IF
       !if(root) open(unit=recycling_out,file='recycling.out',status='UNKNOWN',position='APPEND')
       if(root) open(unit=out,file='pepcf.out',status='UNKNOWN',position='APPEND')
 
@@ -124,7 +128,9 @@ module helper
   subroutine close_files()
       implicit none
 
-      !if(root) close(timing_out)
+      IF (bool_particle_handling_timing) THEN
+          close(timing_out)
+      END IF
       !if(root) close(recycling_out)
       if(root) close(out)
 
