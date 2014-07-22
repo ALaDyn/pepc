@@ -36,7 +36,7 @@ module module_geometry
 
 !======================================================================================
 
-    subroutine init_boundaries()
+    SUBROUTINE init_boundaries()
         implicit none
 
         real(KIND=8),allocatable :: x0(:,:)
@@ -111,19 +111,19 @@ module module_geometry
         allocate(boundaries(nb),stat=rc)
 
         DO ib=1,nb
-            call init_boundary(x0(ib,:),e1(ib,:),e2(ib,:),n(ib,:),type(ib),ib,boundaries(ib))
-            IF (nwp(ib)>0) call init_wall(nwp(ib),boundaries(ib))
-            call set_refluxing(reflux_particles(ib),boundaries(ib))
+            CALL init_boundary(x0(ib,:),e1(ib,:),e2(ib,:),n(ib,:),type(ib),ib,boundaries(ib))
+            IF (nwp(ib)>0) CALL init_wall(nwp(ib),boundaries(ib))
+            CALL set_refluxing(reflux_particles(ib),boundaries(ib))
         END DO
 
         DO ib=1,nb
             IF (opposite_bnd(ib)/=0) THEN
-                call set_periodic_bc(boundaries(ib),boundaries(opposite_bnd(ib)))
+                CALL set_periodic_bc(boundaries(ib),boundaries(opposite_bnd(ib)))
             END IF
         END DO
 
-        call check_boundaries()
-        call add_wallparticles_to_boundaries()
+        CALL check_boundaries()
+        CALL add_wallparticles_to_boundaries()
 
         deallocate(x0)
         deallocate(e1)
@@ -134,41 +134,40 @@ module module_geometry
         deallocate(reflux_particles)
         deallocate(nwp)
 
-    end subroutine init_boundaries
+    END SUBROUTINE init_boundaries
 
 !======================================================================================
 
-    subroutine check_boundaries()
+    SUBROUTINE check_boundaries()
         implicit none
 
         integer :: ib
         real*8 :: test
-        real*8 :: eps=1.0e-10
+        real*8 :: eps=1.0e-12
 
-        if (root) then
-            do ib=1,nb
-                call check_boundary(boundaries(ib))
+        IF (root) THEN
+            DO ib=1,nb
+                CALL check_boundary(boundaries(ib))
 
-                if (boundaries(ib)%type==2) then
-                    if(boundaries(ib)%opp_bnd==0) then
+                IF (boundaries(ib)%type==2) THEN
+                    IF(boundaries(ib)%opp_bnd==0) THEN
                         write(*,'(a,i3,a)')"No opposing boundary set for boundary ",boundaries(ib)%indx,"."
                         STOP
-                    end if
+                    END IF
                     test=dotproduct(boundaries(ib)%n,boundaries(boundaries(ib)%opp_bnd)%n)
-                    !!if ((test<-1.-eps).or.(test>-1.+eps)) then
-                    if (real_unequal(test,-1._8,eps)) then
+                    IF (real_unequal(test,-1._8,eps)) THEN
                         write(*,*)
                         write(*,'(a,i3,a,i3,a)')"Boundaries ",boundaries(ib)%indx," and ",boundaries(ib)%opp_bnd," are set as a pair of opposing boundaries, but are not parallel."
                         write(*,*)boundaries(ib)%n
                         write(*,*)boundaries(boundaries(ib)%opp_bnd)%n
                         write(*,*)
                         STOP
-                    end if
-                end if
-            end do
-        end if
+                    END IF
+                END IF
+            END DO
+        END IF
 
-    end subroutine check_boundaries
+    END SUBROUTINE check_boundaries
 
 !======================================================================================
 
@@ -179,37 +178,37 @@ module module_geometry
         integer :: ib,tnwp_aux
 
         tnwp_aux=0
-        do ib=1,nb
+        DO ib=1,nb
             wall=boundaries(ib)
             tnwp_aux=tnwp_aux+wall%nwp
-        end do
+        END DO
 
         count_wallparticles=tnwp_aux
 
-   end function count_wallparticles
+   END function count_wallparticles
 
  !======================================================================================
 
-    subroutine add_wallparticles_to_boundaries()
+    SUBROUTINE add_wallparticles_to_boundaries()
         implicit none
 
         integer :: ib,label,i
 
         label=-1
-        do ib=1,nb
-            if (boundaries(ib)%nwp/=0) then
-                do i=1,boundaries(ib)%nwp
+        DO ib=1,nb
+            IF (boundaries(ib)%nwp/=0) THEN
+                DO i=1,boundaries(ib)%nwp
                     boundaries(ib)%wp_labels(i)=label
                     label=label-1
-                end do
-            end if
-        end do
+                END DO
+            END IF
+        END DO
 
-    end subroutine add_wallparticles_to_boundaries
+    END SUBROUTINE add_wallparticles_to_boundaries
 
 !======================================================================================
 
-    subroutine hit_wall(p,wall,hit,x_hit,x_hit_rel)
+    SUBROUTINE hit_wall(p,wall,hit,x_hit,x_hit_rel)
         use module_pepc_types
         use variables
         implicit none
@@ -224,38 +223,35 @@ module module_geometry
         x_hit=0.0_8
         x_hit_rel=0.0_8
 
-        if (species(p%data%species)%physical_particle .eqv. .false.) then
-            hit = .false.
-            return
-        end if
+        IF (species(p%data%species)%physical_particle .eqv. .false.) THEN
+            RETURN !no hit
+        END IF
 
-        if (wall%type < 0) then !virtual boundary
-            hit = .false.
-            return
-        end if
+        IF (wall%type < 0) THEN !virtual boundary
+            RETURN !no hit
+        END IF
 
         n=wall%n
         deltax=p%x-wall%x0
 
-        if (dotproduct(n,deltax)>0) then
-            hit=.false.
-            return
-        end if
+        IF (dotproduct(n,deltax)>0) THEN
+            RETURN !no hit
+        END IF
 
         x = p%x
         xold = p%x - dt*p%data%v
 
-        call get_intersect(xold,x,wall,x_hit)
-        call check_hit(x_hit(1),x_hit(2),x_hit(3),wall,hit,x_hit_rel)
+        CALL get_intersect(xold,x,wall,x_hit)
+        CALL check_hit(x_hit(1),x_hit(2),x_hit(3),wall,hit,x_hit_rel)
 
 
-        return
+        RETURN
 
-    end subroutine hit_wall
+    END SUBROUTINE hit_wall
 
 !======================================================================================
 
-    subroutine init_wall(nwp,boundary)
+    SUBROUTINE init_wall(nwp,boundary)
         implicit none
 
         type(t_boundary), intent(inout) :: boundary
@@ -273,11 +269,11 @@ module module_geometry
         allocate(boundary%wp_labels(nwp),stat=rc)
         boundary%wp_labels=0
 
-    end subroutine init_wall
+    END SUBROUTINE init_wall
 
  !======================================================================================
 
-    subroutine init_boundary(x0,e1,e2,n,typ,indx,wall)
+    SUBROUTINE init_boundary(x0,e1,e2,n,typ,indx,wall)
         implicit none
 
         type(t_boundary), intent(inout) :: wall
@@ -294,11 +290,11 @@ module module_geometry
         wall%reflux_particles=.false.
         allocate(wall%wp_labels(0),stat=rc)
 
-    end subroutine init_boundary
+    END SUBROUTINE init_boundary
 
  !======================================================================================
 
-    subroutine set_refluxing(reflux_particles,boundary)
+    SUBROUTINE set_refluxing(reflux_particles,boundary)
         implicit none
 
         type(t_boundary), intent(inout) :: boundary
@@ -307,7 +303,7 @@ module module_geometry
         IF (reflux_particles .eqv. .false.) THEN
             boundary%reflux_particles=reflux_particles
         ELSE
-            IF ((boundary%type==0) .or. (boundary%type==3) .or. (boundary%type==4)) THEN
+            IF ((boundary%type==0) .OR. (boundary%type==3) .OR. (boundary%type==4)) THEN
                 boundary%reflux_particles=reflux_particles
             ELSE
                 write(*,*) "Problem with boundary",boundary%indx
@@ -315,65 +311,65 @@ module module_geometry
                 STOP
             END IF
         END IF
-    end subroutine set_refluxing
+    END SUBROUTINE set_refluxing
 
 !======================================================================================
 
-    subroutine set_periodic_bc(wall,opp_wall)
+    SUBROUTINE set_periodic_bc(wall,opp_wall)
         implicit none
 
         type(t_boundary), intent(inout) :: wall,opp_wall
 
 
-        if ((wall%type/=2) .or. (opp_wall%type/=2)) then
+        IF ((wall%type/=2) .OR. (opp_wall%type/=2)) THEN
             write(*,'(a,i3,a,i3,a)') "Error while trying to set periodic boundaries for boundaries ",wall%indx," and ",opp_wall%indx,": Both walls have to have type 2"
             STOP
-        end if
+        END IF
 
         wall%opp_bnd=opp_wall%indx
         opp_wall%opp_bnd=wall%indx
         wall%dist=dotproduct(wall%n,(opp_wall%x0-wall%x0))
         opp_wall%dist=wall%dist
 
-    end subroutine set_periodic_bc
+    END SUBROUTINE set_periodic_bc
 
 !======================================================================================
 
-    subroutine check_boundary(wall)
+    SUBROUTINE check_boundary(wall)
         type(t_boundary), intent(inout) :: wall
-        real*8 :: eps=1.0e-10
+        real*8 :: eps=1.0e-12
         real*8 :: test(2)
         logical :: ok
 
         test(1)=dotproduct(wall%e1,wall%n)
         test(2)=dotproduct(wall%e2,wall%n)
 
-        !ok= (test(1)==0) .and. (test(2)==0)
-        ok = (real_equal_zero(test(1),eps)) .and. (real_equal_zero(test(2),eps))
+        ok = (real_equal_zero(test(1),eps)) .AND. (real_equal_zero(test(2),eps))
 
-        if (ok .eqv. .false.) then
+        IF (ok .eqv. .false.) THEN
             write(*,*) "Boundary set incorrectly:"
             write(*,*) "x0:", wall%x0
             write(*,*) "e1:", wall%e1
             write(*,*) "e2:", wall%e2
             write(*,*) "n:", wall%n
-            write(*,*) "The surface normal is not perpendicular to the plane."
+            write(*,*) "The surface normal is not perpENDicular to the plane."
             STOP
-        end if
+        END IF
 
-    end subroutine check_boundary
+    END SUBROUTINE check_boundary
 
 !======================================================================================
 
-    subroutine check_hit(px,py,pz,wall,hit,x_hit_rel)
+    SUBROUTINE check_hit(px,py,pz,wall,hit,x_hit_rel)
         type(t_boundary), intent(in) :: wall
         logical,intent(out) :: hit
         real*8,intent(in) :: px,py,pz
-        real*8 :: eps=1.0e-10
+        real*8 :: eps=1.0e-12
         real*8 :: y(3),a(3),b(3),lambda,mu,dist
         real(KIND=8), intent(out) :: x_hit_rel(2)
 
         x_hit_rel=0.0_8
+        hit = .false.
 
         a=wall%e1
         b=wall%e2
@@ -387,64 +383,47 @@ module module_geometry
 
         dist=dotproduct(wall%n,y)
 
-        !if ((a(1)/=0) .and. ((b(2)/=0) .or. (b(3)/=0)))  then
-        if (real_unequal_zero(a(1),eps) .and. (real_unequal_zero(b(2),eps) .or. real_unequal_zero(b(3),eps)))  then
-            !if (b(2)/=0) then
-            if (real_unequal_zero(b(2),eps)) then
-                mu = (y(2)/b(2) - (a(2)*y(1))/(b(2)*a(1))) / (1 - (b(1)*a(2) / (b(2)*a(1))))
-                lambda = (y(1) - (mu*b(1))) / a(1)
-            !else if (b(3)/=0) then
-            else if (real_unequal_zero(b(3),eps)) then
-                mu = (y(3)/b(3) - (a(3)*y(1))/(b(3)*a(1))) / (1 - (b(1)*a(3) / (b(3)*a(1))))
-                lambda = (y(1) - (mu*b(1))) / a(1)
-            end if
-        !else if ((a(2)/=0) .and. ((b(1)/=0) .or. (b(3)/=0)))  then
-        else if (real_unequal_zero(a(2),eps) .and. (real_unequal_zero(b(1),eps) .or. real_unequal_zero(b(3),eps)))  then
-            !if (b(1)/=0) then
-            if (real_unequal_zero(b(1),eps)) then
-                mu = (y(1)/b(1) - (a(1)*y(2))/(b(1)*a(2))) / (1 - (b(2)*a(1) / (b(1)*a(2))))
-                lambda = (y(2) - (mu*b(2))) / a(2)
-            !else if (b(3)/=0) then
-            else if (real_unequal_zero(b(3),eps)) then
-                mu = (y(3)/b(3) - (a(3)*y(2))/(b(3)*a(2))) / (1 - (b(2)*a(3) / (b(3)*a(2))))
-                lambda = (y(2) - (mu*b(2))) / a(2)
-            end if
-        !else if ((a(3)/=0) .and. ((b(2)/=0) .or. (b(1)/=0)))  then
-        else if (real_unequal_zero(a(3),eps) .and. (real_unequal_zero(b(2),eps) .or. real_unequal_zero(b(1),eps)))  then
-            !if (b(2)/=0) then
-            if (real_unequal_zero(b(2),eps)) then
-                 mu = (y(2)/b(2) - (a(2)*y(3))/(b(2)*a(3))) / (1 - (b(3)*a(2) / (b(2)*a(3))))
-                 lambda = (y(3) - (mu*b(3))) / a(3)
-            !else if (b(1)/=0) then
-            else if (real_unequal_zero(b(1),eps)) then
-                 mu = (y(1)/b(1) - (a(1)*y(3))/(b(1)*a(3))) / (1 - (b(3)*a(1) / (b(1)*a(3))))
-                lambda = (y(3) - (mu*b(3))) / a(3)
-            end if
-        end if
+        IF (real_unequal_zero(dist,eps)) THEN !Punkt liegt nicht in der Ebene
+            RETURN
+        ELSE !Punkt liegt in der Ebene. Check ob er auch in der Flaeche liegt:
+            IF (real_unequal_zero(a(1),eps) .AND. (real_unequal_zero(b(2),eps) .OR. real_unequal_zero(b(3),eps)))  THEN
+                IF (real_unequal_zero(b(2),eps)) THEN
+                    mu = (y(2)/b(2) - (a(2)*y(1))/(b(2)*a(1))) / (1 - (b(1)*a(2) / (b(2)*a(1))))
+                    lambda = (y(1) - (mu*b(1))) / a(1)
+                ELSE IF (real_unequal_zero(b(3),eps)) THEN
+                    mu = (y(3)/b(3) - (a(3)*y(1))/(b(3)*a(1))) / (1 - (b(1)*a(3) / (b(3)*a(1))))
+                    lambda = (y(1) - (mu*b(1))) / a(1)
+                END IF
+            ELSE IF (real_unequal_zero(a(2),eps) .AND. (real_unequal_zero(b(1),eps) .OR. real_unequal_zero(b(3),eps)))  THEN
+                IF (real_unequal_zero(b(1),eps)) THEN
+                    mu = (y(1)/b(1) - (a(1)*y(2))/(b(1)*a(2))) / (1 - (b(2)*a(1) / (b(1)*a(2))))
+                    lambda = (y(2) - (mu*b(2))) / a(2)
+                ELSE IF (real_unequal_zero(b(3),eps)) THEN
+                    mu = (y(3)/b(3) - (a(3)*y(2))/(b(3)*a(2))) / (1 - (b(2)*a(3) / (b(3)*a(2))))
+                    lambda = (y(2) - (mu*b(2))) / a(2)
+                END IF
+            ELSE IF (real_unequal_zero(a(3),eps) .AND. (real_unequal_zero(b(2),eps) .OR. real_unequal_zero(b(1),eps)))  THEN
+                IF (real_unequal_zero(b(2),eps)) THEN
+                    mu = (y(2)/b(2) - (a(2)*y(3))/(b(2)*a(3))) / (1 - (b(3)*a(2) / (b(2)*a(3))))
+                    lambda = (y(3) - (mu*b(3))) / a(3)
+                ELSE IF (real_unequal_zero(b(1),eps)) THEN
+                    mu = (y(1)/b(1) - (a(1)*y(3))/(b(1)*a(3))) / (1 - (b(3)*a(1) / (b(1)*a(3))))
+                    lambda = (y(3) - (mu*b(3))) / a(3)
+                END IF
+            END IF
 
-        hit=.false.
-        !if ((dist<eps).and.(dist>-eps)) then
-        if (real_equal_zero(dist,eps)) then
-            !write(*,*) "Punkt liegt in der Ebene"
-            if ((lambda<1.).and.(mu<1.) .and. (mu>0.) .and. (lambda>0.)) then
-                !write(*,*) "Der Punkt liegt in der Flaeche"
+            IF ((lambda<1.).AND.(mu<1.) .AND. (mu>0.) .AND. (lambda>0.)) THEN ! Der Punkt liegt in der Flaeche
                 hit=.true.
                 x_hit_rel(1) = lambda
                 x_hit_rel(2) = mu
-            else
-                !write(*,*) "Der Punkt liegt nicht in der Flaeche",lambda,mu,wall%indx
-                !write(*,*) px,py,pz
-            end if
-        else
-            !write(*,*) "Punkt liegt nicht in der Ebene",dist
-            !write(*,*) px,py,pz
-        end if
-    end subroutine check_hit
+            END IF
+        END IF
+    END SUBROUTINE check_hit
 
 !======================================================================================
 
 
-    subroutine get_intersect(xold,xnew,wall,intersect)
+    SUBROUTINE get_intersect(xold,xnew,wall,intersect)
         implicit none
 
         type(t_boundary), intent(in) :: wall
@@ -461,6 +440,6 @@ module module_geometry
         lambda = abs(a) / (abs(a)+abs(b))
         intersect = xold + (xnew-xold)*lambda
 
-    end subroutine get_intersect
+    END SUBROUTINE get_intersect
 
-end module module_geometry
+END module module_geometry
