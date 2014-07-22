@@ -94,7 +94,7 @@ module module_spacefilling
         !> of levels
         !>
         DEBUG_PURE function shift_key_by_level(key, lvl)
-          use treevars, only: idim
+          use treevars
           use module_debug
           implicit none
 
@@ -302,7 +302,7 @@ module module_spacefilling
         !> note use of 64-bit constants to ensure correct arithmetic
         !>
         function intcoord_to_key_morton1D(ic)
-          use treevars, only : nlev
+          use treevars
           use module_debug
           implicit none
           integer(kind_key), intent(in) :: ic(1)
@@ -493,7 +493,7 @@ module module_spacefilling
         !> input key must be right-adjusted and must contain a placeholder bit
         !>
         subroutine key_to_intcoord_morton(key, ic)
-          use treevars, only : nlev
+          use treevars
           use module_debug
           implicit none
           integer(kind_key), intent(in) :: key
