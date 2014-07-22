@@ -63,7 +63,7 @@ contains
 
     if (pepcboris_nml%root_stdio) then
       if (state%step == 0) write(*,*)
-      write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g15.6)',advance='no') &
+      write(*,'(a1, a,"| step: ",i0,"/",i0," t=", es10.3, " iter: ",i10, " residual: ", g0.15)',advance='no') &
         char(13), hook_names(state%hook), step, state%nsteps, t, state%iter, level%residual
     endif
 

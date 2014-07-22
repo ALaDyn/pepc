@@ -44,7 +44,7 @@ module pepcboris_paralleldump
 
   #undef PARALLELDUMP_OWN_BSEND_BUFFER
 
-  integer, public, parameter :: PARALLELDUMP_MAXLEN = 512 ! maximum length of a single line sent with this method
+  integer, public, parameter :: PARALLELDUMP_MAXLEN = 1024 ! maximum length of a single line sent with this method
   #ifdef PARALLELDUMP_OWN_BSEND_BUFFER
     integer, parameter :: PARALLELDUMP_BUFFLEN = 64 ! number of lines in the used send-buffer
     character, dimension(:), allocatable :: paralleldump_bsend_buffer

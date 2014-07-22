@@ -156,7 +156,7 @@ program pepc
         end do
       end associate
 
-     case (WM_BORIS_TANALPHA)
+    case (WM_BORIS_TANALPHA)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
         if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1.) then
