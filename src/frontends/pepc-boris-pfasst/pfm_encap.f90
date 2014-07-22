@@ -336,7 +336,7 @@ contains
 
     norm_loc = max(maxval(abs(q%x)), maxval(abs(q%v)))
 
-    call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_DOUBLE_PRECISION, MPI_MAX, q%params%comm, ierr )
+    call MPI_ALLREDUCE( norm_loc, norm, 1, MPI_REAL_PFDP, MPI_MAX, q%params%comm, ierr )
 
   end function encap_norm
 

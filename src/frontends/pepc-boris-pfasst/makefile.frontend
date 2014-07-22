@@ -11,7 +11,7 @@ FILES_L   = pepc.f90                \
             pf_pfasst.f90 pf_verlet.f90 pf_dtype.f90 pf_hooks.f90 \
             pf_timer.f90 pf_utils.f90 pf_quadrature.f90 pf_options.f90 \
             sdc_quadrature.f90 sdc_poly.f90 pf_mpi.f90 pf_parallel.f90 \
-            pf_interpolate.f90 pf_restrict.f90
+            pf_interpolate.f90 pf_restrict.f90 pf_mpif.f90
 
 
 FILES_L_U = module_directsum.f90   \

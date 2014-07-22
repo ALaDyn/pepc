@@ -4,7 +4,7 @@
 
 MACH     = linux_gcc-4.9
 
-DEBUG    = 1
+DEBUG    = 0
 OMP      = 1
 GPERFTOOLS = 0
 
@@ -49,8 +49,8 @@ CCPRE    =
 CC       = mpicc
 
 LDPRE    = 
-LD       = mpicc
-LDLIBS   = -lgfortran -lm
+LD       = mpif90
+LDLIBS   = -lgfortran -lm -lquadmath
 
 ifeq ($(GPERFTOOLS), 1)
   # download and installation: http://code.google.com/p/gperftools/
