@@ -83,7 +83,11 @@ module module_sort
       a = iarr(l)
 
       ! only sort map, if map present
-      if(present(map)) b= map(l)
+      if(present(map)) then
+        b = map(l)
+      else
+        b = 0
+      endif
 
       jold = l
       j = l + l
@@ -148,7 +152,7 @@ module module_sort
       integer*4 :: b
       
       a = iarr(l)
-      b= map(l)
+      b = map(l)
 
       jold = l
       j = l + l
@@ -215,7 +219,11 @@ module module_sort
       a = iarr(l)
 
       ! only sort map, if map present
-      if(present(map)) b= map(l)
+      if(present(map)) then
+        b = map(l)
+      else
+        b = 0
+      endif
 
       jold = l
       j = l + l
