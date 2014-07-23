@@ -24,12 +24,12 @@ module pfm_helper
         logical :: color_time_div       = .true.
         logical :: echo_errors          = .true.
         logical :: echo_timings         = .false.
-        real(pfdp) :: tend              = 1.
-        real(pfdp) :: res_tol           = 0.
+        real(pfdp) :: tend              = 1._pfdp
+        real(pfdp) :: res_tol           = 0._pfdp
         integer :: nsteps               = 1
         integer, dimension(max_nlevels) :: nsweeps = 1
         integer, dimension(max_nlevels) :: nnodes  = 3
-        real(kind_physics), dimension(max_nlevels)  :: theta = 0.3
+        real(kind_physics), dimension(max_nlevels)  :: theta = 0.3_kind_physics
         logical, dimension(max_nlevels) :: directforce = .true. ! PEPC does not support single-particle-invocation
         integer, dimension(max_nlevels) :: feval_mode = 11
     end type pf_nml_t

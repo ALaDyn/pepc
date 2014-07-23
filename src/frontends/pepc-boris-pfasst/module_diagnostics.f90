@@ -110,7 +110,7 @@ module pepcboris_diagnostics
           DEBUG_ASSERT(allocated(vold))
           ! we have to average over old and new velocities
           do p=1,size(particles,kind=kind(p))
-            write(line,*) step*dt, p, particles(p)%x, (particles(p)%data%v + vold(:,p))/2._8
+            write(line,*) step*dt, p, particles(p)%x, (particles(p)%data%v + vold(:,p))/2._kind_physics
             call paralleldump_dump(istream, line)
           end do
         else
@@ -130,7 +130,7 @@ module pepcboris_diagnostics
 
     select case (dumptype)
       case (3,4)
-        avg = 0.
+        avg = 0._kind_physics
         ! average position and velocity
         do p=1,size(particles,kind=kind(p))
           avg(:,1) = avg(:,1) +  particles(p)%x
@@ -148,7 +148,7 @@ module pepcboris_diagnostics
         if (do_average) then
           DEBUG_ASSERT(allocated(vold))
           ! we have to average over old and new velocities
-          avg(:,2) = ( avg(:,2) + sum(vold,dim=2) ) / 2._8
+          avg(:,2) = ( avg(:,2) + sum(vold,dim=2) ) / 2._kind_physics
         endif
 
         avg = avg / size(particles,kind=kind(p))
@@ -172,9 +172,9 @@ module pepcboris_diagnostics
       if (do_average) then
         ! we have to average over old and new velocities
         DEBUG_ASSERT(allocated(vold))
-        call vtkf%write_data_array("v_avg", ( d(:)%v(1)+vold(1,:) )/2._8, &
-                                            ( d(:)%v(2)+vold(2,:) )/2._8, &
-                                            ( d(:)%v(3)+vold(3,:) )/2._8)
+        call vtkf%write_data_array("v_avg", ( d(:)%v(1)+vold(1,:) )/2._kind_physics, &
+                                            ( d(:)%v(2)+vold(2,:) )/2._kind_physics, &
+                                            ( d(:)%v(3)+vold(3,:) )/2._kind_physics)
       else
         call vtkf%write_data_array("v_avg", d(:)%v(1), d(:)%v(2), d(:)%v(3))
       endif
@@ -205,8 +205,8 @@ module pepcboris_diagnostics
 
     if (dontdump(step)) return
 
-    epot = 0.
-    ekin = 0.
+    epot = 0._kind_physics
+    ekin = 0._kind_physics
     ! we need a temporary copy here to prevent destruction the results stored in the particles-array
     allocate(particles_tmp(size(particles)))
     particles_tmp(:) = particles(:)
@@ -216,13 +216,13 @@ module pepcboris_diagnostics
       ! we have to average over old and new velocities
       do p=1,size(particles_tmp,kind=kind(p))
         epot = epot + particles_tmp(p)%data%q * particles_tmp(p)%results%pot
-        vtmp = (particles_tmp(p)%data%v + vold(:,p) ) / 2._8
-        ekin = ekin + particles_tmp(p)%data%m/2._8 * dot_product(vtmp, vtmp)
+        vtmp = (particles_tmp(p)%data%v + vold(:,p) ) / 2._kind_physics
+        ekin = ekin + particles_tmp(p)%data%m/2._kind_physics * dot_product(vtmp, vtmp)
       end do
     else
       do p=1,size(particles_tmp,kind=kind(p))
         epot = epot + particles_tmp(p)%data%q * particles_tmp(p)%results%pot
-        ekin = ekin + particles_tmp(p)%data%m/2._8 * dot_product(particles_tmp(p)%data%v,particles_tmp(p)%data%v)
+        ekin = ekin + particles_tmp(p)%data%m/2._kind_physics * dot_product(particles_tmp(p)%data%v,particles_tmp(p)%data%v)
       end do
     endif
 

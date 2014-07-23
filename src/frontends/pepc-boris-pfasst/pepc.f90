@@ -91,7 +91,7 @@ program pepc
   ! initial potential will be needed for energy computation - using finest level here
   call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, comm=MPI_COMM_SPACE, clearresults=.true.) ! again, use parameters of finest level
 
-  if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)**2 - 4._8*pepcboris_nml%setup_params(PARAMS_OMEGAE)**2 > 0) then
+  if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)**2 - 4._kind_physics*pepcboris_nml%setup_params(PARAMS_OMEGAE)**2 > 0) then
     DEBUG_WARNING(*, 'Trapping condition is not fulfilled due to inappropriate choice of PARAMS_OMEGAB and PARAMS_OMEGAE.')
   endif
   ! initial particle dump
@@ -142,7 +142,7 @@ program pepc
     case (WM_BORIS)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
-        if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1.) then
+        if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1._kind_physics) then
           DEBUG_WARNING(*, 'Gyrofrequency too high or timestep too large. The gyroradius will increase linearly during simulation. Compare J. comp. Phys. 116, 386 (1995)')
         endif
 
@@ -159,7 +159,7 @@ program pepc
     case (WM_BORIS_TANALPHA)
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
-        if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1.) then
+        if (.not. pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt < 1._kind_physics) then
           DEBUG_WARNING(*, 'Gyrofrequency too high or timestep too large. The gyroradius will increase linearly during simulation. Compare J. comp. Phys. 116, 386 (1995)')
         endif
 
@@ -177,7 +177,7 @@ program pepc
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
 
-        call update_velocities_boris(particles,dt/2._8)
+        call update_velocities_boris(particles,dt/2._kind_physics)
 
         do step=1,nt
           call print_timestep(step, nt, dt)
@@ -195,7 +195,7 @@ program pepc
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
 
-        call update_velocities_tajima_implicit(particles,dt/2._8)
+        call update_velocities_tajima_implicit(particles,dt/2._kind_physics)
 
         do step=1,nt
           call print_timestep(step, nt, dt)
@@ -213,7 +213,7 @@ program pepc
       associate (dt => pepcboris_nml%dt, &
                  nt => pepcboris_nml%nt)
 
-        call update_velocities_tajima_explicit(particles,dt/2._8)
+        call update_velocities_tajima_explicit(particles,dt/2._kind_physics)
 
         do step=1,nt
           call print_timestep(step, nt, dt)
@@ -232,10 +232,10 @@ program pepc
                  nt => pepcboris_nml%nt)
         do step=1,nt
           call print_timestep(step, nt, dt)
-          call drift_cyclotronic(particles, dt/2._8)
+          call drift_cyclotronic(particles, dt/2._kind_physics)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
-          call drift_cyclotronic(particles, dt/2._8)
+          call drift_cyclotronic(particles, dt/2._kind_physics)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -246,10 +246,10 @@ program pepc
                  nt => pepcboris_nml%nt)
         do step=1,nt
           call print_timestep(step, nt, dt)
-          call drift_cyclotronic(particles, dt/2._8, no_tan_trans=.true.)
+          call drift_cyclotronic(particles, dt/2._kind_physics, no_tan_trans=.true.)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, clearresults=.true.)
           call kick_cyclotronic(particles, dt)
-          call drift_cyclotronic(particles, dt/2._8, no_tan_trans=.true.)
+          call drift_cyclotronic(particles, dt/2._kind_physics, no_tan_trans=.true.)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -261,10 +261,10 @@ program pepc
                  params => pepcboris_nml%setup_params)
         do step=1,nt
           call print_timestep(step, nt, dt)
-          call push_particles(particles, dt/2._8)
+          call push_particles(particles, dt/2._kind_physics)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, clearresults=.true.)
           call kick_boris_patacchini(particles, dt)
-          call push_particles(particles, dt/2._8)
+          call push_particles(particles, dt/2._kind_physics)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -276,10 +276,10 @@ program pepc
                  params => pepcboris_nml%setup_params)
         do step=1,nt
           call print_timestep(step, nt, dt)
-          call push_particles(particles, dt/2._8)
+          call push_particles(particles, dt/2._kind_physics)
           call eval_force(particles, level_params(pf_nml%nlevels), pepcboris_nml, MPI_COMM_SPACE, clearresults=.true.)
           call kick_boris_patacchini(particles, dt, no_tan_trans=.true.)
-          call push_particles(particles, dt/2._8)
+          call push_particles(particles, dt/2._kind_physics)
           call dump_particles(VTK_STEP_NORMAL, step, dt, particles, MPI_COMM_SPACE, do_average=.false.)
           call dump_energy(step, step*dt, particles, level_params(pf_nml%nlevels), MPI_COMM_SPACE, do_average=.false.)
         end do
@@ -304,12 +304,12 @@ program pepc
         block
           complex(kind_physics) :: u, udot, Rp, Rm
           real(kind_physics) :: Omegap, Omegam, Rscrm, Rscrp, Iscrm, Iscrp, Omegasq
-          complex*16, parameter :: ic = (0._8, 1._8)
-          real*8, parameter :: sqrttwo = sqrt(2._8)
+          complex*16, parameter :: ic = (0._kind_physics, 1._kind_physics)
+          real*8, parameter :: sqrttwo = sqrt(2._kind_physics)
 
-          Omegasq = sqrt((params(PARAMS_OMEGAB)**2)/4._8 - params(PARAMS_OMEGAE)**2)
-          Omegap  = params(PARAMS_OMEGAB)/2._8 + Omegasq
-          Omegam  = params(PARAMS_OMEGAB)/2._8 - Omegasq
+          Omegasq = sqrt((params(PARAMS_OMEGAB)**2)/4._kind_physics - params(PARAMS_OMEGAE)**2)
+          Omegap  = params(PARAMS_OMEGAB)/2._kind_physics + Omegasq
+          Omegam  = params(PARAMS_OMEGAB)/2._kind_physics - Omegasq
 
           Rscrm = (Omegap*params(PARAMS_X0) + params(PARAMS_VY0)) / (Omegap - Omegam)
           Iscrm = (Omegap*params(PARAMS_Y0) - params(PARAMS_VX0)) / (Omegap - Omegam)

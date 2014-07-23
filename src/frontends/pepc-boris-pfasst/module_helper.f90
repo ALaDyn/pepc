@@ -88,7 +88,7 @@ module pepcboris_helper
     ! configuration variables
     integer :: particle_config = 0
     integer :: dumptype = 0
-    real(kind_physics) :: setup_params(PARAMS_MAXIDX) = 0.
+    real(kind_physics) :: setup_params(PARAMS_MAXIDX) = 0._kind_physics
     ! number of particles per species and rank, will be set automatically later
     integer(kind_particle) :: numparts = 100
     ! use PFASST
@@ -167,8 +167,8 @@ module pepcboris_helper
         pepcboris_nml%numparts = 1
         allocate(particles(pepcboris_nml%numparts))
         particles(1)%x      = pepcboris_nml%setup_params(PARAMS_X0:PARAMS_Z0)
-        particles(1)%data%q = 1.
-        particles(1)%data%m = 1.
+        particles(1)%data%q = 1._kind_physics
+        particles(1)%data%m = 1._kind_physics
         particles(1)%data%v = pepcboris_nml%setup_params(PARAMS_VX0:PARAMS_VZ0)
         particles(1)%label  = 1
         particles(1)%work   = 1.
@@ -179,12 +179,12 @@ module pepcboris_helper
         do i=1,pepcboris_nml%numparts
           call random_number(myrand)
           particles(i)%x      = pepcboris_nml%setup_params(PARAMS_X0:PARAMS_Z0) &
-                              + pepcboris_nml%setup_params(PARAMS_RADIUS)*(myrand - 0.5_8)
-          particles(i)%data%q = 1.
-          particles(i)%data%m = 1.
+                              + pepcboris_nml%setup_params(PARAMS_RADIUS)*(myrand - 0.5_kind_physics)
+          particles(i)%data%q = 1._kind_physics
+          particles(i)%data%m = 1._kind_physics
           call random_number(myrand)
           particles(i)%data%v = pepcboris_nml%setup_params(PARAMS_VX0:PARAMS_VZ0) &
-                              + pepcboris_nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_8)
+                              + pepcboris_nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_kind_physics)
           particles(i)%label  = i
           particles(i)%work   = 1.
         end do
@@ -194,11 +194,11 @@ module pepcboris_helper
 
         do i=1,pepcboris_nml%numparts
           call random_number(myrand)
-          particles(i)%x      = pepcboris_nml%setup_params(PARAMS_RADIUS)*(myrand - 0.5_8)
-          particles(i)%data%q = 1.
-          particles(i)%data%m = 1.
+          particles(i)%x      = pepcboris_nml%setup_params(PARAMS_RADIUS)*(myrand - 0.5_kind_physics)
+          particles(i)%data%q = 1._kind_physics
+          particles(i)%data%m = 1._kind_physics
           call random_number(myrand)
-          particles(i)%data%v = pepcboris_nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_8)
+          particles(i)%data%v = pepcboris_nml%setup_params(PARAMS_VELOCITY_SPREAD)*(myrand - 0.5_kind_physics)
           particles(i)%label  = i
           particles(i)%work   = 1.
         end do
@@ -244,7 +244,7 @@ module pepcboris_helper
     dumpstep        = pepcboris_nml%dumpstep
 
     ! pepc parameters
-    theta2      = 0.36
+    theta2      = 0.36_kind_physics
     num_threads = 8
     np_mult     = -500
     ! read in namelist file

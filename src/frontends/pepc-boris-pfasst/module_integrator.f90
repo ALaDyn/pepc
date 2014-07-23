@@ -63,10 +63,10 @@ module pepcboris_integrator
       real(kind_physics) :: beta, lambda, phase
 
       B0 = get_magnetic_field()
-      phase = pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8
+      phase = pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._kind_physics
       lambda = tan(phase) / phase
 
-      if (any(abs(B0(1:2))>0.)) then
+      if (any(abs(B0(1:2))>0._kind_physics)) then
         DEBUG_WARNING(*, 'This Boris integrator does only work if B=B*e_z, but B=', B0)
       endif
 
@@ -74,7 +74,7 @@ module pepcboris_integrator
 
       do ip = 1, size(p, kind=kind_particle)
         ! charge/mass*time-constant
-        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+        beta   = p(ip)%data%q / (2._kind_physics * p(ip)%data%m) * dt
 
         p(ip)%x(:) = p(ip)%x(:) + dt * ( p(ip)%data%v(:) + beta * cross_prod_plus(p(ip)%data%v, lambda*B0, p(ip)%results%e*[lambda,lambda,1._kind_physics]) )
 
@@ -98,10 +98,10 @@ module pepcboris_integrator
       real(kind_physics), dimension(3) :: B0, Eavg
 
       B0 = get_magnetic_field()
-      phase = pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8
+      phase = pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._kind_physics
       lambda = tan(phase) / phase
 
-      if (any(abs(B0(1:2))>0.)) then
+      if (any(abs(B0(1:2))>0._kind_physics)) then
         DEBUG_WARNING(*, 'This Boris integrator does only work if B=B*e_z, but B=', B0)
       endif
 
@@ -109,16 +109,16 @@ module pepcboris_integrator
         Eavg(:) = (p(ip)%results%e(:)*[lambda,lambda,1._kind_physics] + eold(:,ip)) / 2._kind_physics
 
         ! charge/mass*time-constant
-        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+        beta   = p(ip)%data%q / (2._kind_physics * p(ip)%data%m) * dt
         ! first half step with electric field
         uminus(:) = p(ip)%data%v(:) + beta * Eavg(:)
         ! gamma factor
-        !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
-        gam    = 1._8
+        !gam    = sqrt( 1._kind_physics + ( dot_product(uminus, uminus) ) / unit_c2 )
+        gam    = 1._kind_physics
         ! rotation with magnetic field
         t      = beta/gam * B0 * lambda
         uprime = cross_prod_plus(uminus, t, uminus)
-        s      = 2._8 * t / (1._8 + dot_product(t, t))
+        s      = 2._kind_physics * t / (1._kind_physics + dot_product(t, t))
         uplus  = cross_prod_plus(uprime, s, uminus)
         ! second half step with electric field
         p(ip)%data%v(:) = uplus(:) + beta * Eavg(:)
@@ -143,7 +143,7 @@ module pepcboris_integrator
 
       do ip = 1, size(p, kind=kind_particle)
         ! charge/mass*time-constant
-        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+        beta   = p(ip)%data%q / (2._kind_physics * p(ip)%data%m) * dt
 
         p(ip)%x(:) = p(ip)%x(:) + dt * ( p(ip)%data%v(:) + beta * cross_prod_plus(p(ip)%data%v, B0, p(ip)%results%e) )
 
@@ -168,19 +168,19 @@ module pepcboris_integrator
       B0 = get_magnetic_field()
 
       do ip = 1, size(p, kind=kind_particle)
-        Eavg(:) = (p(ip)%results%e(:) + eold(:,ip)) / 2._8
+        Eavg(:) = (p(ip)%results%e(:) + eold(:,ip)) / 2._kind_physics
 
         ! charge/mass*time-constant
-        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+        beta   = p(ip)%data%q / (2._kind_physics * p(ip)%data%m) * dt
         ! first half step with electric field
         uminus(:) = p(ip)%data%v(:) + beta * Eavg(:)
         ! gamma factor
-        !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
-        gam    = 1._8
+        !gam    = sqrt( 1._kind_physics + ( dot_product(uminus, uminus) ) / unit_c2 )
+        gam    = 1._kind_physics
         ! rotation with magnetic field
         t      = beta/gam * B0
         uprime = cross_prod_plus(uminus, t, uminus)
-        s      = 2._8 * t / (1._8 + dot_product(t, t))
+        s      = 2._kind_physics * t / (1._kind_physics + dot_product(t, t))
         uplus  = cross_prod_plus(uprime, s, uminus)
         ! second half step with electric field
         p(ip)%data%v(:) = uplus(:) + beta * Eavg(:)
@@ -198,8 +198,8 @@ module pepcboris_integrator
       integer(kind_particle) :: ip
 
       do ip = 1, size(p, kind=kind_particle)
-        ! gam = sqrt(1._8 + dot_product(p(ip)%data%v * p(ip)%data%v) / unit_c2)
-        gam = 1._8
+        ! gam = sqrt(1._kind_physics + dot_product(p(ip)%data%v * p(ip)%data%v) / unit_c2)
+        gam = 1._kind_physics
         p(ip)%x = p(ip)%x + p(ip)%data%v / gam * dt
       end do
    end subroutine
@@ -220,16 +220,16 @@ module pepcboris_integrator
 
       do ip = 1, size(p, kind=kind_particle)
         ! charge/mass*time-constant
-        beta   = p(ip)%data%q / (2._8 * p(ip)%data%m) * dt
+        beta   = p(ip)%data%q / (2._kind_physics * p(ip)%data%m) * dt
         ! first half step with electric field
         uminus(:) = p(ip)%data%v(:) + beta * p(ip)%results%e(:)
         ! gamma factor
-        !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
-        gam    = 1._8
+        !gam    = sqrt( 1._kind_physics + ( dot_product(uminus, uminus) ) / unit_c2 )
+        gam    = 1._kind_physics
         ! rotation with magnetic field
         t      = beta/gam * B0
         uprime = cross_prod_plus(uminus, t, uminus)
-        s      = 2._8 * t / (1._8 + dot_product(t, t))
+        s      = 2._kind_physics * t / (1._kind_physics + dot_product(t, t))
         uplus  = cross_prod_plus(uprime, s, uminus)
         ! second half step with electric field
         p(ip)%data%v(:) = uplus(:) + beta * p(ip)%results%e(:)
@@ -259,8 +259,8 @@ module pepcboris_integrator
                                 -B(3),  0._kind_physics,  B(1), &
                                  B(2), -B(1),  0._kind_physics], shape(R))) / absB
 
-      IpeR = I + pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8 * R
-      ImeR = I - pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._8 * R
+      IpeR = I + pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._kind_physics * R
+      ImeR = I - pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._kind_physics * R
       ImeRinv = inverse3(ImeR)
 
       do ip = 1, size(p, kind=kind_particle)
@@ -295,7 +295,7 @@ module pepcboris_integrator
       IpetwoR = I + 2._kind_physics*pepcboris_nml%setup_params(PARAMS_OMEGAB)*dt/2._kind_physics * R
 
       do ip = 1, size(p, kind=kind_particle)
-        Edt = p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * dt / 2._8
+        Edt = p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * dt / 2._kind_physics
         p(ip)%data%v(:) = Edt + matmul(IpetwoR, p(ip)%data%v(:) + Edt)
       end do
 
@@ -327,7 +327,7 @@ module pepcboris_integrator
 
       B0 = get_magnetic_field()
 
-      if (any(abs(B0(1:2))>0.)) then
+      if (any(abs(B0(1:2))>0._kind_physics)) then
         DEBUG_WARNING(*, 'Cyclotronic integrator does only work if B=B*e_z, but B=', B0)
       endif
 
@@ -335,7 +335,7 @@ module pepcboris_integrator
         Omega = p(ip)%data%q / p(ip)%data%m * B0(3)
         phi = -Omega*dt
         if (present(no_tan_trans)) then
-          if (no_tan_trans) phi = -2._8*atan(Omega*dt/2._8)
+          if (no_tan_trans) phi = -2._kind_physics*atan(Omega*dt/2._kind_physics)
         endif
         c = cos(phi)
         s = sin(phi)
@@ -366,7 +366,7 @@ module pepcboris_integrator
 
       B0 = get_magnetic_field()
 
-      if (any(abs(B0(1:2))>0.)) then
+      if (any(abs(B0(1:2))>0._kind_physics)) then
         DEBUG_WARNING(*, 'This Boris integrator does only work if B=B*e_z, but B=', B0)
       endif
 
@@ -374,16 +374,16 @@ module pepcboris_integrator
         Omega = p(ip)%data%q / p(ip)%data%m * B0(3)
         phi = -Omega*dt
         if (present(no_tan_trans)) then
-          if (no_tan_trans) phi = -2._8*atan(Omega*dt/2._8)
+          if (no_tan_trans) phi = -2._kind_physics*atan(Omega*dt/2._kind_physics)
         endif
         c = cos(phi)
         s = sin(phi)
 
-        vstar = p(ip)%data%v + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._8 * dt
+        vstar = p(ip)%data%v + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._kind_physics * dt
         vsstar(1) =  c*vstar(1) - s*vstar(2)
         vsstar(2) =  s*vstar(1) + c*vstar(2)
         vsstar(3) =    vstar(3)
-        p(ip)%data%v = vsstar + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._8 * dt
+        p(ip)%data%v = vsstar + p(ip)%data%q * p(ip)%results%e / p(ip)%data%m / 2._kind_physics * dt
       end do
 
    end subroutine
@@ -406,12 +406,12 @@ module pepcboris_integrator
       E =  A*dt
 
       M1 = A*(B-4)/(D+4)
-      M2 = b*(B-4)/(D+4) * pepcboris_nml%setup_params(PARAMS_OMEGAB)/2._8
-      M3 = (B-2)*(D-4)/(2._8*(D+4))
-      M4 = 2._8*dt*pepcboris_nml%setup_params(PARAMS_OMEGAB)*(B-2)/(D+4)
+      M2 = b*(B-4)/(D+4) * pepcboris_nml%setup_params(PARAMS_OMEGAB)/2._kind_physics
+      M3 = (B-2)*(D-4)/(2._kind_physics*(D+4))
+      M4 = 2._kind_physics*dt*pepcboris_nml%setup_params(PARAMS_OMEGAB)*(B-2)/(D+4)
 
       M  = transpose(reshape( &
-            [1._8-B/2._kind_physics, 0._kind_physics,                   1._kind_physics*dt, C/2._kind_physics,   0._kind_physics, 0._kind_physics, &
+            [1._kind_physics-B/2._kind_physics, 0._kind_physics,                   1._kind_physics*dt, C/2._kind_physics,   0._kind_physics, 0._kind_physics, &
                     0._kind_physics, 1._kind_physics-B/2._kind_physics, -C/2._kind_physics,  1._kind_physics*dt, 0._kind_physics, 0._kind_physics, &
                       M1,            M2,                                M3,                 -M4,                 0._kind_physics, 0._kind_physics, &
                      -M2,            M1,                                M4,                  M3,                 0._kind_physics, 0._kind_physics, &

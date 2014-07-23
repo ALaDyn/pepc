@@ -264,20 +264,20 @@ module pfm_feval
 
       do i = 1,size(particles, kind=kind(i))
          ! charge/mass*time-constant
-        beta   = particles(i)%data%q / (2._8 * particles(i)%data%m) * dt
-        Emean(:)  = (E_old%v(:,i) + E_new%v(:,i)) / 2._8
+        beta   = particles(i)%data%q / (2._kind_physics * particles(i)%data%m) * dt
+        Emean(:)  = (E_old%v(:,i) + E_new%v(:,i)) / 2._kind_physics
         ! first half step with electric field
-        uminus(:) = v_old%v(:,i) + beta * Emean(:) + SDCint%v(:,i) / 2._8
+        uminus(:) = v_old%v(:,i) + beta * Emean(:) + SDCint%v(:,i) / 2._kind_physics
         ! gamma factor
-        !gam    = sqrt( 1._8 + ( dot_product(uminus, uminus) ) / unit_c2 )
-        gam    = 1._8
+        !gam    = sqrt( 1._kind_physics + ( dot_product(uminus, uminus) ) / unit_c2 )
+        gam    = 1._kind_physics
         ! rotation with magnetic field
         t      = beta/gam * B0
         uprime = cross_prod_plus(uminus, t, uminus)
-        s      = 2._8 * t / (1._8 + dot_product(t, t))
+        s      = 2._kind_physics * t / (1._kind_physics + dot_product(t, t))
         uplus  = cross_prod_plus(uprime, s, uminus)
         ! second half step with electric field
-        v%v(:,i) = uplus(:) + beta * Emean(:) + SDCint%v(:,i) / 2._8
+        v%v(:,i) = uplus(:) + beta * Emean(:) + SDCint%v(:,i) / 2._kind_physics
       end do
 
       deallocate(particles)
@@ -323,7 +323,7 @@ module pfm_feval
       do p=1,size(particles,kind=kind(p))
         associate(pt => particles(p))
           pt%results%e   = pt%results%e   + w2 * w*pt%x
-          pt%results%pot = pt%results%pot - w2*pt%data%m/pt%data%q/2. * dot_product(w,pt%x*pt%x)
+          pt%results%pot = pt%results%pot - w2*pt%data%m/pt%data%q/2._kind_physics * dot_product(w,pt%x*pt%x)
         end associate
       end do
     end subroutine

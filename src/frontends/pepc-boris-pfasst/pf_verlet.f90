@@ -195,12 +195,12 @@ contains
     end do
     do i = 2,F%nnodes
        do j = 1,i-1
-          Trap(i,j) = Trap(i,j)+ 0.5d0*dsdc(j)
-          Trap(i,j+1) = Trap(i,j+1)+ 0.5d0*dsdc(j)
+          Trap(i,j) = Trap(i,j)+ 0.5_pfdp*dsdc(j)
+          Trap(i,j+1) = Trap(i,j+1)+ 0.5_pfdp*dsdc(j)
        end do
     end do
 
-    Abartil = matmul(FE,Trap) + 0.5d0*FE*FE
+    Abartil = matmul(FE,Trap) + 0.5_pfdp*FE*FE
 
     !  Make differences
     D = Abar-Abartil
@@ -215,7 +215,7 @@ contains
     end do
 
     ! populate qqmat (i.e. Q*Q without first line)
-    qtmp(1 ,:) = 0.
+    qtmp(1 ,:) = 0._pfdp
     qtmp(2:,:) = F%qmat
     qtmp(:, :) = matmul(qtmp, qtmp)
     F%qqmat(:, :) = qtmp(2:,:)
