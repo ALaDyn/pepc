@@ -11,7 +11,7 @@ FILES_L   = encap.f90 pepc.f90 pepc_helper.f90 time_helper.f90 \
             sdc_quadrature.f90 sdc_poly.f90 pf_mpi.f90 pf_parallel.f90 \
             pf_interpolate.f90 pf_restrict.f90 \
 	    module_paralleldump.f90 \
-	    dump_helper.f90
+	    dump_helper.f90 pf_mpif.f90
 
 FILES_L_U = module_vtk_helpers.f90 \
             module_directsum.f90 \
