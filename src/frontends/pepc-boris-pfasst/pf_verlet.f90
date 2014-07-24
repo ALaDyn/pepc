@@ -278,6 +278,7 @@ contains
   ! Create Verlet sweeper
   !
   subroutine pf_verlet_create(sweeper, calc_Efield, build_rhs, impl_solver)
+    use pf_mod_utils, only: pf_generic_evaluate_all
     type(pf_sweeper_t), intent(inout) :: sweeper
     procedure(pf_calc_Efield_p)       :: calc_Efield
     procedure(pf_build_rhs_p)         :: build_rhs
@@ -288,12 +289,13 @@ contains
     verlet%build_rhs   => build_rhs
     verlet%impl_solver => impl_solver
     sweeper%npieces = 1
-    sweeper%sweep       => verlet_sweep
-    sweeper%evaluate    => verlet_evaluate
-    sweeper%initialize  => verlet_initialize
-    sweeper%integrate   => verlet_integrate
-    sweeper%destroy     => null() ! we care for destroying the sweeper by ourselves
-    sweeper%sweeperctx  =  c_loc(verlet)
+    sweeper%sweep        => verlet_sweep
+    sweeper%evaluate     => verlet_evaluate
+    sweeper%evaluate_all => pf_generic_evaluate_all
+    sweeper%initialize   => verlet_initialize
+    sweeper%integrate    => verlet_integrate
+    sweeper%destroy      => null() ! we care for destroying the sweeper by ourselves
+    sweeper%sweeperctx   =  c_loc(verlet)
   end subroutine pf_verlet_create
 
   subroutine pf_verlet_destroy(sweeper)
