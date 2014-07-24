@@ -211,6 +211,14 @@ module module_species
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == e1: ",src_e1(ispecies,:)
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == e2: ",src_e2(ispecies,:)
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == e3: ",src_e3(ispecies,:)
+                ELSE IF (src_type(ispecies)==6) THEN !Cylindircal Volume Source
+                    src_bnd(ispecies)=0
+                    src_e2(ispecies,:)=0.
+                    src_e3(ispecies,:)=0.
+                    IF (root) write(*,'(a,i2,a,i2,a)') " == Volume source of type ",src_type(ispecies)," for species ",ispecies," set. Parameters:"
+                    IF (root) write(*,'(a,3(1pe14.5E3))') " == reference point(x0): ",src_x0(ispecies,:)
+                    IF (root) write(*,'(a,3(1pe14.5E3))') " == axis(e1): ",src_e1(ispecies,:)
+                    IF (root) write(*,'(a,(1pe14.5E3))') " == radius(v0): ",src_v0(ispecies)
                 ELSE
                     IF (root) write(*,'(a,i3,a)') " Source cannot be set. Type ",src_type(ispecies)," not available."
                     STOP

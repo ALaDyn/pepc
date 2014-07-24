@@ -790,6 +790,7 @@ module particlehandling
                         CYCLE
                     END IF
                 END IF
+
                 IF ((species(p(ip)%data%species)%src_type==0) .OR. (species(p(ip)%data%species)%src_type==-1)) THEN !surface source (Maxwellian Flux)
                     IF (species(p(ip)%data%species)%src_type==0) THEN
                         direction = 1
@@ -815,6 +816,7 @@ module particlehandling
                               ran1*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
                     p(ip)%x = p(ip)%x + n1 * dotproduct(n1,p(ip)%data%v) * dt * ran
+
                 ELSE IF ((species(p(ip)%data%species)%src_type == 5) .OR. (species(p(ip)%data%species)%src_type == -5)) THEN                 !surface source (drifting Maxwellian Flux)
                     IF (species(p(ip)%data%species)%src_type > 0) THEN
                         direction = 1
@@ -840,6 +842,7 @@ module particlehandling
                               ran1*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
                     p(ip)%x = p(ip)%x + n1 * dotproduct(n1,p(ip)%data%v) * dt * ran
+
                 ELSE IF (species(p(ip)%data%species)%src_type==4) THEN                 !surface source (plasma column)
                     call random_gauss_list(vhelp(2:3),mu,sigma)
                     call random_gaussian_flux(vhelp(1),sigma)
@@ -865,6 +868,7 @@ module particlehandling
                     p(ip)%x = p(ip)%x + boundaries(species(p(ip)%data%species)%src_bnd)%n * &
                               dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
                               !and we moved the particle a little bit along n
+
                 ELSE IF (species(p(ip)%data%species)%src_type==1) THEN            ! Emmert source along x, Maxwellian perpendicular to x
                     call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
                     call random_gaussian_flux(p(ip)%data%v(1),sigma)
@@ -877,6 +881,40 @@ module particlehandling
                               ran * species(p(ip)%data%species)%src_e1 + &
                               ran1 * species(p(ip)%data%species)%src_e2 + &
                               ran2 * species(p(ip)%data%species)%src_e3
+
+                ELSE IF (species(p(ip)%data%species)%src_type==6) THEN            ! Emmert source along cylinder axis, Maxwellian perpendicular to axis
+                    n1 = species(p(ip)%data%species)%src_e1                       ! cylinder axis
+                    n1 = n1 /sqrt(dotproduct(n1,n1))
+                    IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                        t1(1) = -n1(2)                                            ! tangential vector
+                        t1(2) = n1(1)
+                        t1(3) = 0.0_8
+                    ELSE
+                        t1(1) = 1.0_8                                             ! tangential vector
+                        t1(2) = 0.0_8
+                        t1(3) = 0.0_8
+                    END IF
+                    t1 = t1 / sqrt(dotproduct(t1,t1))
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+                    t2=t2/sqrt(dotproduct(t2,t2))
+
+                    call random_gauss_list(vhelp(2:3),mu,sigma)
+                    call random_gaussian_flux(vhelp(1),sigma)
+                    ran=rnd_num()
+                    IF (ran>0.5) vhelp(1)=-vhelp(1)
+                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
+                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
+                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
+                    ran=rnd_num()
+                    ran1=rnd_num() * species(p(ip)%data%species)%src_v0 !radius
+                    ran2=rnd_num() * 2.0_8 * pi              !angle
+                    p(ip)%x = species(p(ip)%data%species)%src_x0                     !now we are at the center of the plasma column
+                    p(ip)%x = p(ip)%x + ran*species(p(ip)%data%species)%src_e1       !now we moved the particle along the cylinder axis
+                    p(ip)%x = p(ip)%x + ran1*sin(ran2)*t1 + ran1*cos(ran2)*t2        !and now perpendicular to it
+
+
                 ELSE IF (species(p(ip)%data%species)%src_type==3) THEN                ! Emmert source along B, Maxwellian perpendicular to B
                     IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
                         n1 = B_vector / sqrt(dotproduct(B_vector,B_vector))           ! normal vector along B
