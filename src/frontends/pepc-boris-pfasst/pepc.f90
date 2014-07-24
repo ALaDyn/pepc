@@ -304,8 +304,8 @@ program pepc
         block
           complex(kind_physics) :: u, udot, Rp, Rm
           real(kind_physics) :: Omegap, Omegam, Rscrm, Rscrp, Iscrm, Iscrp, Omegasq
-          complex*16, parameter :: ic = (0._kind_physics, 1._kind_physics)
-          real*8, parameter :: sqrttwo = sqrt(2._kind_physics)
+          complex(kind_physics), parameter :: ic = (0._kind_physics, 1._kind_physics)
+          real(kind_physics), parameter :: sqrttwo = sqrt(2._kind_physics)
 
           Omegasq = sqrt((params(PARAMS_OMEGAB)**2)/4._kind_physics - params(PARAMS_OMEGAE)**2)
           Omegap  = params(PARAMS_OMEGAB)/2._kind_physics + Omegasq
