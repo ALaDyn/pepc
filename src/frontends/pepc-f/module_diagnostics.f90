@@ -110,7 +110,11 @@ MODULE diagnostics
                 cylinder_coords(1) = particles(ip)%x(1)
                 cylinder_coords(2) = sqrt(particles(ip)%x(2)**2 + particles(ip)%x(3)**2)
                 IF (real_unequal_zero(cylinder_coords(2),eps)) THEN
-                    cylinder_coords(3) = acos(particles(ip)%x(2) / cylinder_coords(2))
+                    IF (particles(ip)%x(3) >= 0._8) THEN
+                        cylinder_coords(3) = acos(particles(ip)%x(2) / cylinder_coords(2))
+                    ELSE
+                        cylinder_coords(3) = 2*pi - acos(particles(ip)%x(2) / cylinder_coords(2))
+                    END IF
                 ELSE
                     cylinder_coords(3) = 0.
                 END IF
