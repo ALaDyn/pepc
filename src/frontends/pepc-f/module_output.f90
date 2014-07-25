@@ -54,44 +54,9 @@ MODULE output
 
     END SUBROUTINE  velocity_output
 
-!===============================================================================
-
-    !SUBROUTINE x_and_v_output(ispecies,npoints,filehandle)
-    !    use diagnostics
-    !    use module_pepc_types
-    !    implicit none
-    !    include 'mpif.h'
-
-    !    integer                 :: rc,i
-
-    !    integer,intent(in)      :: filehandle,ispecies,npoints
-    !    real(KIND=8)            :: vsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-    !    real(KIND=8)            :: v2sum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-    !    integer                 :: n_bin(npoints)
-    !    real(KIND=8)            :: tvsum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-    !    real(KIND=8)            :: tv2sum_bin(6,npoints) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-    !    integer                 :: tn_bin(npoints)
-    !    real(KIND=8)            :: x_bin(npoints)
-
-!        call bin_v(ispecies,npoints,x_bin,vsum_bin,v2sum_bin,n_bin)
-!        call MPI_ALLREDUCE(n_bin, tn_bin, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-!        call MPI_ALLREDUCE(vsum_bin, tvsum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
-!        call MPI_ALLREDUCE(v2sum_bin, tv2sum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
-
-
-!        IF (root) THEN
-!            write(filehandle,'(a12,a16,a10,12(a16))')"","x","n","vx","vy","vz","vpar","vperp1","vperp2","vx2","vy2","vz2","vpar2","vperp1_2","vperp2_2"
-!            DO i=1,npoints
-!                write(filehandle,'(a12,1pe16.7E3,i10.9,12(1pe16.7E3))')"Histogram:  ",x_bin(i),tn_bin(i),tvsum_bin(1,i)/tn_bin(i),tvsum_bin(2,i)/tn_bin(i),tvsum_bin(3,i)/tn_bin(i),tvsum_bin(4,i)/tn_bin(i),tvsum_bin(5,i)/tn_bin(i),tvsum_bin(6,i)/tn_bin(i),tv2sum_bin(1,i)/tn_bin(i),tv2sum_bin(2,i)/tn_bin(i),tv2sum_bin(3,i)/tn_bin(i),tv2sum_bin(4,i)/tn_bin(i),tv2sum_bin(5,i)/tn_bin(i),tv2sum_bin(6,i)/tn_bin(i)
-!            END DO
-!        END IF
-
-!    END SUBROUTINE  x_and_v_output
-
-
     !===============================================================================
 
-    SUBROUTINE x_and_v_output(ispecies,filehandle)
+    SUBROUTINE plasma_props_output(ispecies,filehandle)
         use diagnostics
         use module_pepc_types
         implicit none
@@ -103,34 +68,39 @@ MODULE output
         integer                 :: npoints
         real(KIND=8)            :: vsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)   !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
         real(KIND=8)            :: v2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        real(KIND=8)            :: ephisum_bin(4, diag_bins_x, diag_bins_y, diag_bins_z) !1=phi, 2=ex, 3=ey, 4=ez
         integer                 :: n_bin(diag_bins_x,diag_bins_y,diag_bins_z)
         real(KIND=8)            :: tvsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
         real(KIND=8)            :: tv2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        real(KIND=8)            :: tephisum_bin(4, diag_bins_x, diag_bins_y, diag_bins_z) !1=phi, 2=ex, 3=ey, 4=ez
         integer                 :: tn_bin(diag_bins_x,diag_bins_y,diag_bins_z)
 
 
         npoints = diag_bins_x * diag_bins_y * diag_bins_z
 
-        call bin_v(ispecies,vsum_bin,v2sum_bin,n_bin)
+        IF (bool_diag_bins_cylinder) THEN
+            call bin_data_cylindrical(ispecies,vsum_bin,v2sum_bin,ephisum_bin,n_bin)
+        ELSE
+            call bin_data(ispecies,vsum_bin,v2sum_bin,ephisum_bin,n_bin)
+        END IF
         call MPI_ALLREDUCE(n_bin, tn_bin, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         call MPI_ALLREDUCE(vsum_bin, tvsum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(ephisum_bin, tephisum_bin, 4*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
         call MPI_ALLREDUCE(v2sum_bin, tv2sum_bin, 12*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
-        !tvsum_bin=vsum_bin
-        !tv2sum_bin=v2sum_bin
 
         IF (root) THEN
             write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,ny,nz):", diag_bins_x,diag_bins_y,diag_bins_z
-            write(filehandle,'(a12,3(a6),a10,6(a16),12(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar","vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz","vzvx","vparvpar","vperp1vperp1","vperp2vperp2","vparvperp1","vperp1vperp2","vperp2vpar"
+            write(filehandle,'(a12,3(a6),a10,6(a16),16(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar","vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz","vzvx","vparvpar","vperp1vperp1","vperp2vperp2","vparvperp1","vperp1vperp2","vperp2vpar","phi","ex","ey","ez"
             DO iz=1,diag_bins_z
                 DO iy=1,diag_bins_y
                     DO ix=1,diag_bins_x
-                        write(filehandle,'(a12,3(i6.5),i10.9,6(1pe16.7E3),12(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bin(ix,iy,iz),tvsum_bin(:,ix,iy,iz),tv2sum_bin(:,ix,iy,iz)
+                        write(filehandle,'(a12,3(i6.5),i10.9,6(1pe16.7E3),16(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bin(ix,iy,iz),tvsum_bin(:,ix,iy,iz),tv2sum_bin(:,ix,iy,iz),tephisum_bin(:,ix,iy,iz)
                     END DO
                 END DO
             END DO
         END IF
 
-    END SUBROUTINE  x_and_v_output
+    END SUBROUTINE  plasma_props_output
 !===============================================================================
 
     SUBROUTINE probe_output(ispecies,filehandle)
@@ -401,7 +371,7 @@ MODULE output
 
                 IF(diag_interval.ne.0) THEN
                     IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                        call x_and_v_output(ispecies,filehandle)
+                        call plasma_props_output(ispecies,filehandle)
                         IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
                         IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
                         IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
@@ -486,10 +456,8 @@ MODULE output
           write(*,'(a,i12)')    " == number of species                : ", nspecies
           write(*,'(a,i12)')    " == number of of boundaries          : ", nb
           write(*,'(a,es12.4)') " == time step                        : ", dt
-          !write(*,'(a,es12.4)') " == timestep * omega_p               : ", dt*omega_p
           write(*,'(a,es12.4)') " == simulation volume                : ", dx*dy*dz
           write(*,'(a,es12.4)') " == superparticle factor             : ", fsup
-          !write(*,'(a,es12.4)') " == particles / debye spehere        : ", 0.5*tnpp/(dx*dy*dz)*l_debye**3
           write(*,'(a,l6)')     " == far_field_if_periodic            : ", include_far_field_if_periodic
           write(*,*)
           write(*,*) "========== Magnetic Field ========="
@@ -510,8 +478,6 @@ MODULE output
           write(*,*)
           write(*,*) "========== Plasmaparameters ========="
           write(*,'(a,es12.4)') " == Gyro radius [m]                  : ", r_lamor
-          !write(*,'(a,es12.4)') " == Debye length [m]                 : ", l_debye
-          !write(*,'(a,es12.4)') " == Plasmafrequency [s^-1]           : ", omega_p
           write(*,*)
           write(*,*) "========== Wall Particles ========="
           write(*,'(a,i12)')    " == total number of wall particles   : ", tnpps(0)

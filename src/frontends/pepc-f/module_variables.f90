@@ -133,6 +133,8 @@ module variables
   integer :: spiegelladung=0
   integer :: retherm=0
   logical :: bool_particle_handling_timing = .false.
+  logical :: bool_diag_bins_cylinder=.false.
+
 
   real(KIND=8),allocatable :: probe_start_x(:), probe_start_y(:), probe_start_z(:)
   real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)

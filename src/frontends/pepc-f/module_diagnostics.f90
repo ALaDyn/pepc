@@ -47,18 +47,25 @@ MODULE diagnostics
 
 
 !===============================================================================
+! This routine bins v and v^2 in cylinder coordinates.
+! The cylinder axis is at y,z = 0, xmin < x <xmax
+! diag_bins_x bins for x: xmin < x < xmax
+! diag_bins_y bins for r: 0 < r < ymax
+! diag_bins_z bins for phi: 0 < phi < 2Pi
 
-
-    subroutine bin_v(ispecies,vsum_bin,v2sum_bin,n_bin)
+    subroutine bin_data_cylindrical(ispecies,vsum_bin,v2sum_bin,ephisum_bin,n_bin)
         implicit none
 
         integer, intent(in) :: ispecies
         integer, intent(out):: n_bin(:,:,:)
         real(KIND=8), intent(out) :: vsum_bin(:,:,:,:)
+        real(KIND=8), intent(out) :: ephisum_bin(:,:,:,:)
         real(KIND=8), intent(out) :: v2sum_bin(:,:,:,:)
+        real(KIND=8) :: cylinder_coords(3)
+        real(KIND=8) :: delx,delr,delphi
 
         integer :: ip,n
-        integer                 :: ix,iy,iz
+        integer                 :: ix,ir,iphi
 
         real(KIND=8)            :: n1(3), t1(3), t2(3), B_vector(3)
         real(KIND=8)            :: eps=1.0e-10
@@ -88,20 +95,117 @@ MODULE diagnostics
         t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
         t2=t2/sqrt(dotproduct(t2,t2))
 
-        dx = (xmax-xmin)/diag_bins_x
-        dy = (ymax-ymin)/diag_bins_y
-        dz = (zmax-zmin)/diag_bins_z
+        delx = (xmax-xmin)/diag_bins_x
+        delr = ymax/diag_bins_y
+        delphi = 2*pi/diag_bins_z
 
         n = size(particles)
         n_bin = 0
         vsum_bin = 0.0_8
         v2sum_bin = 0.0_8
+        ephisum_bin = 0.0_8
 
         DO ip=1, n
             IF (particles(ip)%data%species == ispecies) THEN
-                ix = int((particles(ip)%x(1) - xmin) / dx) + 1
-                iy = int((particles(ip)%x(2) - ymin) / dy) + 1
-                iz = int((particles(ip)%x(3) - zmin) / dz) + 1
+                cylinder_coords(1) = particles(ip)%x(1)
+                cylinder_coords(2) = sqrt(particles(ip)%x(2)**2 + particles(ip)%x(3)**2)
+                IF (real_unequal_zero(cylinder_coords(2),eps)) THEN
+                    cylinder_coords(3) = acos(particles(ip)%x(2) / cylinder_coords(2))
+                ELSE
+                    cylinder_coords(3) = 0.
+                END IF
+
+                ix = int((cylinder_coords(1) - xmin) / delx) + 1
+                ir = int(cylinder_coords(2) / delr) + 1
+                iphi = int(cylinder_coords(3) / delphi) + 1
+
+                n_bin(ix,ir,iphi) = n_bin(ix,ir,iphi) + 1
+                vsum_bin(1,ix,ir,iphi) = vsum_bin(1,ix,ir,iphi) + particles(ip)%data%v(1)
+                vsum_bin(2,ix,ir,iphi) = vsum_bin(2,ix,ir,iphi) + particles(ip)%data%v(2)
+                vsum_bin(3,ix,ir,iphi) = vsum_bin(3,ix,ir,iphi) + particles(ip)%data%v(3)
+                vsum_bin(4,ix,ir,iphi) = vsum_bin(4,ix,ir,iphi) + dotproduct(particles(ip)%data%v,n1)
+                vsum_bin(5,ix,ir,iphi) = vsum_bin(5,ix,ir,iphi) + dotproduct(particles(ip)%data%v,t1)
+                vsum_bin(6,ix,ir,iphi) = vsum_bin(6,ix,ir,iphi) + dotproduct(particles(ip)%data%v,t2)
+
+                v2sum_bin(1,ix,ir,iphi) = v2sum_bin(1,ix,ir,iphi) + particles(ip)%data%v(1)**2                                                !vx  vx
+                v2sum_bin(2,ix,ir,iphi) = v2sum_bin(2,ix,ir,iphi) + particles(ip)%data%v(2)**2                                                !vy  vy
+                v2sum_bin(3,ix,ir,iphi) = v2sum_bin(3,ix,ir,iphi) + particles(ip)%data%v(3)**2                                                !vz  vz
+                v2sum_bin(4,ix,ir,iphi) = v2sum_bin(4,ix,ir,iphi) + particles(ip)%data%v(1)*particles(ip)%data%v(2)                           !vx  vy
+                v2sum_bin(5,ix,ir,iphi) = v2sum_bin(5,ix,ir,iphi) + particles(ip)%data%v(2)*particles(ip)%data%v(3)                           !vy  vz
+                v2sum_bin(6,ix,ir,iphi) = v2sum_bin(6,ix,ir,iphi) + particles(ip)%data%v(3)*particles(ip)%data%v(1)                           !vz  vx
+
+                v2sum_bin(7,ix,ir,iphi) = v2sum_bin(7,ix,ir,iphi) + dotproduct(particles(ip)%data%v,n1)**2                                    !v||  v||
+                v2sum_bin(8,ix,ir,iphi) = v2sum_bin(8,ix,ir,iphi) + dotproduct(particles(ip)%data%v,t1)**2                                    !v_|_1  v_|_1
+                v2sum_bin(9,ix,ir,iphi) = v2sum_bin(9,ix,ir,iphi) + dotproduct(particles(ip)%data%v,t2)**2                                    !v_|_2  v_|_2
+                v2sum_bin(10,ix,ir,iphi) = v2sum_bin(10,ix,ir,iphi) + dotproduct(particles(ip)%data%v,n1)*dotproduct(particles(ip)%data%v,t1) !v||  v_|_1
+                v2sum_bin(11,ix,ir,iphi) = v2sum_bin(11,ix,ir,iphi) + dotproduct(particles(ip)%data%v,t1)*dotproduct(particles(ip)%data%v,t2) !v_|_1  v_|_2
+                v2sum_bin(12,ix,ir,iphi) = v2sum_bin(12,ix,ir,iphi) + dotproduct(particles(ip)%data%v,t2)*dotproduct(particles(ip)%data%v,n1) !v_|_2  v||
+
+                ephisum_bin(1,ix,ir,iphi) = ephisum_bin(1,ix,ir,iphi) + particles(ip)%results%pot*fc
+                ephisum_bin(2:4,ix,ir,iphi) = ephisum_bin(2:4,ix,ir,iphi) + particles(ip)%results%E*fc
+            END IF
+        END DO
+    end subroutine
+
+!===============================================================================
+
+
+    subroutine bin_data(ispecies,vsum_bin,v2sum_bin,ephisum_bin,n_bin)
+        implicit none
+
+        integer, intent(in) :: ispecies
+        integer, intent(out):: n_bin(:,:,:)
+        real(KIND=8), intent(out) :: vsum_bin(:,:,:,:)
+        real(KIND=8), intent(out) :: ephisum_bin(:,:,:,:)
+        real(KIND=8), intent(out) :: v2sum_bin(:,:,:,:)
+
+        integer :: ip,n
+        integer                 :: ix,iy,iz
+        real(KIND=8)            :: delx,dely,delz
+
+        real(KIND=8)            :: n1(3), t1(3), t2(3), B_vector(3)
+        real(KIND=8)            :: eps=1.0e-10
+
+        B_vector(1) = Bx
+        B_vector(2) = By
+        B_vector(3) = Bz
+        IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
+            n1 = B_vector / sqrt(dotproduct(B_vector,B_vector))           ! normal vector along B
+        ELSE                                                              ! Without B Field
+            n1(1) = 1.0_8                                                 ! normal vector along x
+            n1(2) = 0.0_8
+            n1(3) = 0.0_8
+        END IF
+        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+            t1(1) = -n1(2)                                            ! tangential vector
+            t1(2) = n1(1)
+            t1(3) = 0.0_8
+        ELSE
+            t1(1) = 1.0_8                                             ! tangential vector
+            t1(2) = 0.0_8
+            t1(3) = 0.0_8
+        END IF
+        t1 = t1 / sqrt(dotproduct(t1,t1))
+        t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+        t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+        t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+        t2=t2/sqrt(dotproduct(t2,t2))
+
+        delx = (xmax-xmin)/diag_bins_x
+        dely = (ymax-ymin)/diag_bins_y
+        delz = (zmax-zmin)/diag_bins_z
+
+        n = size(particles)
+        n_bin = 0
+        vsum_bin = 0.0_8
+        v2sum_bin = 0.0_8
+        ephisum_bin = 0.0_8
+
+        DO ip=1, n
+            IF (particles(ip)%data%species == ispecies) THEN
+                ix = int((particles(ip)%x(1) - xmin) / delx) + 1
+                iy = int((particles(ip)%x(2) - ymin) / dely) + 1
+                iz = int((particles(ip)%x(3) - zmin) / delz) + 1
 
                 n_bin(ix,iy,iz) = n_bin(ix,iy,iz) + 1
                 vsum_bin(1,ix,iy,iz) = vsum_bin(1,ix,iy,iz) + particles(ip)%data%v(1)
@@ -124,88 +228,13 @@ MODULE diagnostics
                 v2sum_bin(10,ix,iy,iz) = v2sum_bin(10,ix,iy,iz) + dotproduct(particles(ip)%data%v,n1)*dotproduct(particles(ip)%data%v,t1) !v||  v_|_1
                 v2sum_bin(11,ix,iy,iz) = v2sum_bin(11,ix,iy,iz) + dotproduct(particles(ip)%data%v,t1)*dotproduct(particles(ip)%data%v,t2) !v_|_1  v_|_2
                 v2sum_bin(12,ix,iy,iz) = v2sum_bin(12,ix,iy,iz) + dotproduct(particles(ip)%data%v,t2)*dotproduct(particles(ip)%data%v,n1) !v_|_2  v||
+
+                ephisum_bin(1,ix,iy,iz) = ephisum_bin(1,ix,iy,iz) + particles(ip)%results%pot*fc
+                ephisum_bin(2:4,ix,iy,iz) = ephisum_bin(2:4,ix,iy,iz) + particles(ip)%results%E*fc
             END IF
         END DO
     end subroutine
 
-!===============================================================================
-
-
-!    subroutine bin_v(ispecies,npoints,x_bin,vsum_bin,v2sum_bin,n_bin)
-!        implicit none
-
-!        integer, intent(in) :: ispecies,npoints
-!        real(KIND=8), intent(out) :: x_bin(:)
-!        integer, intent(out):: n_bin(:)
-!        real(KIND=8), intent(out) :: vsum_bin(:,:)
-!        real(KIND=8), intent(out) :: v2sum_bin(:,:)
-
-!        integer :: ip,n
-!        real(KIND=8)            :: dx,x0
-!        integer                 :: i
-
-!        real(KIND=8)            :: n1(3), t1(3), t2(3), B_vector(3)
-!        real(KIND=8)            :: eps=1.0e-10
-
-!        B_vector(1) = Bx
-!        B_vector(2) = By
-!        B_vector(3) = Bz
-!        IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
-!            n1 = B_vector / sqrt(dotproduct(B_vector,B_vector))           ! normal vector along B
-!        ELSE                                                              ! Without B Field
-!            n1(1) = 1.0_8                                                 ! normal vector along x
-!            n1(2) = 0.0_8
-!            n1(3) = 0.0_8
-!        END IF
-!        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
-!            t1(1) = -n1(2)                                            ! tangential vector
-!            t1(2) = n1(1)
-!            t1(3) = 0.0_8
-!        ELSE
-!            t1(1) = 1.0_8                                             ! tangential vector
-!            t1(2) = 0.0_8
-!            t1(3) = 0.0_8
-!        END IF
-!        t1 = t1 / sqrt(dotproduct(t1,t1))
-!        t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
-!        t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
-!        t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
-!        t2=t2/sqrt(dotproduct(t2,t2))
-
-!        dx = (xmax-xmin)/npoints
-!        x0 = xmin + dx/2.
-!        x_bin = x0
-!        DO i=1,npoints
-!            x_bin(i) = x_bin(i) + (i-1)*dx
-!        END DO
-
-!        n = size(particles)
-!        n_bin = 0
-!        vsum_bin = 0.0_8
-!        v2sum_bin = 0.0_8
-
-!        DO i=1, npoints
-!            DO ip=1, n
-!                IF (particles(ip)%data%species == ispecies) THEN
-!                    IF ((particles(ip)%x(1) < x_bin(i)+dx/2.) .AND. (particles(ip)%x(1) >= x_bin(i)-dx/2.)) THEN
-!                        n_bin(i) = n_bin(i) + 1
-!                        vsum_bin(1,i) = vsum_bin(1,i) + particles(ip)%data%v(1)
-!                        vsum_bin(2,i) = vsum_bin(2,i) + particles(ip)%data%v(2)
-!                        vsum_bin(3,i) = vsum_bin(3,i) + particles(ip)%data%v(3)
-!                        vsum_bin(4,i) = vsum_bin(4,i) + dotproduct(particles(ip)%data%v,n1)
-!                        vsum_bin(5,i) = vsum_bin(5,i) + dotproduct(particles(ip)%data%v,t1)
-!                        vsum_bin(6,i) = vsum_bin(6,i) + dotproduct(particles(ip)%data%v,t2)
-!                        v2sum_bin(1,i) = v2sum_bin(1,i) + particles(ip)%data%v(1)**2
-!                        v2sum_bin(2,i) = v2sum_bin(2,i) + particles(ip)%data%v(2)**2
-!                        v2sum_bin(3,i) = v2sum_bin(3,i) + particles(ip)%data%v(3)**2
-!                        v2sum_bin(4,i) = v2sum_bin(4,i) + dotproduct(particles(ip)%data%v,n1)**2
-!                        v2sum_bin(5,i) = v2sum_bin(5,i) + dotproduct(particles(ip)%data%v,t1)**2
-!                        v2sum_bin(6,i) = v2sum_bin(6,i) + dotproduct(particles(ip)%data%v,t2)**2
-!                    END IF
-!                END IF
-!            END DO
-!        END DO
-!    end subroutine
 
 !===============================================================================
 
