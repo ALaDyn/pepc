@@ -66,41 +66,57 @@ MODULE output
 
         integer,intent(in)      :: filehandle,ispecies
         integer                 :: npoints
-        real(KIND=8)            :: vsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)   !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        real(KIND=8)            :: v2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        real(KIND=8)            :: ephisum_bin(4, diag_bins_x, diag_bins_y, diag_bins_z) !1=phi, 2=ex, 3=ey, 4=ez
-        integer                 :: n_bin(diag_bins_x,diag_bins_y,diag_bins_z)
-        real(KIND=8)            :: tvsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        real(KIND=8)            :: tv2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        real(KIND=8)            :: tephisum_bin(4, diag_bins_x, diag_bins_y, diag_bins_z) !1=phi, 2=ex, 3=ey, 4=ez
-        integer                 :: tn_bin(diag_bins_x,diag_bins_y,diag_bins_z)
+        real(KIND=8)            :: data_bins(38,diag_bins_x,diag_bins_y,diag_bins_z)
+        !real(KIND=8)            :: vsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)   !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        !real(KIND=8)            :: v2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        !real(KIND=8)            :: ephisum_bin(4, diag_bins_x, diag_bins_y, diag_bins_z) !1=phi, 2=ex, 3=ey, 4=ez
+        integer                 :: n_bins(diag_bins_x,diag_bins_y,diag_bins_z)
+        real(KIND=8)            :: tdata_bins(38,diag_bins_x,diag_bins_y,diag_bins_z)
+        !real(KIND=8)            :: tvsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        !real(KIND=8)            :: tv2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
+        !real(KIND=8)            :: tephisum_bin(4, diag_bins_x, diag_bins_y, diag_bins_z) !1=phi, 2=ex, 3=ey, 4=ez
+        integer                 :: tn_bins(diag_bins_x,diag_bins_y,diag_bins_z)
 
 
         npoints = diag_bins_x * diag_bins_y * diag_bins_z
 
         IF (bool_diag_bins_cylinder) THEN
-            call bin_data_cylindrical(ispecies,vsum_bin,v2sum_bin,ephisum_bin,n_bin)
+            call fill_data_bins_cylindrical(ispecies,data_bins,n_bins)
         ELSE
-            call bin_data(ispecies,vsum_bin,v2sum_bin,ephisum_bin,n_bin)
+            call fill_data_bins(ispecies,data_bins,n_bins)
         END IF
-        call MPI_ALLREDUCE(n_bin, tn_bin, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(vsum_bin, tvsum_bin, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(ephisum_bin, tephisum_bin, 4*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(v2sum_bin, tv2sum_bin, 12*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(n_bins, tn_bins, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(data_bins, tdata_bins, 38*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+
 
         IF (root) THEN
             IF (bool_diag_bins_cylinder) THEN
                 write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,nr,ntheta):", diag_bins_x,diag_bins_y,diag_bins_z
-                write(filehandle,'(a12,3(a7),a10,6(a16),16(a16))')"","ix","ir","itheta","n","vx","vy","vz","vpar","vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz","vzvx","vparvpar","vperp1vperp1","vperp2vperp2","vparvperp1","vperp1vperp2","vperp2vpar","phi","ex","ey","ez"
+                write(filehandle,'(a12,3(a7),a10,38(a16))')"","ix","ir","itheta","n","vx","vy","vz","vpar", &
+                                                           "vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz", &
+                                                           "vzvx","vparvpar","vperp1vperp1","vperp2vperp2", &
+                                                           "vparvperp1","vperp1vperp2","vperp2vpar", &
+                                                           "phi","Ex","Ey","Ez","Epar","Eperp1","Eperp2", &
+                                                           "phiphi","ExEx","EyEy","EzEz","ExEy","EyEz","EzEx", &
+                                                           "EparEpar","Eperp1Eperp1","Eperp2Eperp","EparEperp1", &
+                                                           "Eperp1Eperp2","Eperp2Epar"
 
             ELSE
                 write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,ny,nz):", diag_bins_x,diag_bins_y,diag_bins_z
-                write(filehandle,'(a12,3(a7),a10,6(a16),16(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar","vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz","vzvx","vparvpar","vperp1vperp1","vperp2vperp2","vparvperp1","vperp1vperp2","vperp2vpar","phi","ex","ey","ez"
+                write(filehandle,'(a12,3(a7),a10,38(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar", &
+                                                           "vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz", &
+                                                           "vzvx","vparvpar","vperp1vperp1","vperp2vperp2", &
+                                                           "vparvperp1","vperp1vperp2","vperp2vpar", &
+                                                           "phi","Ex","Ey","Ez","Epar","Eperp1","Eperp2", &
+                                                           "phiphi","ExEx","EyEy","EzEz","ExEy","EyEz","EzEx", &
+                                                           "EparEpar","Eperp1Eperp1","Eperp2Eperp","EparEperp1", &
+                                                           "Eperp1Eperp2","Eperp2Epar"
             END IF
             DO iz=1,diag_bins_z
                 DO iy=1,diag_bins_y
                     DO ix=1,diag_bins_x
-                        write(filehandle,'(a12,3(i7.5),i10.9,6(1pe16.7E3),16(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bin(ix,iy,iz),tvsum_bin(:,ix,iy,iz),tv2sum_bin(:,ix,iy,iz),tephisum_bin(:,ix,iy,iz)
+                        write(filehandle,'(a12,3(i7.5),i10.9,38(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins(ix,iy,iz), &
+                                                    tdata_bins(:,ix,iy,iz)
                     END DO
                 END DO
             END DO
