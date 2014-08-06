@@ -46,8 +46,9 @@ module module_initialization
       fc = 0.25_8/eps0/pi
 
       !set default parameter values
-      diag_interval   =0
-      checkp_interval =0
+      diag_interval   = 0
+      checkp_interval = 0
+      vtk_interval    = 0
       guiding_centre_electrons=.false.
       Bx              = 0.
       By              = 0.
@@ -72,6 +73,11 @@ module module_initialization
       nbins_angle_resolved_hits = 45
       nbins_e1_space_resolved_hits = 10
       nbins_e2_space_resolved_hits = 10
+
+      bool_diag_bins_cylinder = .false.
+      diag_bins_x=1
+      diag_bins_y=1
+      diag_bins_z=1
 
   end subroutine set_default_parameters
 

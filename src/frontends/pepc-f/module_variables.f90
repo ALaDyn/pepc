@@ -47,11 +47,11 @@ module variables
 
   ! control variables
   integer :: nt               ! number of timesteps
-  integer :: diag_interval=0  ! interval for writing probe data
-  integer :: vtk_interval=0   ! interval for writing vtk output
-  integer :: checkp_interval=0! interval for setting checkpoints
+  integer :: diag_interval    ! interval for writing probe data
+  integer :: vtk_interval     ! interval for writing vtk output
+  integer :: checkp_interval  ! interval for setting checkpoints
   logical :: diags
-  integer :: diag_bins_x=1,diag_bins_y=1,diag_bins_z=1   !bins for the computation of fluid variables
+  integer :: diag_bins_x,diag_bins_y,diag_bins_z   !bins for the computation of fluid variables
 
   ! type of rng (0=standard fortran,1=par_rand from module_zufall)
   integer :: rng
@@ -145,7 +145,7 @@ module variables
                    vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm,&
                    bool_angle_resolved_hits, bool_energy_resolved_hits, bool_space_resolved_hits, &
                    nbins_angle_resolved_hits, nbins_energy_resolved_hits, nbins_e1_space_resolved_hits, &
-                   nbins_e2_space_resolved_hits
+                   nbins_e2_space_resolved_hits, bool_diag_bins_cylinder
   namelist /walk_para_smpss/ chunk_size_default
 
   real(KIND=8),allocatable :: maxw_flux_table_F(:,:)

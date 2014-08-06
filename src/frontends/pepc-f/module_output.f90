@@ -89,12 +89,18 @@ MODULE output
         call MPI_ALLREDUCE(v2sum_bin, tv2sum_bin, 12*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
         IF (root) THEN
-            write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,ny,nz):", diag_bins_x,diag_bins_y,diag_bins_z
-            write(filehandle,'(a12,3(a6),a10,6(a16),16(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar","vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz","vzvx","vparvpar","vperp1vperp1","vperp2vperp2","vparvperp1","vperp1vperp2","vperp2vpar","phi","ex","ey","ez"
+            IF (bool_diag_bins_cylinder) THEN
+                write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,nr,ntheta):", diag_bins_x,diag_bins_y,diag_bins_z
+                write(filehandle,'(a12,3(a7),a10,6(a16),16(a16))')"","ix","ir","itheta","n","vx","vy","vz","vpar","vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz","vzvx","vparvpar","vperp1vperp1","vperp2vperp2","vparvperp1","vperp1vperp2","vperp2vpar","phi","ex","ey","ez"
+
+            ELSE
+                write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,ny,nz):", diag_bins_x,diag_bins_y,diag_bins_z
+                write(filehandle,'(a12,3(a7),a10,6(a16),16(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar","vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz","vzvx","vparvpar","vperp1vperp1","vperp2vperp2","vparvperp1","vperp1vperp2","vperp2vpar","phi","ex","ey","ez"
+            END IF
             DO iz=1,diag_bins_z
                 DO iy=1,diag_bins_y
                     DO ix=1,diag_bins_x
-                        write(filehandle,'(a12,3(i6.5),i10.9,6(1pe16.7E3),16(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bin(ix,iy,iz),tvsum_bin(:,ix,iy,iz),tv2sum_bin(:,ix,iy,iz),tephisum_bin(:,ix,iy,iz)
+                        write(filehandle,'(a12,3(i7.5),i10.9,6(1pe16.7E3),16(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bin(ix,iy,iz),tvsum_bin(:,ix,iy,iz),tv2sum_bin(:,ix,iy,iz),tephisum_bin(:,ix,iy,iz)
                     END DO
                 END DO
             END DO
