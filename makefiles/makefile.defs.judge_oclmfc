@@ -27,8 +27,8 @@ OMPSSCC    = oclmfc
 MACH       = oclmfc
 
 DEBUG      = 0
-INSTRUMENT = 1
-MONITOR    = 1
+INSTRUMENT = 0
+MONITOR    = 0
 
 RANLIB     = ranlib
 
@@ -38,7 +38,7 @@ AR         = ar
 ARFLAGS    = -rs
 
 CPP        = cpp
-CPPFLAGS   = -P -C $(EXTRA) -DOMPSS_TASKS
+CPPFLAGS   = -P -C $(EXTRA) ${CPP_FLAGS}
 
 FCPRE      = 
 FC         = mpif90
@@ -65,7 +65,7 @@ endif
 
 ifeq ($(OMPSS), 1)
    FFLAGS    = --Wn,-Wall,-ffree-line-length-none,-fopenmp,-frecursive --ompss --variable=disable_final_clause_transformation:1 --opencl
-   CFLAGS    = -Wall -DOMPSS_TASKS
+   CFLAGS    = -Wall
    LDFLAGS   = --Wn,-pthread,-fopenmp --ompss --opencl
    ifeq ($(DEBUG), 1)
       FFLAGS  += -g -k --Wn,-O0 --Wn,-fcheck=all
