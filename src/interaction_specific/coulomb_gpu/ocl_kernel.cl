@@ -145,10 +145,15 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
       barrier(CLK_LOCAL_MEM_FENCE);
    }
    if (local_index == 0) {
-      results[(((queued-1)/128 + 1 ) * (1-1))+get_group_id(0)] = pot_local[0];
-      results[(((queued-1)/128 + 1 ) * (2-1))+get_group_id(0)] = e_1_local[0];
-      results[(((queued-1)/128 + 1 ) * (3-1))+get_group_id(0)] = e_2_local[0];
-      results[(((queued-1)/128 + 1 ) * (4-1))+get_group_id(0)] = e_3_local[0];
+      results[(((queued-1)/local_size + 1 ) * (1-1))+get_group_id(0)] = pot_local[0];
+      results[(((queued-1)/local_size + 1 ) * (2-1))+get_group_id(0)] = e_1_local[0];
+      results[(((queued-1)/local_size + 1 ) * (3-1))+get_group_id(0)] = e_2_local[0];
+      results[(((queued-1)/local_size + 1 ) * (4-1))+get_group_id(0)] = e_3_local[0];
+      //       | |    \    |        |     |
+      //       | |items|   |        |     |   we have 'queued' interactions to compute
+      //       |           |blocklen|     |   compute 'local_size' interactions per GPU kernel iteration
+      //       |------ no of blocks ------|   will have this many GPU kernel iterations, 'group_size', "+1" to get "1...n" blocks not "0...n-1"
+      // in total "no.blocks x 4" results returned, starting with index "0" (c-style)
    }
 
 }

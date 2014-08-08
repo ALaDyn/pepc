@@ -1850,6 +1850,8 @@ __Z_PACK_H__	treecode/sl_pepc/src/include/z_pack.h	10;"	d
 __Z_PACK_RENAME_H__	treecode/sl_pepc/src/include/z_pack_rename.h	10;"	d
 __restrict__	treecode/openpa/openpa/src/config.h	168;"	d
 __restrict__	treecode/openpa/openpa/src/opa_config.h	236;"	d
+__section__nanos_init	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^__attribute__((weak)) __attribute__((section("nanos_init"))) nanos_init_desc_t __section__nanos_init = {.func = nanos_omp_set_interface, .data = (void *)0};$/;"	v
+__section__nanos_init	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^__attribute__((weak)) __attribute__((section("nanos_init"))) nanos_init_desc_t __section__nanos_init = {.func = nanos_omp_set_interface, .data = (void *)0};$/;"	v
 _atomic_alloc_int	treecode/openpa/atomic_ops.c	/^OPA_int_t* _atomic_alloc_int()$/;"	f
 _atomic_compare_and_swap_int	treecode/openpa/atomic_ops.c	/^int _atomic_compare_and_swap_int(OPA_int_t* storage, int oldval, int newval)$/;"	f
 _atomic_fetch_and_decrement_int	treecode/openpa/atomic_ops.c	/^int _atomic_fetch_and_decrement_int(OPA_int_t* storage)$/;"	f
@@ -3249,8 +3251,10 @@ cc_rti_minc_free	treecode/sl_pepc/src/include/sl_rti_intern.h	93;"	d
 ccurrent	treecode/sl_pepc/src/core_mpi/mpi_select_exact_generic.c	/^  slint_t crange[2], ccurrent[2];$/;"	m	struct:_border_info_t	file:
 change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon22	file:
 change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon23	file:
+charge	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: charge(/;"	k	type:mpdelta
+charge	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: charge(/;"	k	type:mpdelta
+charge	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: charge(/;"	k	type:mpdelta
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
-charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: charge(/;"	k	type:mpdelta
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
 charge	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^        real*8 :: charge /;"	k	type:t_tree_node_interaction_data
@@ -3385,6 +3389,8 @@ cws	treecode/sl_pepc/src/include/sl_types.h	/^  slweight_t *cws, *bin_cws;$/;"	m
 cws	treecode/sl_pepc/src/include/sl_types.h	/^  slweight_t *cws;$/;"	m	struct:_global_bins_t
 data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_data)/;"	k	type:t_particle_thread
 data	treecode/lpepcsrc/module_pepc_types.f90	/^         type(t_particle_data)/;"	k	type:t_particle
+data	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^  void *data;$/;"	m	struct:mcc_struct_anon_17	file:
+data	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^  void *data;$/;"	m	struct:mcc_struct_anon_17	file:
 data0	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_sldata0_t *data0;$/;"	m	struct:pepckeys__elements_t
 data0	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_sldata0_t data0[];$/;"	m	struct:pepckeys__packed_element_t
 data0	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_sldata0_t data0[pepckeys_sl_data0_size_c];$/;"	m	struct:pepckeys__packed_element_t
@@ -4552,10 +4558,15 @@ decr_test_t	treecode/openpa/openpa/test/test_primitives.c	/^} decr_test_t;$/;"	t
 defer_list_length	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer :: todo_list_length, defer_list_length,/;"	v	module:module_walk
 defer_list_parse_and_compact	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine defer_list_parse_and_compact(/;"	s	function:walk_single_particle
 defer_list_push	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine defer_list_push(/;"	s	function:walk_single_particle
-delta	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta(/;"	k	type:t_iact_partner
-delta1	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta1(/;"	k	type:mpdelta
-delta2	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta2(/;"	k	type:mpdelta
-delta3	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: delta3(/;"	k	type:mpdelta
+delta1	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: delta1(/;"	k	type:mpdelta
+delta1	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: delta1(/;"	k	type:mpdelta
+delta1	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: delta1(/;"	k	type:mpdelta
+delta2	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: delta2(/;"	k	type:mpdelta
+delta2	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: delta2(/;"	k	type:mpdelta
+delta2	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: delta2(/;"	k	type:mpdelta
+delta3	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: delta3(/;"	k	type:mpdelta
+delta3	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: delta3(/;"	k	type:mpdelta
+delta3	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: delta3(/;"	k	type:mpdelta
 depcomp	treecode/openpa/openpa/src/Makefile	/^depcomp = $(SHELL) $(top_srcdir)\/confdb\/depcomp$/;"	m
 depcomp	treecode/openpa/openpa/test/Makefile	/^depcomp = $(SHELL) $(top_srcdir)\/confdb\/depcomp$/;"	m
 descendants	treecode/lpepcsrc/module_pepc_types.f90	/^        integer(kind_node) :: descendants /;"	k	type:t_tree_node
@@ -4570,9 +4581,15 @@ dip	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	
 dip	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: dip(/;"	k	type:t_tree_node_interaction_data
 dip	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: dip(/;"	k	type:t_tree_node_interaction_data
 dip	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^        real*8 :: dip(/;"	k	type:t_tree_node_interaction_data
-dip1	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: dip1(/;"	k	type:mpdelta
-dip2	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: dip2(/;"	k	type:mpdelta
-dip3	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: dip3(/;"	k	type:mpdelta
+dip1	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: dip1(/;"	k	type:mpdelta
+dip1	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: dip1(/;"	k	type:mpdelta
+dip1	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: dip1(/;"	k	type:mpdelta
+dip2	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: dip2(/;"	k	type:mpdelta
+dip2	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: dip2(/;"	k	type:mpdelta
+dip2	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: dip2(/;"	k	type:mpdelta
+dip3	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: dip3(/;"	k	type:mpdelta
+dip3	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: dip3(/;"	k	type:mpdelta
+dip3	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: dip3(/;"	k	type:mpdelta
 direct_L2	frontends/pepc-essential/module_helper.f90	/^  real*8, allocatable           :: direct_L2(/;"	v	module:helper
 directforce	utils/module_directsum.f90	/^        subroutine directforce(/;"	s	module:module_directsum
 directory	utils/module_checkpoint.f90	/^      character(12), parameter :: directory /;"	v	module:module_checkpoint
@@ -4587,6 +4604,7 @@ displs2counts	treecode/sl_pepc/src/include/sl_rename.h	170;"	d
 distcleancheck_listfiles	treecode/openpa/openpa/Makefile	/^distcleancheck_listfiles = find . -type f -print$/;"	m
 distdir	treecode/openpa/openpa/Makefile	/^distdir = $(PACKAGE)-$(VERSION)$/;"	m
 distuninstallcheck_listfiles	treecode/openpa/openpa/Makefile	/^distuninstallcheck_listfiles = find . -type f -print$/;"	m
+dka	treecode/sl_pepc/oclmfc_conftest.f90	/^    INTEGER(4) :: dka(/;"	v	program:main
 doDiag	frontends/pepc-essential/pepc.f90	/^  logical :: doDiag$/;"	v	program:pepc
 docdir	treecode/openpa/openpa/Makefile	/^docdir = ${datarootdir}\/doc\/${PACKAGE_TARNAME}$/;"	m
 docdir	treecode/openpa/openpa/src/Makefile	/^docdir = ${datarootdir}\/doc\/${PACKAGE_TARNAME}$/;"	m
@@ -4853,6 +4871,8 @@ force_law	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^   
 four	interaction_specific/coulomb_gpu/module_coulomb_kernels.f90	/^    real(kfp), parameter :: four /;"	v	module:module_coulomb_kernels
 fposts	treecode/lpepcsrc/module_domains.f90	/^    integer(kind_default), allocatable :: fposts(/;"	k	type:t_decomposition
 free_lpepc_mpi_types	treecode/lpepcsrc/module_pepc_types.f90	/^      subroutine free_lpepc_mpi_types(/;"	s	module:module_pepc_types
+func	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^  nanos_init_func_t (*func);$/;"	m	struct:mcc_struct_anon_17	file:
+func	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^  nanos_init_func_t (*func);$/;"	m	struct:mcc_struct_anon_17	file:
 func_append	treecode/openpa/openpa/confdb/ltmain.sh	/^func_append ()$/;"	f
 func_append	treecode/openpa/openpa/config.status	/^func_append ()\\$/;"	f
 func_append	treecode/openpa/openpa/configure	/^func_append ()\\$/;"	f
@@ -5100,8 +5120,6 @@ global_bins_t	treecode/sl_pepc/src/include/sl_types.h	/^} global_bins_t;$/;"	t	t
 global_tree	treecode/lpepcsrc/module_pepc.f90	/^    type(t_tree), public, target, save :: global_tree$/;"	v	module:module_pepc
 globaldims	utils/module_vtk.f90	/^          integer, private, dimension(2,3) :: globaldims,/;"	v
 gposts	treecode/lpepcsrc/module_domains.f90	/^    integer(kind_default), allocatable :: gposts(/;"	k	type:t_decomposition
-gpu	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(mpdelta), dimension(:), allocatable :: gpu /;"	v	module:module_interaction_specific_types
-gpu_id	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer :: gpu_id /;"	v	module:module_interaction_specific_types
 grouped_cas_int_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_int_helper(void *_udata)$/;"	f	file:
 grouped_cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_int_t;$/;"	t	typeref:struct:__anon16	file:
 grouped_cas_ptr_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_ptr_helper(void *_udata)$/;"	f	file:
@@ -5401,7 +5419,7 @@ lb_counts	treecode/sl_pepc/src/include/sl_types_intern.h	38;"	d
 lb_weights	treecode/sl_pepc/src/include/sl_types_intern.h	36;"	d
 lb_weights	treecode/sl_pepc/src/include/sl_types_intern.h	40;"	d
 lb_weights	treecode/sl_pepc/src/include/sl_types_intern.h	42;"	d
-leaf	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         logical :: leaf$/;"	k	type:t_iact_partner
+leaf	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         logical, pointer :: leaf(/;"	k	type:t_particle_thread
 leaves	treecode/lpepcsrc/module_pepc_types.f90	/^        integer(kind_node) :: leaves /;"	k	type:t_tree_node
 leaves	treecode/lpepcsrc/module_pepc_types.f90	/^        integer(kind_node) :: leaves /;"	k	type:t_tree_node_package
 level	treecode/lpepcsrc/module_pepc_types.f90	/^        integer(kind_level)/;"	k	type:t_tree_node
@@ -5476,6 +5494,7 @@ main	treecode/openpa/openpa/test/sanity.c	/^int main(int argc, char **argv)$/;"	
 main	treecode/openpa/openpa/test/test_barriers.c	/^int main(int argc, char **argv)$/;"	f
 main	treecode/openpa/openpa/test/test_primitives.c	/^int main(int argc, char **argv)$/;"	f
 main	treecode/openpa/openpa/test/test_queue.c	/^int main(int argc, char **argv)$/;"	f
+main	treecode/sl_pepc/oclmfc_conftest.f90	/^PROGRAM main$/;"	p
 main_thread_processor_id	treecode/lpepcsrc/treevars.f90	/^  integer :: main_thread_processor_id /;"	v	module:treevars
 make_counts	treecode/sl_pepc/src/core/sort_counting.c	/^void make_counts(elements_t *s, slint_t ncounts, slint_t *counts)  \/* sl_func make_counts *\/$/;"	f
 make_counts	treecode/sl_pepc/src/include/sl_rename.h	189;"	d
@@ -5554,6 +5573,8 @@ maxtag	treecode/lpepcsrc/module_tree_communicator.f90	/^  integer, private, para
 maxwell1	utils/module_velocity_setup.f90	/^        subroutine maxwell1(/;"	s	module:module_velocity_setup
 maxwell2	utils/module_velocity_setup.f90	/^		subroutine maxwell2(/;"	s	module:module_velocity_setup
 maxwell3	utils/module_velocity_setup.f90	/^        subroutine maxwell3(/;"	s	module:module_velocity_setup
+mcc_struct_anon_17	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^struct  mcc_struct_anon_17$/;"	s	file:
+mcc_struct_anon_17	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^struct  mcc_struct_anon_17$/;"	s	file:
 me	treecode/lpepcsrc/treevars.f90	/^  integer(kind_pe) :: me /;"	v	module:treevars
 me_sendrecv_replace_mem	treecode/sl_pepc/src/core_mpi/mpi_elements.c	/^void *me_sendrecv_replace_mem = NULL;  \/* sl_global, sl_var me_sendrecv_replace_mem *\/$/;"	v
 me_sendrecv_replace_mem	treecode/sl_pepc/src/include/sl_rename.h	308;"	d
@@ -5713,7 +5734,9 @@ moved	treecode/sl_pepc/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:
 moved	treecode/sl_pepc/src/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon52
 movek	treecode/sl_pepc/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon47
 movek	treecode/sl_pepc/src/include/sl_rti.h	/^  int cmp, movek, moved;$/;"	m	struct:__anon52
-mpdelta	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type mpdelta$/;"	t	module:module_interaction_specific_types
+mpdelta	interaction_specific/coulomb_gpu/accelerator.f90	/^   type :: mpdelta$/;"	t	module:module_accelerator
+mpdelta	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   type :: mpdelta$/;"	t	module:module_accelerator
+mpdelta	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^      type :: mpdelta$/;"	t	function:acc_loop
 mpi_allgather_partconds	treecode/sl_pepc/src/core_mpi/mpi_select_common.c	/^slint_t mpi_allgather_partconds(partcond_t *pcond_in, partcond_t *pconds_out, int size, int rank, MPI_Comm comm) \/* sl_proto, sl_func mpi_allgather_partconds *\/$/;"	f
 mpi_allgather_partconds	treecode/sl_pepc/src/include/sl_rename.h	378;"	d
 mpi_bcast_partconds	treecode/sl_pepc/src/core_mpi/mpi_select_common.c	/^slint_t mpi_bcast_partconds(slint_t npconds, partcond_t *pconds, int root, int size, int rank, MPI_Comm comm) \/* sl_proto, sl_func mpi_bcast_partconds *\/$/;"	f
@@ -5945,6 +5968,10 @@ n1	treecode/openpa/openpa/test/test_primitives.c	/^    int         n1;          
 n_ranks	frontends/pepc-essential/module_helper.f90	/^  integer(kind_pe) :: my_rank, n_ranks$/;"	v	module:helper
 nalloc	treecode/sl_pepc/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon49
 nalloc	treecode/sl_pepc/src/include/sl_rti.h	/^  int nalloc, nfree;$/;"	m	struct:__anon54
+nanos_init_desc_t	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^typedef struct mcc_struct_anon_17 nanos_init_desc_t;$/;"	t	typeref:struct:mcc_struct_anon_17	file:
+nanos_init_desc_t	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^typedef struct mcc_struct_anon_17 nanos_init_desc_t;$/;"	t	typeref:struct:mcc_struct_anon_17	file:
+nanos_init_func_t	treecode/sl_pepc/aux_nanox_omp_file_conftest.f90.c	/^typedef void nanos_init_func_t(void *);$/;"	t	file:
+nanos_init_func_t	treecode/sl_pepc/oclmfc_aux_nanox_omp_file_conftest.f90.c	/^typedef void nanos_init_func_t(void *);$/;"	t	file:
 nbinnings	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t nbinnings, max_nbinnings;$/;"	m	struct:pepckeys__local_bins_t
 nbinnings	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t nbinnings, max_nbinnings;$/;"	m	struct:pepcparts__local_bins_t
 nbinnings	treecode/sl_pepc/src/include/sl_types.h	/^  slint_t nbinnings, max_nbinnings;$/;"	m	struct:_local_bins_t
@@ -5996,7 +6023,6 @@ nmove_auto_loop_border_a4o	treecode/sl_pepc/src/include/sl_tune_intern.h	51;"	d
 nmove_auto_loop_border_o4o	treecode/sl_pepc/src/include/sl_tune_intern.h	47;"	d
 no_interaction_partners	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^      integer(kind_node), allocatable,public :: no_interaction_partners(/;"	v	module:module_interaction_specific
 nobase_include_HEADERS	treecode/openpa/openpa/src/Makefile	/^nobase_include_HEADERS = primitives\/opa_by_lock.h                   \\$/;"	m
-node	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_tree_node_/;"	k	type:t_iact_partner
 node	treecode/lpepcsrc/module_pepc_types.f90	/^        integer(kind_node)/;"	k	type:t_request_eager
 node	treecode/lpepcsrc/module_tree.f90	/^      type(t_tree_node)/;"	k	type:t_request_queue_entry
 node_leaf	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer*8 :: node_leaf /;"	k	type:t_particle_thread
@@ -6025,8 +6051,6 @@ nprops_particle_results	interaction_specific/coulomb_gpu/module_interaction_spec
 nprops_particle_results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, private, parameter :: nprops_particle_results /;"	v	module:module_interaction_specific_types
 nprops_particle_results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^      integer, private, parameter :: nprops_particle_results /;"	v	module:module_interaction_specific_types
 nprops_particle_results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^      integer, private, parameter :: nprops_particle_results /;"	v	module:module_interaction_specific_types
-nprops_particle_thread	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, private, parameter :: nprops_particle_thread /;"	v	module:module_interaction_specific_types
-nprops_partner_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, private, parameter :: nprops_partner_data /;"	v	module:module_interaction_specific_types
 nprops_request_eager	treecode/lpepcsrc/module_pepc_types.f90	/^      integer, private, parameter :: nprops_request_eager /;"	v	module:module_pepc_types
 nprops_tree_node_interaction_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^      integer, private, parameter :: nprops_tree_node_interaction_data /;"	v	module:module_interaction_specific_types
 nprops_tree_node_interaction_data	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      integer, private, parameter :: nprops_tree_node_interaction_data /;"	v	module:module_interaction_specific_types
@@ -6064,6 +6088,8 @@ nunchanged_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         n
 obj	treecode/openpa/openpa/test/test_primitives.c	/^    int         obj;            \/* Object for currect pusher thread (index into objs) *\/$/;"	m	struct:__anon25	file:
 obj	treecode/openpa/openpa/test/test_primitives.c	/^    llsc_ptr_stack_obj_t *obj;  \/* Object for currect pusher thread *\/$/;"	m	struct:__anon27	file:
 objs	treecode/openpa/openpa/test/test_primitives.c	/^    llsc_int_stack_obj_t **objs; \/* Array of pointers to objects *\/$/;"	m	struct:__anon25	file:
+ocl_smp_kernel	interaction_specific/coulomb_gpu/accelerator.f90	/^subroutine ocl_smp_kernel(/;"	s
+ocl_smp_kernel	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^subroutine ocl_smp_kernel(/;"	s
 offset	treecode/openpa/openpa/src/opa_queue.h	/^    OPA_ptr_t offset;$/;"	m	struct:OPA_Shm_rel_addr_t
 oldincludedir	treecode/openpa/openpa/Makefile	/^oldincludedir = \/usr\/include$/;"	m
 oldincludedir	treecode/openpa/openpa/src/Makefile	/^oldincludedir = \/usr\/include$/;"	m
@@ -6082,6 +6108,7 @@ owner	treecode/lpepcsrc/module_pepc_types.f90	/^        integer(kind_pe) :: owne
 p	frontends/pepc-essential/module_helper.f90	/^    type/;"	v
 p	treecode/openpa/module_atomic_ops.f90	/^    type/;"	k	type:t_atomic_int
 p	treecode/openpa/module_atomic_ops.f90	/^    type/;"	k	type:t_critical_section
+pack_iact_data	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^        subroutine pack_iact_data(/;"	s	module:module_interaction_specific
 packed_element_t	treecode/sl_pepc/src/include/sl_types.h	/^} packed_element_t;$/;"	t	typeref:struct:_packed_element_t
 packed_elements_t	treecode/sl_pepc/src/include/sl_types.h	/^} packed_elements_t;$/;"	t	typeref:struct:_packed_elements_t
 padding1	treecode/openpa/openpa/src/opa_queue.h	/^    char padding1[OPA_QUEUE_CACHELINE_PADDING-2*sizeof(OPA_Shm_rel_addr_t)];$/;"	m	struct:OPA_Queue_info_t
@@ -6121,8 +6148,8 @@ particle_test	frontends/pepc-essential/module_helper.f90	/^  logical :: particle
 particleresults_clear	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^      subroutine particleresults_clear(/;"	s	module:module_interaction_specific
 particles	frontends/pepc-essential/module_helper.f90	/^  type(t_particle), allocatable :: particles(/;"	v	module:helper
 particles	interaction_specific/coulomb_gpu/module_pepc_wrappers.f90	/^      type(t_particle), public, dimension(:), allocatable :: particles$/;"	v	module:module_pepc_wrappers
-partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_iact_partner)/;"	k	type:t_acc_queue_entry
-partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_iact_partner)/;"	k	type:t_particle_thread
+partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8, pointer :: partner(/;"	k	type:t_acc_queue_entry
+partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8, pointer :: partner(/;"	k	type:t_particle_thread
 parttype_p	treecode/sl_pepc/src/include/sl_types.h	/^} parttype_t, *parttype_p;$/;"	t	typeref:struct:_parttype_t
 parttype_t	treecode/sl_pepc/src/include/sl_types.h	/^} parttype_t, *parttype_p;$/;"	t	typeref:struct:_parttype_t
 pass_point_0	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   pass_point_0;   \/* Whether we have passed point 0 *\/$/;"	m	struct:__anon22	file:
@@ -6786,8 +6813,8 @@ pkglibexecdir	treecode/openpa/openpa/Makefile	/^pkglibexecdir = $(libexecdir)\/o
 pkglibexecdir	treecode/openpa/openpa/src/Makefile	/^pkglibexecdir = $(libexecdir)\/openpa$/;"	m
 pkglibexecdir	treecode/openpa/openpa/test/Makefile	/^pkglibexecdir = $(libexecdir)\/openpa$/;"	m
 plasma_dimensions	frontends/pepc-essential/module_helper.f90	/^  real*8  :: plasma_dimensions(/;"	v	module:helper
-point	interaction_specific/coulomb_gpu/accelerator.f90	/^      type point$/;"	t	function:acc_loop
-point	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      type point$/;"	t	function:acc_loop
+point	interaction_specific/coulomb_gpu/accelerator.f90	/^   type point$/;"	t	module:module_accelerator
+point	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   type point$/;"	t	module:module_accelerator
 point	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^      type point$/;"	t	function:acc_loop
 pop	treecode/sl_pepc/src/core/sort_quick.c	162;"	d	file:
 pop	treecode/sl_pepc/src/core/sort_quick.c	210;"	d	file:
@@ -6854,9 +6881,15 @@ quad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90
 quad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: quad(/;"	k	type:t_tree_node_interaction_data
 quad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: quad(/;"	k	type:t_tree_node_interaction_data
 quad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^        real*8 :: quad(/;"	k	type:t_tree_node_interaction_data
-quad1	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: quad1(/;"	k	type:mpdelta
-quad2	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: quad2(/;"	k	type:mpdelta
-quad3	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: quad3(/;"	k	type:mpdelta
+quad1	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: quad1(/;"	k	type:mpdelta
+quad1	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: quad1(/;"	k	type:mpdelta
+quad1	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: quad1(/;"	k	type:mpdelta
+quad2	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: quad2(/;"	k	type:mpdelta
+quad2	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: quad2(/;"	k	type:mpdelta
+quad2	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: quad2(/;"	k	type:mpdelta
+quad3	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: quad3(/;"	k	type:mpdelta
+quad3	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: quad3(/;"	k	type:mpdelta
+quad3	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: quad3(/;"	k	type:mpdelta
 quad_trace	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      real(kfp) :: quad_trace /;"	v	module:module_fmm_framework
 quan	treecode/sl_pepc/src/core/merge2_tridgell.c	/^  slint rank, size, quan;$/;"	m	struct:_block	file:
 queue_lock	interaction_specific/coulomb_gpu/accelerator.f90	/^   type(t_critical_section), pointer :: queue_lock$/;"	v	module:module_accelerator
@@ -6896,8 +6929,8 @@ request_balance	treecode/lpepcsrc/module_tree.f90	/^      integer :: request_bal
 request_posted	treecode/lpepcsrc/module_pepc_types.f90	/^        logical(kind_byte) :: request_posted /;"	k	type:t_tree_node
 resolve	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine resolve(/;"	s	function:walk_single_particle
 restrict	treecode/openpa/openpa/src/config.h	160;"	d
-results	interaction_specific/coulomb_gpu/accelerator.f90	/^         type(t_particle_results)/;"	k	type:point
-results	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^         type(t_particle_results)/;"	k	type:point
+results	interaction_specific/coulomb_gpu/accelerator.f90	/^      type(t_particle_results)/;"	k	type:point
+results	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      type(t_particle_results)/;"	k	type:point
 results	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         type(t_particle_results)/;"	k	type:point
 results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_results)/;"	k	type:t_acc_queue_entry
 results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_results)/;"	k	type:t_particle_thread
@@ -7838,6 +7871,8 @@ slsort_parts	treecode/sl_pepc/mpi_pepcparts.c	/^void slsort_parts(finteger_t *n,
 slsort_parts_	treecode/sl_pepc/mpi_pepcparts.c	/^void slsort_parts_(finteger_t *n,                                                             \/* INOUT *\/$/;"	f
 slweight_fmt	treecode/sl_pepc/src/include/sl_types.h	115;"	d
 slweight_t	treecode/sl_pepc/src/include/sl_types.h	/^typedef sl_weight_type_c slweight_t;$/;"	t
+smp_kernel	interaction_specific/coulomb_gpu/accelerator.f90	/^   subroutine smp_kernel(/;"	s	module:module_accelerator
+smp_kernel	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   subroutine smp_kernel(/;"	s	module:module_accelerator
 sn	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_slint_t *sn;$/;"	m	struct:pepckeys__splitter_t
 sn	treecode/sl_pepc/include/sl_pepckeys.h	/^  pepckeys_sortnet_f sn;$/;"	m	struct:pepckeys__mergek_t
 sn	treecode/sl_pepc/include/sl_pepcparts.h	/^  pepcparts_slint_t *sn;$/;"	m	struct:pepcparts__splitter_t
@@ -8065,7 +8100,6 @@ t_fields_passes	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter ::
 t_fields_stats	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter :: t_fields_stats /;"	v	module:module_timings
 t_fields_tree	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter :: t_fields_tree /;"	v	module:module_timings
 t_global	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter :: t_global /;"	v	module:module_timings
-t_iact_partner	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type t_iact_partner$/;"	t	module:module_interaction_specific_types
 t_keyidx	treecode/lpepcsrc/module_tree_grow.f90	/^    type t_keyidx$/;"	t	subroutine:tree_build_from_particles
 t_lattice	treecode/lpepcsrc/module_timings.f90	/^    integer, parameter :: t_lattice /;"	v	module:module_timings
 t_lattice_1	treecode/lpepcsrc/module_mirror_boxes.f90	/^      real*8, public :: t_lattice_1(/;"	v	module:module_mirror_boxes
@@ -8309,6 +8343,7 @@ timings_LocalOutput	treecode/lpepcsrc/module_timings.f90	/^    subroutine timing
 timings_ToFile	treecode/lpepcsrc/module_timings.f90	/^    subroutine timings_ToFile(/;"	s	module:module_timings
 timings_comm	treecode/lpepcsrc/module_tree.f90	/^      real*8 :: timings_comm(/;"	k	type:t_tree_communicator
 timstamp	treecode/lpepcsrc/module_debug.f90	/^     subroutine timstamp(/;"	s	module:module_debug
+tka	treecode/sl_pepc/oclmfc_conftest.f90	/^    INTEGER(4) :: tka(/;"	v	program:main
 tnp	frontends/pepc-essential/module_helper.f90	/^  integer(kind_particle) :: tnp /;"	v	module:helper
 todo_list_length	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer :: todo_list_length,/;"	v	module:module_walk
 todo_list_pop	treecode/lpepcsrc/module_walk_pthreads.f90	/^    function todo_list_pop(/;"	f	function:walk_single_particle
@@ -8399,6 +8434,7 @@ unique_val	treecode/openpa/openpa/test/test_primitives.c	/^    int         uniqu
 unique_val	treecode/openpa/openpa/test/test_primitives.c	/^    void        *unique_val;    \/* This thread's unique value to store in shared_val *\/$/;"	m	struct:__anon8	file:
 unpack_children	treecode/lpepcsrc/module_tree_communicator.f90	/^    recursive subroutine unpack_children(/;"	s	subroutine:unpack_data
 unpack_data	treecode/lpepcsrc/module_tree_communicator.f90	/^  subroutine unpack_data(/;"	s	module:module_tree_communicator
+unpack_iact_data	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^        subroutine unpack_iact_data(/;"	s	module:module_interaction_specific
 usage_error	treecode/openpa/openpa/confdb/test-driver	/^usage_error ()$/;"	f
 use_pretabulated_lattice_coefficients	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      logical, parameter :: use_pretabulated_lattice_coefficients /;"	v	module:module_fmm_framework
 v	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: v(/;"	k	type:t_particle_data
@@ -8530,8 +8566,8 @@ weighted	treecode/lpepcsrc/module_domains.f90	/^  integer(kind_default), public 
 weighted	treecode/sl_pepc/include/sl_pepckeys.h	/^  int weighted;$/;"	m	struct:pepckeys__partcond2_t
 weighted	treecode/sl_pepc/include/sl_pepcparts.h	/^  int weighted;$/;"	m	struct:pepcparts__partcond2_t
 weighted	treecode/sl_pepc/src/include/sl_types.h	/^  int weighted;$/;"	m	struct:_partcond2_t
-work	interaction_specific/coulomb_gpu/accelerator.f90	/^         real*8, pointer :: work$/;"	k	type:point
-work	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^         real*8, pointer :: work$/;"	k	type:point
+work	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8, pointer :: work$/;"	k	type:point
+work	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8, pointer :: work$/;"	k	type:point
 work	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8, pointer :: work$/;"	k	type:point
 work	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8, pointer :: work /;"	k	type:t_particle_thread
 work	treecode/lpepcsrc/module_pepc_types.f90	/^         real*8 :: work /;"	k	type:t_particle
@@ -9895,13 +9931,17 @@ xelem_xchange_at	treecode/sl_pepc/src/include/sl_xelem_call.h	87;"	d
 xelem_xchange_at	treecode/sl_pepc/src/include/sl_xelem_call.h	885;"	d
 xelem_xchange_at	treecode/sl_pepc/src/include/sl_xelem_call.h	939;"	d
 xelem_xchange_at	treecode/sl_pepc/src/include/sl_xelem_call.h	970;"	d
+xyquad	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: xyquad(/;"	k	type:mpdelta
+xyquad	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: xyquad(/;"	k	type:mpdelta
+xyquad	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: xyquad(/;"	k	type:mpdelta
 xyquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^        real*8 :: xyquad /;"	k	type:t_tree_node_interaction_data
-xyquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: xyquad(/;"	k	type:mpdelta
 xyquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: xyquad /;"	k	type:t_tree_node_interaction_data
 xyquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: xyquad /;"	k	type:t_tree_node_interaction_data
 xyquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^        real*8 :: xyquad /;"	k	type:t_tree_node_interaction_data
+yzquad	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: yzquad(/;"	k	type:mpdelta
+yzquad	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: yzquad(/;"	k	type:mpdelta
+yzquad	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: yzquad(/;"	k	type:mpdelta
 yzquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^        real*8 :: yzquad$/;"	k	type:t_tree_node_interaction_data
-yzquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: yzquad(/;"	k	type:mpdelta
 yzquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: yzquad$/;"	k	type:t_tree_node_interaction_data
 yzquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: yzquad$/;"	k	type:t_tree_node_interaction_data
 yzquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^        real*8 :: yzquad$/;"	k	type:t_tree_node_interaction_data
@@ -10031,12 +10071,16 @@ zcomm_fmt	treecode/sl_pepc/src/include/z_pack.h	31;"	d
 zcomm_fmt	treecode/sl_pepc/src/include/z_pack.h	34;"	d
 zcomm_val	treecode/sl_pepc/src/include/z_pack.h	32;"	d
 zcomm_val	treecode/sl_pepc/src/include/z_pack.h	35;"	d
+zer	interaction_specific/coulomb_gpu/accelerator.f90	/^   integer :: zer(/;"	v	module:module_accelerator
+zer	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   integer :: zer(/;"	v	module:module_accelerator
 zero	interaction_specific/coulomb_gpu/module_coulomb_kernels.f90	/^    real(kfp), parameter :: zero /;"	v	module:module_coulomb_kernels
 zero	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^      real(kfp), parameter :: zero /;"	v	module:module_fmm_framework
 zero_terms_multipole	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        subroutine zero_terms_multipole(/;"	s	module:module_fmm_framework
 zero_terms_taylor	interaction_specific/coulomb_gpu/module_fmm_framework.f90	/^        subroutine zero_terms_taylor(/;"	s	module:module_fmm_framework
+zxquad	interaction_specific/coulomb_gpu/accelerator.f90	/^      real*8 :: zxquad(/;"	k	type:mpdelta
+zxquad	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      real*8 :: zxquad(/;"	k	type:mpdelta
+zxquad	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         real*8 :: zxquad(/;"	k	type:mpdelta
 zxquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQ.f90	/^        real*8 :: zxquad$/;"	k	type:t_tree_node_interaction_data
-zxquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         real*8 :: zxquad(/;"	k	type:mpdelta
 zxquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^        real*8 :: zxquad$/;"	k	type:t_tree_node_interaction_data
 zxquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMB.f90	/^        real*8 :: zxquad$/;"	k	type:t_tree_node_interaction_data
 zxquad	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVMBS.f90	/^        real*8 :: zxquad$/;"	k	type:t_tree_node_interaction_data
