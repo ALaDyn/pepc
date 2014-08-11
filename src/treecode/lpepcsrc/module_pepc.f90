@@ -124,6 +124,7 @@ module module_pepc
         write(*,'(a)') "       \/_/    \/____/\/_/    \/___/     pepc@fz-juelich.de"
         write(*,'(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
                        SVNREVISION, frontendname, n_cpu
+        write(*,'("==== COMPILED = ",a,", ",a)') __DATE__,__TIME__
         write(*,'("====     MACH = ",a)') MACH
         write(*,'("==== COMPILER = ",a)') COMPILER
         write(*,'("====   FFLAGS = ",a)') FFLAGS

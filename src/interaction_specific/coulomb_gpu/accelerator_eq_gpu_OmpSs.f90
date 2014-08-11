@@ -302,6 +302,9 @@ module module_accelerator
 
                ! wait for the task to finish. a global one will do here since we only 'posted' 1
                !$OMP taskwait
+               ! have a task to post-process data
+!!               !$OMP target device(smp) copy_deps
+!!               !$OMP task in(queued(gpu_id), gpu_id, results(1,gpu_id)) inout(ptr(gpu_id), tmp_particle%partner) private(zer) 
                ! get data from GPU
                ! now free memory
                deallocate(tmp_particle%partner)
@@ -327,6 +330,7 @@ module module_accelerator
                call Extrae_event(COPYBACK, zer(1))
                call Extrae_event(COPYBACK_NO, zer(1))
 #endif
+!!               !$OMP end task
                !$OMP end task
    
                ! we have to invalidate this request queue entry.

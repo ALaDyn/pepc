@@ -1031,7 +1031,6 @@ subroutine walk_worker_thread(my_threaddata)
     integer :: i
     logical :: particles_available
     logical :: particles_active
-    logical :: shared_core
     integer :: my_max_particles_per_thread
     integer :: my_processor_id
     logical :: particle_has_finished
@@ -1041,16 +1040,10 @@ subroutine walk_worker_thread(my_threaddata)
     defer_list_root_only(1) = walk_tree%node_root
 
     my_processor_id = get_my_core()
-    shared_core = (my_processor_id == walk_tree%communicator%processor_id) .or. &
-                  (my_processor_id == main_thread_processor_id)
 
-    if ((shared_core) .and. (num_walk_threads > 1)) then
-          my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
-    else
-          my_max_particles_per_thread = max_particles_per_thread
-    end if
+    my_max_particles_per_thread = max_particles_per_thread
 
-    my_threaddata%is_on_shared_core = shared_core
+    my_threaddata%is_on_shared_core = .false.
     my_threaddata%coreid = my_processor_id
     my_threaddata%finished = .false.
     if (walk_profile) then
@@ -1083,11 +1076,6 @@ subroutine walk_worker_thread(my_threaddata)
                                 ! we will always read entries from _old and write/copy entries to _new and swap again later
 
         particles_active = .false.
-
-        ! after processing a number of particles: handle control to other (possibly comm) thread
-        if (shared_core) then
-           ERROR_ON_FAIL(pthreads_sched_yield())
-        end if
 
         do i=1,my_max_particles_per_thread
 
@@ -1157,7 +1145,7 @@ subroutine walk_worker_thread(my_threaddata)
 
     ! we have to wait here until all threads have started before some of them die again :-)
     do while (atomic_load_int(thread_startup_complete) /= 1)
-       ERROR_ON_FAIL(pthreads_sched_yield())
+       !$OMP TASKYIELD
     end do
 
     if (walk_profile) then
