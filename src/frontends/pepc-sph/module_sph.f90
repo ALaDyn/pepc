@@ -557,7 +557,7 @@ contains
           if( sph_debug ) then
              write(50, *) my_rank, local_particle_index, particles(local_particle_index)%x(1), h1, &
                   particles(local_particle_index)%data%temperature, particles(local_particle_index)%results%rho, &
-                  actual_neighbour, actual_node%interaction_data%coc(1), distance, dist(1), grad_kernel_1, actual_node%interaction_data%q, & 
+                  actual_neighbour, actual_node%center(1), distance, dist(1), grad_kernel_1, actual_node%interaction_data%q, & 
                   actual_node%interaction_data%temperature, actual_node%interaction_data%h, actual_node%interaction_data%rho, &
                   scalar_force*dist(1), particles(local_particle_index)%results%sph_force(1)
           end if

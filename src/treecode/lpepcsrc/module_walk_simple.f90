@@ -280,7 +280,7 @@ module module_walk
 
         do ip = 1, np
           ! TODO: tabulate x - vbox
-          d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
+          d(:, ip) = (p(ip)%x - vbox) - node%center
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
           if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
           #endif
@@ -297,7 +297,7 @@ module module_walk
       else ! not a leaf, evaluate MAC
         do ip = 1, np
           num_mac = num_mac + 1.0_8
-          d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
+          d(:, ip) = (p(ip)%x - vbox) - node%center
           d2(ip) = dot_product(d(:, ip), d(:, ip))
 
           if (.not. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) node%interaction_data, d2(ip), b2(node%level))) then ! MAC fails: resolve

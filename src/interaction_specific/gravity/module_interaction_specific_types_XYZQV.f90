@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -59,17 +59,16 @@ module module_interaction_specific_types
 
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
-        real*8 :: coc(3)     ! centre of charge
         real*8 :: charge     ! net charge sum
         real*8 :: bmax
       end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 3
+      integer, private, parameter :: nprops_tree_node_interaction_data = 2
 
       contains
 !
-      !>  
+      !>
       !> Writes particle interaction data and results to a VTK file.
-      !>  
+      !>
       subroutine vtk_write_particle_data_results(d, r, vtkf)
         use module_vtk
         implicit none
@@ -87,9 +86,9 @@ module module_interaction_specific_types
       end subroutine vtk_write_particle_data_results
 !
 !
-      !>  
+      !>
       !> Writes (a sensible subset of) tree node interaction data to a VTK file.
-      !>  
+      !>
       subroutine vtk_write_node_interaction_data(d, vtkf)
         use module_vtk
         implicit none
@@ -144,12 +143,11 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_tree_node_interaction_data)  = [1, 1]
+        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(2), ierr )
         displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)

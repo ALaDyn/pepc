@@ -46,7 +46,7 @@ module module_mirror_boxes
       ! number of boxes to include into each direction
       integer, public :: periodicity_switches(3)
       #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-      !> all nodes, where any(abs(coc(1:3)-particle_position(1:3)) > spatial_interaction_cutoff(1:3) are
+      !> all nodes, where any(abs(center(1:3)-particle_position(1:3)) > spatial_interaction_cutoff(1:3) are
       !> ignored when calculating interactions (for convenient minimum image method, where only half
       !> of the mirror boxes is included)
       real(kind_physics) , public :: spatial_interaction_cutoff(3) = huge(0._kind_physics) * [1., 1., 1.]

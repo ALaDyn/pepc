@@ -33,7 +33,7 @@ module module_directsum
         !>
         subroutine directforce(particles, testidx, ntest, directresults, comm)
           use module_pepc_types
-	  use module_pepc_kinds
+          use module_pepc_kinds
           use module_interaction_specific_types
           use module_interaction_specific
           use omp_lib
@@ -55,6 +55,7 @@ module module_directsum
           integer(kind_particle) :: i, j
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
+          real*8, allocatable :: local_positions(:,:)
           type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
           real(kind_physics) :: delta(3)
           integer :: ibox
@@ -94,10 +95,13 @@ module module_directsum
           call particleresults_clear(received)
 
           ! we copy all local particles into a node array to be able to feed them to calc_force_per_interaction
-          allocate(local_nodes(size(particles)))
+          allocate( &
+            local_positions(3, size(particles)), &
+            local_nodes(size(particles)) &
+          )
 
           do i=1,size(particles)
-            call multipole_from_particle(particles(i)%x, particles(i)%data, local_nodes(i))
+            call multipole_from_particle(particles(i)%x, particles(i)%data, local_positions(1:3, i), local_nodes(i))
           end do
 
           ! we will send our data packet to every other mpi rank
@@ -114,7 +118,7 @@ module module_directsum
 
                     do ibox = 1,num_neighbour_boxes ! sum over all boxes within ws=1
                       ! if we use our own particles, test for equality; exclude particle itself if we are in central box
-                      delta = received(j)%x - lattice_vect(neighbour_boxes(:,ibox)) - local_nodes(i)%coc
+                      delta = received(j)%x - lattice_vect(neighbour_boxes(:,ibox)) - local_positions(1:3, i)
                       #ifndef NO_SPATIAL_INTERACTION_CUTOFF
                       if (all(abs(delta) < spatial_interaction_cutoff)) then
                       #endif
@@ -159,7 +163,7 @@ module module_directsum
           allocate(directresults(1:ntest))
           directresults(1:ntest) = received(1:nreceived)%results
 
-          deallocate(received, sending, local_nodes)
+          deallocate(received, sending, local_positions, local_nodes)
 
           ! Reset the number of openmp threads to 1.
           !$ call omp_set_num_threads(1)

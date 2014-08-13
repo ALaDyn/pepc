@@ -146,6 +146,7 @@ module module_tree_node
       p%descendants      = n%descendants
       p%parent           = NODE_INVALID ! this is to be filled by answer_request()
       p%first_child      = n%first_child
+      p%center           = n%center
       p%interaction_data = n%interaction_data
     end subroutine tree_node_pack
 
@@ -168,6 +169,7 @@ module module_tree_node
       n%first_child      = p%first_child
       n%next_sibling     = NODE_INVALID
       n%request_posted   = .false.
+      n%center           = p%center
       n%interaction_data = p%interaction_data
     end subroutine tree_node_unpack
 end module module_tree_node

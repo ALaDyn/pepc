@@ -66,11 +66,12 @@ module module_interaction_specific
   !> Q = q and omega_k = 0, k = 1, ..., as the moments are centered
   !> on the particle
   !>
-  subroutine multipole_from_particle(x, p, m)
+  subroutine multipole_from_particle(x, p, c, m)
     implicit none
 
     real*8, intent(in) :: x(3)
     type(t_particle_data), intent(in) :: p
+    real*8, intent(out) :: c(3)
     type(t_tree_node_interaction_data), intent(out) :: m
 
     complex(kind = 8), parameter :: omega0(pMultipole) = 0
@@ -81,7 +82,8 @@ module module_interaction_specific
     integer :: k
 
     if (p%source_kind == CALC_FORCE_SOURCE_KIND_PARTICULAR) then
-      m= t_tree_node_interaction_data(x, p%q, abs(p%q), omega0, 0.)
+      c = x
+      m= t_tree_node_interaction_data(p%q, abs(p%q), omega0, 0.)
     else
       za = p%ra(1) + ic * p%ra(2)
       zb = p%rb(1) + ic * p%rb(2)
@@ -96,10 +98,12 @@ module module_interaction_specific
                   + p%phi * n * conjg(tu) * (OMultipole(k, zb - zc) - OMultipole(k, za - zc)) / k
       end do
 
-      m = t_tree_node_interaction_data(x, p%q * l, abs(p%q) * l, omega, 0.)
+      c = x
+      m = t_tree_node_interaction_data(p%q * l, abs(p%q) * l, omega, 0.)
     end if
 #else
-    m= t_tree_node_interaction_data(x, p%q, abs(p%q), omega0, 0.)
+    c = x
+    m = t_tree_node_interaction_data(p%q, abs(p%q), omega0, 0.)
 #endif
   end subroutine
 
@@ -117,9 +121,11 @@ module module_interaction_specific
   !>
   !> where z0 points from parent -> child.
   !>
-  subroutine shift_multipoles_up(parent, children)
+  subroutine shift_multipoles_up(parent_center, parent, children_centers, children)
     implicit none
+    real*8, intent(out) :: parent_center(3)
     type(t_tree_node_interaction_data), intent(out) :: parent
+    real*8, intent(in) :: children_centers(:, :)
     type(t_tree_node_interaction_data), intent(in) :: children(:)
 
     integer :: nchild, j, k, l
@@ -135,29 +141,29 @@ module module_interaction_specific
     parent%abs_charge = SUM( children(1:nchild)%abs_charge )
 
     ! centre of charge
-    parent%coc        = [0., 0., 0.]
+    parent_center     = [0., 0., 0.]
 
     if (parent%abs_charge .ne. 0.) then
       ! use center-of-charge because we may divide by abs_charge
       do j=1,nchild
-        parent%coc(1:3) = parent%coc(1:3) + ( children(j)%coc(1:3) * children(j)%abs_charge )
+        parent_center(1:3) = parent_center(1:3) + ( children_centers(1:3, j) * children(j)%abs_charge )
       end do
 
-      parent%coc(1:3) = parent%coc(1:3) / parent%abs_charge
+      parent_center(1:3) = parent_center(1:3) / parent%abs_charge
     else
       ! use geometric center
       do j=1,nchild
-        parent%coc(1:3) = parent%coc(1:3) +   children(j)%coc(1:3)
+        parent_center(1:3) = parent_center(1:3) + children_centers(1:3, j)
       end do
 
-      parent%coc(1:3) = parent%coc(1:3) / nchild
+      parent_center(1:3) = parent_center(1:3) / nchild
     endif
 
     ! higher order multipole moments omega
     parent%omega = 0
 
     do j=1,nchild
-      shift = children(j)%coc - parent%coc
+      shift = children_centers(:, j) - parent_center
       z0 = shift(1) + ic * shift(2)
 
       do k = 1, pMultipole
@@ -169,7 +175,7 @@ module module_interaction_specific
       end do
     end do
 
-    parent%bmax = maxval(sqrt((parent%coc(1)-children(1:nchild)%coc(1))**2+(parent%coc(2)-children(1:nchild)%coc(2))**2) + children(1:nchild)%bmax)
+    parent%bmax = maxval(sqrt((parent_center(1)-children_centers(1, 1:nchild))**2+(parent_center(2)-children_centers(2, 1:nchild))**2) + children(1:nchild)%bmax)
   end subroutine
 
 

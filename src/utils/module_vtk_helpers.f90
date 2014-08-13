@@ -180,9 +180,9 @@ module module_vtk_helpers
       bdescendants(i) = bnode%descendants
       bdata(i)        = bnode%interaction_data
 
-      bcocx(i) = bnode%interaction_data%coc(1)
-      bcocy(i) = bnode%interaction_data%coc(2)
-      bcocz(i) = bnode%interaction_data%coc(3)
+      bcocx(i) = bnode%center(1)
+      bcocy(i) = bnode%center(2)
+      bcocz(i) = bnode%center(3)
 
       if (present(node_vbox)) then
         bcocx(i) = bcocx(i) + node_vbox(i, 1)

@@ -513,7 +513,7 @@ module module_tree_communicator
 
           n_ptr => t%nodes(n)
 
-          delta = request%particle%x - n_ptr%interaction_data%coc  ! Separation vector
+          delta = request%particle%x - n_ptr%center ! Separation vector
           dist2 = dot_product(delta, delta)
 
           ! check MAC

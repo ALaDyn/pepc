@@ -410,7 +410,7 @@ contains
        do index_in_result_neighbour_list = 1, num_neighbour_particles
 
           actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(index_in_result_neighbour_list))
-          node_key = coord_to_key(t%bounding_box, actual_node%interaction_data%coc)
+          node_key = coord_to_key(t%bounding_box, actual_node%center)
 
           found = .false.
           
@@ -596,7 +596,7 @@ contains
           actual_node => t%nodes(particles(local_particle_index)%results%neighbour_nodes(actual_neighbour))
           
           write (60, '(a)') 'set color black'
-          write (60, '(a,2f13.4)') 'amove ', actual_node%interaction_data%coc(1), actual_node%interaction_data%coc(2)
+          write (60, '(a,2f13.4)') 'amove ', actual_node%center(1), actual_node%center(2)
           !        write (60, '(a,2f13.4)') 'amove ', xcoc(next_neighbours(j,p)), ycoc(next_neighbours(j,i))
           write (60, '(a)') 'circle psize'
        end do

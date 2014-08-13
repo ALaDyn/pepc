@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -25,7 +25,7 @@ module module_pepc_types
   use module_pepc_kinds
   use module_interaction_specific_types
   implicit none
-  
+
   private
 
   include 'mpif.h'
@@ -33,7 +33,7 @@ module module_pepc_types
   public :: t_particle_data
   public :: t_particle_results
   public :: t_tree_node_interaction_data
-  
+
       integer, public :: MPI_TYPE_particle_data,     &
                          MPI_TYPE_tree_node_interaction_data,   &
                          MPI_TYPE_particle_results,  &
@@ -67,11 +67,12 @@ module module_pepc_types
         integer(kind_node) :: parent
         integer(kind_node) :: first_child
         integer(kind_node) :: next_sibling
+        real(kind_physics) :: center(1:3)
         type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node
- 
+
       !> Data structure for shipping tree nodes
-      integer, private, parameter :: nprops_tree_node_package = 10
+      integer, private, parameter :: nprops_tree_node_package = 11
       type, public :: t_tree_node_package
         integer(kind_key) :: key
         integer(kind_byte) :: flags_global
@@ -82,6 +83,7 @@ module module_pepc_types
         integer(kind_node) :: descendants  !< total number of descendants (tree nodes and leaves) below this node
         integer(kind_node) :: parent
         integer(kind_node) :: first_child
+        real(kind_physics) :: center(1:3)
         type(t_tree_node_interaction_data) :: interaction_data
       end type t_tree_node_package
 
@@ -95,7 +97,7 @@ module module_pepc_types
 
       public register_lpepc_mpi_types
       public free_lpepc_mpi_types
-      
+
       contains
 
       !>
@@ -137,9 +139,10 @@ module module_pepc_types
         call MPI_TYPE_COMMIT( MPI_TYPE_particle, ierr)
 
         ! register tree_node type
-        blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1]
         types(1:nprops_tree_node_package)         = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
-          MPI_KIND_PE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_tree_node_interaction_data]
+          MPI_KIND_PE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_PHYSICS, &
+          MPI_TYPE_tree_node_interaction_data]
         call MPI_GET_ADDRESS( dummy_tree_node_package,                  address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%key,              address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%flags_global,     address(2), ierr )
@@ -150,7 +153,8 @@ module module_pepc_types
         call MPI_GET_ADDRESS( dummy_tree_node_package%descendants,      address(7), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%parent,           address(8), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_package%first_child,      address(9), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(10), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%center,           address(10), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(11), ierr )
         displacements(1:nprops_tree_node_package) = int(address(1:nprops_tree_node_package) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_package, blocklengths, displacements, types, MPI_TYPE_tree_node_package, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package, ierr )

@@ -57,14 +57,13 @@ module module_interaction_specific_types
 
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
-        real*8 :: coc(3)     !< center of charge
         real*8 :: q          !< charge (for particles)
         real*8 :: v(1:3)     !< velocity
         real*8 :: temperature
         real*8 :: rho        !< sph density
         real*8 :: h          !< sph smoothing-length
       end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 6
+      integer, private, parameter :: nprops_tree_node_interaction_data = 5
 
 
       ! bit switches for particles types. use only powers of 2, combine with IOR, eg.: ior(PARTICLE_TYPE_FIXED, PARTICLE_TYPE_NONGAS)
@@ -127,15 +126,14 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 3, 1, 1, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        blocklengths(1:nprops_tree_node_interaction_data)  = [1, 3, 1, 1, 1]
+        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,             address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,         address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%q,           address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%v,           address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%temperature, address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%rho,         address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%h,           address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%q,           address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%v,           address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%temperature, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%rho,         address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%h,           address(5), ierr )
         displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)

@@ -47,7 +47,6 @@ module module_interaction_specific_types
 
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
-        real*8 :: coc(3)     ! centre of charge
         real*8 :: abs_charge ! absolute charge sum
         real*8 :: chargex    ! 3D monopole = 3 entries
         real*8 :: chargey
@@ -81,7 +80,7 @@ module module_interaction_specific_types
         real*8 :: zzquad3
         real*8 :: bmax
       end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 33
+      integer, private, parameter :: nprops_tree_node_interaction_data = 32
 
       contains
 
@@ -130,46 +129,45 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
+        blocklengths(1:nprops_tree_node_interaction_data)  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
                                                   MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
                                                   MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
                                                   MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, &
                                                   MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%abs_charge, address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%chargex,    address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%chargey,    address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%chargez,    address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xdip1,      address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%ydip1,      address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zdip1,      address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xdip2,      address(9), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%ydip2,      address(10), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zdip2,      address(11), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xdip3,      address(12), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%ydip3,      address(13), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zdip3,      address(14), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xxquad1,    address(15), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad1,    address(16), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xzquad1,    address(17), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad1,    address(18), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yyquad1,    address(19), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zzquad1,    address(20), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xxquad2,    address(21), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad2,    address(22), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xzquad2,    address(23), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad2,    address(24), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yyquad2,    address(25), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zzquad2,    address(26), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xxquad3,    address(27), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad3,    address(28), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xzquad3,    address(29), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad3,    address(30), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yyquad3,    address(31), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zzquad3,    address(32), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(33), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%abs_charge, address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%chargex,    address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%chargey,    address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%chargez,    address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xdip1,      address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%ydip1,      address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zdip1,      address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xdip2,      address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%ydip2,      address(9), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zdip2,      address(10), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xdip3,      address(11), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%ydip3,      address(12), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zdip3,      address(13), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xxquad1,    address(14), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad1,    address(15), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xzquad1,    address(16), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad1,    address(17), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yyquad1,    address(18), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zzquad1,    address(19), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xxquad2,    address(20), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad2,    address(21), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xzquad2,    address(22), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad2,    address(23), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yyquad2,    address(24), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zzquad2,    address(25), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xxquad3,    address(26), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad3,    address(27), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xzquad3,    address(28), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad3,    address(29), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yyquad3,    address(30), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zzquad3,    address(31), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(32), ierr )
         displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)

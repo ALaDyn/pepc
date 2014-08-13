@@ -604,7 +604,7 @@ module module_walk
       ! been modified due to 'duplicate keys'-error)
       is_leaf = tree_node_is_leaf(walk_node)
 
-      delta = shifted_particle_position - walk_node%interaction_data%coc ! Separation vector
+      delta = shifted_particle_position - walk_node%center ! Separation vector
       dist2 = DOT_PRODUCT(delta, delta)
 
       if (is_leaf) then

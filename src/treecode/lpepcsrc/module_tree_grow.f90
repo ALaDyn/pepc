@@ -729,7 +729,7 @@ module module_tree_grow
     n%next_sibling = NODE_INVALID
 
     call timer_resume(t_props_leaves)
-    call multipole_from_particle(p%x, p%data, n%interaction_data)
+    call multipole_from_particle(p%x, p%data, n%center, n%interaction_data)
     call timer_stop(t_props_leaves)
   end subroutine tree_node_create_from_particle
 
@@ -776,6 +776,7 @@ module module_tree_grow
     integer(kind_node), intent(in) :: children(:) !< child nodes
     integer(kind_key), intent(in) :: k !< node key
 
+    real(kind_physics) :: children_centers(3, 8)
     type(t_tree_node_interaction_data) :: interaction_data(8)
     integer(kind_node) :: nchild, i
     type(t_tree_node), pointer :: child
@@ -798,6 +799,7 @@ module module_tree_grow
     do i = 1, nchild
       child => t%nodes(children(i))
       interaction_data(i) = child%interaction_data
+      children_centers(1:3, i) = child%center(1:3)
 
       ! parents of nodes with local contributions also contain local contributions
       if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
@@ -818,6 +820,6 @@ module module_tree_grow
       parent%descendants = parent%descendants + child%descendants
     end do
 
-    call shift_multipoles_up(parent%interaction_data, interaction_data(1:nchild))
+    call shift_multipoles_up(parent%center, parent%interaction_data, children_centers(1:3, 1:nchild), interaction_data(1:nchild))
   end subroutine tree_node_update_from_children
 end module module_tree_grow

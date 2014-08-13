@@ -67,32 +67,35 @@ contains
   !>
   !> Computes multipole properties of a single particle
   !>
-  subroutine multipole_from_particle(particle_pos, particle, multipole)
+  subroutine multipole_from_particle(particle_pos, particle, multipole_center, multipole)
     implicit none
     real*8, intent(in) :: particle_pos(3)
     type(t_particle_data), intent(in) :: particle
+    real*8, intent(out) :: multipole_center(3)
     type(t_tree_node_interaction_data), intent(out) :: multipole
 
+    multipole_center = particle_pos
     ! use velocity (v) at same time step as coordinate, not v_minus_half
-    multipole = t_tree_node_interaction_data(particle_pos, & ! coc
-         particle%q, &                                       ! charge (here mass)
-         [0., 0., 0.], &                                     ! dipole moment
-         [0., 0., 0.], &                                     ! diagonal quadrupole moments
-         0., 0., 0., &                                       ! other quadrupole moments
-         0., &                                               ! bmax
-         particle%v, &                                       ! particle velocity
-         particle%temperature, &                             ! particle temperature
-         0., &                                               ! sph density
-         0. )                                                ! sph smoothing-length
+    multipole = t_tree_node_interaction_data(particle%q, & ! charge (here mass)
+         [0., 0., 0.], &                                   ! dipole moment
+         [0., 0., 0.], &                                   ! diagonal quadrupole moments
+         0., 0., 0., &                                     ! other quadrupole moments
+         0., &                                             ! bmax
+         particle%v, &                                     ! particle velocity
+         particle%temperature, &                           ! particle temperature
+         0., &                                             ! sph density
+         0. )                                              ! sph smoothing-length
   end subroutine multipole_from_particle
 
 
   !>
   !> Accumulates multipole properties of child nodes to parent node
   !>
-  subroutine shift_multipoles_up(parent, children)
+  subroutine shift_multipoles_up(parent_center, parent, children_centers, children)
     implicit none
+    real*8, intent(out) :: parent_center(3)
     type(t_tree_node_interaction_data), intent(out) :: parent
+    real*8, intent(in) :: children_centers(:, :)
     type(t_tree_node_interaction_data), intent(in) :: children(:)
 
     integer :: nchild, j
@@ -101,25 +104,25 @@ contains
 
     nchild = size(children)
 
-    parent%charge     = SUM( children(1:nchild)%charge )
+    parent%charge = SUM( children(1:nchild)%charge )
 
-    parent%coc = [0._8, 0._8, 0._8]
+    parent_center = [0._8, 0._8, 0._8]
 
 
     if (parent%charge .ne. 0.) then
        ! use center-of-charge because we may divide by charge
        do j=1,nchild
-          parent%coc(1:3) = parent%coc(1:3) + ( children(j)%coc(1:3) * children(j)%charge )
+          parent_center(1:3) = parent_center(1:3) + ( children_centers(1:3, j) * children(j)%charge )
        end do
 
-       parent%coc(1:3) = parent%coc(1:3) / parent%charge
+       parent_center(1:3) = parent_center(1:3) / parent%charge
     else
        ! use geometric center
        do j=1,nchild
-          parent%coc(1:3) = parent%coc(1:3) +   children(j)%coc(1:3)
+          parent_center(1:3) = parent_center(1:3) + children_centers(1:3, j)
        end do
 
-       parent%coc(1:3) = parent%coc(1:3) / nchild
+       parent_center(1:3) = parent_center(1:3) / nchild
     endif
 
     ! multipole properties
@@ -130,7 +133,7 @@ contains
     parent%zxquad = 0.
 
     do j=1,nchild
-       shift(1:3) = parent%coc(1:3) - children(j)%coc
+       shift(1:3) = parent_center(1:3) - children_centers(1:3, j)
 
        ! dipole moment
        parent%dip = parent%dip + children(j)%dip - children(j)%charge*shift(1:3)
@@ -143,7 +146,7 @@ contains
        parent%zxquad = parent%zxquad + children(j)%zxquad - children(j)%dip(3)*shift(1) - children(j)%dip(1)*shift(3) + children(j)%charge*shift(3)*shift(1)
     end do
 
-    parent%bmax = maxval(sqrt((parent%coc(1)-children(1:nchild)%coc(1))**2+(parent%coc(2)-children(1:nchild)%coc(2))**2+(parent%coc(3)-children(1:nchild)%coc(3))**2) + children(1:nchild)%bmax)
+    parent%bmax = maxval(sqrt((parent_center(1)-children_centers(1, 1:nchild))**2+(parent_center(2)-children_centers(2, 1:nchild))**2+(parent_center(3)-children_centers(3, 1:nchild))**2) + children(1:nchild)%bmax)
 
     ! set velocity, temperature and rho for tree node to a nonsense value which may be recognised as nonsense when one tries to use them
     parent%v = [-13._8,-13._8,-13._8]

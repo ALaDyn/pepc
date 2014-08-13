@@ -58,14 +58,16 @@ module module_interaction_specific
       !>
       !> Computes multipole properties of a single particle
       !>
-      subroutine multipole_from_particle(particle_pos, particle, multipole)
+      subroutine multipole_from_particle(particle_pos, particle, multipole_center, multipole)
         implicit none
         real*8, intent(in) :: particle_pos(3)
         type(t_particle_data), intent(in) :: particle
+        real*8, intent(out) :: multipole_center(3)
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
+        multipole_center = particle_pos
         ! use velocity (v) at same time step as coordinate, not v_minus_half
-        multipole = t_tree_node_interaction_data(particle_pos,particle%q, particle%v, particle%temperature, -13._8, -13._8 )
+        multipole = t_tree_node_interaction_data(particle%q, particle%v, particle%temperature, -13._8, -13._8 )
         ! set rho to -13 as dummy.
         ! TODO: find a better place to store rho
       end subroutine
@@ -74,24 +76,26 @@ module module_interaction_specific
       !>
       !> Accumulates multipole properties of child nodes to parent node
       !>
-      subroutine shift_multipoles_up(parent, children)
+      subroutine shift_multipoles_up(parent_center, parent, children_centers, children)
         implicit none
+        real*8, intent(out) :: parent_center(3)
         type(t_tree_node_interaction_data), intent(out) :: parent
+        real*8, intent(in) :: children_centers(:, :)
         type(t_tree_node_interaction_data), intent(in) :: children(:)
 
         integer :: nchild, i
 
         nchild = size(children)
 
-        parent%coc = [0._8, 0._8, 0._8]
+        parent_center = [0._8, 0._8, 0._8]
         parent%q = 0._8
 
         do i=1,nchild
-          parent%coc = parent%coc + children(i)%coc
+          parent_center = parent_center + children_centers(1:3, i)
           parent%q   = parent%q   + children(i)%q
         end do
 
-        parent%coc = parent%coc / nchild
+        parent_center = parent_center / nchild
 
         ! set velocity, temperature and rho for tree node to a nonsense value which may be recognised as nonsense when one tries to use them
         parent%v = [-13._8,-13._8,-13._8]

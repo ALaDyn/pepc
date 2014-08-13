@@ -681,7 +681,7 @@ module module_walk
         call calc_force_for_cluster(calc_force_per_interaction_with_leaf, calc_force_per_interaction_with_self)
       else ! not a leaf, evaluate MAC
         do p=cluster%first,cluster%last
-          delta = particle_data(p)%x - vbox - walk_node%interaction_data%coc ! Separation vector
+          delta = particle_data(p)%x - vbox - walk_node%center ! Separation vector
           dist2 = DOT_PRODUCT(delta, delta)
 
           num_mac_evaluations = num_mac_evaluations + 1
@@ -716,7 +716,7 @@ module module_walk
       integer(kind_particle) :: ipart
 
       do ipart=cluster%first,cluster%last
-        pdelta = particle_data(ipart)%x - vbox - walk_node%interaction_data%coc ! Separation vector
+        pdelta = particle_data(ipart)%x - vbox - walk_node%center ! Separation vector
         pdist2 = DOT_PRODUCT(pdelta, pdelta)
 
         #ifndef NO_SPATIAL_INTERACTION_CUTOFF
