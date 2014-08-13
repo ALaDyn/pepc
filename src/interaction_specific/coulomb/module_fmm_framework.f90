@@ -28,7 +28,7 @@ module module_fmm_framework
       use module_pepc_types
       use module_debug
       use module_mirror_boxes
-      use module_interaction_specific_types, only : t_tree_node_interaction_data
+      use module_interaction_specific_types, only : t_multipole_moments
       implicit none
       include 'mpif.h'
       private
@@ -81,7 +81,7 @@ module module_fmm_framework
       real(kind_physics) :: box_dipole(3) = zero
       real(kind_physics) :: quad_trace    = zero
       !> fictitious charges and their position: fictcharge(0,i)=q_i, fictcharge(1:3,i)=r_i
-      type(t_tree_node_interaction_data) :: fictcharge(1:4)
+      type(t_multipole_moments) :: fictcharge(1:4)
       real(kind_physics) :: fictpos(1:3, 1:4)
       integer :: nfictcharge = 0
 

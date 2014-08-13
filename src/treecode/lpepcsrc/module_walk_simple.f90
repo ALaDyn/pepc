@@ -289,9 +289,9 @@ module module_walk
           num_int = num_int + 1.0_8
           p(ip)%work = p(ip)%work + 1._8
           if (d2(ip) > 0.0_8) then ! not self
-            call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
+            call calc_force_per_interaction_with_leaf(p(ip), node%multipole_moments, n, d(:, ip), d2(ip), vbox)
           else ! self
-            call calc_force_per_interaction_with_self(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
+            call calc_force_per_interaction_with_self(p(ip), node%multipole_moments, n, d(:, ip), d2(ip), vbox)
           end if
         end do
       else ! not a leaf, evaluate MAC
@@ -300,7 +300,7 @@ module module_walk
           d(:, ip) = (p(ip)%x - vbox) - node%center
           d2(ip) = dot_product(d(:, ip), d(:, ip))
 
-          if (.not. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) node%interaction_data, d2(ip), b2(node%level))) then ! MAC fails: resolve
+          if (.not. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) node%multipole_moments, d2(ip), b2(node%level))) then ! MAC fails: resolve
             if (.not. tree_node_children_available(node)) then
               call tree_node_fetch_children(walk_tree, node, n, p(1), p(1)%x - vbox)
               do ! loop and yield until children have been fetched
@@ -332,7 +332,7 @@ module module_walk
           #endif
           num_int = num_int + 1.0_8
           p(ip)%work = p(ip)%work + 1._8
-          call calc_force_per_interaction_with_twig(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
+          call calc_force_per_interaction_with_twig(p(ip), node%multipole_moments, n, d(:, ip), d2(ip), vbox)
         end do
       end if
     end subroutine tree_walk_single_aux

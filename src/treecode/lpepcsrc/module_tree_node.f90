@@ -138,16 +138,16 @@ module module_tree_node
       type(t_tree_node), intent(in) :: n
       type(t_tree_node_package), intent(out) :: p
 
-      p%key              = n%key
-      p%flags_global     = n%flags_global
-      p%level            = n%level
-      p%owner            = n%owner
-      p%leaves           = n%leaves
-      p%descendants      = n%descendants
-      p%parent           = NODE_INVALID ! this is to be filled by answer_request()
-      p%first_child      = n%first_child
-      p%center           = n%center
-      p%interaction_data = n%interaction_data
+      p%key               = n%key
+      p%flags_global      = n%flags_global
+      p%level             = n%level
+      p%owner             = n%owner
+      p%leaves            = n%leaves
+      p%descendants       = n%descendants
+      p%parent            = NODE_INVALID ! this is to be filled by answer_request()
+      p%first_child       = n%first_child
+      p%center            = n%center
+      p%multipole_moments = n%multipole_moments
     end subroutine tree_node_pack
 
 
@@ -158,18 +158,18 @@ module module_tree_node
       type(t_tree_node_package), intent(in) :: p
       type(t_tree_node), intent(out) :: n
 
-      n%key              = p%key
-      n%flags_global     = p%flags_global
-      n%level            = p%level
-      n%flags_local      = 0_kind_byte
-      n%owner            = p%owner
-      n%leaves           = p%leaves
-      n%descendants      = p%descendants
-      n%parent           = p%parent
-      n%first_child      = p%first_child
-      n%next_sibling     = NODE_INVALID
-      n%request_posted   = .false.
-      n%center           = p%center
-      n%interaction_data = p%interaction_data
+      n%key               = p%key
+      n%flags_global      = p%flags_global
+      n%level             = p%level
+      n%flags_local       = 0_kind_byte
+      n%owner             = p%owner
+      n%leaves            = p%leaves
+      n%descendants       = p%descendants
+      n%parent            = p%parent
+      n%first_child       = p%first_child
+      n%next_sibling      = NODE_INVALID
+      n%request_posted    = .false.
+      n%center            = p%center
+      n%multipole_moments = p%multipole_moments
     end subroutine tree_node_unpack
 end module module_tree_node

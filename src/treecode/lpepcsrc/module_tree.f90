@@ -625,19 +625,19 @@ module module_tree
 
       write (debug_ipefile,'(///a)') 'Tree structure'
 
-      write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
+      write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Twigs from node-list', 'data (see module_interaction_specific::t_multipole_moments for meaning of the columns)'
 
       do i = 1,t%nodes_nentries
         if (.not. tree_node_is_leaf(t%nodes(i))) then
-          write(debug_ipefile,*) t%nodes(i)%interaction_data
+          write(debug_ipefile,*) t%nodes(i)%multipole_moments
         endif
       end do
 
-      write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
+      write(debug_ipefile,'(//a/,x,a,/,179("-"))') 'Leaves from node-list', 'data (see module_interaction_specific::t_multipole_moments for meaning of the columns)'
 
       do i = 1,t%nodes_nentries
         if (tree_node_is_leaf(t%nodes(i))) then
-          write(debug_ipefile,*) t%nodes(i)%interaction_data
+          write(debug_ipefile,*) t%nodes(i)%multipole_moments
         endif
       end do
 

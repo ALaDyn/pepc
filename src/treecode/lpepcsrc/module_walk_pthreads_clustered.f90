@@ -637,7 +637,7 @@ module module_walk
         use module_pepc_types
         use treevars
         implicit none
-        type(t_tree_node_interaction_data), intent(in) :: node
+        type(t_multipole_moments), intent(in) :: node
         integer(kind_node), intent(in) :: node_idx
         type(t_particle), intent(inout) :: particle
         real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
@@ -685,7 +685,7 @@ module module_walk
           dist2 = DOT_PRODUCT(delta, delta)
 
           num_mac_evaluations = num_mac_evaluations + 1
-          if (.not. mac(walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC negative, resolve
+          if (.not. mac(walk_node%multipole_moments, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC negative, resolve
             call resolve(particle_data(p))
             cycle todo_list_loop ! we do not have to evaluate the MAC for any other particles in this cluster
           endif
@@ -724,9 +724,9 @@ module module_walk
         #endif
 
         if (pdist2 > 0.0_8) then ! not self, interact
-          call calc_force(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          call calc_force(particle_data(ipart), walk_node%multipole_moments, walk_node_idx, pdelta, pdist2, vbox)
           else ! self, count as interaction partner, otherwise ignore
-          call calc_force_self(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
+          call calc_force_self(particle_data(ipart), walk_node%multipole_moments, walk_node_idx, pdelta, pdist2, vbox)
         endif
         num_interactions = num_interactions + 1
         particle_data(ipart)%work = particle_data(ipart)%work + 1._8

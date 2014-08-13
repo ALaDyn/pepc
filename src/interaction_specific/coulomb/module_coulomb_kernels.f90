@@ -57,7 +57,7 @@ module module_coulomb_kernels
     subroutine calc_force_coulomb_3D(t, d, dist2, exyz, phi)
       implicit none
 
-      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exyz(3), phi
 
@@ -156,7 +156,7 @@ module module_coulomb_kernels
     subroutine calc_force_coulomb_2D(t, d, d2, exy, phi)
       implicit none
 
-      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(2), d2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exy(1:2),phi
 
@@ -206,7 +206,7 @@ module module_coulomb_kernels
     subroutine calc_force_LJ(t, d, r2, aii2, exyz, phi)
       implicit none
 
-      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3), r2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exyz(3), phi
       real(kind_physics), intent(in) :: aii2
@@ -245,7 +245,7 @@ module module_coulomb_kernels
     subroutine calc_force_coulomb_3D_direct(t, d, dist2, exyz, phi)
       implicit none
 
-      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exyz(3), phi
 
@@ -271,7 +271,7 @@ module module_coulomb_kernels
     subroutine calc_force_coulomb_2D_direct(t, d, d2, exy, phi)
       implicit none
 
-      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(2), d2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exy(2), phi
 
@@ -292,7 +292,7 @@ module module_coulomb_kernels
       implicit none
 
       type(t_particle), intent(inout) :: particle
-      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exyz(3), phi
       real(kind_physics), intent(in) :: kelbg_invsqrttemp

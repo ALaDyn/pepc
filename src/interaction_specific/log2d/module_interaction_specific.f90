@@ -72,7 +72,7 @@ module module_interaction_specific
     real*8, intent(in) :: x(3)
     type(t_particle_data), intent(in) :: p
     real*8, intent(out) :: c(3)
-    type(t_tree_node_interaction_data), intent(out) :: m
+    type(t_multipole_moments), intent(out) :: m
 
     complex(kind = 8), parameter :: omega0(pMultipole) = 0
 #ifdef BEM2D
@@ -83,7 +83,7 @@ module module_interaction_specific
 
     if (p%source_kind == CALC_FORCE_SOURCE_KIND_PARTICULAR) then
       c = x
-      m= t_tree_node_interaction_data(p%q, abs(p%q), omega0, 0.)
+      m= t_multipole_moments(p%q, abs(p%q), omega0, 0.)
     else
       za = p%ra(1) + ic * p%ra(2)
       zb = p%rb(1) + ic * p%rb(2)
@@ -99,11 +99,11 @@ module module_interaction_specific
       end do
 
       c = x
-      m = t_tree_node_interaction_data(p%q * l, abs(p%q) * l, omega, 0.)
+      m = t_multipole_moments(p%q * l, abs(p%q) * l, omega, 0.)
     end if
 #else
     c = x
-    m = t_tree_node_interaction_data(p%q, abs(p%q), omega0, 0.)
+    m = t_multipole_moments(p%q, abs(p%q), omega0, 0.)
 #endif
   end subroutine
 
@@ -124,9 +124,9 @@ module module_interaction_specific
   subroutine shift_multipoles_up(parent_center, parent, children_centers, children)
     implicit none
     real*8, intent(out) :: parent_center(3)
-    type(t_tree_node_interaction_data), intent(out) :: parent
+    type(t_multipole_moments), intent(out) :: parent
     real*8, intent(in) :: children_centers(:, :)
-    type(t_tree_node_interaction_data), intent(in) :: children(:)
+    type(t_multipole_moments), intent(in) :: children(:)
 
     integer :: nchild, j, k, l
 
@@ -291,7 +291,7 @@ module module_interaction_specific
     implicit none
 
     logical :: mac
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     real*8, intent(in) :: dist2
     real*8, intent(in) :: boxlength2
 
@@ -331,7 +331,7 @@ module module_interaction_specific
     implicit none
 
     type(t_particle), intent(inout) :: p
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
     real*8, intent(in) :: delta(3), dist2, vbox(3)
 
@@ -358,7 +358,7 @@ module module_interaction_specific
     implicit none
 
     type(t_particle), intent(inout) :: particle
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
     real*8, intent(in) :: delta(3), dist2, vbox(3)
 
@@ -384,7 +384,7 @@ module module_interaction_specific
     implicit none
 
     type(t_particle), intent(inout) :: particle
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
     real*8, intent(in) :: delta(3), dist2, vbox(3)
 
@@ -445,7 +445,7 @@ module module_interaction_specific
     use treevars
     implicit none
 
-    type(t_tree_node_interaction_data), intent(in) :: t
+    type(t_multipole_moments), intent(in) :: t
     real*8, intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
     real*8, intent(out) ::  ex, ey, phi
 
@@ -503,7 +503,7 @@ module module_interaction_specific
     use treevars
     implicit none
 
-    type(t_tree_node_interaction_data), intent(in) :: t
+    type(t_multipole_moments), intent(in) :: t
     real*8, intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
     real*8, intent(out) :: ex, ey, phi
 

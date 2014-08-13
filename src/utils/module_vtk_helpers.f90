@@ -141,10 +141,10 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_interaction_specific_types, only: t_multipole_moments
         use module_vtk, only: vtkfile_unstructured_grid
         implicit none
-        type(t_tree_node_interaction_data), intent(in) :: d(:)
+        type(t_multipole_moments), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
       end subroutine helper_func
     end interface
@@ -157,7 +157,7 @@ module module_vtk_helpers
     real(kind_physics), dimension(:), allocatable  :: bcocx, bcocy, bcocz
     integer, dimension(:), allocatable :: bowner, blevel, mirror_level
     integer*8, dimension(:), allocatable :: bleaves, bdescendants
-    type(t_tree_node_interaction_data), dimension(:), allocatable :: bdata
+    type(t_multipole_moments), dimension(:), allocatable :: bdata
     integer, dimension(:, :), allocatable :: mirror_indices
 
     type(vtkfile_unstructured_grid) :: vtk
@@ -178,7 +178,7 @@ module module_vtk_helpers
       blevel(i)       = bnode%level
       bleaves(i)      = bnode%leaves
       bdescendants(i) = bnode%descendants
-      bdata(i)        = bnode%interaction_data
+      bdata(i)        = bnode%multipole_moments
 
       bcocx(i) = bnode%center(1)
       bcocy(i) = bnode%center(2)
@@ -212,7 +212,7 @@ module module_vtk_helpers
         if (present(helper_func)) then
           call helper_func(bdata, vtk)
         else
-          call vtk_write_node_interaction_data(bdata, vtk)
+          call vtk_write_multipole_moments(bdata, vtk)
         end if
       call vtk%finishpointdata()
       call vtk%startcells()
@@ -259,10 +259,10 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_interaction_specific_types, only: t_multipole_moments
         use module_vtk, only: vtkfile_unstructured_grid
         implicit none
-        type(t_tree_node_interaction_data), intent(in) :: d(:)
+        type(t_multipole_moments), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
       end subroutine helper_func
     end interface
@@ -279,7 +279,7 @@ module module_vtk_helpers
     integer(kind_node), dimension(:), allocatable :: bcornersidx, bcornersoffsets
     integer, dimension(:), allocatable :: bowner, blevel, mirror_level
     integer*8, dimension(:), allocatable :: bleaves, bdescendants
-    type(t_tree_node_interaction_data), dimension(:), allocatable :: bdata
+    type(t_multipole_moments), dimension(:), allocatable :: bdata
 
     integer, dimension(:, :), allocatable :: mirror_indices
     real(kind_physics) :: bx(3)
@@ -314,7 +314,7 @@ module module_vtk_helpers
       blevel(i)       = bnode%level
       bleaves(i)      = bnode%leaves
       bdescendants(i) = bnode%descendants
-      bdata(i)        = bnode%interaction_data
+      bdata(i)        = bnode%multipole_moments
       bsize           = t%bounding_box%boxsize / 2**blevel(i)
 
       ! prepare voxel data structure
@@ -365,7 +365,7 @@ module module_vtk_helpers
         if (present(helper_func)) then
           call helper_func(bdata, vtk)
         else
-          call vtk_write_node_interaction_data(bdata, vtk)
+          call vtk_write_multipole_moments(bdata, vtk)
         end if
       call vtk%finishcelldata()
       call vtk%write_final()
@@ -517,10 +517,10 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_interaction_specific_types, only: t_multipole_moments
         use module_vtk, only: vtkfile_unstructured_grid
         implicit none
-        type(t_tree_node_interaction_data), intent(in) :: d(:)
+        type(t_multipole_moments), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
       end subroutine helper_func
     end interface
@@ -574,10 +574,10 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_interaction_specific_types, only: t_multipole_moments
         use module_vtk, only: vtkfile_unstructured_grid
         implicit none
-        type(t_tree_node_interaction_data), intent(in) :: d(:)
+        type(t_multipole_moments), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
       end subroutine helper_func
     end interface
@@ -658,10 +658,10 @@ module module_vtk_helpers
 
     interface
       subroutine helper_func(d, vtkf)
-        use module_interaction_specific_types, only: t_tree_node_interaction_data
+        use module_interaction_specific_types, only: t_multipole_moments
         use module_vtk, only: vtkfile_unstructured_grid
         implicit none
-        type(t_tree_node_interaction_data), intent(in) :: d(:)
+        type(t_multipole_moments), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
       end subroutine helper_func
     end interface

@@ -729,7 +729,7 @@ module module_tree_grow
     n%next_sibling = NODE_INVALID
 
     call timer_resume(t_props_leaves)
-    call multipole_from_particle(p%x, p%data, n%center, n%interaction_data)
+    call multipole_from_particle(p%x, p%data, n%center, n%multipole_moments)
     call timer_stop(t_props_leaves)
   end subroutine tree_node_create_from_particle
 
@@ -763,7 +763,7 @@ module module_tree_grow
   !>
   subroutine tree_node_update_from_children(t, parent, children, k)
     use module_pepc_types, only: t_tree_node
-    use module_interaction_specific_types, only: t_tree_node_interaction_data
+    use module_interaction_specific_types, only: t_multipole_moments
     use module_tree_node
     use module_interaction_specific, only : shift_multipoles_up
     use module_spacefilling, only: parent_key_from_key, level_from_key, child_number_from_key
@@ -777,7 +777,7 @@ module module_tree_grow
     integer(kind_key), intent(in) :: k !< node key
 
     real(kind_physics) :: children_centers(3, 8)
-    type(t_tree_node_interaction_data) :: interaction_data(8)
+    type(t_multipole_moments) :: multipole_moments(8)
     integer(kind_node) :: nchild, i
     type(t_tree_node), pointer :: child
 
@@ -798,7 +798,7 @@ module module_tree_grow
 
     do i = 1, nchild
       child => t%nodes(children(i))
-      interaction_data(i) = child%interaction_data
+      multipole_moments(i) = child%multipole_moments
       children_centers(1:3, i) = child%center(1:3)
 
       ! parents of nodes with local contributions also contain local contributions
@@ -820,6 +820,6 @@ module module_tree_grow
       parent%descendants = parent%descendants + child%descendants
     end do
 
-    call shift_multipoles_up(parent%center, parent%interaction_data, children_centers(1:3, 1:nchild), interaction_data(1:nchild))
+    call shift_multipoles_up(parent%center, parent%multipole_moments, children_centers(1:3, 1:nchild), multipole_moments(1:nchild))
   end subroutine tree_node_update_from_children
 end module module_tree_grow

@@ -72,11 +72,11 @@ contains
     real*8, intent(in) :: particle_pos(3)
     type(t_particle_data), intent(in) :: particle
     real*8, intent(out) :: multipole_center(3)
-    type(t_tree_node_interaction_data), intent(out) :: multipole
+    type(t_multipole_moments), intent(out) :: multipole
 
     multipole_center = particle_pos
     ! use velocity (v) at same time step as coordinate, not v_minus_half
-    multipole = t_tree_node_interaction_data(particle%q, & ! charge (here mass)
+    multipole = t_multipole_moments(particle%q, & ! charge (here mass)
          [0., 0., 0.], &                                   ! dipole moment
          [0., 0., 0.], &                                   ! diagonal quadrupole moments
          0., 0., 0., &                                     ! other quadrupole moments
@@ -94,9 +94,9 @@ contains
   subroutine shift_multipoles_up(parent_center, parent, children_centers, children)
     implicit none
     real*8, intent(out) :: parent_center(3)
-    type(t_tree_node_interaction_data), intent(out) :: parent
+    type(t_multipole_moments), intent(out) :: parent
     real*8, intent(in) :: children_centers(:, :)
-    type(t_tree_node_interaction_data), intent(in) :: children(:)
+    type(t_multipole_moments), intent(in) :: children(:)
 
     integer :: nchild, j
 
@@ -265,7 +265,7 @@ contains
     implicit none
 
     logical :: mac
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     type(t_particle), intent(in) :: particle
     real*8, intent(in) :: dist2
     real*8, intent(in) :: boxlength2
@@ -341,7 +341,7 @@ contains
     use treevars
     implicit none
 
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
     type(t_particle), intent(inout) :: particle
     real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -359,7 +359,7 @@ contains
     use treevars
     implicit none
 
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
     type(t_particle), intent(inout) :: particle
     real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -403,7 +403,7 @@ contains
     use treevars
     implicit none
 
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
     type(t_particle), intent(inout) :: particle
     real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -464,7 +464,7 @@ contains
     include 'mpif.h'
 
     integer*8, intent(in) :: node_idx !< node index of particle to interact with
-    type(t_tree_node_interaction_data), intent(in) :: node
+    type(t_multipole_moments), intent(in) :: node
     real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
     type(t_particle), intent(inout) :: particle
 
@@ -521,7 +521,7 @@ contains
 
           include 'mpif.h'
 
-          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
 
@@ -618,7 +618,7 @@ contains
 
           include 'mpif.h'
 
-          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 
@@ -680,7 +680,7 @@ contains
 
           include 'mpif.h'
 
-          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
           real*8 :: dx,dy,dz,r2
@@ -735,7 +735,7 @@ contains
 
           include 'mpif.h'
 
-          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumfz,sumphi
 
@@ -780,7 +780,7 @@ contains
 
           include 'mpif.h'
 
-          type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+          type(t_multipole_moments), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
           real*8, intent(out) ::  sumfx,sumfy,sumphi
 

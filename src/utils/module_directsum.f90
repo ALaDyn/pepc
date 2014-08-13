@@ -56,7 +56,7 @@ module module_directsum
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
           real*8, allocatable :: local_positions(:,:)
-          type(t_tree_node_interaction_data), allocatable :: local_nodes(:)
+          type(t_multipole_moments), allocatable :: local_nodes(:)
           real(kind_physics) :: delta(3)
           integer :: ibox
           type(t_particle) :: latticeparticles(ntest)

@@ -32,10 +32,10 @@ module module_pepc_types
 
   public :: t_particle_data
   public :: t_particle_results
-  public :: t_tree_node_interaction_data
+  public :: t_multipole_moments
 
       integer, public :: MPI_TYPE_particle_data,     &
-                         MPI_TYPE_tree_node_interaction_data,   &
+                         MPI_TYPE_multipole_moments, &
                          MPI_TYPE_particle_results,  &
                          MPI_TYPE_particle,          &
                          MPI_TYPE_tree_node,         &
@@ -68,7 +68,7 @@ module module_pepc_types
         integer(kind_node) :: first_child
         integer(kind_node) :: next_sibling
         real(kind_physics) :: center(1:3)
-        type(t_tree_node_interaction_data) :: interaction_data
+        type(t_multipole_moments) :: multipole_moments
       end type t_tree_node
 
       !> Data structure for shipping tree nodes
@@ -84,7 +84,7 @@ module module_pepc_types
         integer(kind_node) :: parent
         integer(kind_node) :: first_child
         real(kind_physics) :: center(1:3)
-        type(t_tree_node_interaction_data) :: interaction_data
+        type(t_multipole_moments) :: multipole_moments
       end type t_tree_node_package
 
       !> Data structure for requesting tree nodes with eager send algorithm
@@ -120,7 +120,7 @@ module module_pepc_types
         type(t_request_eager) :: dummy_request
 
         ! first register the interaction-specific MPI types since they are embedded into the lpepc-datatypes
-        call register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_tree_node_interaction_data, MPI_TYPE_particle_results)
+        call register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_multipole_moments, MPI_TYPE_particle_results)
 
         ! register particle type
         blocklengths(1:nprops_particle)  = [3, 1, 1, 1, 1, 1, 1]
@@ -142,19 +142,19 @@ module module_pepc_types
         blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1]
         types(1:nprops_tree_node_package)         = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
           MPI_KIND_PE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_PHYSICS, &
-          MPI_TYPE_tree_node_interaction_data]
-        call MPI_GET_ADDRESS( dummy_tree_node_package,                  address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%key,              address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%flags_global,     address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%level,            address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%dummy,            address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%owner,            address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%leaves,           address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%descendants,      address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%parent,           address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%first_child,      address(9), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%center,           address(10), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_package%interaction_data, address(11), ierr )
+          MPI_TYPE_multipole_moments]
+        call MPI_GET_ADDRESS( dummy_tree_node_package,                   address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%key,               address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%flags_global,      address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%level,             address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%dummy,             address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%owner,             address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%leaves,            address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%descendants,       address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%parent,            address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%first_child,       address(9), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%center,            address(10), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_package%multipole_moments, address(11), ierr )
         displacements(1:nprops_tree_node_package) = int(address(1:nprops_tree_node_package) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_package, blocklengths, displacements, types, MPI_TYPE_tree_node_package, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package, ierr )
@@ -185,7 +185,7 @@ module module_pepc_types
         call MPI_TYPE_FREE( MPI_TYPE_particle,                     ierr)
         call MPI_TYPE_FREE( MPI_TYPE_particle_results,             ierr)
         call MPI_TYPE_FREE( MPI_TYPE_request_eager,                ierr)
-        call MPI_TYPE_FREE( MPI_TYPE_tree_node_interaction_data,   ierr)
+        call MPI_TYPE_FREE( MPI_TYPE_multipole_moments,            ierr)
         call MPI_TYPE_FREE( MPI_TYPE_particle_data,                ierr)
 
       end subroutine free_lpepc_mpi_types

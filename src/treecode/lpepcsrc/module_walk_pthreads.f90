@@ -627,9 +627,9 @@ module module_walk
         #endif
 
         if (dist2 > 0.0_8) then ! not self, interact
-          call calc_force_per_interaction_with_leaf(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+          call calc_force_per_interaction_with_leaf(particle, walk_node%multipole_moments, walk_node_idx, delta, dist2, vbox)
         else ! self, count as interaction partner, otherwise ignore
-          call calc_force_per_interaction_with_self(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+          call calc_force_per_interaction_with_self(particle, walk_node%multipole_moments, walk_node_idx, delta, dist2, vbox)
         end if
 
         num_interactions = num_interactions + 1
@@ -637,14 +637,14 @@ module module_walk
       else ! not a leaf, evaluate MAC
         num_mac_evaluations = num_mac_evaluations + 1
 
-        if (mac(IF_MAC_NEEDS_PARTICLE(particle) walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
+        if (mac(IF_MAC_NEEDS_PARTICLE(particle) walk_node%multipole_moments, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
           partner_leaves = partner_leaves + walk_node%leaves
 
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
           if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
           #endif
 
-          call calc_force_per_interaction_with_twig(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+          call calc_force_per_interaction_with_twig(particle, walk_node%multipole_moments, walk_node_idx, delta, dist2, vbox)
           num_interactions = num_interactions + 1
           particle%work = particle%work + 1._8
         else ! MAC negative, resolve

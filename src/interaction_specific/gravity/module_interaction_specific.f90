@@ -98,10 +98,10 @@ module module_interaction_specific
         real*8, intent(in) :: particle_pos(3)
         type(t_particle_data), intent(in) :: particle
         real*8, intent(out) :: multipole_center(3)
-        type(t_tree_node_interaction_data), intent(out) :: multipole
+        type(t_multipole_moments), intent(out) :: multipole
 
         multipole_center = particle_pos
-        multipole = t_tree_node_interaction_data(particle%q, 0.)
+        multipole = t_multipole_moments(particle%q, 0.)
       end subroutine
 
 
@@ -113,9 +113,9 @@ module module_interaction_specific
       subroutine shift_multipoles_up(parent_center, parent, children_centers, children)
         implicit none
         real*8, intent(out) :: parent_center(3)
-        type(t_tree_node_interaction_data), intent(out) :: parent
+        type(t_multipole_moments), intent(out) :: parent
         real*8, intent(in) :: children_centers(:, :)
-        type(t_tree_node_interaction_data), intent(in) :: children(:)
+        type(t_multipole_moments), intent(in) :: children(:)
 
         integer :: nchild, j
 
@@ -253,7 +253,7 @@ module module_interaction_specific
         implicit none
 
         logical :: mac
-        type(t_tree_node_interaction_data), intent(in) :: node
+        type(t_multipole_moments), intent(in) :: node
         real*8, intent(in) :: dist2
         real*8, intent(in) :: boxlength2
 
@@ -302,7 +302,7 @@ module module_interaction_specific
           use module_coulomb_kernels
           implicit none
 
-          type(t_tree_node_interaction_data), intent(in) :: node
+          type(t_multipole_moments), intent(in) :: node
           integer(kind_key), intent(in) :: key
           type(t_particle), intent(inout) :: particle
           real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -324,7 +324,7 @@ module module_interaction_specific
           use module_coulomb_kernels
           implicit none
 
-          type(t_tree_node_interaction_data), intent(in) :: node
+          type(t_multipole_moments), intent(in) :: node
           integer(kind_key), intent(in) :: key
           type(t_particle), intent(inout) :: particle
           real*8, intent(in) :: vbox(3), delta(3), dist2
@@ -366,7 +366,7 @@ module module_interaction_specific
           use module_coulomb_kernels
           implicit none
 
-          type(t_tree_node_interaction_data), intent(in) :: node
+          type(t_multipole_moments), intent(in) :: node
           integer(kind_key), intent(in) :: key
           type(t_particle), intent(inout) :: particle
           real*8, intent(in) :: vbox(3), delta(3), dist2

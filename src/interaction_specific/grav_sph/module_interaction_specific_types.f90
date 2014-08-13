@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -58,7 +58,7 @@ module module_interaction_specific_types
       integer, private, parameter :: nprops_particle_results = 11
 
       !> Data structure for storing multiple moments of tree nodes
-      type t_tree_node_interaction_data
+      type t_multipole_moments
         real*8 :: charge     !< net charge sum
         real*8 :: dip(3)     !< dipole moment
         real*8 :: quad(3)    !< diagonal quadrupole moments
@@ -70,8 +70,8 @@ module module_interaction_specific_types
         real*8 :: temperature
         real*8 :: rho        !< sph density
         real*8 :: h          !< sph smoothing-length
-      end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 11
+      end type t_multipole_moments
+      integer, private, parameter :: nprops_multipole_moments = 11
 
 
       ! bit switches for particles types. use only powers of 2, combine with IOR, eg.: ior(PARTICLE_TYPE_FIXED, PARTICLE_TYPE_NONGAS)
@@ -86,12 +86,12 @@ module module_interaction_specific_types
       !> Creates and registers interaction-specific MPI-types
       !> is automatically called from register_libpepc_mpi_types()
       !>
-      subroutine register_interaction_specific_mpi_types(mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results)
+      subroutine register_interaction_specific_mpi_types(mpi_type_particle_data, MPI_TYPE_multipole_moments, mpi_type_particle_results)
         implicit none
         include 'mpif.h'
-        integer, intent(out) :: mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results
+        integer, intent(out) :: mpi_type_particle_data, MPI_TYPE_multipole_moments, mpi_type_particle_results
 
-        integer, parameter :: max_props = nprops_particle_data + nprops_particle_results + nprops_tree_node_interaction_data ! maxval([..]) would be enough, but ifort does notlike that
+        integer, parameter :: max_props = nprops_particle_data + nprops_particle_results + nprops_multipole_moments ! maxval([..]) would be enough, but ifort does notlike that
 
         integer :: ierr
         ! address calculation
@@ -100,7 +100,7 @@ module module_interaction_specific_types
         ! dummies for address calculation
         type(t_particle_data)    :: dummy_particle_data
         type(t_particle_results) :: dummy_particle_results
-        type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
+        type(t_multipole_moments)   :: dummy_multipole_moments
 
         ! register particle data type
         blocklengths(1:nprops_particle_data)  = [1, 3, 3, 1, 1]
@@ -135,22 +135,22 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [1, 3, 3, 1, 1, 1, 1, 3, 1, 1, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,             address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,      address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%dip,         address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quad,        address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad,      address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad,      address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zxquad,      address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,        address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%v,           address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%temperature, address(9), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%rho,         address(10), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%h,           address(11), ierr )
-        displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
-        call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
-        call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)
+        blocklengths(1:nprops_multipole_moments)  = [1, 3, 3, 1, 1, 1, 1, 3, 1, 1, 1]
+        types(1:nprops_multipole_moments)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        call MPI_GET_ADDRESS( dummy_multipole_moments,             address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%charge,      address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%dip,         address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%quad,        address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%xyquad,      address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%yzquad,      address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%zxquad,      address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%bmax,        address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%v,           address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%temperature, address(9), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%rho,         address(10), ierr )
+        call MPI_GET_ADDRESS( dummy_multipole_moments%h,           address(11), ierr )
+        displacements(1:nprops_multipole_moments) = int(address(1:nprops_multipole_moments) - address(0))
+        call MPI_TYPE_STRUCT( nprops_multipole_moments, blocklengths, displacements, types, MPI_TYPE_multipole_moments, ierr )
+        call MPI_TYPE_COMMIT( MPI_TYPE_multipole_moments, ierr)
       end subroutine register_interaction_specific_mpi_types
 end module module_interaction_specific_types
