@@ -542,7 +542,7 @@ module particlehandling
         call check_for_leakage(p)
         IF (bool_particle_handling_timing) timer(10) = get_time()
 
-        IF (bool_particle_handling_timing) write(timing_out,*) step, sum(npps), timer
+        IF (bool_particle_handling_timing) write(ph_timing_out,*) step, sum(npps), timer
 
     END SUBROUTINE hits_on_boundaries
 

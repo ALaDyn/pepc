@@ -38,8 +38,9 @@ module variables
 
   ! filehandles
   integer :: out=199
-  integer :: timing_out=200
-  integer :: recycling_out=201
+  integer :: detailed_timing_out=200
+  integer :: ph_timing_out=201
+  integer :: recycling_out=202
 
   ! time variables
   real*8 :: dt
@@ -107,7 +108,6 @@ module variables
   !other
   integer :: chunk_size_default
 
-  !test
   type(t_boundary), allocatable :: boundaries(:)
   integer :: nb          ! number of boundaries
   type(t_species), allocatable :: species(:)
@@ -134,6 +134,7 @@ module variables
   integer :: retherm=0
   logical :: bool_particle_handling_timing = .false.
   logical :: bool_diag_bins_cylinder=.false.
+  logical :: bool_detailed_timing=.false.
 
 
   real(KIND=8),allocatable :: probe_start_x(:), probe_start_y(:), probe_start_z(:)
