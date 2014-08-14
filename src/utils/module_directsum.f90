@@ -61,10 +61,6 @@ module module_directsum
 
           real*8 :: t1
           integer :: omp_thread_num
-#ifndef OMPSS_TASKS
-!!!          external :: nanos_admit_current_thread, nanos_expel_current_thread
-!!!          call nanos_admit_current_thread()
-#endif
 
           call MPI_COMM_RANK(comm, my_rank, ierr)
           call MPI_COMM_SIZE(comm, n_cpu, ierr)
@@ -76,15 +72,15 @@ module module_directsum
           call timer_reset(t_direct_comm)
 
           ! Set number of OpenMP threads to the same number as pthreads used in the walk
-!!!          !$ call omp_set_num_threads(num_threads)
+#ifndef OMPSS_TASKS
+          !$ call omp_set_num_threads(num_threads)
+#endif
 
-#ifdef OMPSS_TASKS___
           ! Inform the user that OpenMP is used, and with how many threads
           !$OMP PARALLEL PRIVATE(omp_thread_num)
           !$ omp_thread_num = OMP_GET_THREAD_NUM()
-          !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
+          !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. omp_thread_num) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
           !$OMP END PARALLEL
-#endif
 
           ! determine right and left neighbour
           nextrank = modulo(my_rank + 1_kind_pe, n_cpu)
@@ -113,9 +109,10 @@ module module_directsum
 
             t1 = MPI_WTIME()
 
+!#define OMPSS_TASKS_
 #ifdef OMPSS_TASKS_
             !!!!!$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(j, i, delta)
-            !$OMP PARALLEL DO PRIVATE(j, i, delta)
+            !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(j, i, delta)
 #endif
             do j=1,nreceived
                 do i=1,size(particles)
@@ -165,7 +162,9 @@ module module_directsum
           deallocate(received, sending, local_nodes)
 
           ! Reset the number of openmp threads to 1.
-!!!          !$ call omp_set_num_threads(1)
+#ifndef OMPSS_TASKS
+          !$ call omp_set_num_threads(1)
+#endif
 
           !call calc_force_per_particle here: add lattice contribution, compare module_libpepc_main
           call timer_start(t_lattice)
@@ -177,9 +176,6 @@ module module_directsum
           directresults(1:ntest) = latticeparticles(1:ntest)%results
           call timer_stop(t_lattice)
 
-#ifndef OMPSS_TASKS
-!!!          call nanos_expel_current_thread()
-#endif
 
         end subroutine
 end module module_directsum

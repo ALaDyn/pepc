@@ -125,8 +125,11 @@ module module_interaction_specific
         use module_debug
         use module_atomic_ops
         implicit none
-
+#ifndef GOOFY
+        call acc_flush()
+#else
         call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_FLUSH)
+#endif
         do while( atomic_load_int(acc%thread_status) .ne. ACC_THREAD_STATUS_STARTED )
            ! busy loop while the queue is processed
            ERROR_ON_FAIL(pthreads_sched_yield())
@@ -290,12 +293,20 @@ module module_interaction_specific
            call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
            !tree_comm_thread_counter = tree_comm_thread_counter + 1
 #ifdef OMPSS_TASKS
+#ifndef GOOFY
+           call acc_start()
+#else
            !$OMP target device(smp)
            !$OMP task
            acc%acc_thread%thread = acc_loop()
            !$OMP end task
+#endif
+#else
+#ifndef GOOFY
+           call acc_start()
 #else
            ERROR_ON_FAIL(pthreads_createthread(acc%acc_thread, c_funloc(acc_loop), c_null_ptr, thread_type = THREAD_TYPE_ACCELERATOR, counter = 99))
+#endif
 #endif
 
            ! we have to wait here until the accelerator has really started
@@ -363,7 +374,11 @@ module module_interaction_specific
         implicit none
 
         ! stop GPU thread, or at least signal it to stop
+#ifndef GOOFY
+        call acc_stop()
+#else
         call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPING)
+#endif
 
         ! wait for thread to finish properly
         do while (atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STOPPED)

@@ -83,7 +83,104 @@ module module_accelerator
 
    integer :: zer(1)
 
+#ifndef GOOFY
+   ! kernel data
+   real*8, dimension(:,:), allocatable :: results
+      type(point), dimension(GPU_STREAMS) :: ptr
+
+   ! GPU kernel stuff... move to a function again?
+   integer :: idx, idx_, queued(GPU_STREAMS), ccc
+
+   integer :: gpu_id, acc_id  ! to keep track of streams
+   type(t_particle_thread), target :: tmp_particle
+#endif
+
    contains
+#ifndef GOOFY
+   subroutine acc_start()
+      use, intrinsic :: iso_c_binding
+      use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread
+      use module_debug
+      implicit none
+      include 'mpif.h'
+
+      ! store ID of thread's processor
+      acc%processor_id = get_my_core()
+      call atomic_write_barrier()
+
+      write(*,*) 'GPU thread on core ', acc%processor_id
+
+      ! allocate GPU structures on heap...
+      allocate(results(4*MAX_IACT_PARTNERS, GPU_STREAMS)) ! this corresponds to iact+(strm-1)*MAX_IACT_PARTNERS
+
+      ! signal we're starting...
+      call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
+
+      ! reset all queues
+      call atomic_allocate_int(acc%q_top)
+      call atomic_store_int(acc%q_top, 0)
+      call atomic_allocate_int(acc%q_bottom)
+      call atomic_store_int(acc%q_bottom, 0)
+      call atomic_allocate_int(acc%q_len)
+      call atomic_store_int(acc%q_len, GPU_STREAMS)
+
+      ! init critical lock
+      call critical_section_allocate(queue_lock)
+
+      ! initialise GPU variables
+      gpu_id = 0
+      acc_id = 0
+
+      ! signal successfull start
+      call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
+
+   end subroutine acc_start
+
+   subroutine acc_flush()
+
+      implicit none
+
+      integer :: i
+
+      ! flush GPU buffers at end of timestep
+
+      ! need to wait until all tasks are finished (should be the case anyway)
+      do i = 1, GPU_STREAMS
+         ! waits for kernels
+         !$OMP taskwait on (results(1,i))
+         ! should wait for data being copied back
+         !$OMP taskwait on (ptr(i))
+      enddo
+
+      ! reset queue
+      gpu_id = 0
+      ! tell others we're ready again...
+      call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
+
+   end subroutine acc_flush
+
+   subroutine acc_stop()
+      use, intrinsic :: iso_c_binding
+      use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread
+      use module_debug
+      implicit none
+      include 'mpif.h'
+   
+      ! free queues and lock
+      call critical_section_deallocate(queue_lock)
+      call atomic_deallocate_int(acc%q_top)
+      call atomic_deallocate_int(acc%q_bottom)
+      call atomic_deallocate_int(acc%q_len)
+
+      ! free GPU structures
+      deallocate(results)
+
+      write(*,*) 'GPU thread terminating'
+      call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STOPPED)
+   
+   end subroutine acc_stop
+
+#else
    !>
    !> main routine to drive GPU
    !>
@@ -175,7 +272,7 @@ module module_accelerator
 #endif
 #endif
 
-      ! store ID of comm-thread processor
+      ! store ID of thread's processor
       acc%processor_id = get_my_core()
       call atomic_write_barrier()
 
@@ -342,7 +439,7 @@ module module_accelerator
                ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
                exit
             end if
-         end do
+         end do ! loop over available data
 
          ! flush GPU buffers at end of timestep
          if (atomic_load_int(acc%thread_status) .eq. ACC_THREAD_STATUS_FLUSH) then
@@ -356,7 +453,7 @@ module module_accelerator
             call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTED)
          endif
 
-      end do
+      end do ! thread active
 
       ! should not hurt to wait for child-tasks
       !$OMP taskwait
@@ -382,6 +479,217 @@ module module_accelerator
 #endif
    
    end function acc_loop
+#endif
+
+#ifndef GOOFY
+   subroutine dispatch_list(particle, eps2, penalty)
+      implicit none
+
+      type(t_particle_thread), target, intent(in) :: particle
+      real*8, intent(in) :: eps2, penalty
+      integer :: local_queue_bottom, gpu_status, q_tmp
+      real*8 :: dist2, WORKLOAD_PENALTY_INTERACTION
+
+      ! kernel interface
+      ! PICK AT LEAST ONE!
+!#define OCL_KERNEL
+!#define SMP_ALTERNATIVE
+!#define SMP_KERNEL
+!#if !defined ( OCL_KERNEL ) && !defined ( SMP_ALTERNATIVE ) && !defined ( SMP_KERNEL )
+!#error DEFINE AT LEAST ONE KERNEL
+!#endif
+#ifdef OCL_KERNEL
+      interface
+         !$omp target device(opencl) ndrange(1, queued, BLN) file(ocl_kernel.cl) copy_deps
+         !$omp task in(queued, eps2, partner, id) out(results)
+         subroutine ocl_gpu_kernel(queued, eps2, partner, results, id)
+            use module_interaction_specific_types
+            implicit none
+            integer, value :: queued, id
+            real*8, value :: eps2
+            real*8 :: partner(13*MAX_IACT_PARTNERS)
+            real*8 :: results(4*((queued-1)/BLN + 1 ))
+         end subroutine ocl_gpu_kernel
+      end interface
+#endif
+#ifdef SMP_ALTERNATIVE
+      interface
+#ifdef OCL_KERNEL
+         !$omp target device(smp) implements(ocl_gpu_kernel) copy_deps
+#else
+         !$omp target device(smp) copy_deps
+#endif
+         !$omp task in(queued, eps2, partner, id) out(results)
+         subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
+            use module_interaction_specific_types
+            implicit none
+            integer, value :: queued, id
+            real*8, value :: eps2
+            real*8 :: partner(13*MAX_IACT_PARTNERS)
+            real*8 :: results(4*((queued-1)/BLN + 1 ))
+         end subroutine ocl_smp_kernel
+      end interface
+#endif
+
+#ifdef MONITOR
+      external :: Extrae_event
+! define the Event types
+#define COPYBACK_FORCE_NO 66666
+#define COPYBACK_NO 66667
+#define WORK 66668
+#define FILL 66669
+#define COPYBACK 66670
+#define DISPATCH 66671
+#define CRIT_LOCK 66672
+#define LIST_LEN 66673
+#define WORK_NO 66674
+#endif
+
+      ! when this is called, the accelerator thread is up and running
+      ! (we check its status before we continue from calc_force_prepare)
+
+#ifdef MONITOR
+      call Extrae_event(DISPATCH, 1)
+#endif
+
+      do
+         q_tmp = atomic_fetch_and_decrement_int(acc%q_len)
+         !if (atomic_fetch_and_decrement_int(acc%q_len) .gt. 1) then
+         if (q_tmp .gt. 1) then
+            ! decrease queue indicator and check if we can add in one got
+
+               ! find a stream
+               call critical_section_enter(queue_lock)
+
+!               q_tmp = atomic_load_int(acc%q_len)
+               gpu_id = mod(gpu_id,GPU_STREAMS) + 1
+               acc_id = mod(acc_id,ACC_QUEUE_LENGTH) + 1
+
+               ! copy subroutine data to our - now fake - queue to keep it alive
+               acc%acc_queue(acc_id)%particle = particle
+               ! move list information to queue, list info in particle will be deleted by calling subroutine...
+               !                                 \_ compute_iact_list will nullify particle%partner
+               acc%acc_queue(acc_id)%queued = particle%queued
+               acc%acc_queue(acc_id)%partner => particle%partner
+               ! store epsilon and work_penalty to preserve original calc_force functionality
+               acc%acc_queue(acc_id)%eps = eps2
+               acc%acc_queue(acc_id)%pen = penalty
+write(*,*) q_tmp, gpu_id, acc_id, loc(particle), loc(acc%acc_queue(acc_id)%particle%results%pot), loc(particle%results%pot)
+
+!write(*,*) gpu_id, GPU_STREAMS, q_tmp
+               if(gpu_id .lt. 0 .or. gpu_id .gt. GPU_STREAMS) write(*,*) 'BUGGER'
+               ! wait for the stream in a task
+               !$OMP target device(smp) copy_deps
+               !$OMP task firstprivate(gpu_id, eps2, acc_id) &
+               !$OMP private(tmp_particle, idx, ccc, q_tmp, zer) &
+               !$OMP inout(ptr(gpu_id), acc%acc_queue(acc_id), results(:,gpu_id), queued(gpu_id), acc%acc_queue(acc_id)%particle%results%pot) &
+               !$OMP shared(acc)
+
+#ifdef MONITOR
+               call Extrae_event(FILL, gpu_id)
+#endif
+!write(*,*) 'task start',gpu_id
+               ! copy list
+               tmp_particle = acc%acc_queue(acc_id)%particle
+               tmp_particle%queued = acc%acc_queue(acc_id)%queued
+               tmp_particle%partner => acc%acc_queue(acc_id)%partner
+               WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(acc_id)%pen
+write(*,*) q_tmp, gpu_id, acc_id, loc(tmp_particle%results%pot), loc(acc%acc_queue(acc_id)%particle%results%pot), loc(particle%results%pot), ' TASK'
+
+#ifdef MONITOR
+               q_tmp = atomic_load_int(acc%q_len)
+               zer = q_tmp
+               call Extrae_event(LIST_LEN, zer(1))
+               zer = 0
+               call Extrae_event(CRIT_LOCK, zer(1))
+#endif
+               
+               ! copy data in GPU structures
+               ! only get positions of 'individual arrays'
+               queued(gpu_id) = tmp_particle%queued
+               ptr(gpu_id)%results => tmp_particle%results
+               ptr(gpu_id)%work => tmp_particle%work
+
+#ifdef MONITOR
+               zer = 0
+               call Extrae_event(FILL, zer(1))
+#endif
+               ! run (GPU) kernel
+               results(:,gpu_id) = 0.d0
+#if defined OCL_KERNEL || defined SMP_ALTERNATIVE
+#ifdef OCL_KERNEL
+               call ocl_gpu_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(1:4*( (queued(gpu_id)-1)/BLN + 1 ),gpu_id), gpu_id)
+               !                                                                              |------- no of blocks -------|
+#else
+               call ocl_smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(1:4*( (queued(gpu_id)-1)/BLN + 1 ),gpu_id), gpu_id)
+#endif
+#endif
+#ifdef SMP_KERNEL
+               call smp_kernel(queued(gpu_id), eps2, tmp_particle%partner(:), results(:,gpu_id), gpu_id)
+#endif
+
+               ! wait for the task to finish. a global one will do here since we only 'posted' 1
+               !$OMP taskwait
+               ! have a task to post-process data
+               ! get data from GPU
+               ! now free memory
+               deallocate(tmp_particle%partner)
+               nullify(tmp_particle%partner)
+#ifdef MONITOR
+               call Extrae_event(COPYBACK_NO, queued(gpu_id))
+               call Extrae_event(COPYBACK, gpu_id)
+#endif
+!write(*,*) 'task end',gpu_id
+#ifdef SMP_KERNEL
+               ptr(gpu_id)%results%e(1) = ptr(gpu_id)%results%e(1) + sum(results((E_1+1):(E_1+queued(gpu_id)),gpu_id))
+               ptr(gpu_id)%results%e(2) = ptr(gpu_id)%results%e(2) + sum(results((E_2+1):(E_2+queued(gpu_id)),gpu_id))
+               ptr(gpu_id)%results%e(3) = ptr(gpu_id)%results%e(3) + sum(results((E_3+1):(E_3+queued(gpu_id)),gpu_id))
+               ptr(gpu_id)%results%pot  = ptr(gpu_id)%results%pot  + sum(results((POT+1):(POT+queued(gpu_id)),gpu_id))
+#else
+               ptr(gpu_id)%results%e(1) = ptr(gpu_id)%results%e(1) + sum(results(((((queued(gpu_id)-1)/BLN + 1 ) * (2-1))+1):((((queued(gpu_id)-1)/BLN + 1 ) * (2-1))+( (queued(gpu_id)-1)/BLN + 1 )),gpu_id))
+               ptr(gpu_id)%results%e(2) = ptr(gpu_id)%results%e(2) + sum(results(((((queued(gpu_id)-1)/BLN + 1 ) * (3-1))+1):((((queued(gpu_id)-1)/BLN + 1 ) * (3-1))+( (queued(gpu_id)-1)/BLN + 1 )),gpu_id))
+               ptr(gpu_id)%results%e(3) = ptr(gpu_id)%results%e(3) + sum(results(((((queued(gpu_id)-1)/BLN + 1 ) * (4-1))+1):((((queued(gpu_id)-1)/BLN + 1 ) * (4-1))+( (queued(gpu_id)-1)/BLN + 1 )),gpu_id))
+               ptr(gpu_id)%results%pot  = ptr(gpu_id)%results%pot  + sum(results(((((queued(gpu_id)-1)/BLN + 1 ) * (1-1))+1):((((queued(gpu_id)-1)/BLN + 1 ) * (1-1))+( (queued(gpu_id)-1)/BLN + 1 )),gpu_id))
+#endif
+               ptr(gpu_id)%work         = ptr(gpu_id)%work + queued(gpu_id) * WORKLOAD_PENALTY_INTERACTION
+#ifdef MONITOR
+               zer = 0
+               call Extrae_event(COPYBACK, zer(1))
+               call Extrae_event(COPYBACK_NO, zer(1))
+#endif
+               ! make room for other tasks
+               q_tmp = atomic_fetch_and_increment_int(acc%q_len)
+               !$OMP end task
+               call atomic_write_barrier()
+               call critical_section_leave(queue_lock)
+
+
+#ifdef MONITOR
+            q_tmp = atomic_load_int(acc%q_len)
+            call Extrae_event(LIST_LEN, q_tmp)
+            call Extrae_event(DISPATCH, 0)
+#endif
+
+            return
+
+         else
+            ! add to queue indicator again
+            q_tmp = atomic_fetch_and_increment_int(acc%q_len)
+
+            ! busy loop while the queue is processed
+!write(*,*) 'yielding...',gpu_id, q_tmp
+            ERROR_ON_FAIL(pthreads_sched_yield())
+         end if
+      end do
+
+#ifdef MONITOR
+            call Extrae_event(DISPATCH, 0)
+#endif
+
+      return
+
+   end subroutine dispatch_list
+#else
 
    subroutine dispatch_list(particle, eps2, penalty)
       implicit none
@@ -455,6 +763,9 @@ module module_accelerator
       return
 
    end subroutine dispatch_list
+
+
+#endif
 
    !$omp target device(smp) copy_deps
    !$omp task in(queued, eps2, partner, id) out(results)

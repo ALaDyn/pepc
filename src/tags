@@ -1926,10 +1926,16 @@ ac_fn_c_try_cpp	treecode/openpa/openpa/configure	/^ac_fn_c_try_cpp ()$/;"	f
 ac_fn_c_try_link	treecode/openpa/openpa/configure	/^ac_fn_c_try_link ()$/;"	f
 ac_fn_c_try_run	treecode/openpa/openpa/configure	/^ac_fn_c_try_run ()$/;"	f
 acc	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^      type(t_acc)/;"	v	module:module_interaction_specific_types
+acc_flush	interaction_specific/coulomb_gpu/accelerator.f90	/^   subroutine acc_flush(/;"	s	module:module_accelerator
+acc_flush	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   subroutine acc_flush(/;"	s	module:module_accelerator
 acc_loop	interaction_specific/coulomb_gpu/accelerator.f90	/^   function acc_loop(/;"	f	module:module_accelerator
 acc_loop	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   function acc_loop(/;"	f	module:module_accelerator
 acc_loop	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^   function acc_loop(/;"	f	module:module_accelerator
 acc_queue	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_acc_queue_/;"	k	type:t_acc
+acc_start	interaction_specific/coulomb_gpu/accelerator.f90	/^   subroutine acc_start(/;"	s	module:module_accelerator
+acc_start	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   subroutine acc_start(/;"	s	module:module_accelerator
+acc_stop	interaction_specific/coulomb_gpu/accelerator.f90	/^   subroutine acc_stop(/;"	s	module:module_accelerator
+acc_stop	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   subroutine acc_stop(/;"	s	module:module_accelerator
 acc_thread	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_pthread_with_type) :: acc_thread$/;"	k	type:t_acc
 add_t	treecode/openpa/openpa/test/test_primitives.c	/^} add_t;$/;"	t	typeref:struct:__anon9	file:
 add_to_iact_list	interaction_specific/coulomb_gpu/module_interaction_specific.f90	/^             subroutine add_to_iact_list(/;"	s	subroutine:calc_force_per_interaction_thread
@@ -3248,6 +3254,8 @@ cc_rti_minc_alloc	treecode/sl_pepc/src/include/sl_rti_intern.h	104;"	d
 cc_rti_minc_alloc	treecode/sl_pepc/src/include/sl_rti_intern.h	92;"	d
 cc_rti_minc_free	treecode/sl_pepc/src/include/sl_rti_intern.h	105;"	d
 cc_rti_minc_free	treecode/sl_pepc/src/include/sl_rti_intern.h	93;"	d
+ccc	interaction_specific/coulomb_gpu/accelerator.f90	/^   integer :: idx, idx_, queued(GPU_STREAMS), ccc$/;"	v	module:module_accelerator
+ccc	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   integer :: idx, idx_, queued(GPU_STREAMS), ccc$/;"	v	module:module_accelerator
 ccurrent	treecode/sl_pepc/src/core_mpi/mpi_select_exact_generic.c	/^  slint_t crange[2], ccurrent[2];$/;"	m	struct:_border_info_t	file:
 change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon22	file:
 change_val	treecode/openpa/openpa/test/test_primitives.c	/^    OPA_int_t   change_val;     \/* Whether we will change\/have changed shared_val *\/$/;"	m	struct:__anon23	file:
@@ -5120,6 +5128,8 @@ global_bins_t	treecode/sl_pepc/src/include/sl_types.h	/^} global_bins_t;$/;"	t	t
 global_tree	treecode/lpepcsrc/module_pepc.f90	/^    type(t_tree), public, target, save :: global_tree$/;"	v	module:module_pepc
 globaldims	utils/module_vtk.f90	/^          integer, private, dimension(2,3) :: globaldims,/;"	v
 gposts	treecode/lpepcsrc/module_domains.f90	/^    integer(kind_default), allocatable :: gposts(/;"	k	type:t_decomposition
+gpu_id	interaction_specific/coulomb_gpu/accelerator.f90	/^   integer :: gpu_id /;"	v	module:module_accelerator
+gpu_id	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   integer :: gpu_id /;"	v	module:module_accelerator
 grouped_cas_int_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_int_helper(void *_udata)$/;"	f	file:
 grouped_cas_int_t	treecode/openpa/openpa/test/test_primitives.c	/^} grouped_cas_int_t;$/;"	t	typeref:struct:__anon16	file:
 grouped_cas_ptr_helper	treecode/openpa/openpa/test/test_primitives.c	/^static void *grouped_cas_ptr_helper(void *_udata)$/;"	f	file:
@@ -5165,7 +5175,11 @@ htmldir	treecode/openpa/openpa/src/Makefile	/^htmldir = ${docdir}$/;"	m
 htmldir	treecode/openpa/openpa/test/Makefile	/^htmldir = ${docdir}$/;"	m
 id	treecode/lpepcsrc/module_walk_pthreads.f90	/^    integer :: id /;"	k	type:t_threaddata
 idim	treecode/lpepcsrc/treevars.f90	/^  integer(kind_dim)   :: idim /;"	v	module:treevars
+idx	interaction_specific/coulomb_gpu/accelerator.f90	/^   integer :: idx,/;"	v	module:module_accelerator
+idx	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   integer :: idx,/;"	v	module:module_accelerator
 idx	treecode/lpepcsrc/module_tree_grow.f90	/^      integer :: idx$/;"	k	type:t_keyidx
+idx_	interaction_specific/coulomb_gpu/accelerator.f90	/^   integer :: idx, idx_,/;"	v	module:module_accelerator
+idx_	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   integer :: idx, idx_,/;"	v	module:module_accelerator
 ilog2c	treecode/sl_pepc/src/core/sl_common.c	/^slint ilog2c(slint x) \/* sl_proto, sl_func ilog2c *\/$/;"	f
 ilog2c	treecode/sl_pepc/src/include/sl_rename.h	165;"	d
 ilog2f	treecode/sl_pepc/src/core/sl_common.c	/^slint ilog2f(slint x) \/* sl_proto, sl_func ilog2f *\/$/;"	f
@@ -6858,6 +6872,8 @@ pthreads_jointhread	treecode/pthreads/pthreads_c.c	/^int pthreads_jointhread(pth
 pthreads_sched_yield	treecode/pthreads/pthreads_c.c	/^int pthreads_sched_yield()$/;"	f
 pthreads_stuff	treecode/pthreads/pthreads_f.f90	/^module pthreads_stuff$/;"	m
 pthreads_uninit	treecode/pthreads/pthreads_c.c	/^int pthreads_uninit()$/;"	f
+ptr	interaction_specific/coulomb_gpu/accelerator.f90	/^      type(point), dimension(GPU_STREAMS) :: ptr$/;"	v	module:module_accelerator
+ptr	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      type(point), dimension(GPU_STREAMS) :: ptr$/;"	v	module:module_accelerator
 push	treecode/sl_pepc/src/core/sort_quick.c	161;"	d	file:
 push	treecode/sl_pepc/src/core/sort_quick.c	209;"	d	file:
 push_particles	frontends/pepc-essential/module_helper.f90	/^  subroutine push_particles(/;"	s	module:helper
@@ -6895,6 +6911,8 @@ quan	treecode/sl_pepc/src/core/merge2_tridgell.c	/^  slint rank, size, quan;$/;"
 queue_lock	interaction_specific/coulomb_gpu/accelerator.f90	/^   type(t_critical_section), pointer :: queue_lock$/;"	v	module:module_accelerator
 queue_lock	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   type(t_critical_section), pointer :: queue_lock$/;"	v	module:module_accelerator
 queue_lock	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^   type(t_critical_section), pointer :: queue_lock$/;"	v	module:module_accelerator
+queued	interaction_specific/coulomb_gpu/accelerator.f90	/^   integer :: idx, idx_, queued(/;"	v	module:module_accelerator
+queued	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   integer :: idx, idx_, queued(/;"	v	module:module_accelerator
 queued	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued /;"	k	type:t_particle_thread
 queued	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         integer :: queued$/;"	k	type:t_acc_queue_entry
 radix	treecode/sl_pepc/include/sl_pepckeys.h	/^  } radix;$/;"	m	union:pepckeys__binning_data_t	typeref:struct:pepckeys__binning_data_t::__anon51
@@ -6930,7 +6948,9 @@ request_posted	treecode/lpepcsrc/module_pepc_types.f90	/^        logical(kind_by
 resolve	treecode/lpepcsrc/module_walk_pthreads.f90	/^    subroutine resolve(/;"	s	function:walk_single_particle
 restrict	treecode/openpa/openpa/src/config.h	160;"	d
 results	interaction_specific/coulomb_gpu/accelerator.f90	/^      type(t_particle_results)/;"	k	type:point
+results	interaction_specific/coulomb_gpu/accelerator.f90	/^   real*8, dimension(:,:), allocatable :: results$/;"	v	module:module_accelerator
 results	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^      type(t_particle_results)/;"	k	type:point
+results	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   real*8, dimension(:,:), allocatable :: results$/;"	v	module:module_accelerator
 results	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OpenACC.f90	/^         type(t_particle_results)/;"	k	type:point
 results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_results)/;"	k	type:t_acc_queue_entry
 results	interaction_specific/coulomb_gpu/module_interaction_specific_types_XYZQVM.f90	/^         type(t_particle_results)/;"	k	type:t_particle_thread
@@ -8344,6 +8364,8 @@ timings_ToFile	treecode/lpepcsrc/module_timings.f90	/^    subroutine timings_ToF
 timings_comm	treecode/lpepcsrc/module_tree.f90	/^      real*8 :: timings_comm(/;"	k	type:t_tree_communicator
 timstamp	treecode/lpepcsrc/module_debug.f90	/^     subroutine timstamp(/;"	s	module:module_debug
 tka	treecode/sl_pepc/oclmfc_conftest.f90	/^    INTEGER(4) :: tka(/;"	v	program:main
+tmp_particle	interaction_specific/coulomb_gpu/accelerator.f90	/^   type(t_particle_thread), target :: tmp_particle$/;"	v	module:module_accelerator
+tmp_particle	interaction_specific/coulomb_gpu/accelerator_eq_gpu_OmpSs.f90	/^   type(t_particle_thread), target :: tmp_particle$/;"	v	module:module_accelerator
 tnp	frontends/pepc-essential/module_helper.f90	/^  integer(kind_particle) :: tnp /;"	v	module:helper
 todo_list_length	treecode/lpepcsrc/module_walk_pthreads.f90	/^  integer :: todo_list_length,/;"	v	module:module_walk
 todo_list_pop	treecode/lpepcsrc/module_walk_pthreads.f90	/^    function todo_list_pop(/;"	f	function:walk_single_particle
