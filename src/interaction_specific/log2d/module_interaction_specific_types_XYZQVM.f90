@@ -67,6 +67,10 @@ module module_interaction_specific_types
       end type t_multipole_moments
       integer, private, parameter :: nprops_multipole_moments = 4
 
+      type t_local_coefficients
+        complex*16 :: mu(0:pMultipole)
+      end type t_local_coefficients
+
       contains
 
       !>

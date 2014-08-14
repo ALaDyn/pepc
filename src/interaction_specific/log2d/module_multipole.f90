@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -21,10 +21,10 @@
 #include "multipole.h"
 
 !>
-!> Provides functions and operators used in the multipole / Taylor 
+!> Provides functions and operators used in the multipole / Taylor
 !> expansion of the 2D logarithmic potential following [GR1987]:
 !>
-!> A configuration of line charges of strength q_i perpendicular to the 
+!> A configuration of line charges of strength q_i perpendicular to the
 !> x-y plane at positions z_i = x_i + j y_i with j^2 = -1 creates a
 !> potential:
 !>
@@ -49,7 +49,7 @@
 !> O_k(z) = z^k    M_k(z) = z^(-k)
 !>
 !> [GR1987] L. Greengard and V. Rokhlin, A Fast Algorithm for Particle
-!>          Simulations, Journal of Computational Physics 73, 325-348 
+!>          Simulations, Journal of Computational Physics 73, 325-348
 !>          (1987)
 !>
 module module_multipole
@@ -141,6 +141,19 @@ module module_multipole
 
     BConvert = (-1)**k * BinomialCoefficient(l + k - 1, k - 1) * MTaylor(l + k, z0)
   end function BConvert
+
+  !>
+  !> C is the L2L operator
+  !>
+  !> mu_l' = Sum_k=l^p C_l,k(z0) mu_l
+  !>
+  complex(kind = 8) function CTranslate(l, k, z0)
+    implicit none
+    integer, intent(in) :: l, k
+    complex(kind = 8), intent(in) :: z0
+
+    CTranslate = BinomialCoefficient(k, l) * OMultipole(k - l, -z0)
+  end function CTranslate
 
   !>
   !> Binomial coefficients: BinomialCoefficient(n, k) = n! / [ k! (n - k)! ]

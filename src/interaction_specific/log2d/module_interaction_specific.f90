@@ -324,6 +324,75 @@ module module_interaction_specific
 
 
   !>
+  !> Uses the M2L operator to convert a set of multipole moments `m` expanded about `xm`
+  !> into a set of local coefficients `t` about `xt`.
+  !>
+  subroutine multipole_to_local(xm, m, xt, t)
+    implicit none
+    real*8, intent(in) :: xm(3), xt(3)
+    type(t_multipole_moments), intent(in) :: m
+    type(t_local_coefficients), intent(inout) :: t
+
+    complex(kind = 8), parameter :: ic = (0, 1)
+    integer :: k, l
+    complex(kind = 8) :: z0
+
+    z0 = (xm(1) - xt(1)) + ic * (xm(2) - xt(2))
+
+    t%mu(0) = t%mu(0) + m%charge * log(-z0)
+
+    do k = 1, pMultipole
+      t%mu(0) = t%mu(0) + BConvert(0, k, z0) * m%omega(k)
+    end do
+
+    do l = 1, pMultipole
+      t%mu(l) = t%mu(l) - MTaylor(l, z0)  / l * m%charge
+
+      do k = 1, pMultipole
+        t%mu(l) = t%mu(l) + BConvert(l, k, z0) * m%omega(k)
+      end do
+    end do
+  end subroutine
+
+
+  !>
+  !> Uses the L2L operator to translate the coefficients `p` from their center `xp` into new coefficients `c` expanded about `xc`.
+  !>
+  subroutine shift_coefficients_down(xp, p, xc, c)
+    implicit none
+    real*8, intent(in) :: xp(3), xc(3)
+    type(t_local_coefficients), intent(in) :: p
+    type(t_local_coefficients), intent(inout) :: c
+
+    complex(kind = 8), parameter :: ic = (0, 1)
+    integer :: k, l
+    complex(kind = 8) :: z0
+
+    z0 = (xp(1) - xc(1)) + ic * (xp(2) - xc(2))
+
+    do l = 0, pMultipole
+      do k = l, pMultipole
+        c%mu(l) = c%mu(l) + CTranslate(l, k, z0) * p%mu(k)
+      end do
+    end do
+  end subroutine
+
+
+  !>
+  !> Evaluates local coefficients `c` into results `r` at their center of expansion.
+  !>
+  subroutine evaluate_at_particle(c, r)
+    implicit none
+    type(t_local_coefficients), intent(in) :: c
+    type(t_particle_results), intent(inout) :: r
+
+    r%pot = r%pot + real(c%mu(0), kind = 8)
+    r%e(1) = r%e(1) + real(c%mu(1), kind = 8)
+    r%e(2) = r%e(2) - real(aimag(c%mu(1)), kind = 8)
+  end subroutine
+
+
+  !>
   !> Force calculation wrapper.
   !>
   subroutine calc_force_per_interaction_with_self(p, node, node_idx, delta, dist2, vbox)
