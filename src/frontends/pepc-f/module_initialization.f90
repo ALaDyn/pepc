@@ -75,6 +75,7 @@ module module_initialization
       nbins_e2_space_resolved_hits = 10
 
       bool_diag_bins_cylinder = .false.
+      bool_avg_btwn_diag_steps = .true.
       diag_bins_x=1
       diag_bins_y=1
       diag_bins_z=1
@@ -115,6 +116,11 @@ module module_initialization
         if(rc.ne.0) write(*,*) " === particle allocation error!"
 
         call init_particles(particles)
+
+        allocate(n_bins(0:nspecies-1,diag_bins_x, diag_bins_y, diag_bins_z))
+        allocate(data_bins(0:nspecies-1,38,diag_bins_x, diag_bins_y, diag_bins_z))
+        n_bins = 0
+        data_bins = 0.0_8
 
     end subroutine init
 
@@ -174,12 +180,6 @@ module module_initialization
     END IF
 
     B=sqrt(Bx**2+By**2+Bz**2)
-    IF (real_unequal_zero(B,eps)) THEN
-        r_lamor=1.
-    ELSE
-        r_lamor=0.
-    END IF
-
 
   end subroutine set_parameters
 
@@ -281,10 +281,14 @@ module module_initialization
        END IF
     END DO
 
+    allocate(n_bins(0:nspecies-1,diag_bins_x, diag_bins_y, diag_bins_z))
+    allocate(data_bins(0:nspecies-1,38,diag_bins_x, diag_bins_y, diag_bins_z))
+    n_bins = 0
+    data_bins = 0.0_8
 
     call MPI_BCAST(next_label, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, rc)
 
-  end subroutine
+  end subroutine init_after_resume
 
 
 !======================================================================================

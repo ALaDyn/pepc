@@ -56,70 +56,76 @@ MODULE output
 
     !===============================================================================
 
-    SUBROUTINE plasma_props_output(ispecies,filehandle)
+    SUBROUTINE plasma_props_output(ispecies,filehandle,nbs,dbs,write_data)
         use diagnostics
         use module_pepc_types
         implicit none
         include 'mpif.h'
 
-        integer                 :: rc,ix,iy,iz
+        integer                    :: rc,ix,iy,iz
 
-        integer,intent(in)      :: filehandle,ispecies
-        integer                 :: npoints
-        real(KIND=8)            :: data_bins(38,diag_bins_x,diag_bins_y,diag_bins_z)
-        !real(KIND=8)            :: vsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)   !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        !real(KIND=8)            :: v2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        !real(KIND=8)            :: ephisum_bin(4, diag_bins_x, diag_bins_y, diag_bins_z) !1=phi, 2=ex, 3=ey, 4=ez
-        integer                 :: n_bins(diag_bins_x,diag_bins_y,diag_bins_z)
-        real(KIND=8)            :: tdata_bins(38,diag_bins_x,diag_bins_y,diag_bins_z)
-        !real(KIND=8)            :: tvsum_bin(6,diag_bins_x,diag_bins_y,diag_bins_z)  !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        !real(KIND=8)            :: tv2sum_bin(12,diag_bins_x,diag_bins_y,diag_bins_z) !1=x,2=y,3=z,4=parallel B,5=perp B,6=perp B 2
-        !real(KIND=8)            :: tephisum_bin(4, diag_bins_x, diag_bins_y, diag_bins_z) !1=phi, 2=ex, 3=ey, 4=ez
-        integer                 :: tn_bins(diag_bins_x,diag_bins_y,diag_bins_z)
+        integer,intent(in)         :: filehandle,ispecies
+        integer                    :: npoints
+        real(KIND=8),intent(inout) :: dbs(:,:,:,:)
+        integer,intent(inout)      :: nbs(:,:,:)
+        logical,intent(in)         :: write_data
+        real(KIND=8)               :: tdata_bins(38,diag_bins_x,diag_bins_y,diag_bins_z)
+        integer                    :: tn_bins(diag_bins_x,diag_bins_y,diag_bins_z)
+        real(KIND=8)               :: tn_bins_dble(diag_bins_x,diag_bins_y,diag_bins_z)
 
 
         npoints = diag_bins_x * diag_bins_y * diag_bins_z
 
         IF (bool_diag_bins_cylinder) THEN
-            call fill_data_bins_cylindrical(ispecies,data_bins,n_bins)
+            call fill_data_bins_cylindrical(ispecies,nbs,dbs)
         ELSE
-            call fill_data_bins(ispecies,data_bins,n_bins)
+            call fill_data_bins(ispecies,nbs,dbs)
         END IF
-        call MPI_ALLREDUCE(n_bins, tn_bins, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(data_bins, tdata_bins, 38*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
+        IF (.not. write_data) THEN
+            RETURN
+        ELSE
+            call MPI_ALLREDUCE(nbs, tn_bins, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(dbs, tdata_bins, 38*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
-        IF (root) THEN
-            IF (bool_diag_bins_cylinder) THEN
-                write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,nr,ntheta):", diag_bins_x,diag_bins_y,diag_bins_z
-                write(filehandle,'(a12,3(a7),a10,38(a16))')"","ix","ir","itheta","n","vx","vy","vz","vpar", &
-                                                           "vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz", &
-                                                           "vzvx","vparvpar","vperp1vperp1","vperp2vperp2", &
-                                                           "vparvperp1","vperp1vperp2","vperp2vpar", &
-                                                           "phi","Ex","Ey","Ez","Epar","Eperp1","Eperp2", &
-                                                           "phiphi","ExEx","EyEy","EzEz","ExEy","EyEz","EzEx", &
-                                                           "EparEpar","Eperp1Eperp1","Eperp2Eperp","EparEperp1", &
-                                                           "Eperp1Eperp2","Eperp2Epar"
-
+            IF (bool_avg_btwn_diag_steps) THEN
+                tdata_bins = tdata_bins / (step - last_diag_output)
+                tn_bins_dble = DBLE(tn_bins) / (step - last_diag_output)
             ELSE
-                write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,ny,nz):", diag_bins_x,diag_bins_y,diag_bins_z
-                write(filehandle,'(a12,3(a7),a10,38(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar", &
-                                                           "vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz", &
-                                                           "vzvx","vparvpar","vperp1vperp1","vperp2vperp2", &
-                                                           "vparvperp1","vperp1vperp2","vperp2vpar", &
-                                                           "phi","Ex","Ey","Ez","Epar","Eperp1","Eperp2", &
-                                                           "phiphi","ExEx","EyEy","EzEz","ExEy","EyEz","EzEx", &
-                                                           "EparEpar","Eperp1Eperp1","Eperp2Eperp","EparEperp1", &
-                                                           "Eperp1Eperp2","Eperp2Epar"
+                tn_bins_dble = DBLE(tn_bins)
             END IF
-            DO iz=1,diag_bins_z
-                DO iy=1,diag_bins_y
-                    DO ix=1,diag_bins_x
-                        write(filehandle,'(a12,3(i7.5),i10.9,38(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins(ix,iy,iz), &
-                                                    tdata_bins(:,ix,iy,iz)
+
+            IF (root) THEN
+                IF (bool_diag_bins_cylinder) THEN
+                    write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,nr,ntheta):", diag_bins_x,diag_bins_y,diag_bins_z
+                    write(filehandle,'(a12,3(a7),a10,38(a16))')"","ix","ir","itheta","n","vx","vy","vz","vpar", &
+                                                               "vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz", &
+                                                               "vzvx","vparvpar","vperp1vperp1","vperp2vperp2", &
+                                                               "vparvperp1","vperp1vperp2","vperp2vpar", &
+                                                               "phi","Ex","Ey","Ez","Epar","Eperp1","Eperp2", &
+                                                               "phiphi","ExEx","EyEy","EzEz","ExEy","EyEz","EzEx", &
+                                                               "EparEpar","Eperp1Eperp1","Eperp2Eperp","EparEperp1", &
+                                                               "Eperp1Eperp2","Eperp2Epar"
+                ELSE
+                    write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,ny,nz):", diag_bins_x,diag_bins_y,diag_bins_z
+                    write(filehandle,'(a12,3(a7),a10,38(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar", &
+                                                               "vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz", &
+                                                               "vzvx","vparvpar","vperp1vperp1","vperp2vperp2", &
+                                                               "vparvperp1","vperp1vperp2","vperp2vpar", &
+                                                               "phi","Ex","Ey","Ez","Epar","Eperp1","Eperp2", &
+                                                               "phiphi","ExEx","EyEy","EzEz","ExEy","EyEz","EzEx", &
+                                                               "EparEpar","Eperp1Eperp1","Eperp2Eperp","EparEperp1", &
+                                                               "Eperp1Eperp2","Eperp2Epar"
+                END IF
+                DO iz=1,diag_bins_z
+                    DO iy=1,diag_bins_y
+                        DO ix=1,diag_bins_x
+                            write(filehandle,'(a12,3(i7.5),F10.3,38(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins_dble(ix,iy,iz), &
+                                                        tdata_bins(:,ix,iy,iz)
+                        END DO
                     END DO
                 END DO
-            END DO
+            END IF
         END IF
 
     END SUBROUTINE  plasma_props_output
@@ -366,7 +372,6 @@ MODULE output
 !===============================================================================
 
     SUBROUTINE main_output(filehandle)
-
         implicit none
 
         integer,intent(in)      :: filehandle
@@ -393,10 +398,16 @@ MODULE output
 
                 IF(diag_interval.ne.0) THEN
                     IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                        call plasma_props_output(ispecies,filehandle)
+                        call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:), &
+                                                 data_bins(ispecies,:,:,:,:),.True.)
                         IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
                         IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
                         IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
+                    ELSE
+                        IF (bool_avg_btwn_diag_steps) THEN
+                            call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
+                                                     data_bins(ispecies,:,:,:,:),.False.)
+                        END IF
                     END IF
                 END IF
 
@@ -424,6 +435,8 @@ MODULE output
                 energy_resolved_hits = 0
                 angle_resolved_hits = 0
                 space_resolved_hits = 0
+                n_bins = 0
+                data_bins = 0.0_8
             END IF
         END IF
 
@@ -488,18 +501,9 @@ MODULE output
           write(*,'(a,f12.4)')  " == Bz                               : ", Bz
           write(*,*)
           write(*,*) "========== Simulation Domain ========="
-          if (real_unequal_zero(B,1e-10_8)) then
-              write(*,'(a,12X,es10.2)')  " == dx (m)             : ", dx
-              write(*,'(a,es10.2,a,es10.2)')  " == dy (gyro_radii, m) : ", dy/r_lamor,", ",dy
-              write(*,'(a,es10.2,a,es10.2)')  " == dz (gyro_radii, m) : ", dz/r_lamor,", ",dz
-          else
-              write(*,'(a,es10.2)')  " == dx (m)             : ", dx
-              write(*,'(a,es10.2)')  " == dy (m)             : ", dy
-              write(*,'(a,es10.2)')  " == dz (m)             : ", dz
-          end if
-          write(*,*)
-          write(*,*) "========== Plasmaparameters ========="
-          write(*,'(a,es12.4)') " == Gyro radius [m]                  : ", r_lamor
+          write(*,'(a,es10.2)')  " == dx (m)             : ", dx
+          write(*,'(a,es10.2)')  " == dy (m)             : ", dy
+          write(*,'(a,es10.2)')  " == dz (m)             : ", dz
           write(*,*)
           write(*,*) "========== Wall Particles ========="
           write(*,'(a,i12)')    " == total number of wall particles   : ", tnpps(0)
@@ -615,9 +619,20 @@ MODULE output
         integer, allocatable :: src_type(:)
         integer, allocatable :: src_bnd(:)
 
+
+      !Added for debugging
+      !character(100) :: particle_file
+      !integer :: i
+
         namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
         namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type
 
+      !write(particle_file,'("particles_",i5.5,"_",i4.4,".dat")') step,my_rank
+      !open(unit=1000,file=trim(particle_file),status='UNKNOWN',position='REWIND')
+      !    do i =1, sum(npps)
+      !        write(1000,*) particles(i)%label, particles(i)%x
+      !    end do
+      !close(1000)
 
         if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
 

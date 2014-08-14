@@ -53,14 +53,14 @@ MODULE diagnostics
 ! diag_bins_y bins for r: 0 < r < ymax
 ! diag_bins_z bins for phi: 0 < phi < 2Pi
 
-    subroutine fill_data_bins_cylindrical(ispecies,data_bins,n_bins)
+    subroutine fill_data_bins_cylindrical(ispecies,nbs,dbs)
         implicit none
 
-        integer, intent(in) :: ispecies
-        integer, intent(out):: n_bins(:,:,:)
-        real(KIND=8), intent(out) :: data_bins(:,:,:,:)
-        real(KIND=8) :: cylinder_coords(3)
-        real(KIND=8) :: delx,delr,deltheta
+        integer, intent(in)         :: ispecies
+        integer, intent(inout)      :: nbs(:,:,:)
+        real(KIND=8), intent(inout) :: dbs(:,:,:,:)
+        real(KIND=8)                :: cylinder_coords(3)
+        real(KIND=8)                :: delx,delr,deltheta
 
         integer :: ip,n
         integer                 :: ix,ir,itheta
@@ -98,8 +98,6 @@ MODULE diagnostics
         deltheta = 2*pi/diag_bins_z
 
         n = size(particles)
-        n_bins = 0
-        data_bins = 0.0_8
 
         DO ip=1, n
             IF (particles(ip)%data%species == ispecies) THEN
@@ -120,61 +118,61 @@ MODULE diagnostics
                 itheta = int(cylinder_coords(3) / deltheta) + 1
 
                 !number of particles
-                n_bins(ix,ir,itheta) = n_bins(ix,ir,itheta) + 1
+                nbs(ix,ir,itheta) = nbs(ix,ir,itheta) + 1
 
                 !vx, vy, vz
-                data_bins(1,ix,ir,itheta) = data_bins(1,ix,ir,itheta) + particles(ip)%data%v(1)
-                data_bins(2,ix,ir,itheta) = data_bins(2,ix,ir,itheta) + particles(ip)%data%v(2)
-                data_bins(3,ix,ir,itheta) = data_bins(3,ix,ir,itheta) + particles(ip)%data%v(3)
+                dbs(1,ix,ir,itheta) = dbs(1,ix,ir,itheta) + particles(ip)%data%v(1)
+                dbs(2,ix,ir,itheta) = dbs(2,ix,ir,itheta) + particles(ip)%data%v(2)
+                dbs(3,ix,ir,itheta) = dbs(3,ix,ir,itheta) + particles(ip)%data%v(3)
 
                 !vpar, vperp1, vperp2
-                data_bins(4,ix,ir,itheta) = data_bins(4,ix,ir,itheta) + dotproduct(particles(ip)%data%v,n1)
-                data_bins(5,ix,ir,itheta) = data_bins(5,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t1)
-                data_bins(6,ix,ir,itheta) = data_bins(6,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t2)
+                dbs(4,ix,ir,itheta) = dbs(4,ix,ir,itheta) + dotproduct(particles(ip)%data%v,n1)
+                dbs(5,ix,ir,itheta) = dbs(5,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t1)
+                dbs(6,ix,ir,itheta) = dbs(6,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t2)
 
                 !2nd moments: vxvx vyvy vzvz vxvy vyvz vzvx
-                data_bins(7,ix,ir,itheta) = data_bins(7,ix,ir,itheta) + particles(ip)%data%v(1)**2                                                !vx  vx
-                data_bins(8,ix,ir,itheta) = data_bins(8,ix,ir,itheta) + particles(ip)%data%v(2)**2                                                !vy  vy
-                data_bins(9,ix,ir,itheta) = data_bins(9,ix,ir,itheta) + particles(ip)%data%v(3)**2                                                !vz  vz
-                data_bins(10,ix,ir,itheta) = data_bins(10,ix,ir,itheta) + particles(ip)%data%v(1)*particles(ip)%data%v(2)                           !vx  vy
-                data_bins(11,ix,ir,itheta) = data_bins(11,ix,ir,itheta) + particles(ip)%data%v(2)*particles(ip)%data%v(3)                           !vy  vz
-                data_bins(12,ix,ir,itheta) = data_bins(12,ix,ir,itheta) + particles(ip)%data%v(3)*particles(ip)%data%v(1)                           !vz  vx
+                dbs(7,ix,ir,itheta) = dbs(7,ix,ir,itheta) + particles(ip)%data%v(1)**2                                                !vx  vx
+                dbs(8,ix,ir,itheta) = dbs(8,ix,ir,itheta) + particles(ip)%data%v(2)**2                                                !vy  vy
+                dbs(9,ix,ir,itheta) = dbs(9,ix,ir,itheta) + particles(ip)%data%v(3)**2                                                !vz  vz
+                dbs(10,ix,ir,itheta) = dbs(10,ix,ir,itheta) + particles(ip)%data%v(1)*particles(ip)%data%v(2)                         !vx  vy
+                dbs(11,ix,ir,itheta) = dbs(11,ix,ir,itheta) + particles(ip)%data%v(2)*particles(ip)%data%v(3)                         !vy  vz
+                dbs(12,ix,ir,itheta) = dbs(12,ix,ir,itheta) + particles(ip)%data%v(3)*particles(ip)%data%v(1)                         !vz  vx
 
                 !2nd moments: vparvpar, vperp1vperp1, vperp2vperp2, vparvperp1, vperp1vperp2, vperp2,vpar
-                data_bins(13,ix,ir,itheta) = data_bins(13,ix,ir,itheta) + dotproduct(particles(ip)%data%v,n1)**2                                    !v||  v||
-                data_bins(14,ix,ir,itheta) = data_bins(14,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t1)**2                                    !v_|_1  v_|_1
-                data_bins(15,ix,ir,itheta) = data_bins(15,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t2)**2                                    !v_|_2  v_|_2
-                data_bins(16,ix,ir,itheta) = data_bins(16,ix,ir,itheta) + dotproduct(particles(ip)%data%v,n1)*dotproduct(particles(ip)%data%v,t1) !v||  v_|_1
-                data_bins(17,ix,ir,itheta) = data_bins(17,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t1)*dotproduct(particles(ip)%data%v,t2) !v_|_1  v_|_2
-                data_bins(18,ix,ir,itheta) = data_bins(18,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t2)*dotproduct(particles(ip)%data%v,n1) !v_|_2  v||
+                dbs(13,ix,ir,itheta) = dbs(13,ix,ir,itheta) + dotproduct(particles(ip)%data%v,n1)**2                                  !v||  v||
+                dbs(14,ix,ir,itheta) = dbs(14,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t1)**2                                  !v_|_1  v_|_1
+                dbs(15,ix,ir,itheta) = dbs(15,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t2)**2                                  !v_|_2  v_|_2
+                dbs(16,ix,ir,itheta) = dbs(16,ix,ir,itheta) + dotproduct(particles(ip)%data%v,n1)*dotproduct(particles(ip)%data%v,t1) !v||  v_|_1
+                dbs(17,ix,ir,itheta) = dbs(17,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t1)*dotproduct(particles(ip)%data%v,t2) !v_|_1  v_|_2
+                dbs(18,ix,ir,itheta) = dbs(18,ix,ir,itheta) + dotproduct(particles(ip)%data%v,t2)*dotproduct(particles(ip)%data%v,n1) !v_|_2  v||
 
                 !phi
-                data_bins(19,ix,ir,itheta) = data_bins(19,ix,ir,itheta) + particles(ip)%results%pot*fc
+                dbs(19,ix,ir,itheta) = dbs(19,ix,ir,itheta) + particles(ip)%results%pot*fc
 
                 !Ex Ey Ez
-                data_bins(20:22,ix,ir,itheta) = data_bins(20:22,ix,ir,itheta) + particles(ip)%results%E*fc
+                dbs(20:22,ix,ir,itheta) = dbs(20:22,ix,ir,itheta) + particles(ip)%results%E*fc
 
                 !Epar, Eperp1, Eperp2
-                data_bins(23,ix,ir,itheta) = data_bins(23,ix,ir,itheta) + dotproduct(particles(ip)%results%E,n1)*fc
-                data_bins(24,ix,ir,itheta) = data_bins(24,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t1)*fc
-                data_bins(25,ix,ir,itheta) = data_bins(25,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t2)*fc
+                dbs(23,ix,ir,itheta) = dbs(23,ix,ir,itheta) + dotproduct(particles(ip)%results%E,n1)*fc
+                dbs(24,ix,ir,itheta) = dbs(24,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t1)*fc
+                dbs(25,ix,ir,itheta) = dbs(25,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t2)*fc
 
                 !2nd moment: phiphi
-                data_bins(26,ix,ir,itheta) = data_bins(26,ix,ir,itheta) + (particles(ip)%results%pot*fc)**2
+                dbs(26,ix,ir,itheta) = dbs(26,ix,ir,itheta) + (particles(ip)%results%pot*fc)**2
 
                 !2nd moments: ExEx, EyEy, EzEz, ExEy, EyEz, EzEx
-                data_bins(27:29,ix,ir,itheta) = data_bins(27:29,ix,ir,itheta) + (particles(ip)%results%E*fc) * (particles(ip)%results%E*fc)
-                data_bins(30,ix,ir,itheta) = data_bins(30,ix,ir,itheta) + particles(ip)%results%E(1)*fc * particles(ip)%results%E(2)*fc
-                data_bins(31,ix,ir,itheta) = data_bins(31,ix,ir,itheta) + particles(ip)%results%E(2)*fc * particles(ip)%results%E(3)*fc
-                data_bins(32,ix,ir,itheta) = data_bins(32,ix,ir,itheta) + particles(ip)%results%E(3)*fc * particles(ip)%results%E(1)*fc
+                dbs(27:29,ix,ir,itheta) = dbs(27:29,ix,ir,itheta) + (particles(ip)%results%E*fc) * (particles(ip)%results%E*fc)
+                dbs(30,ix,ir,itheta) = dbs(30,ix,ir,itheta) + particles(ip)%results%E(1)*fc * particles(ip)%results%E(2)*fc
+                dbs(31,ix,ir,itheta) = dbs(31,ix,ir,itheta) + particles(ip)%results%E(2)*fc * particles(ip)%results%E(3)*fc
+                dbs(32,ix,ir,itheta) = dbs(32,ix,ir,itheta) + particles(ip)%results%E(3)*fc * particles(ip)%results%E(1)*fc
 
                 !2nd moments: EparEpar, Eperp1Eperp1, Eperp2Eperp2, EparEperp1, Eperp1Eperp2, Eperp2Epar
-                data_bins(33,ix,ir,itheta) = data_bins(33,ix,ir,itheta) + dotproduct(particles(ip)%results%E,n1)**2
-                data_bins(34,ix,ir,itheta) = data_bins(34,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t1)**2
-                data_bins(35,ix,ir,itheta) = data_bins(35,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t2)**2
-                data_bins(36,ix,ir,itheta) = data_bins(36,ix,ir,itheta) + dotproduct(particles(ip)%results%E,n1)*dotproduct(particles(ip)%results%E,t1)
-                data_bins(37,ix,ir,itheta) = data_bins(37,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t1)*dotproduct(particles(ip)%results%E,t2)
-                data_bins(38,ix,ir,itheta) = data_bins(38,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t2)*dotproduct(particles(ip)%results%E,n1)
+                dbs(33,ix,ir,itheta) = dbs(33,ix,ir,itheta) + dotproduct(particles(ip)%results%E,n1)**2
+                dbs(34,ix,ir,itheta) = dbs(34,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t1)**2
+                dbs(35,ix,ir,itheta) = dbs(35,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t2)**2
+                dbs(36,ix,ir,itheta) = dbs(36,ix,ir,itheta) + dotproduct(particles(ip)%results%E,n1)*dotproduct(particles(ip)%results%E,t1)
+                dbs(37,ix,ir,itheta) = dbs(37,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t1)*dotproduct(particles(ip)%results%E,t2)
+                dbs(38,ix,ir,itheta) = dbs(38,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t2)*dotproduct(particles(ip)%results%E,n1)
 
             END IF
         END DO
@@ -183,12 +181,12 @@ MODULE diagnostics
 !===============================================================================
 
 
-    subroutine fill_data_bins(ispecies,data_bins,n_bins)
+    subroutine fill_data_bins(ispecies,nbs,dbs)
         implicit none
 
-        integer, intent(in) :: ispecies
-        integer, intent(out):: n_bins(:,:,:)
-        real(KIND=8), intent(out) :: data_bins(:,:,:,:)
+        integer, intent(in)         :: ispecies
+        integer, intent(inout)      :: nbs(:,:,:)
+        real(KIND=8), intent(inout) :: dbs(:,:,:,:)
 
         integer :: ip,n
         integer                 :: ix,iy,iz
@@ -227,8 +225,6 @@ MODULE diagnostics
         delz = (zmax-zmin)/diag_bins_z
 
         n = size(particles)
-        n_bins = 0
-        data_bins = 0.0_8
 
         DO ip=1, n
             IF (particles(ip)%data%species == ispecies) THEN
@@ -236,61 +232,61 @@ MODULE diagnostics
                 iy = int((particles(ip)%x(2) - ymin) / dely) + 1
                 iz = int((particles(ip)%x(3) - zmin) / delz) + 1
 
-                n_bins(ix,iy,iz) = n_bins(ix,iy,iz) + 1
+                nbs(ix,iy,iz) = nbs(ix,iy,iz) + 1
 
                 !vx, vy, vz
-                data_bins(1,ix,iy,iz) = data_bins(1,ix,iy,iz) + particles(ip)%data%v(1)
-                data_bins(2,ix,iy,iz) = data_bins(2,ix,iy,iz) + particles(ip)%data%v(2)
-                data_bins(3,ix,iy,iz) = data_bins(3,ix,iy,iz) + particles(ip)%data%v(3)
+                dbs(1,ix,iy,iz) = dbs(1,ix,iy,iz) + particles(ip)%data%v(1)
+                dbs(2,ix,iy,iz) = dbs(2,ix,iy,iz) + particles(ip)%data%v(2)
+                dbs(3,ix,iy,iz) = dbs(3,ix,iy,iz) + particles(ip)%data%v(3)
 
                 !vpar, vperp1, vperp2
-                data_bins(4,ix,iy,iz) = data_bins(4,ix,iy,iz) + dotproduct(particles(ip)%data%v,n1)
-                data_bins(5,ix,iy,iz) = data_bins(5,ix,iy,iz) + dotproduct(particles(ip)%data%v,t1)
-                data_bins(6,ix,iy,iz) = data_bins(6,ix,iy,iz) + dotproduct(particles(ip)%data%v,t2)
+                dbs(4,ix,iy,iz) = dbs(4,ix,iy,iz) + dotproduct(particles(ip)%data%v,n1)
+                dbs(5,ix,iy,iz) = dbs(5,ix,iy,iz) + dotproduct(particles(ip)%data%v,t1)
+                dbs(6,ix,iy,iz) = dbs(6,ix,iy,iz) + dotproduct(particles(ip)%data%v,t2)
 
                 !2nd moments: vxvx vyvy vzvz vxvy vyvz vzvx
-                data_bins(7,ix,iy,iz) = data_bins(7,ix,iy,iz) + particles(ip)%data%v(1)**2                                                !vx  vx
-                data_bins(8,ix,iy,iz) = data_bins(8,ix,iy,iz) + particles(ip)%data%v(2)**2                                                !vy  vy
-                data_bins(9,ix,iy,iz) = data_bins(9,ix,iy,iz) + particles(ip)%data%v(3)**2                                                !vz  vz
-                data_bins(10,ix,iy,iz) = data_bins(10,ix,iy,iz) + particles(ip)%data%v(1)*particles(ip)%data%v(2)                           !vx  vy
-                data_bins(11,ix,iy,iz) = data_bins(11,ix,iy,iz) + particles(ip)%data%v(2)*particles(ip)%data%v(3)                           !vy  vz
-                data_bins(12,ix,iy,iz) = data_bins(12,ix,iy,iz) + particles(ip)%data%v(3)*particles(ip)%data%v(1)                           !vz  vx
+                dbs(7,ix,iy,iz) = dbs(7,ix,iy,iz) + particles(ip)%data%v(1)**2                                                !vx  vx
+                dbs(8,ix,iy,iz) = dbs(8,ix,iy,iz) + particles(ip)%data%v(2)**2                                                !vy  vy
+                dbs(9,ix,iy,iz) = dbs(9,ix,iy,iz) + particles(ip)%data%v(3)**2                                                !vz  vz
+                dbs(10,ix,iy,iz) = dbs(10,ix,iy,iz) + particles(ip)%data%v(1)*particles(ip)%data%v(2)                         !vx  vy
+                dbs(11,ix,iy,iz) = dbs(11,ix,iy,iz) + particles(ip)%data%v(2)*particles(ip)%data%v(3)                         !vy  vz
+                dbs(12,ix,iy,iz) = dbs(12,ix,iy,iz) + particles(ip)%data%v(3)*particles(ip)%data%v(1)                         !vz  vx
 
                 !2nd moments: vparvpar, vperp1vperp1, vperp2vperp2, vparvperp1, vperp1vperp2, vperp2,vpar
-                data_bins(13,ix,iy,iz) = data_bins(13,ix,iy,iz) + dotproduct(particles(ip)%data%v,n1)**2                                    !v||  v||
-                data_bins(14,ix,iy,iz) = data_bins(14,ix,iy,iz) + dotproduct(particles(ip)%data%v,t1)**2                                    !v_|_1  v_|_1
-                data_bins(15,ix,iy,iz) = data_bins(15,ix,iy,iz) + dotproduct(particles(ip)%data%v,t2)**2                                    !v_|_2  v_|_2
-                data_bins(16,ix,iy,iz) = data_bins(16,ix,iy,iz) + dotproduct(particles(ip)%data%v,n1)*dotproduct(particles(ip)%data%v,t1) !v||  v_|_1
-                data_bins(17,ix,iy,iz) = data_bins(17,ix,iy,iz) + dotproduct(particles(ip)%data%v,t1)*dotproduct(particles(ip)%data%v,t2) !v_|_1  v_|_2
-                data_bins(18,ix,iy,iz) = data_bins(18,ix,iy,iz) + dotproduct(particles(ip)%data%v,t2)*dotproduct(particles(ip)%data%v,n1) !v_|_2  v||
+                dbs(13,ix,iy,iz) = dbs(13,ix,iy,iz) + dotproduct(particles(ip)%data%v,n1)**2                                  !v||  v||
+                dbs(14,ix,iy,iz) = dbs(14,ix,iy,iz) + dotproduct(particles(ip)%data%v,t1)**2                                  !v_|_1  v_|_1
+                dbs(15,ix,iy,iz) = dbs(15,ix,iy,iz) + dotproduct(particles(ip)%data%v,t2)**2                                  !v_|_2  v_|_2
+                dbs(16,ix,iy,iz) = dbs(16,ix,iy,iz) + dotproduct(particles(ip)%data%v,n1)*dotproduct(particles(ip)%data%v,t1) !v||  v_|_1
+                dbs(17,ix,iy,iz) = dbs(17,ix,iy,iz) + dotproduct(particles(ip)%data%v,t1)*dotproduct(particles(ip)%data%v,t2) !v_|_1  v_|_2
+                dbs(18,ix,iy,iz) = dbs(18,ix,iy,iz) + dotproduct(particles(ip)%data%v,t2)*dotproduct(particles(ip)%data%v,n1) !v_|_2  v||
 
                 !phi
-                data_bins(19,ix,iy,iz) = data_bins(19,ix,iy,iz) + particles(ip)%results%pot*fc
+                dbs(19,ix,iy,iz) = dbs(19,ix,iy,iz) + particles(ip)%results%pot*fc
 
                 !Ex Ey Ez
-                data_bins(20:22,ix,iy,iz) = data_bins(20:22,ix,iy,iz) + particles(ip)%results%E*fc
+                dbs(20:22,ix,iy,iz) = dbs(20:22,ix,iy,iz) + particles(ip)%results%E*fc
 
                 !Epar, Eperp1, Eperp2
-                data_bins(23,ix,iy,iz) = data_bins(23,ix,iy,iz) + dotproduct(particles(ip)%results%E,n1)*fc
-                data_bins(24,ix,iy,iz) = data_bins(24,ix,iy,iz) + dotproduct(particles(ip)%results%E,t1)*fc
-                data_bins(25,ix,iy,iz) = data_bins(25,ix,iy,iz) + dotproduct(particles(ip)%results%E,t2)*fc
+                dbs(23,ix,iy,iz) = dbs(23,ix,iy,iz) + dotproduct(particles(ip)%results%E,n1)*fc
+                dbs(24,ix,iy,iz) = dbs(24,ix,iy,iz) + dotproduct(particles(ip)%results%E,t1)*fc
+                dbs(25,ix,iy,iz) = dbs(25,ix,iy,iz) + dotproduct(particles(ip)%results%E,t2)*fc
 
                 !2nd moment: phiphi
-                data_bins(26,ix,iy,iz) = data_bins(26,ix,iy,iz) + (particles(ip)%results%pot*fc)**2
+                dbs(26,ix,iy,iz) = dbs(26,ix,iy,iz) + (particles(ip)%results%pot*fc)**2
 
                 !2nd moments: ExEx, EyEy, EzEz, ExEy, EyEz, EzEx
-                data_bins(27:29,ix,iy,iz) = data_bins(27:29,ix,iy,iz) + (particles(ip)%results%E*fc) * (particles(ip)%results%E*fc)
-                data_bins(30,ix,iy,iz) = data_bins(30,ix,iy,iz) + particles(ip)%results%E(1)*fc * particles(ip)%results%E(2)*fc
-                data_bins(31,ix,iy,iz) = data_bins(31,ix,iy,iz) + particles(ip)%results%E(2)*fc * particles(ip)%results%E(3)*fc
-                data_bins(32,ix,iy,iz) = data_bins(32,ix,iy,iz) + particles(ip)%results%E(3)*fc * particles(ip)%results%E(1)*fc
+                dbs(27:29,ix,iy,iz) = dbs(27:29,ix,iy,iz) + (particles(ip)%results%E*fc) * (particles(ip)%results%E*fc)
+                dbs(30,ix,iy,iz) = dbs(30,ix,iy,iz) + particles(ip)%results%E(1)*fc * particles(ip)%results%E(2)*fc
+                dbs(31,ix,iy,iz) = dbs(31,ix,iy,iz) + particles(ip)%results%E(2)*fc * particles(ip)%results%E(3)*fc
+                dbs(32,ix,iy,iz) = dbs(32,ix,iy,iz) + particles(ip)%results%E(3)*fc * particles(ip)%results%E(1)*fc
 
                 !2nd moments: EparEpar, Eperp1Eperp1, Eperp2Eperp2, EparEperp1, Eperp1Eperp2, Eperp2Epar
-                data_bins(33,ix,iy,iz) = data_bins(33,ix,iy,iz) + dotproduct(particles(ip)%results%E,n1)**2
-                data_bins(34,ix,iy,iz) = data_bins(34,ix,iy,iz) + dotproduct(particles(ip)%results%E,t1)**2
-                data_bins(35,ix,iy,iz) = data_bins(35,ix,iy,iz) + dotproduct(particles(ip)%results%E,t2)**2
-                data_bins(36,ix,iy,iz) = data_bins(36,ix,iy,iz) + dotproduct(particles(ip)%results%E,n1)*dotproduct(particles(ip)%results%E,t1)
-                data_bins(37,ix,iy,iz) = data_bins(37,ix,iy,iz) + dotproduct(particles(ip)%results%E,t1)*dotproduct(particles(ip)%results%E,t2)
-                data_bins(38,ix,iy,iz) = data_bins(38,ix,iy,iz) + dotproduct(particles(ip)%results%E,t2)*dotproduct(particles(ip)%results%E,n1)
+                dbs(33,ix,iy,iz) = dbs(33,ix,iy,iz) + dotproduct(particles(ip)%results%E,n1)**2
+                dbs(34,ix,iy,iz) = dbs(34,ix,iy,iz) + dotproduct(particles(ip)%results%E,t1)**2
+                dbs(35,ix,iy,iz) = dbs(35,ix,iy,iz) + dotproduct(particles(ip)%results%E,t2)**2
+                dbs(36,ix,iy,iz) = dbs(36,ix,iy,iz) + dotproduct(particles(ip)%results%E,n1)*dotproduct(particles(ip)%results%E,t1)
+                dbs(37,ix,iy,iz) = dbs(37,ix,iy,iz) + dotproduct(particles(ip)%results%E,t1)*dotproduct(particles(ip)%results%E,t2)
+                dbs(38,ix,iy,iz) = dbs(38,ix,iy,iz) + dotproduct(particles(ip)%results%E,t2)*dotproduct(particles(ip)%results%E,n1)
             END IF
         END DO
     end subroutine

@@ -31,39 +31,6 @@ module variables
 
   integer,parameter :: err_output_id=666
 
-  ! MPI variables
-  integer :: my_rank, n_ranks
-  logical :: root
-  integer :: ierr
-
-  ! filehandles
-  integer :: out=199
-  integer :: detailed_timing_out=200
-  integer :: ph_timing_out=201
-  integer :: recycling_out=202
-
-  ! time variables
-  real*8 :: dt
-  integer :: step,startstep
-
-  ! control variables
-  integer :: nt               ! number of timesteps
-  integer :: diag_interval    ! interval for writing probe data
-  integer :: vtk_interval     ! interval for writing vtk output
-  integer :: checkp_interval  ! interval for setting checkpoints
-  logical :: diags
-  integer :: diag_bins_x,diag_bins_y,diag_bins_z   !bins for the computation of fluid variables
-
-  ! type of rng (0=standard fortran,1=par_rand from module_zufall)
-  integer :: rng
-  ! treat electrons in guiding centre approximation
-  logical :: guiding_centre_electrons
-
-
-  real*8  :: dx,dy,dz           ! lenght/width in m
-  real*8  :: xmin,ymin,zmin     ! used if the domain does not start at (0,0,0)
-  real*8  :: xmax,ymax,zmax     !
-
   ! physics constants
   real*8, parameter  ::  e=1.602176565e-19
   real*8, parameter  ::  me=9.1093829e-31
@@ -74,45 +41,55 @@ module variables
   real*8             ::  pi
   real*8             ::  fc                  !force constant: SI: 1/4/Pi/eps0
 
-  ! Parameters
-  real*8 :: Bx               !für räumlich
-  real*8 :: By               !konstantes
-  real*8 :: Bz               !Magnetfeld
-  real*8 :: B
-  real*8 :: ni
-  real*8 :: ne
-  real*8 :: l_debye, omega_p, r_lamor
-  real*8 :: fsup             !superparticle factor
 
-  ! particle data (position, velocity, mass, charge)
-  type(t_particle), allocatable :: particles(:)
-  type(t_particle), allocatable :: all_particles(:)
-  integer(kind_particle)        :: next_label
-
-  !variables for reflux in every 2nd timestep
-  integer                        :: new_e_r_last_ts=0
-  integer                        :: new_i_r_last_ts=0
-  integer                        :: last_reflux_step=0
-  logical                        :: need_to_reflux=.false.
+  ! MPI variables
+  integer :: my_rank, n_ranks
+  logical :: root
+  integer :: ierr
 
 
-  integer,allocatable  :: tnpps(:)  !total number of particles per species
-  integer,allocatable  :: npps(:)   !local number of particles per species
+  ! filehandles
+  integer :: out=199
+  integer :: detailed_timing_out=200
+  integer :: ph_timing_out=201
+  integer :: recycling_out=202
 
 
-  !aux strings
-  character(255) :: filename
-  !aux ints
-  integer :: cmd_args
+  ! time variables
+  real*8 :: dt
+  integer :: step,startstep
+  integer :: nt               ! number of timesteps
 
-  !other
-  integer :: chunk_size_default
 
+  ! output intervals
+  integer :: diag_interval    ! interval for writing probe data
+  integer :: vtk_interval     ! interval for writing vtk output
+  integer :: checkp_interval  ! interval for setting checkpoints
+
+
+  ! Physcial System
+  real(KIND=8) :: dx,dy,dz                         ! lenght/width in m
+  real(KIND=8) :: xmin,ymin,zmin
+  real(KIND=8) :: xmax,ymax,zmax
+  real(KIND=8) :: Bx                               ! für räumlich
+  real(KIND=8) :: By                               ! konstantes
+  real(KIND=8) :: Bz                               ! Magnetfeld
+  real(KIND=8) :: B                                ! norm((Bx,By,Bz))
+  real(KIND=8) :: fsup                             ! superparticle factor
+  integer :: nb                                    ! number of boundaries
   type(t_boundary), allocatable :: boundaries(:)
-  integer :: nb          ! number of boundaries
+  integer :: nspecies                              ! number of species
   type(t_species), allocatable :: species(:)
-  integer :: nspecies    ! number of species
 
+
+  !variables for output of averaged physical quantities
+  integer :: diag_bins_x
+  integer :: diag_bins_y
+  integer :: diag_bins_z
+  logical :: bool_diag_bins_cylinder
+  logical :: bool_avg_btwn_diag_steps
+  real(KIND=8), allocatable :: data_bins(:,:,:,:,:) !(nspecies,38,diag_bins_x,diag_bins_y,diag_bins_z)
+  integer, allocatable      :: n_bins(:,:,:,:)      !(nspecies,diag_bins_x,diag_bins_y,diag_bins_z)
 
   !variables for detailed boundary hit statistics
   logical :: bool_energy_resolved_hits
@@ -128,17 +105,38 @@ module variables
   integer :: nbins_e2_space_resolved_hits
   integer, allocatable :: space_resolved_hits(:,:,:,:)
 
+  ! particle arrays
+  type(t_particle), allocatable :: particles(:)                                    !particles
+  type(t_particle), allocatable :: all_particles(:)                                !all particles if spiegelladung is set (includes mirror_particles)
+  integer,allocatable  :: tnpps(:)                                                 !total number of particles per species
+  integer,allocatable  :: npps(:)                                                  !local number of particles per species
+  integer(kind_particle)        :: next_label
+  real(KIND=8),allocatable :: probe_start_x(:), probe_start_y(:), probe_start_z(:) !positions of probe particles
+  real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)       !positions of probe particles
 
-  !temp testing variables
-  integer :: spiegelladung=0
-  integer :: retherm=0
-  logical :: bool_particle_handling_timing = .false.
-  logical :: bool_diag_bins_cylinder=.false.
-  logical :: bool_detailed_timing=.false.
+  ! aux variable
+  real(KIND=8),allocatable :: maxw_flux_table_F(:,:) ! needed for drifting maxwellian flux output
+  real(KIND=8),allocatable :: maxw_flux_table_v(:,:) ! needed for drifting maxwellian flux output
+  character(255) :: filename
+  integer :: cmd_args                                ! number of command line args
 
+  !variables for reflux in every 2nd timestep
+  integer                        :: new_e_r_last_ts=0
+  integer                        :: new_i_r_last_ts=0
+  integer                        :: last_reflux_step=0
+  logical                        :: need_to_reflux=.false.
 
-  real(KIND=8),allocatable :: probe_start_x(:), probe_start_y(:), probe_start_z(:)
-  real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)
+  !control variables (some are only temporary/for testing)
+  integer :: spiegelladung = 0  !temp
+  integer :: retherm = 0        !temp
+  logical :: bool_particle_handling_timing = .false.  !temp
+  logical :: bool_detailed_timing=.false.             !temp
+  logical :: diags !temp
+  logical :: guiding_centre_electrons  ! treat electrons in guiding centre approximation (scheme by Benjamin, not sure if correct)
+  integer :: rng   !type of rng (0=standard fortran,1=par_rand from module_zufall)
+
+  !other
+  integer :: chunk_size_default
 
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
   namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,&
@@ -146,11 +144,7 @@ module variables
                    vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm,&
                    bool_angle_resolved_hits, bool_energy_resolved_hits, bool_space_resolved_hits, &
                    nbins_angle_resolved_hits, nbins_energy_resolved_hits, nbins_e1_space_resolved_hits, &
-                   nbins_e2_space_resolved_hits, bool_diag_bins_cylinder
+                   nbins_e2_space_resolved_hits, bool_diag_bins_cylinder, bool_avg_btwn_diag_steps
   namelist /walk_para_smpss/ chunk_size_default
-
-  real(KIND=8),allocatable :: maxw_flux_table_F(:,:)
-  real(KIND=8),allocatable :: maxw_flux_table_v(:,:)
-
 
 end module
