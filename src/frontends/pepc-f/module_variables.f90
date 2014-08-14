@@ -82,7 +82,7 @@ module variables
   type(t_species), allocatable :: species(:)
 
 
-  !variables for output of averaged physical quantities
+  ! variables for output of averaged physical quantities
   integer :: diag_bins_x
   integer :: diag_bins_y
   integer :: diag_bins_z
@@ -91,7 +91,8 @@ module variables
   real(KIND=8), allocatable :: data_bins(:,:,:,:,:) !(nspecies,38,diag_bins_x,diag_bins_y,diag_bins_z)
   integer, allocatable      :: n_bins(:,:,:,:)      !(nspecies,diag_bins_x,diag_bins_y,diag_bins_z)
 
-  !variables for detailed boundary hit statistics
+
+  ! variables for detailed boundary hit statistics
   logical :: bool_energy_resolved_hits
   logical :: bool_angle_resolved_hits
   logical :: bool_space_resolved_hits
@@ -105,6 +106,7 @@ module variables
   integer :: nbins_e2_space_resolved_hits
   integer, allocatable :: space_resolved_hits(:,:,:,:)
 
+
   ! particle arrays
   type(t_particle), allocatable :: particles(:)                                    !particles
   type(t_particle), allocatable :: all_particles(:)                                !all particles if spiegelladung is set (includes mirror_particles)
@@ -114,19 +116,15 @@ module variables
   real(KIND=8),allocatable :: probe_start_x(:), probe_start_y(:), probe_start_z(:) !positions of probe particles
   real(KIND=8),allocatable :: probe_end_x(:), probe_end_y(:), probe_end_z(:)       !positions of probe particles
 
+
   ! aux variable
   real(KIND=8),allocatable :: maxw_flux_table_F(:,:) ! needed for drifting maxwellian flux output
   real(KIND=8),allocatable :: maxw_flux_table_v(:,:) ! needed for drifting maxwellian flux output
   character(255) :: filename
   integer :: cmd_args                                ! number of command line args
 
-  !variables for reflux in every 2nd timestep
-  integer                        :: new_e_r_last_ts=0
-  integer                        :: new_i_r_last_ts=0
-  integer                        :: last_reflux_step=0
-  logical                        :: need_to_reflux=.false.
 
-  !control variables (some are only temporary/for testing)
+  ! control variables (some are only temporary/for testing)
   integer :: spiegelladung = 0  !temp
   integer :: retherm = 0        !temp
   logical :: bool_particle_handling_timing = .false.  !temp
@@ -135,9 +133,12 @@ module variables
   logical :: guiding_centre_electrons  ! treat electrons in guiding centre approximation (scheme by Benjamin, not sure if correct)
   integer :: rng   !type of rng (0=standard fortran,1=par_rand from module_zufall)
 
-  !other
+
+  ! other
   integer :: chunk_size_default
 
+
+  ! namelists
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
   namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,&
                    xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval,&

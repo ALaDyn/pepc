@@ -441,33 +441,6 @@ module particlehandling
 
 
 !======================================================================================
-    SUBROUTINE set_need_to_reflux()
-
-        implicit none
-
-        need_to_reflux=.false.
-
-        if (MOD(step-last_reflux_step,1)==0)then
-            need_to_reflux=.true.
-            last_reflux_step=step
-        end if
-
-        if(checkp_interval.ne.0) then
-            if ((MOD(step,checkp_interval)==0).or.(step==nt+startstep)) then
-                need_to_reflux=.true.
-                last_reflux_step=step
-            end if
-        end if
-        if(diag_interval.ne.0) then
-            if ((MOD(step,diag_interval)==0).or.(step==nt+startstep)) THEN
-                need_to_reflux=.true.
-                last_reflux_step=step
-            end if
-        end if
-
-    END SUBROUTINE set_need_to_reflux
-
-!======================================================================================
 
     SUBROUTINE get_number_of_particles(p)
         implicit none
@@ -510,14 +483,11 @@ module particlehandling
 
         IF (bool_particle_handling_timing) timer(1) = get_time()
 
-        call set_need_to_reflux()
+        call count_hits_and_remove_particles(p,hits,reflux)
         IF (bool_particle_handling_timing) timer(2) = get_time()
 
-        call count_hits_and_remove_particles(p,hits,reflux)
-        IF (bool_particle_handling_timing) timer(3) = get_time()
-
         call rethermalize(p)
-        IF (bool_particle_handling_timing) timer(4) = get_time()
+        IF (bool_particle_handling_timing) timer(3) = get_time()
 
         DO ispecies=0,nspecies-1
             DO ib=1,nb
@@ -525,22 +495,22 @@ module particlehandling
                 call MPI_ALLREDUCE(reflux(ispecies,ib), treflux(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
             END DO
         END DO
-        IF (bool_particle_handling_timing) timer(5) = get_time()
+        IF (bool_particle_handling_timing) timer(4) = get_time()
 
         call recycling(p,treflux)
-        IF (bool_particle_handling_timing) timer(6) = get_time()
+        IF (bool_particle_handling_timing) timer(5) = get_time()
 
         call charge_wall(p,thits)
-        IF (bool_particle_handling_timing) timer(7) = get_time()
+        IF (bool_particle_handling_timing) timer(6) = get_time()
 
         call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        IF (bool_particle_handling_timing) timer(8) = get_time()
+        IF (bool_particle_handling_timing) timer(7) = get_time()
 
         call set_recycling_output_values(thits,treflux)
-        IF (bool_particle_handling_timing) timer(9) = get_time()
+        IF (bool_particle_handling_timing) timer(8) = get_time()
 
         call check_for_leakage(p)
-        IF (bool_particle_handling_timing) timer(10) = get_time()
+        IF (bool_particle_handling_timing) timer(9) = get_time()
 
         IF (bool_particle_handling_timing) write(ph_timing_out,*) step, sum(npps), timer
 
