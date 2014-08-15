@@ -187,7 +187,7 @@ module particlehandling
                         IF (p(ip)%x(1) > xmax * 0.05) CYCLE
                         IF (p(ip)%x(1) < xmin * 0.05) CYCLE
                         xold(1) = p(ip)%x(1) - dt * p(ip)%data%v(1)
-                        IF ((xold(1) < xmax * 0.1) .AND. (xold(1)) > xmin * 0.1) CYCLE
+                        IF ((xold(1) < xmax * 0.05) .AND. (xold(1)) > xmin * 0.05) CYCLE
                         mu=0.0_8
                         sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
                         call random_gauss_list(v_ran(2:3),mu,sigma)
