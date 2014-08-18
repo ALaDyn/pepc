@@ -243,6 +243,7 @@ module particlehandling
             t2=t2/sqrt(dotproduct(t2,t2))
 
             DO ip =1,sum(npps)
+                IF ((retherm > 4) .AND. (p(ip)%data%q > 0)) CYCLE !retherm electrons only
                 IF (sign(1._8,p(ip)%x(1)) /= sign(1._8,p(ip)%data%v(1))) CYCLE
 
                 xold = p(ip)%x-p(ip)%data%v*dt
@@ -301,6 +302,20 @@ module particlehandling
                     p(ip)%x(2) = ymin + ran2*(ymax-ymin)
                     p(ip)%x(3) = zmin + ran3*(zmax-zmin)
 
+                ELSE IF (retherm == 5) THEN  !the same as retherm = 2, but for electrons only
+                    ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
+                    ! resample x = ran*dt*vx, y,z = ran
+                    call random_gauss_list(v_ran(2:3),mu,sigma)
+                    call random_gaussian_flux(v_ran(1),sigma)
+                    p(ip)%data%v(1) = v_ran(1)*sign(1._8,p(ip)%x(1))
+                    p(ip)%data%v(2) = v_ran(2)
+                    p(ip)%data%v(3) = v_ran(3)
+                    ran = rnd_num()
+                    ran2 = rnd_num()
+                    ran3 = rnd_num()
+                    p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                    p(ip)%x(2) = ymin + ran2*(ymax-ymin)
+                    p(ip)%x(3) = zmin + ran3*(zmax-zmin)
 
                 END IF
             END DO
