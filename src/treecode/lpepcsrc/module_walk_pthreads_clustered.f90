@@ -53,7 +53,7 @@
 !>
 !>        particles_active = .false.
 !>
-!>        do i=1,max_clusters_per_thread
+!>        do i=1,clusters_per_thread
 !>
 !>          if ( (my_particles(i) == -1) .and. (particles_available)) then         ! i.e. the place for a particle is unassigned
 !>            my_clusters(i) = get_first_unassigned_cluster()
@@ -118,9 +118,10 @@ module module_walk
   type(t_pthread_with_type), target, allocatable :: thread_handles(:)
   type(t_threaddata), allocatable, target :: threaddata(:)
   integer :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
-  real :: work_on_communicator_cluster_number_factor = 0.1 !< factor for reducing max_clusters_per_thread for thread which share their processor with the communicator
+  real :: work_on_communicator_cluster_number_factor = 0.1 !< factor for reducing clusters_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
-  integer, public :: max_clusters_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
+  integer, public :: max_clusters_per_thread = 30 !< maximum number of particles that will in parallel be processed by one workthread
+  integer :: clusters_per_thread
 
   real(kind_physics) :: vbox(3)
   integer :: todo_list_length, defer_list_length, num_clusters
@@ -202,7 +203,7 @@ module module_walk
       write (u,'(a50,3e12.4)')       'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations
       write (u,'(a50,3f12.3)')       'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
       write (u,*) '######## TREE TRAVERSAL MODULE ############################################################'
-      write (u,'(a50,2i12)') 'walk_threads, max_nclusters_per_thread: ', num_walk_threads, max_clusters_per_thread
+      write (u,'(a50,2i12)') 'walk_threads, clusters_per_thread: ', num_walk_threads, clusters_per_thread
       write (u,*) '######## DETAILED DATA ####################################################################'
       write (u,'(a)') '        PE  #interactions     #mac_evals    #posted_req  rel.work'
       do i = 1, num_pe
@@ -344,7 +345,7 @@ module module_walk
     end if
 
     ! evenly balance particles to threads if there are less than the maximum
-    max_clusters_per_thread = max(min(num_clusters/num_walk_threads, max_clusters_per_thread),1)
+    clusters_per_thread = max(min(num_clusters/num_walk_threads, max_clusters_per_thread),1)
     ! allocate storage for thread handles
     allocate(thread_handles(num_walk_threads))
   end subroutine tree_walk_init
@@ -430,7 +431,7 @@ module module_walk
     logical :: clusters_active
     type(t_threaddata), pointer :: my_threaddata
     logical :: shared_core
-    integer :: my_max_clusters_per_thread
+    integer :: my_clusters_per_thread
     integer :: my_processor_id
     logical :: cluster_has_finished
 
@@ -442,9 +443,9 @@ module module_walk
                   (my_processor_id == main_thread_processor_id)
 
     if ((shared_core) .and. (num_walk_threads > 1)) then
-          my_max_clusters_per_thread = max(int(work_on_communicator_cluster_number_factor * max_clusters_per_thread), 1)
+          my_clusters_per_thread = max(int(work_on_communicator_cluster_number_factor * clusters_per_thread), 1)
     else
-          my_max_clusters_per_thread = max_clusters_per_thread
+          my_clusters_per_thread = clusters_per_thread
     end if
 
     call c_f_pointer(arg, my_threaddata)
@@ -453,12 +454,12 @@ module module_walk
     my_threaddata%finished = .false.
     my_threaddata%counters = 0
 
-    if (my_max_clusters_per_thread > 0) then
-      total_defer_list_length = defer_list_length*my_max_clusters_per_thread
+    if (my_clusters_per_thread > 0) then
+      total_defer_list_length = defer_list_length*my_clusters_per_thread
 
-      allocate(thread_cluster_indices(my_max_clusters_per_thread), &
-                      defer_list_start_pos(my_max_clusters_per_thread+1), &
-                          partner_leaves(my_max_clusters_per_thread))
+      allocate(thread_cluster_indices(my_clusters_per_thread), &
+                      defer_list_start_pos(my_clusters_per_thread+1), &
+                          partner_leaves(my_clusters_per_thread))
       allocate(defer_list_old(1:total_defer_list_length), &
                 defer_list_new(1:total_defer_list_length) )
       allocate(todo_list(0:todo_list_length - 1))
@@ -479,7 +480,7 @@ module module_walk
           ERROR_ON_FAIL(pthreads_sched_yield())
         end if
 
-        do i=1,my_max_clusters_per_thread
+        do i=1,my_clusters_per_thread
 
           if (contains_cluster(i)) then
             call setup_defer_list(i)
@@ -524,9 +525,9 @@ module module_walk
             ! there is no cluster to process at position i, set the corresponding defer list to size 0
             defer_list_start_pos(i) = defer_list_new_tail
           end if
-        end do ! i=1,my_max_clusters_per_thread
+        end do ! i=1,my_clusters_per_thread
 
-        defer_list_start_pos(my_max_clusters_per_thread+1) = defer_list_new_tail ! this entry is needed to store the length of the (max_clusters_per_thread)th clusters defer_list
+        defer_list_start_pos(my_clusters_per_thread+1) = defer_list_new_tail ! this entry is needed to store the length of the (clusters_per_thread)th clusters defer_list
       end do
 
       deallocate(thread_cluster_indices, defer_list_start_pos, partner_leaves)
