@@ -34,10 +34,10 @@ module module_interaction_specific
   save
   private
 
-  integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
+  integer, public :: mac_select = 0 !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
   logical, public :: include_far_field_if_periodic = .false. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
-  real*8, public  :: theta2       = 0.36  !< square of multipole opening angle
-  real*8, public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential
+  real(kind_physics), public  :: theta2 = 0.36 !< square of multipole opening angle
+  real(kind_physics), public  :: eps2 = 0.0 !< square of short-distance cutoff parameter for plummer potential
 
   namelist /calc_force_log2d/ mac_select, include_far_field_if_periodic, theta2, eps2
 
@@ -69,15 +69,15 @@ module module_interaction_specific
   subroutine multipole_from_particle(x, p, m)
     implicit none
 
-    real*8, intent(in) :: x(3)
+    real(kind_physics), intent(in) :: x(3)
     type(t_particle_data), intent(in) :: p
     type(t_tree_node_interaction_data), intent(out) :: m
 
-    complex(kind = 8), parameter :: omega0(pMultipole) = 0
+    complex(kind_physics), parameter :: omega0(pMultipole) = 0
 #ifdef BEM2D
-    complex(kind = 8), parameter :: ic = (0, 1)
-    complex(kind = 8) :: za, zb, zc, t, omega(pMultipole), tu, n
-    real*8 :: l
+    complex(kind_physics), parameter :: ic = (0, 1)
+    complex(kind_physics) :: za, zb, zc, t, omega(pMultipole), tu, n
+    real(kind_physics) :: l
     integer :: k
 
     if (p%source_kind == CALC_FORCE_SOURCE_KIND_PARTICULAR) then
@@ -124,9 +124,9 @@ module module_interaction_specific
 
     integer :: nchild, j, k, l
 
-    real*8, dimension(3) :: shift
-    complex(kind = 8), parameter :: ic = (0, 1)
-    complex(kind = 8) :: z0
+    real(kind_physics), dimension(3) :: shift
+    complex(kind_physics), parameter :: ic = (0, 1)
+    complex(kind_physics) :: z0
 
     nchild = size(children)
 
@@ -258,12 +258,14 @@ module module_interaction_specific
     integer(kind_particle), intent(in) :: npart_total !< total number of particles
     integer(kind_node), intent(out) :: nintmax !< maximum number of interactions per particle
 
-    real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
+    real(kind_physics) :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
+    real(kind_physics) :: np
 
     ! Estimate of interaction list length - Hernquist expression
     ! applies for BH-MAC
-    invnintmax = max(theta2 / (35.*log(1.*npart_total)) , 1._8/npart_total)
-    nintmax    = int(1._8/invnintmax)
+    np = real(npart_total, kind = kind_physics)
+    invnintmax = max(theta2 / (35. * log(np)) , 1. / np)
+    nintmax    = int(1. / invnintmax, kind = kind_node)
   end subroutine
 
 
@@ -286,8 +288,8 @@ module module_interaction_specific
 
     logical :: mac
     type(t_tree_node_interaction_data), intent(in) :: node
-    real*8, intent(in) :: dist2
-    real*8, intent(in) :: boxlength2
+    real(kind_physics), intent(in) :: dist2
+    real(kind_physics), intent(in) :: boxlength2
 
     select case (mac_select)
         case (0)
@@ -327,17 +329,17 @@ module module_interaction_specific
     type(t_particle), intent(inout) :: p
     type(t_tree_node_interaction_data), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
-    real*8, intent(in) :: delta(3), dist2, vbox(3)
+    real(kind_physics), intent(in) :: delta(3), dist2, vbox(3)
 
 #ifdef BEM2D
-    real*8, parameter :: pi = 3.1415926535897932385_8
+    real(kind_physics), parameter :: pi = 3.1415926535897932385_kind_physics
 
-    real*8 :: R
+    real(kind_physics) :: R
 
     if (p%data%source_kind /= CALC_FORCE_SOURCE_KIND_PARTICULAR) then
       associate (ra => p%data%ra, rb => p%data%rb)
-        R = 0.5_8 * sqrt(dot_product(rb - ra, rb - ra))
-        p%results%pot = p%results%pot + 2.0_8 * p%data%q * R * (1.0_8 - log(R)) - pi * p%data%phi
+        R = 0.5_kind_physics * sqrt(dot_product(rb - ra, rb - ra))
+        p%results%pot = p%results%pot + 2.0_kind_physics * p%data%q * R * (1.0_kind_physics - log(R)) - pi * p%data%phi
       end associate
     end if
 #endif
@@ -354,9 +356,9 @@ module module_interaction_specific
     type(t_particle), intent(inout) :: particle
     type(t_tree_node_interaction_data), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
-    real*8, intent(in) :: delta(3), dist2, vbox(3)
+    real(kind_physics), intent(in) :: delta(3), dist2, vbox(3)
 
-    real*8 :: exy(2), phic
+    real(kind_physics) :: exy(2), phic
 
     ! compute 2D-Coulomb fields and potential of particle p with node
 #ifdef BEM2D
@@ -380,9 +382,9 @@ module module_interaction_specific
     type(t_particle), intent(inout) :: particle
     type(t_tree_node_interaction_data), intent(in) :: node
     integer(kind_node), intent(in) :: node_idx
-    real*8, intent(in) :: delta(3), dist2, vbox(3)
+    real(kind_physics), intent(in) :: delta(3), dist2, vbox(3)
 
-    real*8 :: exy(2), phic
+    real(kind_physics) :: exy(2), phic
 
     ! compute 2D-Coulomb fields and potential of particle p with node
     call calc_force_log_2D(node, delta(1:2), exy(1), exy(2), phic)
@@ -404,7 +406,7 @@ module module_interaction_specific
     implicit none
 
     type(t_particle), intent(inout) :: particles(:)
-    real*8 :: e_lattice(2), phi_lattice
+    real(kind_physics) :: e_lattice(2), phi_lattice
     integer(kind_particle) :: p
 
     call pepc_status('CALC FORCE PER PARTICLE')
@@ -440,11 +442,11 @@ module module_interaction_specific
     implicit none
 
     type(t_tree_node_interaction_data), intent(in) :: t
-    real*8, intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
-    real*8, intent(out) ::  ex, ey, phi
+    real(kind_physics), intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
+    real(kind_physics), intent(out) ::  ex, ey, phi
 
-    complex(kind = 8), parameter :: ic = (0, 1)
-    complex(kind = 8) :: z, cphi, cf, rz, mtaylor_
+    complex(kind_physics), parameter :: ic = (0, 1)
+    complex(kind_physics) :: z, cphi, cf, rz, mtaylor_
 
     integer :: k
 
@@ -479,9 +481,9 @@ module module_interaction_specific
       cf       = cf - k * t%omega(k) * mtaylor_
     end do
 
-    phi = real(cphi, kind = 8)
-    ex  = real(cf, kind = 8)
-    ey  = -real(aimag(cf), kind = 8)
+    phi = real(cphi, kind = kind_physics)
+    ex  = real(cf, kind = kind_physics)
+    ey  = -real(aimag(cf), kind = kind_physics)
   end subroutine calc_force_log_2D
 
 
@@ -498,10 +500,10 @@ module module_interaction_specific
     implicit none
 
     type(t_tree_node_interaction_data), intent(in) :: t
-    real*8, intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
-    real*8, intent(out) :: ex, ey, phi
+    real(kind_physics), intent(in) :: d(2) !< separation vector precomputed in walk_single_particle
+    real(kind_physics), intent(out) :: ex, ey, phi
 
-    real*8 :: dx, dy, d2, rd2, charge
+    real(kind_physics) :: dx, dy, d2, rd2, charge
 
     dx = d(1)
     dy = d(2)

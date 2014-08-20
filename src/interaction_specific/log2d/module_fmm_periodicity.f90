@@ -1,31 +1,29 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
 #include "multipole.h"
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !>
 !> Encapsulates calculation of the lattice contribution by means
 !> of the FMM-approach to the lattice
 !>
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 module module_fmm_periodicity
       use module_pepc_kinds
       use module_mirror_boxes, only: lattice_vect
@@ -33,40 +31,29 @@ module module_fmm_periodicity
       include 'mpif.h'
       private
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! public variable declarations
 
       !> far- and near-field contribution to potential energy (has to be calculated in fields.p90)
-      real*8, public :: potfarfield, potnearfield
+      real(kind_physics), public :: potfarfield, potnearfield
       !> whether to do dipole correction or not, see [J.Chem.Phys. 107, 10131, eq. (19,20)]
       logical, public :: do_extrinsic_correction = .true.
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  public subroutine declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! public subroutine declarations
       public fmm_periodicity_prepare
       public fmm_periodicity_timestep
       public fmm_periodicity_sum_lattice_force
       public lattice_vect
       public fmm_periodicity_param_dump
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  private variable declarations  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! private variable declarations
 
       ! general stuff
       integer :: myrank
       integer :: MPI_COMM_fmm
       ! precision flags
-      integer, parameter :: kfp                  = 8 ! numeric precision (kind value)
-      integer, parameter :: MPI_REAL_fmm         = MPI_REAL8
+      ! for now, kfp must equal kind_physics, since the FMM operators (see module_multipole) are defined on kind_physics
+      integer, parameter :: kfp                  = kind_physics ! numeric precision (kind value)
+      integer, parameter :: MPI_REAL_fmm         = MPI_KIND_PHYSICS
       logical, parameter  :: chop_arrays         = .false.
       real(kfp), parameter :: prec = 1.E-16_kfp
       ! shortcut notations
@@ -86,11 +73,7 @@ module module_fmm_periodicity
       real(kfp) :: box_dipole(2) = zero
       real(kfp) :: quad_trace    = zero
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!  subroutine-implementation  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! subroutine-implementation
 
       interface WriteTableToFile
         module procedure WriteTableToFile1D, WriteTableToFile2D
@@ -102,7 +85,6 @@ module module_fmm_periodicity
 
       contains
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Module Initialization, should be called on program startup
         !> after setting up all geometric parameters etc.
@@ -112,7 +94,6 @@ module module_fmm_periodicity
         !> @param[in] mpi_rank MPI rank of process for controlling debug output
         !> @param[in] mpi_comm MPI communicator to be used
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_periodicity_prepare(mpi_rank, mpi_comm)
           use module_debug
           use module_mirror_boxes
@@ -144,12 +125,10 @@ module module_fmm_periodicity
         end subroutine fmm_periodicity_prepare
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Refreshes Multipole information and Taylor coefficients,
         !> has to be called every timestep with particles that were used in tree buildup
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_periodicity_timestep(particles)
           use module_pepc_types
           use module_mirror_boxes, only: check_lattice_boundaries
@@ -160,18 +139,16 @@ module module_fmm_periodicity
           if (.not. check_lattice_boundaries(particles)) then
             DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
           end if
-          
+
           call calc_omega_tilde(particles)
           call calc_mu_cent(omega_tilde, mu_cent)
           call calc_extrinsic_correction(particles)
         end subroutine fmm_periodicity_timestep
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the lattice coefficients for computing mu_cent
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_lattice_coefficients(BL)
           use module_debug
           implicit none
@@ -230,12 +207,10 @@ module module_fmm_periodicity
         end subroutine calc_lattice_coefficients
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the overall multipole expansion of the whole
         !> central box
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_omega_tilde(particles)
           use module_pepc_types
           use module_mirror_boxes, only: LatticeCenter
@@ -249,19 +224,19 @@ module module_fmm_periodicity
           integer :: ierr
           complex(kfp), parameter :: ic = (zero, one)
           complex(kfp) :: z0
-          real*8 :: qtotal, x0(3)
+          real(kfp) :: qtotal, x0(3)
 
           qtotal = 0
           omega_tilde = 0
 
           ! calculate multipole contributions of all local particles
           do p=1,size(particles, kind=kind(p))
-            x0 = particles(p)%x - LatticeCenter
+            x0 = real(particles(p)%x - LatticeCenter, kind = kfp)
             z0 = x0(1) + ic * x0(2)
-            qtotal = qtotal + particles(p)%data%q
+            qtotal = qtotal + real(particles(p)%data%q, kind = kfp)
 
             do k=1,pMultipoleFMMP
-              omega_tilde(k) = omega_tilde(k) + omega(k, z0, particles(p)%data%q)
+              omega_tilde(k) = omega_tilde(k) + omega(k, z0, real(particles(p)%data%q, kind = kfp))
             end do
 
           end do
@@ -269,7 +244,7 @@ module module_fmm_periodicity
           call chop(omega_tilde)
 
           ! sum multipole contributions from all processors - treat complex as two real numbers since e.g. complex*32 is not supported by mpi
-          call MPI_ALLREDUCE(MPI_IN_PLACE, qtotal, 1, MPI_REAL8, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, qtotal, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
           call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, 2 * pMultipoleFMMP, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
 
           call chop(omega_tilde)
@@ -285,7 +260,6 @@ module module_fmm_periodicity
         end subroutine calc_omega_tilde
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the (cartesian) overall dipole moment
         !> \f$\frac{4\pi}{3}\sum_p q(p){\vec r}_p\f$ and the
@@ -296,7 +270,6 @@ module module_fmm_periodicity
         !>       ^ inside this publication, the volume factor is missing
         !>  [J. Chem. Phys. 101, 5024, eqn (5)] contains this volume
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_extrinsic_correction(particles)
           use module_debug
           use module_pepc_types
@@ -306,15 +279,15 @@ module module_fmm_periodicity
           type(t_particle), intent(in) :: particles(:)
 
           real(kfp), parameter :: pi = acos(-one)
-          real*8 :: r(2)
+          real(kfp) :: r(2)
           integer(kind_particle) :: p
           integer(kind_default) :: ierr
 
           if (do_extrinsic_correction) then
             quad_trace = zero
             do p=1,size(particles, kind=kind(p))
-              r = particles(p)%x(1:2) - LatticeCenter(1:2)
-              quad_trace = quad_trace + particles(p)%data%q * dot_product(r, r)
+              r = real(particles(p)%x(1:2) - LatticeCenter(1:2), kind = kfp)
+              quad_trace = quad_trace + real(particles(p)%data%q * dot_product(r, r), kind = kfp)
             end do
 
             call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
@@ -326,12 +299,10 @@ module module_fmm_periodicity
         end subroutine calc_extrinsic_correction
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the lattice contribution with respect to the
         !> centre of the original box
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine calc_mu_cent(omega, mu)
           use module_debug
           implicit none
@@ -350,46 +321,42 @@ module module_fmm_periodicity
         end subroutine calc_mu_cent
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates the charged moments of the multipole expansion
         !> for a certain particle
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function omega(k, z0, q)
           use module_multipole
           implicit none
           integer, intent(in) :: k
           complex(kfp), intent(in) :: z0
-          real*8, intent(in) :: q
+          real(kfp), intent(in) :: q
 
-          omega = - real(q, kind=kfp) * OMultipole(k, z0) / k
+          omega = - q * OMultipole(k, z0) / k
 
         end function omega
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Calculates force at individual position that results
         !> from mirror boxes beyond the near field region,
         !> i.e. the lattice contribution
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_periodicity_sum_lattice_force(pos, e_lattice, phi_lattice)
           use module_mirror_boxes, only: LatticeCenter
           use module_multipole
           use module_debug
           implicit none
 
-          real*8, intent(in) :: pos(3)
-          real*8, intent(out) ::  e_lattice(2), phi_lattice
+          real(kind_physics), intent(in) :: pos(3)
+          real(kind_physics), intent(out) ::  e_lattice(2), phi_lattice
 
           integer :: k
-          real*8 :: x0(3)
+          real(kfp) :: x0(3)
           complex(kfp), parameter :: ic = (zero, one)
           complex(kfp) :: z0, cphi, ce
 
-          x0 = pos - LatticeCenter
+          x0 = real(pos - LatticeCenter, kind = kfp)
           z0 = x0(1) + ic * x0(2)
 
           cphi = -mu_cent(0) ! OMultipole(0, z0) = 1
@@ -401,22 +368,20 @@ module module_fmm_periodicity
           end do
 
           ! E = -grad(Phi)
-          e_lattice  = -[ real(ce, kind = 8), -real(aimag(ce), kind = 8) ]
-          phi_lattice = real(cphi, kind = 8)
+          e_lattice  = -[ real(ce, kind = kind_physics), -real(aimag(ce), kind = kind_physics) ]
+          phi_lattice = real(cphi, kind = kind_physics)
 
           if (do_extrinsic_correction) then    ! extrinsic correction
-            e_lattice   = e_lattice   + box_dipole
-            phi_lattice = phi_lattice - dot_product(x0(1:2), box_dipole) + quad_trace
+            e_lattice   = e_lattice   + real(box_dipole, kind = kind_physics)
+            phi_lattice = phi_lattice - real(dot_product(x0(1:2), box_dipole) + quad_trace, kind = kind_physics)
           end if
         end subroutine fmm_periodicity_sum_lattice_force
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Scaling Operator \f$\mathcal{U}_B\f$ for Taylor coefficients
         !> @param[in] B table with Taylor coefficients
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         function UB(B)
           implicit none
           complex(kfp), intent(in) :: B(0:qTaylorFMMP, 1:pMultipoleFMMP)
@@ -438,12 +403,10 @@ module module_fmm_periodicity
         end function UB
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Formal summation of \f$A\f$ over NF, ie all (9) neighbouring boxes
         !> with some overhead to avoid numerical elimination of small values
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function AstarFunc(k,l)
           use module_mirror_boxes, only: neighbour_boxes, num_neighbour_boxes,&
             lattice_vect
@@ -482,12 +445,10 @@ module module_fmm_periodicity
         end function AstarFunc
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Formal summation of \f$B\f$ over FF`, ie a lot of boxes
         !> with some overhead to avoid numerical elimination of small values
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         complex(kfp) function BstarFunc(k,l)
           use module_mirror_boxes, only: neighbour_boxes, num_neighbour_boxes,&
             lattice_vect
@@ -531,11 +492,9 @@ module module_fmm_periodicity
         end function BstarFunc
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Writes contents of table T to file s, 1 index
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine WriteTableToFile1D(s, T)
           use module_mirror_boxes
           implicit none
@@ -577,11 +536,9 @@ module module_fmm_periodicity
         end subroutine WriteTableToFile1D
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Writes contents of table T to file s
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine WriteTableToFile2D(s, T)
           use module_mirror_boxes
           implicit none
@@ -625,11 +582,9 @@ module module_fmm_periodicity
         end subroutine WriteTableToFile2D
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Dumps all parameters to the stream ifile
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine fmm_periodicity_param_dump(ifile)
           use module_mirror_boxes
           implicit none
@@ -693,13 +648,11 @@ module module_fmm_periodicity
         end function matmul_careful
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !> Sorts the given values with a heap sort approach
         !> in order of ther absolute value
         !> compare (Numerical Recipes f90, p1171)
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           subroutine sort_abs(arr)
             implicit none
             real(kfp), intent(inout) :: arr(:)
@@ -751,13 +704,11 @@ module module_fmm_periodicity
           end subroutine sort_abs
 
 
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !>
         !>  Sets all matrix entries that are smaller than 1.e-16 to 0.
         !> (separately for real and imaginary part)
         !> This is the same as Mathematicas Chop[]-function
         !>
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine chop1D(a)
           use module_debug
           implicit none

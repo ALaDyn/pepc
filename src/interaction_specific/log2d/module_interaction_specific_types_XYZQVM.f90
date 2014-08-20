@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -23,6 +23,7 @@
 !> all subroutines and types within this module are obligatory
 !>
 module module_interaction_specific_types
+      use module_pepc_kinds
       implicit none
 
       integer, parameter :: pMultipole = 10
@@ -33,13 +34,13 @@ module module_interaction_specific_types
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
-         real*8 :: q
-         real*8 :: v(3)
-         real*8 :: m
+         real(kind_physics) :: q
+         real(kind_physics) :: v(3)
+         real(kind_physics) :: m
 #ifdef BEM2D
-         real*8 :: phi
-         real*8 :: ra(2)
-         real*8 :: rb(2)
+         real(kind_physics) :: phi
+         real(kind_physics) :: ra(2)
+         real(kind_physics) :: rb(2)
          integer :: source_kind
 #endif
       end type t_particle_data
@@ -51,8 +52,8 @@ module module_interaction_specific_types
 
       !> Data structure for shipping results
       type t_particle_results
-         real*8, dimension(2) :: e
-         real*8 :: pot
+         real(kind_physics), dimension(2) :: e
+         real(kind_physics) :: pot
       end type t_particle_results
       integer, private, parameter :: nprops_particle_results = 2
 
@@ -60,11 +61,11 @@ module module_interaction_specific_types
 
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
-        real*8 :: coc(3)     ! centre of charge
-        real*8 :: charge     ! net charge sum
-        real*8 :: abs_charge !  absolute charge sum
-        complex*16 :: omega(pMultipole)  ! multipole moments
-        real*8 :: bmax
+        real(kind_physics) :: coc(3)     ! centre of charge
+        real(kind_physics) :: charge     ! net charge sum
+        real(kind_physics) :: abs_charge !  absolute charge sum
+        complex(kind_physics) :: omega(pMultipole)  ! multipole moments
+        real(kind_physics) :: bmax
       end type t_tree_node_interaction_data
       integer, private, parameter :: nprops_tree_node_interaction_data = 5
 
@@ -124,14 +125,16 @@ module module_interaction_specific_types
         type(t_particle_data)    :: dummy_particle_data
         type(t_particle_results) :: dummy_particle_results
         type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
+        integer :: MPI_KIND_PHYSICS_COMPLEX
 
         ! register particle data type
 #ifdef BEM2D
         blocklengths(1:nprops_particle_data) = [1, 3, 1, 1, 2, 2, 1]
-        types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_INTEGER]
+        types(1:nprops_particle_data)        = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
+          MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_INTEGER]
 #else
         blocklengths(1:nprops_particle_data) = [1, 3, 1]
-        types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
+        types(1:nprops_particle_data)        = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
 #endif
         call MPI_GET_ADDRESS( dummy_particle_data, address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%q, address(1), ierr )
@@ -149,7 +152,7 @@ module module_interaction_specific_types
 
         ! register results data type
         blocklengths(1:nprops_particle_results)  = [2, 1]
-        types(1:nprops_particle_results)         = [MPI_REAL8, MPI_REAL8]
+        types(1:nprops_particle_results)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
         call MPI_GET_ADDRESS( dummy_particle_results,      address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%e,    address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_results%pot,  address(2), ierr )
@@ -157,9 +160,25 @@ module module_interaction_specific_types
         call MPI_TYPE_STRUCT( nprops_particle_results, blocklengths, displacements, types, mpi_type_particle_results, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
+        select case(MPI_KIND_PHYSICS)
+          ! all of these are optionally defined and if missing cause compilation error
+          ! MPI_REAL2 and MPI_COMPLEX4 seem to be rare, disable for now
+          !case(MPI_REAL2)
+          !  MPI_KIND_PHYSICS_COMPLEX = MPI_COMPLEX4
+          case(MPI_REAL4)
+            MPI_KIND_PHYSICS_COMPLEX = MPI_COMPLEX8
+          case(MPI_REAL8)
+            MPI_KIND_PHYSICS_COMPLEX = MPI_COMPLEX16
+          case(MPI_REAL16)
+            MPI_KIND_PHYSICS_COMPLEX = MPI_COMPLEX32
+          case default
+            stop
+        end select
+
         ! register multipole data type
         blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, pMultipole, 1]
-        types(1:nprops_tree_node_interaction_data)         = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_COMPLEX16, MPI_REAL8]
+        types(1:nprops_tree_node_interaction_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
+          MPI_KIND_PHYSICS_COMPLEX, MPI_KIND_PHYSICS]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )
