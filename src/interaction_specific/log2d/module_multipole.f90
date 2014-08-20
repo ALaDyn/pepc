@@ -53,6 +53,7 @@
 !>          (1987)
 !>
 module module_multipole
+  use module_pepc_kinds
   implicit none
 
   contains
@@ -65,10 +66,10 @@ module module_multipole
   !>
   !> Monomial: O_k(z) = z^k
   !>
-  !complex(kind = 8) function OMultipole(k, z)
+  !complex(kind_physics) function OMultipole(k, z)
   !  implicit none
   !  integer, intent(in) :: k
-  !  complex(kind = 8), intent(in) :: z
+  !  complex(kind_physics), intent(in) :: z
   !
   !  OMultipole = z**k
   !end function OMultipole
@@ -76,10 +77,10 @@ module module_multipole
   !>
   !> Monomial: O'_k(z) = k z^(k - 1)
   !>
-  !complex(kind = 8) function OMultipolePrime(k, z)
+  !complex(kind_physics) function OMultipolePrime(k, z)
   !  implicit none
   !  integer, intent(in) :: k
-  !  complex(kind = 8), intent(in) :: z
+  !  complex(kind_physics), intent(in) :: z
   !
   !  OMultipolePrime = k * z**(k - 1)
   !end function OMultipolePrime
@@ -87,10 +88,10 @@ module module_multipole
   !>
   !> Monomial: M_k(z) = z^(-k)
   !>
-  !complex(kind = 8) function MTaylor(k, z)
+  !complex(kind_physics) function MTaylor(k, z)
   !  implicit none
   !  integer, intent(in) :: k
-  !  complex(kind = 8), intent(in) :: z
+  !  complex(kind_physics), intent(in) :: z
   !
   !  MTaylor = z**(-k)
   !end function MTaylor
@@ -100,10 +101,10 @@ module module_multipole
   !>
   !> Used to compute the force field.
   !>
-  !complex(kind = 8) function MTaylorPrime(k, z)
+  !complex(kind_physics) function MTaylorPrime(k, z)
   !  implicit none
   !  integer, intent(in) :: k
-  !  complex(kind = 8), intent(in) :: z
+  !  complex(kind_physics), intent(in) :: z
   !
   !  MTaylorPrime = -k * z**(-k-1)
   !end function MTaylorPrime
@@ -117,10 +118,10 @@ module module_multipole
   !> omega_k' = A_Q,k(z0) Q + Sum_l=1^k A_k,l(z0) omega_l
   !>                                    ^^^^^^^^^
   !>
-  complex(kind = 8) function ATranslate(k, l, z0)
+  complex(kind_physics) function ATranslate(k, l, z0)
     implicit none
     integer, intent(in) :: k, l
-    complex(kind = 8), intent(in) :: z0
+    complex(kind_physics), intent(in) :: z0
 
     ATranslate = OMultipole(k - l, z0) * BinomialCoefficient(k - 1, l - 1)
   end function ATranslate
@@ -134,10 +135,10 @@ module module_multipole
   !> mu_l ~= B_Q,l(z0) Q + Sum_k=1,p B_l,k(z0) omega_k
   !>                                 ^^^^^^^^^
   !>
-  complex(kind = 8) function BConvert(l, k, z0)
+  complex(kind_physics) function BConvert(l, k, z0)
     implicit none
     integer, intent(in) :: k, l
-    complex(kind = 8), intent(in) :: z0
+    complex(kind_physics), intent(in) :: z0
 
     BConvert = (-1)**k * BinomialCoefficient(l + k - 1, k - 1) * MTaylor(l + k, z0)
   end function BConvert
@@ -147,10 +148,10 @@ module module_multipole
   !>
   !> mu_l' = Sum_k=l^p C_l,k(z0) mu_l
   !>
-  complex(kind = 8) function CTranslate(l, k, z0)
+  complex(kind_physics) function CTranslate(l, k, z0)
     implicit none
     integer, intent(in) :: l, k
-    complex(kind = 8), intent(in) :: z0
+    complex(kind_physics), intent(in) :: z0
 
     CTranslate = BinomialCoefficient(k, l) * OMultipole(k - l, -z0)
   end function CTranslate
@@ -158,7 +159,7 @@ module module_multipole
   !>
   !> Binomial coefficients: BinomialCoefficient(n, k) = n! / [ k! (n - k)! ]
   !>
-  real*8 function BinomialCoefficient(n, k)
+  real(kind_physics) function BinomialCoefficient(n, k)
     implicit none
     integer, intent(in) :: n, k
 
@@ -168,63 +169,63 @@ module module_multipole
   !>
   !> Factorial function: factorial(n) = n! = 1 x 2 x ... x n
   !>
-  real*8 function factorial(n)
+  real(kind_physics) function factorial(n)
     implicit none
     integer, intent(in) :: n
 
     select case (n)
       case ( 0)
-        factorial =                            1._8
+        factorial =                            1._kind_physics
       case ( 1)
-        factorial =                            1._8
+        factorial =                            1._kind_physics
       case ( 2)
-        factorial =                            2._8
+        factorial =                            2._kind_physics
       case ( 3)
-        factorial =                            6._8
+        factorial =                            6._kind_physics
       case ( 4)
-        factorial =                           24._8
+        factorial =                           24._kind_physics
       case ( 5)
-        factorial =                          120._8
+        factorial =                          120._kind_physics
       case ( 6)
-        factorial =                          720._8
+        factorial =                          720._kind_physics
       case ( 7)
-        factorial =                         5040._8
+        factorial =                         5040._kind_physics
       case ( 8)
-        factorial =                        40320._8
+        factorial =                        40320._kind_physics
       case ( 9)
-        factorial =                       362880._8
+        factorial =                       362880._kind_physics
       case (10)
-        factorial =                      3628800._8
+        factorial =                      3628800._kind_physics
       case (11)
-        factorial =                     39916800._8
+        factorial =                     39916800._kind_physics
       case (12)
-        factorial =                    479001600._8
+        factorial =                    479001600._kind_physics
       case (13)
-        factorial =                   6227020800._8
+        factorial =                   6227020800._kind_physics
       case (14)
-        factorial =                  87178291200._8
+        factorial =                  87178291200._kind_physics
       case (15)
-        factorial =                1307674368000._8
+        factorial =                1307674368000._kind_physics
       case (16)
-        factorial =               20922789888000._8
+        factorial =               20922789888000._kind_physics
       case (17)
-        factorial =              355687428096000._8
+        factorial =              355687428096000._kind_physics
       case (18)
-        factorial =             6402373705728000._8
+        factorial =             6402373705728000._kind_physics
       case (19)
-        factorial =           121645100408832000._8
+        factorial =           121645100408832000._kind_physics
       case (20)
-        factorial =          2432902008176640000._8
+        factorial =          2432902008176640000._kind_physics
       case (21)
-        factorial =         51090942171709440000._8
+        factorial =         51090942171709440000._kind_physics
       case (22)
-        factorial =       1124000727777607680000._8
+        factorial =       1124000727777607680000._kind_physics
       case (23)
-        factorial =      25852016738884976640000._8
+        factorial =      25852016738884976640000._kind_physics
       case (24)
-        factorial =     620448401733239439360000._8
+        factorial =     620448401733239439360000._kind_physics
       case default
-        factorial = gamma(real(n+1, kind = 8))
+        factorial = gamma(real(n+1, kind = kind_physics))
     end select
   end function factorial
 end module module_multipole
