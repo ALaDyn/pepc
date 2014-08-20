@@ -80,6 +80,10 @@ module module_interaction_specific_types
       integer, parameter :: PARTICLE_TYPE_NONGAS   = 2               !< treat particle as non-gas and compute no sph force
       ! TODO: implement nongas particles in neighbour search and force summation
 
+      type t_local_coefficients
+        ! empty for now
+      end type t_local_coefficients
+
       contains
 
       !>

@@ -69,6 +69,7 @@ module module_pepc_types
         integer(kind_node) :: next_sibling
         real(kind_physics) :: center(1:3)
         type(t_multipole_moments) :: multipole_moments
+        type(t_local_coefficients) :: local_coefficients
       end type t_tree_node
 
       !> Data structure for shipping tree nodes
