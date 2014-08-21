@@ -57,8 +57,17 @@ module module_interaction_specific_types
       integer, private, parameter :: nprops_multipole_moments = 8
 
       type t_local_coefficients
-        ! empty for now
-      end type t_local_coefficients
+        real(kind_physics) :: f     
+        real(kind_physics) :: fx     
+        real(kind_physics) :: fy     
+        real(kind_physics) :: fz     
+        real(kind_physics) :: fxx
+        real(kind_physics) :: fyy
+        real(kind_physics) :: fzz
+        real(kind_physics) :: fxy
+        real(kind_physics) :: fyz
+        real(kind_physics) :: fzx
+      end type t_local_coefficients  
 
       contains
 

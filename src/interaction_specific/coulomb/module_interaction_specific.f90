@@ -141,6 +141,95 @@ module module_interaction_specific
         parent%bmax = maxval(sqrt((parent_center(1)-children_centers(1, 1:nchild))**2+(parent_center(2)-children_centers(2, 1:nchild))**2+(parent_center(3)-children_centers(3, 1:nchild))**2) + children(1:nchild)%bmax)
       end subroutine
 
+      !>
+      !> Uses the M2L operator to convert a set of multipole moments `m` expanded about `xm`
+      !> into a set of local coefficients `t` about `xt`.
+      !>
+      subroutine multipole_to_local(xm, m, xt, t)
+        implicit none
+        real(kind_physics), intent(in) :: xm(3), xt(3)
+        type(t_multipole_moments), intent(in) :: m
+        type(t_local_coefficients), intent(inout) :: t
+
+        real(kind_physics) :: r(3)
+        real(kind_physics) :: invr
+        real(kind_physics) :: di(3), dii(3), dij(3)
+        
+        r = xt - xm
+        invr = 1. / sqrt(dot_product(r,r) + eps2)
+        di = - invr**3 * r
+        dii = 3. * r * r * invr**5 - invr**3
+        dij = 3. * invr**5 * (/ r(1) * r(2),  r(2) * r(3), r(3) * r(1) /)
+
+        t%f = t%f + m%charge * invr &
+          + dot_product(m%dip, di) &
+          + dot_product(m%quad, dii) &
+          + m%xyquad * dij(1) + m%yzquad * dij(2) + m%zxquad * dij(3)
+
+        t%fx = t%fx + m%charge * di(1) &
+          + m%dip(1) * dii(1) + m%dip(2) * dij(1) + m%dip(3) * dij(3)
+        t%fy = t%fy + m%charge * di(2) &
+          + m%dip(1) * dij(1) + m%dip(2) * dii(2) + m%dip(3) * dij(2)
+        t%fz = t%fz + m%charge * di(3) &
+          + m%dip(1) * dij(3) + m%dip(2) * dij(2) + m%dip(3) * dii(3)
+
+        t%fxx = t%fxx + m%charge * dii(1)
+        t%fyy = t%fyy + m%charge * dii(2)
+        t%fzz = t%fzz + m%charge * dii(3)
+        t%fxy = t%fxy + m%charge * dij(1)
+        t%fyz = t%fyz + m%charge * dij(2)
+        t%fzx = t%fzx + m%charge * dij(3)
+
+      end subroutine
+
+      !>
+      !> Uses the L2L operator to translate the coefficients `p` from their center `xp` into new coefficients `c` expanded about `xc`.
+      !>
+      subroutine shift_coefficients_down(xp, p, xc, c)
+        implicit none
+        real(kind_physics), intent(in) :: xp(3), xc(3)
+        type(t_local_coefficients), intent(in) :: p
+        type(t_local_coefficients), intent(inout) :: c
+
+        real(kind_physics) :: x(3)
+
+        x = xc - xp
+
+        c%f = c%f + p%f &
+          + x(1) * p%fx + x(2) * p%fy + x(3) * p%fz &
+          + 0.5 * (x(1) * x(1) * p%fxx + x(2) * x(2) * p%fyy + x(3) * x(3) * p%fzz) &
+          + x(1) * x(2) * p%fxy + x(2) * x(3) * p%fyz + x(3) * x(1) * p%fzx
+
+        c%fx = c%fx + p%fx &
+          + x(1) * p%fxx + x(2) * p%fxy + x(3) * p%fzx 
+        c%fy = c%fy + p%fy &
+          + x(1) * p%fxy + x(2) * p%fyy + x(3) * p%fyz
+        c%fz = c%fz + p%fz &
+          + x(1) * p%fzx + x(2) * p%fyz + x(3) * p%fzz
+
+        c%fxx = p%fxx
+        c%fyy = p%fyy
+        c%fzz = p%fzz
+        c%fxy = p%fxy
+        c%fyz = p%fyz
+        c%fzx = p%fxx
+
+      end subroutine
+
+
+      !>
+      !> Evaluates local coefficients `c` into results `r` at their center of expansion.
+      !>
+      subroutine evaluate_at_particle(c, r)
+        implicit none
+        type(t_local_coefficients), intent(in) :: c
+        type(t_particle_results), intent(inout) :: r
+
+        r%pot = r%pot + c%f
+        r%e = r%e - (/ c%fx, c%fy, c%fz  /)
+
+      end subroutine
+
 
       !>
       !> adds res2 to res1
