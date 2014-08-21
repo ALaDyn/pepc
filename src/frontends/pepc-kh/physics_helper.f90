@@ -3,12 +3,13 @@ module physics_helper
    implicit none
 
    type physics_nml_t
-      real(kind=8) :: m_ratio, T_ratio, B0
-      real(kind=8), dimension(3) :: l_plasma
+      real(kind_physics) :: m_ratio, T_ratio, B0
+      real(kind_physics), dimension(3) :: l_plasma
    end type physics_nml_t
 
-   real(kind = 8), parameter :: force_const = 0.159154943D0
-   real(kind = 8) :: e_constraint
+   ! 1 / (2 * pi)
+   real(kind_physics), parameter :: force_const = 0.1591549430918953357688837633725143620345_kind_physics
+   real(kind_physics) :: e_constraint
 
    integer, parameter :: file_energy = 70
 
@@ -44,18 +45,18 @@ contains
 
       physics_pars%B0 = physics_nml%B0
       physics_pars%l_plasma = physics_nml%l_plasma
-      physics_pars%vte = 1.0D0
+      physics_pars%vte = 1.
       physics_pars%vti = physics_pars%vte * sqrt(physics_nml%T_ratio / physics_nml%m_ratio)
-      physics_pars%qe  = -2.0D0 * physics_pars%l_plasma(1) * physics_pars%l_plasma(2) / pepc_pars%np
+      physics_pars%qe  = -2. * physics_pars%l_plasma(1) * physics_pars%l_plasma(2) / pepc_pars%np
       physics_pars%qi  = abs(physics_pars%qe)
       physics_pars%me  = physics_pars%qi
       physics_pars%mi  = physics_nml%m_ratio * physics_pars%qi
 
-      t_lattice_1 = [ physics_pars%l_plasma(1), 0.0D0, 0.0D0 ]
-      t_lattice_2 = [ 0.0D0, physics_pars%l_plasma(2), 0.0D0 ]
-      t_lattice_3 = [ 0.0D0, 0.0D0, 1.0D0 ]
+      t_lattice_1 = [ physics_pars%l_plasma(1), 0._kind_physics, 0._kind_physics ]
+      t_lattice_2 = [ 0._kind_physics, physics_pars%l_plasma(2), 0._kind_physics ]
+      t_lattice_3 = [ 0._kind_physics, 0._kind_physics, 1._kind_physics ]
       if (.not. include_far_field_if_periodic) then
-        spatial_interaction_cutoff = huge(0.0D0) * [ 1.0D0, 1.0D0, 1.0D0 ]
+        spatial_interaction_cutoff = huge(1._kind_physics) * [ 1., 1., 1. ]
       end if
       periodicity = [ .false., .true., .false. ]
 
@@ -78,7 +79,7 @@ contains
         call special_start(pepc_pars, physics_pars, p)
       end if
 
-      e_constraint = 0.0D0
+      e_constraint = 0.
 
    end subroutine setup_physics
 
@@ -91,10 +92,10 @@ contains
       logical, intent(in) :: file_available
       character(len = 255), intent(in) :: file_name
 
-      real(kind=8) :: m_ratio = 100.0D0
-      real(kind=8) :: T_ratio = 1.0D0
-      real(kind=8) :: B0 = 1.0D0
-      real(kind=8), dimension(3) :: l_plasma = [ 50.0D0, 125.0D0, 0.0D0 ]
+      real(kind_physics) :: m_ratio = 100.
+      real(kind_physics) :: T_ratio = 1.
+      real(kind_physics) :: B0 = 1.
+      real(kind_physics), dimension(3) :: l_plasma = [ 50., 125., 0. ]
 
       namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma
 
@@ -122,10 +123,10 @@ contains
     type(physics_pars_t), intent(in) :: physics_pars
     character(len = 255), intent(in) :: file_name
 
-    real(kind=8) :: m_ratio
-    real(kind=8) :: T_ratio
-    real(kind=8) :: B0
-    real(kind=8), dimension(3) :: l_plasma
+    real(kind_physics) :: m_ratio
+    real(kind_physics) :: T_ratio
+    real(kind_physics) :: B0
+    real(kind_physics), dimension(3) :: l_plasma
 
     namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma
 
@@ -158,7 +159,7 @@ contains
 
       integer(kind_particle) :: nx, ny, ipl, ipg, ix, iy, np, npp
       integer(kind_default) :: mpi_rank, mpi_size
-      real(kind = 8) :: dx, dy, lx, ly, qi, qe, mi, me, vti, vte, xgc, ygc, B0, rwce, rwci
+      real(kind_physics) :: dx, dy, lx, ly, qi, qe, mi, me, vti, vte, xgc, ygc, B0, rwce, rwci
 
       lx = physics_pars%l_plasma(1)
       ly = physics_pars%l_plasma(2)
@@ -213,10 +214,10 @@ contains
         ix = mod((ipg - 1) / 2, nx) + 1
         iy = (ipg - 1) / (2 * nx) + 1
 
-        xgc = (ix - 0.5D0) * dx
-        ygc = (iy - 0.5D0) * dy
+        xgc = (ix - 0.5) * dx
+        ygc = (iy - 0.5) * dy
 
-        p(ipl)%work = 1.0D0
+        p(ipl)%work = 1.
         p(ipl)%label = ipg
 
         if (mod(ipg, 2_kind_particle) == 0) then ! this is an electron
@@ -227,7 +228,7 @@ contains
 
           p(ipl)%x(1) = xgc + p(ipl)%data%v(2) * rwce
           p(ipl)%x(2) = ygc - p(ipl)%data%v(1) * rwce
-          p(ipl)%x(3) = 0.0D0
+          p(ipl)%x(3) = 0.
 
         else ! this is an ion
           p(ipl)%data%q = qi
@@ -237,7 +238,7 @@ contains
 
           p(ipl)%x(1) = xgc - p(ipl)%data%v(2) * rwci
           p(ipl)%x(2) = ygc + p(ipl)%data%v(1) * rwci
-          p(ipl)%x(3) = 0.0D0
+          p(ipl)%x(3) = 0.
 
           if (p(ipl)%x(1) < 0) then
             p(ipl)%x(1) = modulo(-p(ipl)%x(1), lx)
@@ -262,19 +263,19 @@ contains
     use module_rng
     implicit none
 
-    real*8, intent(in) :: vt
-    real*8, dimension(3) :: v
+    real(kind_physics), intent(in) :: vt
+    real(kind_physics), dimension(3) :: v
 
-    real*8 :: xi, v0
-    real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
+    real(kind_physics) :: xi, v0
+    real(kind_physics), parameter :: pi = 3.141592653589793238462643383279502884197_kind_physics
 
     xi = rng_next_real()
-    v0 = vt * sqrt(-2.0D0 * log(max(xi, 10.0_8**(-15))))
+    v0 = vt * sqrt(-2. * log(max(xi, 10.0_kind_physics**(-15))))
     xi = rng_next_real()
     v(1) = v0 * cos(2 * pi * xi)
     v(2) = v0 * sin(2 * pi * xi)
-    v(3) = 0.0D0
- 
+    v(3) = 0.
+
   end function velocity_2d_maxwell
 
 
@@ -292,20 +293,18 @@ contains
 
     integer(kind_particle) :: ip
     integer(kind_default) :: mpi_err
-    real(kind = 8) :: e_kin, e_pot, e_kin_g, e_pot_g
+    real(kind_physics) :: e_kin, e_pot, e_kin_g, e_pot_g
 
-    e_kin = 0.0D0
-    e_pot = 0.0D0
+    e_kin = 0.
+    e_pot = 0.
 
     do ip = 1, size(p)
-      e_kin = e_kin + e_kin_of_particle(p(ip)) 
+      e_kin = e_kin + e_kin_of_particle(p(ip))
       e_pot = e_pot + e_pot_of_particle(p(ip))
     end do
 
-    call mpi_reduce(e_kin, e_kin_g, 1, MPI_REAL8, MPI_SUM, 0, &
-      pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_reduce(e_pot, e_pot_g, 1, MPI_REAL8, MPI_SUM, 0, &
-      pepc_pars%pepc_comm%mpi_comm, mpi_err)
+    call mpi_reduce(e_kin, e_kin_g, 1, MPI_KIND_PHYSICS, MPI_SUM, 0, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+    call mpi_reduce(e_pot, e_pot_g, 1, MPI_KIND_PHYSICS, MPI_SUM, 0, pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
     if (pepc_pars%pepc_comm%mpi_rank == 0) then
       call write_to_stdout()
@@ -351,9 +350,9 @@ contains
     implicit none
 
     type(t_particle), intent(in) :: p
-    real(kind = 8) :: e_kin_of_particle
+    real(kind_physics) :: e_kin_of_particle
 
-    e_kin_of_particle = 0.5D0 * p%data%m * dot_product(p%data%v, p%data%v)
+    e_kin_of_particle = 0.5 * p%data%m * dot_product(p%data%v, p%data%v)
   end function e_kin_of_particle
 
 
@@ -362,7 +361,7 @@ contains
     implicit none
 
     type(t_particle), intent(in) :: p
-    real(kind = 8) :: e_pot_of_particle
+    real(kind_physics) :: e_pot_of_particle
 
     e_pot_of_particle = 0.5 * p%results%pot * p%data%q
   end function e_pot_of_particle

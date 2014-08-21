@@ -4,12 +4,13 @@ module physics_helper
    implicit none
 
    type physics_nml_t
-      real(kind=8) :: m_ratio, T_ratio, B0, shear_halfwidth, shear_strength
-      real(kind=8), dimension(3) :: l_plasma
+      real(kind_physics) :: m_ratio, T_ratio, B0, shear_halfwidth, shear_strength
+      real(kind_physics), dimension(3) :: l_plasma
       integer(kind = kind_particle) :: ni
    end type physics_nml_t
 
-   real(kind = 8), parameter :: force_const = 0.159154943D0
+   ! 1 / (2 * pi)
+   real(kind_physics), parameter :: force_const = 0.1591549430918953357688837633725143620345_kind_physics
 
    integer, parameter :: file_energy = 70
 
@@ -46,7 +47,7 @@ contains
 
       physics_pars%B0 = physics_nml%B0
       physics_pars%l_plasma = physics_nml%l_plasma
-      physics_pars%vte = 1.0D0
+      physics_pars%vte = 1.
       physics_pars%vti = physics_pars%vte * sqrt(physics_nml%T_ratio / physics_nml%m_ratio)
       physics_pars%qe  = -physics_pars%l_plasma(1) * physics_pars%l_plasma(2) / physics_nml%ni
       physics_pars%qi  = abs(physics_pars%qe)
@@ -57,11 +58,11 @@ contains
         physics_pars%B0 / physics_pars%mi * physics_pars%shear_halfwidth
       physics_pars%ni  = physics_nml%ni
 
-      t_lattice_1 = [ physics_pars%l_plasma(1), 0.0D0, 0.0D0 ]
-      t_lattice_2 = [ 0.0D0, physics_pars%l_plasma(2), 0.0D0 ]
-      t_lattice_3 = [ 0.0D0, 0.0D0, 1.0D0 ]
+      t_lattice_1 = [ physics_pars%l_plasma(1), 0._kind_physics, 0._kind_physics ]
+      t_lattice_2 = [ 0._kind_physics, physics_pars%l_plasma(2), 0._kind_physics ]
+      t_lattice_3 = [ 0._kind_physics, 0._kind_physics, 1._kind_physics ]
       if (.not. include_far_field_if_periodic) then
-        spatial_interaction_cutoff = huge(0.0D0) * [ 1.0D0, 1.0D0, 1.0D0 ]
+        spatial_interaction_cutoff = huge(1._kind_physics) * [ 1., 1., 1. ]
         spatial_interaction_cutoff(2) = max(1, mirror_box_layers) * physics_pars%l_plasma(2)
       end if
       periodicity = [ .false., .true., .false. ]
@@ -96,12 +97,12 @@ contains
       logical, intent(in) :: file_available
       character(len = 255), intent(in) :: file_name
 
-      real(kind=8) :: m_ratio = 100.0D0
-      real(kind=8) :: T_ratio = 1.0D0
-      real(kind=8) :: B0 = 1.0D0
-      real(kind=8), dimension(3) :: l_plasma = [ 50.0D0, 125.0D0, 0.0D0 ]
-      real(kind=8) :: shear_halfwidth = 2.0D0
-      real(kind=8) :: shear_strength = 1.0D0
+      real(kind_physics) :: m_ratio = 100.
+      real(kind_physics) :: T_ratio = 1.
+      real(kind_physics) :: B0 = 1.
+      real(kind_physics), dimension(3) :: l_plasma = [ 50., 125., 0. ]
+      real(kind_physics) :: shear_halfwidth = 2.
+      real(kind_physics) :: shear_strength = 1.
       integer(kind = kind_particle) :: ni = 0
 
       namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma, shear_halfwidth, shear_strength, ni
@@ -133,12 +134,12 @@ contains
     type(physics_pars_t), intent(in) :: physics_pars
     character(len = 255), intent(in) :: file_name
 
-    real(kind=8) :: m_ratio
-    real(kind=8) :: T_ratio
-    real(kind=8) :: shear_halfwidth
-    real(kind=8) :: shear_strength
-    real(kind=8) :: B0
-    real(kind=8), dimension(3) :: l_plasma
+    real(kind_physics) :: m_ratio
+    real(kind_physics) :: T_ratio
+    real(kind_physics) :: shear_halfwidth
+    real(kind_physics) :: shear_strength
+    real(kind_physics) :: B0
+    real(kind_physics), dimension(3) :: l_plasma
 
     namelist /physics_nml/ m_ratio, T_ratio, B0, l_plasma, shear_halfwidth, shear_strength
 
@@ -179,13 +180,13 @@ contains
       integer(kind_default) :: mpi_rank, mpi_size, mpi_err
       integer, allocatable :: period(:)
       integer :: it, ic
-      real(kind = 8) :: lambda, dx, lx, ly, qi, qe, mi, me, vti, vte, B0, rwci, rwce, v0
-      real(kind = 8), allocatable :: xi(:,:), vi(:,:), xp(:)
+      real(kind_physics) :: lambda, dx, lx, ly, qi, qe, mi, me, vti, vte, B0, rwci, rwce, v0
+      real(kind_physics), allocatable :: xi(:,:), vi(:,:), xp(:)
       type(time_pars_t) :: time_pars
       integer(kind_default), parameter :: nhist = 128
       integer(kind_particle), allocatable :: nihist(:), nehist(:)
 
-      real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
+      real(kind_physics), parameter :: pi = 3.141592653589793238462643383279502884197_kind_physics
 
       lx = physics_pars%l_plasma(1)
       ly = physics_pars%l_plasma(2)
@@ -223,23 +224,23 @@ contains
 
       do ip = 1, nil
         ! (2) load the ions into the simulation domain with a uniform distribution along the x axis
-        pt(ip)%work = 1.0D0
+        pt(ip)%work = 1.
         pt(ip)%data%q = qi
         pt(ip)%data%m = mi
 
         pt(ip)%x(1) = lx * rng_next_real()
         pt(ip)%x(2) = ly * rng_next_real()
-        pt(ip)%x(3) = 0.0D0
+        pt(ip)%x(3) = 0.
 
         xi(ip,:) = pt(ip)%x(:)
         xp(ip) = pt(ip)%x(1)
 
         ! (3) give the ions random initial velocities in the positive x direction with a Rayleigh distribution at the desired
         ! temperature
-        pt(ip)%data%v(1) = max(velocity_1d_rayleigh(vti), real(1.0E-6, kind = 8))
+        pt(ip)%data%v(1) = max(velocity_1d_rayleigh(vti), real(1.0E-6, kind = kind_physics))
         ! and in the y direction give them the local E x B drift velocity
         pt(ip)%data%v(2) = vdrift(pt(ip)%x(1))
-        pt(ip)%data%v(3) = 0.0D0
+        pt(ip)%data%v(3) = 0.
 
         vi(ip,:) = pt(ip)%data%v(:)
       end do
@@ -249,13 +250,13 @@ contains
       allocate(period(nil))
       period = 0
 
-      time_pars%dt = 2.0D0 * pi * rwci / 160.0D0
+      time_pars%dt = 2. * pi * rwci / 160.
 
       it = 0
       do
         do ip = 1, nil
           pt(ip)%results%e(1) = estatic(pt(ip)%x(1))
-          pt(ip)%results%e(2) = 0.0D0
+          pt(ip)%results%e(2) = 0.
         end do
 
         call push_particles(time_pars, physics_pars, pt(:))
@@ -277,7 +278,7 @@ contains
 
         do it = 1, int(rng_next_real() * period(ip))
           pt(ip)%results%e(1) = estatic(pt(ip)%x(1))
-          pt(ip)%results%e(2) = 0.0D0
+          pt(ip)%results%e(2) = 0.
 
           call push_particles(time_pars, physics_pars, pt(ip:ip))
         end do
@@ -287,9 +288,9 @@ contains
 
       call constrain_periodic(pt)
       do ip = 1, nil
-        if ((pt(ip)%x(1) .gt. lx) .or. (pt(ip)%x(1) .lt. 0.0D0)) then
+        if ((pt(ip)%x(1) .gt. lx) .or. (pt(ip)%x(1) .lt. 0.)) then
           pt(ip)%data%v(1) = -pt(ip)%data%v(1)
-          pt(ip)%data%v(2) = 2.0D0 * vdrift(pt(ip)%x(1)) - pt(ip)%data%v(2)
+          pt(ip)%data%v(2) = 2. * vdrift(pt(ip)%x(1)) - pt(ip)%data%v(2)
 
           pt(ip)%x(1) = lx - modulo(pt(ip)%x(1), lx)
         end if
@@ -314,7 +315,7 @@ contains
       ! and calculate the electron density by subtracting the charge density from the ion density
       nehist = 0
       do ic = 1, nhist
-        nehist(ic) = nihist(ic) + floor(ly * dx * estaticp(dx * (ic - 0.5D0)) / qe)
+        nehist(ic) = nihist(ic) + floor(ly * dx * estaticp(dx * (ic - 0.5)) / qe)
       end do
 
       ne = sum(nehist)
@@ -349,19 +350,19 @@ contains
         do i = 1, nehist(ic)
           ip = ip + 1
 
-          p(ip)%work = 1.0D0
+          p(ip)%work = 1.
           p(ip)%data%q = qe
           p(ip)%data%m = me
 
           ! (8) load the electrons into the simulation domain in such a way as to yield the required electron density
-          p(ip)%x(1) = dx * (ic - 1.0D0 + rng_next_real())
+          p(ip)%x(1) = dx * (ic - 1. + rng_next_real())
           p(ip)%x(2) = ly * rng_next_real()
-          p(ip)%x(3) = 0.0D0
+          p(ip)%x(3) = 0.
 
           ! (9) give the electrons random initial velocities with a displaced Maxwellian distribution at the modified temperature
           p(ip)%data%v(1:2) = velocity_2d_maxwell(vte / sqrt(sqrt(1 + vdriftp(p(ip)%x(1)) * rwce)))
           p(ip)%data%v(2) = p(ip)%data%v(2) + vdrift(p(ip)%x(1))
-          p(ip)%data%v(3) = 0.0D0
+          p(ip)%data%v(3) = 0.
 
           if (ip == nil + nel) exit
         end do
@@ -373,8 +374,8 @@ contains
 
       !print *, "num particles: ", ip
 
-      !vte = 0.0D0
-      !vti = 0.0D0
+      !vte = 0.
+      !vti = 0.
       !do ip = 1, nil
       !  vti = vti + p(ip)%data%v(1)**2 + (p(ip)%data%v(2) - vdrift(p(ip)%x(1)))**2
       !end do
@@ -382,8 +383,8 @@ contains
       !  vte = vte + p(ip)%data%v(1)**2 + (p(ip)%data%v(2) - vdrift(p(ip)%x(1)))**2
       !end do
 
-      !call mpi_allreduce(MPI_IN_PLACE, vti, 1, MPI_REAL8, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-      !call mpi_allreduce(MPI_IN_PLACE, vte, 1, MPI_REAL8, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      !call mpi_allreduce(MPI_IN_PLACE, vti, 1, MPI_KIND_PHYSICS, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+      !call mpi_allreduce(MPI_IN_PLACE, vte, 1, MPI_KIND_PHYSICS, MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
       !if (mpi_rank == 0) &
       !  print *, "Ti / Te = ", (mi * vti) / (me * vte)
@@ -410,26 +411,26 @@ contains
       function vdrift(x)
         implicit none
 
-        real*8 :: vdrift
-        real*8, intent(in) :: x
+        real(kind_physics) :: vdrift
+        real(kind_physics), intent(in) :: x
 
-        vdrift = v0 * tanh((x - lx / 2.0D0) / lambda)
+        vdrift = v0 * tanh((x - lx / 2.) / lambda)
       end function
 
       function vdriftp(x)
         implicit none
 
-        real*8 :: vdriftp
-        real*8, intent(in) :: x
+        real(kind_physics) :: vdriftp
+        real(kind_physics), intent(in) :: x
 
-        vdriftp = v0 * (1.0D0 - tanh((x - lx / 2.0D0) / lambda)**2.0D0) / lambda
+        vdriftp = v0 * (1. - tanh((x - lx / 2.) / lambda)**2.) / lambda
       end function
 
       function estatic(x)
         implicit none
 
-        real*8 :: estatic
-        real*8, intent(in) :: x
+        real(kind_physics) :: estatic
+        real(kind_physics), intent(in) :: x
 
         estatic = -B0 * vdrift(x)
       end function
@@ -437,8 +438,8 @@ contains
       function estaticp(x)
         implicit none
 
-        real*8 :: estaticp
-        real*8, intent(in) :: x
+        real(kind_physics) :: estaticp
+        real(kind_physics), intent(in) :: x
 
         estaticp = -B0 * vdriftp(x)
       end function
@@ -450,14 +451,14 @@ contains
     use module_rng
     implicit none
 
-    real*8, intent(in) :: vt
-    real*8, dimension(2) :: v
+    real(kind_physics), intent(in) :: vt
+    real(kind_physics), dimension(2) :: v
 
-    real*8 :: xi, v0
-    real(kind=8), parameter :: pi = 3.1415926535897932384626434D0
+    real(kind_physics) :: xi, v0
+    real(kind_physics), parameter :: pi = 3.141592653589793238462643383279502884197_kind_physics
 
     xi = rng_next_real()
-    v0 = vt * sqrt(-2.0D0 * log(max(xi, 10.0_8**(-15))))
+    v0 = vt * sqrt(-2. * log(max(xi, 10.0_kind_physics**(-15))))
     xi = rng_next_real()
     v(1) = v0 * cos(2 * pi * xi)
     v(2) = v0 * sin(2 * pi * xi)
@@ -469,13 +470,13 @@ contains
     use module_rng
     implicit none
 
-    real*8, intent(in) :: vt
-    real*8 :: v
+    real(kind_physics), intent(in) :: vt
+    real(kind_physics) :: v
 
-    real*8 :: xi
+    real(kind_physics) :: xi
 
     xi = rng_next_real()
-    v = vt * sqrt(-2.0D0 * log(xi))
+    v = vt * sqrt(-2. * log(xi))
   end function velocity_1d_rayleigh
 
 
@@ -493,20 +494,18 @@ contains
 
     integer(kind_particle) :: ip
     integer(kind_default) :: mpi_err
-    real(kind = 8) :: e_kin, e_pot, e_kin_g, e_pot_g
+    real(kind_physics) :: e_kin, e_pot, e_kin_g, e_pot_g
 
-    e_kin = 0.0D0
-    e_pot = 0.0D0
+    e_kin = 0.
+    e_pot = 0.
 
     do ip = 1, size(p)
       e_kin = e_kin + e_kin_of_particle(p(ip))
       e_pot = e_pot + e_pot_of_particle(p(ip))
     end do
 
-    call mpi_reduce(e_kin, e_kin_g, 1, MPI_REAL8, MPI_SUM, 0, &
-      pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_reduce(e_pot, e_pot_g, 1, MPI_REAL8, MPI_SUM, 0, &
-      pepc_pars%pepc_comm%mpi_comm, mpi_err)
+    call mpi_reduce(e_kin, e_kin_g, 1, MPI_KIND_PHYSICS, MPI_SUM, 0, pepc_pars%pepc_comm%mpi_comm, mpi_err)
+    call mpi_reduce(e_pot, e_pot_g, 1, MPI_KIND_PHYSICS, MPI_SUM, 0, pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
     if (pepc_pars%pepc_comm%mpi_rank == 0) then
       call write_to_stdout()
@@ -552,9 +551,9 @@ contains
     implicit none
 
     type(t_particle), intent(in) :: p
-    real(kind = 8) :: e_kin_of_particle
+    real(kind_physics) :: e_kin_of_particle
 
-    e_kin_of_particle = 0.5D0 * p%data%m * dot_product(p%data%v, p%data%v)
+    e_kin_of_particle = 0.5 * p%data%m * dot_product(p%data%v, p%data%v)
   end function e_kin_of_particle
 
 
@@ -563,7 +562,7 @@ contains
     implicit none
 
     type(t_particle), intent(in) :: p
-    real(kind = 8) :: e_pot_of_particle
+    real(kind_physics) :: e_pot_of_particle
 
     e_pot_of_particle = 0.5 * p%results%pot * p%data%q
   end function e_pot_of_particle

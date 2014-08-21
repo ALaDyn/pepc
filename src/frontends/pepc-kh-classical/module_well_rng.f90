@@ -1,6 +1,7 @@
 !> WELL 1024a pseudo RNG
 !> http://dx.doi.org/10.1145/1132973.1132974
 module module_rng
+  use module_pepc_kinds
   implicit none
 
   private
@@ -43,7 +44,7 @@ module module_rng
   function rng_next_real()
     implicit none
 
-    real :: rng_next_real
+    real(kind_physics) :: rng_next_real
 
     rng_next_real = rng%next_real()
   end function rng_next_real
@@ -74,10 +75,10 @@ module module_rng
 
   function well_rng_t_next_real(this)
     class(well_rng_t), intent(inout) :: this
-    real :: well_rng_t_next_real
+    real(kind_physics) :: well_rng_t_next_real
 
     integer(kind = 4) :: i
-    real, parameter :: IMI = 0.5 / huge(i)
+    real(kind_physics), parameter :: IMI = 0.5 / huge(i)
 
     i = this%next()
     well_rng_t_next_real = i * IMI + 0.5
