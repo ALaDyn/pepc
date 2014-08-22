@@ -34,6 +34,9 @@ module module_initialization
   use module_cmdline
   use particlehandling
 
+  implicit none
+  real(KIND=8)  :: fsup_at_checkpoint
+
   contains
 
 !======================================================================================
@@ -150,6 +153,10 @@ module module_initialization
         if (root) write(*,*)"=================================================="
 
         call read_particles_mpiio_from_filename(MPI_COMM_WORLD,step,npart,particles,resume_file,noparams=.true.)
+        open(fid,file=trim(resume_file)//".h")
+        read(fid,NML=pepcf)
+        close(fid)
+        fsup_at_checkpoint = fsup
     ELSE
         startstep=0
         step=0
@@ -206,6 +213,18 @@ module module_initialization
 
     npps=0
     tnpps=0
+
+    !change charge and mass of particles if fsup was changed
+    IF (fsup_at_checkpoint /= fsup) THEN
+        IF (root) write(*,*)
+        IF (root) write(*,*) "fsup was changed after resume. Existing particles will be adjusted. "
+        IF (root) write(*,*) "fsup_old:",fsup_at_checkpoint, "fsup:", fsup
+        IF (root) write(*,*)
+        DO ip=1,size(particles)
+            particles(ip)%data%m = particles(ip)%data%m / fsup_at_checkpoint * fsup
+            particles(ip)%data%q = particles(ip)%data%q / fsup_at_checkpoint * fsup
+        END DO
+    END IF
 
     !count particles per species (npps) in checkpoint data
     DO ip=1,size(particles)
