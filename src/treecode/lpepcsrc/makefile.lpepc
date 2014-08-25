@@ -1,5 +1,6 @@
 
-FILES_TC = module_tree_walk_$(WALK).f90
+FILES_TC = module_tree_walk_$(WALK).f90 \
+	   module_dual_tree_walk_$(DUAL_WALK).f90
 
 include $(OPADIR)/makefile.include
 include $(PTHREADSDIR)/makefile.include

@@ -4,7 +4,8 @@
 
 # default backend and walk
 BACKEND = coulomb
-WALK    = pthreads
+WALK = pthreads
+DUAL_WALK = simple
 
 include tools/build/makefile.paths
 include makefile.defs
@@ -22,10 +23,11 @@ UL=\e[4m# underline
 NC=\e[0m# No Color, default font
 
 prepare: $(SRC)
-	@printf "==== building frontend : $(BC)$(FRONTEND)$(NC)\n"
-	@printf "==== building walk     : $(BC)$(WALK)$(NC)\n"
-	@printf "==== building backend  : $(BC)$(BACKEND)$(NC)\n"
-	@printf "==== working directory : $(BC)$(WORKDIR)$(NC)\n"
+	@printf "==== building frontend  : $(BC)$(FRONTEND)$(NC)\n"
+	@printf "==== building walk      : $(BC)$(WALK)$(NC)\n"
+	@printf "==== building dual walk : $(BC)$(DUAL_WALK)$(NC)\n"
+	@printf "==== building backend   : $(BC)$(BACKEND)$(NC)\n"
+	@printf "==== working directory  : $(BC)$(WORKDIR)$(NC)\n"
 	@$(RM) $(MAKEENVS)
 	@echo "FRONTEND=$(FRONTEND)"       >> $(MAKEENVS)
 	@echo "ROOTDIR=$(ROOTDIR)"         >> $(MAKEENVS)
