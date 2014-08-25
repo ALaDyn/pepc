@@ -50,6 +50,8 @@ module module_pepc
     public pepc_grow_and_traverse         !< once per timestep, calls pepc_grow_tree, pepc_traverse_tree, pepc_statistics, pepc_restore_particles, pepc_timber_tree
     public pepc_grow_and_traverse_for_others !< once per timestep, calls pepc_grow_tree(particles_source), pepc_traverse_tree(particles_sink), pepc_statistics, pepc_restore_particles, pepc_timber_tree
 
+    public pepc_calculate_internal
+
     public pepc_finalize                  !< mandatory, once per simulation
 
     public pepc_get_para_file
@@ -428,6 +430,21 @@ module module_pepc
 
       if (dealloc) call pepc_timber_tree()
 
+    end subroutine
+
+
+    !>
+    !> Calculates interaction results for a collection of particles amongst themselves (hence "internal") using the dual tree
+    !> traversal based algorithm.
+    !>
+    subroutine pepc_calculate_internal(particles)
+      use module_pepc_types, only: t_particle
+      use module_dual_tree_walk
+      implicit none
+
+      type(t_particle), allocatable, intent(inout) :: particles(:)
+
+      ! empty for now
     end subroutine
 
 
