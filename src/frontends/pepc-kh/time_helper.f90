@@ -3,7 +3,7 @@ module time_helper
    implicit none
 
    type time_nml_t
-      real(kind=8) :: te
+      real(kind_physics) :: te
       integer :: nsteps, nresume
    end type time_nml_t
 
@@ -46,7 +46,7 @@ contains
       logical, intent(in) :: file_available
       character(len = 255), intent(in) :: file_name
 
-      real(kind=8) :: te = 0.
+      real(kind_physics) :: te = 0.
       integer :: nsteps = 0
       integer :: nresume = 0
 
@@ -76,7 +76,7 @@ contains
       integer, intent(in) :: step
       character(len = 255), intent(in) :: file_name
 
-      real(kind=8) :: te = 0.
+      real(kind_physics) :: te = 0.
       integer :: nsteps = 0
       integer :: nresume = 0
 
@@ -106,12 +106,12 @@ contains
       type(t_particle), intent(inout) :: p(:)
 
       integer(kind_particle) :: ip
-      real*8 :: beta, gam
-      real*8, dimension(3) :: uminus, uprime, uplus, t, s
+      real(kind_physics) :: beta, gam
+      real(kind_physics), dimension(3) :: uminus, uprime, uplus, t, s
 
-      real*8, dimension(3) :: B0
+      real(kind_physics), dimension(3) :: B0
 
-      B0(1:2) = 0.0D0
+      B0(1:2) = 0.
       B0(3) = physics_pars%B0
 
       do ip = 1, size(p)
@@ -122,7 +122,7 @@ contains
         uminus(3)   = 0
         ! gamma factor
         !gam    = sqrt( 1.0 + ( dot_product(uminus, uminus) ) / unit_c2 )
-        gam    = 1.0D0
+        gam    = 1.
         ! rotation with magnetic field
         t      = beta/gam * B0
         uprime = uminus + cross_product(uminus, t)
@@ -132,8 +132,8 @@ contains
         p(ip)%data%v(1:2) = uplus(1:2) + beta * p(ip)%results%e(1:2)
         p(ip)%data%v(3)   = 0
 
-        ! gam = sqrt(1.0D0 + dot_product(p(ip)%data%v * p(ip)%data%v) / unit_c2)
-        gam = 1.0D0
+        ! gam = sqrt(1. + dot_product(p(ip)%data%v * p(ip)%data%v) / unit_c2)
+        gam = 1.
         p(ip)%x = p(ip)%x + p(ip)%data%v / gam * time_pars%dt
       end do
 
@@ -142,8 +142,8 @@ contains
       pure function cross_product(a, b)
         implicit none
 
-        real*8, dimension(3), intent(in) :: a, b
-        real*8, dimension(3) :: cross_product
+        real(kind_physics), dimension(3), intent(in) :: a, b
+        real(kind_physics), dimension(3) :: cross_product
 
         cross_product(1) = a(2) * b(3) - a(3) * b(2)
         cross_product(2) = a(3) * b(1) - a(1) * b(3)
@@ -166,7 +166,7 @@ contains
     type(t_particle), intent(inout) :: p(:)
 
     integer(kind_particle) :: ip
-    real(kind=8) :: vte, vti, lx
+    real(kind_physics) :: vte, vti, lx
 
     vte = physics_pars%vte
     vti = physics_pars%vti

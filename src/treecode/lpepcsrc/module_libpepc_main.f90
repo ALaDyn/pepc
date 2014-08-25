@@ -138,7 +138,7 @@ module module_libpepc_main
     subroutine libpepc_traverse_tree(t, p)
         use module_pepc_types
         use treevars
-        use module_walk
+        use module_tree_walk
         use module_mirror_boxes
         use module_timings
         use module_interaction_specific

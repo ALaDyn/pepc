@@ -6,7 +6,7 @@ module field_helper
 
   type field_grid_nml_t
     integer, dimension(2) :: n
-    real(kind = 8), dimension(2) :: offset, extent
+    real(kind_physics), dimension(2) :: offset, extent
   end type field_grid_nml_t
 
 contains
@@ -69,9 +69,9 @@ contains
       ix = mod(ipg - 1, field_grid%n(1)) + 1
       iy = (ipg - 1) / field_grid%n(1) + 1
 
-      field_grid%p(ipl)%x(1) = (ix - 0.5D0) * field_grid%dx(1) + field_grid%offset(1)
-      field_grid%p(ipl)%x(2) = (iy - 0.5D0) * field_grid%dx(2) + field_grid%offset(2)
-      field_grid%p(ipl)%x(3) = 0.0D0
+      field_grid%p(ipl)%x(1) = (ix - 0.5) * field_grid%dx(1) + field_grid%offset(1)
+      field_grid%p(ipl)%x(2) = (iy - 0.5) * field_grid%dx(2) + field_grid%offset(2)
+      field_grid%p(ipl)%x(3) = 0.
 
       field_grid%p(ipl)%label = ipg
     end do
@@ -88,8 +88,8 @@ contains
       character(len = 255), intent(in) :: file_name
 
       integer, dimension(2) :: n = [ 0, 0 ]
-      real(kind=8), dimension(2) :: offset = [ 0.0D0, 0.0D0 ]
-      real(kind=8), dimension(2) :: extent = [ 0.0D0, 0.0D0 ]
+      real(kind_physics), dimension(2) :: offset = [ 0., 0. ]
+      real(kind_physics), dimension(2) :: extent = [ 0., 0. ]
 
       namelist /field_grid_nml/ n, offset, extent
 
@@ -120,8 +120,8 @@ contains
     integer, parameter :: para_file_id = 10
 
     integer(kind_particle), dimension(2) :: n
-    real(kind=8), dimension(2) :: offset
-    real(kind=8), dimension(2) :: extent
+    real(kind_physics), dimension(2) :: offset
+    real(kind_physics), dimension(2) :: extent
 
     namelist /field_grid_nml/ n, offset, extent
 
@@ -156,7 +156,7 @@ contains
     integer(kind_particle) :: ipl
     integer(kind_default) :: mpi_err
     integer, dimension(2) :: ic
-    real(kind=8) :: da, rda
+    real(kind_physics) :: da, rda
 
     call pepc_particleresults_clear(field_grid%p)
     call pepc_traverse_tree(field_grid%p)
@@ -164,16 +164,16 @@ contains
     field_grid%p(:)%results%e(2) = field_grid%p(:)%results%e(2) * force_const
     field_grid%p(:)%results%pot  = field_grid%p(:)%results%pot  * force_const
 
-    field_grid%ne = 0.0D0
-    field_grid%ni = 0.0D0
-    field_grid%ne_from_left = 0.0D0
-    field_grid%ni_from_left = 0.0D0
-    field_grid%vex = 0.0D0
-    field_grid%vey = 0.0D0
-    field_grid%vix = 0.0D0
-    field_grid%viy = 0.0D0
+    field_grid%ne = 0.
+    field_grid%ni = 0.
+    field_grid%ne_from_left = 0.
+    field_grid%ni_from_left = 0.
+    field_grid%vex = 0.
+    field_grid%vey = 0.
+    field_grid%vix = 0.
+    field_grid%viy = 0.
     da = product(field_grid%dx)
-    rda = 1.0D0 / da
+    rda = 1. / da
 
     ! make a spatial histogram of local particle numbers and velocities per species
     do ipl = 1, size(p)
@@ -183,7 +183,7 @@ contains
 
       ic = ceiling((p(ipl)%x(1:2) - field_grid%offset) / field_grid%dx)
 
-      if (p(ipl)%data%q < 0.0D0) then ! electron
+      if (p(ipl)%data%q < 0.) then ! electron
         field_grid%ne(ic(1), ic(2)) = field_grid%ne(ic(1), ic(2)) + 1
         field_grid%vex(ic(1), ic(2)) = field_grid%vex(ic(1), ic(2)) +  p(ipl)%data%v(1)
         field_grid%vey(ic(1), ic(2)) = field_grid%vey(ic(1), ic(2)) +  p(ipl)%data%v(2)
@@ -201,40 +201,40 @@ contains
     end do
 
     ! accumulate the histograms
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%ne, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ne, int(field_grid%ntot, kind = kind_default), MPI_KIND_PHYSICS, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%ni, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ni, int(field_grid%ntot, kind = kind_default), MPI_KIND_PHYSICS, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%ne_from_left, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ne_from_left, int(field_grid%ntot, kind = kind_default), MPI_KIND_PHYSICS, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%ni_from_left, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%ni_from_left, int(field_grid%ntot, kind = kind_default), MPI_KIND_PHYSICS, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%vex, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%vex, int(field_grid%ntot, kind = kind_default), MPI_KIND_PHYSICS, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%vey, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%vey, int(field_grid%ntot, kind = kind_default), MPI_KIND_PHYSICS, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%vix, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%vix, int(field_grid%ntot, kind = kind_default), MPI_KIND_PHYSICS, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
-    call mpi_allreduce(MPI_IN_PLACE, field_grid%viy, int(field_grid%ntot, kind = kind_default), MPI_REAL8, &
+    call mpi_allreduce(MPI_IN_PLACE, field_grid%viy, int(field_grid%ntot, kind = kind_default), MPI_KIND_PHYSICS, &
       MPI_SUM, pepc_pars%pepc_comm%mpi_comm, mpi_err)
 
     ! normalize to fluid quantities
     ! total velocity -> mean velocity
-    where (field_grid%ne > 0.0D0)
+    where (field_grid%ne > 0.)
       field_grid%vex = field_grid%vex / field_grid%ne
       field_grid%vey = field_grid%vey / field_grid%ne
     elsewhere
-      field_grid%vex = 0.0D0
-      field_grid%vey = 0.0D0
+      field_grid%vex = 0.
+      field_grid%vey = 0.
     end where
 
-    where (field_grid%ni > 0.0D0)
+    where (field_grid%ni > 0.)
       field_grid%vix = field_grid%vix / field_grid%ni
       field_grid%viy = field_grid%viy / field_grid%ni
     elsewhere
-      field_grid%vix = 0.0D0
-      field_grid%viy = 0.0D0
+      field_grid%vix = 0.
+      field_grid%viy = 0.
     end where
     ! particle number -> particle density
     field_grid%ne(:,:) = field_grid%ne * rda
@@ -256,12 +256,16 @@ contains
     type(physics_pars_t), intent(in) :: physics_pars
     type(field_grid_t), intent(in) :: field_grid
 
+    integer :: fh, mpi_err
+    integer, dimension(MPI_STATUS_SIZE) :: mpi_stat
     integer(kind_particle) :: my_count, fflatshape(1)
     integer(kind = MPI_OFFSET_KIND) :: my_offset
-    real(kind = 8), dimension(:), allocatable :: fflat
+    real(kind_physics), dimension(:), allocatable :: fflat
+    real(kind = 8), dimension(:), allocatable :: real8_buf
 
     allocate(fflat(field_grid%ntot))
     fflatshape(1) = field_grid%ntot
+    allocate(real8_buf(field_grid%nl))
 
     my_count = field_grid%nl
     my_offset = min(int(pepc_comm%mpi_rank, kind=kind_particle), &
@@ -273,26 +277,28 @@ contains
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)
     call write_quantity_on_grid("ex", field_grid%p(:)%results%e(1))
     call write_quantity_on_grid("ey", field_grid%p(:)%results%e(2))
-    fflat(:) = reshape(field_grid%ne, fflatshape)
-    call write_quantity_on_grid("ne", fflat(my_offset + 1:))
-    fflat(:) = reshape(field_grid%ni, fflatshape)
-    call write_quantity_on_grid("ni", fflat(my_offset + 1:))
-    fflat(:) = reshape(field_grid%ne_from_left, fflatshape)
-    call write_quantity_on_grid("nefromleft", fflat(my_offset + 1:))
-    fflat(:) = reshape(field_grid%ni_from_left, fflatshape)
-    call write_quantity_on_grid("nifromleft", fflat(my_offset + 1:))
-    fflat(:) = reshape(field_grid%vex, fflatshape)
-    call write_quantity_on_grid("vex", fflat(my_offset + 1:))
-    fflat(:) = reshape(field_grid%vey, fflatshape)
-    call write_quantity_on_grid("vey", fflat(my_offset + 1:))
-    fflat(:) = reshape(field_grid%vix, fflatshape)
-    call write_quantity_on_grid("vix", fflat(my_offset + 1:))
-    fflat(:) = reshape(field_grid%viy, fflatshape)
-    call write_quantity_on_grid("viy", fflat(my_offset + 1:))
+    call flatten_and_write_quantity_on_grid("ne", field_grid%ne)
+    call flatten_and_write_quantity_on_grid("ni", field_grid%ni)
+    call flatten_and_write_quantity_on_grid("nefromleft", field_grid%ne_from_left)
+    call flatten_and_write_quantity_on_grid("nifromleft", field_grid%ni_from_left)
+    call flatten_and_write_quantity_on_grid("vex", field_grid%vex)
+    call flatten_and_write_quantity_on_grid("vey", field_grid%vey)
+    call flatten_and_write_quantity_on_grid("vix", field_grid%vix)
+    call flatten_and_write_quantity_on_grid("viy", field_grid%viy)
 
-    deallocate(fflat)
+    deallocate(fflat, real8_buf)
 
     contains
+
+    subroutine flatten_and_write_quantity_on_grid(yname, y)
+      implicit none
+
+      character(*), intent(in) :: yname
+      real(kind_physics), dimension(:,:), intent(in) :: y
+
+      fflat(:) = reshape(y, fflatshape)
+      call write_quantity_on_grid(yname, fflat(1 + my_offset : 1 + my_offset + field_grid%nl))
+    end subroutine
 
     subroutine write_quantity_on_grid(yname, y)
       use mpi
@@ -300,15 +306,16 @@ contains
       implicit none
 
       character(*), intent(in) :: yname
-      real(kind = 8), dimension(:), intent(in) :: y
+      real(kind_physics), dimension(:), intent(in) :: y
 
       integer(kind = MPI_OFFSET_KIND), parameter :: field_header_size = 512
       integer(kind = 4), parameter :: field_header_magic = 1
 
       character(1024) :: filename
-      integer :: fh, mpi_err, nx_, ny_
+      integer :: nx_, ny_
       integer(kind = MPI_OFFSET_KIND) :: mpi_disp
-      integer, dimension(MPI_STATUS_SIZE) :: mpi_stat
+
+      real8_buf(:) = real(y(:), kind = 8)
 
       write(filename, '(a,"/",a,"_",i6.6,".bin")') field_dir, yname, step
 
@@ -345,24 +352,24 @@ contains
       ! float64 min
       ! float64 max
       if (pepc_comm%mpi_rank == 0) then
-        call mpi_file_write(fh, field_header_magic, 1, MPI_INTEGER4, mpi_stat, mpi_err)
-        call mpi_file_write(fh, nx_, 1, MPI_INTEGER4, mpi_stat, mpi_err)
-        call mpi_file_write(fh, ny_, 1, MPI_INTEGER4, mpi_stat, mpi_err)
-        call mpi_file_write(fh, field_grid%offset(1), 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, field_grid%offset(2), 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, field_grid%extent(1), 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, field_grid%extent(2), 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, step, 1, MPI_INTEGER4, mpi_stat, mpi_err)
-        call mpi_file_write(fh, step * time_pars%dt, 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, physics_pars%B0, 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, physics_pars%vte, 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, physics_pars%vti, 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, physics_pars%qe, 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, physics_pars%qi, 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, physics_pars%me, 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, physics_pars%mi, 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, minval(y), 1, MPI_REAL8, mpi_stat, mpi_err)
-        call mpi_file_write(fh, maxval(y), 1, MPI_REAL8, mpi_stat, mpi_err)
+        call header_write_integer4(field_header_magic)
+        call header_write_integer4(nx_)
+        call header_write_integer4(ny_)
+        call header_write_real(field_grid%offset(1))
+        call header_write_real(field_grid%offset(2))
+        call header_write_real(field_grid%extent(1))
+        call header_write_real(field_grid%extent(2))
+        call header_write_integer4(step)
+        call header_write_real(step * time_pars%dt)
+        call header_write_real(physics_pars%B0)
+        call header_write_real(physics_pars%vte)
+        call header_write_real(physics_pars%vti)
+        call header_write_real(physics_pars%qe)
+        call header_write_real(physics_pars%qi)
+        call header_write_real(physics_pars%me)
+        call header_write_real(physics_pars%mi)
+        call header_write_real(minval(y))
+        call header_write_real(maxval(y))
 
         call mpi_file_get_position(fh, mpi_disp, mpi_err)
         if (mpi_disp > field_header_size) then
@@ -370,14 +377,30 @@ contains
         end if
       end if
 
-      call mpi_file_set_view(fh, field_header_size, MPI_REAL8, MPI_REAL8, &
-        'native', MPI_INFO_NULL, mpi_err)
-
-      call mpi_file_write_at_all(fh, my_offset, y(:), int(field_grid%nl, kind = kind_default), MPI_REAL8, mpi_stat, mpi_err)
+      call mpi_file_set_view(fh, field_header_size, MPI_REAL8, MPI_REAL8, 'native', MPI_INFO_NULL, mpi_err)
+      call mpi_file_write_at_all(fh, my_offset, real8_buf, int(field_grid%nl, kind = kind_default), MPI_REAL8, mpi_stat, mpi_err)
 
       call mpi_file_sync(fh, mpi_err)
       call mpi_file_close(fh, mpi_err)
+    end subroutine
 
+    subroutine header_write_real(x)
+      implicit none
+
+      real(kind_physics), intent(in) :: x
+
+      real(kind = 8) :: real8_buf
+
+      real8_buf = real(x, kind = 8)
+      call mpi_file_write(fh, real8_buf, 1, MPI_REAL8, mpi_stat, mpi_err)
+    end subroutine
+
+    subroutine header_write_integer4(i)
+      implicit none
+
+      integer(kind = 4), intent(in) :: i
+
+      call mpi_file_write(fh, i, 1, MPI_INTEGER4, mpi_stat, mpi_err)
     end subroutine
 
   end subroutine

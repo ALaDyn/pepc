@@ -137,7 +137,7 @@ contains
 
     ta = get_time()
 
-    time = time_pars%dt * step
+    time = real(time_pars%dt * step, kind = 8)
 
     if (step .eq. 0) then
       vtk_step = VTK_STEP_FIRST
@@ -180,9 +180,9 @@ contains
       vtk_step = VTK_STEP_NORMAL
     endif
 
-    call vtk_write_branches(step,  time_pars%dt * step, vtk_step, global_tree)
-    call vtk_write_leaves(step, time_pars%dt * step, vtk_step, global_tree)
-    call vtk_write_spacecurve(step, time_pars%dt * step, vtk_step, p)
+    call vtk_write_branches(step,  real(time_pars%dt * step, kind = 8), vtk_step, global_tree)
+    call vtk_write_leaves(step, real(time_pars%dt * step, kind = 8), vtk_step, global_tree)
+    call vtk_write_spacecurve(step, real(time_pars%dt * step, kind = 8), vtk_step, p)
 
   end subroutine write_domain
 

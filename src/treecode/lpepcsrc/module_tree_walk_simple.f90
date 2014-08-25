@@ -24,7 +24,7 @@
 !> The algorithm uses OpenMP tasks to hide MPI communication latency.
 !> The force calculation / tree traversal is performed for several particles grouped in a "tile" at the same time.
 !>
-module module_walk
+module module_tree_walk
   use module_tree, only: t_tree
   use module_pepc_types, only: t_particle
   use module_pepc_kinds
@@ -62,7 +62,7 @@ module module_walk
 
     integer, intent(in) :: u
 
-    if (0 == me) then; write (u, *) "module_walk_simple: no statistics for now."; end if
+    if (0 == me) then; write (u, *) "module_tree_walk_simple: no statistics for now."; end if
   end subroutine tree_walk_statistics
 
 
@@ -337,4 +337,4 @@ module module_walk
       end if
     end subroutine tree_walk_single_aux
   end subroutine tree_walk_single
-end module module_walk
+end module module_tree_walk

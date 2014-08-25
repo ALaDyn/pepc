@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -24,7 +24,7 @@ program pepc
    use module_pepc_kinds
    use module_pepc_types
    use module_timings
-  
+
    use constants
    use encap
    use pepc_helper
@@ -87,7 +87,7 @@ program pepc
       write(*,'(a,es12.4)') " ====== simulation time :", step * time_pars%dt
       write(*,*) ""
     end if
-    
+
     call t_start(timer_step)
 
     if (pepc_pars%pdump .ne. 0) do_pdump = mod(step, pepc_pars%pdump) .eq. 0
@@ -125,7 +125,7 @@ program pepc
       call t_stop(timer_fio)
     end if
 
-    if (do_pdump) then 
+    if (do_pdump) then
        call t_start(timer_pio)
        call write_domain(time_pars, step, p)
        call write_particles(pepc_pars, time_pars, step, p)
@@ -136,7 +136,7 @@ program pepc
     call pepc_timber_tree()
 
     call physics_dump(pepc_pars, physics_pars, time_pars, step, p)
-        
+
     call t_start(timer_dynamics)
     call push_particles(time_pars, physics_pars, p)
     call constrain_particles(physics_pars, p)
@@ -160,8 +160,8 @@ program pepc
        write(*,'(a,es12.4)') " == time in pusher (s)                            : ", timer_dynamics
     end if
 
-  end do 
- 
+  end do
+
   deallocate(p)
 
   call t_stop(timer_total)
