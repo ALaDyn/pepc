@@ -19,7 +19,7 @@ pp_module_tree_communicator.f90
 pp_module_tree.f90
 pp_module_tree_grow.f90
 pp_module_tree_node.f90
-pp_module_walk_pthreads.f90
+pp_module_tree_walk_pthreads.f90
 
 # interaction backend
 pp_module_interaction_specific.f90

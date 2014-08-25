@@ -71,7 +71,6 @@ module module_pepc
       use treevars, only : np_mult, me, num_pe, MPI_COMM_lpepc, main_thread_processor_id
       use module_pepc_types, only : register_lpepc_mpi_types
       use module_utils, only : create_directory, MPI_IN_PLACE_test
-      use module_walk
       use module_domains
       use module_debug
       use pthreads_stuff, only: get_my_core
@@ -233,7 +232,7 @@ module module_pepc
     subroutine pepc_read_parameters(filehandle)
       use module_debug, only : pepc_status
       use module_interaction_specific, only : calc_force_read_parameters
-      use module_walk, only: tree_walk_read_parameters
+      use module_tree_walk, only: tree_walk_read_parameters
       use module_libpepc_main, only: libpepc_read_parameters
       implicit none
       integer, intent(in) :: filehandle
@@ -254,7 +253,7 @@ module module_pepc
     subroutine pepc_write_parameters(filehandle)
       use module_debug, only : pepc_status
       use module_interaction_specific, only : calc_force_write_parameters
-      use module_walk, only: tree_walk_write_parameters
+      use module_tree_walk, only: tree_walk_write_parameters
       use module_libpepc_main, only: libpepc_write_parameters
       implicit none
       integer, intent(in) :: filehandle
@@ -273,7 +272,7 @@ module module_pepc
     !>
     subroutine pepc_prepare(idim)
       use treevars, only : treevars_prepare
-      use module_walk, only: tree_walk_prepare
+      use module_tree_walk, only: tree_walk_prepare
       use module_interaction_specific, only: calc_force_prepare
       use module_mirror_boxes, only: neighbour_boxes_prepare
       use pthreads_stuff, only: pthreads_init, set_prefetching
@@ -300,7 +299,7 @@ module module_pepc
     subroutine pepc_finalize(comm)
       use module_debug
       use module_pepc_types, only : free_lpepc_mpi_types
-      use module_walk, only : tree_walk_finalize
+      use module_tree_walk, only : tree_walk_finalize
       use module_interaction_specific, only : calc_force_finalize
       use treevars, only : treevars_finalize, MPI_COMM_lpepc
       use pthreads_stuff, only: pthreads_uninit
@@ -475,7 +474,7 @@ module module_pepc
     !>
     subroutine pepc_statistics(itime)
         use module_tree, only: tree_stats
-        use module_walk, only: tree_walk_statistics
+        use module_tree_walk, only: tree_walk_statistics
         use module_utils, only: create_directory
         use treevars, only: me, stats_u
         use module_debug

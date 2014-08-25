@@ -33,7 +33,7 @@ subroutine pepc_scafacos_run(nlocal, ntotal, positions, charges, &
   use iso_c_binding
 
   use module_pepc
-  use module_walk, only : max_particles_per_thread
+  use module_tree_walk, only : max_particles_per_thread
   use module_pepc_kinds
   use module_pepc_types
   use module_interaction_specific, only : theta2, eps2

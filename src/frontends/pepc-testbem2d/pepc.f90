@@ -165,7 +165,7 @@ module bem
     use module_pepc
     use module_interaction_specific
     use module_interaction_specific_types
-    use module_walk, only: interactions_local
+    use module_tree_walk, only: interactions_local
     implicit none
 
     #include <finclude/petsc.h90>
@@ -250,7 +250,6 @@ program pepc
   use module_interaction_specific
   use module_interaction_specific_types
   use treevars
-  use module_walk
   use module_vtk
   use module_vtk_helpers
 

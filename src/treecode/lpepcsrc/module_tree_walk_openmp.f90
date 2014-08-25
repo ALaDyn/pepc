@@ -90,7 +90,7 @@
 !>       end do
 !>     end if
 !>
-module module_walk
+module module_tree_walk
   use, intrinsic :: iso_c_binding
   use module_tree, only: t_tree
   use module_pepc_kinds
@@ -235,8 +235,7 @@ module module_walk
 
 
   !>
-  !> finalizes walk, currently this is not needed by this walk-type,
-  !> but needs to be implemented in the module_walk
+  !> finalizes walk
   !>
   subroutine tree_walk_finalize()
     implicit none
@@ -763,4 +762,4 @@ module module_walk
       end do
     end subroutine
   end function walk_single_particle
-end module module_walk
+end module module_tree_walk
