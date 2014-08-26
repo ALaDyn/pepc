@@ -67,6 +67,7 @@ module module_pepc_types
         integer(kind_node) :: parent
         integer(kind_node) :: first_child
         integer(kind_node) :: next_sibling
+        integer(kind_particle) :: particle
         real(kind_physics) :: center(1:3)
         type(t_multipole_moments) :: multipole_moments
         type(t_local_coefficients) :: local_coefficients

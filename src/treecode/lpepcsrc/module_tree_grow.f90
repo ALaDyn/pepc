@@ -651,7 +651,7 @@ module module_tree_grow
         ! do nothing
       else if (si == 1) then ! we have arrived at a leaf
         if (ki(1)%idx /= 0) then ! boundary particles have idx == 0, do not really need to be inserted
-          call tree_node_create_from_particle(t, this_node, p(ki(1)%idx), k)
+          call tree_node_create_from_particle(t, this_node, p(ki(1)%idx), k, ki(1)%idx)
           call tree_insert_node(t, this_node, inserted_node_idx)
           p(ki(1)%idx)%node_leaf = inserted_node_idx
         end if
@@ -702,7 +702,7 @@ module module_tree_grow
   !>
   !> populates a tree node with information from a single particle
   !>
-  subroutine tree_node_create_from_particle(t, n, p, k)
+  subroutine tree_node_create_from_particle(t, n, p, k, i)
     use module_pepc_types, only: t_particle, t_tree_node
     use module_tree, only: t_tree
     use module_tree_node
@@ -715,6 +715,7 @@ module module_tree_grow
     type(t_tree_node), intent(out) :: n
     type(t_particle), intent(in) :: p
     integer(kind_key), intent(in) :: k
+    integer(kind_particle), intent(in) :: i
 
     n%flags_global = 0
     n%flags_local  = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
@@ -727,6 +728,7 @@ module module_tree_grow
     n%parent       = NODE_INVALID
     n%first_child  = NODE_INVALID
     n%next_sibling = NODE_INVALID
+    n%particle     = i
 
     call timer_resume(t_props_leaves)
     call multipole_from_particle(p%x, p%data, n%center, n%multipole_moments)
@@ -752,6 +754,7 @@ module module_tree_grow
     parent%parent       = NODE_INVALID
     parent%next_sibling = NODE_INVALID
     parent%first_child  = NODE_INVALID
+    parent%particle     = 0
 
     call tree_node_update_from_children(t, parent, children, k)
   end subroutine tree_node_create_from_children

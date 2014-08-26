@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -23,6 +23,7 @@
 !>
 module module_tree_node
     use module_pepc_kinds
+    use module_pepc_types, only: t_tree_node_package, t_tree_node
     implicit none
     private
 
@@ -38,9 +39,15 @@ module module_tree_node
 
     public tree_node_get_first_child
     public tree_node_get_next_sibling
+    public tree_node_get_particle
     public tree_node_is_leaf
     public tree_node_is_root
     public tree_node_children_available
+    public tree_node_request_sent
+    public tree_node_has_local_contributions
+    public tree_node_has_remote_contributions
+    public tree_node_is_branch_node
+    public tree_node_is_fill_node
     public tree_node_pack
     public tree_node_unpack
 
@@ -54,7 +61,6 @@ module module_tree_node
     !> Otherwise, `.false.` is returned and `fc` points to `null()`.
     !>
     function tree_node_get_first_child(p) result(fc)
-      use module_pepc_types, only: t_tree_node
       use module_atomic_ops
       implicit none
 
@@ -80,7 +86,6 @@ module module_tree_node
     !> In this context, "next" is defined by the ordering of the node keys.
     !>
     function tree_node_get_next_sibling(n) result(s)
-      use module_pepc_types, only: t_tree_node
       implicit none
 
       integer(kind_node) :: s
@@ -91,10 +96,26 @@ module module_tree_node
 
 
     !>
+    !> Returns the particle associated with the leaf node `n`.
+    !>
+    function tree_node_get_particle(n) result(p)
+      use module_debug
+      implicit none
+
+      integer(kind_particle) :: p
+      type(t_tree_node), intent(in) :: n
+
+      DEBUG_ASSERT(tree_node_is_leaf(n))
+      DEBUG_ASSERT(tree_node_has_local_contributions(n))
+
+      p = n%particle
+    end function tree_node_get_particle
+
+
+    !>
     !> checks whether `n` is a leaf or twig node
     !>
     function tree_node_is_leaf(n)
-      use module_pepc_types, only: t_tree_node
       implicit none
       type(t_tree_node), intent(in) :: n
       logical :: tree_node_is_leaf
@@ -107,7 +128,6 @@ module module_tree_node
     !> checks whether `n` is a root node
     !>
     function tree_node_is_root(n)
-      use module_pepc_types, only: t_tree_node
       implicit none
       type(t_tree_node), intent(in) :: n
 
@@ -118,21 +138,79 @@ module module_tree_node
 
 
     !>
-    !> checks whether the children of `n` are locally available or have
-    !> to be requested from remote ranks
+    !> checks whether the children of `n` are locally available or have to be requested from remote ranks
     !>
-    function tree_node_children_available(n)
-      use module_pepc_types, only: t_tree_node
+    function tree_node_children_available(n) result(r)
       implicit none
       type(t_tree_node), intent(in) :: n
-      logical :: tree_node_children_available
+      logical :: r
 
-      tree_node_children_available = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
+      r = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
     end function tree_node_children_available
 
 
+    !>
+    !> checks whether a request has been sent for the children of node `n`
+    !>
+    function tree_node_request_sent(n) result(r)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      logical :: r
+
+      r = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
+    end function
+
+
+    !>
+    !> checks whether the node `n` contains information (directly or through its descendants) from any particles from the local
+    !> particle list
+    !>
+    function tree_node_has_local_contributions(n) result(r)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      logical :: r
+
+      r = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
+    end function
+
+
+    !>
+    !> checks whether the node `n` contains information (directly or through its descendants) from any remote particles
+    !>
+    function tree_node_has_remote_contributions(n) result(r)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      logical :: r
+
+      r = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
+    end function
+
+
+    !>
+    !> checks whether the node `n` is a branch node (remote or local)
+    !>
+    function tree_node_is_branch_node(n) result(r)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      logical :: r
+
+      r = btest(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)
+    end function
+
+
+    !>
+    !> checks whether the node `n` is a "fill node", i.e. lies between the branch nodes and the root node
+    !>
+    function tree_node_is_fill_node(n) result(r)
+      implicit none
+      type(t_tree_node), intent(in) :: n
+      logical :: r
+
+      r = btest(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
+    end function
+
+
     subroutine tree_node_pack(n, p)
-      use module_pepc_types, only: t_tree_node_package, t_tree_node
       implicit none
 
       type(t_tree_node), intent(in) :: n
@@ -152,7 +230,6 @@ module module_tree_node
 
 
     subroutine tree_node_unpack(p, n)
-      use module_pepc_types, only: t_tree_node_package, t_tree_node
       implicit none
 
       type(t_tree_node_package), intent(in) :: p
@@ -168,6 +245,7 @@ module module_tree_node
       n%parent            = p%parent
       n%first_child       = p%first_child
       n%next_sibling      = NODE_INVALID
+      n%particle          = 0
       n%request_posted    = .false.
       n%center            = p%center
       n%multipole_moments = p%multipole_moments
