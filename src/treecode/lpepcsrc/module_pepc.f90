@@ -440,11 +440,40 @@ module module_pepc
     subroutine pepc_calculate_internal(particles)
       use module_pepc_types, only: t_particle
       use module_dual_tree_walk
+      use module_libpepc_main, only: libpepc_grow_tree, libpepc_timber_tree
+      use module_mirror_boxes
+      use module_interaction_specific
+      use module_timings
+      use module_debug
       implicit none
 
       type(t_particle), allocatable, intent(inout) :: particles(:)
 
-      ! empty for now
+      type(t_tree) :: tree
+      integer :: ibox
+
+      call libpepc_grow_tree(tree, particles)
+
+      call pepc_status('TRAVERSE TREE')
+      call timer_start(t_walk)
+
+      call timer_start(t_fields_passes)
+      do ibox = 1,num_neighbour_boxes ! sum over all boxes
+        call dual_tree_walk_sow(tree, lattice_vect(neighbour_boxes(:,ibox)))
+      end do
+      call timer_stop(t_fields_passes)
+
+      call dual_tree_walk_reap(tree, particles)
+
+      ! add lattice contribution and other per-particle-forces
+      call timer_start(t_lattice)
+      call calc_force_per_particle(particles)
+      call timer_stop(t_lattice)
+      call timer_stop(t_walk)
+      call pepc_status('TRAVERSAL DONE')
+
+      call libpepc_timber_tree(tree)
+
     end subroutine
 
 
