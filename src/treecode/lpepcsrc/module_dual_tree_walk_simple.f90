@@ -93,63 +93,87 @@ module module_dual_tree_walk
       implicit none
       integer(kind_node), intent(in) :: src, dst
 
-      type(t_tree_node), pointer :: src_node, dst_node
       logical :: src_is_leaf, dst_is_leaf
       real(kind_physics) :: shifted_src_center(3), rsrc, rdst
 
-      src_node => t%nodes(src)
-      dst_node => t%nodes(dst)
-      src_is_leaf = tree_node_is_leaf(src_node)
-      dst_is_leaf = tree_node_is_leaf(dst_node)
+      associate (src_node => t%nodes(src), dst_node => t%nodes(dst))
 
-      ! TODO: Optimization
-      rsrc = 0.5**(src_node%level) * boxsizelength
-      rdst = 0.5**(dst_node%level) * boxsizelength
+        src_is_leaf = tree_node_is_leaf(src_node)
+        dst_is_leaf = tree_node_is_leaf(dst_node)
 
-      shifted_src_center = src_node%center - lattice_vector
+        ! TODO: Optimization
+        rsrc = 0.5**(src_node%level) * boxsizelength
+        rdst = 0.5**(dst_node%level) * boxsizelength
 
-      if ((src_is_leaf .and. dst_is_leaf) &
-          .or. dual_mac(shifted_src_center, rsrc, src_node%multipole_moments, dst_node%center, rdst, dst_node%multipole_moments)) then ! TODO: Leafs and well separated nodes together?
-        call multipole_to_local(shifted_src_center, src_node%multipole_moments, dst_node%center, dst_node%local_coefficients)
-      else if (dst_is_leaf) then
-        call split_src(src, dst)
-      else if (src_is_leaf) then
-        call split_dst(src, dst)
-      else if (rsrc > rdst) then 
-        call split_src(src, dst)
-      else 
-        call split_dst(src, dst)
-      end if
+        shifted_src_center = src_node%center - lattice_vector
+
+        if ((src_is_leaf .and. dst_is_leaf) &
+            .or. dual_mac(shifted_src_center, rsrc, src_node%multipole_moments, dst_node%center, rdst, dst_node%multipole_moments)) then ! TODO: Leafs and well separated nodes together?
+          call multipole_to_local(shifted_src_center, src_node%multipole_moments, dst_node%center, dst_node%local_coefficients)
+        else if (dst_is_leaf) then
+          call split_src(src, dst)
+        else if (src_is_leaf) then
+          call split_dst(src, dst)
+        else if (rsrc > rdst) then 
+          call split_src(src, dst)
+        else 
+          call split_dst(src, dst)
+        end if
+
+      end associate
 
     end subroutine sow_aux
 
     recursive subroutine split_src(src, dst)
+      use pthreads_stuff, only: pthreads_sched_yield
+      use module_tree_communicator, only: tree_node_fetch_children
+      use module_atomic_ops, only: atomic_read_barrier
       implicit none
       integer(kind_node), intent(in) :: src, dst
 
       integer(kind_node) :: ns
 
-      ns = tree_node_get_first_child(t%nodes(src))
-      do
-        call sow_aux(ns, dst)
-        ns = tree_node_get_next_sibling(t%nodes(ns))
-        if (ns == NODE_INVALID) exit
-      end do
+      associate (src_node => t%nodes(src))
+
+        if (.not. tree_node_children_available(src_node)) then
+          call tree_node_fetch_children(t, src_node, src)
+          do ! loop and yield until children have been fetched
+            ERROR_ON_FAIL(pthreads_sched_yield())
+            if (tree_node_children_available(src_node)) exit
+            !!$omp taskyield
+          end do
+        end if
+
+        call atomic_read_barrier()
+
+        ns = tree_node_get_first_child(src_node)
+        do
+          call sow_aux(ns, dst)
+          ns = tree_node_get_next_sibling(t%nodes(ns))
+          if (ns == NODE_INVALID) exit
+        end do
+
+      end associate
 
     end subroutine split_src
 
     recursive subroutine split_dst(src, dst)
+      use module_tree_node, only: tree_node_has_local_contributions
       implicit none
       integer(kind_node), intent(in) :: src, dst
 
       integer(kind_node) :: ns
 
-      ns = tree_node_get_first_child(t%nodes(dst))
-      do
-        call sow_aux(src, ns)
-        ns = tree_node_get_next_sibling(t%nodes(ns))
-        if (ns == NODE_INVALID) exit
-      end do      
+      associate (dst_node => t%nodes(dst))
+
+        ns = tree_node_get_first_child(dst_node)
+        do
+          if (tree_node_has_local_contributions(dst_node)) call sow_aux(src, ns)
+          ns = tree_node_get_next_sibling(t%nodes(ns))
+          if (ns == NODE_INVALID) exit
+        end do
+
+      end associate
 
     end subroutine split_dst
 
@@ -161,7 +185,7 @@ module module_dual_tree_walk
     use module_pepc_types, only: t_particle, t_tree_node
     use module_interaction_specific
     use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
-      tree_node_get_first_child, tree_node_get_next_sibling, tree_node_get_particle, NODE_INVALID
+      tree_node_get_first_child, tree_node_get_next_sibling, tree_node_get_particle, tree_node_has_local_contributions, NODE_INVALID
     use module_debug
     implicit none
 
@@ -182,25 +206,27 @@ module module_dual_tree_walk
       integer(kind_node) :: ns
       integer(kind_particle) :: ps
 
-      node => t%nodes(n)
+      associate (node => t%nodes(n))
 
-      if (tree_node_is_leaf(node)) then
-        ps = tree_node_get_particle(node)
-        call evaluate_at_particle(node%local_coefficients, p(ps)%results)
-      else 
-        ns = tree_node_get_first_child(node)
-        do
-          call shift_coefficients_down(node%center, node%local_coefficients, t%nodes(ns)%center, t%nodes(ns)%local_coefficients)
-          call reap_aux(ns)
-          ns = tree_node_get_next_sibling(t%nodes(ns))
-          if (ns == NODE_INVALID) exit
-        end do
-      end if
+        if (tree_node_is_leaf(node)) then
+          ps = tree_node_get_particle(node)
+          call evaluate_at_particle(node%local_coefficients, p(ps)%results)
+        else 
+          ns = tree_node_get_first_child(node)
+          do
+            if (tree_node_has_local_contributions(node)) then
+              call shift_coefficients_down(node%center, node%local_coefficients, t%nodes(ns)%center, t%nodes(ns)%local_coefficients)
+              call reap_aux(ns)
+            end if
+            ns = tree_node_get_next_sibling(t%nodes(ns))
+            if (ns == NODE_INVALID) exit
+          end do
+        end if
+
+      end associate
 
     end subroutine reap_aux
 
   end subroutine dual_tree_walk_reap
-
-
 
 end module module_dual_tree_walk
