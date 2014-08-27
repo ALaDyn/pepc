@@ -157,7 +157,7 @@ module module_interaction_specific
         real(kind_physics) :: r(3)
         real(kind_physics) :: invr
         real(kind_physics) :: di(3), dii(3), dij(3)
-        
+
         r = xt - xm
         invr = 1. / sqrt(dot_product(r,r) + eps2)
         di = - invr**3 * r
@@ -204,18 +204,18 @@ module module_interaction_specific
           + x(1) * x(2) * p%fxy + x(2) * x(3) * p%fyz + x(3) * x(1) * p%fzx
 
         c%fx = c%fx + p%fx &
-          + x(1) * p%fxx + x(2) * p%fxy + x(3) * p%fzx 
+          + x(1) * p%fxx + x(2) * p%fxy + x(3) * p%fzx
         c%fy = c%fy + p%fy &
           + x(1) * p%fxy + x(2) * p%fyy + x(3) * p%fyz
         c%fz = c%fz + p%fz &
           + x(1) * p%fzx + x(2) * p%fyz + x(3) * p%fzz
 
-        c%fxx = p%fxx
-        c%fyy = p%fyy
-        c%fzz = p%fzz
-        c%fxy = p%fxy
-        c%fyz = p%fyz
-        c%fzx = p%fxx
+        c%fxx = c%fxx + p%fxx
+        c%fyy = c%fyy + p%fyy
+        c%fzz = c%fzz + p%fzz
+        c%fxy = c%fxy + p%fxy
+        c%fyz = c%fyz + p%fyz
+        c%fzx = c%fzx + p%fzx
 
       end subroutine
 

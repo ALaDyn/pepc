@@ -392,8 +392,8 @@ module module_interaction_specific
     type(t_particle_results), intent(inout) :: r
 
     r%pot = r%pot + real(c%mu(0), kind = 8)
-    r%e(1) = r%e(1) + real(c%mu(1), kind = 8)
-    r%e(2) = r%e(2) - real(aimag(c%mu(1)), kind = 8)
+    r%e(1) = r%e(1) - real(c%mu(1), kind = 8)
+    r%e(2) = r%e(2) + real(aimag(c%mu(1)), kind = 8)
   end subroutine
 
 
