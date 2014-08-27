@@ -603,7 +603,7 @@ module module_tree_communicator
         else
           call tree_node_unpack(child_data(ic), unpack_node)
           ! tree nodes coming from remote PEs are flagged for easier identification
-          unpack_node%flags_local = ibset(unpack_node%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
+          call tree_node_set_has_remote_contributions(unpack_node, .true.)
 
           call tree_insert_node(t, unpack_node, newnode)
 
@@ -629,7 +629,7 @@ module module_tree_communicator
       endif
       ! set 'children-here'-flag for all parent addresses
       ! may only be done *after inserting all* children, hence not(!) during the loop above
-      parent%flags_local = ibset(parent%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
+      call tree_node_set_children_available(parent, .true.)
 
     end subroutine
 
@@ -699,7 +699,7 @@ module module_tree_communicator
 
       integer(kind_default) :: ierr
 
-      if (.not. btest( req%node%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT ) ) then
+      if (.not. tree_node_request_sent(req%node) ) then
         ! send a request to PE req_queue_owners(req_queue_top)
         ! telling, that we need child data for particle request_key(req_queue_top)
 
@@ -713,7 +713,7 @@ module module_tree_communicator
             comm_env%comm, ierr)
         endif
 
-        req%node%flags_local = ibset(req%node%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
+        call tree_node_set_request_sent(req%node, .true.)
         send_request = .true.
       else
         send_request = .false.

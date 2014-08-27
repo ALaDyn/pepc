@@ -146,7 +146,7 @@ module module_tree_grow
   !>
   subroutine tree_exchange(t, num_local_branch_nodes, local_branch_nodes, branch_nodes)
     use module_tree, only: t_tree, tree_insert_node
-    use module_tree_node, only: tree_node_pack, tree_node_unpack, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE
+    use module_tree_node, only: tree_node_pack, tree_node_unpack
     use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package
     use module_debug, only : pepc_status
     use module_timings
@@ -269,12 +269,9 @@ module module_tree_grow
       branch => t%nodes(bn(i))
 
       ! flag all branch nodes for later identification
-      branch%flags_global = ibset(branch%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)
-
-      if (branch%owner /= t%comm_env%rank) then
-        ! additionally, we mark all remote branches as remote nodes (this information is propagated upwards later)
-        branch%flags_local = ibset(branch%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
-      end if
+      call tree_node_set_is_branch_node(branch, .true.)
+      ! additionally, we mark all remote branches as remote nodes (this information is propagated upwards later)
+      call tree_node_set_has_remote_contributions(branch, branch%owner /= t%comm_env%rank)
     end do
 
     contains
@@ -717,8 +714,8 @@ module module_tree_grow
     integer(kind_key), intent(in) :: k
     integer(kind_particle), intent(in) :: i
 
-    n%flags_global = 0
-    n%flags_local  = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
+    call tree_node_clear_flags(n)
+    call tree_node_set_has_local_contributions(n, .true.)
     n%request_posted = .false.
     n%owner        = t%comm_env%rank
     n%key          = k
@@ -791,13 +788,12 @@ module module_tree_grow
     parent%level        = level_from_key(k)
     parent%owner        = t%comm_env%rank
 
-    parent%flags_global = 0
-    parent%flags_local  = 0
+    call tree_node_clear_flags(parent)
     parent%leaves       = 0
     parent%descendants  = nchild
 
     ! Set children_HERE flag parent since we just built it from its children
-    parent%flags_local = ibset(parent%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
+    call tree_node_set_children_available(parent, .true.)
 
     do i = 1, nchild
       child => t%nodes(children(i))
@@ -805,19 +801,13 @@ module module_tree_grow
       children_centers(1:3, i) = child%center(1:3)
 
       ! parents of nodes with local contributions also contain local contributions
-      if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
-        parent%flags_local = ibset(parent%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
-      end if
+      call tree_node_set_has_local_contributions(parent, tree_node_has_local_contributions(child))
 
       ! parents of nodes with remote contributions also contain remote contributions
-      if (btest(child%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)) then
-        parent%flags_local = ibset(parent%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
-      end if
+      call tree_node_set_has_remote_contributions(parent, tree_node_has_remote_contributions(child))
 
       ! parents of branch and fill nodes will also be fill nodes
-      if (btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE) .or. btest(child%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
-        parent%flags_global = ibset(parent%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
-      end if
+      call tree_node_set_is_fill_node(parent, tree_node_is_fill_node(child) .or. tree_node_is_branch_node(child))
 
       parent%leaves      = parent%leaves      + child%leaves
       parent%descendants = parent%descendants + child%descendants

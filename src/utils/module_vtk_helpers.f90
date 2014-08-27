@@ -619,7 +619,7 @@ module module_vtk_helpers
       ns = NODE_INVALID
 
       associate (n => t%nodes(nidx))
-        if (btest(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
+        if (tree_node_has_local_contributions(n)) then
           if (tree_node_is_leaf(n)) then
             i = i + 1
             leaves(i) = nidx
@@ -710,7 +710,7 @@ module module_vtk_helpers
       ns = NODE_INVALID
 
       associate (n => t%nodes(nidx))
-        if (btest(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
+        if (tree_node_is_branch_node(n)) then
           i = i + 1
           branch_nodes(i) = nidx
         else

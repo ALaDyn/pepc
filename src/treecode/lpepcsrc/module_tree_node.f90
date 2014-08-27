@@ -25,31 +25,18 @@ module module_tree_node
     use module_pepc_kinds
     use module_pepc_types, only: t_tree_node_package, t_tree_node
     implicit none
-    private
+    public
 
     ! bits in flags to be set when children are requested, the request has been sent, and they have arrived
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE       = 0 !< bit is used in flags_local to denote that children information for the node is available in the local hashtable
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_REQUEST_SENT             = 1 !< bit is set in flags_local if request for child nodes has actually been sent
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local for all nodes that contain some local nodes beneath them
-    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local for all nodes that contain some remote nodes beneath them
-    integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE           = 0 !< bit is set in flags_global for all branch nodes (set in tree_exchange)
-    integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE             = 1 !< bit is set in flags_global for all nodes that are above (towards root) branch nodes
+    integer, private, parameter :: TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE       = 0 !< bit is used in flags_local to denote that children information for the node is available in the local hashtable
+    integer, private, parameter :: TREE_NODE_FLAG_LOCAL_REQUEST_SENT             = 1 !< bit is set in flags_local if request for child nodes has actually been sent
+    integer, private, parameter :: TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local for all nodes that contain some local nodes beneath them
+    integer, private, parameter :: TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local for all nodes that contain some remote nodes beneath them
 
-    integer(kind_node), public, parameter :: NODE_INVALID = -1
+    integer, private, parameter :: TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE           = 0 !< bit is set in flags_global for all branch nodes (set in tree_exchange)
+    integer, private, parameter :: TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE             = 1 !< bit is set in flags_global for all nodes that are above (towards root) branch nodes
 
-    public tree_node_get_first_child
-    public tree_node_get_next_sibling
-    public tree_node_get_particle
-    public tree_node_is_leaf
-    public tree_node_is_root
-    public tree_node_children_available
-    public tree_node_request_sent
-    public tree_node_has_local_contributions
-    public tree_node_has_remote_contributions
-    public tree_node_is_branch_node
-    public tree_node_is_fill_node
-    public tree_node_pack
-    public tree_node_unpack
+    integer(kind_node), parameter :: NODE_INVALID = -1
 
     contains
 
@@ -137,6 +124,20 @@ module module_tree_node
     end function tree_node_is_root
 
 
+    subroutine tree_node_clear_flags(n)
+      implicit none
+      type(t_tree_node), intent(inout) :: n
+
+      integer(kind(n%flags_local)) :: tmp_local
+      integer(kind(n%flags_global)) :: tmp_global
+
+      tmp_local = n%flags_local
+      n%flags_local = ieor(tmp_local, n%flags_local)
+      tmp_global = n%flags_global
+      n%flags_global = ieor(tmp_global, n%flags_global)
+    end subroutine
+
+
     !>
     !> checks whether the children of `n` are locally available or have to be requested from remote ranks
     !>
@@ -149,6 +150,19 @@ module module_tree_node
     end function tree_node_children_available
 
 
+    subroutine tree_node_set_children_available(n, ca)
+      implicit none
+      type(t_tree_node), intent(inout) :: n
+      logical, intent(in) :: ca
+
+      if (ca) then
+        n%flags_local = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
+      else
+        n%flags_local = ibclr(n%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE)
+      end if
+    end subroutine
+
+
     !>
     !> checks whether a request has been sent for the children of node `n`
     !>
@@ -159,6 +173,19 @@ module module_tree_node
 
       r = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
     end function
+
+
+    subroutine tree_node_set_request_sent(n, rs)
+      implicit none
+      type(t_tree_node), intent(inout) :: n
+      logical, intent(in) :: rs
+
+      if (rs) then
+        n%flags_local = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
+      else
+        n%flags_local = ibclr(n%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
+      end if
+    end subroutine
 
 
     !>
@@ -174,6 +201,19 @@ module module_tree_node
     end function
 
 
+    subroutine tree_node_set_has_local_contributions(n, hlc)
+      implicit none
+      type(t_tree_node), intent(inout) :: n
+      logical, intent(in) :: hlc
+
+      if (hlc) then
+        n%flags_local = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
+      else
+        n%flags_local = ibclr(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
+      end if
+    end subroutine
+
+
     !>
     !> checks whether the node `n` contains information (directly or through its descendants) from any remote particles
     !>
@@ -184,6 +224,19 @@ module module_tree_node
 
       r = btest(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
     end function
+
+
+    subroutine tree_node_set_has_remote_contributions(n, hrc)
+      implicit none
+      type(t_tree_node), intent(inout) :: n
+      logical, intent(in) :: hrc
+
+      if (hrc) then
+        n%flags_local = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
+      else
+        n%flags_local = ibclr(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
+      end if
+    end subroutine
 
 
     !>
@@ -198,6 +251,19 @@ module module_tree_node
     end function
 
 
+    subroutine tree_node_set_is_branch_node(n, ibn)
+      implicit none
+      type(t_tree_node), intent(inout) :: n
+      logical, intent(in) :: ibn
+
+      if (ibn) then
+        n%flags_global = ibset(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)
+      else
+        n%flags_global = ibclr(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)
+      end if
+    end subroutine
+
+
     !>
     !> checks whether the node `n` is a "fill node", i.e. lies between the branch nodes and the root node
     !>
@@ -208,6 +274,19 @@ module module_tree_node
 
       r = btest(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
     end function
+
+
+    subroutine tree_node_set_is_fill_node(n, ifn)
+      implicit none
+      type(t_tree_node), intent(inout) :: n
+      logical, intent(in) :: ifn
+
+      if (ifn) then
+        n%flags_global = ibset(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
+      else
+        n%flags_global = ibclr(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
+      end if
+    end subroutine
 
 
     subroutine tree_node_pack(n, p)
