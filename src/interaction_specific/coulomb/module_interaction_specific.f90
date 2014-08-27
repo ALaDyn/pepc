@@ -56,6 +56,9 @@ module module_interaction_specific
       public calc_force_prepare
       public calc_force_after_grow
       public get_number_of_interactions_per_particle
+      public multipole_to_local
+      public shift_coefficients_down
+      public evaluate_at_particle
 
       contains
 
