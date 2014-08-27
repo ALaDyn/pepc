@@ -50,6 +50,7 @@ module module_interaction_specific
   public calc_force_per_interaction_with_twig
   public calc_force_per_particle
   public mac
+  public dual_mac
   public particleresults_clear
   public calc_force_read_parameters
   public calc_force_write_parameters
@@ -311,6 +312,25 @@ module module_interaction_specific
           ! N^2 code
           mac = .false.
     end select
+  end function
+
+
+  !>
+  !> Multipole Acceptance Criterion for dual tree traversal
+  !>
+  function dual_mac(x1, r1, m1, x2, r2, m2)
+    implicit none
+
+    logical :: dual_mac
+    type(t_multipole_moments), intent(in) :: m1, m2
+    real(kind_physics), intent(in) :: x1(3), x2(3)
+    real(kind_physics), intent(in) :: r1, r2
+
+    real(kind_physics) :: d(2)
+
+    d = x1(1:2) - x2(1:2)
+
+    dual_mac = (theta2 * dot_product(d, d) > (r1 + r2)**2)
   end function
 
 
