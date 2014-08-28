@@ -161,7 +161,7 @@ module module_dual_tree_walk
 
         ns = tree_node_get_first_child(dst_node)
         do
-          if (tree_node_has_local_contributions(dst_node)) call sow_aux(src, ns)
+          if (tree_node_has_local_contributions(t%nodes(ns))) call sow_aux(src, ns)
           ns = tree_node_get_next_sibling(t%nodes(ns))
           if (ns == NODE_INVALID) exit
         end do
@@ -207,7 +207,7 @@ module module_dual_tree_walk
         else
           ns = tree_node_get_first_child(node)
           do
-            if (tree_node_has_local_contributions(node)) then
+            if (tree_node_has_local_contributions(t%nodes(ns))) then
               call shift_coefficients_down(node%center, node%local_coefficients, t%nodes(ns)%center, t%nodes(ns)%local_coefficients)
               call reap_aux(ns)
             end if
