@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -63,7 +63,7 @@ module module_domains
     type(t_comm_env), intent(in) :: c
 
     call comm_env_dup(c, d%comm_env)
-    
+
     !TODO: make adjustable by user or find a good estimation. Additional Question: Does this value have to be globally constant?
     ! allow 25% fluctuation around average particle number per PE in sorting library for load balancing
     d%nppmax = int(1.25 * max(int(n / d%comm_env%size), 1000))
@@ -190,15 +190,18 @@ module module_domains
         DEBUG_ERROR('("rank has less than two particles after sorting (had ", I8, " before). Did you initialise particle field %work correctly? --> aborting")', d%npold)
     end if
 
-    call timer_stop(t_domains_sort_pure)
+    if (d%npnew > d%nppmax) then
+      DEBUG_ERROR('("More than nppm particles after sorting: nppm = ", I0, " < npp = ",I0,". All local particle fields are too short. Aborting.")', d%nppmax, d%npnew)
+    end if
 
+    call timer_stop(t_domains_sort_pure)
     call timer_stop(t_domains_sort)
     call timer_start(t_domains_ship)
 
     ! Now permute particle properties
     ! Set up particle structure
     call timer_start(t_domains_add_pack)
-    
+
     allocate(ship_parts(d%nppmax))
     do i = 1, d%npold
       ship_parts(i) = particles( d%indxl(i) )
@@ -228,11 +231,6 @@ module module_domains
     deallocate(get_parts)
 
     call timer_stop(t_domains_add_unpack)
-
-    if (d%npnew > d%nppmax) then
-      DEBUG_ERROR('("More than nppm particles after sorting: nppm = ", I0, " < npp = ",I0,". All local particle fields are too short. Aborting.")', d%nppmax, d%npnew)
-    end if
-
     call timer_stop(t_domains_ship)
     call timer_stop(t_domains_add_sort)
     call timer_start(t_domains_bound)
