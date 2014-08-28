@@ -85,20 +85,21 @@ module module_tree
       integer(kind_node) :: ntwig       !< number of twigs stored locally
       integer(kind_node) :: nleaf_me    !< number of leaves that originated on this rank
       integer(kind_node) :: ntwig_me    !< number of twigs that originated on this rank
-      
+
       integer(kind_node)   :: nbranch     !< number of branch nodes in tree
       integer(kind_node)   :: nbranch_me  !< number of branch nodes that originated on this rank
       integer(kind_node)   :: nbranch_max_me !< upper limit estimate for number of local branch nodes
 
       integer(kind_particle) :: nintmax     !< maximum number of interactions
-      
+
       type(t_tree_node), pointer :: nodes(:) !< array of tree nodes
       integer(kind_node) :: nodes_maxentries !< max number of entries in nodes array
       integer(kind_node) :: nodes_nentries   !< number of entries present in nodes array
       integer(kind_node) :: node_root        !< index of the root node in nodes-array
-      
-      real(kind_physics), allocatable :: boxlength2(:) !< precomputed square of maximum edge length of boxes for different levels - used for MAC evaluation
-      
+
+      real(kind_physics), allocatable :: boxlength2(:)    !< precomputed square of maximum edge length of boxes for different levels - used for MAC evaluation
+      real(kind_physics), allocatable :: boxdiaglength(:) !< precomputed length of box diagonals for different levels - used for MAC evaluation
+
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
       type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
       type(t_decomposition) :: decomposition    !< permutation of particles inserted into the tree
@@ -121,7 +122,7 @@ module module_tree
 
     !>
     !> Create a tree (allocates memory but does not fill the tree)
-    !> 
+    !>
     !> Uses particle numbers (local and global) to estimate the memory needed
     !> for node storage.
     !> A communication environment over which the tree is distributed can be
@@ -193,12 +194,15 @@ module module_tree
       end if
 
       call tree_communicator_create(t%communicator)
-      
+
       ! Preprocessed box sizes for each level
       allocate(t%boxlength2(0:nlev))
+      allocate(t%boxdiaglength(0:nlev))
       t%boxlength2(0) = maxval(t%bounding_box%boxsize)**2
+      t%boxdiaglength(0) = sqrt(dot_product(t%bounding_box%boxsize, t%bounding_box%boxsize))
       do i = 1, nlev
-        t%boxlength2(i) =  t%boxlength2(i-1)/4._8
+        t%boxlength2(i) =  0.25 * t%boxlength2(i-1)
+        t%boxdiaglength(i) = 0.5 * t%boxdiaglength(i-1)
       end do
 
       call timer_stop(t_allocate)
@@ -231,9 +235,12 @@ module module_tree
       t%node_root        = NODE_INVALID
       t%nodes_maxentries = 0_kind_node
       deallocate(t%nodes)
-      
+
       DEBUG_ASSERT(allocated(t%boxlength2))
+      DEBUG_ASSERT(allocated(t%boxdiaglength))
       deallocate(t%boxlength2)
+      deallocate(t%boxdiaglength)
+
     end subroutine tree_destroy
 
 

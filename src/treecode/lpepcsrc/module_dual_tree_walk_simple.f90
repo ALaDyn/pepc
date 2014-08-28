@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -37,7 +37,7 @@ module module_dual_tree_walk
   subroutine dual_tree_walk_statistics(u)
     use treevars, only: me
     implicit none
-    
+
     integer, intent(in) :: u
 
     if (0 == me) then; write (u, *) "module_walk_dual: no statistics for now."; end if
@@ -79,11 +79,7 @@ module module_dual_tree_walk
     type(t_tree), intent(inout) :: t
     real(kind_physics), intent(in) :: lattice_vector(3) !< lattice vector
 
-    real(kind_physics) :: boxsizelength
-
     call pepc_status('WALK DUAL SOW')
-
-    boxsizelength = sqrt(dot_product(t%bounding_box%boxsize, t%bounding_box%boxsize))
 
     call sow_aux(t%node_root, t%node_root)
 
@@ -94,16 +90,13 @@ module module_dual_tree_walk
       integer(kind_node), intent(in) :: src, dst
 
       logical :: src_is_leaf, dst_is_leaf
-      real(kind_physics) :: shifted_src_center(3), rsrc, rdst
+      real(kind_physics) :: shifted_src_center(3)
 
-      associate (src_node => t%nodes(src), dst_node => t%nodes(dst))
+      associate (src_node => t%nodes(src), dst_node => t%nodes(dst), &
+        rsrc => t%boxdiaglength(t%nodes(src)%level), rdst => t%boxdiaglength(t%nodes(dst)%level))
 
         src_is_leaf = tree_node_is_leaf(src_node)
         dst_is_leaf = tree_node_is_leaf(dst_node)
-
-        ! TODO: Optimization
-        rsrc = 0.5**(src_node%level) * boxsizelength
-        rdst = 0.5**(dst_node%level) * boxsizelength
 
         shifted_src_center = src_node%center - lattice_vector
 
@@ -114,9 +107,9 @@ module module_dual_tree_walk
           call split_src(src, dst)
         else if (src_is_leaf) then
           call split_dst(src, dst)
-        else if (rsrc > rdst) then 
+        else if (rsrc > rdst) then
           call split_src(src, dst)
-        else 
+        else
           call split_dst(src, dst)
         end if
 
@@ -211,7 +204,7 @@ module module_dual_tree_walk
         if (tree_node_is_leaf(node)) then
           ps = tree_node_get_particle(node)
           call evaluate_at_particle(node%local_coefficients, p(ps)%results)
-        else 
+        else
           ns = tree_node_get_first_child(node)
           do
             if (tree_node_has_local_contributions(node)) then
