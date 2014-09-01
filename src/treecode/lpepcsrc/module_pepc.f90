@@ -438,7 +438,6 @@ module module_pepc
     !> traversal based algorithm.
     !>
     subroutine pepc_calculate_internal(particles)
-      use module_pepc_types, only: t_particle
       use module_dual_tree_walk
       use module_libpepc_main, only: libpepc_grow_tree, libpepc_timber_tree
       use module_mirror_boxes
@@ -449,9 +448,10 @@ module module_pepc
 
       type(t_particle), allocatable, intent(inout) :: particles(:)
 
-      type(t_tree) :: tree
+      type(t_tree), allocatable, target :: tree
       integer :: ibox
 
+      allocate(tree)
       call libpepc_grow_tree(tree, particles)
 
       call pepc_status('TRAVERSE TREE')
@@ -473,6 +473,7 @@ module module_pepc
       call pepc_status('TRAVERSAL DONE')
 
       call libpepc_timber_tree(tree)
+      deallocate(tree)
 
     end subroutine
 
