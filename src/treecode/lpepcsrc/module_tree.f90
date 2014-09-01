@@ -57,8 +57,8 @@ module module_tree
     type, public :: t_tree_communicator
       ! request queue
       type(t_request_queue_entry) :: req_queue(TREE_COMM_REQUEST_QUEUE_LENGTH)
-      type(t_atomic_int), pointer :: req_queue_bottom !< position of queue bottom in array; pushed away from top by tree users
-      type(t_atomic_int), pointer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending    
+      type(t_atomic_int), pointer :: req_queue_bottom => null() !< position of queue bottom in array; pushed away from top by tree users
+      type(t_atomic_int), pointer :: req_queue_top => null() !< position of queue top in array; pushed towards bottom by communicator only when sending    
       
       ! counters and timers
       integer*8 :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
@@ -69,7 +69,7 @@ module module_tree
 
       ! thread data
       type(t_pthread_with_type) :: comm_thread
-      type(t_atomic_int), pointer :: thread_status
+      type(t_atomic_int), pointer :: thread_status => null()
       integer :: processor_id
     end type t_tree_communicator
 
@@ -92,7 +92,7 @@ module module_tree
 
       integer(kind_particle) :: nintmax     !< maximum number of interactions
 
-      type(t_tree_node), pointer :: nodes(:) !< array of tree nodes
+      type(t_tree_node), pointer :: nodes(:) => null() !< array of tree nodes
       integer(kind_node) :: nodes_maxentries !< max number of entries in nodes array
       integer(kind_node) :: nodes_nentries   !< number of entries present in nodes array
       integer(kind_node) :: node_root        !< index of the root node in nodes-array
