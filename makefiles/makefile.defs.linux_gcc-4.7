@@ -11,10 +11,9 @@ HELP = "\
 \# export I_MPI_F90=gfortran\n\
 "
 
-
 MACH     = linux_gcc-4.7
 
-DEBUG    = 0
+DEBUG    = 1
 OMP      = 1
 
 RANLIB   = ranlib
@@ -24,42 +23,49 @@ MAKE     = make
 AR       = ar
 ARFLAGS  = -rs
 
-CPP      = cpp
-CPPFLAGS = -P -C
+CPP      = mpicc
+CPPFLAGS = -E -x c -P -C -ffreestanding
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
 INLINING = -fdump-ipa-inline -findirect-inlining -flto-partition=none -finline-limit=120000
-# -flto
-#-fwhopr
 
-FCPRE    = 
-FC       = mpif90
+FWARNINGS = -Wall -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none
+
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Wall -O0 -pg -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -fbacktrace -fcheck=all
-  CFLAGS   = -Wall -O0 -pg -g 
-  LDFLAGS  =       -O0 -pg -g 
+  FFLAGS   = -O0 -g \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -O0 -g -pthread -Wall
+  LDFLAGS  = -O0 -g -pthread
 else
-  FFLAGS   = -Wall -O3 -pg -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens $(INLINING)
-  CFLAGS   = -Wall -O3 -pg
-  LDFLAGS  = -pthread -pg -O3 $(INLINING) -fwhole-program  
+  FFLAGS   = -O3 \
+    -fsign-zero -fno-protect-parens \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -O3 -pthread -Wall
+  LDFLAGS  = -O3 -pthread -fwhole-program $(INLINING)
   CPPFLAGS += -DNDEBUG
-#-Wl,--threads
-#-fuse-linker-plugin
 endif
 
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
-  LDFLAGS  += -fopenmp 
+  LDFLAGS  += -fopenmp
 else
 endif
 
-CCPRE    = 
+FCPRE    =
+FC       = mpif90
+
+CCPRE    =
 CC       = mpicc
 
-LDPRE    = 
+LDPRE    =
 LD       = mpif90
-LDLIBS   = 
+LDLIBS   =
 
 RM       = rm -rf
 
 COMPILER = $(shell $(FC) --version | head -n 1)
-

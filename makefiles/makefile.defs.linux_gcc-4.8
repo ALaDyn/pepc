@@ -11,7 +11,6 @@
 \# export I_MPI_F90=gfortran\n\
 "
 
-
 MACH     = linux_gcc-4.8
 
 DEBUG    = 1
@@ -29,22 +28,26 @@ CPPFLAGS = -E -x c -P -C -ffreestanding
                        # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
 INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg
-# -flto
-#-fwhopr
 
-FCPRE    =
-FC       = mpif90
+FWARNINGS = -Wall -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none
+
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Wall -O0 -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Wcharacter-truncation -Wline-truncation -Wsurprising -fbacktrace -fcheck=all
-  CFLAGS   = -Wall -O0 -g -gdwarf-3
-  LDFLAGS  =       -O0 -g -gdwarf-3
+  FFLAGS   = -Og -g -gdwarf-3 \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -pthread -Wall
+  LDFLAGS  = -Og -g -gdwarf-3 -pthread
 else
-  FFLAGS   = -Wall -O5 -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens $(INLINING)
-  CFLAGS   = -Wall -O5
-  LDFLAGS   = -pthread -O5 $(INLINING) -fwhole-program
+  FFLAGS   = -O3 \
+    -fsign-zero -fno-protect-parens \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -O3 -pthread -Wall
+  LDFLAGS  = -O3 -pthread -fwhole-program $(INLINING)
   CPPFLAGS += -DNDEBUG
-#-Wl,--threads
-#-fuse-linker-plugin
 endif
 
 ifeq ($(OMP), 1)
@@ -52,6 +55,9 @@ ifeq ($(OMP), 1)
   LDFLAGS  += -fopenmp
 else
 endif
+
+FCPRE    =
+FC       = mpif90
 
 CCPRE    =
 CC       = mpicc
@@ -63,4 +69,3 @@ LDLIBS   =
 RM       = rm -rf
 
 COMPILER = $(shell $(FC) --version | head -n 1)
-

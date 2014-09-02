@@ -1,10 +1,10 @@
-'HELP = "\
+HELP = "\
 \# Makefile for gcc 4.9 (self-compiled)\n\
 "
 
 MACH     = linux_gcc-4.9
 
-DEBUG    = 0
+DEBUG    = 1
 OMP      = 1
 GPERFTOOLS = 0
 
@@ -15,22 +15,30 @@ MAKE     = make
 AR       = ar
 ARFLAGS  = -rs
 
-CPP      = cpp
-CPPFLAGS = -P -C -ffreestanding
-                  # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+CPP      = mpicc
+CPPFLAGS = -E -x c -P -C -ffreestanding
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
 INLINING = -fkeep-inline-functions -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects -fuse-linker-plugin
 
-FCPRE    = 
-FC       = mpif90
+FWARNINGS = -Wall -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wno-unused-parameter -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none
+
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all -fstack-protector-all
-  CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -fstack-protector-all
-  LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking -fstack-protector-all \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall -fstack-protector-all
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
-  FFLAGS   = -Wall -O3 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING) -save-temps
-  CFLAGS   = -Wall -O3 -g
-  LDFLAGS  = -pthread -O3 -g $(INLINING)
+  FFLAGS   = -O3 \
+    -fsign-zero -fno-protect-parens -faggressive-function-elimination \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -O3 -pthread -Wall
+  LDFLAGS  = -O3 -pthread $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
 
@@ -42,15 +50,22 @@ LDFLAGS += -u walk_worker_thread -u run_communication_loop
 
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
-  LDFLAGS  += -fopenmp 
+  LDFLAGS  += -fopenmp
 endif
 
-CCPRE    = 
+FCPRE    =
+FC       = mpif90
+
+CCPRE    =
 CC       = mpicc
 
-LDPRE    = 
+LDPRE    =
 LD       = mpif90
-LDLIBS   = -lgfortran -lm -lquadmath
+LDLIBS   =
+
+RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)
 
 ifeq ($(GPERFTOOLS), 1)
   # download and installation: http://code.google.com/p/gperftools/
@@ -58,8 +73,3 @@ ifeq ($(GPERFTOOLS), 1)
   LDFLAGS+=-L${HOME}/programs/lib64
   LDLIBS += -ltcmalloc -lprofiler
 endif
-
-RM       = rm -rf
-
-COMPILER = $(shell $(FC) --version | head -n 1)
-
