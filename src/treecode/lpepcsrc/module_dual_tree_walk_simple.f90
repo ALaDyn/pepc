@@ -127,6 +127,8 @@ module module_dual_tree_walk
       integer(kind_node) :: ns
 
       associate (src_node => t%nodes(src))
+        ! source node to be split may never be a leaf, leaves cannot be split
+        DEBUG_ASSERT(.not. tree_node_is_leaf(src_node))
 
         if (.not. tree_node_children_available(src_node)) then
           call tree_node_fetch_children(t, src_node, src)
@@ -158,7 +160,13 @@ module module_dual_tree_walk
       integer(kind_node) :: ns
 
       associate (dst_node => t%nodes(dst))
+        ! destination node to be split may never be a leaf, leaves cannot be split
+        DEBUG_ASSERT(.not. tree_node_is_leaf(dst_node))
+        ! destination nodes must only come from the local part of the tree, results are only computed for local leaves
+        DEBUG_ASSERT(tree_node_has_local_contributions(dst_node))
 
+        ! since destination nodes are part of the local tree, their children (in fact all descendants) must be available
+        DEBUG_ASSERT(tree_node_children_available(dst_node))
         ns = tree_node_get_first_child(dst_node)
         do
           if (tree_node_has_local_contributions(t%nodes(ns))) call sow_aux(src, ns)
@@ -200,11 +208,15 @@ module module_dual_tree_walk
       integer(kind_particle) :: ps
 
       associate (node => t%nodes(n))
+        ! destination nodes must only come from the local part of the tree, results are only computed for local leaves
+        DEBUG_ASSERT(tree_node_has_local_contributions(node))
 
         if (tree_node_is_leaf(node)) then
           ps = tree_node_get_particle(node)
           call evaluate_at_particle(node%local_coefficients, p(ps)%results)
         else
+          ! since destination nodes are part of the local tree, their children (in fact all descendants) must be available
+          DEBUG_ASSERT(tree_node_children_available(node))
           ns = tree_node_get_first_child(node)
           do
             if (tree_node_has_local_contributions(t%nodes(ns))) then
