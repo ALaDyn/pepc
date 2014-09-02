@@ -704,6 +704,7 @@ module module_tree_grow
     use module_tree, only: t_tree
     use module_tree_node
     use module_interaction_specific, only: multipole_from_particle
+    use module_interaction_specific_types
     use module_spacefilling, only: level_from_key
     use module_timings
     implicit none
@@ -726,6 +727,7 @@ module module_tree_grow
     n%first_child  = NODE_INVALID
     n%next_sibling = NODE_INVALID
     n%particle     = i
+    n%local_coefficients = EMPTY_LOCAL_COEFFICIENTS
 
     call timer_resume(t_props_leaves)
     call multipole_from_particle(p%x, p%data, n%center, n%multipole_moments)
@@ -741,6 +743,7 @@ module module_tree_grow
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node
     use module_tree_node, only: NODE_INVALID
+    use module_interaction_specific_types
     implicit none
 
     type(t_tree), intent(inout) :: t !< tree in which to find the nodes
@@ -752,6 +755,7 @@ module module_tree_grow
     parent%next_sibling = NODE_INVALID
     parent%first_child  = NODE_INVALID
     parent%particle     = 0
+    parent%local_coefficients = EMPTY_LOCAL_COEFFICIENTS
 
     call tree_node_update_from_children(t, parent, children, k)
   end subroutine tree_node_create_from_children

@@ -309,6 +309,7 @@ module module_tree_node
 
 
     subroutine tree_node_unpack(p, n)
+      use module_interaction_specific_types
       implicit none
 
       type(t_tree_node_package), intent(in) :: p
@@ -328,5 +329,6 @@ module module_tree_node
       n%request_posted    = .false.
       n%center            = p%center
       n%multipole_moments = p%multipole_moments
+      n%local_coefficients = EMPTY_LOCAL_COEFFICIENTS
     end subroutine tree_node_unpack
 end module module_tree_node
