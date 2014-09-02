@@ -459,7 +459,7 @@ module module_pepc
 
       call timer_start(t_fields_passes)
       do ibox = 1,num_neighbour_boxes ! sum over all boxes
-        call dual_tree_walk_sow(tree, lattice_vect(neighbour_boxes(:,ibox)))
+        call dual_tree_walk_sow(tree, particles, lattice_vect(neighbour_boxes(:,ibox)))
       end do
       call timer_stop(t_fields_passes)
 

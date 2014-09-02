@@ -66,17 +66,18 @@ module module_dual_tree_walk
   end subroutine dual_tree_walk_finalize
 
 
-  subroutine dual_tree_walk_sow(t, lattice_vector)
-    use module_pepc_kinds, only: kind_physics, kind_node
+  subroutine dual_tree_walk_sow(t, p, lattice_vector)
+    use module_pepc_kinds, only: kind_physics, kind_node, kind_particle
     use module_tree, only: t_tree
-    use module_pepc_types, only: t_tree_node
+    use module_pepc_types, only: t_tree_node, t_particle
     use module_interaction_specific
     use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
-      tree_node_get_first_child, tree_node_get_next_sibling, NODE_INVALID
+      tree_node_get_first_child, tree_node_get_next_sibling, tree_node_get_particle, NODE_INVALID
     use module_debug
     implicit none
 
     type(t_tree), intent(inout) :: t
+    type(t_particle), intent(inout) :: p(:)
     real(kind_physics), intent(in) :: lattice_vector(3) !< lattice vector
 
     call pepc_status('WALK DUAL SOW')
@@ -90,7 +91,8 @@ module module_dual_tree_walk
       integer(kind_node), intent(in) :: src, dst
 
       logical :: src_is_leaf, dst_is_leaf
-      real(kind_physics) :: shifted_src_center(3)
+      integer(kind_particle) :: ps
+      real(kind_physics) :: shifted_src_center(3), delta(3), dist2
 
       associate (src_node => t%nodes(src), dst_node => t%nodes(dst), &
         rsrc => t%boxdiaglength(t%nodes(src)%level), rdst => t%boxdiaglength(t%nodes(dst)%level))
@@ -100,8 +102,16 @@ module module_dual_tree_walk
 
         shifted_src_center = src_node%center - lattice_vector
 
-        if ((src_is_leaf .and. dst_is_leaf) &
-            .or. dual_mac(shifted_src_center, rsrc, src_node%multipole_moments, dst_node%center, rdst, dst_node%multipole_moments)) then ! TODO: Leafs and well separated nodes together?
+        if ((src_is_leaf .and. dst_is_leaf)) then
+          ps = tree_node_get_particle(dst_node)
+          delta = dst_node%center - shifted_src_center
+          dist2 = dot_product(delta, delta)
+          if (src /= dst) then
+            call calc_force_per_interaction_with_leaf(p(ps), src_node%multipole_moments, src, delta, dist2, lattice_vector)
+          else
+            call calc_force_per_interaction_with_self(p(ps), src_node%multipole_moments, src, delta, dist2, lattice_vector)
+          end if
+        else if (dual_mac(shifted_src_center, rsrc, src_node%multipole_moments, dst_node%center, rdst, dst_node%multipole_moments)) then
           call multipole_to_local(shifted_src_center, src_node%multipole_moments, dst_node%center, dst_node%local_coefficients)
         else if (dst_is_leaf) then
           call split_src(src, dst)
