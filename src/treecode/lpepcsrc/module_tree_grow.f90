@@ -801,13 +801,13 @@ module module_tree_grow
       children_centers(1:3, i) = child%center(1:3)
 
       ! parents of nodes with local contributions also contain local contributions
-      call tree_node_set_has_local_contributions(parent, tree_node_has_local_contributions(child))
+      if (tree_node_has_local_contributions(child)) call tree_node_set_has_local_contributions(parent, .true.)
 
       ! parents of nodes with remote contributions also contain remote contributions
-      call tree_node_set_has_remote_contributions(parent, tree_node_has_remote_contributions(child))
+      if (tree_node_has_remote_contributions(child)) call tree_node_set_has_remote_contributions(parent, .true.)
 
       ! parents of branch and fill nodes will also be fill nodes
-      call tree_node_set_is_fill_node(parent, tree_node_is_fill_node(child) .or. tree_node_is_branch_node(child))
+      if (tree_node_is_fill_node(child) .or. tree_node_is_branch_node(child)) call tree_node_set_is_fill_node(parent, .true.)
 
       parent%leaves      = parent%leaves      + child%leaves
       parent%descendants = parent%descendants + child%descendants
