@@ -45,6 +45,7 @@ module module_interaction_specific
       public calc_force_per_interaction_with_twig
       public calc_force_per_particle
       public mac
+      public dual_mac
       public particleresults_clear
       public calc_force_read_parameters
       public calc_force_write_parameters
@@ -52,6 +53,9 @@ module module_interaction_specific
       public calc_force_prepare
       public calc_force_after_grow
       public get_number_of_interactions_per_particle
+      public multipole_to_local
+      public shift_coefficients_down
+      public evaluate_at_particle
 
       contains
 
@@ -348,4 +352,58 @@ module module_interaction_specific
             ! node is further away than farest particle in nn-list --> can be ignored
           endif
         end subroutine update_nn_list
+
+
+        !>
+        !> Multipole Acceptance Criterion for dual tree traversal
+        !>
+        function dual_mac(x1, r1, m1, x2, r2, m2)
+          implicit none
+
+          logical :: dual_mac
+          type(t_multipole_moments), intent(in) :: m1, m2
+          real*8, intent(in) :: x1(3), x2(3)
+          real*8, intent(in) :: r1, r2
+
+          dual_mac = .false.
+        end function
+
+
+        !>
+        !> Uses the M2L operator to convert a set of multipole moments `m` expanded about `xm`
+        !> into a set of local coefficients `t` about `xt`.
+        !>
+        subroutine multipole_to_local(xm, m, xt, t)
+          implicit none
+
+          real*8, intent(in) :: xm(3), xt(3)
+          type(t_multipole_moments), intent(in) :: m
+          type(t_local_coefficients), intent(inout) :: t
+
+        end subroutine
+
+
+        !>
+        !> Uses the L2L operator to translate the coefficients `p` from their center `xp` into new coefficients `c` expanded about `xc`.
+        !>
+        subroutine shift_coefficients_down(xp, p, xc, c)
+          implicit none
+
+          real*8, intent(in) :: xp(3), xc(3)
+          type(t_local_coefficients), intent(in) :: p
+          type(t_local_coefficients), intent(inout) :: c
+
+        end subroutine
+
+
+        !>
+        !> Evaluates local coefficients `c` into results `r` at their center of expansion.
+        !>
+        subroutine evaluate_at_particle(c, r)
+          implicit none
+
+          type(t_local_coefficients), intent(in) :: c
+          type(t_particle_results), intent(inout) :: r
+
+        end subroutine
 end module module_interaction_specific

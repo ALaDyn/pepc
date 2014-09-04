@@ -84,6 +84,8 @@ module module_interaction_specific_types
         ! empty for now
       end type t_local_coefficients
 
+      type(t_local_coefficients), parameter :: EMPTY_LOCAL_COEFFICIENTS = t_local_coefficients()
+
       contains
 
       !>
