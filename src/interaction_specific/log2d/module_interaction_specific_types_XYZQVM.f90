@@ -72,6 +72,9 @@ module module_interaction_specific_types
         complex(kind_physics) :: mu(0:pMultipole)
       end type t_local_coefficients
 
+      complex(kind_physics), private, parameter :: EMPTY_LOCAL_COEFFICIENTS_INTERNAL(0:pMultipole) = (0._kind_physics, 0._kind_physics)
+      type(t_local_coefficients), parameter :: EMPTY_LOCAL_COEFFICIENTS = t_local_coefficients(EMPTY_LOCAL_COEFFICIENTS_INTERNAL)
+
       contains
 
       !>
