@@ -82,7 +82,11 @@ module module_dual_tree_walk
 
     call pepc_status('WALK DUAL SOW')
 
+    !$omp parallel default(shared)
+    !$omp master
     call sow_aux(t%node_root, t%node_root)
+    !$omp end master
+    !$omp end parallel
 
     contains
 
@@ -145,7 +149,7 @@ module module_dual_tree_walk
           do ! loop and yield until children have been fetched
             ERROR_ON_FAIL(pthreads_sched_yield())
             if (tree_node_children_available(src_node)) exit
-            !!$omp taskyield
+            !$omp taskyield
           end do
         end if
 
@@ -179,12 +183,22 @@ module module_dual_tree_walk
         DEBUG_ASSERT(tree_node_children_available(dst_node))
         ns = tree_node_get_first_child(dst_node)
         do
-          if (tree_node_has_local_contributions(t%nodes(ns))) call sow_aux(src, ns)
+          if (tree_node_has_local_contributions(t%nodes(ns))) then
+            if (t%nodes(ns)%leaves >= 1000) then
+              !$omp task default(shared) firstprivate(ns) untied
+              call sow_aux(src, ns)
+              !$omp end task
+            else
+              call sow_aux(src, ns)
+            end if
+          end if
           ns = tree_node_get_next_sibling(t%nodes(ns))
           if (ns == NODE_INVALID) exit
         end do
 
       end associate
+
+      !$omp taskwait
 
     end subroutine split_dst
 
@@ -205,7 +219,11 @@ module module_dual_tree_walk
 
     call pepc_status('WALK DUAL REAP')
 
+    !$omp parallel default(shared)
+    !$omp master
     call reap_aux(t%node_root)
+    !$omp end master
+    !$omp end parallel
 
     contains
 
@@ -213,7 +231,6 @@ module module_dual_tree_walk
       implicit none
       integer(kind_node), intent(in) :: n
 
-      type(t_tree_node), pointer :: node
       integer(kind_node) :: ns
       integer(kind_particle) :: ps
 
@@ -230,13 +247,22 @@ module module_dual_tree_walk
           ns = tree_node_get_first_child(node)
           do
             if (tree_node_has_local_contributions(t%nodes(ns))) then
-              call shift_coefficients_down(node%center, node%local_coefficients, t%nodes(ns)%center, t%nodes(ns)%local_coefficients)
-              call reap_aux(ns)
+              if (t%nodes(ns)%leaves >= 1000) then
+                !$omp task default(shared) firstprivate(ns) untied
+                call shift_coefficients_down(node%center, node%local_coefficients, t%nodes(ns)%center, t%nodes(ns)%local_coefficients)
+                call reap_aux(ns)
+                !$omp end task
+              else
+                call shift_coefficients_down(node%center, node%local_coefficients, t%nodes(ns)%center, t%nodes(ns)%local_coefficients)
+                call reap_aux(ns)
+              end if
             end if
             ns = tree_node_get_next_sibling(t%nodes(ns))
             if (ns == NODE_INVALID) exit
           end do
         end if
+
+        !$omp taskwait
 
       end associate
 
