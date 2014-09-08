@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -56,9 +56,6 @@ module module_comm_env
 
   !>
   !> Initialize a communication environment `c` from an MPI communicator `comm`.
-  !>
-  !> The MPI communicator `comm` is duplicated via `mpi_comm_dup` in the
-  !> process.
   !>
   subroutine comm_env_mirror_from_mpi(comm, c)
     implicit none
@@ -133,7 +130,7 @@ module module_comm_env
 
     type(t_comm_env), intent(inout) :: c !< environment to destroy
     integer(kind_default) :: ierr
-    
+
     call mpi_comm_free(c%comm, ierr)
     c%size = 0
     c%rank = 0
