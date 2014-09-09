@@ -71,9 +71,11 @@ module module_initialization
 
       bool_energy_resolved_hits = .true.
       bool_angle_resolved_hits = .true.
+      bool_age_resolved_hits = .true.
       bool_space_resolved_hits = .true.
       nbins_energy_resolved_hits = 80
       nbins_angle_resolved_hits = 45
+      nbins_age_resolved_hits = 100
       nbins_e1_space_resolved_hits = 10
       nbins_e2_space_resolved_hits = 10
 
@@ -121,7 +123,7 @@ module module_initialization
         call init_particles(particles)
 
         allocate(n_bins(0:nspecies-1,diag_bins_x, diag_bins_y, diag_bins_z))
-        allocate(data_bins(0:nspecies-1,38,diag_bins_x, diag_bins_y, diag_bins_z))
+        allocate(data_bins(0:nspecies-1,39,diag_bins_x, diag_bins_y, diag_bins_z))
         n_bins = 0
         data_bins = 0.0_8
 
@@ -203,7 +205,7 @@ module module_initialization
     integer, parameter :: fid = 666
     integer(kind_particle) :: global_max_label,local_max_label
     integer :: ip,ib,ispecies,i,j,rc
-    real(KIND=8) :: q_loc(nb),q_glob(nb),x_hit_rel(2)
+    real(KIND=8) :: q_loc(nb),q_glob(nb),x_hit_rel(2),eps=1e-12
     logical :: hit
 
     !read probe positions
@@ -215,7 +217,7 @@ module module_initialization
     tnpps=0
 
     !change charge and mass of particles if fsup was changed
-    IF (fsup_at_checkpoint /= fsup) THEN
+    IF (real_unequal(fsup_at_checkpoint, fsup, eps)) THEN
         IF (root) write(*,*)
         IF (root) write(*,*) "fsup was changed after resume. Existing particles will be adjusted. "
         IF (root) write(*,*) "fsup_old:",fsup_at_checkpoint, "fsup:", fsup
@@ -301,7 +303,7 @@ module module_initialization
     END DO
 
     allocate(n_bins(0:nspecies-1,diag_bins_x, diag_bins_y, diag_bins_z))
-    allocate(data_bins(0:nspecies-1,38,diag_bins_x, diag_bins_y, diag_bins_z))
+    allocate(data_bins(0:nspecies-1,39,diag_bins_x, diag_bins_y, diag_bins_z))
     n_bins = 0
     data_bins = 0.0_8
 

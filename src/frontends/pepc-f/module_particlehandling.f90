@@ -21,7 +21,7 @@ module particlehandling
         real*8 :: xp(3),xold(3)
         real(KIND=8) :: v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),x_hit(3),x_hit_rel(2)
         real(KIND=8) :: part_energy,part_angle
-        integer :: energy_bin,angle_bin,e1_space_bin,e2_space_bin
+        integer :: energy_bin,angle_bin,e1_space_bin,e2_space_bin,age_bin
 
 
         rp=sum(npps)
@@ -151,6 +151,12 @@ module particlehandling
                             e2_space_bin = min(int(x_hit_rel(2) * nbins_e2_space_resolved_hits) + 1, nbins_e2_space_resolved_hits)
                             space_resolved_hits(p(rp)%data%species,ib,e1_space_bin,e2_space_bin) = space_resolved_hits(p(rp)%data%species,ib,e1_space_bin,e2_space_bin) + 1
                         END IF
+                        IF (bool_age_resolved_hits) THEN
+                            !hier muss ich mir die berechnung des Maximums nochmal genau ueberlegen. Aber fuer einen proof of concept gehts
+                            age_bin = int(p(rp)%data%age / (500*dt) * nbins_age_resolved_hits) + 1
+                            age_bin = min(age_bin,nbins_age_resolved_hits+1)
+                            age_resolved_hits(p(rp)%data%species,ib,age_bin) = age_resolved_hits(p(rp)%data%species,ib, age_bin) + 1
+                        END IF
                         p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1
@@ -177,7 +183,7 @@ module particlehandling
         real(KIND=8) mu,sigma,ran,t1(3),t2(3),v_ran(3),ran2,ran3
 
         real(KIND=8)       :: n1(3),B_vector(3)
-        real(KIND=8)       :: eps=1.0e-10
+        real(KIND=8)       :: eps=1.0e-12
 
 
         IF (retherm < 0) THEN
@@ -244,10 +250,10 @@ module particlehandling
 
             DO ip =1,sum(npps)
                 IF ((retherm > 4) .AND. (p(ip)%data%q > 0)) CYCLE !retherm electrons only
-                IF (sign(1._8,p(ip)%x(1)) /= sign(1._8,p(ip)%data%v(1))) CYCLE
+                IF (real_unequal(sign(1._8,p(ip)%x(1)), sign(1._8,p(ip)%data%v(1)),eps)) CYCLE
 
                 xold = p(ip)%x-p(ip)%data%v*dt
-                IF (sign(1._8,xold(1)) == sign(1._8,p(ip)%x(1))) CYCLE
+                IF (real_equal(sign(1._8,xold(1)), sign(1._8,p(ip)%x(1)), eps)) CYCLE
 
                 mu=0.0_8
                 sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
@@ -404,6 +410,8 @@ module particlehandling
                 p_new(ip)%results%pot = 0.0_8
                 p_new(ip)%work        = 1.0_8
                 p_new(ip)%data%species= ispecies
+                p_new(ip)%data%mp_int1= 0
+                p_new(ip)%data%age    = 0.0
 
                 p_new(ip)%data%B(1)=Bx
                 p_new(ip)%data%B(2)=By
@@ -475,6 +483,21 @@ module particlehandling
 
 
 !======================================================================================
+
+    SUBROUTINE adapt_particle_age(p)
+        implicit none
+
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        integer :: ip
+
+        DO ip=1,size(p)
+            p(ip)%data%age = p(ip)%data%age + dt
+        END DO
+
+
+    END SUBROUTINE adapt_particle_age
+
+!======================================================================================
     subroutine hits_on_boundaries(p)
         implicit none
         include 'mpif.h'
@@ -497,7 +520,7 @@ module particlehandling
         if(root) write(*,'(a)') " == [hits_on_boundaries] count hits and recycle "
 
         IF (bool_particle_handling_timing) timer(1) = get_time()
-
+        call adapt_particle_age(p)
         call count_hits_and_remove_particles(p,hits,reflux)
         IF (bool_particle_handling_timing) timer(2) = get_time()
 
@@ -601,6 +624,8 @@ module particlehandling
                     p(ip)%results%e   = 0.0_8
                     p(ip)%results%pot = 0.0_8
                     p(ip)%work        = 1.0_8
+                    p(ip)%data%age    = 0.0
+                    p(ip)%data%mp_int1= 0
                 END DO
             ELSE
                 call init_probes(ispecies,ip,p)
@@ -620,6 +645,8 @@ module particlehandling
             p(ip)%results%e   = 0.0_8
             p(ip)%results%pot = 0.0_8
             p(ip)%work        = 1.0_8
+            p(ip)%data%age    = 0.0
+            p(ip)%data%mp_int1= 0
         END DO
 
         call source(p)
@@ -652,6 +679,8 @@ module particlehandling
             p(ip)%results%e   = 0.0_8
             p(ip)%results%pot = 0.0_8
             p(ip)%work        = 1.0_8
+            p(ip)%data%age    = 0.0
+            p(ip)%data%mp_int1= 0
             p(ip)%x(1) = probe_start_x(ispecies) + (j+0.5) * (probe_end_x(ispecies) - probe_start_x(ispecies)) / species(ispecies)%nip
             p(ip)%x(2) = probe_start_y(ispecies) + (j+0.5) * (probe_end_y(ispecies) - probe_start_y(ispecies)) / species(ispecies)%nip
             p(ip)%x(3) = probe_start_z(ispecies) + (j+0.5) * (probe_end_z(ispecies) - probe_start_z(ispecies)) / species(ispecies)%nip

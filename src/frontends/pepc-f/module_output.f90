@@ -69,7 +69,7 @@ MODULE output
         real(KIND=8),intent(inout) :: dbs(:,:,:,:)
         integer,intent(inout)      :: nbs(:,:,:)
         logical,intent(in)         :: write_data
-        real(KIND=8)               :: tdata_bins(38,diag_bins_x,diag_bins_y,diag_bins_z)
+        real(KIND=8)               :: tdata_bins(39,diag_bins_x,diag_bins_y,diag_bins_z)
         integer                    :: tn_bins(diag_bins_x,diag_bins_y,diag_bins_z)
         real(KIND=8)               :: tn_bins_dble(diag_bins_x,diag_bins_y,diag_bins_z)
 
@@ -86,7 +86,7 @@ MODULE output
             RETURN
         ELSE
             call MPI_ALLREDUCE(nbs, tn_bins, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(dbs, tdata_bins, 38*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(dbs, tdata_bins, 39*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
             IF (bool_avg_btwn_diag_steps) THEN
                 tdata_bins = tdata_bins / (step - last_diag_output)
@@ -98,29 +98,29 @@ MODULE output
             IF (root) THEN
                 IF (bool_diag_bins_cylinder) THEN
                     write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,nr,ntheta):", diag_bins_x,diag_bins_y,diag_bins_z
-                    write(filehandle,'(a12,3(a7),a12,38(a16))')"","ix","ir","itheta","n","vx","vy","vz","vpar", &
+                    write(filehandle,'(a12,3(a7),a12,39(a16))')"","ix","ir","itheta","n","vx","vy","vz","vpar", &
                                                                "vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz", &
                                                                "vzvx","vparvpar","vperp1vperp1","vperp2vperp2", &
                                                                "vparvperp1","vperp1vperp2","vperp2vpar", &
                                                                "phi","Ex","Ey","Ez","Epar","Eperp1","Eperp2", &
                                                                "phiphi","ExEx","EyEy","EzEz","ExEy","EyEz","EzEx", &
                                                                "EparEpar","Eperp1Eperp1","Eperp2Eperp","EparEperp1", &
-                                                               "Eperp1Eperp2","Eperp2Epar"
+                                                               "Eperp1Eperp2","Eperp2Epar","age"
                 ELSE
                     write(filehandle,'(a,3(i6.5))')"Average values for particles at equidistant points (nx,ny,nz):", diag_bins_x,diag_bins_y,diag_bins_z
-                    write(filehandle,'(a12,3(a7),a12,38(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar", &
+                    write(filehandle,'(a12,3(a7),a12,39(a16))')"","ix","iy","iz","n","vx","vy","vz","vpar", &
                                                                "vperp1","vperp2","vxvx","vyvy","vzvz","vxvy","vyvz", &
                                                                "vzvx","vparvpar","vperp1vperp1","vperp2vperp2", &
                                                                "vparvperp1","vperp1vperp2","vperp2vpar", &
                                                                "phi","Ex","Ey","Ez","Epar","Eperp1","Eperp2", &
                                                                "phiphi","ExEx","EyEy","EzEz","ExEy","EyEz","EzEx", &
                                                                "EparEpar","Eperp1Eperp1","Eperp2Eperp","EparEperp1", &
-                                                               "Eperp1Eperp2","Eperp2Epar"
+                                                               "Eperp1Eperp2","Eperp2Epar","age"
                 END IF
                 DO iz=1,diag_bins_z
                     DO iy=1,diag_bins_y
                         DO ix=1,diag_bins_x
-                            write(filehandle,'(a12,3(i7.5),F12.3,38(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins_dble(ix,iy,iz), &
+                            write(filehandle,'(a12,3(i7.5),F12.3,39(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins_dble(ix,iy,iz), &
                                                         tdata_bins(:,ix,iy,iz)
                         END DO
                     END DO
@@ -270,6 +270,50 @@ MODULE output
 
 !===============================================================================
 
+
+    SUBROUTINE age_resolved_hits_output(ispecies)
+        use module_utils
+        implicit none
+        include 'mpif.h'
+
+        integer, intent(in) :: ispecies
+        integer :: rc,ibins,tmp_filehandle=2345
+        real(KIND=8) :: binwidth,agemin,agemax
+        integer :: hits(nb, nbins_age_resolved_hits+1)
+        character(100) :: tmp_file,format,dir
+
+        hits=0
+
+        call MPI_ALLREDUCE(age_resolved_hits(ispecies,:,:), hits, (nbins_age_resolved_hits)*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+
+        dir = "./age_resolved_hits/"
+        write(tmp_file,'(a,"agerh_species_",i3.3,".dat")') trim(dir), ispecies
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i6)"
+
+        binwidth = 500*dt/nbins_age_resolved_hits
+
+        IF(root) THEN
+            IF (last_diag_output == startstep) call create_directory(trim(dir))
+            open(unit=tmp_filehandle,file=trim(tmp_file),status='UNKNOWN',position='APPEND')
+            write(tmp_filehandle,'(a,i6,a,i6,a)')"---------------------- TIMESTEPS: ",last_diag_output+1," - ",step," -----------------"
+            DO ibins=1,nbins_age_resolved_hits+1
+                agemin = (ibins-1)*binwidth
+                agemax = ibins*binwidth
+                IF (ibins == nbins_age_resolved_hits+1) agemax = 1.e32
+                write(tmp_filehandle,format) agemin,agemax,hits(:,ibins)
+            END DO
+            write(tmp_filehandle,*)""
+            write(tmp_filehandle,*)"############################################################################################################"
+            write(tmp_filehandle,*)"    ====================================================================================================    "
+            write(tmp_filehandle,*)"############################################################################################################"
+            write(tmp_filehandle,*)""
+            close(tmp_filehandle)
+        END IF
+
+    END SUBROUTINE age_resolved_hits_output
+
+
+!===============================================================================
     SUBROUTINE angle_resolved_hits_output(ispecies)
         use module_utils
         implicit none
@@ -403,6 +447,7 @@ MODULE output
                         IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
                         IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
                         IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
+                        IF (bool_age_resolved_hits) call age_resolved_hits_output(ispecies)
                     ELSE
                         IF (bool_avg_btwn_diag_steps) THEN
                             call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
@@ -435,6 +480,7 @@ MODULE output
                 energy_resolved_hits = 0
                 angle_resolved_hits = 0
                 space_resolved_hits = 0
+                age_resolved_hits = 0
                 n_bins = 0
                 data_bins = 0.0_8
             END IF
@@ -573,6 +619,8 @@ MODULE output
         call vtk%write_data_array("local index", [(i,i=1,n_out)])
         call vtk%write_data_array("processor", n_out, my_rank)
         call vtk%write_data_array("species", p_out(:)%data%species)
+        call vtk%write_data_array("mp_int1", p_out(:)%data%mp_int1)
+        call vtk%write_data_array("age", p_out(:)%data%age)
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()

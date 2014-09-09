@@ -253,6 +253,10 @@ module module_species
                 END IF
             END DO
         END IF
+        IF (bool_age_resolved_hits) THEN
+            allocate(age_resolved_hits(0:nspecies-1,nb,nbins_age_resolved_hits+1),stat=rc)
+            age_resolved_hits = 0
+        END IF
         IF (bool_angle_resolved_hits) THEN
             allocate(angle_resolved_hits(0:nspecies-1,nb,nbins_angle_resolved_hits),stat=rc)
             angle_resolved_hits = 0
@@ -350,7 +354,7 @@ module module_species
                 IF (root) write(*,'(a,i3,a)') " A flux cannot be set for a nonphysical species (species ",ispecies," )."
                 STOP
             END IF
-            IF ((species(ispecies)%physical_particle .eqv. .false.) .and. (species(ispecies)%src_t/=0.)) THEN
+            IF ((species(ispecies)%physical_particle .eqv. .false.) .and. ((species(ispecies)%src_t > 0.).or.(species(ispecies)%src_t < 0.))) THEN
                 IF (root) write(*,'(a,i3,a)') " Source Temperature cannot be set for a nonphysical species (species ",ispecies," )."
                 STOP
             END IF
