@@ -33,7 +33,7 @@ module module_directsum
         !>
         subroutine directforce(particles, testidx, ntest, directresults, comm)
           use module_pepc_types
-	  use module_pepc_kinds
+          use module_pepc_kinds
           use module_interaction_specific_types
           use module_interaction_specific
           use omp_lib
@@ -51,7 +51,7 @@ module module_directsum
 
           integer(kind_particle) :: maxtest !< maximum ntest
           type(t_particle), dimension(:), allocatable :: received, sending
-          integer(kind_particle) :: nreceived, nsending
+          integer(kind_default) :: nreceived, nsending
           integer(kind_particle) :: i, j
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
