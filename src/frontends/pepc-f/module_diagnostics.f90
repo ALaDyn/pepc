@@ -174,6 +174,9 @@ MODULE diagnostics
                 dbs(37,ix,ir,itheta) = dbs(37,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t1)*dotproduct(particles(ip)%results%E,t2)
                 dbs(38,ix,ir,itheta) = dbs(38,ix,ir,itheta) + dotproduct(particles(ip)%results%E,t2)*dotproduct(particles(ip)%results%E,n1)
 
+                !age
+                dbs(39,ix,ir,itheta) = dbs(39,ix,ir,itheta) + particles(ip)%data%age
+
             END IF
         END DO
     end subroutine
@@ -287,6 +290,9 @@ MODULE diagnostics
                 dbs(36,ix,iy,iz) = dbs(36,ix,iy,iz) + dotproduct(particles(ip)%results%E,n1)*dotproduct(particles(ip)%results%E,t1)
                 dbs(37,ix,iy,iz) = dbs(37,ix,iy,iz) + dotproduct(particles(ip)%results%E,t1)*dotproduct(particles(ip)%results%E,t2)
                 dbs(38,ix,iy,iz) = dbs(38,ix,iy,iz) + dotproduct(particles(ip)%results%E,t2)*dotproduct(particles(ip)%results%E,n1)
+
+                !age
+                dbs(39,ix,iy,iz) = dbs(39,ix,iy,iz) + particles(ip)%data%age
             END IF
         END DO
     end subroutine

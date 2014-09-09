@@ -96,6 +96,7 @@ module variables
   logical :: bool_energy_resolved_hits
   logical :: bool_angle_resolved_hits
   logical :: bool_space_resolved_hits
+  logical :: bool_age_resolved_hits
   integer :: last_diag_output
   integer :: nbins_energy_resolved_hits
   real(KIND=8), allocatable :: ehit_max(:)
@@ -105,6 +106,8 @@ module variables
   integer :: nbins_e1_space_resolved_hits
   integer :: nbins_e2_space_resolved_hits
   integer, allocatable :: space_resolved_hits(:,:,:,:)
+  integer :: nbins_age_resolved_hits
+  integer, allocatable :: age_resolved_hits(:,:,:)
 
 
   ! particle arrays
@@ -144,6 +147,7 @@ module variables
                    xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval,&
                    vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm,&
                    bool_angle_resolved_hits, bool_energy_resolved_hits, bool_space_resolved_hits, &
+                   bool_age_resolved_hits, nbins_age_resolved_hits, &
                    nbins_angle_resolved_hits, nbins_energy_resolved_hits, nbins_e1_space_resolved_hits, &
                    nbins_e2_space_resolved_hits, bool_diag_bins_cylinder, bool_avg_btwn_diag_steps
   namelist /walk_para_smpss/ chunk_size_default

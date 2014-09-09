@@ -51,7 +51,7 @@ module module_directsum
 
           integer(kind_particle) :: maxtest !< maximum ntest
           type(t_particle), dimension(:), allocatable :: received, sending
-          integer(kind_particle) :: nreceived, nsending
+          integer(kind_default) :: nreceived, nsending
           integer(kind_particle) :: i, j
           integer :: ierr, stat(MPI_STATUS_SIZE)
           integer(kind_pe) :: my_rank, n_cpu, currank, nextrank, prevrank
