@@ -76,7 +76,7 @@ module module_directsum
           prevrank = modulo(my_rank - 1_kind_pe + n_cpu, n_cpu)
 
           ! insert initial data into input array - these particles will be shipped around later
-          nreceived = ntest
+          nreceived = int(ntest, kind = kind_default)
           do i=1,ntest
             received(i) = particles(testidx(i))
           end do
