@@ -437,9 +437,9 @@ module module_pepc
     !> Calculates interaction results for a collection of particles amongst themselves (hence "internal") using the dual tree
     !> traversal based algorithm.
     !>
-    subroutine pepc_calculate_internal(particles)
+    subroutine pepc_calculate_internal(particles, restore)
       use module_dual_tree_walk
-      use module_libpepc_main, only: libpepc_grow_tree, libpepc_timber_tree
+      use module_libpepc_main, only: libpepc_grow_tree, libpepc_timber_tree, libpepc_restore_particles
       use module_mirror_boxes
       use module_interaction_specific
       use module_timings
@@ -447,6 +447,7 @@ module module_pepc
       implicit none
 
       type(t_particle), allocatable, intent(inout) :: particles(:)
+      logical, intent(in) :: restore
 
       type(t_tree), allocatable, target :: tree
       integer :: ibox
@@ -471,6 +472,8 @@ module module_pepc
       call timer_stop(t_lattice)
       call timer_stop(t_walk)
       call pepc_status('TRAVERSAL DONE')
+
+      if (restore) call libpepc_restore_particles(tree, particles)
 
       call libpepc_timber_tree(tree)
       deallocate(tree)
