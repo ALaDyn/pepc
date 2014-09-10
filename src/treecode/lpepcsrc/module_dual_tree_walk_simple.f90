@@ -73,6 +73,9 @@ module module_dual_tree_walk
     use module_interaction_specific
     use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
       tree_node_get_first_child, tree_node_get_next_sibling, tree_node_get_particle, NODE_INVALID
+    use treevars, only: num_threads
+    use pthreads_stuff, only: place_thread, THREAD_TYPE_WORKER, THREAD_TYPE_MAIN
+    use omp_lib, only: omp_get_thread_num
     use module_debug
     implicit none
 
@@ -82,11 +85,14 @@ module module_dual_tree_walk
 
     call pepc_status('WALK DUAL SOW')
 
-    !$omp parallel default(shared)
+    !$omp parallel default(shared) num_threads(num_threads)
+    call place_thread(THREAD_TYPE_WORKER, omp_get_thread_num() + 1)
     !$omp master
     call sow_aux(t%node_root, t%node_root)
     !$omp end master
     !$omp end parallel
+
+    call place_thread(THREAD_TYPE_MAIN, 0)
 
     contains
 
@@ -211,6 +217,9 @@ module module_dual_tree_walk
     use module_interaction_specific
     use module_tree_node, only: tree_node_children_available, tree_node_is_leaf, &
       tree_node_get_first_child, tree_node_get_next_sibling, tree_node_get_particle, tree_node_has_local_contributions, NODE_INVALID
+    use treevars, only: num_threads
+    use pthreads_stuff, only: place_thread, THREAD_TYPE_WORKER, THREAD_TYPE_MAIN
+    use omp_lib, only: omp_get_thread_num
     use module_debug
     implicit none
 
@@ -219,11 +228,14 @@ module module_dual_tree_walk
 
     call pepc_status('WALK DUAL REAP')
 
-    !$omp parallel default(shared)
+    !$omp parallel default(shared) num_threads(num_threads)
+    call place_thread(THREAD_TYPE_WORKER, omp_get_thread_num() + 1)
     !$omp master
     call reap_aux(t%node_root)
     !$omp end master
     !$omp end parallel
+
+    call place_thread(THREAD_TYPE_MAIN, 0)
 
     contains
 
