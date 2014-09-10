@@ -36,14 +36,14 @@ ARFLAGS   = -rs
 RANLIB    = ranlib
 RM        = rm -rf
 
-FCPRE     = 
-CCPRE     = 
-LDPRE     = 
+FCPRE     =
+CCPRE     =
+LDPRE     =
 
 FC        = mpixlf90_r
 CC        = mpixlc_r
 LD        = mpixlf90_r
-LDLIBS    = -lxlf90 -lxlopt -lxlsmp -lpthread -lm -lc
+LDLIBS    =
 
 CPP       = /usr/bin/cpp
 CPPFLAGS  = -P -C -DLITTLEENDIAN -D__TOS_BGQ__ -D__IBMCPP__
@@ -52,7 +52,7 @@ OPTIMIZATIONFLAGS_DEBUG = -O0 -g -qfullpath -qcheck -qflttrap -qnoinline -qnounr
 OPTIMIZATIONFLAGS       = -O5 -qnounwind -qhot -qipa=level=1 -qlibmpi -qinline -qinfo=all \
                           -qinline+__module_tree_node_NMOD_tree_node_is_leaf:__module_spacefilling_NMOD_is_ancestor_of_particle_withlevel:__module_spacefilling_NMOD_is_ancestor_of_particle_nolevel:__module_tree_node_NMOD_tree_node_get_num_children:__module_tree_node_NMOD_tree_node_get_first_child:__module_tree_node_NMOD_tree_node_get_next_sibling:__module_tree_node_NMOD_tree_node_children_available:__module_interaction_specific_NMOD_mac:__module_interaction_specific_NMOD_calc_force_per_interaction:_atomic_fetch_and_increment_int:_atomic_load_int:_atomic_mod_increment_and_fetch_int:_atomic_read_barrier:_atomic_store_int:_atomic_write_barrier:__module_atomic_ops_NMOD_atomic_fetch_and_increment_int:__module_atomic_ops_NMOD_atomic_load_int:__module_atomic_ops_NMOD_atomic_mod_increment_and_fetch_int:__module_atomic_ops_NMOD_atomic_store_int
 
-STANDARDFLAGS           = -qthreaded -qsmp=noauto 
+STANDARDFLAGS           = -qthreaded -qsmp=noauto
 
 ifeq ($(OMP), 1)
   STANDARDFLAGS += -qsmp=omp
@@ -122,7 +122,7 @@ endif
 COMPILER = $(shell $(FC) -qversion | tr '\n' ' ')
 
 # HPCTOOLKIT USAGE
-# Call 
+# Call
 # $>  module load UNITE hpctoolkit papi
 # Before compiling and execution. You should include those modules into your ~/.bashrc to also have them on the compute nodes.
 # After (re)compiling the application (e.g. pepc-mini) start it with
@@ -131,7 +131,7 @@ COMPILER = $(shell $(FC) -qversion | tr '\n' ' ')
 # $>  hpcstruct  ./pepc-mini
 # Build the measurement database from the measurements:
 # $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
-# 
+#
 #
 
 
