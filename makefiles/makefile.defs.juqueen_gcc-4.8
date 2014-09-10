@@ -1,8 +1,8 @@
 HELP = "\
-\# Makefile for gcc 4.9 (self-compiled)\n\
+\# Makefile for gcc 4.8\n\
 "
 
-MACH      = gcc-4.9
+MACH      = gcc-4.8
 
 GPROF     = 0
 DEBUG     = 0
@@ -20,14 +20,14 @@ AR        = ar
 ARFLAGS   = -rs
 RM        = rm -rf
 
-FCPRE     = 
-CCPRE     = 
-LDPRE     = 
+FCPRE     =
+CCPRE     =
+LDPRE     =
 
 FC        = mpigfortran
 CC        = mpigcc
-LD        = mpigcc
-LDLIBS    = -lgfortran -lm
+LD        = mpigfortran
+LDLIBS    =
 
 # GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
 CPP      = cpp -Uvector
@@ -36,14 +36,24 @@ CPPFLAGS = -P -C -DLITTLEENDIAN -ffreestanding -D__TOS_BGQ__
 
 INLINING = -fkeep-inline-functions -findirect-inlining -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects -fuse-linker-plugin
 
+FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none
+
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all
-  CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g 
-  LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
-  FFLAGS   = -Wall -O5 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
-  CFLAGS   = -Wall -O5 -g
-  LDFLAGS   = -pthread -O3 -g $(INLINING)
+  FFLAGS   = -O3 \
+    -fsign-zero -fno-protect-parens -faggressive-function-elimination \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -O3 -pthread -Wall
+  LDFLAGS  = -O3 -pthread $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
 
@@ -59,7 +69,7 @@ FFLAGS += -u walk_worker_thread -u run_communication_loop
 
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
-  LDFLAGS  += -fopenmp 
+  LDFLAGS  += -fopenmp
 endif
 
 ifeq ($(VAMPIR), 1)
@@ -96,7 +106,7 @@ endif
 COMPILER = $(shell $(FC) --version | head -n 1)
 
 # HPCTOOLKIT USAGE
-# Call 
+# Call
 # $>  module load UNITE hpctoolkit papi
 # Before compiling and execution. You should include those modules into your ~/.bashrc to also have them on the compute nodes.
 # After (re)compiling the application (e.g. pepc-mini) start it with
@@ -105,6 +115,6 @@ COMPILER = $(shell $(FC) --version | head -n 1)
 # $>  hpcstruct  ./pepc-mini
 # Build the measurement database from the measurements:
 # $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
-# 
+#
 #
 
