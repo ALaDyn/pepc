@@ -70,7 +70,7 @@ module module_interaction_specific_types
         real(kind_physics) :: fzx
       end type t_local_coefficients
 
-      type(t_local_coefficients), parameter :: EMPTY_LOCAL_COEFFICIENTS  = t_local_coefficients(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
+      type(t_local_coefficients), parameter :: EMPTY_LOCAL_COEFFICIENTS = t_local_coefficients(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
 
       contains
 
