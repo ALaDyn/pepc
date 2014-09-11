@@ -227,10 +227,6 @@ module module_geometry
             RETURN !no hit
         END IF
 
-        IF (wall%type < 0) THEN !virtual boundary
-            RETURN !no hit
-        END IF
-
         n=wall%n
         deltax=p%x-wall%x0
 

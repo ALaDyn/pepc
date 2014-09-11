@@ -377,7 +377,7 @@ MODULE output
         IF(root) THEN
             IF ((last_diag_output == startstep) ) call create_directory(trim(dir))
             DO ibnd=1,nb
-                IF (boundaries(ibnd)%type /= 0) CYCLE
+                IF (boundaries(ibnd)%type > 0) CYCLE
                 write(tmp_file,'(a,"srh_species_",i3.3,"_bnd_",i3.3,".dat")') trim(dir), ispecies, ibnd
                 open(unit=tmp_filehandle,file=trim(tmp_file),status='UNKNOWN',position='APPEND')
                 write(tmp_filehandle,'(a,i6,a,i6,a)')"---------------------- TIMESTEPS: ",last_diag_output+1," - ",step," -----------------"

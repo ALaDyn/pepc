@@ -20,16 +20,38 @@ module particlehandling
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
         real*8 :: xp(3),xold(3)
         real(KIND=8) :: v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),x_hit(3),x_hit_rel(2)
-        real(KIND=8) :: part_energy,part_angle
-        integer :: energy_bin,angle_bin,e1_space_bin,e2_space_bin,age_bin
 
 
         rp=sum(npps)
         ib=1
         DO WHILE (rp >= 1)
+            !Cycle if particle is no plasma particle
+            IF (species(p(rp)%data%species)%physical_particle .EQV. .FALSE.) THEN
+                rp = rp - 1
+                CYCLE
+            END IF
+
+            !loop over virtual surfaces (only for statistics)
+            ib = 1
+            DO WHILE (ib <= nb)
+                IF (boundaries(ib)%type < 0) THEN
+                    call hit_wall(p(rp),boundaries(ib),hit,x_hit,x_hit_rel)
+                    IF (hit) THEN
+                        call add_bnd_hit(p(rp), ib, x_hit_rel)
+                    END IF
+                END IF
+                ib = ib + 1
+            END DO
+
+            !loop over real surfaces
             ib = 1
             DO WHILE (ib <= nb)
                 IF (rp==0) EXIT
+                IF (boundaries(ib)%type < 0) THEN
+                    ib = ib + 1
+                    CYCLE
+                END IF
+
                 call hit_wall(p(rp),boundaries(ib),hit,x_hit,x_hit_rel)
 
                 IF (hit) THEN
@@ -135,28 +157,7 @@ module particlehandling
                     ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
                         npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
-                        IF (bool_energy_resolved_hits) THEN
-                            part_energy = (p(rp)%data%v(1)**2+p(rp)%data%v(2)**2+p(rp)%data%v(3)**2) * 0.5 * species(p(rp)%data%species)%m / e
-                            energy_bin = int(part_energy / ehit_max(p(rp)%data%species) * nbins_energy_resolved_hits) + 1
-                            energy_bin = min(energy_bin,nbins_energy_resolved_hits+1)
-                            energy_resolved_hits(p(rp)%data%species,ib,energy_bin) = energy_resolved_hits(p(rp)%data%species,ib,energy_bin) + 1
-                        END IF
-                        IF (bool_angle_resolved_hits) THEN
-                            part_angle = acos( dotproduct(p(rp)%data%v/sqrt(dotproduct(p(rp)%data%v,p(rp)%data%v)),  boundaries(ib)%n) ) - pi/2.
-                            angle_bin = int(part_angle / (pi/2.) * nbins_angle_resolved_hits) + 1
-                            angle_resolved_hits(p(rp)%data%species,ib,angle_bin) = angle_resolved_hits(p(rp)%data%species,ib,angle_bin) + 1
-                        END IF
-                        IF (bool_space_resolved_hits) THEN
-                            e1_space_bin = min(int(x_hit_rel(1) * nbins_e1_space_resolved_hits) + 1, nbins_e1_space_resolved_hits)
-                            e2_space_bin = min(int(x_hit_rel(2) * nbins_e2_space_resolved_hits) + 1, nbins_e2_space_resolved_hits)
-                            space_resolved_hits(p(rp)%data%species,ib,e1_space_bin,e2_space_bin) = space_resolved_hits(p(rp)%data%species,ib,e1_space_bin,e2_space_bin) + 1
-                        END IF
-                        IF (bool_age_resolved_hits) THEN
-                            !hier muss ich mir die berechnung des Maximums nochmal genau ueberlegen. Aber fuer einen proof of concept gehts
-                            age_bin = int(p(rp)%data%age / (500*dt) * nbins_age_resolved_hits) + 1
-                            age_bin = min(age_bin,nbins_age_resolved_hits+1)
-                            age_resolved_hits(p(rp)%data%species,ib,age_bin) = age_resolved_hits(p(rp)%data%species,ib, age_bin) + 1
-                        END IF
+                        call add_bnd_hit(p(rp), ib, x_hit_rel)
                         p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1
@@ -170,6 +171,43 @@ module particlehandling
         call reallocate_particles(p,sum(npps), sum(npps))
 
     END SUBROUTINE count_hits_and_remove_particles
+
+!======================================================================================
+    SUBROUTINE add_bnd_hit(particle, ib, x_hit_rel)
+        implicit none
+
+        integer,intent(in)           :: ib
+        type(t_particle), intent(in) :: particle
+        real(KIND=8),intent(in)      :: x_hit_rel(2)
+        integer                      :: ispecies
+        real(KIND=8)                 :: part_energy, part_angle
+        integer                      :: energy_bin,angle_bin,e1_space_bin,e2_space_bin,age_bin
+
+
+        ispecies = particle%data%species
+        IF (bool_energy_resolved_hits) THEN
+            part_energy = (particle%data%v(1)**2+particle%data%v(2)**2+particle%data%v(3)**2) * 0.5 * species(ispecies)%m / e
+            energy_bin = int(part_energy / ehit_max(ispecies) * nbins_energy_resolved_hits) + 1
+            energy_bin = min(energy_bin,nbins_energy_resolved_hits+1)
+            energy_resolved_hits(ispecies,ib,energy_bin) = energy_resolved_hits(ispecies,ib,energy_bin) + 1
+        END IF
+        IF (bool_angle_resolved_hits) THEN
+            part_angle = acos( dotproduct(particle%data%v/sqrt(dotproduct(particle%data%v,particle%data%v)),  boundaries(ib)%n) ) - pi/2.
+            angle_bin = int(part_angle / (pi/2.) * nbins_angle_resolved_hits) + 1
+            angle_resolved_hits(ispecies,ib,angle_bin) = angle_resolved_hits(ispecies,ib,angle_bin) + 1
+        END IF
+        IF (bool_space_resolved_hits) THEN
+            e1_space_bin = min(int(x_hit_rel(1) * nbins_e1_space_resolved_hits) + 1, nbins_e1_space_resolved_hits)
+            e2_space_bin = min(int(x_hit_rel(2) * nbins_e2_space_resolved_hits) + 1, nbins_e2_space_resolved_hits)
+            space_resolved_hits(ispecies,ib,e1_space_bin,e2_space_bin) = space_resolved_hits(ispecies,ib,e1_space_bin,e2_space_bin) + 1
+        END IF
+        IF (bool_age_resolved_hits) THEN
+            !hier muss ich mir die berechnung des Maximums nochmal genau ueberlegen. Aber fuer einen proof of concept gehts
+            age_bin = int(particle%data%age / (500*dt) * nbins_age_resolved_hits) + 1
+            age_bin = min(age_bin,nbins_age_resolved_hits+1)
+            age_resolved_hits(ispecies,ib,age_bin) = age_resolved_hits(ispecies,ib, age_bin) + 1
+        END IF
+    END SUBROUTINE add_bnd_hit
 
 !======================================================================================
 
