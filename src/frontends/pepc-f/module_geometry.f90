@@ -123,7 +123,6 @@ module module_geometry
         END DO
 
         CALL check_boundaries()
-        CALL add_wallparticles_to_boundaries()
 
         deallocate(x0)
         deallocate(e1)
@@ -189,26 +188,7 @@ module module_geometry
 
  !======================================================================================
 
-    SUBROUTINE add_wallparticles_to_boundaries()
-        implicit none
-
-        integer :: ib,label,i
-
-        label=-1
-        DO ib=1,nb
-            IF (boundaries(ib)%nwp/=0) THEN
-                DO i=1,boundaries(ib)%nwp
-                    boundaries(ib)%wp_labels(i)=label
-                    label=label-1
-                END DO
-            END IF
-        END DO
-
-    END SUBROUTINE add_wallparticles_to_boundaries
-
-!======================================================================================
-
-    SUBROUTINE hit_wall(p,wall,hit,x_hit,x_hit_rel)
+     SUBROUTINE hit_wall(p,wall,hit,x_hit,x_hit_rel)
         use module_pepc_types
         use variables
         implicit none
@@ -252,7 +232,6 @@ module module_geometry
 
         type(t_boundary), intent(inout) :: boundary
         integer, intent(in) :: nwp
-        integer :: rc
 
         IF (boundary%type/=0) THEN
             write(*,*) "Problem with boundary",boundary%indx
@@ -261,9 +240,6 @@ module module_geometry
         END IF
 
         boundary%nwp=nwp
-        deallocate(boundary%wp_labels)
-        allocate(boundary%wp_labels(nwp),stat=rc)
-        boundary%wp_labels=0
 
     END SUBROUTINE init_wall
 
@@ -275,7 +251,6 @@ module module_geometry
         type(t_boundary), intent(inout) :: wall
         real*8, intent(in), dimension(3) :: x0,e1,e2,n
         integer, intent(in) :: typ,indx
-        integer :: rc
 
         wall%x0=x0
         wall%e1=e1
@@ -284,7 +259,6 @@ module module_geometry
         wall%type=typ
         wall%indx=indx
         wall%reflux_particles=.false.
-        allocate(wall%wp_labels(0),stat=rc)
 
     END SUBROUTINE init_boundary
 

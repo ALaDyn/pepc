@@ -53,7 +53,7 @@ module module_geometry_types
          real*8 :: dist=0.              !< distance to opposite boundary (only set if type=2)
          integer :: nwp=0               !< number of wall particles (can only be set if type=0)
          real*8 :: q_tot=0.             !< total caharge of wall (can only be set if type=0)
-         integer,allocatable :: wp_labels(:) !< list of labels of all wall particles in wall
+         !integer,allocatable :: wp_labels(:) !< list of labels of all wall particles in wall
 
       end type t_boundary
 

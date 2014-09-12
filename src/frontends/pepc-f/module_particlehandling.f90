@@ -475,8 +475,6 @@ module particlehandling
         integer, intent(inout) :: thits(0:,:)
         integer :: ip,ispecies,ib
         real*8  :: dq(nb)
-        logical :: hit
-        real(KIND=8) :: x_hit_rel(2)
 
         dq=0.0_8
 
@@ -489,14 +487,10 @@ module particlehandling
             boundaries(ib)%q_tot = boundaries(ib)%q_tot + dq(ib)
         END DO
 
-        DO ip=1, sum(npps)                                            ! charge wall by adding charge to the wall particles
+        DO ip=1, sum(npps)                                ! charge wall by adding charge to the wall particles
             IF (p(ip)%data%species/=0) CYCLE
-            DO ib=1,nb
-                call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit,x_hit_rel)
-                IF(hit) THEN
-                    p(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
-                END IF
-            END DO
+            ib = p(ip)%data%mp_int1
+            p(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
         END DO
     END SUBROUTINE charge_wall
 
@@ -645,7 +639,9 @@ module particlehandling
         implicit none
     
         type(t_particle), intent(inout), allocatable :: p(:)
-        integer :: ip,ispecies,i
+        integer :: ip,ispecies,i,ib
+        integer, allocatable :: nwp(:)
+
 
         ip=0
         DO ispecies=1,nspecies-1
@@ -670,7 +666,11 @@ module particlehandling
             END IF
         END DO
 
+
         ispecies=0
+        allocate(nwp(nb))
+        nwp = boundaries(:)%nwp
+        ib = 1
         DO i=1,npps(ispecies)
             ip = ip + 1
             p(ip)%data%B(1)=Bx
@@ -684,7 +684,11 @@ module particlehandling
             p(ip)%results%pot = 0.0_8
             p(ip)%work        = 1.0_8
             p(ip)%data%age    = 0.0
-            p(ip)%data%mp_int1= 0
+            DO WHILE (nwp(ib) == 0)
+                ib = ib + 1
+            END DO
+            p(ip)%data%mp_int1 = ib
+            nwp(ib) = nwp(ib) - 1
         END DO
 
         call source(p)
@@ -768,16 +772,13 @@ module particlehandling
 
         DO ip=1, sum(npps)
             IF (p(ip)%data%species/=0) CYCLE
-            DO ib=1,nb
-                IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                    call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit,x_hit_rel)
-                    IF (.not. hit) THEN
-                        ran1=rnd_num()
-                        ran2=rnd_num()
-                        p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                    END IF
-                END IF
-            END DO
+            ib = p(ip)%data%mp_int1
+            call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit,x_hit_rel)
+            IF (.not. hit) THEN
+                ran1=rnd_num()
+                ran2=rnd_num()
+                p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+            END IF
         END DO
 
     end subroutine redistribute_wall_particles
@@ -815,13 +816,10 @@ module particlehandling
             IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
                 IF (p(ip)%data%species==0) THEN
                     p(ip)%data%v = 0.0_8
-                    DO ib=1,nb
-                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                            ran1=rnd_num()
-                            ran2=rnd_num()
-                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                        END IF
-                    END DO
+                    ib = p(ip)%data%mp_int1
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
                 END IF
             ELSE
                 sigma=sqrt(species(p(ip)%data%species)%src_t*e / (p(ip)%data%m/fsup))
