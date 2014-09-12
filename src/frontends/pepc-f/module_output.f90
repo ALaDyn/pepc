@@ -559,9 +559,91 @@ MODULE output
 
   END SUBROUTINE write_parameters
 
+  !======================================================================================
+
+    subroutine write_particles_npy(p, my_rank, itime)
+        use module_pepc_types
+        use module_utils
+        use module_debug, only : pepc_status
+
+        implicit none
+        integer(kind_pe), intent(in) :: my_rank
+        integer(kind_default), intent(in) :: itime
+        type(t_particle), allocatable, intent(in) :: p(:)
+
+        character(12), parameter :: directory = './particles'
+        integer :: filehandle = 91
+
+        character(255) :: filename
+        logical :: firstcall  = .true.
+        character(50) :: dir, format
+        integer :: n, i
+
+        integer(1) :: MAGIC1 = -109 !eqv to X'93'
+        character(5) :: MAGIC2 = "NUMPY"
+        integer(1) :: MAGIC3 = X'1'
+        integer(1) :: MAGIC4 = X'0'
+        integer(1) :: HEAD_LEN0
+        integer(1) :: HEAD_LEN1
+        integer(1) :: SPACE = X'20'
+        integer(1) :: NEWLINE = X'0A'
+        character(512) :: HEADER
+        integer :: header_length, total_length_is, total_length_needed, spaces_needed
+
+        dir = trim(directory)//"/npy/"
+        write(filename,'(a,"particle_",i12.12,"_",i6.6,".npy")') trim(dir), itime, my_rank
+        call pepc_status("DUMP PARTICLES NUMPY: "//trim(filename))
+
+        if (firstcall) then
+            call create_directory(trim(directory))
+            call create_directory(trim(dir))
+            firstcall = .false.
+        endif
+
+        if(root) write(*,'(a,i6)') " == [npy particle output] npy output at timestep",step
+
+        open(filehandle, file=trim(filename), STATUS='UNKNOWN', ACCESS="STREAM", POSITION="APPEND", CONVERT="BIG_ENDIAN")
+
+        n = size(p)
+
+        !create npy file header
+        !https://github.com/numpy/numpy/blob/master/doc/neps/npy-format.rst for more info on the file format
+        write(format,'(a,i2,a)') "(3a,i",6,",a)"
+        write(HEADER,format) "{'descr': [('label', '>i8'), ('x', '>f8'), ('y', '>f8'), ('z', '>f8'), ('vx', '>f8'), ('vy', '>f8'), ", &
+                           "('vz', '>f8'), ('q', '>f8'), ('m', '>f8'), ('age', '>f8'), ('species', '>i4'), ('mp_int1', '>i4'), ", &
+                           "('Ex', '>f8'), ('Ey', '>f8'), ('Ez', '>f8'), ('phi', '>f8')], 'fortran_order': False, 'shape': (", &
+                           n, &
+                           ",), }"
+
+        header_length = len_trim(HEADER)
+        total_length_is = header_length + 6 + 4
+        total_length_needed = ((total_length_is / 16) + 1) * 16
+        spaces_needed = total_length_needed - total_length_is - 1
+
+        HEAD_LEN1 = INT((total_length_needed - 10) / 256,kind=1)
+        HEAD_LEN0 = INT(MOD((total_length_needed - 10), 256),kind=1)
+
+        write(filehandle) MAGIC1,MAGIC2,MAGIC3,MAGIC4,HEAD_LEN0, HEAD_LEN1
+        write(filehandle) trim(HEADER)
+        DO i=1, spaces_needed
+            write(filehandle) SPACE
+        END DO
+        write(filehandle) NEWLINE
+
+
+        !write data
+        DO i=1, n
+            write(filehandle) p(i)%label, p(i)%x, p(i)%data%v, p(i)%data%q, p(i)%data%m, p(i)%data%age, &
+                              p(i)%data%species, p(i)%data%mp_int1, p(i)%results%e, p(i)%results%pot
+        END DO
+        close(filehandle)
+
+    end subroutine write_particles_npy
+
+
 !======================================================================================
 
-    subroutine write_particles(p, vtk_mask)
+    subroutine write_particles_vtk(p, vtk_mask)
         use module_vtk
         implicit none
     
@@ -629,7 +711,7 @@ MODULE output
         tb = get_time()
 
 
-    end subroutine write_particles  
+    end subroutine write_particles_vtk
 
 !======================================================================================
 
@@ -683,7 +765,6 @@ MODULE output
       !close(1000)
 
         if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
-
 
         npart=sum(tnpps)
         call write_particles_mpiio(MPI_COMM_WORLD,step,npart,particles,filename)

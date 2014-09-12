@@ -52,6 +52,7 @@ module module_initialization
       diag_interval   = 0
       checkp_interval = 0
       vtk_interval    = 0
+      npy_interval    = 0
       guiding_centre_electrons=.false.
       Bx              = 0.
       By              = 0.
