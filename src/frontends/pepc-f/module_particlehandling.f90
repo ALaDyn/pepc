@@ -640,8 +640,6 @@ module particlehandling
     
         type(t_particle), intent(inout), allocatable :: p(:)
         integer :: ip,ispecies,i,ib
-        integer, allocatable :: nwp(:)
-
 
         ip=0
         DO ispecies=1,nspecies-1
@@ -668,9 +666,6 @@ module particlehandling
 
 
         ispecies=0
-        allocate(nwp(nb))
-        nwp = boundaries(:)%nwp
-        ib = 1
         DO i=1,npps(ispecies)
             ip = ip + 1
             p(ip)%data%B(1)=Bx
@@ -684,11 +679,13 @@ module particlehandling
             p(ip)%results%pot = 0.0_8
             p(ip)%work        = 1.0_8
             p(ip)%data%age    = 0.0
-            DO WHILE (nwp(ib) == 0)
-                ib = ib + 1
+            DO ib=1, nb
+                IF (boundaries(ib)%nwp > 0) THEN
+                    IF ((boundaries(ib)%wp_label_min <= p(ip)%label) .AND. (boundaries(ib)%wp_label_max >= p(ip)%label)) THEN
+                        p(ip)%data%mp_int1 = ib
+                    END IF
+                END IF
             END DO
-            p(ip)%data%mp_int1 = ib
-            nwp(ib) = nwp(ib) - 1
         END DO
 
         call source(p)
@@ -775,9 +772,12 @@ module particlehandling
             ib = p(ip)%data%mp_int1
             call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit,x_hit_rel)
             IF (.not. hit) THEN
-                ran1=rnd_num()
-                ran2=rnd_num()
+                !ran1=rnd_num()
+                !ran2=rnd_num()
+                ran1 = boundaries(ib)%wppe1(boundaries(ib)%wp_label_max - p(ip)%label + 1)
+                ran2 = boundaries(ib)%wppe2(boundaries(ib)%wp_label_max - p(ip)%label + 1)
                 p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+                write(*,*) "Wall particle moved to random position on wall because its position was not on the wall", my_rank, p(ip)%label
             END IF
         END DO
 
@@ -817,8 +817,10 @@ module particlehandling
                 IF (p(ip)%data%species==0) THEN
                     p(ip)%data%v = 0.0_8
                     ib = p(ip)%data%mp_int1
-                    ran1=rnd_num()
-                    ran2=rnd_num()
+                    !ran1=rnd_num()
+                    !ran2=rnd_num()
+                    ran1 = boundaries(ib)%wppe1(boundaries(ib)%wp_label_max - p(ip)%label + 1)
+                    ran2 = boundaries(ib)%wppe2(boundaries(ib)%wp_label_max - p(ip)%label + 1)
                     p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
                 END IF
             ELSE

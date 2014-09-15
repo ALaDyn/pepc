@@ -102,6 +102,16 @@ module helper
 
 !======================================================================================
 
+    real*8 function norm(a)
+        implicit none
+        real*8, intent(in),dimension(3) :: a
+
+        norm = sqrt(dotproduct(a,a))
+
+    end function norm
+
+!======================================================================================
+
     real*8 function dotproduct(a,b)
         implicit none
         real*8, intent(in),dimension(3) :: a,b
