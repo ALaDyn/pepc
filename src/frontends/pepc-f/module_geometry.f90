@@ -228,8 +228,8 @@ module module_geometry
         lene1 = norm(boundary%e1)
         lene2 = norm(boundary%e2)
 
-        boundary%nwpe1 = int(sqrt(nwp * lene1 / lene2))
-        boundary%nwpe2 = int(sqrt(nwp * lene2 / lene1))
+        boundary%nwpe1 = nint(sqrt(nwp * lene1 / lene2))
+        boundary%nwpe2 = nint(sqrt(nwp * lene2 / lene1))
         boundary%nwp = boundary%nwpe1 * boundary%nwpe2
         IF (boundary%nwp /= nwp) THEN
             IF (root) write(*,'(a,i7,a,i7,a)') " Number of wall particles has been adjusted from ", nwp,&
