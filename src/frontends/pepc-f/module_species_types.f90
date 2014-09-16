@@ -42,6 +42,7 @@ module module_species_types
       !> Data structure for storing interaction-specific particle data
       type t_species
          real(KIND=8) :: src_t               !< source temperature (eV)
+         real(KIND=8) :: v_th                !< thermal velocity v_th = sqrt(T[eV] * e / m)
          real*8 :: m                         !< mass
          real*8 :: q                         !< charge
          integer :: indx                     !< index (should be the same as in the species array)
