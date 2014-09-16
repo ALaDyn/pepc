@@ -12,7 +12,7 @@ MODULE output
 
     implicit none
 
-    integer,allocatable      :: thits_out(:,:),treflux_out(:,:)
+    integer,allocatable      :: thits_out(:,:),treflux_out(:,:),trethermalized_out(:)
     real(KIND=8) :: energy_0(2,3)
 
     CONTAINS
@@ -462,6 +462,7 @@ MODULE output
                 END DO
                 IF(root) write(filehandle,*)
                 IF(root) write(filehandle,'(a,i10)') "Refluxed particles :",SUM(treflux_out(ispecies,1:nb))+species(ispecies)%nfp
+                IF(root) write(filehandle,'(a,i10)') "Rethermalized particles :",trethermalized_out(ispecies)
                 IF(root) write(filehandle,*)
             ELSE
                 IF(diag_interval.ne.0) THEN
@@ -510,16 +511,19 @@ MODULE output
 
 !===============================================================================
 
-    SUBROUTINE set_recycling_output_values(thits,treflux)
+    SUBROUTINE set_recycling_output_values(thits,treflux,trethermalized)
 
         implicit none
         integer :: rc
-        integer,intent(in) :: thits(0:,:),treflux(0:,:)
+        integer,intent(in) :: thits(0:,:),treflux(0:,:),trethermalized(0:)
 
         if (.not. allocated(thits_out)) allocate(thits_out(0:nspecies-1,1:nb),stat=rc)
         if (.not. allocated(treflux_out)) allocate(treflux_out(0:nspecies-1,1:nb),stat=rc)
+        if (.not. allocated(trethermalized_out)) allocate(trethermalized_out(0:nspecies-1),stat=rc)
+
         thits_out(:,:) = thits
         treflux_out(:,:) = treflux
+        trethermalized_out = trethermalized
 
 
     END SUBROUTINE set_recycling_output_values

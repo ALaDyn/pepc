@@ -211,9 +211,10 @@ module particlehandling
 
 !======================================================================================
 
-    SUBROUTINE rethermalize_by_age(p)
+    SUBROUTINE rethermalize_by_age(p,rethermalized)
         implicit none
         type(t_particle), allocatable, intent(inout) :: p(:)
+        integer, intent(inout) :: rethermalized(0:)
 
         integer :: ip, ispecies
         real(KIND=8) :: t_trav, mu
@@ -226,6 +227,7 @@ module particlehandling
             IF (p(ip)%data%q > 0) CYCLE
             IF (p(ip)%data%age > t_trav) THEN
                 ispecies = p(ip)%data%species
+                rethermalized(ispecies) = rethermalized(ispecies) + 1
                 ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
                 ! resample x = ran*dt*vx, y,z = ran
                 call random_gauss_list(v_ran(2:3),mu,species(ispecies)%v_th)
@@ -249,11 +251,13 @@ module particlehandling
 
 !======================================================================================
 
-    SUBROUTINE rethermalize(p)
+    SUBROUTINE rethermalize(p,rethermalized)
         implicit none
 
         integer :: ip
         type(t_particle), allocatable, intent(inout) :: p(:)
+        integer, intent(inout) :: rethermalized(0:)
+
         real*8 :: xold(3)
         real(KIND=8) mu,sigma,ran,t1(3),t2(3),v_ran(3),ran2,ran3
 
@@ -275,6 +279,7 @@ module particlehandling
                         call random_gaussian_flux(v_ran(1),sigma)
                         p(ip)%data%v(2:3) = v_ran(2:3)
                         p(ip)%data%v(1) = sign(1._8,p(ip)%data%v(1)) * v_ran(1)
+                        rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
                     END IF
                 END DO
             ELSE !only for 1 wall systems, was only used for testing purposes
@@ -289,6 +294,7 @@ module particlehandling
                         call random_gaussian_flux(v_ran(1),sigma)
                         p(ip)%data%v(2:3) = v_ran(2:3)
                         p(ip)%data%v(1) = sign(1._8,p(ip)%data%v(1)) * v_ran(1)
+                        rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
                     END IF
                 END DO
             END IF
@@ -340,6 +346,7 @@ module particlehandling
                     p(ip)%data%v(1) = v_ran(1)*sign(1._8,p(ip)%x(1))
                     ran = rnd_num()
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
 
                 ELSE IF (retherm == 2) THEN
                     ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
@@ -355,6 +362,7 @@ module particlehandling
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
                     p(ip)%x(2) = ymin + ran2*(ymax-ymin)
                     p(ip)%x(3) = zmin + ran3*(zmax-zmin)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
 
 
                 ELSE IF (retherm == 3) THEN
@@ -365,6 +373,7 @@ module particlehandling
                     p(ip)%data%v = p(ip)%data%v + (v_ran(1) * n1 *sign(1._8,p(ip)%x(1)) * sign(1._8,n1(1))) !this adds resampled vpar
                     ran = rnd_num()
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
 
 
                 ELSE IF (retherm == 4) THEN
@@ -382,6 +391,8 @@ module particlehandling
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
                     p(ip)%x(2) = ymin + ran2*(ymax-ymin)
                     p(ip)%x(3) = zmin + ran3*(zmax-zmin)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
+
 
                 ELSE IF (retherm == 5) THEN  !the same as retherm = 2, but for electrons only
                     ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
@@ -397,6 +408,8 @@ module particlehandling
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
                     p(ip)%x(2) = ymin + ran2*(ymax-ymin)
                     p(ip)%x(3) = zmin + ran3*(zmax-zmin)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
+
 
                 END IF
             END DO
@@ -577,6 +590,7 @@ module particlehandling
 
         integer      :: hits(0:nspecies-1,1:nb),thits(0:nspecies-1,1:nb)
         integer      :: reflux(0:nspecies-1,1:nb),treflux(0:nspecies-1,1:nb)
+        integer      :: rethermalized(0:nspecies-1),trethermalized(0:nspecies-1)
         integer      :: ispecies,ib
 
         real(KIND=8) :: timer(10)
@@ -585,6 +599,8 @@ module particlehandling
         reflux=0
         thits=0
         treflux=0
+        rethermalized=0
+        trethermalized=0
 
         if(root) write(*,'(a)') " == [hits_on_boundaries] count hits and recycle "
 
@@ -594,12 +610,13 @@ module particlehandling
         IF (bool_particle_handling_timing) timer(2) = get_time()
 
         IF (retherm > 10) THEN
-            call rethermalize_by_age(p)
+            call rethermalize_by_age(p,rethermalized)
         ELSE
-            call rethermalize(p)
+            call rethermalize(p,rethermalized)
         END IF
         IF (bool_particle_handling_timing) timer(3) = get_time()
 
+        call MPI_ALLREDUCE(rethermalized, trethermalized, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         DO ispecies=0,nspecies-1
             DO ib=1,nb
                 call MPI_ALLREDUCE(hits(ispecies,ib), thits(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
@@ -617,7 +634,7 @@ module particlehandling
         call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         IF (bool_particle_handling_timing) timer(7) = get_time()
 
-        call set_recycling_output_values(thits,treflux)
+        call set_recycling_output_values(thits,treflux,trethermalized)
         IF (bool_particle_handling_timing) timer(8) = get_time()
 
         call check_for_leakage(p)
