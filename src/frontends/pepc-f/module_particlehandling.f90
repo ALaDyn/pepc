@@ -64,7 +64,7 @@ module particlehandling
                         rp = rp - 1
                     ELSE IF (boundaries(ib)%type==5) THEN   !immediate half-Maxwellian refluxing normal to surface, tangential v conserved
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
@@ -76,7 +76,7 @@ module particlehandling
                         ib=0
                     ELSE IF (boundaries(ib)%type==6) THEN  !immediate half-Maxwellian refluxing normal to surface, tangential v resampled
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(1:3),mu,sigma)
@@ -94,7 +94,7 @@ module particlehandling
                         ib=0
                     ELSE IF (boundaries(ib)%type==7) THEN   !immediate Maxwellian flux refluxing normal to surface, tangential v conserved
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
@@ -105,7 +105,7 @@ module particlehandling
                         ib=0
                     ELSE IF (boundaries(ib)%type==8) THEN  !immediate Maxwellian flux refluxing normal to surface, tangential v resampled
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(2:3),mu,sigma)
@@ -211,9 +211,46 @@ module particlehandling
 
 !======================================================================================
 
+    SUBROUTINE rethermalize_by_age(p)
+        implicit none
+        type(t_particle), allocatable, intent(inout) :: p(:)
+
+        integer :: ip, ispecies
+        real(KIND=8) :: t_trav, mu
+        real(KIND=8) :: ran1, ran2, ran3, ran4, v_ran(3)
+
+        t_trav = 0.5 * dx / species(2)%v_th
+        mu=0.0_8
+
+        DO ip = 1, sum(npps)
+            IF (p(ip)%data%q > 0) CYCLE
+            IF (p(ip)%data%age > t_trav) THEN
+                ispecies = p(ip)%data%species
+                ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
+                ! resample x = ran*dt*vx, y,z = ran
+                call random_gauss_list(v_ran(2:3),mu,species(ispecies)%v_th)
+                call random_gaussian_flux(v_ran(1),species(ispecies)%v_th)
+                ran1 = rnd_num() - 0.5
+                ran2 = rnd_num()
+                ran3 = rnd_num()
+                ran4 = rnd_num()
+                p(ip)%data%v(1) = v_ran(1) * sign(1._8,ran1)
+                p(ip)%data%v(2) = v_ran(2)
+                p(ip)%data%v(3) = v_ran(3)
+                p(ip)%x = species(ispecies)%src_x0 + &
+                          ran2 * species(ispecies)%src_e1 + &
+                          ran3 * species(ispecies)%src_e2 + &
+                          ran4 * species(ispecies)%src_e3
+
+            END IF
+        END DO
+
+    END SUBROUTINE rethermalize_by_age
+
+!======================================================================================
+
     SUBROUTINE rethermalize(p)
         implicit none
-        include 'mpif.h'
 
         integer :: ip
         type(t_particle), allocatable, intent(inout) :: p(:)
@@ -233,7 +270,7 @@ module particlehandling
                         xold(1) = p(ip)%x(1) - dt * p(ip)%data%v(1)
                         IF ((xold(1) < xmax * 0.05) .AND. (xold(1)) > xmin * 0.05) CYCLE
                         mu=0.0_8
-                        sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
+                        sigma = species(p(ip)%data%species)%v_th
                         call random_gauss_list(v_ran(2:3),mu,sigma)
                         call random_gaussian_flux(v_ran(1),sigma)
                         p(ip)%data%v(2:3) = v_ran(2:3)
@@ -247,7 +284,7 @@ module particlehandling
                         xold(1) = p(ip)%x(1) - dt * p(ip)%data%v(1)
                         IF (xold(1) < species(p(ip)%data%species)%src_e1(1)) CYCLE
                         mu=0.0_8
-                        sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
+                        sigma = species(p(ip)%data%species)%v_th
                         call random_gauss_list(v_ran(2:3),mu,sigma)
                         call random_gaussian_flux(v_ran(1),sigma)
                         p(ip)%data%v(2:3) = v_ran(2:3)
@@ -294,7 +331,7 @@ module particlehandling
                 IF (real_equal(sign(1._8,xold(1)), sign(1._8,p(ip)%x(1)), eps)) CYCLE
 
                 mu=0.0_8
-                sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
+                sigma = species(p(ip)%data%species)%v_th
                 
                 IF (retherm == 1) THEN
                     ! resample vx according to maxwellian flux source, don't touch vy,vz
@@ -556,7 +593,11 @@ module particlehandling
         call count_hits_and_remove_particles(p,hits,reflux)
         IF (bool_particle_handling_timing) timer(2) = get_time()
 
-        call rethermalize(p)
+        IF (retherm > 10) THEN
+            call rethermalize_by_age(p)
+        ELSE
+            call rethermalize(p)
+        END IF
         IF (bool_particle_handling_timing) timer(3) = get_time()
 
         DO ispecies=0,nspecies-1
@@ -824,7 +865,7 @@ module particlehandling
                     p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
                 END IF
             ELSE
-                sigma=sqrt(species(p(ip)%data%species)%src_t*e / (p(ip)%data%m/fsup))
+                sigma = species(p(ip)%data%species)%v_th
                 IF (init_uniform_gaussian) THEN
                     IF (step==0) THEN
                         ran=rnd_num()
