@@ -100,7 +100,9 @@ module variables
   logical :: bool_age_resolved_hits
   integer :: last_diag_output
   integer :: nbins_energy_resolved_hits
+  real(KIND=8) :: ehit_max_in_T, agehit_max_in_t_trav_ion
   real(KIND=8), allocatable :: ehit_max(:)
+  real(KIND=8), allocatable :: agehit_max(:)
   integer, allocatable :: energy_resolved_hits(:,:,:)
   integer :: nbins_angle_resolved_hits
   integer, allocatable :: angle_resolved_hits(:,:,:)

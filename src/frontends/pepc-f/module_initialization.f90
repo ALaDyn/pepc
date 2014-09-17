@@ -79,6 +79,8 @@ module module_initialization
       nbins_age_resolved_hits = 100
       nbins_e1_space_resolved_hits = 10
       nbins_e2_space_resolved_hits = 10
+      ehit_max_in_T = 10.
+      agehit_max_in_t_trav_ion = 2.
 
       bool_diag_bins_cylinder = .false.
       bool_avg_btwn_diag_steps = .true.

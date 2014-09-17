@@ -202,8 +202,7 @@ module particlehandling
             space_resolved_hits(ispecies,ib,e1_space_bin,e2_space_bin) = space_resolved_hits(ispecies,ib,e1_space_bin,e2_space_bin) + 1
         END IF
         IF (bool_age_resolved_hits) THEN
-            !hier muss ich mir die berechnung des Maximums nochmal genau ueberlegen. Aber fuer einen proof of concept gehts
-            age_bin = int(particle%data%age / (500*dt) * nbins_age_resolved_hits) + 1
+            age_bin = int(particle%data%age / agehit_max(ispecies) * nbins_age_resolved_hits) + 1
             age_bin = min(age_bin,nbins_age_resolved_hits+1)
             age_resolved_hits(ispecies,ib,age_bin) = age_resolved_hits(ispecies,ib, age_bin) + 1
         END IF

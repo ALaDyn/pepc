@@ -290,7 +290,7 @@ MODULE output
         write(tmp_file,'(a,"agerh_species_",i3.3,".dat")') trim(dir), ispecies
         write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i6)"
 
-        binwidth = 500*dt/nbins_age_resolved_hits
+        binwidth = agehit_max(ispecies)/nbins_age_resolved_hits
 
         IF(root) THEN
             IF (last_diag_output == startstep) call create_directory(trim(dir))
