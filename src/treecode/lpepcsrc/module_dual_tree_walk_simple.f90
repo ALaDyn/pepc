@@ -102,13 +102,23 @@ module module_dual_tree_walk
 
       logical :: src_is_leaf, dst_is_leaf
       integer(kind_particle) :: ps
-      real(kind_physics) :: shifted_src_center(3), delta(3), dist2
+      real(kind_physics) :: shifted_src_center(3), delta(3), dist2, rsrc, rdst
 
-      associate (src_node => t%nodes(src), dst_node => t%nodes(dst), &
-        rsrc => t%boxdiaglength(t%nodes(src)%level), rdst => t%boxdiaglength(t%nodes(dst)%level))
+      associate (src_node => t%nodes(src), dst_node => t%nodes(dst))
 
         src_is_leaf = tree_node_is_leaf(src_node)
         dst_is_leaf = tree_node_is_leaf(dst_node)
+
+        if (src_is_leaf) then
+          rsrc = 0.0
+        else
+          rsrc = t%boxdiaglength(t%nodes(src)%level)
+        end if
+        if (dst_is_leaf) then
+          rdst = 0.0
+        else
+          rdst = t%boxdiaglength(t%nodes(dst)%level)
+        end if
 
         shifted_src_center = src_node%center - lattice_vector
 
