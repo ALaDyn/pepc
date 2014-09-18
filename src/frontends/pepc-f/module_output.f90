@@ -284,7 +284,7 @@ MODULE output
 
         hits=0
 
-        call MPI_ALLREDUCE(age_resolved_hits(ispecies,:,:), hits, (nbins_age_resolved_hits)*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+        call MPI_ALLREDUCE(age_resolved_hits(ispecies,:,:), hits, (nbins_age_resolved_hits+1)*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
 
         dir = "./age_resolved_hits/"
         write(tmp_file,'(a,"agerh_species_",i3.3,".dat")') trim(dir), ispecies
