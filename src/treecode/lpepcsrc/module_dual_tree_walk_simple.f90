@@ -102,7 +102,7 @@ module module_dual_tree_walk
 
       logical :: src_is_leaf, dst_is_leaf
       integer(kind_particle) :: ps
-      real(kind_physics) :: shifted_src_center(3), delta(3), dist2, rsrc, rdst
+      real(kind_physics) :: delta(3), dist2, rsrc, rdst
 
       associate (src_node => t%nodes(src), dst_node => t%nodes(dst))
 
@@ -110,29 +110,29 @@ module module_dual_tree_walk
         dst_is_leaf = tree_node_is_leaf(dst_node)
 
         if (src_is_leaf) then
-          rsrc = 0.0
+          rsrc = 0.0_kind_physics
         else
           rsrc = t%boxdiaglength(t%nodes(src)%level)
         end if
+
         if (dst_is_leaf) then
-          rdst = 0.0
+          rdst = 0.0_kind_physics
         else
           rdst = t%boxdiaglength(t%nodes(dst)%level)
         end if
 
-        shifted_src_center = src_node%center - lattice_vector
+        delta = dst_node%center - (src_node%center - lattice_vector)
+        dist2 = dot_product(delta, delta)
 
         if ((src_is_leaf .and. dst_is_leaf)) then
           ps = tree_node_get_particle(dst_node)
-          delta = dst_node%center - shifted_src_center
-          dist2 = dot_product(delta, delta)
           if (src /= dst) then
             call calc_force_per_interaction_with_leaf(p(ps), src_node%multipole_moments, src, delta, dist2, lattice_vector)
           else
             call calc_force_per_interaction_with_self(p(ps), src_node%multipole_moments, src, delta, dist2, lattice_vector)
           end if
-        else if (dual_mac(shifted_src_center, rsrc, src_node%multipole_moments, dst_node%center, rdst, dst_node%multipole_moments)) then
-          call multipole_to_local(shifted_src_center, src_node%multipole_moments, dst_node%center, dst_node%local_coefficients)
+        else if (dual_mac(delta, dist2, rsrc, src_node%multipole_moments, rdst, dst_node%multipole_moments)) then
+          call multipole_to_local(delta, dist2, src_node%multipole_moments, dst_node%local_coefficients)
         else if (dst_is_leaf) then
           call split_src(src, dst)
         else if (src_is_leaf) then
@@ -200,7 +200,7 @@ module module_dual_tree_walk
         ns = tree_node_get_first_child(dst_node)
         do
           if (tree_node_has_local_contributions(t%nodes(ns))) then
-            if (t%nodes(ns)%leaves >= 1000) then
+            if (t%nodes(ns)%leaves >= 100) then
               !$omp task default(shared) firstprivate(ns) untied
               call sow_aux(src, ns)
               !$omp end task
@@ -255,6 +255,7 @@ module module_dual_tree_walk
 
       integer(kind_node) :: ns
       integer(kind_particle) :: ps
+      real(kind_physics) :: dist(3)
 
       associate (node => t%nodes(n))
         ! destination nodes must only come from the local part of the tree, results are only computed for local leaves
@@ -269,13 +270,16 @@ module module_dual_tree_walk
           ns = tree_node_get_first_child(node)
           do
             if (tree_node_has_local_contributions(t%nodes(ns))) then
-              if (t%nodes(ns)%leaves >= 1000) then
+
+              dist = t%nodes(ns)%center - node%center
+
+              if (t%nodes(ns)%leaves >= 100) then
                 !$omp task default(shared) firstprivate(ns) untied
-                call shift_coefficients_down(node%center, node%local_coefficients, t%nodes(ns)%center, t%nodes(ns)%local_coefficients)
+                call shift_coefficients_down(dist, node%local_coefficients, t%nodes(ns)%local_coefficients)
                 call reap_aux(ns)
                 !$omp end task
               else
-                call shift_coefficients_down(node%center, node%local_coefficients, t%nodes(ns)%center, t%nodes(ns)%local_coefficients)
+                call shift_coefficients_down(dist, node%local_coefficients, t%nodes(ns)%local_coefficients)
                 call reap_aux(ns)
               end if
             end if

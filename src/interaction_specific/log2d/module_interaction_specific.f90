@@ -318,19 +318,21 @@ module module_interaction_specific
   !>
   !> Multipole Acceptance Criterion for dual tree traversal
   !>
-  function dual_mac(x1, r1, m1, x2, r2, m2)
+  function dual_mac(d_, d2, r1, m1, r2, m2)
     implicit none
 
     logical :: dual_mac
-    type(t_multipole_moments), intent(in) :: m1, m2
-    real(kind_physics), intent(in) :: x1(3), x2(3)
+    real(kind_physics), intent(in) :: d_(3), d2
     real(kind_physics), intent(in) :: r1, r2
+    type(t_multipole_moments), intent(in) :: m1, m2
 
-    real(kind_physics) :: d(2)
+    real(kind_physics) :: d(2), sr, sr2
 
-    d = x1(1:2) - x2(1:2)
+    d = d_(1:2)
+    sr = r1 + r2
+    sr2 = sr * sr
 
-    dual_mac = (theta2 * dot_product(d, d) > (r1 + r2)**2)
+    dual_mac = (theta2 * dot_product(d, d) > sr2)
   end function
 
 
@@ -349,12 +351,12 @@ module module_interaction_specific
 
 
   !>
-  !> Uses the M2L operator to convert a set of multipole moments `m` expanded about `xm`
-  !> into a set of local coefficients `t` about `xt`.
+  !> Uses the M2L operator to convert-shift a set of multipole moments `m` along the separation vector `d`
+  !> into a set of local coefficients `t`.
   !>
-  subroutine multipole_to_local(xm, m, xt, t)
+  subroutine multipole_to_local(d, d2, m, t)
     implicit none
-    real(kind_physics), intent(in) :: xm(3), xt(3)
+    real(kind_physics), intent(in) :: d(3), d2
     type(t_multipole_moments), intent(in) :: m
     type(t_local_coefficients), intent(inout) :: t
 
@@ -362,7 +364,7 @@ module module_interaction_specific
     integer :: k, l
     complex(kind_physics) :: z0
 
-    z0 = (xm(1) - xt(1)) + ic * (xm(2) - xt(2))
+    z0 = d(1) + ic * d(2)
 
     t%mu(0) = t%mu(0) + m%charge * log(-z0)
 
@@ -381,11 +383,11 @@ module module_interaction_specific
 
 
   !>
-  !> Uses the L2L operator to translate the coefficients `p` from their center `xp` into new coefficients `c` expanded about `xc`.
+  !> Uses the L2L operator to translate the coefficients `p` along the separation vector `d` into new coefficients `c`.
   !>
-  subroutine shift_coefficients_down(xp, p, xc, c)
+  subroutine shift_coefficients_down(d, p, c)
     implicit none
-    real(kind_physics), intent(in) :: xp(3), xc(3)
+    real(kind_physics), intent(in) :: d(3)
     type(t_local_coefficients), intent(in) :: p
     type(t_local_coefficients), intent(inout) :: c
 
@@ -393,7 +395,7 @@ module module_interaction_specific
     integer :: k, l
     complex(kind_physics) :: z0
 
-    z0 = (xp(1) - xc(1)) + ic * (xp(2) - xc(2))
+    z0 = d(1) + ic * d(2)
 
     do l = 0, pMultipole
       do k = l, pMultipole

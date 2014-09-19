@@ -945,26 +945,26 @@ module module_interaction_specific
         !>
         !> Multipole Acceptance Criterion for dual tree traversal
         !>
-        function dual_mac(x1, r1, m1, x2, r2, m2)
+        function dual_mac(d, d2, r1, m1, r2, m2)
           implicit none
 
           logical :: dual_mac
-          type(t_multipole_moments), intent(in) :: m1, m2
-          real*8, intent(in) :: x1(3), x2(3)
+          real*8, intent(in) :: d(3), d2
           real*8, intent(in) :: r1, r2
+          type(t_multipole_moments), intent(in) :: m1, m2
 
           dual_mac = .false.
         end function
 
 
         !>
-        !> Uses the M2L operator to convert a set of multipole moments `m` expanded about `xm`
-        !> into a set of local coefficients `t` about `xt`.
+        !> Uses the M2L operator to convert-shift a set of multipole moments `m` along the separation vector `d`
+        !> into a set of local coefficients `t`.
         !>
-        subroutine multipole_to_local(xm, m, xt, t)
+        subroutine multipole_to_local(d, d2, m, t)
           implicit none
 
-          real*8, intent(in) :: xm(3), xt(3)
+          real*8, intent(in) :: d(3), d2
           type(t_multipole_moments), intent(in) :: m
           type(t_local_coefficients), intent(inout) :: t
 
@@ -972,12 +972,12 @@ module module_interaction_specific
 
 
         !>
-        !> Uses the L2L operator to translate the coefficients `p` from their center `xp` into new coefficients `c` expanded about `xc`.
+        !> Uses the L2L operator to translate the coefficients `p` along the separation vector `d` into new coefficients `c`.
         !>
-        subroutine shift_coefficients_down(xp, p, xc, c)
+        subroutine shift_coefficients_down(d, p, c)
           implicit none
 
-          real*8, intent(in) :: xp(3), xc(3)
+          real*8, intent(in) :: d(3)
           type(t_local_coefficients), intent(in) :: p
           type(t_local_coefficients), intent(inout) :: c
 

@@ -146,70 +146,100 @@ module module_interaction_specific
       end subroutine
 
       !>
-      !> Uses the M2L operator to convert a set of multipole moments `m` expanded about `xm`
-      !> into a set of local coefficients `t` about `xt`.
+      !> Uses the M2L operator to convert-shift a set of multipole moments `m` along the separation vector `d`
+      !> into a set of local coefficients `t`.
       !>
-      subroutine multipole_to_local(xm, m, xt, t)
+      subroutine multipole_to_local(d, d2, m, t)
         implicit none
-        real(kind_physics), intent(in) :: xm(3), xt(3)
+        real(kind_physics), intent(in) :: d(3), d2
         type(t_multipole_moments), intent(in) :: m
         type(t_local_coefficients), intent(inout) :: t
 
-        real(kind_physics) :: r(3)
-        real(kind_physics) :: invr
-        real(kind_physics) :: di(3), dii(3), dij(3)
+        real(kind_physics) :: invr, invr2, invr3
+        real(kind_physics) :: invr5t3, invr5t3dx, invr5t3dy, invr5t3dz
+        real(kind_physics) :: dx, dy, dz
+        real(kind_physics) :: kx, ky, kz
+        real(kind_physics) :: kxx, kyy, kzz
+        real(kind_physics) :: kxy, kyz, kzx
 
-        r = xt - xm
-        invr = 1. / sqrt(dot_product(r,r) + eps2)
-        di = - invr**3 * r
-        dii = 3. * r * r * invr**5 - invr**3
-        dij = 3. * invr**5 * (/ r(1) * r(2),  r(2) * r(3), r(3) * r(1) /)
+        real(kind_physics), parameter :: one = 1._kind_physics
+        real(kind_physics), parameter :: three = 3._kind_physics
+
+        dx = d(1)
+        dy = d(2)
+        dz = d(3)
+
+        invr = one / sqrt(d2 + eps2)
+        invr2 = invr * invr
+        invr3 = invr * invr2
+
+        kx = -invr3 * dx
+        ky = -invr3 * dy
+        kz = -invr3 * dz
+
+        invr5t3 = invr2 * invr3 * three
+
+        invr5t3dx = invr5t3 * dx
+        invr5t3dy = invr5t3 * dy
+        invr5t3dz = invr5t3 * dz
+
+        kxx = dx * invr5t3dx - invr3
+        kyy = dy * invr5t3dy - invr3
+        kzz = dz * invr5t3dz - invr3
+
+        kxy = invr5t3dx * dy
+        kyz = invr5t3dy * dz
+        kzx = invr5t3dz * dx
 
         t%f = t%f + m%charge * invr &
-          + dot_product(m%dip, di) &
-          + dot_product(m%quad, dii) &
-          + m%xyquad * dij(1) + m%yzquad * dij(2) + m%zxquad * dij(3)
+          + m%dip(1) * kx + m%dip(2) * ky + m%dip(3) * kz &
+          + m%quad(1) * kxx + m%quad(2) * kyy + m%quad(3) * kzz &
+          + m%xyquad * kxy + m%yzquad * kyz + m%zxquad * kzx
 
-        t%fx = t%fx + m%charge * di(1) &
-          + m%dip(1) * dii(1) + m%dip(2) * dij(1) + m%dip(3) * dij(3)
-        t%fy = t%fy + m%charge * di(2) &
-          + m%dip(1) * dij(1) + m%dip(2) * dii(2) + m%dip(3) * dij(2)
-        t%fz = t%fz + m%charge * di(3) &
-          + m%dip(1) * dij(3) + m%dip(2) * dij(2) + m%dip(3) * dii(3)
+        t%fx = t%fx + m%charge * kx &
+          + m%dip(1) * kxx + m%dip(2) * kxy + m%dip(3) * kzx
+        t%fy = t%fy + m%charge * ky &
+          + m%dip(1) * kxy + m%dip(2) * kyy + m%dip(3) * kyz
+        t%fz = t%fz + m%charge * kz &
+          + m%dip(1) * kzx + m%dip(2) * kyz + m%dip(3) * kzz
 
-        t%fxx = t%fxx + m%charge * dii(1)
-        t%fyy = t%fyy + m%charge * dii(2)
-        t%fzz = t%fzz + m%charge * dii(3)
-        t%fxy = t%fxy + m%charge * dij(1)
-        t%fyz = t%fyz + m%charge * dij(2)
-        t%fzx = t%fzx + m%charge * dij(3)
+        t%fxx = t%fxx + m%charge * kxx
+        t%fyy = t%fyy + m%charge * kyy
+        t%fzz = t%fzz + m%charge * kzz
+        t%fxy = t%fxy + m%charge * kxy
+        t%fyz = t%fyz + m%charge * kyz
+        t%fzx = t%fzx + m%charge * kzx
 
       end subroutine
 
       !>
-      !> Uses the L2L operator to translate the coefficients `p` from their center `xp` into new coefficients `c` expanded about `xc`.
+      !> Uses the L2L operator to translate the coefficients `p` along the separation vector `d` into new coefficients `c`.
       !>
-      subroutine shift_coefficients_down(xp, p, xc, c)
+      subroutine shift_coefficients_down(d, p, c)
         implicit none
-        real(kind_physics), intent(in) :: xp(3), xc(3)
+        real(kind_physics), intent(in) :: d(3)
         type(t_local_coefficients), intent(in) :: p
         type(t_local_coefficients), intent(inout) :: c
 
-        real(kind_physics) :: x(3)
+        real(kind_physics) :: dx, dy, dz
 
-        x = xc - xp
+        real(kind_physics), parameter :: half = 0.5_kind_physics
+
+        dx = d(1)
+        dy = d(2)
+        dz = d(3)
 
         c%f = c%f + p%f &
-          + x(1) * p%fx + x(2) * p%fy + x(3) * p%fz &
-          + 0.5 * (x(1) * x(1) * p%fxx + x(2) * x(2) * p%fyy + x(3) * x(3) * p%fzz) &
-          + x(1) * x(2) * p%fxy + x(2) * x(3) * p%fyz + x(3) * x(1) * p%fzx
+          + dx * p%fx + dy * p%fy + dz * p%fz &
+          + half * (dx * dx * p%fxx + dy * dy * p%fyy + dz * dz * p%fzz) &
+          + dx * dy * p%fxy + dy * dz * p%fyz + dz * dx * p%fzx
 
         c%fx = c%fx + p%fx &
-          + x(1) * p%fxx + x(2) * p%fxy + x(3) * p%fzx
+          + dx * p%fxx + dy * p%fxy + dz * p%fzx
         c%fy = c%fy + p%fy &
-          + x(1) * p%fxy + x(2) * p%fyy + x(3) * p%fyz
+          + dx * p%fxy + dy * p%fyy + dz * p%fyz
         c%fz = c%fz + p%fz &
-          + x(1) * p%fzx + x(2) * p%fyz + x(3) * p%fzz
+          + dx * p%fzx + dy * p%fyz + dz * p%fzz
 
         c%fxx = c%fxx + p%fxx
         c%fyy = c%fyy + p%fyy
@@ -230,7 +260,9 @@ module module_interaction_specific
         type(t_particle_results), intent(inout) :: r
 
         r%pot = r%pot + c%f
-        r%e = r%e - (/ c%fx, c%fy, c%fz  /)
+        r%e(1) = r%e(1) - c%fx
+        r%e(2) = r%e(2) - c%fy
+        r%e(3) = r%e(3) - c%fz
 
       end subroutine
 
@@ -364,19 +396,20 @@ module module_interaction_specific
       !>
       !> Multipole Acceptance Criterion for dual tree traversal
       !>
-      function dual_mac(x1, r1, m1, x2, r2, m2)
+      function dual_mac(d, d2, r1, m1, r2, m2)
         implicit none
 
         logical :: dual_mac
-        type(t_multipole_moments), intent(in) :: m1, m2
-        real(kind_physics), intent(in) :: x1(3), x2(3)
+        real(kind_physics), intent(in) :: d(3), d2
         real(kind_physics), intent(in) :: r1, r2
+        type(t_multipole_moments), intent(in) :: m1, m2
 
-        real(kind_physics) :: d(3)
+        real(kind_physics) :: sr, sr2
 
-        d = x1 - x2
+        sr = r1 + r2
+        sr2 = sr * sr
 
-        dual_mac = (theta2 * dot_product(d, d) > (r1 + r2)**2)
+        dual_mac = (theta2 * d2 > sr2)
       end function
 
 
