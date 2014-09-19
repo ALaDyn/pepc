@@ -27,10 +27,15 @@ CPP      = mpicc
 CPPFLAGS = -E -x c -P -C -ffreestanding
                        # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
-INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg
+INLINING = -flto -fuse-linker-plugin  \
+	   -mstringop-strategy=unrolled_loop -fipa-matrix-reorg \
+	   -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 \
+	   --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 \
+	   --param max-inline-recursive-depth-auto=500 \
+	   -u run_communication_loop
 
 FWARNINGS = -Wall -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation
-FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
 
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Og -g -gdwarf-3 \
@@ -40,19 +45,20 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -Og -g -gdwarf-3 -pthread -Wall
   LDFLAGS  = -Og -g -gdwarf-3 -pthread
 else
-  FFLAGS   = -O3 \
-    -fsign-zero -fno-protect-parens \
+  FFLAGS   = -Ofast \
     $(INLINING) \
     $(FFEATURES) \
     $(FWARNINGS)
-  CFLAGS   = -O3 -pthread -Wall
-  LDFLAGS  = -O3 -pthread -fwhole-program $(INLINING)
+  CFLAGS   = -Ofast -pthread -Wall
+  LDFLAGS  = -Ofast -pthread $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
 
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
   LDFLAGS  += -fopenmp
+  # Use Intel OpenMP runtime
+  #LDFLAGS  += -lirc -liomp5 -lpthread -lc -L/usr/local_64/intel/Composer/composer_xe_2013_sp1.2.144/compiler/lib/intel64
 else
 endif
 
