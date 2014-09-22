@@ -157,13 +157,21 @@ module module_interaction_specific
 
         real(kind_physics) :: invr, invr2, invr3
         real(kind_physics) :: invr5t3, invr5t3dx, invr5t3dy, invr5t3dz
+        real(kind_physics) :: invr7t15, invr7t15dx2, invr7t15dy2, invr7t15dz2
         real(kind_physics) :: dx, dy, dz
         real(kind_physics) :: kx, ky, kz
         real(kind_physics) :: kxx, kyy, kzz
         real(kind_physics) :: kxy, kyz, kzx
+        real(kind_physics) :: kxxx, kyyy, kzzz
+        real(kind_physics) :: kxxy, kxxz
+        real(kind_physics) :: kyyx, kyyz
+        real(kind_physics) :: kzzx, kzzy
+        real(kind_physics) :: kxyz
+
 
         real(kind_physics), parameter :: one = 1._kind_physics
         real(kind_physics), parameter :: three = 3._kind_physics
+        real(kind_physics), parameter :: five = 5._kind_physics
 
         dx = d(1)
         dy = d(2)
@@ -191,24 +199,71 @@ module module_interaction_specific
         kyz = invr5t3dy * dz
         kzx = invr5t3dz * dx
 
+        invr7t15 = invr5t3 * invr2 * five
+        invr7t15dx2 = invr7t15 * dx * dx
+        invr7t15dy2 = invr7t15 * dy * dy
+        invr7t15dz2 = invr7t15 * dz * dz
+
+        kxxx = -invr7t15dx2 * dx + three * invr5t3dx
+        kyyy = -invr7t15dy2 * dy + three * invr5t3dy
+        kzzz = -invr7t15dz2 * dz + three * invr5t3dz
+
+        kxxy = -invr7t15dx2 * dy + invr5t3dy
+        kxxz = -invr7t15dx2 * dz + invr5t3dz
+
+        kyyx = -invr7t15dy2 * dx + invr5t3dx
+        kyyz = -invr7t15dy2 * dz + invr5t3dz
+
+        kzzx = -invr7t15dz2 * dx + invr5t3dx
+        kzzy = -invr7t15dz2 * dy + invr5t3dy
+
+        kxyz = -invr7t15 * dx * dy * dz
+
         t%f = t%f + m%charge * invr &
           + m%dip(1) * kx + m%dip(2) * ky + m%dip(3) * kz &
           + m%quad(1) * kxx + m%quad(2) * kyy + m%quad(3) * kzz &
           + m%xyquad * kxy + m%yzquad * kyz + m%zxquad * kzx
 
         t%fx = t%fx + m%charge * kx &
-          + m%dip(1) * kxx + m%dip(2) * kxy + m%dip(3) * kzx
+          + m%dip(1) * kxx + m%dip(2) * kxy + m%dip(3) * kzx &
+          + m%quad(1) * kxxx + m%quad(2) * kyyx + m%quad(3) * kzzx &
+          + m%xyquad * kxxy + m%yzquad * kxyz + m%zxquad * kxxz
         t%fy = t%fy + m%charge * ky &
-          + m%dip(1) * kxy + m%dip(2) * kyy + m%dip(3) * kyz
+          + m%dip(1) * kxy + m%dip(2) * kyy + m%dip(3) * kyz &
+          + m%quad(1) * kxxy + m%quad(2) * kyyy + m%quad(3) * kzzy &
+          + m%xyquad * kyyx + m%yzquad * kyyz + m%zxquad * kxyz
         t%fz = t%fz + m%charge * kz &
-          + m%dip(1) * kzx + m%dip(2) * kyz + m%dip(3) * kzz
+          + m%dip(1) * kzx + m%dip(2) * kyz + m%dip(3) * kzz &
+          + m%quad(1) * kxxz + m%quad(2) * kyyz + m%quad(3) * kzzz &
+          + m%xyquad * kxyz + m%yzquad * kzzy + m%zxquad * kzzx
 
-        t%fxx = t%fxx + m%charge * kxx
-        t%fyy = t%fyy + m%charge * kyy
-        t%fzz = t%fzz + m%charge * kzz
-        t%fxy = t%fxy + m%charge * kxy
-        t%fyz = t%fyz + m%charge * kyz
-        t%fzx = t%fzx + m%charge * kzx
+        t%fxx = t%fxx + m%charge * kxx &
+          + m%dip(1) * kxxx + m%dip(2) * kxxy + m%dip(3) * kxxz
+        t%fyy = t%fyy + m%charge * kyy &
+          + m%dip(1) * kyyx + m%dip(2) * kyyy + m%dip(3) * kyyz
+        t%fzz = t%fzz + m%charge * kzz &
+          + m%dip(1) * kzzx + m%dip(2) * kzzy + m%dip(3) * kzzz
+        t%fxy = t%fxy + m%charge * kxy &
+          + m%dip(1) * kxxy + m%dip(2) * kyyx + m%dip(3) * kxyz
+        t%fyz = t%fyz + m%charge * kyz &
+          + m%dip(1) * kxyz + m%dip(2) * kyyz + m%dip(3) * kzzy
+        t%fzx = t%fzx + m%charge * kzx &
+          + m%dip(1) * kxxz + m%dip(2) * kxyz + m%dip(3) * kzzx
+
+        t%fxxx = t%fxxx + m%charge * kxxx
+        t%fyyy = t%fyyy + m%charge * kyyy
+        t%fzzz = t%fzzz + m%charge * kzzz
+
+        t%fxxy = t%fxxy + m%charge * kxxy
+        t%fxxz = t%fxxz + m%charge * kxxz
+
+        t%fyyx = t%fyyx + m%charge * kyyx
+        t%fyyz = t%fyyz + m%charge * kyyz
+
+        t%fzzx = t%fzzx + m%charge * kzzx
+        t%fzzy = t%fzzy + m%charge * kzzy
+
+        t%fxyz = t%fxyz + m%charge * kxyz
 
       end subroutine
 
@@ -221,33 +276,69 @@ module module_interaction_specific
         type(t_local_coefficients), intent(in) :: p
         type(t_local_coefficients), intent(inout) :: c
 
-        real(kind_physics) :: dx, dy, dz
+        real(kind_physics) :: dx, dy, dz, dx2, dy2, dz2, dxy, dyz, dzx
 
-        real(kind_physics), parameter :: half = 0.5_kind_physics
+        real(kind_physics), parameter :: one = 1.0_kind_physics
+        real(kind_physics), parameter :: two = 2.0_kind_physics
+        real(kind_physics), parameter :: six = 6.0_kind_physics
+        real(kind_physics), parameter :: half = one / two
+        real(kind_physics), parameter :: sixth = one / six
 
         dx = d(1)
         dy = d(2)
         dz = d(3)
 
+        dx2 = dx * dx
+        dy2 = dy * dy
+        dz2 = dz * dz
+        dxy = dx * dy
+        dyz = dy * dz
+        dzx = dx * dz
+
         c%f = c%f + p%f &
           + dx * p%fx + dy * p%fy + dz * p%fz &
-          + half * (dx * dx * p%fxx + dy * dy * p%fyy + dz * dz * p%fzz) &
-          + dx * dy * p%fxy + dy * dz * p%fyz + dz * dx * p%fzx
+          + half * (dx2 * p%fxx + dy2 * p%fyy + dz2 * p%fzz) &
+          + dxy * p%fxy + dyz * p%fyz + dzx * p%fzx &
+          + sixth * (dx2 * dx * p%fxxx + dy2 * dy * p%fyyy + dz2 * dz * p%fzzz) &
+          + half * ( dx2 * dy * p%fxxy + dx2 * dz * p%fxxz &
+            + dy2 * dx * p%fyyx + dy2 * dz * p%fyyz &
+            + dz2 * dx * p%fzzx + dz2 * dy * p%fzzy) &
+          + dxy * dz * p%fxyz
 
         c%fx = c%fx + p%fx &
-          + dx * p%fxx + dy * p%fxy + dz * p%fzx
+          + dx * p%fxx + dy * p%fxy + dz * p%fzx &
+          + half * (dx2 * p%fxxx + dy2 * p%fyyx + dz2 * p%fzzx) &
+          + dxy * p%fxxy + dzx * p%fxxz + dyz * p%fxyz
         c%fy = c%fy + p%fy &
-          + dx * p%fxy + dy * p%fyy + dz * p%fyz
+          + dx * p%fxy + dy * p%fyy + dz * p%fyz &
+          + half * (dx2 * p%fxxy + dy2 * p%fyyy + dz2 * p%fzzy) &
+          + dxy * p%fyyx + dzx * p%fxyz + dyz * p%fyyz
         c%fz = c%fz + p%fz &
-          + dx * p%fzx + dy * p%fyz + dz * p%fzz
+          + dx * p%fzx + dy * p%fyz + dz * p%fzz &
+          + half * (dx2 * p%fxxx + dy2 * p%fyyx + dz2 * p%fzzx) &
+          + dxy * p%fxyz + dzx * p%fzzx + dyz * p%fzzy
 
-        c%fxx = c%fxx + p%fxx
-        c%fyy = c%fyy + p%fyy
-        c%fzz = c%fzz + p%fzz
-        c%fxy = c%fxy + p%fxy
-        c%fyz = c%fyz + p%fyz
-        c%fzx = c%fzx + p%fzx
+        c%fxx = c%fxx + p%fxx + dx * p%fxxx + dy * p%fxxy + dz * p%fxxz
+        c%fyy = c%fyy + p%fyy + dx * p%fyyx + dy * p%fyyy + dz * p%fyyz
+        c%fzz = c%fzz + p%fzz + dx * p%fzzx + dy * p%fzzy + dz * p%fzzz
+        c%fxy = c%fxy + p%fxy + dx * p%fxxy + dy * p%fyyx + dz * p%fxyz
+        c%fyz = c%fyz + p%fyz + dx * p%fxyz + dy * p%fyyz + dz * p%fzzy
+        c%fzx = c%fzx + p%fzx + dx * p%fxxz + dy * p%fxyz + dz * p%fzzx
 
+        c%fxxx = c%fxxx + p%fxxx
+        c%fyyy = c%fyyy + p%fyyy
+        c%fzzz = c%fzzz + p%fzzz
+
+        c%fxxy = c%fxxy + p%fxxy
+        c%fxxz = c%fxxz + p%fxxz
+
+        c%fyyx = c%fyyx + p%fyyx
+        c%fyyz = c%fyyz + p%fyyz
+
+        c%fzzx = c%fzzx + p%fzzx
+        c%fzzy = c%fzzy + p%fzzy
+
+        c%fxyz = c%fxyz + p%fxyz
       end subroutine
 
 

@@ -71,9 +71,19 @@ module module_interaction_specific_types
         real(kind_physics) :: fxy
         real(kind_physics) :: fyz
         real(kind_physics) :: fzx
+        real(kind_physics) :: fxxx
+        real(kind_physics) :: fyyy
+        real(kind_physics) :: fzzz
+        real(kind_physics) :: fxxy
+        real(kind_physics) :: fxxz
+        real(kind_physics) :: fyyx
+        real(kind_physics) :: fyyz
+        real(kind_physics) :: fzzx
+        real(kind_physics) :: fzzy
+        real(kind_physics) :: fxyz
       end type t_local_coefficients
 
-      type(t_local_coefficients), parameter :: EMPTY_LOCAL_COEFFICIENTS = t_local_coefficients(0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
+      type(t_local_coefficients), parameter :: EMPTY_LOCAL_COEFFICIENTS = t_local_coefficients(0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)
 
       contains
 
