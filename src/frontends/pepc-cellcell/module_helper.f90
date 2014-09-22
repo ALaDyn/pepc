@@ -152,8 +152,8 @@ module helper
     do ip = 1, size(tindx)
       relerrs(tindx(ip), m) = sqrt(dot_product( &
         p(tindx(ip))%results%e - direct_results(ip)%e, &
-        p(tindx(ip))%results%e - direct_results(ip)%e))
-      mean_relerr_local = mean_relerr_local + relerrs(tindx(ip), m)/sqrt(dot_product(direct_results(ip)%e, direct_results(ip)%e))
+        p(tindx(ip))%results%e - direct_results(ip)%e)) / sqrt(dot_product(direct_results(ip)%e, direct_results(ip)%e))
+      mean_relerr_local = mean_relerr_local + relerrs(tindx(ip), m)
     end do
 
     call MPI_ALLREDUCE(mean_relerr_local, mean_relerrs(m), 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
