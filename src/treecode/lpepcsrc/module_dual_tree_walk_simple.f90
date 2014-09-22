@@ -101,7 +101,6 @@ module module_dual_tree_walk
       integer(kind_node), intent(in) :: src, dst
 
       logical :: src_is_leaf, dst_is_leaf
-      integer(kind_particle) :: ps
       real(kind_physics) :: delta(3), dist2, rsrc, rdst
 
       associate (src_node => t%nodes(src), dst_node => t%nodes(dst))
@@ -112,27 +111,30 @@ module module_dual_tree_walk
         if (src_is_leaf) then
           rsrc = 0.0_kind_physics
         else
-          rsrc = t%boxdiaglength(t%nodes(src)%level)
+          rsrc = t%boxdiaglength(src_node%level)
         end if
 
         if (dst_is_leaf) then
           rdst = 0.0_kind_physics
         else
-          rdst = t%boxdiaglength(t%nodes(dst)%level)
+          rdst = t%boxdiaglength(dst_node%level)
         end if
 
         delta = dst_node%center - (src_node%center - lattice_vector)
         dist2 = dot_product(delta, delta)
 
-        if ((src_is_leaf .and. dst_is_leaf)) then
-          ps = tree_node_get_particle(dst_node)
-          if (src /= dst) then
-            call calc_force_per_interaction_with_leaf(p(ps), src_node%multipole_moments, src, delta, dist2, lattice_vector)
+        if (dual_mac(delta, dist2, rsrc, src_node%multipole_moments, rdst, dst_node%multipole_moments)) then
+          if (dst_is_leaf) then
+            call calc_force_per_interaction_with_twig(p(tree_node_get_particle(dst_node)), src_node%multipole_moments, src, delta, dist2, lattice_vector)
           else
-            call calc_force_per_interaction_with_self(p(ps), src_node%multipole_moments, src, delta, dist2, lattice_vector)
+            call multipole_to_local(delta, dist2, src_node%multipole_moments, dst_node%local_coefficients)
           end if
-        else if (dual_mac(delta, dist2, rsrc, src_node%multipole_moments, rdst, dst_node%multipole_moments)) then
-          call multipole_to_local(delta, dist2, src_node%multipole_moments, dst_node%local_coefficients)
+        else if (src_is_leaf .and. dst_is_leaf) then
+          if (src /= dst) then
+            call calc_force_per_interaction_with_leaf(p(tree_node_get_particle(dst_node)), src_node%multipole_moments, src, delta, dist2, lattice_vector)
+          else
+            call calc_force_per_interaction_with_self(p(tree_node_get_particle(dst_node)), src_node%multipole_moments, src, delta, dist2, lattice_vector)
+          end if
         else if (dst_is_leaf) then
           call split_src(src, dst)
         else if (src_is_leaf) then
