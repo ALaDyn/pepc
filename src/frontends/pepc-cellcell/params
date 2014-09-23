@@ -8,6 +8,12 @@ dimensions = 1.0 1.0 1.0
 
 ! Choose methods. 0: pepc_grow_and_traverse, 1: pepc_calculate_internal, 2: both
 method = 2
+
+theta_stepsize = 0.1
+
+theta_stepcount = 9
+
+vtk_output = .false.
 /
 
 &calc_force_coulomb

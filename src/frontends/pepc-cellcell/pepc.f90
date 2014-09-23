@@ -73,7 +73,7 @@ program pepc
   end if
 
   ! calculate approximate solution
-  do while (theta2 < 1)
+  do step=0, theta_stepcount - 1
     call pepc_particleresults_clear(particles)
 
     select case (method)
@@ -98,7 +98,9 @@ program pepc
     call gather_results(relerrs, gathered_relerrs)
     if (root) call write_results(mean_relerrs, gathered_relerrs)
 
-    theta2 = (sqrt(theta2) + 0.2)**2
+    if (vtk_output) call write_particles(particles, relerrs)
+
+    theta2 = (sqrt(theta2) + theta_stepsize)**2
   end do
 
   deallocate(direct_results, tindx, relerrs, gathered_relerrs)

@@ -1,6 +1,7 @@
 FILES_L   = pepc.f90 module_helper.f90
 
-FILES_L_U = module_directsum.f90 
+FILES_L_U = module_vtk_helpers.f90 \
+            module_directsum.f90
 
 SRC        += $(FILES_L)
 SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))

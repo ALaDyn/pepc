@@ -38,12 +38,18 @@ module helper
   integer(kind_pe) :: my_rank, n_ranks
   logical :: root
 
+  integer :: step
+
   ! control variables
   integer(kind_particle) :: tnp   ! total number of particles
   integer(kind_particle) :: np    ! local number of particles
-  integer :: method ! used methods. 0: pepc_grow_and_traverse, 1: pepc_calculate_internal, 2: both
   real(kind_physics) :: dimensions(3) ! size of the simulation box
+  integer :: method ! used methods. 0: pepc_grow_and_traverse, 1: pepc_calculate_internal, 2: both
+  real(kind_physics) :: theta_stepsize
+  integer :: theta_stepcount
 
+  ! output variables
+  logical :: vtk_output ! turn vtk output on/off
   character (len=255) :: output_dir
   character (len=255) :: output_filename
   integer :: times_unit
@@ -56,19 +62,21 @@ module helper
 
   subroutine set_parameter()
     use module_pepc
-    use module_interaction_specific, only : theta2, eps2, force_law, include_far_field_if_periodic
     use module_utils, only: create_directory
     implicit none
 
     integer :: params_unit
     character(255)     :: para_file
     logical            :: read_para_file
-    namelist /pepccellcell/ tnp, dimensions, method
+    namelist /pepccellcell/ tnp, dimensions, method, theta_stepsize, theta_stepcount, vtk_output
 
     ! set default parameter values
     tnp = 10000
-    method = 1
     dimensions = (/ 1.0_8, 1.0_8, 1.0_8 /)
+    method = 1
+    theta_stepsize = 0.1
+    theta_stepcount = 10
+    vtk_output = .false.
 
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
@@ -92,6 +100,8 @@ module helper
 
     write (output_dir, '(a,i0)') "tnp", tnp
     call create_directory(trim(output_dir))
+    call create_directory("vtk")
+    call create_directory("vtk/"//trim(output_dir))
     write (output_filename, '( a , "/", "output_tnp", i0, ".dat" )' ) trim(output_dir), tnp
     open (newunit=times_unit,file=output_filename)
 
@@ -169,7 +179,6 @@ module helper
 
     type(t_particle), allocatable, intent(inout) :: p(:)
 
-    call timer_reset(t_user_calculate_internal)
     call timer_start(t_user_calculate_internal)
     call pepc_calculate_internal(p, .true.)
     call timer_stop(t_user_calculate_internal)
@@ -185,7 +194,6 @@ module helper
 
     type(t_particle), allocatable, intent(inout) :: p(:)
 
-    call timer_reset(t_user_grow_and_traverse)
     call timer_start(t_user_grow_and_traverse)
     call pepc_grow_and_traverse(p, 0)
     call timer_stop(t_user_grow_and_traverse)
@@ -242,7 +250,6 @@ module helper
 
     real(kind_physics), intent(in) :: mean_relerrs(2)
     real(kind_physics), intent(in) :: relerrs(:,:)
-    integer :: m
 
     integer :: i
     integer :: unit1, unit2
@@ -303,6 +310,58 @@ module helper
     call pepc_finalize()
 
   end subroutine finalize
+
+
+  integer function vtk_step_of_step(step) result(vtk_step)
+    use module_vtk
+    implicit none
+
+    integer, intent(in) :: step
+
+    if (step .eq. 0) then
+      vtk_step = VTK_STEP_FIRST
+    else if (theta_stepcount -1 -step == 0) then
+      vtk_step = VTK_STEP_LAST
+    else
+      vtk_step = VTK_STEP_NORMAL
+    endif
+  end function vtk_step_of_step
+
+
+  subroutine write_particles(p, relerrs)
+    use module_vtk_helpers
+    use module_interaction_specific, only : theta2
+    implicit none
+
+    include 'mpif.h'
+
+    type(t_particle), intent(in) :: p(:)
+    real(kind_physics), intent(in) :: relerrs(:,:)
+
+    integer :: vtk_step
+
+    vtk_step = vtk_step_of_step(step)
+
+    ! TODO: A few of the vtk files (particles.timeseries.pvd, particles.timeseries.visit) are written into the wrong directory and relative paths are broken.
+    call vtk_write_particles(trim(output_dir)//"/particles", MPI_COMM_WORLD, step, sqrt(theta2), vtk_step, p, coulomb_and_relerrs)
+    if(root) write(*,*) "== written particles in vtk output"
+
+    contains
+
+    subroutine coulomb_and_relerrs(d, r, vtkf)
+      use module_vtk
+      use module_interaction_specific_types
+      implicit none
+
+      type(t_particle_data), intent(in) :: d(:)
+      type(t_particle_results), intent(in) :: r(:)
+      type(vtkfile_unstructured_grid), intent(inout) :: vtkf
+
+      call vtk_write_particle_data_results(d, r, vtkf)
+      call vtkf%write_data_array("rel. error Dual", relerrs(:,1))
+      call vtkf%write_data_array("rel. error BH", relerrs(:,2))
+    end subroutine coulomb_and_relerrs
+  end subroutine write_particles
 
 
   subroutine random8(array)
