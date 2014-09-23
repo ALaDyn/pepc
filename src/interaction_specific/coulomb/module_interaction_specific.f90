@@ -315,7 +315,7 @@ module module_interaction_specific
           + dxy * p%fyyx + dzx * p%fxyz + dyz * p%fyyz
         c%fz = c%fz + p%fz &
           + dx * p%fzx + dy * p%fyz + dz * p%fzz &
-          + half * (dx2 * p%fxxx + dy2 * p%fyyx + dz2 * p%fzzx) &
+          + half * (dx2 * p%fxxz + dy2 * p%fyyz + dz2 * p%fzzz) &
           + dxy * p%fxyz + dzx * p%fzzx + dyz * p%fzzy
 
         c%fxx = c%fxx + p%fxx + dx * p%fxxx + dy * p%fxxy + dz * p%fxxz
