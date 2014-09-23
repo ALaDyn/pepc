@@ -151,6 +151,7 @@ module module_species
             tnpps(ispecies)=nip(ispecies)
 
             IF (species(ispecies)%physical_particle) THEN
+                species(ispecies)%v_th = sqrt(species(ispecies)%src_t * e / species(ispecies)%m)
                 IF ((src_type(ispecies)==0) .OR. (src_type(ispecies)==-1)) THEN !surface source (whole surface)
                     src_x0(ispecies,:)=0.
                     src_e1(ispecies,:)=0.
@@ -224,6 +225,7 @@ module module_species
                     STOP
                 END IF
             ELSE
+                species(ispecies)%v_th = 0.0_8
                 src_x0(ispecies,:)=0.
                 src_e1(ispecies,:)=0.
                 src_e2(ispecies,:)=0.
@@ -249,13 +251,20 @@ module module_species
             ehit_max=0.0_8
             DO ispecies=0,nspecies-1
                 IF (species(ispecies)%physical_particle) THEN
-                    ehit_max(ispecies) = 10. * species(ispecies)%src_t
+                    ehit_max(ispecies) = ehit_max_in_T * species(ispecies)%src_t
                 END IF
             END DO
         END IF
         IF (bool_age_resolved_hits) THEN
+            allocate(agehit_max(0:nspecies-1),stat=rc)
             allocate(age_resolved_hits(0:nspecies-1,nb,nbins_age_resolved_hits+1),stat=rc)
             age_resolved_hits = 0
+            agehit_max=0.0_8
+            DO ispecies=0,nspecies-1
+                IF (species(ispecies)%physical_particle) THEN
+                    agehit_max(ispecies) = agehit_max_in_t_trav_ion * (dx/2) / species(2)%v_th  !maximum is set to 2 * ion_traversal_time
+                END IF
+            END DO
         END IF
         IF (bool_angle_resolved_hits) THEN
             allocate(angle_resolved_hits(0:nspecies-1,nb,nbins_angle_resolved_hits),stat=rc)

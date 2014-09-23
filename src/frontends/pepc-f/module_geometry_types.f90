@@ -51,9 +51,13 @@ module module_geometry_types
          integer :: indx                !< index (should be the same as in the boundary array)
          integer :: opp_bnd=0           !< opposite boundary if periodic bc's
          real*8 :: dist=0.              !< distance to opposite boundary (only set if type=2)
-         integer :: nwp=0               !< number of wall particles (can only be set if type=0)
+         integer :: nwp=0, nwpe1=0, nwpe2=0               !< number of wall particles (total, along e1 and e2) (can only be set if type=0)
+         integer, allocatable :: wp_labels(:)             !< wp labels for this wall
+         integer :: wp_label_max=0, wp_label_min=0        !< min and max value of wp_label. Is used during initialization to find out
+                                                          !< whether a particle is part of th boundary and in the wp source function to
+                                                          !< find the particle position in wppe1 and wppe2
+         real(kind=8), allocatable :: wppe1(:), wppe2(:)  !< wall particle positions along e1 and e2 (relative values from 0 to 1)
          real*8 :: q_tot=0.             !< total caharge of wall (can only be set if type=0)
-         integer,allocatable :: wp_labels(:) !< list of labels of all wall particles in wall
 
       end type t_boundary
 

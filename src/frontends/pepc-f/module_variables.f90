@@ -65,6 +65,7 @@ module variables
   integer :: diag_interval    ! interval for writing probe data
   integer :: vtk_interval     ! interval for writing vtk output
   integer :: checkp_interval  ! interval for setting checkpoints
+  integer :: npy_interval     ! interval for dumping particles in npy format
 
 
   ! Physcial System
@@ -99,7 +100,9 @@ module variables
   logical :: bool_age_resolved_hits
   integer :: last_diag_output
   integer :: nbins_energy_resolved_hits
+  real(KIND=8) :: ehit_max_in_T, agehit_max_in_t_trav_ion
   real(KIND=8), allocatable :: ehit_max(:)
+  real(KIND=8), allocatable :: agehit_max(:)
   integer, allocatable :: energy_resolved_hits(:,:,:)
   integer :: nbins_angle_resolved_hits
   integer, allocatable :: angle_resolved_hits(:,:,:)
@@ -144,7 +147,7 @@ module variables
   ! namelists
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
   namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,&
-                   xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval,&
+                   xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval,npy_interval,&
                    vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm,&
                    bool_angle_resolved_hits, bool_energy_resolved_hits, bool_space_resolved_hits, &
                    bool_age_resolved_hits, nbins_age_resolved_hits, &

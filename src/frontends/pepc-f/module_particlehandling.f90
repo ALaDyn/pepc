@@ -20,16 +20,38 @@ module particlehandling
         integer, intent(inout) :: hits(0:,:),reflux(0:,:)
         real*8 :: xp(3),xold(3)
         real(KIND=8) :: v_new(3),mu,sigma,ran,t1(3),t2(3),xi(3),x_hit(3),x_hit_rel(2)
-        real(KIND=8) :: part_energy,part_angle
-        integer :: energy_bin,angle_bin,e1_space_bin,e2_space_bin,age_bin
 
 
         rp=sum(npps)
         ib=1
         DO WHILE (rp >= 1)
+            !Cycle if particle is no plasma particle
+            IF (species(p(rp)%data%species)%physical_particle .EQV. .FALSE.) THEN
+                rp = rp - 1
+                CYCLE
+            END IF
+
+            !loop over virtual surfaces (only for statistics)
+            ib = 1
+            DO WHILE (ib <= nb)
+                IF (boundaries(ib)%type < 0) THEN
+                    call hit_wall(p(rp),boundaries(ib),hit,x_hit,x_hit_rel)
+                    IF (hit) THEN
+                        call add_bnd_hit(p(rp), ib, x_hit_rel)
+                    END IF
+                END IF
+                ib = ib + 1
+            END DO
+
+            !loop over real surfaces
             ib = 1
             DO WHILE (ib <= nb)
                 IF (rp==0) EXIT
+                IF (boundaries(ib)%type < 0) THEN
+                    ib = ib + 1
+                    CYCLE
+                END IF
+
                 call hit_wall(p(rp),boundaries(ib),hit,x_hit,x_hit_rel)
 
                 IF (hit) THEN
@@ -42,7 +64,7 @@ module particlehandling
                         rp = rp - 1
                     ELSE IF (boundaries(ib)%type==5) THEN   !immediate half-Maxwellian refluxing normal to surface, tangential v conserved
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
@@ -54,7 +76,7 @@ module particlehandling
                         ib=0
                     ELSE IF (boundaries(ib)%type==6) THEN  !immediate half-Maxwellian refluxing normal to surface, tangential v resampled
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(1:3),mu,sigma)
@@ -72,7 +94,7 @@ module particlehandling
                         ib=0
                     ELSE IF (boundaries(ib)%type==7) THEN   !immediate Maxwellian flux refluxing normal to surface, tangential v conserved
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
@@ -83,7 +105,7 @@ module particlehandling
                         ib=0
                     ELSE IF (boundaries(ib)%type==8) THEN  !immediate Maxwellian flux refluxing normal to surface, tangential v resampled
                         mu=0.0_8
-                        sigma=sqrt(species(p(rp)%data%species)%src_t*e/(p(rp)%data%m/fsup))
+                        sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(2:3),mu,sigma)
@@ -135,28 +157,7 @@ module particlehandling
                     ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
                         npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
-                        IF (bool_energy_resolved_hits) THEN
-                            part_energy = (p(rp)%data%v(1)**2+p(rp)%data%v(2)**2+p(rp)%data%v(3)**2) * 0.5 * species(p(rp)%data%species)%m / e
-                            energy_bin = int(part_energy / ehit_max(p(rp)%data%species) * nbins_energy_resolved_hits) + 1
-                            energy_bin = min(energy_bin,nbins_energy_resolved_hits+1)
-                            energy_resolved_hits(p(rp)%data%species,ib,energy_bin) = energy_resolved_hits(p(rp)%data%species,ib,energy_bin) + 1
-                        END IF
-                        IF (bool_angle_resolved_hits) THEN
-                            part_angle = acos( dotproduct(p(rp)%data%v/sqrt(dotproduct(p(rp)%data%v,p(rp)%data%v)),  boundaries(ib)%n) ) - pi/2.
-                            angle_bin = int(part_angle / (pi/2.) * nbins_angle_resolved_hits) + 1
-                            angle_resolved_hits(p(rp)%data%species,ib,angle_bin) = angle_resolved_hits(p(rp)%data%species,ib,angle_bin) + 1
-                        END IF
-                        IF (bool_space_resolved_hits) THEN
-                            e1_space_bin = min(int(x_hit_rel(1) * nbins_e1_space_resolved_hits) + 1, nbins_e1_space_resolved_hits)
-                            e2_space_bin = min(int(x_hit_rel(2) * nbins_e2_space_resolved_hits) + 1, nbins_e2_space_resolved_hits)
-                            space_resolved_hits(p(rp)%data%species,ib,e1_space_bin,e2_space_bin) = space_resolved_hits(p(rp)%data%species,ib,e1_space_bin,e2_space_bin) + 1
-                        END IF
-                        IF (bool_age_resolved_hits) THEN
-                            !hier muss ich mir die berechnung des Maximums nochmal genau ueberlegen. Aber fuer einen proof of concept gehts
-                            age_bin = int(p(rp)%data%age / (500*dt) * nbins_age_resolved_hits) + 1
-                            age_bin = min(age_bin,nbins_age_resolved_hits+1)
-                            age_resolved_hits(p(rp)%data%species,ib,age_bin) = age_resolved_hits(p(rp)%data%species,ib, age_bin) + 1
-                        END IF
+                        call add_bnd_hit(p(rp), ib, x_hit_rel)
                         p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1
@@ -172,13 +173,90 @@ module particlehandling
     END SUBROUTINE count_hits_and_remove_particles
 
 !======================================================================================
-
-    SUBROUTINE rethermalize(p)
+    SUBROUTINE add_bnd_hit(particle, ib, x_hit_rel)
         implicit none
-        include 'mpif.h'
+
+        integer,intent(in)           :: ib
+        type(t_particle), intent(in) :: particle
+        real(KIND=8),intent(in)      :: x_hit_rel(2)
+        integer                      :: ispecies
+        real(KIND=8)                 :: part_energy, part_angle
+        integer                      :: energy_bin,angle_bin,e1_space_bin,e2_space_bin,age_bin
+
+
+        ispecies = particle%data%species
+        IF (bool_energy_resolved_hits) THEN
+            part_energy = (particle%data%v(1)**2+particle%data%v(2)**2+particle%data%v(3)**2) * 0.5 * species(ispecies)%m / e
+            energy_bin = int(part_energy / ehit_max(ispecies) * nbins_energy_resolved_hits) + 1
+            energy_bin = min(energy_bin,nbins_energy_resolved_hits+1)
+            energy_resolved_hits(ispecies,ib,energy_bin) = energy_resolved_hits(ispecies,ib,energy_bin) + 1
+        END IF
+        IF (bool_angle_resolved_hits) THEN
+            part_angle = acos( dotproduct(particle%data%v/sqrt(dotproduct(particle%data%v,particle%data%v)),  boundaries(ib)%n) ) - pi/2.
+            angle_bin = int(part_angle / (pi/2.) * nbins_angle_resolved_hits) + 1
+            angle_resolved_hits(ispecies,ib,angle_bin) = angle_resolved_hits(ispecies,ib,angle_bin) + 1
+        END IF
+        IF (bool_space_resolved_hits) THEN
+            e1_space_bin = min(int(x_hit_rel(1) * nbins_e1_space_resolved_hits) + 1, nbins_e1_space_resolved_hits)
+            e2_space_bin = min(int(x_hit_rel(2) * nbins_e2_space_resolved_hits) + 1, nbins_e2_space_resolved_hits)
+            space_resolved_hits(ispecies,ib,e1_space_bin,e2_space_bin) = space_resolved_hits(ispecies,ib,e1_space_bin,e2_space_bin) + 1
+        END IF
+        IF (bool_age_resolved_hits) THEN
+            age_bin = int(particle%data%age / agehit_max(ispecies) * nbins_age_resolved_hits) + 1
+            age_bin = min(age_bin,nbins_age_resolved_hits+1)
+            age_resolved_hits(ispecies,ib,age_bin) = age_resolved_hits(ispecies,ib, age_bin) + 1
+        END IF
+    END SUBROUTINE add_bnd_hit
+
+!======================================================================================
+
+    SUBROUTINE rethermalize_by_age(p,rethermalized)
+        implicit none
+        type(t_particle), allocatable, intent(inout) :: p(:)
+        integer, intent(inout) :: rethermalized(0:)
+
+        integer :: ip, ispecies
+        real(KIND=8) :: t_trav, mu
+        real(KIND=8) :: ran1, ran2, ran3, ran4, v_ran(3)
+
+        t_trav = 0.5 * dx / species(2)%v_th
+        mu=0.0_8
+
+        DO ip = 1, sum(npps)
+            IF (p(ip)%data%q > 0) CYCLE
+            IF (p(ip)%data%age > t_trav) THEN
+                ispecies = p(ip)%data%species
+                rethermalized(ispecies) = rethermalized(ispecies) + 1
+                ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
+                ! resample x = ran*dt*vx, y,z = ran
+                call random_gauss_list(v_ran(2:3),mu,species(ispecies)%v_th)
+                call random_gaussian_flux(v_ran(1),species(ispecies)%v_th)
+                ran1 = rnd_num() - 0.5
+                ran2 = rnd_num()
+                ran3 = rnd_num()
+                ran4 = rnd_num()
+                p(ip)%data%v(1) = v_ran(1) * sign(1._8,ran1)
+                p(ip)%data%v(2) = v_ran(2)
+                p(ip)%data%v(3) = v_ran(3)
+                p(ip)%x = species(ispecies)%src_x0 + &
+                          ran2 * species(ispecies)%src_e1 + &
+                          ran3 * species(ispecies)%src_e2 + &
+                          ran4 * species(ispecies)%src_e3
+
+            END IF
+        END DO
+
+    END SUBROUTINE rethermalize_by_age
+
+!======================================================================================
+
+    SUBROUTINE rethermalize(p,rethermalized)
+        implicit none
 
         integer :: ip
         type(t_particle), allocatable, intent(inout) :: p(:)
+        integer, intent(inout) :: rethermalized(0:)
+
         real*8 :: xold(3)
         real(KIND=8) mu,sigma,ran,t1(3),t2(3),v_ran(3),ran2,ran3
 
@@ -195,11 +273,12 @@ module particlehandling
                         xold(1) = p(ip)%x(1) - dt * p(ip)%data%v(1)
                         IF ((xold(1) < xmax * 0.05) .AND. (xold(1)) > xmin * 0.05) CYCLE
                         mu=0.0_8
-                        sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
+                        sigma = species(p(ip)%data%species)%v_th
                         call random_gauss_list(v_ran(2:3),mu,sigma)
                         call random_gaussian_flux(v_ran(1),sigma)
                         p(ip)%data%v(2:3) = v_ran(2:3)
                         p(ip)%data%v(1) = sign(1._8,p(ip)%data%v(1)) * v_ran(1)
+                        rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
                     END IF
                 END DO
             ELSE !only for 1 wall systems, was only used for testing purposes
@@ -209,11 +288,12 @@ module particlehandling
                         xold(1) = p(ip)%x(1) - dt * p(ip)%data%v(1)
                         IF (xold(1) < species(p(ip)%data%species)%src_e1(1)) CYCLE
                         mu=0.0_8
-                        sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
+                        sigma = species(p(ip)%data%species)%v_th
                         call random_gauss_list(v_ran(2:3),mu,sigma)
                         call random_gaussian_flux(v_ran(1),sigma)
                         p(ip)%data%v(2:3) = v_ran(2:3)
                         p(ip)%data%v(1) = sign(1._8,p(ip)%data%v(1)) * v_ran(1)
+                        rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
                     END IF
                 END DO
             END IF
@@ -256,7 +336,7 @@ module particlehandling
                 IF (real_equal(sign(1._8,xold(1)), sign(1._8,p(ip)%x(1)), eps)) CYCLE
 
                 mu=0.0_8
-                sigma=sqrt(species(p(ip)%data%species)%src_t*e/(p(ip)%data%m/fsup))
+                sigma = species(p(ip)%data%species)%v_th
                 
                 IF (retherm == 1) THEN
                     ! resample vx according to maxwellian flux source, don't touch vy,vz
@@ -265,6 +345,7 @@ module particlehandling
                     p(ip)%data%v(1) = v_ran(1)*sign(1._8,p(ip)%x(1))
                     ran = rnd_num()
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
 
                 ELSE IF (retherm == 2) THEN
                     ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
@@ -280,6 +361,7 @@ module particlehandling
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
                     p(ip)%x(2) = ymin + ran2*(ymax-ymin)
                     p(ip)%x(3) = zmin + ran3*(zmax-zmin)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
 
 
                 ELSE IF (retherm == 3) THEN
@@ -290,6 +372,7 @@ module particlehandling
                     p(ip)%data%v = p(ip)%data%v + (v_ran(1) * n1 *sign(1._8,p(ip)%x(1)) * sign(1._8,n1(1))) !this adds resampled vpar
                     ran = rnd_num()
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
 
 
                 ELSE IF (retherm == 4) THEN
@@ -307,6 +390,8 @@ module particlehandling
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
                     p(ip)%x(2) = ymin + ran2*(ymax-ymin)
                     p(ip)%x(3) = zmin + ran3*(zmax-zmin)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
+
 
                 ELSE IF (retherm == 5) THEN  !the same as retherm = 2, but for electrons only
                     ! resample vx according to maxwellian flux source, vy,vz according to maxwellian source
@@ -322,6 +407,8 @@ module particlehandling
                     p(ip)%x(1) = dt*ran*p(ip)%data%v(1)
                     p(ip)%x(2) = ymin + ran2*(ymax-ymin)
                     p(ip)%x(3) = zmin + ran3*(zmax-zmin)
+                    rethermalized(p(ip)%data%species) = rethermalized(p(ip)%data%species) + 1
+
 
                 END IF
             END DO
@@ -437,8 +524,6 @@ module particlehandling
         integer, intent(inout) :: thits(0:,:)
         integer :: ip,ispecies,ib
         real*8  :: dq(nb)
-        logical :: hit
-        real(KIND=8) :: x_hit_rel(2)
 
         dq=0.0_8
 
@@ -451,14 +536,10 @@ module particlehandling
             boundaries(ib)%q_tot = boundaries(ib)%q_tot + dq(ib)
         END DO
 
-        DO ip=1, sum(npps)                                            ! charge wall by adding charge to the wall particles
+        DO ip=1, sum(npps)                                ! charge wall by adding charge to the wall particles
             IF (p(ip)%data%species/=0) CYCLE
-            DO ib=1,nb
-                call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit,x_hit_rel)
-                IF(hit) THEN
-                    p(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
-                END IF
-            END DO
+            ib = p(ip)%data%mp_int1
+            p(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
         END DO
     END SUBROUTINE charge_wall
 
@@ -508,6 +589,7 @@ module particlehandling
 
         integer      :: hits(0:nspecies-1,1:nb),thits(0:nspecies-1,1:nb)
         integer      :: reflux(0:nspecies-1,1:nb),treflux(0:nspecies-1,1:nb)
+        integer      :: rethermalized(0:nspecies-1),trethermalized(0:nspecies-1)
         integer      :: ispecies,ib
 
         real(KIND=8) :: timer(10)
@@ -516,6 +598,8 @@ module particlehandling
         reflux=0
         thits=0
         treflux=0
+        rethermalized=0
+        trethermalized=0
 
         if(root) write(*,'(a)') " == [hits_on_boundaries] count hits and recycle "
 
@@ -524,9 +608,14 @@ module particlehandling
         call count_hits_and_remove_particles(p,hits,reflux)
         IF (bool_particle_handling_timing) timer(2) = get_time()
 
-        call rethermalize(p)
+        IF (retherm > 10) THEN
+            call rethermalize_by_age(p,rethermalized)
+        ELSE
+            call rethermalize(p,rethermalized)
+        END IF
         IF (bool_particle_handling_timing) timer(3) = get_time()
 
+        call MPI_ALLREDUCE(rethermalized, trethermalized, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         DO ispecies=0,nspecies-1
             DO ib=1,nb
                 call MPI_ALLREDUCE(hits(ispecies,ib), thits(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
@@ -544,7 +633,7 @@ module particlehandling
         call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         IF (bool_particle_handling_timing) timer(7) = get_time()
 
-        call set_recycling_output_values(thits,treflux)
+        call set_recycling_output_values(thits,treflux,trethermalized)
         IF (bool_particle_handling_timing) timer(8) = get_time()
 
         call check_for_leakage(p)
@@ -607,7 +696,7 @@ module particlehandling
         implicit none
     
         type(t_particle), intent(inout), allocatable :: p(:)
-        integer :: ip,ispecies,i
+        integer :: ip,ispecies,i,ib
 
         ip=0
         DO ispecies=1,nspecies-1
@@ -632,6 +721,7 @@ module particlehandling
             END IF
         END DO
 
+
         ispecies=0
         DO i=1,npps(ispecies)
             ip = ip + 1
@@ -646,7 +736,13 @@ module particlehandling
             p(ip)%results%pot = 0.0_8
             p(ip)%work        = 1.0_8
             p(ip)%data%age    = 0.0
-            p(ip)%data%mp_int1= 0
+            DO ib=1, nb
+                IF (boundaries(ib)%nwp > 0) THEN
+                    IF ((boundaries(ib)%wp_label_min <= p(ip)%label) .AND. (boundaries(ib)%wp_label_max >= p(ip)%label)) THEN
+                        p(ip)%data%mp_int1 = ib
+                    END IF
+                END IF
+            END DO
         END DO
 
         call source(p)
@@ -730,16 +826,16 @@ module particlehandling
 
         DO ip=1, sum(npps)
             IF (p(ip)%data%species/=0) CYCLE
-            DO ib=1,nb
-                IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                    call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit,x_hit_rel)
-                    IF (.not. hit) THEN
-                        ran1=rnd_num()
-                        ran2=rnd_num()
-                        p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                    END IF
-                END IF
-            END DO
+            ib = p(ip)%data%mp_int1
+            call check_hit(p(ip)%x(1),p(ip)%x(2),p(ip)%x(3),boundaries(ib),hit,x_hit_rel)
+            IF (.not. hit) THEN
+                !ran1=rnd_num()
+                !ran2=rnd_num()
+                ran1 = boundaries(ib)%wppe1(boundaries(ib)%wp_label_max - p(ip)%label + 1)
+                ran2 = boundaries(ib)%wppe2(boundaries(ib)%wp_label_max - p(ip)%label + 1)
+                p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
+                write(*,*) "Wall particle moved to random position on wall because its position was not on the wall", my_rank, p(ip)%label
+            END IF
         END DO
 
     end subroutine redistribute_wall_particles
@@ -777,16 +873,15 @@ module particlehandling
             IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
                 IF (p(ip)%data%species==0) THEN
                     p(ip)%data%v = 0.0_8
-                    DO ib=1,nb
-                        IF (ANY(boundaries(ib)%wp_labels==p(ip)%label)) THEN
-                            ran1=rnd_num()
-                            ran2=rnd_num()
-                            p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
-                        END IF
-                    END DO
+                    ib = p(ip)%data%mp_int1
+                    !ran1=rnd_num()
+                    !ran2=rnd_num()
+                    ran1 = boundaries(ib)%wppe1(boundaries(ib)%wp_label_max - p(ip)%label + 1)
+                    ran2 = boundaries(ib)%wppe2(boundaries(ib)%wp_label_max - p(ip)%label + 1)
+                    p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
                 END IF
             ELSE
-                sigma=sqrt(species(p(ip)%data%species)%src_t*e / (p(ip)%data%m/fsup))
+                sigma = species(p(ip)%data%species)%v_th
                 IF (init_uniform_gaussian) THEN
                     IF (step==0) THEN
                         ran=rnd_num()

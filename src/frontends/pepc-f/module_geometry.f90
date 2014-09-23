@@ -116,6 +116,8 @@ module module_geometry
             CALL set_refluxing(reflux_particles(ib),boundaries(ib))
         END DO
 
+        CALL set_wp_labels()
+
         DO ib=1,nb
             IF (opposite_bnd(ib)/=0) THEN
                 CALL set_periodic_bc(boundaries(ib),boundaries(opposite_bnd(ib)))
@@ -123,7 +125,6 @@ module module_geometry
         END DO
 
         CALL check_boundaries()
-        CALL add_wallparticles_to_boundaries()
 
         deallocate(x0)
         deallocate(e1)
@@ -189,65 +190,24 @@ module module_geometry
 
  !======================================================================================
 
-    SUBROUTINE add_wallparticles_to_boundaries()
+    SUBROUTINE set_wp_labels()
         implicit none
 
-        integer :: ib,label,i
+        integer :: ib
+        integer :: label = -1, ilabel
 
-        label=-1
         DO ib=1,nb
-            IF (boundaries(ib)%nwp/=0) THEN
-                DO i=1,boundaries(ib)%nwp
-                    boundaries(ib)%wp_labels(i)=label
-                    label=label-1
-                END DO
+            DO ilabel = 1,boundaries(ib)%nwp
+                boundaries(ib)%wp_labels(ilabel) = label
+                label = label - 1
+            END DO
+            IF (allocated(boundaries(ib)%wp_labels)) THEN
+                boundaries(ib)%wp_label_max = maxval(boundaries(ib)%wp_labels)
+                boundaries(ib)%wp_label_min = minval(boundaries(ib)%wp_labels)
             END IF
         END DO
 
-    END SUBROUTINE add_wallparticles_to_boundaries
-
-!======================================================================================
-
-    SUBROUTINE hit_wall(p,wall,hit,x_hit,x_hit_rel)
-        use module_pepc_types
-        use variables
-        implicit none
-
-        type(t_particle), intent(in) :: p
-        type(t_boundary), intent(in) :: wall
-        logical,intent(out) :: hit
-        real*8 :: xold(3),x(3),n(3),deltax(3)
-        real(KIND=8), intent(out) :: x_hit(3),x_hit_rel(2)
-
-        hit=.false.
-        x_hit=0.0_8
-        x_hit_rel=0.0_8
-
-        IF (species(p%data%species)%physical_particle .eqv. .false.) THEN
-            RETURN !no hit
-        END IF
-
-        IF (wall%type < 0) THEN !virtual boundary
-            RETURN !no hit
-        END IF
-
-        n=wall%n
-        deltax=p%x-wall%x0
-
-        IF (dotproduct(n,deltax)>0) THEN
-            RETURN !no hit
-        END IF
-
-        x = p%x
-        xold = p%x - dt*p%data%v
-
-        CALL get_intersect(xold,x,wall,x_hit)
-        CALL check_hit(x_hit(1),x_hit(2),x_hit(3),wall,hit,x_hit_rel)
-
-
-        RETURN
-
-    END SUBROUTINE hit_wall
+     END SUBROUTINE set_wp_labels
 
 !======================================================================================
 
@@ -256,7 +216,8 @@ module module_geometry
 
         type(t_boundary), intent(inout) :: boundary
         integer, intent(in) :: nwp
-        integer :: rc
+        real (kind=8) :: lene1, lene2, de1, de2, e1min, e2min
+        integer :: ie1, ie2
 
         IF (boundary%type/=0) THEN
             write(*,*) "Problem with boundary",boundary%indx
@@ -264,10 +225,33 @@ module module_geometry
             STOP
         END IF
 
-        boundary%nwp=nwp
-        deallocate(boundary%wp_labels)
-        allocate(boundary%wp_labels(nwp),stat=rc)
-        boundary%wp_labels=0
+        lene1 = norm(boundary%e1)
+        lene2 = norm(boundary%e2)
+
+        boundary%nwpe1 = nint(sqrt(nwp * lene1 / lene2))
+        boundary%nwpe2 = nint(sqrt(nwp * lene2 / lene1))
+        boundary%nwp = boundary%nwpe1 * boundary%nwpe2
+        IF (boundary%nwp /= nwp) THEN
+            IF (root) write(*,'(a,i7,a,i7,a)') " Number of wall particles has been adjusted from ", nwp,&
+                                               " to ", boundary%nwp, " to distribute them equidistantly along e1 and e2."
+        END IF
+
+        allocate(boundary%wp_labels(boundary%nwp))
+        boundary%wp_labels = 0
+        allocate(boundary%wppe1(boundary%nwp))
+        allocate(boundary%wppe2(boundary%nwp))
+
+        de1 = 1./boundary%nwpe1
+        e1min = de1 * (0.5)
+        de2 = 1./boundary%nwpe2
+        e2min = de2 * (0.5)
+
+        DO ie1 = 1, boundary%nwpe1
+            DO ie2 = 1, boundary%nwpe2
+                boundary%wppe1(ie1 + (ie2-1)*boundary%nwpe1) = e1min + (ie1-1)*de1
+                boundary%wppe2(ie1 + (ie2-1)*boundary%nwpe1) = e2min + (ie2-1)*de2
+            END DO
+        END DO
 
     END SUBROUTINE init_wall
 
@@ -279,7 +263,6 @@ module module_geometry
         type(t_boundary), intent(inout) :: wall
         real*8, intent(in), dimension(3) :: x0,e1,e2,n
         integer, intent(in) :: typ,indx
-        integer :: rc
 
         wall%x0=x0
         wall%e1=e1
@@ -288,7 +271,6 @@ module module_geometry
         wall%type=typ
         wall%indx=indx
         wall%reflux_particles=.false.
-        allocate(wall%wp_labels(0),stat=rc)
 
     END SUBROUTINE init_boundary
 
@@ -357,6 +339,47 @@ module module_geometry
         END IF
 
     END SUBROUTINE check_boundary
+
+
+ !======================================================================================
+
+     SUBROUTINE hit_wall(p,wall,hit,x_hit,x_hit_rel)
+        use module_pepc_types
+        use variables
+        implicit none
+
+        type(t_particle), intent(in) :: p
+        type(t_boundary), intent(in) :: wall
+        logical,intent(out) :: hit
+        real*8 :: xold(3),x(3),n(3),deltax(3)
+        real(KIND=8), intent(out) :: x_hit(3),x_hit_rel(2)
+
+        hit=.false.
+        x_hit=0.0_8
+        x_hit_rel=0.0_8
+
+        IF (species(p%data%species)%physical_particle .eqv. .false.) THEN
+            RETURN !no hit
+        END IF
+
+        n=wall%n
+        deltax=p%x-wall%x0
+
+        IF (dotproduct(n,deltax)>0) THEN
+            RETURN !no hit
+        END IF
+
+        x = p%x
+        xold = p%x - dt*p%data%v
+
+        CALL get_intersect(xold,x,wall,x_hit)
+        CALL check_hit(x_hit(1),x_hit(2),x_hit(3),wall,hit,x_hit_rel)
+
+
+        RETURN
+
+    END SUBROUTINE hit_wall
+
 
 !======================================================================================
 
