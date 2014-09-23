@@ -497,10 +497,21 @@ module module_interaction_specific
 
         real(kind_physics) :: sr, sr2
 
-        sr = r1 + r2
-        sr2 = sr * sr
-
-        dual_mac = (theta2 * d2 > sr2)
+        select case (mac_select)
+          case (0)
+            ! Barnes-Hut-MAC
+            sr = r1 + r2
+            sr2 = sr * sr
+            dual_mac = (theta2 * d2 > sr2)
+          case (1)
+            ! Bmax-MAC
+            sr = m1%bmax + m2%bmax
+            sr2 = sr * sr
+            dual_mac = (theta2 * d2 > sr2)
+          case default
+            ! N^2 code
+            dual_mac = .false.
+        end select
       end function
 
 
