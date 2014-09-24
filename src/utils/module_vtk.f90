@@ -278,14 +278,14 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*1*4
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(bsae64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do i=1,ndata
-            call base64%encode(data(i))
+            call base64_encoder_encode(base64, data(i))
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do i=1,ndata
           write(vtk%filehandle, '(G14.6)') data(i)
@@ -309,16 +309,16 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*3*4
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do i=1,ndata
-            call base64%encode(data1(i))
-            call base64%encode(data2(i))
-            call base64%encode(data3(i))
+            call base64_encoder_encode(base64, data1(i))
+            call base64_encoder_encode(base64, data2(i))
+            call base64_encoder_encode(base64, data3(i))
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do i=1,ndata
           write(vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
@@ -342,14 +342,14 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*1*8
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do i=1,ndata
-            call base64%encode(data(i))
+            call base64_encoder_encode(base64, data(i))
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do i=1,ndata
           write(vtk%filehandle, '(G14.6)') data(i)
@@ -373,16 +373,16 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*3*8
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do i=1,ndata
-            call base64%encode(data1(i))
-            call base64%encode(data2(i))
-            call base64%encode(data3(i))
+            call base64_encoder_encode(base64, data1(i))
+            call base64_encoder_encode(base64, data2(i))
+            call base64_encoder_encode(base64, data3(i))
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do i=1,ndata
           write(vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
@@ -404,18 +404,18 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndatax*ndatay*ndataz*1*8
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do k=1,ndataz
             do j=1,ndatay
               do i=1,ndatax
-                call base64%encode(data(i,j,k))
+                call base64_encoder_encode(base64, data(i,j,k))
               end do
             end do
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do k=1,ndataz
             do j=1,ndatay
@@ -441,20 +441,20 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndatax*ndatay*ndataz*3*8
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do k=1,ndataz
             do j=1,ndatay
               do i=1,ndatax
-                call base64%encode(data1(i,j,k))
-                call base64%encode(data2(i,j,k))
-                call base64%encode(data3(i,j,k))
+                call base64_encoder_encode(base64, data1(i,j,k))
+                call base64_encoder_encode(base64, data2(i,j,k))
+                call base64_encoder_encode(base64, data3(i,j,k))
               end do
             end do
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do k=1,ndataz
             do j=1,ndatay
@@ -482,14 +482,14 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*1*4
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do i=1,ndata
-            call base64%encode(data(i))
+            call base64_encoder_encode(base64, data(i))
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do i=1,ndata
           write(vtk%filehandle, '(I20)') data(i)
@@ -510,12 +510,12 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = 1*4
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(data)
-          call base64%finish()
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, data)
+          call base64_encoder_finish(base64)
         else
           write(vtk%filehandle, '(I20)') data
         endif
@@ -534,12 +534,12 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = 1*8
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(data)
-          call base64%finish()
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, data)
+          call base64_encoder_finish(base64)
         else
           write(vtk%filehandle, '(I20)') data
         endif
@@ -561,16 +561,16 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*3*4
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do i=1,ndata
-            call base64%encode(data1(i))
-            call base64%encode(data2(i))
-            call base64%encode(data3(i))
+            call base64_encoder_encode(base64, data1(i))
+            call base64_encoder_encode(base64, data2(i))
+            call base64_encoder_encode(base64, data3(i))
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do i=1,ndata
           write(vtk%filehandle, '(3I20)') data1(i), data2(i), data3(i)
@@ -594,14 +594,14 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*1*8
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do i=1,ndata
-            call base64%encode(data(i))
+            call base64_encoder_encode(base64, data(i))
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do i=1,ndata
           write(vtk%filehandle, '(I20)') data(i)
@@ -625,16 +625,16 @@ end module module_vtk
 
         if (vtk%binary) then
           numbytes = ndata*3*8
-          call base64%start(vtk%filehandle, bigendian)
-          call base64%encode(numbytes)
-          call base64%finish()
-          call base64%start(vtk%filehandle, bigendian)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
+          call base64_encoder_encode(base64, numbytes)
+          call base64_encoder_finish(base64)
+          call base64_encoder_start(base64, vtk%filehandle, bigendian)
           do i=1,ndata
-            call base64%encode(data1(i))
-            call base64%encode(data2(i))
-            call base64%encode(data3(i))
+            call base64_encoder_encode(base64, data1(i))
+            call base64_encoder_encode(base64, data2(i))
+            call base64_encoder_encode(base64, data3(i))
           end do
-          call base64%finish()
+          call base64_encoder_finish(base64)
         else
           do i=1,ndata
           write(vtk%filehandle, '(3I20)') data1(i), data2(i), data3(i)
