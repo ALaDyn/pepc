@@ -203,7 +203,7 @@ module module_dual_tree_walk
         do
           if (tree_node_has_local_contributions(t%nodes(ns))) then
             if (t%nodes(ns)%leaves >= 100) then
-              !$omp task default(shared) firstprivate(ns) untied
+              !$omp task default(none) firstprivate(ns) shared(src) untied
               call sow_aux(src, ns)
               !$omp end task
             else
@@ -257,7 +257,7 @@ module module_dual_tree_walk
 
       integer(kind_node) :: ns
       integer(kind_particle) :: ps
-      real(kind_physics) :: dist(3)
+      real(kind_physics) :: delta(3)
 
       associate (node => t%nodes(n))
         ! destination nodes must only come from the local part of the tree, results are only computed for local leaves
@@ -272,16 +272,15 @@ module module_dual_tree_walk
           ns = tree_node_get_first_child(node)
           do
             if (tree_node_has_local_contributions(t%nodes(ns))) then
-
-              dist = t%nodes(ns)%center - node%center
-
               if (t%nodes(ns)%leaves >= 100) then
-                !$omp task default(shared) firstprivate(ns) untied
-                call shift_coefficients_down(dist, node%local_coefficients, t%nodes(ns)%local_coefficients)
+                !$omp task default(none) firstprivate(ns) private(delta) shared(t, node) untied
+                delta = t%nodes(ns)%center - node%center
+                call shift_coefficients_down(delta, node%local_coefficients, t%nodes(ns)%local_coefficients)
                 call reap_aux(ns)
                 !$omp end task
               else
-                call shift_coefficients_down(dist, node%local_coefficients, t%nodes(ns)%local_coefficients)
+                delta = t%nodes(ns)%center - node%center
+                call shift_coefficients_down(delta, node%local_coefficients, t%nodes(ns)%local_coefficients)
                 call reap_aux(ns)
               end if
             end if
