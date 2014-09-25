@@ -326,6 +326,7 @@ module module_tree_node
       n%first_child       = p%first_child
       n%next_sibling      = NODE_INVALID
       n%particle          = 0
+      n%work              = 0.0_8
       n%request_posted    = .false.
       n%center            = p%center
       n%multipole_moments = p%multipole_moments

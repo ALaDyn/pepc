@@ -125,16 +125,23 @@ module module_dual_tree_walk
 
         if (dual_mac(delta, dist2, rsrc, src_node%multipole_moments, rdst, dst_node%multipole_moments)) then
           if (dst_is_leaf) then
-            call calc_force_per_interaction_with_twig(p(tree_node_get_particle(dst_node)), src_node%multipole_moments, src, delta, dist2, lattice_vector)
+            associate(dst_particle => p(tree_node_get_particle(dst_node)))
+              dst_particle%work = dst_particle%work + 5.0_8
+              call calc_force_per_interaction_with_twig(dst_particle, src_node%multipole_moments, src, delta, dist2, lattice_vector)
+            end associate
           else
+            dst_node%work = dst_node%work + 20.0_8
             call multipole_to_local(delta, dist2, src_node%multipole_moments, dst_node%local_coefficients)
           end if
         else if (src_is_leaf .and. dst_is_leaf) then
-          if (src /= dst) then
-            call calc_force_per_interaction_with_leaf(p(tree_node_get_particle(dst_node)), src_node%multipole_moments, src, delta, dist2, lattice_vector)
-          else
-            call calc_force_per_interaction_with_self(p(tree_node_get_particle(dst_node)), src_node%multipole_moments, src, delta, dist2, lattice_vector)
-          end if
+          associate(dst_particle => p(tree_node_get_particle(dst_node)))
+            dst_particle%work = dst_particle%work + 1.0_8
+            if (src /= dst) then
+              call calc_force_per_interaction_with_leaf(dst_particle, src_node%multipole_moments, src, delta, dist2, lattice_vector)
+            else
+              call calc_force_per_interaction_with_self(dst_particle, src_node%multipole_moments, src, delta, dist2, lattice_vector)
+            end if
+          end associate
         else if (dst_is_leaf) then
           call split_src(src, dst)
         else if (src_is_leaf) then
@@ -256,7 +263,6 @@ module module_dual_tree_walk
       integer(kind_node), intent(in) :: n
 
       integer(kind_node) :: ns
-      integer(kind_particle) :: ps
       real(kind_physics) :: delta(3)
 
       associate (node => t%nodes(n))
@@ -264,26 +270,32 @@ module module_dual_tree_walk
         DEBUG_ASSERT(tree_node_has_local_contributions(node))
 
         if (tree_node_is_leaf(node)) then
-          ps = tree_node_get_particle(node)
-          call evaluate_at_particle(node%local_coefficients, p(ps)%results)
+          associate(particle => p(tree_node_get_particle(node)))
+            particle%work = particle%work + node%work
+            call evaluate_at_particle(node%local_coefficients, particle%results)
+          end associate
         else
           ! since destination nodes are part of the local tree, their children (in fact all descendants) must be available
           DEBUG_ASSERT(tree_node_children_available(node))
           ns = tree_node_get_first_child(node)
           do
-            if (tree_node_has_local_contributions(t%nodes(ns))) then
-              if (t%nodes(ns)%leaves >= 100) then
-                !$omp task default(none) firstprivate(ns) private(delta) shared(t, node) untied
-                delta = t%nodes(ns)%center - node%center
-                call shift_coefficients_down(delta, node%local_coefficients, t%nodes(ns)%local_coefficients)
-                call reap_aux(ns)
-                !$omp end task
-              else
-                delta = t%nodes(ns)%center - node%center
-                call shift_coefficients_down(delta, node%local_coefficients, t%nodes(ns)%local_coefficients)
-                call reap_aux(ns)
+            associate(child_node => t%nodes(ns))
+              if (tree_node_has_local_contributions(child_node)) then
+                if (child_node%leaves >= 100) then
+                  !$omp task default(none) firstprivate(ns, child_node) private(delta) shared(node) untied
+                  child_node%work = child_node%work + real(child_node%leaves, kind = 8) * node%work / real(node%leaves, kind = 8)
+                  delta = child_node%center - node%center
+                  call shift_coefficients_down(delta, node%local_coefficients, child_node%local_coefficients)
+                  call reap_aux(ns)
+                  !$omp end task
+                else
+                  child_node%work = child_node%work + real(child_node%leaves, kind = 8) * node%work / real(node%leaves, kind = 8)
+                  delta = child_node%center - node%center
+                  call shift_coefficients_down(delta, node%local_coefficients, child_node%local_coefficients)
+                  call reap_aux(ns)
+                end if
               end if
-            end if
+            end associate
             ns = tree_node_get_next_sibling(t%nodes(ns))
             if (ns == NODE_INVALID) exit
           end do

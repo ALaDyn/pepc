@@ -727,6 +727,7 @@ module module_tree_grow
     n%first_child  = NODE_INVALID
     n%next_sibling = NODE_INVALID
     n%particle     = i
+    n%work         = 0.0_8
     n%local_coefficients = EMPTY_LOCAL_COEFFICIENTS
 
     call timer_resume(t_props_leaves)
@@ -755,6 +756,7 @@ module module_tree_grow
     parent%next_sibling = NODE_INVALID
     parent%first_child  = NODE_INVALID
     parent%particle     = 0
+    parent%work         = 0.0_8
     parent%local_coefficients = EMPTY_LOCAL_COEFFICIENTS
 
     call tree_node_update_from_children(t, parent, children, k)

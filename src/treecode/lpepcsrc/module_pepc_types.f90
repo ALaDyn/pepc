@@ -38,7 +38,6 @@ module module_pepc_types
                          MPI_TYPE_multipole_moments, &
                          MPI_TYPE_particle_results,  &
                          MPI_TYPE_particle,          &
-                         MPI_TYPE_tree_node,         &
                          MPI_TYPE_tree_node_package, &
                          MPI_TYPE_request_eager
 
@@ -68,6 +67,7 @@ module module_pepc_types
         integer(kind_node) :: first_child
         integer(kind_node) :: next_sibling
         integer(kind_particle) :: particle
+        real*8 :: work
         real(kind_physics) :: center(1:3)
         type(t_multipole_moments) :: multipole_moments
         type(t_local_coefficients) :: local_coefficients
