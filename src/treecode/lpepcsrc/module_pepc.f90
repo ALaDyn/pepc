@@ -438,46 +438,19 @@ module module_pepc
     !> traversal based algorithm.
     !>
     subroutine pepc_calculate_internal(particles, restore)
-      use module_dual_tree_walk
-      use module_libpepc_main, only: libpepc_grow_tree, libpepc_timber_tree, libpepc_restore_particles
-      use module_mirror_boxes
-      use module_interaction_specific
-      use module_timings
-      use module_debug
+      use module_libpepc_main, only: libpepc_grow_tree, libpepc_timber_tree, libpepc_restore_particles, &
+        libpepc_dual_traverse_tree_internal
       implicit none
 
       type(t_particle), allocatable, intent(inout) :: particles(:)
       logical, intent(in) :: restore
 
-      type(t_tree), allocatable, target :: tree
-      integer :: ibox
+      type(t_tree), save, target :: tree
 
-      allocate(tree)
       call libpepc_grow_tree(tree, particles)
-
-      call pepc_status('TRAVERSE TREE')
-      call timer_start(t_walk)
-
-      call timer_start(t_fields_passes)
-      do ibox = 1,num_neighbour_boxes ! sum over all boxes
-        call dual_tree_walk_sow(tree, particles, lattice_vect(neighbour_boxes(:,ibox)))
-      end do
-      call timer_stop(t_fields_passes)
-
-      call dual_tree_walk_reap(tree, particles)
-
-      ! add lattice contribution and other per-particle-forces
-      call timer_start(t_lattice)
-      call calc_force_per_particle(particles)
-      call timer_stop(t_lattice)
-      call timer_stop(t_walk)
-      call pepc_status('TRAVERSAL DONE')
-
+      call libpepc_dual_traverse_tree_internal(tree, particles)
       if (restore) call libpepc_restore_particles(tree, particles)
-
       call libpepc_timber_tree(tree)
-      deallocate(tree)
-
     end subroutine
 
 

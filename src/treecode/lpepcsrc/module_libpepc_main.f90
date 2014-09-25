@@ -36,6 +36,7 @@ module module_libpepc_main
 
     public libpepc_restore_particles
     public libpepc_traverse_tree
+    public libpepc_dual_traverse_tree_internal
     public libpepc_grow_tree
     public libpepc_timber_tree
     public libpepc_read_parameters
@@ -78,7 +79,6 @@ module module_libpepc_main
     !> to other MPI ranks if necessary (i.e. reallocates particles changing size(p))
     !>
     subroutine libpepc_grow_tree(t, p)
-      use module_pepc_types, only: t_particle
       use module_tree, only: t_tree
       use module_tree_grow, only: tree_grow
       use module_tree_communicator, only: tree_communicator_start
@@ -136,7 +136,6 @@ module module_libpepc_main
     !> from to pepc_grow_tree()
     !>
     subroutine libpepc_traverse_tree(t, p)
-        use module_pepc_types
         use treevars
         use module_tree_walk
         use module_mirror_boxes
@@ -178,10 +177,45 @@ module module_libpepc_main
 
 
     !>
+    !> Performs a dual tree traversal of the tree `t` which has been built from all particles in `p` and only from those particles.
+    !>
+    subroutine libpepc_dual_traverse_tree_internal(t, p)
+      use module_tree, only: t_tree
+      use module_mirror_boxes
+      use module_dual_tree_walk
+      use module_interaction_specific
+      use module_timings
+      use module_debug
+      implicit none
+
+      type(t_tree), target, intent(inout) :: t
+      type(t_particle), target, intent(inout) :: p(:)
+
+      integer :: ibox
+
+      call pepc_status('TRAVERSE TREE')
+      call timer_start(t_walk)
+
+      call timer_start(t_fields_passes)
+      do ibox = 1, num_neighbour_boxes ! sum over all boxes
+        call dual_tree_walk_sow(t, p, lattice_vect(neighbour_boxes(:,ibox)))
+      end do
+      call dual_tree_walk_reap(t, p)
+      call timer_stop(t_fields_passes)
+
+      ! add lattice contribution and other per-particle-forces
+      call timer_start(t_lattice)
+      call calc_force_per_particle(p)
+      call timer_stop(t_lattice)
+      call timer_stop(t_walk)
+      call pepc_status('TRAVERSAL DONE')
+    end subroutine
+
+
+    !>
     !> Restores the initial particle distribution (before calling pepc_grow_tree() ).
     !>
     subroutine libpepc_restore_particles(t, particles)
-        use module_pepc_types, only: t_particle
         use module_timings
         use module_debug, only : pepc_status
         use module_domains, only : domain_restore
