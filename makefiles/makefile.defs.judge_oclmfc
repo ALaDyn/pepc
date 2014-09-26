@@ -30,7 +30,6 @@ EXTRA += -DOCL_KERNEL
 #EXTRA += -DSMP_ALTERNATIVE
 #### -DSMP_KERNEL runs the interaction on the CPU only, has to be the only kernel
 #EXTRA += -DSMP_KERNEL
-#EXTRA += -DGOOFY
 
 ######################################
 
