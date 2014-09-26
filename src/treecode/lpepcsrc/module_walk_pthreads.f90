@@ -372,7 +372,7 @@ module module_walk
 #ifdef OMPSS_TASKS
     interface
       !$OMP target device(smp) copy_deps
-      !$OMP task inout(my_threaddata)
+      !$OMP task inout(my_threaddata) label(tree-walk)
       subroutine walk_worker_thread(my_threaddata)
           use, intrinsic :: iso_c_binding
           use pthreads_stuff

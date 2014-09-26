@@ -17,6 +17,9 @@ module purge; module load $(MOD_LOAD)\
 #### uncomment to get OpenMP loop ####
 #EXTRA = -DOMPSS_TASKS_
 
+#### uncomment to try base64 encoding
+#EXTRA += -DBASE
+
 #### -DOMPSS_TASKS will enable tasks instead of pthreads
 EXTRA += -DOMPSS_TASKS
 
@@ -95,7 +98,8 @@ ifeq ($(OMPSS), 1)
    endif
    ifeq ($(MONITOR), 1)
       CPPFLAGS += -DMONITOR
-      LDFLAGS  += -L/usr/local/OmpSs/packages/extrae/2.4.1-parastation-papi/lib -lnanostrace
+      #LDFLAGS  += -L/usr/local/OmpSs/packages/extrae/2.4.1-parastation-papi/lib -lnanostrace
+      LDFLAGS  += -L/usr/local/OmpSs/packages/extrae/2.5.1-parastation-papi/lib -lnanostrace
    endif
 else
    CPPFLAGS += -DNO_NANOS

@@ -171,7 +171,7 @@ module module_tree_communicator
     tree_comm_thread_counter = tree_comm_thread_counter + 1
 #ifdef OMPSS_TASKS
     !$OMP target device(smp) copy_deps
-    !$OMP task inout(t)
+    !$OMP task inout(t) label(communicator)
     call run_communication_loop(t)
     !$OMP end task
 #else
