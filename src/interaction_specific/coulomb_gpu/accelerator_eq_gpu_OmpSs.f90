@@ -188,7 +188,7 @@ module module_accelerator
 #ifdef OCL_KERNEL
       interface
          !$omp target device(opencl) ndrange(1, queued, BLN) file(ocl_kernel.cl) copy_deps
-         !$omp task in(queued, eps2, partner, id) out(results) label(OCL-kernel)
+         !$omp task in(queued, eps2, id) inout(partner, results) label(OCL-kernel)
          subroutine ocl_gpu_kernel(queued, eps2, partner, results, id)
             use module_interaction_specific_types
             implicit none
@@ -206,7 +206,7 @@ module module_accelerator
 #else
          !$omp target device(smp) copy_deps
 #endif
-         !$omp task in(queued, eps2, partner, id) out(results) label(SMP-alternative)
+         !$omp task in(queued, eps2, id) inout(partner, results) label(SMP-alternative)
          subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
             use module_interaction_specific_types
             implicit none
@@ -236,7 +236,7 @@ module module_accelerator
       do
          q_tmp = atomic_fetch_and_decrement_int(acc%q_len)
          !if (atomic_fetch_and_decrement_int(acc%q_len) .gt. 1) then
-         if (q_tmp .gt. 1) then
+         if (q_tmp .gt. 0) then
             ! decrease queue indicator and check if we can add in one got
 
             ! find a stream, lock the process to make sure we get a unique id
@@ -263,78 +263,86 @@ module module_accelerator
             acc%acc_queue(local_acc_id)%pen = penalty
 
             ! wait for the stream in a task
-!!!!            !$OMP target device(smp) copy_deps
-!!!!            !$OMP task firstprivate(local_acc_id, eps2) &
-!!!!            !$OMP private(q_tmp, zer) &
-!!!!            !$OMP inout(ptr(local_acc_id), acc%acc_queue(local_acc_id), results(:,local_acc_id), queued(local_acc_id), acc%acc_queue(local_acc_id)%particle%results%pot) &
-!!!!            !$OMP shared(acc) label(submit-kernel) untied
+!!!            !$OMP target device(smp) copy_deps
+!!!            !$OMP task firstprivate(local_acc_id, eps2) &
+!!!            !$OMP private(q_tmp, zer) &
+!!!            !$OMP inout(ptr(local_acc_id), acc%acc_queue(local_acc_id), results(:,local_acc_id), queued(local_acc_id), acc%acc_queue(local_acc_id)%particle%results%pot) &
+!!!            !$OMP shared(acc) label(submit-kernel) untied
 
 #ifdef MONITOR
-               call Extrae_event(FILL, local_acc_id)
+            call Extrae_event(FILL, local_acc_id)
 #endif
-               WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(local_acc_id)%pen
+            WORKLOAD_PENALTY_INTERACTION = acc%acc_queue(local_acc_id)%pen
 
 #ifdef MONITOR
-               q_tmp = atomic_load_int(acc%q_len)
-               zer = q_tmp
-               call Extrae_event(LIST_LEN, zer(1))
+            q_tmp = atomic_load_int(acc%q_len)
+            zer = q_tmp
+            call Extrae_event(LIST_LEN, zer(1))
 #endif
                
-               ! copy data in GPU structures
-               ! only get positions of 'individual arrays'
-               queued(local_acc_id) = acc%acc_queue(local_acc_id)%queued
-               ptr(local_acc_id)%results => acc%acc_queue(local_acc_id)%particle%results
-               ptr(local_acc_id)%work => acc%acc_queue(local_acc_id)%particle%work
+            ! copy data in GPU structures
+            ! only get positions of 'individual arrays'
+            queued(local_acc_id) = acc%acc_queue(local_acc_id)%queued
+            ptr(local_acc_id)%results => acc%acc_queue(local_acc_id)%particle%results
+            ptr(local_acc_id)%work => acc%acc_queue(local_acc_id)%particle%work
 
 #ifdef MONITOR
-               zer = 0
-               call Extrae_event(FILL, zer(1))
+            zer = 0
+            call Extrae_event(FILL, zer(1))
 #endif
-               ! run (GPU) kernel
-               results(:,local_acc_id) = 0.d0
+            ! run (GPU) kernel
+            results(:,local_acc_id) = 0.d0
+            write(*,'(a,i3,2(" 0x",z16.16))') 'submitting ', local_acc_id, loc(acc%acc_queue(local_acc_id)%particle%partner), loc(results(1,local_acc_id))
 #if defined OCL_KERNEL || defined SMP_ALTERNATIVE
 #ifdef OCL_KERNEL
-               call ocl_gpu_kernel(queued(local_acc_id), eps2, acc%acc_queue(local_acc_id)%particle%partner(:), results(1:4*( (queued(local_acc_id)-1)/BLN + 1 ),local_acc_id), local_acc_id)
-               !                                                                                                                |------- no of blocks -------|
+            call ocl_gpu_kernel(queued(local_acc_id), eps2, acc%acc_queue(local_acc_id)%particle%partner(:), results(1:4*( (queued(local_acc_id)-1)/BLN + 1 ),local_acc_id), local_acc_id)
+            !                                                                                                                |------- no of blocks -------|
 #else
-               call ocl_smp_kernel(queued(local_acc_id), eps2, acc%acc_queue(local_acc_id)%particle%partner(:), results(1:4*( (queued(local_acc_id)-1)/BLN + 1 ),local_acc_id), local_acc_id)
+            call ocl_smp_kernel(queued(local_acc_id), eps2, acc%acc_queue(local_acc_id)%particle%partner(:), results(1:4*( (queued(local_acc_id)-1)/BLN + 1 ),local_acc_id), local_acc_id)
 #endif
 #endif
 #ifdef SMP_KERNEL
-               call smp_kernel(queued(local_acc_id), eps2, acc%acc_queue(local_acc_id)%particle%partner(:), results(:,local_acc_id), local_acc_id)
+            call smp_kernel(queued(local_acc_id), eps2, acc%acc_queue(local_acc_id)%particle%partner(:), results(:,local_acc_id), local_acc_id)
 #endif
 
-               ! wait for the task to finish. a global one will do here since we only 'posted' 1
-               !$OMP taskwait
-               ! have a task to post-process data
-               ! get data from GPU
-               ! now free memory
-               deallocate(acc%acc_queue(local_acc_id)%particle%partner)
-               nullify(acc%acc_queue(local_acc_id)%particle%partner)
+            ! wait for the task to finish. a global one will do here since we only 'posted' 1
+!!            !$OMP taskwait
+            !$OMP target device(SMP) copy_deps
+            !$OMP task firstprivate(local_acc_id) private(zer) &
+            !$OMP inout(results(1:4*( (queued(local_acc_id)-1)/BLN + 1 ),local_acc_id), queued(local_acc_id)) &
+            !$OMP inout(ptr(local_acc_id), acc%acc_queue(local_acc_id), acc%acc_queue(local_acc_id)%particle%partner) &
+            !$OMP label(reduction)
+            ! have a task to post-process data
+            ! get data from GPU
+            ! now free memory
+            write(*,'(a,i3,2(" 0x",z16.16))') 'dealloc          ', local_acc_id, loc(acc%acc_queue(local_acc_id)%particle%partner), loc(results(1,local_acc_id))
+            deallocate(acc%acc_queue(local_acc_id)%particle%partner)
+            nullify(acc%acc_queue(local_acc_id)%particle%partner)
 #ifdef MONITOR
-               call Extrae_event(COPYBACK_NO, queued(local_acc_id))
-               call Extrae_event(COPYBACK, local_acc_id)
+            call Extrae_event(COPYBACK_NO, queued(local_acc_id))
+            call Extrae_event(COPYBACK, local_acc_id)
 #endif
 #ifdef SMP_KERNEL
-               ptr(local_acc_id)%results%e(1) = ptr(local_acc_id)%results%e(1) + sum(results((E_1+1):(E_1+queued(local_acc_id)),local_acc_id))
-               ptr(local_acc_id)%results%e(2) = ptr(local_acc_id)%results%e(2) + sum(results((E_2+1):(E_2+queued(local_acc_id)),local_acc_id))
-               ptr(local_acc_id)%results%e(3) = ptr(local_acc_id)%results%e(3) + sum(results((E_3+1):(E_3+queued(local_acc_id)),local_acc_id))
-               ptr(local_acc_id)%results%pot  = ptr(local_acc_id)%results%pot  + sum(results((POT+1):(POT+queued(local_acc_id)),local_acc_id))
+            ptr(local_acc_id)%results%e(1) = ptr(local_acc_id)%results%e(1) + sum(results((E_1+1):(E_1+queued(local_acc_id)),local_acc_id))
+            ptr(local_acc_id)%results%e(2) = ptr(local_acc_id)%results%e(2) + sum(results((E_2+1):(E_2+queued(local_acc_id)),local_acc_id))
+            ptr(local_acc_id)%results%e(3) = ptr(local_acc_id)%results%e(3) + sum(results((E_3+1):(E_3+queued(local_acc_id)),local_acc_id))
+            ptr(local_acc_id)%results%pot  = ptr(local_acc_id)%results%pot  + sum(results((POT+1):(POT+queued(local_acc_id)),local_acc_id))
 #else
-               ptr(local_acc_id)%results%e(1) = ptr(local_acc_id)%results%e(1) + sum(results(((((queued(local_acc_id)-1)/BLN + 1 ) * (2-1))+1):((((queued(local_acc_id)-1)/BLN + 1 ) * (2-1))+( (queued(local_acc_id)-1)/BLN + 1 )),local_acc_id))
-               ptr(local_acc_id)%results%e(2) = ptr(local_acc_id)%results%e(2) + sum(results(((((queued(local_acc_id)-1)/BLN + 1 ) * (3-1))+1):((((queued(local_acc_id)-1)/BLN + 1 ) * (3-1))+( (queued(local_acc_id)-1)/BLN + 1 )),local_acc_id))
-               ptr(local_acc_id)%results%e(3) = ptr(local_acc_id)%results%e(3) + sum(results(((((queued(local_acc_id)-1)/BLN + 1 ) * (4-1))+1):((((queued(local_acc_id)-1)/BLN + 1 ) * (4-1))+( (queued(local_acc_id)-1)/BLN + 1 )),local_acc_id))
-               ptr(local_acc_id)%results%pot  = ptr(local_acc_id)%results%pot  + sum(results(((((queued(local_acc_id)-1)/BLN + 1 ) * (1-1))+1):((((queued(local_acc_id)-1)/BLN + 1 ) * (1-1))+( (queued(local_acc_id)-1)/BLN + 1 )),local_acc_id))
+            ptr(local_acc_id)%results%e(1) = ptr(local_acc_id)%results%e(1) + sum(results(((((queued(local_acc_id)-1)/BLN + 1 ) * (2-1))+1):((((queued(local_acc_id)-1)/BLN + 1 ) * (2-1))+( (queued(local_acc_id)-1)/BLN + 1 )),local_acc_id))
+            ptr(local_acc_id)%results%e(2) = ptr(local_acc_id)%results%e(2) + sum(results(((((queued(local_acc_id)-1)/BLN + 1 ) * (3-1))+1):((((queued(local_acc_id)-1)/BLN + 1 ) * (3-1))+( (queued(local_acc_id)-1)/BLN + 1 )),local_acc_id))
+            ptr(local_acc_id)%results%e(3) = ptr(local_acc_id)%results%e(3) + sum(results(((((queued(local_acc_id)-1)/BLN + 1 ) * (4-1))+1):((((queued(local_acc_id)-1)/BLN + 1 ) * (4-1))+( (queued(local_acc_id)-1)/BLN + 1 )),local_acc_id))
+            ptr(local_acc_id)%results%pot  = ptr(local_acc_id)%results%pot  + sum(results(((((queued(local_acc_id)-1)/BLN + 1 ) * (1-1))+1):((((queued(local_acc_id)-1)/BLN + 1 ) * (1-1))+( (queued(local_acc_id)-1)/BLN + 1 )),local_acc_id))
 #endif
-               ptr(local_acc_id)%work         = ptr(local_acc_id)%work + queued(local_acc_id) * WORKLOAD_PENALTY_INTERACTION
+            ptr(local_acc_id)%work         = ptr(local_acc_id)%work + queued(local_acc_id) * WORKLOAD_PENALTY_INTERACTION
 #ifdef MONITOR
-               zer = 0
-               call Extrae_event(COPYBACK, zer(1))
-               call Extrae_event(COPYBACK_NO, zer(1))
+            zer = 0
+            call Extrae_event(COPYBACK, zer(1))
+            call Extrae_event(COPYBACK_NO, zer(1))
 #endif
-               ! make room for other tasks
-               q_tmp = atomic_fetch_and_increment_int(acc%q_len)
-!!!!               !$OMP end task
+            ! make room for other tasks
+            q_tmp = atomic_fetch_and_increment_int(acc%q_len)
+            !$OMP end task
+!!!            !$OMP end task
 
 #ifdef MONITOR
             q_tmp = atomic_load_int(acc%q_len)
@@ -526,6 +534,7 @@ subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
    zer = id
    allocate(gpu(gpu_id))
 
+   write(*,'(a," 0x",z16.16)') 'working on     ', loc(partner)
 #ifdef MONITOR
    call Extrae_event(FILL, zer(1))
 #endif

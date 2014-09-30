@@ -27,9 +27,9 @@ EXTRA += -DOMPSS_TASKS
 #### -DOCL_KERNEL will enable an OpenCL kernel
 #EXTRA += -DOCL_KERNEL
 #### -DSMP_ALTERNATIVE adds an SMP kernel via 'implements', can be with ot w/o OCL_KERNEL
-#EXTRA += -DSMP_ALTERNATIVE
+EXTRA += -DSMP_ALTERNATIVE
 #### -DSMP_KERNEL runs the interaction on the CPU only, has to be the only kernel
-EXTRA += -DSMP_KERNEL
+#EXTRA += -DSMP_KERNEL
 
 ######################################
 
@@ -38,7 +38,7 @@ OMPSSCC    = oclmfc
 
 MACH       = oclmfc
 
-DEBUG      = 0
+DEBUG      = 1
 INSTRUMENT = 1
 MONITOR    = 0
 
