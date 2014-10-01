@@ -179,9 +179,8 @@ module helper
 
     type(t_particle), allocatable, intent(inout) :: p(:)
 
-    call timer_start(t_user_calculate_internal)
     call pepc_calculate_internal(p, .true.)
-    call timer_stop(t_user_calculate_internal)
+    call timer_copy(t_fields_passes, t_user_calculate_internal)
     if(root) write(*,'(a,es12.4,a,es12.4)') " === theta: ", sqrt(theta2), ", pepc_calculate_internal time [s]: ", timer_read(t_user_calculate_internal)
 
   end subroutine calculate_internal
@@ -194,9 +193,8 @@ module helper
 
     type(t_particle), allocatable, intent(inout) :: p(:)
 
-    call timer_start(t_user_grow_and_traverse)
     call pepc_grow_and_traverse(p, 0)
-    call timer_stop(t_user_grow_and_traverse)
+    call timer_copy(t_fields_passes, t_user_grow_and_traverse)
     if(root) write(*,'(a,es12.4,a,es12.4)') " === theta: ", sqrt(theta2), ", tree grow & traversal time [s]: ", timer_read(t_user_grow_and_traverse)
 
   end subroutine grow_and_traverse

@@ -280,6 +280,18 @@ module module_timings
 
 
     !>
+    !> Copies the value of a timer (source) to another timer (target)
+    !>
+    subroutine timer_copy(id1, id2)
+      implicit none
+      integer, intent(in) :: id1 !< the source timer address
+      integer, intent(in) :: id2 !< the target timer address
+
+      tim(id2) = tim(id1)
+    end subroutine timer_copy
+
+
+    !>
     !> Outputs the given timing array to a file with the given filename
     !>
     subroutine timings_ToFile(itime, iuserflag, tdata, filename, printheader)
