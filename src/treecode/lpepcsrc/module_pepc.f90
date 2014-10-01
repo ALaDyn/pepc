@@ -235,6 +235,7 @@ module module_pepc
       use module_debug, only : pepc_status
       use module_interaction_specific, only : calc_force_read_parameters
       use module_tree_walk, only: tree_walk_read_parameters
+      use module_dual_tree_walk, only: dual_tree_walk_read_parameters
       use module_libpepc_main, only: libpepc_read_parameters
       implicit none
       integer, intent(in) :: filehandle
@@ -246,6 +247,8 @@ module module_pepc
       call calc_force_read_parameters(filehandle)
       rewind(filehandle)
       call tree_walk_read_parameters(filehandle)
+      rewind(filehandle)
+      call dual_tree_walk_read_parameters(filehandle)
     end subroutine
 
 
@@ -256,6 +259,7 @@ module module_pepc
       use module_debug, only : pepc_status
       use module_interaction_specific, only : calc_force_write_parameters
       use module_tree_walk, only: tree_walk_write_parameters
+      use module_dual_tree_walk, only: dual_tree_walk_write_parameters
       use module_libpepc_main, only: libpepc_write_parameters
       implicit none
       integer, intent(in) :: filehandle
@@ -263,6 +267,7 @@ module module_pepc
       call pepc_status("WRITE PARAMETERS")
       call calc_force_write_parameters(filehandle)
       call tree_walk_write_parameters(filehandle)
+      call dual_tree_walk_write_parameters(filehandle)
       call libpepc_write_parameters(filehandle)
     end subroutine
 
@@ -275,6 +280,7 @@ module module_pepc
     subroutine pepc_prepare(idim)
       use treevars, only : treevars_prepare
       use module_tree_walk, only: tree_walk_prepare
+      use module_dual_tree_walk, only: dual_tree_walk_prepare
       use module_interaction_specific, only: calc_force_prepare
       use module_mirror_boxes, only: neighbour_boxes_prepare
       use pthreads_stuff, only: pthreads_init, set_prefetching
@@ -290,6 +296,7 @@ module module_pepc
       call neighbour_boxes_prepare() ! initialize mirror boxes
       call calc_force_prepare() ! prepare interaction-specific routines
       call tree_walk_prepare()
+      call dual_tree_walk_prepare()
       call tree_communicator_prepare()
     end subroutine
 
@@ -302,6 +309,7 @@ module module_pepc
       use module_debug
       use module_pepc_types, only : free_lpepc_mpi_types
       use module_tree_walk, only : tree_walk_finalize
+      use module_dual_tree_walk, only : dual_tree_walk_finalize
       use module_interaction_specific, only : calc_force_finalize
       use treevars, only : treevars_finalize, MPI_COMM_lpepc
       use pthreads_stuff, only: pthreads_uninit
@@ -317,6 +325,7 @@ module module_pepc
       call calc_force_finalize()
       call tree_communicator_finalize()
       call tree_walk_finalize()
+      call dual_tree_walk_finalize()
       ! deregister mpi types
       call free_lpepc_mpi_types()
 
@@ -498,6 +507,7 @@ module module_pepc
     subroutine pepc_statistics(itime)
         use module_tree, only: tree_stats
         use module_tree_walk, only: tree_walk_statistics
+        use module_dual_tree_walk, only: dual_tree_walk_statistics
         use module_utils, only: create_directory
         use treevars, only: me, stats_u
         use module_debug
@@ -518,6 +528,7 @@ module module_pepc
         if (0 == me) then; open (stats_u, file = trim(cfile)); end if
         call tree_stats(global_tree, stats_u)
         call tree_walk_statistics(stats_u)
+        call dual_tree_walk_statistics(stats_u)
         if (0 == me) then; close (stats_u); end if
 
         call timer_stop(t_fields_stats)
