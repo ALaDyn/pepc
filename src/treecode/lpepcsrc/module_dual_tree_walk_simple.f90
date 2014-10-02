@@ -333,10 +333,10 @@ module module_dual_tree_walk
           associate(child_node => t%nodes(ns))
             if (tree_node_has_local_contributions(child_node)) then
               if (child_node%leaves >= 100) then
-                !$omp task default(none) firstprivate(ns, child_node) private(delta) shared(t, p, node) untied
-                child_node%work = child_node%work + real(child_node%leaves, kind = 8) * node%work / real(node%leaves, kind = 8)
-                delta = child_node%center - node%center
-                call shift_coefficients_down(delta, node%local_coefficients, child_node%local_coefficients)
+                !$omp task default(none) firstprivate(ns) private(delta) shared(t, p, n) untied
+                t%nodes(ns)%work = t%nodes(ns)%work + real(t%nodes(ns)%leaves, kind = 8) * t%nodes(n)%work / real(t%nodes(n)%leaves, kind = 8)
+                delta = t%nodes(ns)%center - t%nodes(n)%center
+                call shift_coefficients_down(delta, t%nodes(n)%local_coefficients, t%nodes(ns)%local_coefficients)
                 call reap_aux(t, p, ns)
                 !$omp end task
               else
