@@ -63,9 +63,12 @@ program pepc
   mean_relerrs = 0
   relerrs = 0
   tindx = (/ (ip, ip=1,size(particles)) /)
-  call timer_start(t_user_directsum)
-  call directforce(particles, tindx, size(tindx, 1, kind_particle), direct_results, MPI_COMM_WORLD)
-  call timer_stop(t_user_directsum)
+
+  if (particle_test) then
+    call timer_start(t_user_directsum)
+    call directforce(particles, tindx, size(tindx, 1, kind_particle), direct_results, MPI_COMM_WORLD)
+    call timer_stop(t_user_directsum)
+  end if
 
   if(root) then
     write(*,'(a,es12.4)') " == direct summation time [s]: ", timer_read(t_user_directsum)
@@ -79,31 +82,34 @@ program pepc
     select case (method)
       case (0)
         call grow_and_traverse(particles)
-        call calculate_errors(particles, direct_results, tindx, 2, mean_relerrs, relerrs)
+        if (particle_test) call calculate_errors(particles, direct_results, tindx, 2, mean_relerrs, relerrs)
       case (1)
         call calculate_internal(particles)
-        call calculate_errors(particles, direct_results, tindx, 1, mean_relerrs, relerrs)
+        if (particle_test) call calculate_errors(particles, direct_results, tindx, 1, mean_relerrs, relerrs)
       case (2)
         call calculate_internal(particles)
-        call calculate_errors(particles, direct_results, tindx, 1, mean_relerrs, relerrs)
+        if (particle_test) call calculate_errors(particles, direct_results, tindx, 1, mean_relerrs, relerrs)
 
         call pepc_particleresults_clear(particles)
 
         call grow_and_traverse(particles)
-        call calculate_errors(particles, direct_results, tindx, 2, mean_relerrs, relerrs)
+        if (particle_test) call calculate_errors(particles, direct_results, tindx, 2, mean_relerrs, relerrs)
       case default
         if(root) write(*,*) "=== Invalid  method specification: ", method
     end select
 
-    call gather_results(relerrs, gathered_relerrs)
+    if (particle_test) call gather_results(relerrs, gathered_relerrs)
     if (root) call write_results(mean_relerrs, gathered_relerrs)
 
-    if (vtk_output) call write_particles(particles, relerrs)
+    if (vtk_output .and. particle_test) call write_particles(particles, relerrs)
 
     theta2 = (sqrt(theta2) + theta_stepsize)**2
   end do
 
-  deallocate(direct_results, tindx, relerrs, gathered_relerrs)
+  deallocate(tindx, relerrs, gathered_relerrs)
+
+  if (particle_test) deallocate(direct_results)
+
   call finalize(particles)
 
 end program pepc

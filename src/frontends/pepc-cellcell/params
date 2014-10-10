@@ -13,6 +13,8 @@ theta_stepsize = 0.1
 
 theta_stepcount = 9
 
+particle_test = .false.
+
 vtk_output = .false.
 /
 

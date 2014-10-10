@@ -47,6 +47,7 @@ module helper
   integer :: method ! used methods. 0: pepc_grow_and_traverse, 1: pepc_calculate_internal, 2: both
   real(kind_physics) :: theta_stepsize
   integer :: theta_stepcount
+  logical :: particle_test
 
   ! output variables
   logical :: vtk_output ! turn vtk output on/off
@@ -63,12 +64,14 @@ module helper
   subroutine set_parameter()
     use module_pepc
     use module_utils, only: create_directory
+    use module_interaction_specific, only : theta2
+    use treevars, only: num_threads
     implicit none
 
     integer :: params_unit
     character(255)     :: para_file
     logical            :: read_para_file
-    namelist /pepccellcell/ tnp, dimensions, method, theta_stepsize, theta_stepcount, vtk_output
+    namelist /pepccellcell/ tnp, dimensions, method, theta_stepsize, theta_stepcount, particle_test, vtk_output
 
     ! set default parameter values
     tnp = 10000
@@ -76,6 +79,7 @@ module helper
     method = 1
     theta_stepsize = 0.1
     theta_stepcount = 10
+    particle_test = .true.
     vtk_output = .false.
 
     ! read in namelist file
@@ -94,6 +98,10 @@ module helper
       write(*,'(a,i12)')       " == total number of particles : ", tnp
       write(*,'(a,3(es12.4))') " == dimensions                : ", dimensions
       write(*,'(a,i12)')       " == method                    : ", method
+      write(*,'(a,es12.4)')    " == theta start               : ", sqrt(theta2)
+      write(*,'(a,es12.4)')    " == theta theta stepsize      : ", theta_stepsize
+      write(*,'(a,i12)')    " == theta stepcount           : ", theta_stepcount
+      write(*,'(a,l12)')       " == particle test             : ", particle_test
     end if
 
     call pepc_prepare(3_kind_dim)
@@ -102,7 +110,7 @@ module helper
     call create_directory(trim(output_dir))
     call create_directory("vtk")
     call create_directory("vtk/"//trim(output_dir))
-    write (output_filename, '( a , "/", "output_tnp", i0, ".dat" )' ) trim(output_dir), tnp
+    write (output_filename, '( a , "/", "output_tnp", i0, "_threads", i0, ".dat" )' ) trim(output_dir), tnp, num_threads
     open (newunit=times_unit,file=output_filename)
 
 
@@ -255,35 +263,37 @@ module helper
 
     write (times_unit,*) sqrt(theta2), timer_read(t_user_directsum), timer_read(t_user_grow_and_traverse), timer_read(t_user_calculate_internal), mean_relerrs
 
-    write (output_filename_grow_traverse_per_theta, '( a, "/", "output_tnp", i0, "_m", i0, "_theta0", f0.2, ".dat" )' ) trim(output_dir), tnp, 0, sqrt(theta2)
-    write (output_filename_calc_internal_per_theta, '( a, "/", "output_tnp", i0, "_m", i0, "_theta0", f0.2, ".dat" )' ) trim(output_dir), tnp, 1, sqrt(theta2)
 
-    !
-    select case (method)
-      case (0)
-        open (newunit=unit1,file=output_filename_grow_traverse_per_theta)
-          do i=1, size(relerrs, 1)
-            write (unit1,*) relerrs(i, 2)
-          end do
-        close(unit1)
-      case (1)
-        open (newunit=unit2,file=output_filename_calc_internal_per_theta)
-          do i=1, size(relerrs, 1)
-            write (unit2,*) relerrs(i, 1)
-          end do
-        close(unit2)
-      case (2)
-        open (newunit=unit1,file=output_filename_grow_traverse_per_theta)
-          do i=1, size(relerrs, 1)
-            write (unit1,*) relerrs(i, 2)
-          end do
-        close(unit1)
-        open (newunit=unit2,file=output_filename_calc_internal_per_theta)
-          do i=1, size(relerrs, 1)
-            write (unit2,*) relerrs(i, 1)
-          end do
-        close(unit2)
-    end select
+    if (particle_test) then
+      write (output_filename_grow_traverse_per_theta, '( a, "/", "output_tnp", i0, "_m", i0, "_theta0", f0.2, ".dat" )' ) trim(output_dir), tnp, 0, sqrt(theta2)
+      write (output_filename_calc_internal_per_theta, '( a, "/", "output_tnp", i0, "_m", i0, "_theta0", f0.2, ".dat" )' ) trim(output_dir), tnp, 1, sqrt(theta2)
+
+      select case (method)
+        case (0)
+          open (newunit=unit1,file=output_filename_grow_traverse_per_theta)
+            do i=1, size(relerrs, 1)
+              write (unit1,*) relerrs(i, 2)
+            end do
+          close(unit1)
+        case (1)
+          open (newunit=unit2,file=output_filename_calc_internal_per_theta)
+            do i=1, size(relerrs, 1)
+              write (unit2,*) relerrs(i, 1)
+            end do
+          close(unit2)
+        case (2)
+          open (newunit=unit1,file=output_filename_grow_traverse_per_theta)
+            do i=1, size(relerrs, 1)
+              write (unit1,*) relerrs(i, 2)
+            end do
+          close(unit1)
+          open (newunit=unit2,file=output_filename_calc_internal_per_theta)
+            do i=1, size(relerrs, 1)
+              write (unit2,*) relerrs(i, 1)
+            end do
+          close(unit2)
+      end select
+    end if
 
   end subroutine write_results
 
