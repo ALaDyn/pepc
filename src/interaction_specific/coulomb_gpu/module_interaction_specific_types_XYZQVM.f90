@@ -27,6 +27,7 @@
 module module_interaction_specific_types
       use pthreads_stuff
       use module_atomic_ops, only: t_atomic_int
+      use treevars, only: num_threads
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -75,7 +76,8 @@ module module_interaction_specific_types
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
       integer, public, parameter :: MAX_IACT_PARTNERS = 16 * 256 * 2 * 2 ! length of vectors for accelerator, multiples of 256 because of gang size?
-      integer, public, parameter :: ACC_QUEUE_LENGTH  = 5                ! how may lists we accept from the workers at one time
+      integer, public, parameter :: ACC_QUEUE_LENGTH  = 4                ! how many lists we accept from the workers at one time
+      integer, public, parameter :: MAX_THREADS = 32                     ! no. of max 'pthreads' we expect, careful, no error checking
 
       !> Thread local data structure to store extra interaction information
       ! thread local, since we do not want to ship this via MPI
@@ -92,6 +94,7 @@ module module_interaction_specific_types
          real*8, pointer :: partner(:)                !< 1-D array to store all info about interaction partner (delta, tree_node_interaction_data)
          logical, pointer :: leaf(:)                  !< 1-D array to store particle_is_leaf flag
          integer*8 :: my_idx = -1
+         integer :: thread_id = -1
       end type t_particle_thread
 
       type, public :: t_acc_queue_entry
@@ -107,8 +110,8 @@ module module_interaction_specific_types
          type(t_atomic_int), pointer :: thread_status
          integer :: processor_id
          type(t_pthread_with_type) :: acc_thread
-         type(t_acc_queue_entry) :: acc_queue(ACC_QUEUE_LENGTH)
-         type(t_atomic_int), pointer :: q_top, q_bottom, q_len
+         type(t_acc_queue_entry) :: acc_queue(MAX_THREADS, ACC_QUEUE_LENGTH)
+         integer :: q_len(MAX_THREADS)
       end type
       type(t_acc) :: acc
 

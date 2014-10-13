@@ -751,6 +751,7 @@ module module_walk
           thread_particle_data(idx)%results  => particle_data(thread_particle_indices(idx))%results
           thread_particle_data(idx)%queued    =  -1
           thread_particle_data(idx)%my_idx    = thread_particle_indices(idx)
+          thread_particle_data(idx)%thread_id = my_threaddata%id
           ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
@@ -905,7 +906,7 @@ module module_walk
         if (walk_profile) then; t_post_request = t_post_request - MPI_WTIME(); end if
         ! eager requests
         call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(particle%my_idx), shifted_particle_position) ! fetch children from remote
-        ! simpel requests
+        ! simple requests
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         if (walk_profile) then; t_post_request = t_post_request + MPI_WTIME(); end if
         num_post_request = num_post_request + 1
@@ -1218,6 +1219,7 @@ subroutine walk_worker_thread(my_threaddata)
           thread_particle_data(idx)%results  => particle_data(thread_particle_indices(idx))%results
           thread_particle_data(idx)%queued    =  -1
           thread_particle_data(idx)%my_idx    = thread_particle_indices(idx)
+          thread_particle_data(idx)%thread_id = my_threaddata%id
           ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
