@@ -46,7 +46,7 @@ else
     $(INLINING) \
     $(FFEATURES) \
     $(FWARNINGS)
-  CFLAGS   = -Ofast -pthread -Wall
+  CFLAGS   = -Ofast -pthread -Wall $(INLINING)
   LDFLAGS  = -Ofast -pthread $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
