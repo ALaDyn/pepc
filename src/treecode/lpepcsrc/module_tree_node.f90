@@ -32,6 +32,7 @@ module module_tree_node
     integer, private, parameter :: TREE_NODE_FLAG_LOCAL_REQUEST_SENT             = 1 !< bit is set in flags_local if request for child nodes has actually been sent
     integer, private, parameter :: TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local for all nodes that contain some local nodes beneath them
     integer, private, parameter :: TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local for all nodes that contain some remote nodes beneath them
+    integer, private, parameter :: TREE_NODE_FLAG_LOCAL_IS_LOCKED                = 4
 
     integer, private, parameter :: TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE           = 0 !< bit is set in flags_global for all branch nodes (set in tree_exchange)
     integer, private, parameter :: TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE             = 1 !< bit is set in flags_global for all nodes that are above (towards root) branch nodes
@@ -286,6 +287,46 @@ module module_tree_node
       else
         n%flags_global = ibclr(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE)
       end if
+    end subroutine
+
+
+    subroutine tree_node_acquire_lock(node)
+      use module_pepc_kinds, only: kind_byte
+      use module_atomic_ops, only: atomic_read_barrier
+      implicit none
+
+      type(t_tree_node), intent(inout) :: node
+
+      integer(kind_byte), parameter :: mask = ibset(0_kind_byte, TREE_NODE_FLAG_LOCAL_IS_LOCKED)
+      integer(kind_byte) :: tmp
+
+      do
+        !$omp atomic capture
+        tmp = node%flags_local
+        node%flags_local = ior(node%flags_local, mask)
+        !$omp end atomic
+
+        if (.not. btest(tmp, TREE_NODE_FLAG_LOCAL_IS_LOCKED)) exit
+      end do
+
+      call atomic_read_barrier()
+    end subroutine
+
+
+    subroutine tree_node_release_lock(node)
+      use module_pepc_kinds, only: kind_byte
+      use module_atomic_ops, only: atomic_write_barrier
+      implicit none
+
+      type(t_tree_node), intent(inout) :: node
+
+      integer(kind_byte), parameter :: mask = not(ibset(0_kind_byte, TREE_NODE_FLAG_LOCAL_IS_LOCKED))
+
+      call atomic_write_barrier()
+
+      !$omp atomic update
+      node%flags_local = iand(node%flags_local, mask)
+      !$omp end atomic
     end subroutine
 
 

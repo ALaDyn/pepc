@@ -111,7 +111,7 @@ module module_dual_tree_walk
     use module_tree, only: t_tree
     use module_pepc_types, only: t_particle
     use module_interaction_specific
-    use module_tree_node, only: tree_node_get_particle, tree_node_is_leaf
+    use module_tree_node, only: tree_node_get_particle, tree_node_is_leaf, tree_node_acquire_lock, tree_node_release_lock
     implicit none
 
     type(t_tree), intent(inout) :: t
@@ -143,6 +143,7 @@ module module_dual_tree_walk
       dist2 = dot_product(delta, delta)
 
       if (src_is_leaf .and. dst_is_leaf) then ! A pair of leaves interacts directly via P2P.
+        call tree_node_acquire_lock(dst_node)
         associate(dst_particle => p(tree_node_get_particle(dst_node)))
           dst_particle%work = dst_particle%work + 1.0_8
           if (src /= dst) then
@@ -151,7 +152,9 @@ module module_dual_tree_walk
             call calc_force_per_interaction_with_self(dst_particle, src_node%multipole_moments, src, delta, dist2, lattice_vector)
           end if
         end associate
+        call tree_node_release_lock(dst_node)
       else if (dual_mac(delta, dist2, rsrc, src_node%multipole_moments, rdst, dst_node%multipole_moments)) then ! Approximate...
+        call tree_node_acquire_lock(dst_node)
         if (dst_is_leaf) then ! ...via P2M for destinations that are leaves, or...
           associate(dst_particle => p(tree_node_get_particle(dst_node)))
             dst_particle%work = dst_particle%work + 5.0_8
@@ -161,6 +164,7 @@ module module_dual_tree_walk
           dst_node%work = dst_node%work + 20.0_8
           call multipole_to_local(delta, dist2, src_node%multipole_moments, dst_node%local_coefficients)
         end if
+        call tree_node_release_lock(dst_node)
       else if (dst_is_leaf) then ! Destination cannot be split, so split source.
         call sow_split_src(t, p, lattice_vector, src, dst)
       else if (src_is_leaf) then ! Source cannot be split, so split destination.
@@ -213,11 +217,18 @@ module module_dual_tree_walk
 
       ns = tree_node_get_first_child(src_node)
       do
-        call sow_aux(t, p, lattice_vector, ns, dst)
+        if (t%nodes(ns)%leaves >= 100) then
+          !$omp task default(none) firstprivate(ns) shared(t, p, lattice_vector, dst) untied
+          call sow_aux(t, p, lattice_vector, ns, dst)
+          !$omp end task
+        else
+          call sow_aux(t, p, lattice_vector, ns, dst)
+        end if
         ns = tree_node_get_next_sibling(t%nodes(ns))
         if (ns == NODE_INVALID) exit
       end do
     end associate
+    !$omp taskwait
   end subroutine sow_split_src
 
 
