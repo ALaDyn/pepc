@@ -99,6 +99,7 @@ module module_interaction_specific
       public calc_force_prepare
       public calc_force_after_grow
       public get_number_of_interactions_per_particle
+      public acc_prepare
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -269,13 +270,27 @@ module module_interaction_specific
       subroutine calc_force_prepare()
         use treevars, only : me, MPI_COMM_lpepc
         use module_fmm_framework, only : fmm_framework_init
-        use pthreads_stuff, only: pthreads_createthread, pthreads_sched_yield, THREAD_TYPE_ACCELERATOR
-        use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_allocate_int
         !use module_tree_communicator, only: tree_comm_thread_counter
 
         implicit none
 
         call fmm_framework_init(me, MPI_COMM_lpepc)
+
+      end subroutine
+
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !>
+      !> start some empty machinery for a possible ACC 'thread'
+      !> (since the thread is now deprecated, not really needed any more)
+      !>
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      subroutine acc_prepare()
+        use pthreads_stuff, only: pthreads_createthread, pthreads_sched_yield, THREAD_TYPE_ACCELERATOR
+        use module_atomic_ops, only: atomic_load_int, atomic_store_int, atomic_allocate_int
+        !use module_tree_communicator, only: tree_comm_thread_counter
+
+        implicit none
 
         ! start ACCELERATOR thread (GPUs, MIC, BG/Q Quad, ...)
         if (.not. associated(acc%thread_status)) then 

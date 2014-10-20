@@ -24,6 +24,7 @@ program pepc
   use module_pepc_types
   use module_timings
   use module_debug
+  use module_interaction_specific
   
   ! frontend helper routines
   use helper
@@ -41,6 +42,7 @@ program pepc
   call timer_start(t_user_init)
   call set_parameter()
   call init_particles(particles)
+  call acc_prepare()
   call timer_stop(t_user_init)
 
   if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer_read(t_user_init)

@@ -25,7 +25,7 @@ EXTRA += -DOMPSS_TASKS
 
 #### select the kernel computing the list of interactions
 #### -DOCL_KERNEL will enable an OpenCL kernel
-#EXTRA += -DOCL_KERNEL
+EXTRA += -DOCL_KERNEL
 #### -DSMP_ALTERNATIVE adds an SMP kernel via 'implements', can be with ot w/o OCL_KERNEL
 EXTRA += -DSMP_ALTERNATIVE
 #### -DSMP_KERNEL runs the interaction on the CPU only, has to be the only kernel

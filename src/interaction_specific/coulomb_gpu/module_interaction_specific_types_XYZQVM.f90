@@ -27,7 +27,6 @@
 module module_interaction_specific_types
       use pthreads_stuff
       use module_atomic_ops, only: t_atomic_int
-      use treevars, only: num_threads
       implicit none
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -76,8 +75,7 @@ module module_interaction_specific_types
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
       integer, public, parameter :: MAX_IACT_PARTNERS = 16 * 256 * 2 * 2 ! length of vectors for accelerator, multiples of 256 because of gang size?
-      integer, public, parameter :: ACC_QUEUE_LENGTH  = 4                ! how many lists we accept from the workers at one time
-      integer, public, parameter :: MAX_THREADS = 32                     ! no. of max 'pthreads' we expect, careful, no error checking
+      integer, public, parameter :: ACC_QUEUE_LENGTH  = 4                ! how many lists we accept from each worker at a time, mind you, this will be num_threads x ACC_QUEUE_LENGTH
 
       !> Thread local data structure to store extra interaction information
       ! thread local, since we do not want to ship this via MPI
@@ -110,8 +108,6 @@ module module_interaction_specific_types
          type(t_atomic_int), pointer :: thread_status
          integer :: processor_id
          type(t_pthread_with_type) :: acc_thread
-         type(t_acc_queue_entry) :: acc_queue(MAX_THREADS, ACC_QUEUE_LENGTH)
-         integer :: q_len(MAX_THREADS)
       end type
       type(t_acc) :: acc
 
