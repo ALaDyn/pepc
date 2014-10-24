@@ -27,14 +27,15 @@ EXTRA += -DOMPSS_TASKS
 #### -DOCL_KERNEL will enable an OpenCL kernel
 EXTRA += -DOCL_KERNEL
 #### -DSMP_ALTERNATIVE adds an SMP kernel via 'implements', can be with ot w/o OCL_KERNEL
-EXTRA += -DSMP_ALTERNATIVE
+#EXTRA += -DSMP_ALTERNATIVE
 #### -DSMP_KERNEL runs the interaction on the CPU only, has to be the only kernel
 #EXTRA += -DSMP_KERNEL
 
 ######################################
 
 OMPSS      = 1
-OMPSSCC    = oclmfc
+OMPSSFC    = oclmfc
+OMPSSCC    = oclmcc
 
 MACH       = oclmfc
 
@@ -88,8 +89,9 @@ ifeq ($(OMPSS), 1)
       CFLAGS  += -g                                                                                   
       LDFLAGS += -g -k --Wn,-O3,-finline-functions                                   #,-fwhole-program
    endif
-   FC += -f90=$(OMPSSCC)
-   LD += -f90=$(OMPSSCC)
+   CC += -cc=$(OMPSSCC)
+   FC += -f90=$(OMPSSFC)
+   LD += -f90=$(OMPSSFC)
    ifeq ($(INSTRUMENT), 1)
       FFLAGS  += --instrument
       CFLAGS  +=

@@ -18,27 +18,8 @@
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
 
-#define DELTA1 (MAX_IACT_PARTNERS * (1-1))
-#define DELTA2 (MAX_IACT_PARTNERS * (2-1))
-#define DELTA3 (MAX_IACT_PARTNERS * (3-1))
-#define CHARGE (MAX_IACT_PARTNERS * (4-1))
-#define DIP1   (MAX_IACT_PARTNERS * (5-1))
-#define DIP2   (MAX_IACT_PARTNERS * (6-1))
-#define DIP3   (MAX_IACT_PARTNERS * (7-1))
-#define QUAD1  (MAX_IACT_PARTNERS * (8-1))
-#define QUAD2  (MAX_IACT_PARTNERS * (9-1))
-#define QUAD3  (MAX_IACT_PARTNERS * (10-1))
-#define XYQUAD (MAX_IACT_PARTNERS * (11-1))
-#define YZQUAD (MAX_IACT_PARTNERS * (12-1))
-#define ZXQUAD (MAX_IACT_PARTNERS * (13-1))
-
-#define POT    (MAX_IACT_PARTNERS * (1-1))
-#define E_1    (MAX_IACT_PARTNERS * (2-1))
-#define E_2    (MAX_IACT_PARTNERS * (3-1))
-#define E_3    (MAX_IACT_PARTNERS * (4-1))
-
-#define BLN 128
 ! parameter for GPU kernel size
+#include "ocl.h.cl"
 
 ! check we have picked a kernel type
 #if !defined ( OCL_KERNEL ) && !defined ( SMP_ALTERNATIVE ) && !defined ( SMP_KERNEL )
@@ -181,7 +162,7 @@ module module_accelerator
 #ifdef OCL_KERNEL
       interface
          !$omp target device(opencl) ndrange(1, queued, BLN) file(ocl_kernel.cl) copy_deps
-         !$omp task in(queued, eps2, id) inout(partner, results) label(OCL-kernel)
+         !$omp task in(queued, eps2, id) in(partner) out(results) label(OCL-kernel)
          subroutine ocl_gpu_kernel(queued, eps2, partner, results, id)
             use module_interaction_specific_types
             implicit none
@@ -199,7 +180,7 @@ module module_accelerator
 #else
          !$omp target device(smp) copy_deps
 #endif
-         !$omp task in(queued, eps2, id) inout(partner, results) label(SMP-alternative)
+         !$omp task in(queued, eps2, id) in(partner) out(results) label(SMP-alternative)
          subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
             use module_interaction_specific_types
             implicit none
@@ -224,7 +205,8 @@ module module_accelerator
 #define LIST_LEN 66673
 #define WORK_NO 66674
 
-      call Extrae_event(DISPATCH, 1)
+      zer = 1
+      call Extrae_event(DISPATCH, zer(1))
 #endif
 
       ! get the id of the thread we're on, to keep all data thread- (i.e. task-) local
@@ -242,7 +224,8 @@ module module_accelerator
             acc_id = tl_acc(t_id)%acc_id
 
 #ifdef MONITOR
-            call Extrae_event(FILL, acc_id)
+            zer = acc_id
+            call Extrae_event(FILL, zer(1))
 #endif
 
             ! copy subroutine data to our thread-/task-local ACC queue to keep it alive
@@ -258,7 +241,7 @@ module module_accelerator
             WORKLOAD_PENALTY_INTERACTION = tl_acc(t_id)%qentry(acc_id)%pen
 
 #ifdef MONITOR
-            q_tmp = atomic_load_int(tl_acc%q_len(t_id))
+            q_tmp = atomic_load_int(tl_acc(t_id)%q_len)
             zer = q_tmp
             call Extrae_event(LIST_LEN, zer(1))
             zer = 0
@@ -269,10 +252,13 @@ module module_accelerator
             t_acc(t_id)%results(:,acc_id) = 0.d0
 
             ! run (GPU) kernel
-write(*,'(a,i3,2(" 0x",z16.16))') 'submitting ', acc_id, loc(tl_acc(t_id)%qentry(acc_id)%particle%partner), loc(tl_acc(t_id)%results(1, acc_id))
+!write(*,'(a,i3,2(" 0x",z16.16))') 'submitting ', acc_id, loc(tl_acc(t_id)%qentry(acc_id)%particle%partner), loc(tl_acc(t_id)%results(1, acc_id))
+!write(*,*) 'F03 queued particles: ',tl_acc(t_id)%qentry(acc_id)%queued,'eps2: ',eps2
+!write(*,*) 'F03 partner[DELTA1+2]: ',tl_acc(t_id)%qentry(acc_id)%particle%partner(DELTA1+2),'partner[CHARGE+2]: ',tl_acc(t_id)%qentry(acc_id)%particle%partner(CHARGE+2)
+!write(*,*) 'F03 partner[DIP1+1]: ',tl_acc(t_id)%qentry(acc_id)%particle%partner(DIP1+2),'partner[QUAD1+1]: ',tl_acc(t_id)%qentry(acc_id)%particle%partner(QUAD1+2)
 #if defined OCL_KERNEL || defined SMP_ALTERNATIVE
 #ifdef OCL_KERNEL
-            call ocl_gpu_kernel(tl_acc(t_id)%qentry(acc_id)%queued, eps2, tl_acc(t_id)%qentry(acc_id)%particle%partner(:), tl_acc(t_id)%results(1:4*( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ),acc_id), acc_id)
+            call ocl_gpu_kernel(tl_acc(t_id)%qentry(acc_id)%queued, eps2, tl_acc(t_id)%qentry(acc_id)%particle%partner(:), tl_acc(t_id)%results(1:4*( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ), acc_id), acc_id)
             !                                                                                                                |------- no of blocks -------|
 #else
             call ocl_smp_kernel(tl_acc(t_id)%qentry(acc_id)%queued, eps2, tl_acc(t_id)%qentry(acc_id)%particle%partner(:), tl_acc(t_id)%results(1:4*( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ), acc_id), acc_id)
@@ -282,20 +268,32 @@ write(*,'(a,i3,2(" 0x",z16.16))') 'submitting ', acc_id, loc(tl_acc(t_id)%qentry
             call smp_kernel(tl_acc(t_id)%qentry(acc_id)%queued, eps2, tl_acc(t_id)%qentry(acc_id)%particle%partner(:), tl_acc(t_id)%results(:, acc_id), acc_id)
 #endif
 
+!$!            !$OMP taskwait
+!$!            write(*,*) t_id, tl_acc(t_id)%results(E_1+1, acc_id), tl_acc(t_id)%results(E_2+1, acc_id), tl_acc(t_id)%results(POT+1, acc_id), tl_acc(t_id)%qentry(acc_id)%queued, loc(tl_acc(t_id)%qentry(acc_id)%queued)
+!$!            write(*,*) t_id, tl_acc(t_id)%results(E_1+2, acc_id), tl_acc(t_id)%results(E_2+2, acc_id), tl_acc(t_id)%results(POT+2, acc_id)
+!$!            call ocl_smp_kernel(tl_acc(t_id)%qentry(acc_id)%queued, eps2, tl_acc(t_id)%qentry(acc_id)%particle%partner(:), tl_acc(t_id)%results(1:4*( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ), acc_id), acc_id)
+!$!            write(*,*) '  ', t_id, tl_acc(t_id)%results(E_1+1, acc_id), tl_acc(t_id)%results(E_2+1, acc_id), tl_acc(t_id)%results(POT+1, acc_id)
+!$!            write(*,*) '  ', t_id, tl_acc(t_id)%results(E_1+2, acc_id), tl_acc(t_id)%results(E_2+2, acc_id), tl_acc(t_id)%results(POT+2, acc_id)
+
+
 !$OMP taskwait
             ! wait for the task to finish. a global one will do here since we only 'posted' 1
-!$$!            !$OMP target device(SMP) copy_deps
-!$$!            !$OMP task firstprivate(t_id, acc_id) private(zer) &
-!$$!            !$OMP inout(tl_acc(t_id)%results(1:4*( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ), acc_id), tl_acc(t_id)%qentry(acc_id)%queued) &
-!$$!            !$OMP inout(tl_acc(t_id)%qentry(acc_id), tl_acc(t_id)%qentry(acc_id)%particle%partner) &
-!$$!            !$OMP label(reduction)
+            !$OMP target device(SMP) copy_deps
+            !$OMP task firstprivate(t_id, acc_id) private(zer) &
+            !$OMP inout(tl_acc(t_id)%results(1:4*( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ), acc_id), tl_acc(t_id)%qentry(acc_id)%queued) &
+            !$OMP inout(tl_acc(t_id)%qentry(acc_id), tl_acc(t_id)%qentry(acc_id)%particle%partner) &
+            !$OMP label(reduction)
             ! have a task to post-process data
             ! get data from GPU
 #ifdef MONITOR
-            call Extrae_event(COPYBACK_NO, tl_acc(t_id)%qentry(acc_id)%queued)
-            call Extrae_event(COPYBACK, acc_id)
+            zer = tl_acc(t_id)%qentry(acc_id)%queued
+            call Extrae_event(COPYBACK_NO, zer(1))
+            zer = acc_id
+            call Extrae_event(COPYBACK, zer(1))
 #endif
 
+            ! we might be updating the identical data...
+            !$omp critical
 #ifdef SMP_KERNEL
             tl_acc(t_id)%qentry(acc_id)%particle%results%e(1) = tl_acc(t_id)%qentry(acc_id)%particle%results%e(1) + sum(tl_acc(t_id)%results((E_1+1):(E_1+tl_acc(t_id)%qentry(acc_id)%queued), acc_id))
             tl_acc(t_id)%qentry(acc_id)%particle%results%e(2) = tl_acc(t_id)%qentry(acc_id)%particle%results%e(2) + sum(tl_acc(t_id)%results((E_2+1):(E_2+tl_acc(t_id)%qentry(acc_id)%queued), acc_id))
@@ -308,24 +306,31 @@ write(*,'(a,i3,2(" 0x",z16.16))') 'submitting ', acc_id, loc(tl_acc(t_id)%qentry
             tl_acc(t_id)%qentry(acc_id)%particle%results%pot  = tl_acc(t_id)%qentry(acc_id)%particle%results%pot  + sum(tl_acc(t_id)%results(((((tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ) * (1-1))+1):((((tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ) * (1-1))+( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 )), acc_id))
 #endif
             tl_acc(t_id)%qentry(acc_id)%particle%work         = tl_acc(t_id)%qentry(acc_id)%particle%work + tl_acc(t_id)%qentry(acc_id)%queued * WORKLOAD_PENALTY_INTERACTION
+            !$omp end critical
 #ifdef MONITOR
             zer = 0
             call Extrae_event(COPYBACK, zer(1))
             call Extrae_event(COPYBACK_NO, zer(1))
 #endif
             ! now free memory
-write(*,'(a,i3,2(" 0x",z16.16))') 'dealloc          ', acc_id, loc(tl_acc(t_id)%qentry(acc_id)%particle%partner), loc(tl_acc(t_id)%results(1, acc_id))
+!write(*,'(a,i3,2(" 0x",z16.16))') 'dealloc          ', acc_id, loc(tl_acc(t_id)%qentry(acc_id)%particle%partner), loc(tl_acc(t_id)%results(1, acc_id))
             deallocate(tl_acc(t_id)%qentry(acc_id)%particle%partner)
             nullify(tl_acc(t_id)%qentry(acc_id)%particle%partner)
 
             ! make room for other tasks
             q_tmp = atomic_fetch_and_increment_int(tl_acc(t_id)%q_len) 
-!$$!            !$OMP end task
+            !$OMP end task
 
 #ifdef MONITOR
-            call Extrae_event(LIST_LEN, q_tmp)
-            call Extrae_event(DISPATCH, 0)
+            zer = q_tmp
+            call Extrae_event(LIST_LEN, zer(1))
+            zer = 0
+            call Extrae_event(DISPATCH, zer(1))
 #endif
+
+
+!$OMP taskwait
+
 
             return
 
@@ -339,7 +344,8 @@ write(*,'(a,i3,2(" 0x",z16.16))') 'dealloc          ', acc_id, loc(tl_acc(t_id)%
       end do
 
 #ifdef MONITOR
-            call Extrae_event(DISPATCH, 0)
+            zer = 0
+            call Extrae_event(DISPATCH, zer(1))
 #endif
 
       return
@@ -489,8 +495,10 @@ subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
    use module_accelerator, only: mpdelta
    use module_interaction_specific_types
    implicit none
-   integer, value :: queued, id
-   real*8, value :: eps2
+   !integer, value :: queued, id
+   !real*8, value :: eps2
+   integer :: queued, id
+   real*8 :: eps2
    real*8 :: partner(13*MAX_IACT_PARTNERS)
    real*8 :: results(4*((queued-1)/BLN + 1 ))
 
@@ -511,7 +519,7 @@ subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
    zer = id
    allocate(gpu(gpu_id))
 
-write(*,'(a," 0x",z16.16)') 'working on     ', loc(partner)
+!write(*,'(a," 0x",z16.16)') 'working on     ', loc(partner)
 #ifdef MONITOR
    call Extrae_event(FILL, zer(1))
 #endif

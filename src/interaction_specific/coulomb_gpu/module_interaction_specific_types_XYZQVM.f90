@@ -74,8 +74,9 @@ module module_interaction_specific_types
 
       !> Data structure for thread local storage of single particles
       !> This includes lists of the interaction partners
-      integer, public, parameter :: MAX_IACT_PARTNERS = 16 * 256 * 2 * 2 ! length of vectors for accelerator, multiples of 256 because of gang size?
-      integer, public, parameter :: ACC_QUEUE_LENGTH  = 4                ! how many lists we accept from each worker at a time, mind you, this will be num_threads x ACC_QUEUE_LENGTH
+#include "ocl.h.cl"
+      integer, public, parameter :: MAX_IACT_PARTNERS = MAX_IACT_PARTNERS_CL ! length of vectors for accelerator, multiples of 256 because of gang size?
+      integer, public, parameter :: ACC_QUEUE_LENGTH  = 4                    ! how many lists we accept from each worker at a time, mind you, this will be num_threads x ACC_QUEUE_LENGTH
 
       !> Thread local data structure to store extra interaction information
       ! thread local, since we do not want to ship this via MPI

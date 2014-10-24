@@ -1,20 +1,6 @@
-// !!!! GLOBAL DEFINE !!!!
-#define MAX_IACT_PARTNERS 16 * 256 * 2 * 2
-
-// define off-sets in our 1-D array
-#define DELTA1 (MAX_IACT_PARTNERS * (1-1))
-#define DELTA2 (MAX_IACT_PARTNERS * (2-1))
-#define DELTA3 (MAX_IACT_PARTNERS * (3-1))
-#define CHARGE (MAX_IACT_PARTNERS * (4-1))
-#define DIP1   (MAX_IACT_PARTNERS * (5-1))
-#define DIP2   (MAX_IACT_PARTNERS * (6-1))
-#define DIP3   (MAX_IACT_PARTNERS * (7-1))
-#define QUAD1  (MAX_IACT_PARTNERS * (8-1))
-#define QUAD2  (MAX_IACT_PARTNERS * (9-1))
-#define QUAD3  (MAX_IACT_PARTNERS * (10-1))
-#define XYQUAD (MAX_IACT_PARTNERS * (11-1))
-#define YZQUAD (MAX_IACT_PARTNERS * (12-1))
-#define ZXQUAD (MAX_IACT_PARTNERS * (13-1))
+// !!!! GLOBAL DEFINES !!!!
+// also defines off-sets in our 1-D array
+#include "ocl.h.cl"
 
 #ifdef cl_khr_fp64
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -22,6 +8,12 @@
 #pragma OPENCL EXTENSION cl_amd_fp64 : enable
 #else
 #error "Double precision floating point not supported by OpenCL implementation."
+#endif
+
+// have some form of debugging - works on Intel, not on NVidia (remove trailing ___)
+#if defined cl_intel_printf
+#define DBG
+#pragma OPENCL EXTENSION cl_intel_printf : enable
 #endif
 
 __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, __global double* results, int dummy)
@@ -32,10 +24,19 @@ __kernel void ocl_gpu_kernel(int queued, double eps2, __global double* partner, 
    const int local_size = get_local_size(0);
 
    // local buffer for global Data
-   __local double pot_local[128];
-   __local double e_1_local[128];
-   __local double e_2_local[128];
-   __local double e_3_local[128];
+   __local double pot_local[BLN];
+   __local double e_1_local[BLN];
+   __local double e_2_local[BLN];
+   __local double e_3_local[BLN];
+
+#if defined DBG
+   if (idx == 1)
+   {
+      printf("OCL queued particles: %d       eps2: \%e\n", queued, eps2);
+      printf("OCL partner[DELTA1+%d]: %e      partner[CHARGE+%d]: %e\n", idx, partner[DELTA1+idx], idx, partner[CHARGE+idx]);
+      printf("OCL partner[DIP1+%d]: %e      partner[QUAD1+%d]: %e\n", idx, partner[DIP1+idx], idx, partner[QUAD1+idx]);
+   }
+#endif
 
    if (idx >= queued)
    {

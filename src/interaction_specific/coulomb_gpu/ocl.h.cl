@@ -1,0 +1,23 @@
+#define MAX_IACT_PARTNERS_CL 1 * 256 * 2 * 2
+#define BLN 128
+
+
+
+#define DELTA1 (MAX_IACT_PARTNERS_CL * (1-1))
+#define DELTA2 (MAX_IACT_PARTNERS_CL * (2-1))
+#define DELTA3 (MAX_IACT_PARTNERS_CL * (3-1))
+#define CHARGE (MAX_IACT_PARTNERS_CL * (4-1))
+#define DIP1   (MAX_IACT_PARTNERS_CL * (5-1))
+#define DIP2   (MAX_IACT_PARTNERS_CL * (6-1))
+#define DIP3   (MAX_IACT_PARTNERS_CL * (7-1))
+#define QUAD1  (MAX_IACT_PARTNERS_CL * (8-1))
+#define QUAD2  (MAX_IACT_PARTNERS_CL * (9-1))
+#define QUAD3  (MAX_IACT_PARTNERS_CL * (10-1))
+#define XYQUAD (MAX_IACT_PARTNERS_CL * (11-1))
+#define YZQUAD (MAX_IACT_PARTNERS_CL * (12-1))
+#define ZXQUAD (MAX_IACT_PARTNERS_CL * (13-1))
+
+#define POT    (MAX_IACT_PARTNERS_CL * (1-1))
+#define E_1    (MAX_IACT_PARTNERS_CL * (2-1))
+#define E_2    (MAX_IACT_PARTNERS_CL * (3-1))
+#define E_3    (MAX_IACT_PARTNERS_CL * (4-1))

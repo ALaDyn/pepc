@@ -183,6 +183,7 @@ int pthreads_sched_yield()
 {
 #ifdef OMPSS_TASKS
    #pragma omp taskyield
+//   nanos_yield();
 //   unsigned int usecs=1; // 50
 //   return usleep(usecs);
    return 0;
