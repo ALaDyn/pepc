@@ -604,7 +604,7 @@ module module_tree_grow
 
     call timer_reset(t_props_leaves)
     cur = 1
-    call insert_helper(t, TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), kidx, cur, t%node_root)
+    call insert_helper(t, TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), kidx(1:i), cur, t%node_root)
     DEBUG_ASSERT(cur == i + 1)
 
     deallocate(kidx)
