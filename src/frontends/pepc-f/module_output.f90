@@ -204,21 +204,23 @@ MODULE output
 
 !===============================================================================
 
-    SUBROUTINE timing_output(integrator,particlehandling,pepc_grow,pepc_traverse,pepc_diag,pepc_timber,output,filehandle)
+    SUBROUTINE timing_output(integrator,particlehandling,pepc_grow,pepc_traverse,pepc_diag,pepc_timber,boundary_field,output,filehandle)
 
         implicit none
 
         integer,intent(in)      :: filehandle
-        real(kind=8),intent(in) :: integrator,particlehandling,pepc_grow,output,pepc_traverse,pepc_diag,pepc_timber
-        real(kind=8)             :: timestep
+        real(kind=8),intent(in) :: integrator,particlehandling,pepc_grow,output,pepc_traverse,&
+                                   pepc_diag,pepc_timber,boundary_field
+        real(kind=8)            :: timestep
 
-        timestep=integrator+particlehandling+pepc_grow+output+pepc_traverse+pepc_diag+pepc_timber
+        timestep=integrator+particlehandling+pepc_grow+output+pepc_traverse+pepc_diag+pepc_timber+boundary_field
         write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in integrator [s], %            :", integrator,", ",100.*integrator/timestep," %"
         write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in particlehandling [s], %      :", particlehandling,", ",100.*particlehandling/timestep," %"
         write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in grow_tree routine [s], %     :", pepc_grow,", ",100.*pepc_grow/timestep," %"
         write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in traverse_tree routine [s], % :", pepc_traverse,", ",100.*pepc_traverse/timestep," %"
         write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in timber_tree routine [s], %   :", pepc_timber,", ",100.*pepc_timber/timestep," %"
         write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in pepc diag routines [s], %    :", pepc_diag,", ",100.*pepc_diag/timestep," %"
+        write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in bnd field routines [s], %    :", boundary_field,", ",100.*boundary_field/timestep," %"
         write(filehandle,'(a,es16.8,a,f8.5,a)') " == time in output routines [s], %       :", output,", ",100.*output/timestep," %"
         write(filehandle,'(a,es16.8)') " == total time in timestep [s]           :", timestep
         write(filehandle,*)

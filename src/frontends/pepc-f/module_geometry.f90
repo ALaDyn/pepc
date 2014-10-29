@@ -29,7 +29,6 @@ module module_geometry
     use helper
     use module_mirror_boxes, only: mirror_box_layers,periodicity
 
-
     implicit none
 
     contains
@@ -150,7 +149,7 @@ module module_geometry
             DO ib=1,nb
                 CALL check_boundary(boundaries(ib))
 
-                IF (boundaries(ib)%type==2) THEN
+                IF (boundaries(ib)%type==11) THEN
                     IF(boundaries(ib)%opp_bnd==0) THEN
                         write(*,'(a,i3,a)')"No opposing boundary set for boundary ",boundaries(ib)%indx,"."
                         STOP
@@ -221,7 +220,7 @@ module module_geometry
 
         IF (boundary%type/=0) THEN
             write(*,*) "Problem with boundary",boundary%indx
-            write(*,*) "Wallparticles can only be initialized for absorbing walls (type=0)."
+            write(*,*) "Wallparticles can only be initialized for walls of type=0."
             STOP
         END IF
 
@@ -261,8 +260,10 @@ module module_geometry
         implicit none
 
         type(t_boundary), intent(inout) :: wall
-        real*8, intent(in), dimension(3) :: x0,e1,e2,n
+        real(KIND=8), intent(in), dimension(3) :: x0,e1,e2,n
         integer, intent(in) :: typ,indx
+        real(KIND=8) :: eps = 1.0e-12
+        real(KIND=8) :: e1xe2(3)
 
         wall%x0=x0
         wall%e1=e1
@@ -271,6 +272,11 @@ module module_geometry
         wall%type=typ
         wall%indx=indx
         wall%reflux_particles=.false.
+        IF (real_equal_zero(dotproduct(e1,e2), eps)) wall%rectangle = .TRUE.
+        e1xe2(1) = e1(2)*e2(3) - e1(3)*e2(2)
+        e1xe2(2) = e1(3)*e2(1) - e1(1)*e2(3)
+        e1xe2(3) = e1(1)*e2(2) - e1(2)*e2(1)
+        wall%A = norm(e1xe2)
 
     END SUBROUTINE init_boundary
 
@@ -285,11 +291,11 @@ module module_geometry
         IF (reflux_particles .eqv. .false.) THEN
             boundary%reflux_particles=reflux_particles
         ELSE
-            IF ((boundary%type==0) .OR. (boundary%type==3) .OR. (boundary%type==4)) THEN
+            IF ((boundary%type==0) .OR. (boundary%type==1) .OR. (boundary%type==2) .OR. (boundary%type==3)) THEN
                 boundary%reflux_particles=reflux_particles
             ELSE
                 write(*,*) "Problem with boundary",boundary%indx
-                write(*,*) "Refluxing conditions can only be set for absorbing boundaries (type=0, type=4 or type=3)."
+                write(*,*) "Refluxing conditions can only be set for absorbing boundaries (type=0..3)."
                 STOP
             END IF
         END IF
@@ -303,8 +309,9 @@ module module_geometry
         type(t_boundary), intent(inout) :: wall,opp_wall
 
 
-        IF ((wall%type/=2) .OR. (opp_wall%type/=2)) THEN
-            write(*,'(a,i3,a,i3,a)') "Error while trying to set periodic boundaries for boundaries ",wall%indx," and ",opp_wall%indx,": Both walls have to have type 2"
+        IF ((wall%type/=11) .OR. (opp_wall%type/=11)) THEN
+            write(*,'(a,i3,a,i3,a)') "Error while trying to set periodic boundaries for boundaries ", &
+                                     wall%indx," and ",opp_wall%indx,": Both walls have to have type 11 (periodic boundary)"
             STOP
         END IF
 
@@ -334,7 +341,13 @@ module module_geometry
             write(*,*) "e1:", wall%e1
             write(*,*) "e2:", wall%e2
             write(*,*) "n:", wall%n
-            write(*,*) "The surface normal is not perpENDicular to the plane."
+            write(*,*) "The surface normal is not perpendicular to the plane."
+            STOP
+        END IF
+
+        IF ((.NOT. wall%rectangle) .AND. (wall%type == 1)) THEN
+            write(*,*) "Boundary set incorrectly:"
+            write(*,*) "Boundary type 1 can only be used for rectangular boundaries."
             STOP
         END IF
 
