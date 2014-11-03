@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -35,14 +35,14 @@ module module_tree
     private
 
     integer(kind_key), public, parameter :: TREE_KEY_ROOT    =  1_kind_key
-    
+
     !> data type for communicator request queue
     type, public :: t_request_queue_entry
       type(t_tree_node), pointer :: node
       logical :: eager_request
       type(t_request_eager) :: request
       logical :: entry_valid
-    end type    
+    end type
 
     integer, public, parameter :: TREE_COMM_ANSWER_BUFF_LENGTH   = 10000 !< amount of possible entries in the BSend buffer for shipping child data
     integer, public, parameter :: TREE_COMM_REQUEST_QUEUE_LENGTH = 400000 !< maximum length of request queue
@@ -58,8 +58,8 @@ module module_tree
       ! request queue
       type(t_request_queue_entry) :: req_queue(TREE_COMM_REQUEST_QUEUE_LENGTH)
       type(t_atomic_int), pointer :: req_queue_bottom !< position of queue bottom in array; pushed away from top by tree users
-      type(t_atomic_int), pointer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending    
-      
+      type(t_atomic_int), pointer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending
+
       ! counters and timers
       integer*8 :: comm_loop_iterations(3) !< number of comm loop iterations (total, sending, receiving)
       real*8 :: timings_comm(3) !< array for storing internal timing information
@@ -85,20 +85,20 @@ module module_tree
       integer(kind_node) :: ntwig       !< number of twigs stored locally
       integer(kind_node) :: nleaf_me    !< number of leaves that originated on this rank
       integer(kind_node) :: ntwig_me    !< number of twigs that originated on this rank
-      
+
       integer(kind_node)   :: nbranch     !< number of branch nodes in tree
       integer(kind_node)   :: nbranch_me  !< number of branch nodes that originated on this rank
       integer(kind_node)   :: nbranch_max_me !< upper limit estimate for number of local branch nodes
 
       integer(kind_particle) :: nintmax     !< maximum number of interactions
-      
+
       type(t_tree_node), pointer :: nodes(:) !< array of tree nodes
       integer(kind_node) :: nodes_maxentries !< max number of entries in nodes array
       integer(kind_node) :: nodes_nentries   !< number of entries present in nodes array
       integer(kind_node) :: node_root        !< index of the root node in nodes-array
-      
+
       real(kind_physics), allocatable :: boxlength2(:) !< precomputed square of maximum edge length of boxes for different levels - used for MAC evaluation
-      
+
       type(t_box) :: bounding_box               !< bounding box enclosing all particles contained in the tree
       type(t_comm_env) :: comm_env              !< communication environment over which the tree is distributed
       type(t_decomposition) :: decomposition    !< permutation of particles inserted into the tree
@@ -108,8 +108,7 @@ module module_tree
     public tree_create
     public tree_allocated
     public tree_provision_node
-    public tree_insert_node
-    public tree_insert_node_at_index
+    public tree_count_node
     public tree_traverse_to_key
     public tree_node_connect_children
     public tree_check
@@ -121,7 +120,7 @@ module module_tree
 
     !>
     !> Create a tree (allocates memory but does not fill the tree)
-    !> 
+    !>
     !> Uses particle numbers (local and global) to estimate the memory needed
     !> for node storage.
     !> A communication environment over which the tree is distributed can be
@@ -193,7 +192,7 @@ module module_tree
       end if
 
       call tree_communicator_create(t%communicator)
-      
+
       ! Preprocessed box sizes for each level
       allocate(t%boxlength2(0:nlev))
       t%boxlength2(0) = maxval(t%bounding_box%boxsize)**2
@@ -231,7 +230,7 @@ module module_tree
       t%node_root        = NODE_INVALID
       t%nodes_maxentries = 0_kind_node
       deallocate(t%nodes)
-      
+
       DEBUG_ASSERT(allocated(t%boxlength2))
       deallocate(t%boxlength2)
     end subroutine tree_destroy
@@ -263,7 +262,7 @@ module module_tree
 
       DEBUG_ASSERT(.not. tree_communicator_allocated(c))
       c%timings_comm = 0.
-      
+
       call atomic_allocate_int(c%req_queue_bottom)
       call atomic_allocate_int(c%req_queue_top)
       call atomic_allocate_int(c%thread_status)
@@ -323,8 +322,7 @@ module module_tree
     !>
     !> reserves storage for a single tree node.
     !>
-    !> the index at which to insert the tree node later on is returned 
-    !> in `entry_pointer`.
+    !> returns the reserved index.
     !>
     function tree_provision_node(t)
       use module_debug
@@ -344,20 +342,15 @@ module module_tree
 
 
     !>
-    !> inserts the node `n` into the tree `t` at the position `i` that was
-    !> previously provisioned using `tree_provision_node`.
+    !> Updates tree internal counters for nodes that have been constructed in-place.
     !>
-    subroutine tree_insert_node_at_index(t, i, n)
+    subroutine tree_count_node(t, n)
       use module_pepc_types, only: t_tree_node
       use module_tree_node, only: tree_node_is_leaf
-      use module_debug
-      implicit none
 
       type(t_tree), intent(inout) :: t
-      integer(kind_node), intent(in) :: i
       type(t_tree_node), intent(in) :: n
 
-      DEBUG_ASSERT(tree_allocated(t))
       ! keep count of leaves / twigs
       if (tree_node_is_leaf(n)) then
         t%nleaf =  t%nleaf + 1
@@ -366,30 +359,7 @@ module module_tree
         t%ntwig =  t%ntwig + 1
         if (n%owner == t%comm_env%rank) t%ntwig_me = t%ntwig_me + 1
       end if
-
-      t%nodes(i) = n
-    end subroutine tree_insert_node_at_index
-
-
-    !>
-    !> inserts the tree node `n` into the tree `t`.
-    !>
-    subroutine tree_insert_node(t, n, entry_pointer)
-      use module_pepc_types, only: t_tree_node
-      use module_debug
-      implicit none
-
-      type(t_tree), intent(inout) :: t !< Tree into which to insert the node
-      type(t_tree_node), intent(in) :: n !< The tree node to insert
-      integer(kind_node), optional, intent(out) :: entry_pointer !< where the node was inserted
-
-      integer(kind_node) :: i
-
-      DEBUG_ASSERT(tree_allocated(t))
-      i = tree_provision_node(t)
-      call tree_insert_node_at_index(t, i, n)
-      if (present(entry_pointer)) entry_pointer = i
-    end subroutine tree_insert_node
+    end subroutine
 
 
     !>
@@ -407,13 +377,13 @@ module module_tree
       type(t_tree), intent(in) :: t !< the tree
       integer(kind_key), intent(in) :: k !< key to look up
       integer(kind_node), intent(out) :: n
-      
+
       integer(kind_level) :: l, kl
-      
+
       DEBUG_ASSERT(tree_allocated(t))
       kl = level_from_key(k)
       n = t%node_root
-      
+
       ! for every level `l` from root + 1 to the target level
       do l = level_from_key(TREE_KEY_ROOT) + 1_kind_level, kl
         ! enter the list of nodes on level `l`
@@ -427,9 +397,9 @@ module module_tree
 
         if (n == NODE_INVALID) exit ! abort search early if end of list reached
       end do
-      
+
       tree_traverse_to_key = n /= NODE_INVALID
-      
+
       if (tree_traverse_to_key) then
         DEBUG_ASSERT_MSG(k == t%nodes(n)%key, '(" : requested key=",o18, " but found key=", o18)', k, t%nodes(n)%key)
       endif
@@ -449,7 +419,7 @@ module module_tree
       type(t_tree), intent(inout) :: t
       integer(kind_node), intent(in) :: n
       integer(kind_node), intent(in) :: c(:)
-      
+
       integer :: ic, nc
 
       nc = size(c, kind=kind(nc)); DEBUG_ASSERT(nc > 0)
@@ -457,12 +427,12 @@ module module_tree
       ! // DEBUG_ASSERT_MSG(2**idim >= c(nc)%p%key - c(1)%p%key, '("= ", I3, ". Children do not all belong to the same parent.")', c(nc)%p%key - c(1)%p%key)
 
       t%nodes(n)%first_child = c(1)
-      
+
       do ic = 1, nc - 1
         t%nodes(c(ic))%parent       = n
         t%nodes(c(ic))%next_sibling = c(ic + 1)
       end do
-      
+
       t%nodes(c(nc))%parent       = n
       t%nodes(c(nc))%next_sibling = NODE_INVALID
     end subroutine tree_node_connect_children

@@ -538,7 +538,7 @@ module module_tree_communicator
   !> Insert incoming data into the tree.
   !>
   subroutine unpack_data(t, child_data, num_children, ipe_sender)
-    use module_tree, only: t_tree, tree_insert_node
+    use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node, t_tree_node_package
     use module_tree_node
     use module_spacefilling, only: parent_key_from_key
@@ -575,7 +575,7 @@ module module_tree_communicator
 
     recursive subroutine unpack_children(parent_idx, toplvl)
       use module_tree_node, only: NODE_INVALID
-      use module_tree, only: tree_node_connect_children
+      use module_tree, only: tree_node_connect_children, tree_provision_node, tree_count_node
       implicit none
       integer(kind_node), intent(in) :: parent_idx
       logical, intent(in) :: toplvl
@@ -583,7 +583,6 @@ module module_tree_communicator
       integer :: lvl
       type(t_tree_node), pointer :: parent
       integer(kind_node) :: newnode
-      type(t_tree_node) :: unpack_node
       integer(kind_node) :: child_nodes(1:8)
       integer :: nchild
 
@@ -601,18 +600,18 @@ module module_tree_communicator
         else if (child_data(ic)%level > lvl) then
           call unpack_children(newnode, .false.)
         else
-          call tree_node_unpack(child_data(ic), unpack_node)
+          newnode = tree_provision_node(t)
+          call tree_node_unpack(child_data(ic), t%nodes(newnode))
           ! tree nodes coming from remote PEs are flagged for easier identification
-          unpack_node%flags_local = ibset(unpack_node%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
-
-          call tree_insert_node(t, unpack_node, newnode)
+          t%nodes(newnode)%flags_local = ibset(t%nodes(newnode)%flags_local, TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS)
+          call tree_count_node(t, t%nodes(newnode))
 
           ic     = ic     + 1
           nchild = nchild + 1
           child_nodes(nchild) = newnode
 
           if (tree_comm_debug) then
-            DEBUG_INFO('("PE", I6, " received answer. parent_key=", O22, ",  sender=", I6, ",  owner=", I6, ",  kchild=", O22)', t%comm_env%rank, parent%key, ipe_sender, unpack_node%owner, unpack_node%key)
+            DEBUG_INFO('("PE", I6, " received answer. parent_key=", O22, ",  sender=", I6, ",  owner=", I6, ",  kchild=", O22)', t%comm_env%rank, parent%key, ipe_sender, t%nodes(newnode)%owner, t%nodes(newnode)%key)
           end if
         endif
 
