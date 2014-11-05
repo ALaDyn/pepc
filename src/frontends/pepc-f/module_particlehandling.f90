@@ -713,7 +713,13 @@ module particlehandling
         real(KIND=8) :: O(3),e1(3),e2(3),n(3)
         real(KIND=8) :: xp,yp,zp,x0,y0
         real(KIND=8) :: xhelp(3)
-        real(KIND=8) :: Ehelp(3), Phihelp
+        real(KIND=8),allocatable :: Ehelp(:,:,:), Phihelp(:,:)
+
+        allocate(Ehelp(nb,sum(npps),3))
+        allocate(Phihelp(nb,sum(npps)))
+
+        Ehelp=0
+        Phihelp=0
 
         IF (ANY(boundaries(:)%type == 1)) THEN
             DO ib=1, nb
@@ -731,13 +737,18 @@ module particlehandling
                     xp = dotproduct(xhelp,e1)
                     yp = dotproduct(xhelp,e2)
                     zp = dotproduct(xhelp,n)
-                    call E_bnd(xp,yp,zp,x0,y0,boundaries(ib)%q_tot,boundaries(ib)%A,Ehelp)
-                    Phihelp = Phi_bnd(xp,yp,zp,x0,y0,boundaries(ib)%q_tot,boundaries(ib)%A)
-                    p(ip)%results%pot = p(ip)%results%pot + Phihelp
-                    p(ip)%results%E = p(ip)%results%E + Ehelp(1)*e1 + Ehelp(2)*e2 + Ehelp(3)*n
+                    call E_bnd(xp,yp,zp,x0,y0,boundaries(ib)%q_tot,boundaries(ib)%A,Ehelp(ib,ip,:))
+                    Phihelp(ib,ip) = Phi_bnd(xp,yp,zp,x0,y0,boundaries(ib)%q_tot,boundaries(ib)%A,.false.)
+                    p(ip)%results%pot = p(ip)%results%pot + Phihelp(ib,ip)
+                    Ehelp(ib,ip,:) = Ehelp(ib,ip,1)*e1 + Ehelp(ib,ip,2)*e2 + Ehelp(ib,ip,3)*n !transform back to system coordinates x,y,z
+                    p(ip)%results%E = p(ip)%results%E + Ehelp(ib,ip,:)
                 END DO
             END DO
         END IF
+
+        deallocate(Ehelp)
+        deallocate(Phihelp)
+
     END SUBROUTINE add_boundary_field
 
 !======================================================================================

@@ -35,122 +35,29 @@ MODULE module_boundary_field
 
     implicit none
 
+    real(KIND=8), private :: xp,xm,yp,ym
+    real(KIND=8), private :: xpym,xmyp,xmym,xpyp
+    real(KIND=8), private :: xpymx,xmypx,xmymx,xpypx,xpymy,xmypy,xmymy,xpypy
+    real(KIND=8), private :: lnxpymx,lnxmypx,lnxmymx,lnxpypx,lnxpymy,lnxmypy,lnxmymy,lnxpypy
+    real(KIND=8), private :: atanxpym,atanxmyp,atanxmym,atanxpyp
+    real(KIND=8), private :: I1,I2,I3
+    real(KIND=8), private :: eps = 1e-20
+
+    private :: calculate_common_terms
+
     contains
 
 !======================================================================================
 
-    real*8 FUNCTION I1(x,y,z,x0,y0)
+    SUBROUTINE calculate_common_terms(x,y,z,x0,y0)
         implicit none
         real(KIND=8), intent(in) :: x,y,z,x0,y0
         real(KIND=8) :: t1,t2,t3,t4
-
-        IF (z == 0) THEN
-            I1 = 0._8
-        ELSE
-            t1 = atan( ((y-y0)*(x-x0)) / ( z * sqrt( (x-x0)**2 + (y-y0)**2 + z**2 ) ) )
-            t2 = atan( ((y-y0)*(x+x0)) / ( z * sqrt( (x+x0)**2 + (y-y0)**2 + z**2 ) ) )
-            t3 = atan( ((y+y0)*(x-x0)) / ( z * sqrt( (x-x0)**2 + (y+y0)**2 + z**2 ) ) )
-            t4 = atan( ((y+y0)*(x+x0)) / ( z * sqrt( (x+x0)**2 + (y+y0)**2 + z**2 ) ) )
-            I1 = t1 - t2 - t3 + t4
-        END IF
-
-    END FUNCTION I1
-
-!======================================================================================
-
-    real*8 FUNCTION I2(x,y,z,x0,y0)
-        implicit none
-        real(KIND=8), intent(in) :: x,y,z,x0,y0
-        real(KIND=8) :: t1,t2,t3,t4
-        real(KIND=8) :: xp,xm,yp,ym
-        real(KIND=8) :: eps = 1e-20
 
         xp = x+x0
         xm = x-x0
         yp = y+y0
         ym = y-y0
-        t1 = 0._8
-        t2 = 0._8
-        t3 = 0._8
-        t4 = 0._8
-
-        IF ((xm**2 + z**2) > eps) THEN
-            t1 = log( sqrt( xm**2 + ym**2 + z**2 ) - ym )
-            t2 = log( sqrt( xm**2 + yp**2 + z**2 ) - yp )
-        END IF
-        IF ((xp**2 + z**2) > eps) THEN
-            t3 = log( sqrt( xp**2 + ym**2 + z**2 ) - ym )
-            t4 = log( sqrt( xp**2 + yp**2 + z**2 ) - yp )
-        END IF
-        I2 = t1 - t2 - t3 + t4
-
-    END FUNCTION I2
-
- !======================================================================================
-
-    real*8 FUNCTION I3(x,y,z,x0,y0)
-        implicit none
-        real(KIND=8), intent(in) :: x,y,z,x0,y0
-        real(KIND=8) :: t1,t2,t3,t4
-        real(KIND=8) :: xp,xm,yp,ym
-        real(KIND=8) :: eps = 1e-20
-
-        xp = x+x0
-        xm = x-x0
-        yp = y+y0
-        ym = y-y0
-        t1 = 0._8
-        t2 = 0._8
-        t3 = 0._8
-        t4 = 0._8
-
-        IF ((ym**2 + z**2) > eps) THEN
-            t1 = log( sqrt( xm**2 + ym**2 + z**2 ) - xm )
-            t3 = log( sqrt( xp**2 + ym**2 + z**2 ) - xp )
-        END IF
-        IF ((yp**2 + z**2) > eps) THEN
-            t2 = log( sqrt( xm**2 + yp**2 + z**2 ) - xm )
-            t4 = log( sqrt( xp**2 + yp**2 + z**2 ) - xp )
-        END IF
-        I3 = t1 - t2 - t3 + t4
-
-    END FUNCTION I3
-
- !======================================================================================
-
-    SUBROUTINE E_bnd(x,y,z,x0,y0,Q,A,E)
-        implicit none
-        real(KIND=8), intent(in) :: x,y,z,x0,y0,Q,A
-        real(KIND=8), intent(out):: E(3)
-
-        IF (Q == 0) THEN
-            E = 0
-            RETURN
-        END IF
-
-        E(1) = I2(x,y,z,x0,y0)
-        E(2) = I3(x,y,z,x0,y0)
-        E(3) = I1(x,y,z,x0,y0)
-        E = E*Q/A
-
-    END SUBROUTINE E_bnd
-
- !======================================================================================
-
-    real*8 FUNCTION Phi_bnd(x,y,z,x0,y0,Q,A)
-        implicit none
-        real(KIND=8), intent(in) :: x,y,z,x0,y0,Q,A
-        real(KIND=8) :: xp,xm,yp,ym
-        real(KIND=8) :: xpym,xmyp,xmym,xpyp
-        real(KIND=8) :: xpymx,xmypx,xmymx,xpypx,xpymy,xmypy,xmymy,xpypy
-        real(KIND=8) :: Ao,Ao1,Ao2,Au,Au1,Au2,Bo,Bo1,Bo2,Bu,Bu1,Bu2
-        real(KIND=8) :: eps = 1e-20
-
-        IF (Q == 0) THEN
-            Phi_bnd = 0
-            RETURN
-        END IF
-
         xp = x+x0
         xm = x-x0
         yp = y+y0
@@ -170,43 +77,117 @@ MODULE module_boundary_field
         xmymy = xmym - ym
         xpypy = xpyp - yp
 
-        Ao1 = 0
-        Ao2 = 0
-        Au1 = 0
-        Au2 = 0
-        Bo1 = 0
-        Bo2 = 0
-        Bu1 = 0
-        Bu2 = 0
+        lnxpymx = 0
+        lnxmypx = 0
+        lnxmymx = 0
+        lnxpypx = 0
+        lnxpymy = 0
+        lnxmypy = 0
+        lnxmymy = 0
+        lnxpypy = 0
 
-        IF (ym**2 > eps) THEN
-            Ao1 = -ym*log(xmymx)
-            Au1 = -ym*log(xpymx)
-        END IF
-        IF (yp**2 > eps) THEN
-            Bo1 = -yp*log(xmypx)
-            Bu1 = -yp*log(xpypx)
-        END IF
-        IF (xm**2 > eps) THEN
-            Ao2 = -xm*log(xmymy)
-            Bo2 = -xm*log(xmypy)
-        END IF
-        IF (xp**2 > eps) THEN
-            Au2 = -xp*log(xpymy)
-            Bu2 = -xp*log(xpypy)
-        END IF
-
-        Ao = Ao1 + Ao2
-        Au = Au1 + Au2
-        Bo = Bo1 + Bo2
-        Bu = Bu1 + Bu2
+        IF (xpymx**2 > eps) lnxpymx = log(xpymx)
+        IF (xmypx**2 > eps) lnxmypx = log(xmypx)
+        IF (xmymx**2 > eps) lnxmymx = log(xmymx)
+        IF (xpypx**2 > eps) lnxpypx = log(xpypx)
+        IF (xpymy**2 > eps) lnxpymy = log(xpymy)
+        IF (xmypy**2 > eps) lnxmypy = log(xmypy)
+        IF (xmymy**2 > eps) lnxmymy = log(xmymy)
+        IF (xpypy**2 > eps) lnxpypy = log(xpypy)
 
         IF (z**2 > eps) THEN
-            Ao = Ao - z*atan(xm*ym/xmym/z)
-            Au = Au - z*atan(xp*ym/xpym/z)
-            Bo = Bo - z*atan(xm*yp/xmyp/z)
-            Bu = Bu - z*atan(xp*yp/xpyp/z)
+            atanxmym = atan( ((ym)*(xm)) / ( z * xmym ) )
+            atanxpym = atan( ((ym)*(xp)) / ( z * xpym ) )
+            atanxmyp = atan( ((yp)*(xm)) / ( z * xmyp ) )
+            atanxpyp = atan( ((yp)*(xp)) / ( z * xpyp ) )
+        ELSE
+            atanxmym = 0
+            atanxpym = 0
+            atanxmyp = 0
+            atanxpyp = 0
         END IF
+
+        t1 = atanxmym
+        t2 = atanxpym
+        t3 = atanxmyp
+        t4 = atanxpyp
+        I1 = t1 - t2 - t3 + t4
+
+        t1 = lnxmymy
+        t2 = lnxmypy
+        t3 = lnxpymy
+        t4 = lnxpypy
+        I2 = t1 - t2 - t3 + t4
+
+        t1 = lnxmymx
+        t3 = lnxpymx
+        t2 = lnxmypx
+        t4 = lnxpypx
+        I3 = t1 - t2 - t3 + t4
+
+    END SUBROUTINE calculate_common_terms
+
+
+ !======================================================================================
+
+    SUBROUTINE E_bnd(x,y,z,x0,y0,Q,A,E,opt_calc_common_terms)
+        implicit none
+        real(KIND=8), intent(in) :: x,y,z,x0,y0,Q,A
+        real(KIND=8), intent(out):: E(3)
+        logical, intent(in),optional :: opt_calc_common_terms
+        logical :: calc_common_terms
+
+        IF (Q == 0) THEN
+            E = 0
+            RETURN
+        END IF
+
+        IF (present(opt_calc_common_terms)) THEN
+            calc_common_terms = opt_calc_common_terms
+        ELSE
+            calc_common_terms = .true.
+        END IF
+        IF (calc_common_terms) call calculate_common_terms(x,y,z,x0,y0)
+        E(1) = I2*Q/A
+        E(2) = I3*Q/A
+        E(3) = I1*Q/A
+
+    END SUBROUTINE E_bnd
+
+ !======================================================================================
+
+    real*8 FUNCTION Phi_bnd(x,y,z,x0,y0,Q,A,opt_calc_common_terms)
+        implicit none
+        real(KIND=8), intent(in) :: x,y,z,x0,y0,Q,A
+        logical, intent(in), optional :: opt_calc_common_terms
+        logical :: calc_common_terms
+        real(KIND=8) :: Ao,Ao1,Ao2,Au,Au1,Au2,Bo,Bo1,Bo2,Bu,Bu1,Bu2
+
+        IF (Q == 0) THEN
+            Phi_bnd = 0
+            RETURN
+        END IF
+
+        IF (present(opt_calc_common_terms)) THEN
+            calc_common_terms = opt_calc_common_terms
+        ELSE
+            calc_common_terms = .true.
+        END IF
+        IF (calc_common_terms) call calculate_common_terms(x,y,z,x0,y0)
+
+        Ao1 = -ym*lnxmymx
+        Au1 = -ym*lnxpymx
+        Bo1 = -yp*lnxmypx
+        Bu1 = -yp*lnxpypx
+        Ao2 = -xm*lnxmymy
+        Bo2 = -xm*lnxmypy
+        Au2 = -xp*lnxpymy
+        Bu2 = -xp*lnxpypy
+
+        Ao = Ao1 + Ao2 - z*atanxmym
+        Au = Au1 + Au2 - z*atanxpyp
+        Bo = Bo1 + Bo2 - z*atanxmyp
+        Bu = Bu1 + Bu2 - z*atanxpyp
 
         Phi_bnd = Q/A*(Ao-Au-Bo+Bu)
 
