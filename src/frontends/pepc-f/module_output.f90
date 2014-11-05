@@ -493,9 +493,9 @@ MODULE output
         IF(root) write(filehandle,'(a)')"=================================== Info on boundaries ========================================="
         IF(root) write(filehandle,'(a)')"================================================================================================"
         DO ib=1,nb
-            IF (boundaries(ib)%nwp/=0) THEN
+            IF ((boundaries(ib)%type == 0) .OR. (boundaries(ib)%type == 1)) THEN
                 IF(root) write(filehandle,'(a,i2,a,es16.8)') "Total charge on boundary ",ib,":",boundaries(ib)%q_tot
-                call avg_wallpotential_output(ib,filehandle)
+                IF (boundaries(ib)%type == 0) call avg_wallpotential_output(ib,filehandle)
             END IF
         END DO
 
