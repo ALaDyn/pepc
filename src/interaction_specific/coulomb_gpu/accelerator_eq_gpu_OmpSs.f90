@@ -193,8 +193,15 @@ module module_accelerator
 #endif
 
 #ifdef MONITOR
-      external :: Extrae_event
+      interface
+         subroutine Extrae_event(tpe, val) bind(C, name='Extrae_event')
+            use iso_c_binding
+            integer(c_int), intent(in), value :: tpe, val
+         end subroutine Extrae_event
+      end interface
+      !external :: Extrae_event
 ! define the Event types
+#define THREADID 66664
 #define COPYBACK_FORCE_NO 66666
 #define COPYBACK_NO 66667
 #define WORK 66668
@@ -246,6 +253,8 @@ module module_accelerator
             call Extrae_event(LIST_LEN, zer(1))
             zer = 0
             call Extrae_event(FILL, zer(1))
+            zer = t_id
+            call Extrae_event(THREADID, zer(1))
 #endif
 
             ! clean results buffer from last iteration - possibly drop this useless line?
@@ -277,7 +286,12 @@ module module_accelerator
 
 
 !$OMP taskwait
-            ! wait for the task to finish. a global one will do here since we only 'posted' 1
+
+#ifdef MONITOR
+            zer = 0
+            call Extrae_event(THREADID, zer(1))
+#endif
+            ! wait for the task to finish. a 'global' (harhar) one will do here since we only 'posted' 1
             !$OMP target device(SMP) copy_deps
             !$OMP task firstprivate(t_id, acc_id) private(zer) &
             !$OMP inout(tl_acc(t_id)%results(1:4*( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ), acc_id), tl_acc(t_id)%qentry(acc_id)%queued) &
@@ -285,15 +299,18 @@ module module_accelerator
             !$OMP label(reduction)
             ! have a task to post-process data
             ! get data from GPU
+
+            ! we might be updating the identical data...
+            !$omp critical
 #ifdef MONITOR
             zer = tl_acc(t_id)%qentry(acc_id)%queued
             call Extrae_event(COPYBACK_NO, zer(1))
+            zer = t_id
+            call Extrae_event(THREADID, zer(1))
             zer = acc_id
             call Extrae_event(COPYBACK, zer(1))
 #endif
 
-            ! we might be updating the identical data...
-            !$omp critical
 #ifdef SMP_KERNEL
             tl_acc(t_id)%qentry(acc_id)%particle%results%e(1) = tl_acc(t_id)%qentry(acc_id)%particle%results%e(1) + sum(tl_acc(t_id)%results((E_1+1):(E_1+tl_acc(t_id)%qentry(acc_id)%queued), acc_id))
             tl_acc(t_id)%qentry(acc_id)%particle%results%e(2) = tl_acc(t_id)%qentry(acc_id)%particle%results%e(2) + sum(tl_acc(t_id)%results((E_2+1):(E_2+tl_acc(t_id)%qentry(acc_id)%queued), acc_id))
@@ -306,12 +323,13 @@ module module_accelerator
             tl_acc(t_id)%qentry(acc_id)%particle%results%pot  = tl_acc(t_id)%qentry(acc_id)%particle%results%pot  + sum(tl_acc(t_id)%results(((((tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ) * (1-1))+1):((((tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 ) * (1-1))+( (tl_acc(t_id)%qentry(acc_id)%queued-1)/BLN + 1 )), acc_id))
 #endif
             tl_acc(t_id)%qentry(acc_id)%particle%work         = tl_acc(t_id)%qentry(acc_id)%particle%work + tl_acc(t_id)%qentry(acc_id)%queued * WORKLOAD_PENALTY_INTERACTION
-            !$omp end critical
 #ifdef MONITOR
             zer = 0
+            call Extrae_event(THREADID, zer(1))
             call Extrae_event(COPYBACK, zer(1))
             call Extrae_event(COPYBACK_NO, zer(1))
 #endif
+            !$omp end critical
             ! now free memory
 !write(*,'(a,i3,2(" 0x",z16.16))') 'dealloc          ', acc_id, loc(tl_acc(t_id)%qentry(acc_id)%particle%partner), loc(tl_acc(t_id)%results(1, acc_id))
             deallocate(tl_acc(t_id)%qentry(acc_id)%particle%partner)
@@ -353,7 +371,7 @@ module module_accelerator
    end subroutine dispatch_list
 
    !$omp target device(smp) copy_deps
-   !$omp task in(queued, eps2, partner, id) out(results) label(SMP-kernel)
+   !$omp task in(queued, eps2, id), in(partner) out(results) label(SMP-kernel)
    subroutine smp_kernel(queued, eps2, partner, results, id)
       use module_interaction_specific_types
       implicit none
@@ -367,7 +385,13 @@ module module_accelerator
       real*8 :: dist2
       real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 #ifdef MONITOR
-      external :: Extrae_event
+      interface
+         subroutine Extrae_event(tpe, val) bind(C, name='Extrae_event')
+            use iso_c_binding
+            integer(c_int), intent(in), value :: tpe, val
+         end subroutine Extrae_event
+      end interface
+      !external :: Extrae_event
 #endif
 
       gpu_id = 1
@@ -495,10 +519,10 @@ subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
    use module_accelerator, only: mpdelta
    use module_interaction_specific_types
    implicit none
-   !integer, value :: queued, id
-   !real*8, value :: eps2
-   integer :: queued, id
-   real*8 :: eps2
+   integer, value :: queued, id
+   real*8, value :: eps2
+   !integer :: queued, id
+   !real*8 :: eps2
    real*8 :: partner(13*MAX_IACT_PARTNERS)
    real*8 :: results(4*((queued-1)/BLN + 1 ))
 
@@ -508,7 +532,13 @@ subroutine ocl_smp_kernel(queued, eps2, partner, results, id)
    real*8 :: dist2
    real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 #ifdef MONITOR
-   external :: Extrae_event
+      interface
+         subroutine Extrae_event(tpe, val) bind(C, name='Extrae_event')
+            use iso_c_binding
+            integer(c_int), intent(in), value :: tpe, val
+         end subroutine Extrae_event
+      end interface
+      !external :: Extrae_event
 #endif
 
    ! allocate local temp workspace...
