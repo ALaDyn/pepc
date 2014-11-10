@@ -62,6 +62,7 @@ module module_geometry_types
                                         !< 11 periodic boundary (an according boundary on the other side of the system has to be set)
                                         !< -1 virtual boundary (used for diagnostic purposes)
          logical :: reflux_particles    !< if true, particles hitting the boundary will be refluxed according to chosen source
+         logical :: accumulate_charge   !> if true, incident charge is accumulated (and can be create external fields)
          integer :: indx                !< index (should be the same as in the boundary array)
          integer :: opp_bnd=0           !< opposite boundary if periodic bc's
          real(KIND=8) :: dist=0.              !< distance to opposite boundary (only set if type=2)

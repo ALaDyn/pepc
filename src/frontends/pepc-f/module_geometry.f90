@@ -271,12 +271,17 @@ module module_geometry
         wall%n=n/sqrt(dotproduct(n,n))
         wall%type=typ
         wall%indx=indx
-        wall%reflux_particles=.false.
+        wall%reflux_particles = .FALSE.
         IF (real_equal_zero(dotproduct(e1,e2), eps)) wall%rectangle = .TRUE.
         e1xe2(1) = e1(2)*e2(3) - e1(3)*e2(2)
         e1xe2(2) = e1(3)*e2(1) - e1(1)*e2(3)
         e1xe2(3) = e1(1)*e2(2) - e1(2)*e2(1)
         wall%A = norm(e1xe2)
+        IF ((wall%type == 0) .OR. (wall%type == 1)) THEN
+            wall%accumulate_charge = .TRUE.
+        ELSE
+            wall%accumulate_charge = .FALSE.
+        END IF
 
     END SUBROUTINE init_boundary
 

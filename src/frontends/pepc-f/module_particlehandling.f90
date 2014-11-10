@@ -539,6 +539,7 @@ module particlehandling
         dq=0.0_8
 
         DO ib=1,nb
+            IF (.NOT. boundaries(ib)%accumulate_charge) CYCLE
             DO ispecies=0,nspecies-1
                 IF (species(ispecies)%physical_particle) THEN
                     dq(ib) = dq(ib) + thits(ispecies,ib)*species(ispecies)%q*fsup
