@@ -790,7 +790,6 @@ module particlehandling
             p(ip)%data%B(2)=By
             p(ip)%data%B(3)=Bz
             p(ip)%label       = -(my_rank * (tnpps(0) / n_ranks) + i)
-            p(ip)%data%q      = species(ispecies)%q*fsup
             p(ip)%data%m      = species(ispecies)%m*fsup
             p(ip)%data%species= species(ispecies)%indx
             p(ip)%results%e   = 0.0_8
@@ -801,6 +800,7 @@ module particlehandling
                 IF (boundaries(ib)%nwp > 0) THEN
                     IF ((boundaries(ib)%wp_label_min <= p(ip)%label) .AND. (boundaries(ib)%wp_label_max >= p(ip)%label)) THEN
                         p(ip)%data%mp_int1 = ib
+                        p(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
                     END IF
                 END IF
             END DO

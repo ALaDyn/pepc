@@ -740,6 +740,7 @@ MODULE output
         integer, allocatable :: opposite_bnd(:)
         logical, allocatable :: reflux_particles(:)
         integer, allocatable :: nwp(:)
+        real(KIND=8), allocatable :: q_tot(:)
 
         integer, allocatable :: nfp(:)
         integer, allocatable :: nip(:)
@@ -756,19 +757,9 @@ MODULE output
         integer, allocatable :: src_bnd(:)
 
 
-      !Added for debugging
-      !character(100) :: particle_file
-      !integer :: i
-
-        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
+        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,q_tot
         namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type
 
-      !write(particle_file,'("particles_",i5.5,"_",i4.4,".dat")') step,my_rank
-      !open(unit=1000,file=trim(particle_file),status='UNKNOWN',position='REWIND')
-      !    do i =1, sum(npps)
-      !        write(1000,*) particles(i)%label, particles(i)%x
-      !    end do
-      !close(1000)
 
         if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
 
@@ -784,6 +775,7 @@ MODULE output
             allocate(opposite_bnd(nb))
             allocate(reflux_particles(nb))
             allocate(nwp(nb))
+            allocate(q_tot(nb))
 
             allocate(nfp(0:nspecies-1))
             allocate(nip(0:nspecies-1))
@@ -800,8 +792,8 @@ MODULE output
             allocate(src_bnd(0:nspecies-1))
 
             open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
-            write(fid,NML=pepcf)
-            write(fid,NML=probe_positions)
+            write(fid,NML=pepcf,DELIM="QUOTE")
+            write(fid,NML=probe_positions,DELIM="QUOTE")
 
             nbnd=nb
             DO ib=1,nbnd
@@ -812,9 +804,10 @@ MODULE output
                 type(ib)=boundaries(ib)%type
                 opposite_bnd(ib)=boundaries(ib)%opp_bnd
                 nwp(ib)=boundaries(ib)%nwp
+                q_tot(ib)=boundaries(ib)%q_tot
                 reflux_particles(ib)=boundaries(ib)%reflux_particles
             END DO
-            write(fid,NML=geometry)
+            write(fid,NML=geometry,DELIM="QUOTE")
 
             ns=nspecies
             DO ispecies=0,ns-1
@@ -832,8 +825,8 @@ MODULE output
                 src_type(ispecies)=species(ispecies)%src_type
                 src_bnd(ispecies)=species(ispecies)%src_bnd
             END DO
-            write(fid,NML=species_nml)
-            write(fid,NML=walk_para_smpss)
+            write(fid,NML=species_nml,DELIM="QUOTE")
+            write(fid,NML=walk_para_smpss,DELIM="QUOTE")
             close(fid)
 
         endif

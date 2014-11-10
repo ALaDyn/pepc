@@ -44,6 +44,7 @@ module module_geometry
         real(KIND=8),allocatable :: n(:,:)
 
         integer,allocatable :: type(:)
+        real(KIND=8),allocatable :: q_tot(:)
 
         integer,allocatable :: opposite_bnd(:)
         logical,allocatable :: reflux_particles(:)
@@ -52,7 +53,7 @@ module module_geometry
         integer :: nbnd,nbnd_max
         integer :: rc,ib,fid=12
 
-        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
+        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,q_tot
 
         nbnd_max=1000
         allocate(x0(nbnd_max,3),stat=rc)
@@ -63,6 +64,7 @@ module module_geometry
         allocate(opposite_bnd(nbnd_max),stat=rc)
         allocate(reflux_particles(nbnd_max),stat=rc)
         allocate(nwp(nbnd_max),stat=rc)
+        allocate(q_tot(nbnd_max),stat=rc)
 
         IF(root) write(*,'(a,a)') " == reading parameter file, section geometry: ", trim(input_file)
         open(fid,file=trim(input_file))
@@ -77,6 +79,7 @@ module module_geometry
         deallocate(opposite_bnd)
         deallocate(reflux_particles)
         deallocate(nwp)
+        deallocate(q_tot)
 
         allocate(x0(nbnd,3),stat=rc)
         allocate(e1(nbnd,3),stat=rc)
@@ -86,6 +89,7 @@ module module_geometry
         allocate(opposite_bnd(nbnd),stat=rc)
         allocate(reflux_particles(nbnd),stat=rc)
         allocate(nwp(nbnd),stat=rc)
+        allocate(q_tot(nbnd),stat=rc)
 
         nwp=0
         reflux_particles=.false.
@@ -95,6 +99,7 @@ module module_geometry
         e1=0.
         e2=0.
         n=0.
+        q_tot=0.
 
         read(fid,NML=geometry)
         close(fid)
@@ -110,8 +115,8 @@ module module_geometry
         allocate(boundaries(nb),stat=rc)
 
         DO ib=1,nb
-            CALL init_boundary(x0(ib,:),e1(ib,:),e2(ib,:),n(ib,:),type(ib),ib,boundaries(ib))
-            IF (nwp(ib)>0) CALL init_wall(nwp(ib),boundaries(ib))
+            CALL init_boundary(x0(ib,:),e1(ib,:),e2(ib,:),n(ib,:),type(ib),q_tot(ib),ib,boundaries(ib))
+            IF (nwp(ib)>0) CALL init_wallparticle_positions(nwp(ib),boundaries(ib))
             CALL set_refluxing(reflux_particles(ib),boundaries(ib))
         END DO
 
@@ -133,6 +138,7 @@ module module_geometry
         deallocate(opposite_bnd)
         deallocate(reflux_particles)
         deallocate(nwp)
+        deallocate(q_tot)
 
     END SUBROUTINE init_boundaries
 
@@ -210,7 +216,7 @@ module module_geometry
 
 !======================================================================================
 
-    SUBROUTINE init_wall(nwp,boundary)
+    SUBROUTINE init_wallparticle_positions(nwp,boundary)
         implicit none
 
         type(t_boundary), intent(inout) :: boundary
@@ -252,15 +258,16 @@ module module_geometry
             END DO
         END DO
 
-    END SUBROUTINE init_wall
+    END SUBROUTINE init_wallparticle_positions
 
  !======================================================================================
 
-    SUBROUTINE init_boundary(x0,e1,e2,n,typ,indx,wall)
+    SUBROUTINE init_boundary(x0,e1,e2,n,typ,q_tot,indx,wall)
         implicit none
 
         type(t_boundary), intent(inout) :: wall
         real(KIND=8), intent(in), dimension(3) :: x0,e1,e2,n
+        real(KIND=8), intent(in) :: q_tot
         integer, intent(in) :: typ,indx
         real(KIND=8) :: eps = 1.0e-12
         real(KIND=8) :: e1xe2(3)
@@ -279,8 +286,10 @@ module module_geometry
         wall%A = norm(e1xe2)
         IF ((wall%type == 0) .OR. (wall%type == 1)) THEN
             wall%accumulate_charge = .TRUE.
+            wall%q_tot = q_tot
         ELSE
             wall%accumulate_charge = .FALSE.
+            wall%q_tot = 0.0_8
         END IF
 
     END SUBROUTINE init_boundary
