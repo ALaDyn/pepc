@@ -56,7 +56,7 @@ module module_tree
     !> data type for tree communicator
     type, public :: t_tree_communicator
       ! request queue
-      type(t_request_queue_entry) :: req_queue(TREE_COMM_REQUEST_QUEUE_LENGTH)
+      type(t_request_queue_entry), allocatable :: req_queue(:)
       type(t_atomic_int), pointer :: req_queue_bottom !< position of queue bottom in array; pushed away from top by tree users
       type(t_atomic_int), pointer :: req_queue_top !< position of queue top in array; pushed towards bottom by communicator only when sending
 
@@ -274,6 +274,8 @@ module module_tree
       call atomic_store_int(c%req_queue_top, 0)
       call atomic_store_int(c%thread_status, TREE_COMM_THREAD_STATUS_STOPPED)
 
+      allocate(c%req_queue(TREE_COMM_REQUEST_QUEUE_LENGTH))
+
       c%request_balance =  0
       c%req_queue(:)%entry_valid = .false. ! used in send_requests() to ensure that only completely stored entries are sent form the list
       c%sum_ships = 0
@@ -302,6 +304,8 @@ module module_tree
       call atomic_deallocate_int(c%req_queue_bottom)
       call atomic_deallocate_int(c%req_queue_top)
       call atomic_deallocate_int(c%thread_status)
+
+      deallocate(c%req_queue)
     end subroutine tree_communicator_destroy
 
 
