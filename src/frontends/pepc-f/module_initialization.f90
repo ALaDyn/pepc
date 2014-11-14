@@ -208,7 +208,7 @@ module module_initialization
     integer, parameter :: fid = 666
     integer(kind_particle) :: global_max_label,local_max_label
     integer :: ip,ib,ispecies,i,j,rc
-    real(KIND=8) :: q_loc(nb),q_glob(nb),x_hit_rel(2),eps=1e-12
+    real(KIND=8) :: x_hit_rel(2),eps=1e-12
     logical :: hit
 
     !read probe positions
@@ -244,22 +244,14 @@ module module_initialization
         STOP
     END IF
 
-    ! calculate charge by adding up charges of wallparticles after resume
-    q_loc=0.
-    q_glob=0.
+
+    ! set charges of wallparticles after resume according to q_tot input
     DO ip=1, size(particles)
         IF (particles(ip)%data%species/=0) CYCLE
-        DO ib=1,nb
-            call check_hit(particles(ip)%x(1),particles(ip)%x(2),particles(ip)%x(3),boundaries(ib),hit,x_hit_rel)
-            IF(hit) THEN
-                q_loc(ib) = q_loc(ib) + particles(ip)%data%q
-            END IF
-        END DO
+        ib = particles(ip)%data%mp_int1
+        particles(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
     END DO
-    DO ib=1,nb
-        call MPI_ALLREDUCE(q_loc(ib), q_glob(ib), 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
-        boundaries(ib)%q_tot=q_glob(ib)
-    END DO
+
 
     !find global maximum label
     global_max_label = 0

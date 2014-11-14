@@ -338,8 +338,8 @@ module module_species
             END IF
         END DO
 
+    END SUBROUTINE
 
-    end subroutine
 !======================================================================================
 
     subroutine check_species()

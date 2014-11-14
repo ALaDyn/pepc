@@ -41,16 +41,31 @@ module module_geometry_types
 
       !> Data structure for storing interaction-specific particle data
       type t_boundary
-         real*8 :: x0(3)                !< reference point
-         real*8 :: e1(3)                !< edge1: vector to adjacent corner
-         real*8 :: e2(3)                !< edge2: vector to other adjacent corner; adjacent and opposite corner are computed
-         real*8 :: n(3)                 !< surface normal
-         integer :: type                !< surface type (0=absorbing wall,1=reflect,2=periodic,3=open,4=logical sheath,
-                                        !< 5=immediate half-Maxwellian refluxing, 6,-1 = virtual)
+         real(KIND=8) :: x0(3)                !< reference point
+         real(KIND=8) :: e1(3)                !< edge1: vector to adjacent corner
+         real(KIND=8) :: e2(3)                !< edge2: vector to other adjacent corner; adjacent and opposite corner are computed
+         real(KIND=8) :: n(3)                 !< surface normal
+         real(KIND=8) :: A = 0._8             !< surface Area
+         logical :: rectangle=.false.         !< TRUE if e1 and e2 are perpendicular
+         integer :: type                !< surface type
+                                        !<  0 absorbing wall with uniform charge distribution realized with wall particles
+                                        !<  1 absorbing wall with uniform charge distribution realized with analytic field and potential
+                                        !<  2 open boundary
+                                        !<  3 logical sheath (not available at the moment)
+                                        !<  4 reflecting boundary
+                                        !<  5 immediate half-Maxwellian refluxing normal to surface, tangential v conserved
+                                        !<  6 immediate half-Maxwellian refluxing normal to surface, tangential v resampled
+                                        !<  7 immediate Maxwellian flux refluxing normal to surface, tangential v conserved
+                                        !<  8 immediate Maxwellian flux refluxing normal to surface, tangential v resampled
+                                        !<  9 immediate drifting Maxwellian flux refluxing normal to surface, tangential v conserved
+                                        !< 10 immediate drifting Maxwellian flux refluxing normal to surface, tangential v resampled
+                                        !< 11 periodic boundary (an according boundary on the other side of the system has to be set)
+                                        !< -1 virtual boundary (used for diagnostic purposes)
          logical :: reflux_particles    !< if true, particles hitting the boundary will be refluxed according to chosen source
+         logical :: accumulate_charge   !> if true, incident charge is accumulated (and can be create external fields)
          integer :: indx                !< index (should be the same as in the boundary array)
          integer :: opp_bnd=0           !< opposite boundary if periodic bc's
-         real*8 :: dist=0.              !< distance to opposite boundary (only set if type=2)
+         real(KIND=8) :: dist=0.              !< distance to opposite boundary (only set if type=2)
          integer :: nwp=0, nwpe1=0, nwpe2=0               !< number of wall particles (total, along e1 and e2) (can only be set if type=0)
          integer, allocatable :: wp_labels(:)             !< wp labels for this wall
          integer :: wp_label_max=0, wp_label_min=0        !< min and max value of wp_label. Is used during initialization to find out

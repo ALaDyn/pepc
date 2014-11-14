@@ -29,7 +29,6 @@ module module_geometry
     use helper
     use module_mirror_boxes, only: mirror_box_layers,periodicity
 
-
     implicit none
 
     contains
@@ -45,6 +44,7 @@ module module_geometry
         real(KIND=8),allocatable :: n(:,:)
 
         integer,allocatable :: type(:)
+        real(KIND=8),allocatable :: q_tot(:)
 
         integer,allocatable :: opposite_bnd(:)
         logical,allocatable :: reflux_particles(:)
@@ -53,7 +53,7 @@ module module_geometry
         integer :: nbnd,nbnd_max
         integer :: rc,ib,fid=12
 
-        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd
+        namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,q_tot
 
         nbnd_max=1000
         allocate(x0(nbnd_max,3),stat=rc)
@@ -64,6 +64,7 @@ module module_geometry
         allocate(opposite_bnd(nbnd_max),stat=rc)
         allocate(reflux_particles(nbnd_max),stat=rc)
         allocate(nwp(nbnd_max),stat=rc)
+        allocate(q_tot(nbnd_max),stat=rc)
 
         IF(root) write(*,'(a,a)') " == reading parameter file, section geometry: ", trim(input_file)
         open(fid,file=trim(input_file))
@@ -78,6 +79,7 @@ module module_geometry
         deallocate(opposite_bnd)
         deallocate(reflux_particles)
         deallocate(nwp)
+        deallocate(q_tot)
 
         allocate(x0(nbnd,3),stat=rc)
         allocate(e1(nbnd,3),stat=rc)
@@ -87,6 +89,7 @@ module module_geometry
         allocate(opposite_bnd(nbnd),stat=rc)
         allocate(reflux_particles(nbnd),stat=rc)
         allocate(nwp(nbnd),stat=rc)
+        allocate(q_tot(nbnd),stat=rc)
 
         nwp=0
         reflux_particles=.false.
@@ -96,6 +99,7 @@ module module_geometry
         e1=0.
         e2=0.
         n=0.
+        q_tot=0.
 
         read(fid,NML=geometry)
         close(fid)
@@ -111,8 +115,8 @@ module module_geometry
         allocate(boundaries(nb),stat=rc)
 
         DO ib=1,nb
-            CALL init_boundary(x0(ib,:),e1(ib,:),e2(ib,:),n(ib,:),type(ib),ib,boundaries(ib))
-            IF (nwp(ib)>0) CALL init_wall(nwp(ib),boundaries(ib))
+            CALL init_boundary(x0(ib,:),e1(ib,:),e2(ib,:),n(ib,:),type(ib),q_tot(ib),ib,boundaries(ib))
+            IF (nwp(ib)>0) CALL init_wallparticle_positions(nwp(ib),boundaries(ib))
             CALL set_refluxing(reflux_particles(ib),boundaries(ib))
         END DO
 
@@ -134,6 +138,7 @@ module module_geometry
         deallocate(opposite_bnd)
         deallocate(reflux_particles)
         deallocate(nwp)
+        deallocate(q_tot)
 
     END SUBROUTINE init_boundaries
 
@@ -150,7 +155,7 @@ module module_geometry
             DO ib=1,nb
                 CALL check_boundary(boundaries(ib))
 
-                IF (boundaries(ib)%type==2) THEN
+                IF (boundaries(ib)%type==11) THEN
                     IF(boundaries(ib)%opp_bnd==0) THEN
                         write(*,'(a,i3,a)')"No opposing boundary set for boundary ",boundaries(ib)%indx,"."
                         STOP
@@ -211,7 +216,7 @@ module module_geometry
 
 !======================================================================================
 
-    SUBROUTINE init_wall(nwp,boundary)
+    SUBROUTINE init_wallparticle_positions(nwp,boundary)
         implicit none
 
         type(t_boundary), intent(inout) :: boundary
@@ -221,7 +226,7 @@ module module_geometry
 
         IF (boundary%type/=0) THEN
             write(*,*) "Problem with boundary",boundary%indx
-            write(*,*) "Wallparticles can only be initialized for absorbing walls (type=0)."
+            write(*,*) "Wallparticles can only be initialized for walls of type=0."
             STOP
         END IF
 
@@ -253,16 +258,19 @@ module module_geometry
             END DO
         END DO
 
-    END SUBROUTINE init_wall
+    END SUBROUTINE init_wallparticle_positions
 
  !======================================================================================
 
-    SUBROUTINE init_boundary(x0,e1,e2,n,typ,indx,wall)
+    SUBROUTINE init_boundary(x0,e1,e2,n,typ,q_tot,indx,wall)
         implicit none
 
         type(t_boundary), intent(inout) :: wall
-        real*8, intent(in), dimension(3) :: x0,e1,e2,n
+        real(KIND=8), intent(in), dimension(3) :: x0,e1,e2,n
+        real(KIND=8), intent(in) :: q_tot
         integer, intent(in) :: typ,indx
+        real(KIND=8) :: eps = 1.0e-12
+        real(KIND=8) :: e1xe2(3)
 
         wall%x0=x0
         wall%e1=e1
@@ -270,7 +278,19 @@ module module_geometry
         wall%n=n/sqrt(dotproduct(n,n))
         wall%type=typ
         wall%indx=indx
-        wall%reflux_particles=.false.
+        wall%reflux_particles = .FALSE.
+        IF (real_equal_zero(dotproduct(e1,e2), eps)) wall%rectangle = .TRUE.
+        e1xe2(1) = e1(2)*e2(3) - e1(3)*e2(2)
+        e1xe2(2) = e1(3)*e2(1) - e1(1)*e2(3)
+        e1xe2(3) = e1(1)*e2(2) - e1(2)*e2(1)
+        wall%A = norm(e1xe2)
+        IF ((wall%type == 0) .OR. (wall%type == 1)) THEN
+            wall%accumulate_charge = .TRUE.
+            wall%q_tot = q_tot
+        ELSE
+            wall%accumulate_charge = .FALSE.
+            wall%q_tot = 0.0_8
+        END IF
 
     END SUBROUTINE init_boundary
 
@@ -285,11 +305,11 @@ module module_geometry
         IF (reflux_particles .eqv. .false.) THEN
             boundary%reflux_particles=reflux_particles
         ELSE
-            IF ((boundary%type==0) .OR. (boundary%type==3) .OR. (boundary%type==4)) THEN
+            IF ((boundary%type==0) .OR. (boundary%type==1) .OR. (boundary%type==2) .OR. (boundary%type==3)) THEN
                 boundary%reflux_particles=reflux_particles
             ELSE
                 write(*,*) "Problem with boundary",boundary%indx
-                write(*,*) "Refluxing conditions can only be set for absorbing boundaries (type=0, type=4 or type=3)."
+                write(*,*) "Refluxing conditions can only be set for absorbing boundaries (type=0..3)."
                 STOP
             END IF
         END IF
@@ -303,8 +323,9 @@ module module_geometry
         type(t_boundary), intent(inout) :: wall,opp_wall
 
 
-        IF ((wall%type/=2) .OR. (opp_wall%type/=2)) THEN
-            write(*,'(a,i3,a,i3,a)') "Error while trying to set periodic boundaries for boundaries ",wall%indx," and ",opp_wall%indx,": Both walls have to have type 2"
+        IF ((wall%type/=11) .OR. (opp_wall%type/=11)) THEN
+            write(*,'(a,i3,a,i3,a)') "Error while trying to set periodic boundaries for boundaries ", &
+                                     wall%indx," and ",opp_wall%indx,": Both walls have to have type 11 (periodic boundary)"
             STOP
         END IF
 
@@ -334,7 +355,13 @@ module module_geometry
             write(*,*) "e1:", wall%e1
             write(*,*) "e2:", wall%e2
             write(*,*) "n:", wall%n
-            write(*,*) "The surface normal is not perpENDicular to the plane."
+            write(*,*) "The surface normal is not perpendicular to the plane."
+            STOP
+        END IF
+
+        IF ((.NOT. wall%rectangle) .AND. (wall%type == 1)) THEN
+            write(*,*) "Boundary set incorrectly:"
+            write(*,*) "Boundary type 1 can only be used for rectangular boundaries."
             STOP
         END IF
 

@@ -43,7 +43,7 @@ module particlehandling
                 ib = ib + 1
             END DO
 
-            !loop over real surfaces
+            !loop over physical surfaces
             ib = 1
             DO WHILE (ib <= nb)
                 IF (rp==0) EXIT
@@ -56,13 +56,36 @@ module particlehandling
 
                 IF (hit) THEN
                     hits(p(rp)%data%species,ib)=hits(p(rp)%data%species,ib)+1
-                    IF (boundaries(ib)%type==3) THEN                                   !Open BC
+
+                    ! Different boundary types are handled here. For explanation of the different boundaries see module_geometry_types.f90
+                    IF (boundaries(ib)%type == 0) THEN
                         IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
                         npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
+                        call add_bnd_hit(p(rp), ib, x_hit_rel)
                         p(rp) = p(sum(npps)+1)
                         ib = 0
                         rp = rp - 1
-                    ELSE IF (boundaries(ib)%type==5) THEN   !immediate half-Maxwellian refluxing normal to surface, tangential v conserved
+                    ELSE IF (boundaries(ib)%type == 1) THEN
+                        IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
+                        npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
+                        call add_bnd_hit(p(rp), ib, x_hit_rel)
+                        p(rp) = p(sum(npps)+1)
+                        ib = 0
+                        rp = rp - 1
+                    ELSE IF (boundaries(ib)%type == 2) THEN
+                        IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
+                        npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
+                        call add_bnd_hit(p(rp), ib, x_hit_rel)
+                        p(rp) = p(sum(npps)+1)
+                        ib = 0
+                        rp = rp - 1
+                    !ELSE IF (boundaries(ib)%type == 3) THEN
+                    ELSE IF (boundaries(ib)%type == 4) THEN
+                        xp = p(rp)%x - boundaries(ib)%x0
+                        p(rp)%x = p(rp)%x - 2.*dotproduct(xp,boundaries(ib)%n)*boundaries(ib)%n
+                        p(rp)%data%v = p(rp)%data%v - 2.*dotproduct(p(rp)%data%v,boundaries(ib)%n)*boundaries(ib)%n
+                        ib = 0
+                    ELSE IF (boundaries(ib)%type == 5) THEN
                         mu=0.0_8
                         sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
@@ -74,7 +97,7 @@ module particlehandling
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
                         ib=0
-                    ELSE IF (boundaries(ib)%type==6) THEN  !immediate half-Maxwellian refluxing normal to surface, tangential v resampled
+                    ELSE IF (boundaries(ib)%type == 6) THEN
                         mu=0.0_8
                         sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
@@ -92,7 +115,7 @@ module particlehandling
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
                         ib=0
-                    ELSE IF (boundaries(ib)%type==7) THEN   !immediate Maxwellian flux refluxing normal to surface, tangential v conserved
+                    ELSE IF (boundaries(ib)%type == 7) THEN
                         mu=0.0_8
                         sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
@@ -103,7 +126,7 @@ module particlehandling
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
                         ib=0
-                    ELSE IF (boundaries(ib)%type==8) THEN  !immediate Maxwellian flux refluxing normal to surface, tangential v resampled
+                    ELSE IF (boundaries(ib)%type == 8) THEN
                         mu=0.0_8
                         sigma = species(p(rp)%data%species)%v_th
                         xold = p(rp)%x-p(rp)%data%v*dt
@@ -121,7 +144,7 @@ module particlehandling
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
                         ib=0
-                    ELSE IF (boundaries(ib)%type==9) THEN   !immediate drifting Maxwellian flux refluxing normal to surface, tangential v conserved
+                    ELSE IF (boundaries(ib)%type == 9) THEN
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         p(rp)%data%v = p(rp)%data%v - boundaries(ib)%n*dotproduct(p(rp)%data%v, boundaries(ib)%n)
@@ -130,7 +153,7 @@ module particlehandling
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
                         ib=0
-                    ELSE IF (boundaries(ib)%type==10) THEN  !immediate drifting Maxwellian flux refluxing normal to surface, tangential v resampled
+                    ELSE IF (boundaries(ib)%type == 10) THEN
                         xold = p(rp)%x-p(rp)%data%v*dt
                         call get_intersect(xold, p(rp)%x, boundaries(ib), xi)
                         call random_gauss_list(v_new(2:3),mu,sigma)
@@ -146,21 +169,9 @@ module particlehandling
                         ran = rnd_num()
                         p(rp)%x = xi + dt*ran*p(rp)%data%v
                         ib=0
-                    ELSE IF (boundaries(ib)%type==2) THEN                              !Periodic BC
-                        p(rp)%x = p(rp)%x + boundaries(ib)%n*boundaries(ib)%dist       !Particle re-enters at opposite boundary
+                    ELSE IF (boundaries(ib)%type == 11) THEN
+                        p(rp)%x = p(rp)%x + boundaries(ib)%n*boundaries(ib)%dist
                         ib = 0
-                    ELSE IF (boundaries(ib)%type==1) THEN                              !Reflecting BC
-                        xp = p(rp)%x - boundaries(ib)%x0
-                        p(rp)%x = p(rp)%x - 2.*dotproduct(xp,boundaries(ib)%n)*boundaries(ib)%n
-                        p(rp)%data%v = p(rp)%data%v - 2.*dotproduct(p(rp)%data%v,boundaries(ib)%n)*boundaries(ib)%n
-                        ib = 0
-                    ELSE IF (boundaries(ib)%type==0) THEN                              !Absorbing Wall BC
-                        IF (boundaries(ib)%reflux_particles) reflux(p(rp)%data%species,ib)=reflux(p(rp)%data%species,ib)+1
-                        npps(p(rp)%data%species) = npps(p(rp)%data%species) - 1
-                        call add_bnd_hit(p(rp), ib, x_hit_rel)
-                        p(rp) = p(sum(npps)+1)
-                        ib = 0
-                        rp = rp - 1
                     END IF
                 END IF
                 ib = ib+1
@@ -528,6 +539,7 @@ module particlehandling
         dq=0.0_8
 
         DO ib=1,nb
+            IF (.NOT. boundaries(ib)%accumulate_charge) CYCLE
             DO ispecies=0,nspecies-1
                 IF (species(ispecies)%physical_particle) THEN
                     dq(ib) = dq(ib) + thits(ispecies,ib)*species(ispecies)%q*fsup
@@ -690,6 +702,55 @@ module particlehandling
 
     END SUBROUTINE check_for_leakage
 
+!======================================================================================
+
+    SUBROUTINE add_boundary_field(p)
+        use module_mirror_boxes, only: mirror_box_layers
+        use module_boundary_field
+        implicit none
+
+        type(t_particle), intent(inout), allocatable :: p(:)
+        integer :: ip,ib
+        real(KIND=8) :: O(3),e1(3),e2(3),n(3)
+        real(KIND=8) :: xp,yp,zp,x0,y0
+        real(KIND=8) :: xhelp(3)
+        real(KIND=8),allocatable :: Ehelp(:,:,:), Phihelp(:,:)
+
+        allocate(Ehelp(nb,sum(npps),3))
+        allocate(Phihelp(nb,sum(npps)))
+
+        Ehelp=0
+        Phihelp=0
+
+        IF (ANY(boundaries(:)%type == 1)) THEN
+            DO ib=1, nb
+                IF (boundaries(ib)%type /= 1) CYCLE
+                e1 = boundaries(ib)%e1
+                e2 = boundaries(ib)%e2
+                n = boundaries(ib)%n
+                O = boundaries(ib)%x0 + 0.5 * (e1+e2)
+                x0 = (mirror_box_layers + 0.5) * norm(e1)
+                y0 = (mirror_box_layers + 0.5) * norm(e2)
+                e1 = e1/norm(e1)
+                e2 = e2/norm(e2)
+                DO ip=1, sum(npps)
+                    xhelp = p(ip)%x - O
+                    xp = dotproduct(xhelp,e1)
+                    yp = dotproduct(xhelp,e2)
+                    zp = dotproduct(xhelp,n)
+                    call E_bnd(xp,yp,zp,x0,y0,boundaries(ib)%q_tot,boundaries(ib)%A,Ehelp(ib,ip,:))
+                    Phihelp(ib,ip) = Phi_bnd(xp,yp,zp,x0,y0,boundaries(ib)%q_tot,boundaries(ib)%A,.false.)
+                    p(ip)%results%pot = p(ip)%results%pot + Phihelp(ib,ip)
+                    Ehelp(ib,ip,:) = Ehelp(ib,ip,1)*e1 + Ehelp(ib,ip,2)*e2 + Ehelp(ib,ip,3)*n !transform back to system coordinates x,y,z
+                    p(ip)%results%E = p(ip)%results%E + Ehelp(ib,ip,:)
+                END DO
+            END DO
+        END IF
+
+        deallocate(Ehelp)
+        deallocate(Phihelp)
+
+    END SUBROUTINE add_boundary_field
 
 !======================================================================================
     SUBROUTINE init_particles(p)
@@ -729,7 +790,6 @@ module particlehandling
             p(ip)%data%B(2)=By
             p(ip)%data%B(3)=Bz
             p(ip)%label       = -(my_rank * (tnpps(0) / n_ranks) + i)
-            p(ip)%data%q      = species(ispecies)%q*fsup
             p(ip)%data%m      = species(ispecies)%m*fsup
             p(ip)%data%species= species(ispecies)%indx
             p(ip)%results%e   = 0.0_8
@@ -740,6 +800,7 @@ module particlehandling
                 IF (boundaries(ib)%nwp > 0) THEN
                     IF ((boundaries(ib)%wp_label_min <= p(ip)%label) .AND. (boundaries(ib)%wp_label_max >= p(ip)%label)) THEN
                         p(ip)%data%mp_int1 = ib
+                        p(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
                     END IF
                 END IF
             END DO

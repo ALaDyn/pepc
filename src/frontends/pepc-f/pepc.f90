@@ -201,9 +201,13 @@ program pepc
         !further diagnostics
         if (diags) call timings_GatherAndOutput(step)
 
-
         timer(10)=get_time() !10-9 + 8-7: diag
         !end further diagnostics
+
+
+        !add E-Field and Potential caused by boundaries of type 1 (treated as external field)
+        call add_boundary_field(particles)
+        timer(11)=get_time() !11-10: boundary field
 
 
         !vtk and checkpoints (positions and fields after current timestep)
@@ -229,7 +233,7 @@ program pepc
         !output
         call main_output(out)
 
-        timer(11)=get_time()
+        timer(12)=get_time()
         if(root) then
             write(*,*) " "
             write(*,'(a,i12)')    " ====== finished computing step  : ", step
@@ -240,12 +244,14 @@ program pepc
             write(*,*) " "
             write(*,*) " "
             call timing_output(timer(4)-timer(3), timer(5)-timer(4), timer(6)-timer(5), timer(7)-timer(6),&
-                               timer(10)-timer(9)+timer(8)-timer(7), timer(9)-timer(8), timer(11)-timer(10), out)
+                               timer(10)-timer(9)+timer(8)-timer(7), timer(9)-timer(8), timer(11)-timer(10),&
+                               timer(12)-timer(11), out)
             call end_of_ts_output(step,out)
         end if
         if (bool_detailed_timing) then
             call timing_output(timer(4)-timer(3), timer(5)-timer(4), timer(6)-timer(5), timer(7)-timer(6),&
-                               timer(10)-timer(9)+timer(8)-timer(7), timer(9)-timer(8), timer(11)-timer(10), detailed_timing_out)
+                               timer(10)-timer(9)+timer(8)-timer(7), timer(9)-timer(8), timer(11)-timer(10),&
+                               timer(12)-timer(11), detailed_timing_out)
             call end_of_ts_output(step,detailed_timing_out)
         end if
         if (MOD(step-startstep,10)==0) call flush_files()
@@ -258,12 +264,12 @@ program pepc
     deallocate(particles)
 
 
-    timer(12) = get_time()
+    timer(13) = get_time()
 
     if(root) then
         write(*,*)            " "
         write(*,'(a)')        " ===== finished pepc simulation"
-        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(12) - timer(1)
+        write(*,'(a,es12.4)') " ===== total run time [s]: ", timer(13) - timer(1)
     end if
 
     call close_files()

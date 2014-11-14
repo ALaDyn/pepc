@@ -145,7 +145,7 @@ module module_tree_grow
   !> Outputs keys of new (and own) tree nodes in `branch_keys`.
   !>
   subroutine tree_exchange(t, num_local_branch_nodes, local_branch_nodes, branch_nodes)
-    use module_tree, only: t_tree, tree_insert_node
+    use module_tree, only: t_tree, tree_provision_node, tree_count_node
     use module_tree_node, only: tree_node_pack, tree_node_unpack
     use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package
     use module_debug, only : pepc_status
@@ -161,7 +161,6 @@ module module_tree_grow
 
     integer(kind_default) :: ierr
     integer(kind_pe) :: ip
-    type(t_tree_node) :: unpack_node
     type(t_tree_node_package), allocatable :: pack_mult(:), get_mult(:)
     !> these have to be kind_default as MPI_ALLGATHERV expects default integer kind arguments
     integer(kind_default) :: i, j, nbranch, nbranch_sum
@@ -211,9 +210,9 @@ module module_tree_grow
     do i = 1, nbranch_sum
       ! insert all remote branches into local data structures (this does *not* prepare the internal tree connections, but only copies multipole properties and creates the htable-entries)
       if (get_mult(i)%owner /= t%comm_env%rank) then
-        call tree_node_unpack(get_mult(i), unpack_node)
-
-        call tree_insert_node(t, unpack_node, branch_nodes(i))
+        branch_nodes(i) = tree_provision_node(t)
+        call tree_node_unpack(get_mult(i), t%nodes(branch_nodes(i)))
+        call tree_count_node(t, t%nodes(branch_nodes(i)))
       else
         j = j + 1
         branch_nodes(i) = local_branch_nodes(j)
@@ -410,8 +409,7 @@ module module_tree_grow
   !>  - already existing nodes are updated
   !>
   subroutine tree_build_upwards(t, nodes)
-    use module_tree, only: t_tree, tree_insert_node, &
-      tree_node_connect_children
+    use module_tree, only: t_tree, tree_node_connect_children, tree_provision_node, tree_count_node
     use module_debug, only: pepc_status, DBG_TREE, dbg
     use module_tree_node, only: NODE_INVALID
     use module_timings
@@ -428,7 +426,6 @@ module module_tree_grow
     integer(kind_particle), allocatable :: sort_map(:)
     integer(kind_key), allocatable :: sub_key(:), parent_key(:)
     integer(kind_node), allocatable :: sub_nodes(:), sorted_sub_nodes(:), parent_nodes(:)
-    type(t_tree_node) :: parent_node
 
     integer(kind_node) :: i, nparent, nuniq, k
     integer(kind_node) ::  numnodes, nsub, groupstart, groupend
@@ -521,8 +518,9 @@ module module_tree_grow
 
         ! a node has to be created from scratch
         if (parent_nodes(nparent) == NODE_INVALID) then
-          call tree_node_create_from_children(t, parent_node, sorted_sub_nodes(groupstart:groupend), current_parent_key)
-          call tree_insert_node(t, parent_node, parent_nodes(nparent))
+          parent_nodes(nparent) = tree_provision_node(t)
+          call tree_node_create_from_children(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend), current_parent_key)
+          call tree_count_node(t, t%nodes(parent_nodes(nparent)))
         else
           call tree_node_update_from_children(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend), current_parent_key)
         end if
@@ -574,7 +572,7 @@ module module_tree_grow
     end type
 
     type(t_keyidx), allocatable :: kidx(:)
-    integer(kind_particle) :: i, j
+    integer(kind_particle) :: i, j, cur
 
     call pepc_status('INSERT PARTICLES')
 
@@ -600,7 +598,9 @@ module module_tree_grow
     p(:)%node_leaf = NODE_INVALID
 
     call timer_reset(t_props_leaves)
-    call insert_helper(t, TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), kidx(1:i), t%node_root)
+    cur = 1
+    call insert_helper(t, TREE_KEY_ROOT, level_from_key(TREE_KEY_ROOT), kidx(1:i), cur, t%node_root)
+    DEBUG_ASSERT(cur == i + 1)
 
     deallocate(kidx)
     call timer_stop(t_build_pure)
@@ -616,11 +616,14 @@ module module_tree_grow
     contains
 
     !>
-    !> Inserts the keys in `ki` below the key `k`.
+    !> Inserts the keys in `ki(cur:)` below the key `k`.
     !>
-    recursive subroutine insert_helper(t, k, l, ki, pi)
-      use module_tree, only: t_tree, tree_insert_node, tree_insert_node_at_index, &
-        tree_provision_node, tree_node_connect_children
+    !> The keys in `ki` are sorted in depth-first order. `insert_helper` also traverses the key-space in depth-first order via its
+    !> argument `k`. The decision whether to split a node or not can then be based on whether the first two keys that have yet to
+    !> be inserted (`ki(cur)` and `ki(cur + 1)`) collide at the current resolution of `k`.
+    !>
+    recursive subroutine insert_helper(t, k, l, ki, cur, pi)
+      use module_tree, only: t_tree, tree_provision_node, tree_count_node, tree_node_connect_children
       use module_pepc_types, only: t_tree_node
       use module_tree_node
       use module_spacefilling, only: child_key_from_parent_key, is_ancestor_of_particle
@@ -630,61 +633,61 @@ module module_tree_grow
       integer(kind_key), intent(in) :: k !< key blow which the `ki` are inserted
       integer(kind_level), intent(in) :: l !< precomputed `level_from_key(k)`
       type(t_keyidx), intent(in) :: ki(:) !< keys (with particles) to be inserted
+      integer(kind_particle), intent(inout) :: cur
       integer(kind_node), optional, intent(out) :: pi
 
-      type(t_tree_node) :: this_node
       integer(kind_node) :: inserted_node_idx
       integer(kind_node) :: child_nodes(8)
       integer(kind_key) :: childkey
-      integer(kind_level) :: childlevel
       integer :: ichild, nchild
-      integer(kind_node) :: si, ip, pstart, pend
+      integer(kind_node) :: si, ip
+      logical :: first_is_child, second_is_child
 
       inserted_node_idx = NODE_INVALID
 
-      si = size(ki, kind=kind(si))
+      if (cur <= ubound(ki, dim = 1, kind = kind_particle)) then
+        first_is_child = is_ancestor_of_particle(k, l, ki(cur)%key)
+      else
+        first_is_child = .false.
+      end if
 
-      if (si < 1) then ! no particles below this key
+      if (cur + 1 <= ubound(ki, dim = 1, kind = kind_particle)) then
+        second_is_child = is_ancestor_of_particle(k, l, ki(cur + 1)%key)
+      else
+        second_is_child = .false.
+      end if
+
+      DEBUG_ASSERT(.not. ((.not. first_is_child) .and. second_is_child))
+
+      if (.not. (first_is_child .or. second_is_child)) then ! no particles below this key
         ! do nothing
-      else if (si == 1) then ! we have arrived at a leaf
-        if (ki(1)%idx /= 0) then ! boundary particles have idx == 0, do not really need to be inserted
-          call tree_node_create_from_particle(t, this_node, p(ki(1)%idx), k, ki(1)%idx)
-          call tree_insert_node(t, this_node, inserted_node_idx)
-          p(ki(1)%idx)%node_leaf = inserted_node_idx
+      else if (first_is_child .and. .not. second_is_child) then ! we have arrived at a leaf
+        if (ki(cur)%idx /= 0) then ! boundary particles have idx == 0, do not really need to be inserted
+          inserted_node_idx = tree_provision_node(t)
+          call tree_node_create_from_particle(t, t%nodes(inserted_node_idx), p(ki(cur)%idx), k, ki(cur)%idx)
+          call tree_count_node(t, t%nodes(inserted_node_idx))
+          p(ki(cur)%idx)%node_leaf = inserted_node_idx
         end if
+        cur = cur + 1 ! `ki(cur)` has been inserted, consider `ki(cur + 1)` next
       else ! more particles left, split twig
         if (l >= nlev) then ! no more levels left, cannot split
-          DEBUG_WARNING_ALL('("Problem with tree: No more levels. Remaining particles 1..",I0,"  [i, key, label, x, y, z]:")', si)
-          DEBUG_ERROR_NO_HEADER('(I6,x,O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=1,si ) )
+          si = size(ki, kind = kind(si))
+          DEBUG_WARNING_ALL('("Problem with tree: No more levels. Remaining particles ",I0,"..",I0,"  [i, key, label, x, y, z]:")', cur, si)
+          DEBUG_ERROR_NO_HEADER('(I6,x,O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip = cur, si ) )
         end if
 
         inserted_node_idx = tree_provision_node(t)
 
         nchild = 0
-        pstart = lbound(ki, dim = 1, kind = kind(pstart))
-        pend = pstart - 1 ! silence compiler warnings about pend being used without initialising
-        childlevel = l + 1_kind_level
         do ichild = 0, 2**idim - 1
           childkey = child_key_from_parent_key(k, ichild)
-
-          pend = pstart - 1
-          do while (pend < ubound(ki, dim = 1, kind = kind(pend)))
-            if (.not. is_ancestor_of_particle(childkey, childlevel, ki(pend + 1)%key)) then; exit; end if
-            pend = pend + 1
-          end do
-
-          call insert_helper(t, childkey, childlevel, ki(pstart:pend), child_nodes(nchild + 1))
-          if (child_nodes(nchild + 1) .ne. NODE_INVALID) then; nchild = nchild + 1; end if
-          pstart = pend + 1
+          call insert_helper(t, childkey, l + 1_kind_level, ki, cur, child_nodes(nchild + 1))
+          if (child_nodes(nchild + 1) .ne. NODE_INVALID) nchild = nchild + 1
         end do
 
         DEBUG_ASSERT(nchild > 0)
-        if (.not. pend == ubound(ki, dim = 1)) then
-          DEBUG_WARNING_ALL('("Problem with tree: Could not distribute particles among children of ", I0, ". Remaining particles ",I0,"..",I0,"  [i, key, label, x, y, z]:")', k, pend + 1, ubound(ki, dim = 1) )
-          DEBUG_ERROR_NO_HEADER('(I6,x,I22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip=pend + 1, ubound(ki, dim = 1) ) )
-        end if
-        call tree_node_create_from_children(t, this_node, child_nodes(1:nchild), k)
-        call tree_insert_node_at_index(t, inserted_node_idx, this_node)
+        call tree_node_create_from_children(t, t%nodes(inserted_node_idx), child_nodes(1:nchild), k)
+        call tree_count_node(t, t%nodes(inserted_node_idx))
         ! wire up pointers
         call tree_node_connect_children(t, inserted_node_idx, child_nodes(1:nchild))
       end if
