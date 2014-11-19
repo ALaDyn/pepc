@@ -246,7 +246,7 @@ MODULE output
 
         dir = "./energy_resolved_hits/"
         write(tmp_file,'(a,"erh_species_",i3.3,".dat")') trim(dir), ispecies
-        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i8)"
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i9)"
 
         binwidth = ehit_max(ispecies)/nbins_energy_resolved_hits
 
@@ -290,7 +290,7 @@ MODULE output
 
         dir = "./age_resolved_hits/"
         write(tmp_file,'(a,"agerh_species_",i3.3,".dat")') trim(dir), ispecies
-        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i8)"
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i9)"
 
         binwidth = agehit_max(ispecies)/nbins_age_resolved_hits
 
@@ -333,7 +333,7 @@ MODULE output
 
         dir = "./angle_resolved_hits/"
         write(tmp_file,'(a,"arh_species_",i3.3,".dat")') trim(dir), ispecies
-        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i8)"
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i9)"
 
         binwidth = 90./nbins_angle_resolved_hits
 
@@ -373,7 +373,7 @@ MODULE output
         call MPI_ALLREDUCE(space_resolved_hits(ispecies,:,:,:), hits, nbins_e1_space_resolved_hits*nbins_e2_space_resolved_hits*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
 
         dir = "./space_resolved_hits/"
-        write(format,'(a,i3,a)') "(",nbins_e2_space_resolved_hits  ,"i8)"
+        write(format,'(a,i3,a)') "(",nbins_e2_space_resolved_hits  ,"i9)"
 
 
         IF(root) THEN
