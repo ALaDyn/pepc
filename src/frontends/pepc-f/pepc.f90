@@ -108,8 +108,9 @@ program pepc
 
     !MAIN LOOP ====================================================================================================
     DO step=startstep+1, nt+startstep
+        ! check whether diag, vtk, npy or checkpoint output will be written in this step
+        call check_output_intervals()
         timer(3) = get_time()
-
 
         ! Move particles according to electric field configuration
         call boris_nonrel(particles)
@@ -211,22 +212,16 @@ program pepc
 
 
         !vtk and checkpoints (positions and fields after current timestep)
-        if(checkp_interval.ne.0) then
-            if ((MOD(step,checkp_interval)==0).or.(step==nt+startstep)) then
-                call set_checkpoint()
-            end if
-        end if
-        if(npy_interval.ne.0) then
-            if ((MOD(step,npy_interval)==0).or.(step==nt+startstep)) then
-                call write_particles_npy(particles, my_rank, step)
-            end if
-        end if
-        if(vtk_interval.ne.0) then
-            if ((MOD(step,vtk_interval)==0).or.(step==nt+startstep)) THEN
-                IF (spiegelladung/=0) call write_particles_vtk(all_particles,1_kind_particle)
-                IF (spiegelladung==0) call write_particles_vtk(particles,17_kind_particle)
-            end if
-        end if
+        IF (checkpoint_now) THEN
+            call set_checkpoint()
+        END IF
+        IF (npy_now) THEN
+            call write_particles_npy(particles, my_rank, step)
+        END IF
+        IF (vtk_now) THEN
+            IF (spiegelladung/=0) call write_particles_vtk(all_particles,1_kind_particle)
+            IF (spiegelladung==0) call write_particles_vtk(particles,17_kind_particle)
+        END IF
         !end vtk and checkpoints
 
 

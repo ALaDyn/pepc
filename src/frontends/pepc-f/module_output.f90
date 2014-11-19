@@ -34,6 +34,37 @@ MODULE output
 
 !===============================================================================
 
+    SUBROUTINE check_output_intervals()
+        implicit none
+
+        IF ( (checkp_interval /=0) .AND. ( ( MOD(step,checkp_interval) == 0 ) .OR. ( step == nt+startstep ) ) ) THEN
+            checkpoint_now = .TRUE.
+        ELSE
+            checkpoint_now = .FALSE.
+        END IF
+
+        IF ( (npy_interval /= 0) .AND. ( ( MOD(step,npy_interval) == 0 ) .OR. ( step == nt+startstep ) ) ) THEN
+            npy_now = .TRUE.
+        ELSE
+            npy_now = .FALSE.
+        END IF
+
+        IF ( (vtk_interval /= 0) .AND. ( ( MOD(step,vtk_interval) == 0 ) .OR. ( step == nt+startstep ) ) ) THEN
+            vtk_now = .TRUE.
+        ELSE
+            vtk_now = .FALSE.
+        END IF
+
+        IF ( (diag_interval /= 0) .AND. ( ( MOD(step,diag_interval) == 0 ) .OR. ( step == nt+startstep ) .OR. ( step == 1 ) ) ) THEN
+            diag_now = .TRUE.
+        ELSE
+            diag_now = .FALSE.
+        END IF
+
+    END SUBROUTINE check_output_intervals
+
+!===============================================================================
+
     SUBROUTINE velocity_output(ispecies,filehandle)
         use diagnostics
         implicit none
@@ -48,8 +79,6 @@ MODULE output
         v_th=sqrt(2*species(ispecies)%src_t*e/species(ispecies)%m)
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity (1,2,3) [m/s]     : ",v_mean
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity/v_th (1,2,3)      : ",v_mean/v_th
-
-
 
 
     END SUBROUTINE  velocity_output
@@ -442,19 +471,17 @@ MODULE output
                 call energy_output(ispecies,filehandle)
                 IF(root) write(filehandle,*)
 
-                IF(diag_interval.ne.0) THEN
-                    IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                        call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:), &
-                                                 data_bins(ispecies,:,:,:,:),.True.)
-                        IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
-                        IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
-                        IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
-                        IF (bool_age_resolved_hits) call age_resolved_hits_output(ispecies)
-                    ELSE
-                        IF (bool_avg_btwn_diag_steps) THEN
-                            call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
-                                                     data_bins(ispecies,:,:,:,:),.False.)
-                        END IF
+                IF (diag_now) THEN
+                    call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:), &
+                                             data_bins(ispecies,:,:,:,:),.True.)
+                    IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
+                    IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
+                    IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
+                    IF (bool_age_resolved_hits) call age_resolved_hits_output(ispecies)
+                ELSE
+                    IF (bool_avg_btwn_diag_steps) THEN
+                        call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
+                                                 data_bins(ispecies,:,:,:,:),.False.)
                     END IF
                 END IF
 
@@ -467,26 +494,22 @@ MODULE output
                 IF(root) write(filehandle,'(a,i10)') "Rethermalized particles :",trethermalized_out(ispecies)
                 IF(root) write(filehandle,*)
             ELSE
-                IF(diag_interval.ne.0) THEN
-                    IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                        IF(species(ispecies)%indx /= 0) call probe_output(ispecies,filehandle)
-                    END IF
+                IF (diag_now) THEN
+                    IF(species(ispecies)%indx /= 0) call probe_output(ispecies,filehandle)
                 END IF
                 IF(root) write(filehandle,*)
             END IF
 
         END DO
 
-        IF(diag_interval.ne.0) THEN
-            IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                last_diag_output=step
-                energy_resolved_hits = 0
-                angle_resolved_hits = 0
-                space_resolved_hits = 0
-                age_resolved_hits = 0
-                n_bins = 0
-                data_bins = 0.0_8
-            END IF
+        IF (diag_now) THEN
+            last_diag_output = step
+            energy_resolved_hits = 0
+            angle_resolved_hits = 0
+            space_resolved_hits = 0
+            age_resolved_hits = 0
+            n_bins = 0
+            data_bins = 0.0_8
         END IF
 
         IF(root) write(filehandle,'(a)')"================================================================================================"
@@ -506,8 +529,8 @@ MODULE output
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a,i16)')    " == Total number of particles            :", sum(tnpps)
 
-        thits_out=0
-        treflux_out=0
+        thits_out = 0
+        treflux_out = 0
 
     END SUBROUTINE main_output
 

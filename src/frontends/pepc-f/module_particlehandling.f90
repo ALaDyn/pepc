@@ -7,6 +7,8 @@ module particlehandling
     use output
     implicit none
 
+    integer, allocatable  :: treflux_tot(:,:)
+
     contains
 
 !======================================================================================
@@ -455,7 +457,6 @@ module particlehandling
                     call reflux_particles(p,reflux(ispecies,ib),ispecies)
                     call MPI_BCAST(next_label, 1, MPI_INTEGER, n_ranks-1, MPI_COMM_WORLD, rc)
                 END IF
-
             END DO
         END DO
 
@@ -600,58 +601,67 @@ module particlehandling
         integer      :: rc
 
         integer      :: hits(0:nspecies-1,1:nb),thits(0:nspecies-1,1:nb)
-        integer      :: reflux(0:nspecies-1,1:nb),treflux(0:nspecies-1,1:nb)
+        integer      :: reflux_now(0:nspecies-1,1:nb),treflux_now(0:nspecies-1,1:nb)
         integer      :: rethermalized(0:nspecies-1),trethermalized(0:nspecies-1)
         integer      :: ispecies,ib
 
-        real(KIND=8) :: timer(10)
 
-        hits=0
-        reflux=0
-        thits=0
-        treflux=0
-        rethermalized=0
-        trethermalized=0
+        hits = 0
+        reflux_now = 0
+        thits = 0
+        treflux_now = 0
+        rethermalized = 0
+        trethermalized = 0
+        IF (step == startstep + 1) THEN
+            allocate(treflux_tot(0:nspecies-1,1:nb))
+            treflux_tot = 0
+            last_reflux_step = startstep
+        END IF
 
         if(root) write(*,'(a)') " == [hits_on_boundaries] count hits and recycle "
 
-        IF (bool_particle_handling_timing) timer(1) = get_time()
         call adapt_particle_age(p)
-        call count_hits_and_remove_particles(p,hits,reflux)
-        IF (bool_particle_handling_timing) timer(2) = get_time()
+
+
+        call count_hits_and_remove_particles(p,hits,reflux_now)
+
 
         IF (retherm > 10) THEN
             call rethermalize_by_age(p,rethermalized)
         ELSE
             call rethermalize(p,rethermalized)
         END IF
-        IF (bool_particle_handling_timing) timer(3) = get_time()
+
 
         call MPI_ALLREDUCE(rethermalized, trethermalized, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
         DO ispecies=0,nspecies-1
             DO ib=1,nb
                 call MPI_ALLREDUCE(hits(ispecies,ib), thits(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-                call MPI_ALLREDUCE(reflux(ispecies,ib), treflux(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+                call MPI_ALLREDUCE(reflux_now(ispecies,ib), treflux_now(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
             END DO
         END DO
-        IF (bool_particle_handling_timing) timer(4) = get_time()
+        treflux_tot = treflux_tot + treflux_now
+        treflux_now = 0
 
-        call recycling(p,treflux)
-        IF (bool_particle_handling_timing) timer(5) = get_time()
+        IF ( (step - last_reflux_step == reflux_interval) .OR. (checkpoint_now) ) THEN
+            call recycling(p,treflux_tot)
+            call set_recycling_output_values(thits,treflux_tot,trethermalized)
+            treflux_tot = 0
+            last_reflux_step = step
+        ELSE
+            call recycling(p,treflux_now)
+            call set_recycling_output_values(thits,treflux_now,trethermalized)
+        END IF
+
 
         call charge_wall(p,thits)
-        IF (bool_particle_handling_timing) timer(6) = get_time()
+
 
         call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-        IF (bool_particle_handling_timing) timer(7) = get_time()
 
-        call set_recycling_output_values(thits,treflux,trethermalized)
-        IF (bool_particle_handling_timing) timer(8) = get_time()
 
         call check_for_leakage(p)
-        IF (bool_particle_handling_timing) timer(9) = get_time()
 
-        IF (bool_particle_handling_timing) write(ph_timing_out,*) step, sum(npps), timer
 
     END SUBROUTINE hits_on_boundaries
 

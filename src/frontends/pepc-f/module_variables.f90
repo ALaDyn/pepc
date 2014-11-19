@@ -66,6 +66,10 @@ module variables
   integer :: vtk_interval     ! interval for writing vtk output
   integer :: checkp_interval  ! interval for setting checkpoints
   integer :: npy_interval     ! interval for dumping particles in npy format
+  logical :: checkpoint_now
+  logical :: vtk_now
+  logical :: diag_now
+  logical :: npy_now
 
 
   ! Physcial System
@@ -113,6 +117,11 @@ module variables
   integer, allocatable :: age_resolved_hits(:,:,:)
 
 
+  ! variables for delayed refluxing (Benjamin apparently did this every second step)
+  integer :: last_reflux_step
+  integer :: reflux_interval
+
+
   ! particle arrays
   type(t_particle), allocatable :: particles(:)                                    !particles
   type(t_particle), allocatable :: all_particles(:)                                !all particles if spiegelladung is set (includes mirror_particles)
@@ -134,7 +143,6 @@ module variables
   integer :: spiegelladung = 0  !temp
   integer :: retherm = 0        !temp
   logical :: bool_particle_handling_timing = .false.  !temp
-  logical :: bool_detailed_timing=.false.             !temp
   logical :: diags !temp
   logical :: guiding_centre_electrons  ! treat electrons in guiding centre approximation (scheme by Benjamin, not sure if correct)
   integer :: rng   !type of rng (0=standard fortran,1=par_rand from module_zufall)
@@ -152,7 +160,7 @@ module variables
                    bool_angle_resolved_hits, bool_energy_resolved_hits, bool_space_resolved_hits, &
                    bool_age_resolved_hits, nbins_age_resolved_hits, &
                    nbins_angle_resolved_hits, nbins_energy_resolved_hits, nbins_e1_space_resolved_hits, &
-                   nbins_e2_space_resolved_hits, bool_diag_bins_cylinder, bool_avg_btwn_diag_steps
+                   nbins_e2_space_resolved_hits, bool_diag_bins_cylinder, bool_avg_btwn_diag_steps, reflux_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 end module

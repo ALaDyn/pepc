@@ -53,6 +53,7 @@ module module_initialization
       checkp_interval = 0
       vtk_interval    = 0
       npy_interval    = 0
+      reflux_interval = 1
       guiding_centre_electrons=.false.
       Bx              = 0.
       By              = 0.
@@ -208,8 +209,7 @@ module module_initialization
     integer, parameter :: fid = 666
     integer(kind_particle) :: global_max_label,local_max_label
     integer :: ip,ib,ispecies,i,j,rc
-    real(KIND=8) :: x_hit_rel(2),eps=1e-12
-    logical :: hit
+    real(KIND=8) :: eps=1e-12
 
     !read probe positions
     open(1234,file=trim(input_file))
