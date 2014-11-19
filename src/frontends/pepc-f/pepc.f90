@@ -243,12 +243,7 @@ program pepc
                                timer(12)-timer(11), out)
             call end_of_ts_output(step,out)
         end if
-        if (bool_detailed_timing) then
-            call timing_output(timer(4)-timer(3), timer(5)-timer(4), timer(6)-timer(5), timer(7)-timer(6),&
-                               timer(10)-timer(9)+timer(8)-timer(7), timer(9)-timer(8), timer(11)-timer(10),&
-                               timer(12)-timer(11), detailed_timing_out)
-            call end_of_ts_output(step,detailed_timing_out)
-        end if
+
         if (MOD(step-startstep,10)==0) call flush_files()
         !end output
 

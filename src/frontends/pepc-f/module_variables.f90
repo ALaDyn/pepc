@@ -142,7 +142,6 @@ module variables
   ! control variables (some are only temporary/for testing)
   integer :: spiegelladung = 0  !temp
   integer :: retherm = 0        !temp
-  logical :: bool_particle_handling_timing = .false.  !temp
   logical :: diags !temp
   logical :: guiding_centre_electrons  ! treat electrons in guiding centre approximation (scheme by Benjamin, not sure if correct)
   integer :: rng   !type of rng (0=standard fortran,1=par_rand from module_zufall)
