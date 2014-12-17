@@ -726,13 +726,12 @@ module particlehandling
         real(KIND=8) :: xhelp(3)
         real(KIND=8),allocatable :: Ehelp(:,:,:), Phihelp(:,:)
 
-        allocate(Ehelp(nb,sum(npps),3))
-        allocate(Phihelp(nb,sum(npps)))
-
-        Ehelp=0
-        Phihelp=0
-
         IF (ANY(boundaries(:)%type == 1)) THEN
+            allocate(Ehelp(nb,sum(npps),3))
+            allocate(Phihelp(nb,sum(npps)))
+
+            Ehelp=0
+            Phihelp=0
             DO ib=1, nb
                 IF (boundaries(ib)%type /= 1) CYCLE
                 e1 = boundaries(ib)%e1
@@ -755,10 +754,9 @@ module particlehandling
                     p(ip)%results%E = p(ip)%results%E + Ehelp(ib,ip,:)
                 END DO
             END DO
+            deallocate(Ehelp)
+            deallocate(Phihelp)
         END IF
-
-        deallocate(Ehelp)
-        deallocate(Phihelp)
 
     END SUBROUTINE add_boundary_field
 
