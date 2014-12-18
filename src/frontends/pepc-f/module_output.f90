@@ -149,7 +149,7 @@ MODULE output
                 DO iz=1,diag_bins_z
                     DO iy=1,diag_bins_y
                         DO ix=1,diag_bins_x
-                            write(filehandle,'(a12,3(i7.5),F12.3,39(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins_dble(ix,iy,iz), &
+                            write(filehandle,'(a12,3(i7.5),F14.3,39(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins_dble(ix,iy,iz), &
                                                         tdata_bins(:,ix,iy,iz)
                         END DO
                     END DO
@@ -637,7 +637,7 @@ MODULE output
 
         !create npy file header
         !https://github.com/numpy/numpy/blob/master/doc/neps/npy-format.rst for more info on the file format
-        write(format,'(a,i2,a)') "(3a,i",6,",a)"
+        write(format,'(a,i2,a)') "(3a,i",9,",a)"
         write(HEADER,format) "{'descr': [('label', '>i8'), ('x', '>f8'), ('y', '>f8'), ('z', '>f8'), ('vx', '>f8'), ('vy', '>f8'), ", &
                            "('vz', '>f8'), ('q', '>f8'), ('m', '>f8'), ('age', '>f8'), ('species', '>i4'), ('mp_int1', '>i4'), ", &
                            "('Ex', '>f8'), ('Ey', '>f8'), ('Ez', '>f8'), ('phi', '>f8')], 'fortran_order': False, 'shape': (", &
