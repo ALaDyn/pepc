@@ -1,9 +1,9 @@
 module module_cmdline
   implicit none
 
-  logical :: do_resume, input_specified
-  character(len=255) :: resume_file,input_file
-  integer :: resume_step
+  logical :: do_resume, input_specified, do_convert
+  character(len=255) :: resume_file,input_file, convert_file
+  integer :: resume_step, convert_step
 
   contains
 
@@ -20,6 +20,7 @@ module module_cmdline
       resume_file=""
       input_file=""
 
+      do_convert=.false.
       do_resume=.false.
       file_exists=.false.
       arg_is_val=.false.
@@ -46,6 +47,28 @@ module module_cmdline
           case ('-h', '--help')
             call print_help()
             stop
+          case ('-c', '--convert')
+            do_convert = .true.
+            call get_command_argument(i+1, arg_val)
+            inquire(FILE=arg_val, EXIST=file_exists)
+            if (file_exists) then
+                convert_file = trim(arg_val)
+                do j=1,255
+                  if (convert_file(j:j+3)==".mpi") then
+                    read(convert_file(j-6:j),"(i6)")convert_step
+                    exit
+                  end if
+                end do
+                file_exists=.false.
+                arg_is_val=.true.                 !set so that next cycle will be skipped
+            else
+              write (*,*)
+              write (*,*) "********************************************"
+              write (*,*) "*** Chosen file to convert does not exist ***"
+              write (*,*) "********************************************"
+              write (*,*)
+              stop
+            end if
           case ('-r', '--resume')
             do_resume = .true.
             call get_command_argument(i+1, arg_val)
@@ -95,7 +118,7 @@ module module_cmdline
         end select
       end do
 
-      if (input_specified .eqv. .false.) then
+      if ((input_specified .eqv. .false.) .and. (do_convert .eqv. .false.)) then
         write (*,*)
         write (*,*) "********************************************"
         write (*,*) "** Inputfile (-i) is needed to run pepc-f **"
@@ -116,6 +139,7 @@ module module_cmdline
       print '(a)', ''
       print '(a)', 'pepc-f options:'
       print '(a)', ''
+      print '(a)', '  -c(--convert) convertfile convert checkpoint to npy format'
       print '(a)', '  -i(--input) inputfile     start run with specified inputfile'
       print '(a)', '  -r(--resume) resumefile   resume run from specified checkpoint'
       print '(a)', '                            the .mpi file has to be selected'

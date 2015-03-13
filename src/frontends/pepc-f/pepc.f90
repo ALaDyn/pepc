@@ -48,6 +48,7 @@ program pepc
     ! timing variables
     real*8 :: timer(20)
     integer :: rc,ip,imp,irp
+    integer*8 :: npart
 
 
     !!! initialize pepc library and MPI
@@ -61,6 +62,14 @@ program pepc
     timer(1) = get_time()
 
     call read_args()
+
+    if (do_convert) then
+        call read_particles_mpiio_from_filename(MPI_COMM_WORLD,step,npart,particles,&
+                                                convert_file,noparams=.true.)
+        call write_particles_npy(particles,my_rank,convert_step)
+        call pepc_finalize()
+        stop
+    end if
 
     call init_files()
 
