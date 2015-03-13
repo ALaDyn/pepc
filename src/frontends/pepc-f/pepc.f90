@@ -92,6 +92,8 @@ program pepc
     call init_output_arrays()
     call write_parameters()
 
+    if (bool_hockney_diag) call store_initial_velocities(particles)
+
     !get initial field configuration
     call pepc_particleresults_clear(particles)
     call pepc_grow_tree(particles)
@@ -100,6 +102,8 @@ program pepc
     call get_number_of_particles(particles)
     call pepc_timber_tree()
 
+    !initially integrate v half a step backwards
+    call boris_nonrel(particles, -dt/2)
 
     !write initial configuration
     if(checkp_interval.ne.0) then
@@ -122,7 +126,8 @@ program pepc
         timer(3) = get_time()
 
         ! Move particles according to electric field configuration
-        call boris_nonrel(particles)
+        call boris_nonrel(particles, dt)
+        call push_particles(particles, dt)
         timer(4) = get_time()
 
 
@@ -234,8 +239,10 @@ program pepc
         !end vtk and checkpoints
 
 
-        !output
+        !output (particle velocities are moved to be at the same time as positions)
+        call boris_nonrel(particles, dt/2)
         call main_output(out)
+        call boris_nonrel(particles, -dt/2)
 
         timer(12)=get_time()
         if(root) then

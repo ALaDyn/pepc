@@ -8,14 +8,110 @@
 
 MODULE diagnostics
 
-
     use variables
     use helper
 
     implicit none
 
+    real(KIND=8), allocatable :: initial_velocities(:,:)
+
     CONTAINS
 !===============================================================================
+
+    subroutine store_initial_velocities(p)
+        implicit none
+        include 'mpif.h'
+
+        type(t_particle),  intent(in) :: p(:)
+
+        integer :: ip, ierr
+        real(KIND=8), allocatable :: initial_velocities_local(:,:)
+
+        if (.not. allocated(initial_velocities)) then
+            allocate(initial_velocities(3, sum(tnpps)))
+        end if
+        allocate(initial_velocities_local(3, sum(tnpps)))
+
+        initial_velocities = 0.0_8
+        initial_velocities_local = 0.0_8
+
+        do ip=1, sum(npps)
+            initial_velocities_local(:, p(ip)%label) = p(ip)%data%v
+        end do
+
+        call MPI_ALLREDUCE(initial_velocities_local, initial_velocities, 3*sum(tnpps), MPI_REAL8, MPI_SUM, &
+                           MPI_COMM_WORLD, ierr)
+
+    end subroutine store_initial_velocities
+!===============================================================================
+
+    subroutine hockney_diag(p, avg_1, avg_2, avg_3, avg_4, avg_5)
+        implicit none
+        include 'mpif.h'
+
+        type(t_particle),  intent(in) :: p(:)
+        real(KIND=8), intent(inout) :: avg_1(:), avg_2(:), avg_3(:), avg_4(:), avg_5(:)
+        !avg_1 = <beta(t)^2>^0.5
+        !avg_2 = <vperp(t)^2>^0.5
+        !avg_3 = <vpar(t)>
+        !avg_4 = <h(t)>
+        !avg_5 = <h(t)^2>^0.5
+        !< x > = 1/N * sum(1..N) (x)
+        !h = 0.5 * m * (v(t)^2 - v(0)^2)
+
+        integer :: ip, ierr, ispecies
+        real(KIND=8) :: v0_p(3), h_p, vpar_p, vperp_p, v_p(3), e0_p(3)
+        real(KIND=8) :: beta_p !deflection angle; angle between v0 and v
+
+        real(KIND=8) :: avg_beta2(nspecies-1), avg_vperp2(nspecies-1), avg_vpar(nspecies-1),&
+                        avg_h(nspecies-1), avg_h2(nspecies-1)
+
+        avg_beta2 = 0.
+        avg_vperp2 = 0.
+        avg_vpar = 0.
+        avg_h = 0.
+        avg_h2 = 0.
+
+        avg_1 = 0.
+        avg_2 = 0.
+        avg_3 = 0.
+        avg_4 = 0.
+        avg_5 = 0.
+
+
+        do ip=1, sum(npps)
+            ispecies = p(ip)%data%species
+            if (.not. species(ispecies)%physical_particle) cycle
+            v0_p = initial_velocities(:, p(ip)%label)
+            e0_p = v0_p / norm(v0_p)
+            v_p = p(ip)%data%v
+
+            h_p = 0.5 * species(ispecies)%m/e * (sum(v_p**2) - sum(v0_p**2))
+            vpar_p = dotproduct(v_p, e0_p)
+            vperp_p = sqrt(sum(v_p**2) - vpar_p**2)
+            beta_p = acos( dotproduct(v0_p, v_p) / (norm(v0_p) * norm(v_p)) ) !range of acos func: 0..pi
+
+            avg_beta2(ispecies) = avg_beta2(ispecies) + beta_p**2
+            avg_vperp2(ispecies) = avg_vperp2(ispecies) + vperp_p**2
+            avg_vpar(ispecies) = avg_vpar(ispecies) + vpar_p
+            avg_h(ispecies) = avg_h(ispecies) + h_p
+            avg_h2(ispecies) = avg_h2(ispecies) + h_p**2
+        end do
+
+        call MPI_REDUCE(avg_beta2, avg_1, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vperp2, avg_2, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vpar, avg_3, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_h, avg_4, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_h2, avg_5, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+
+        avg_1 = sqrt(avg_1(:) / tnpps(1:))
+        avg_2 = sqrt(avg_2(:) / tnpps(1:))
+        avg_3 = avg_3(:) / tnpps(1:)
+        avg_4 = avg_4(:) / tnpps(1:)
+        avg_5 = sqrt(avg_5 / tnpps(1:))
+
+
+    end subroutine hockney_diag
 
     function get_epot(p,ispecies)
         implicit none

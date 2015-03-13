@@ -89,6 +89,8 @@ module module_initialization
       diag_bins_y=1
       diag_bins_z=1
 
+      bool_hockney_diag = .true.
+
   end subroutine set_default_parameters
 
 !======================================================================================

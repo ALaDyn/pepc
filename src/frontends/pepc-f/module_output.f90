@@ -447,14 +447,17 @@ MODULE output
 !===============================================================================
 
     SUBROUTINE main_output(filehandle)
+        use diagnostics, only: hockney_diag
         implicit none
 
         integer,intent(in)      :: filehandle
         integer :: ib,ispecies
+        real(KIND=8) :: avg_1(nspecies-1), avg_2(nspecies-1), avg_3(nspecies-1), avg_4(nspecies-1), avg_5(nspecies-1)
 
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a)')"=================================== Info on particle-species ==================================="
         IF(root) write(filehandle,'(a)')"================================================================================================"
+        IF (bool_hockney_diag) call hockney_diag(particles, avg_1, avg_2, avg_3, avg_4, avg_5)
         DO ispecies=0,nspecies-1
             IF(root) THEN
                 IF (species(ispecies)%physical_particle) THEN
@@ -469,6 +472,14 @@ MODULE output
             IF (species(ispecies)%physical_particle) THEN
                 call velocity_output(ispecies,filehandle)
                 call energy_output(ispecies,filehandle)
+                IF (bool_hockney_diag) THEN
+                    IF(root) write(filehandle,*)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <beta(t)^2>^0.5: ",avg_1(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vperp(t)^2>^0.5: ",avg_2(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)>: ",avg_3(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)>: ",avg_4(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)^2>^0.5: ",avg_5(ispecies)
+                END IF
                 IF(root) write(filehandle,*)
 
                 IF (diag_now) THEN
