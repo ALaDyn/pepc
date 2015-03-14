@@ -452,7 +452,8 @@ MODULE output
 
         integer,intent(in)      :: filehandle
         integer :: ib,ispecies
-        real(KIND=8) :: avg_1(nspecies-1), avg_2(nspecies-1), avg_3(nspecies-1), avg_4(nspecies-1), avg_5(nspecies-1)
+        real(KIND=8) :: avg_1(nspecies-1), avg_2(nspecies-1), avg_3(nspecies-1), avg_4(nspecies-1), avg_5(nspecies-1), &
+                        avg_6(nspecies-1), avg_7(nspecies-1)
 
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a)')"=================================== Info on particle-species ==================================="
@@ -479,6 +480,8 @@ MODULE output
                     IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)>: ",avg_3(ispecies)
                     IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)>: ",avg_4(ispecies)
                     IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)^2>^0.5: ",avg_5(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <vpar(t)^2>: ",avg_6(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <vperp(t)^2>: ",avg_7(ispecies)
                 END IF
                 IF(root) write(filehandle,*)
 
