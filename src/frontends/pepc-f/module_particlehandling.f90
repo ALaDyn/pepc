@@ -775,7 +775,7 @@ module particlehandling
                     p(ip)%data%B(1)=Bx
                     p(ip)%data%B(2)=By
                     p(ip)%data%B(3)=Bz
-                    p(ip)%label       = my_rank * (SUM(tnpps(1:nspecies-1)) / n_ranks) + ip
+                    p(ip)%label       = my_rank * SUM(tnpps(1:nspecies-1) / n_ranks) + ip
                     p(ip)%data%q      = species(ispecies)%q*fsup
                     p(ip)%data%m      = species(ispecies)%m*fsup
                     p(ip)%data%species= species(ispecies)%indx
