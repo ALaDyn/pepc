@@ -458,7 +458,7 @@ MODULE output
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a)')"=================================== Info on particle-species ==================================="
         IF(root) write(filehandle,'(a)')"================================================================================================"
-        IF (bool_hockney_diag) call hockney_diag(particles, avg_1, avg_2, avg_3, avg_4, avg_5)
+        IF (bool_hockney_diag) call hockney_diag(particles, avg_1, avg_2, avg_3, avg_4, avg_5, avg_6, avg_7)
         DO ispecies=0,nspecies-1
             IF(root) THEN
                 IF (species(ispecies)%physical_particle) THEN
