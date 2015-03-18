@@ -89,9 +89,9 @@ ifeq ($(OMPSS), 1)
       CFLAGS  += -g                                                                                   
       LDFLAGS += -g -k --Wn,-O3,-finline-functions                                   #,-fwhole-program
    endif
-   CC += -cc=$(OMPSSCC)
-   FC += -f90=$(OMPSSFC)
-   LD += -f90=$(OMPSSFC)
+#   CC += -cc=$(OMPSSCC)
+#   FC += -f90=$(OMPSSFC)
+#   LD += -f90=$(OMPSSFC)
    ifeq ($(INSTRUMENT), 1)
       FFLAGS  += --instrument
       CFLAGS  +=

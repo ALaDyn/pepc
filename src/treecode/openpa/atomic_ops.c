@@ -1,7 +1,7 @@
 /*
 * This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 * 
-* Copyright (C) 2002-2013 Juelich Supercomputing Centre, 
+* Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
 *                         Forschungszentrum Juelich GmbH,
 *                         Germany
 * 
@@ -59,11 +59,6 @@ void _atomic_store_int(OPA_int_t* storage, int val)
 int _atomic_fetch_and_increment_int(OPA_int_t* storage)
 {
   return OPA_fetch_and_incr_int(storage);
-}
-
-int _atomic_fetch_and_decrement_int(OPA_int_t* storage)
-{
-  return OPA_fetch_and_decr_int(storage);
 }
 
 int _atomic_mod_increment_and_fetch_int(OPA_int_t* storage, int mod)
