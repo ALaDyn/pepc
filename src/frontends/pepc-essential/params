@@ -39,7 +39,7 @@ eps2 = 0.009
 /
 
 &libpepc
- num_threads = 1
+ num_threads = 4
  debug_level = 0 !1091
  np_mult = 1.0
 

@@ -11,7 +11,7 @@
 #endif
 
 // have some form of debugging - works on Intel, not on NVidia (remove trailing ___)
-#if defined cl_intel_printf
+#if defined cl_intel_printf__
 #define DBG
 #pragma OPENCL EXTENSION cl_intel_printf : enable
 #endif

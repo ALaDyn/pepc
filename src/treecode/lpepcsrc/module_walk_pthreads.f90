@@ -1157,8 +1157,6 @@ subroutine walk_worker_thread(my_threaddata)
     
     my_threaddata%finished = .true.
 
-    walk_worker_thread = c_null_ptr
-
     contains
   
     subroutine swap_defer_lists()

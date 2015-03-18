@@ -25,9 +25,9 @@ EXTRA += -DOMPSS_TASKS
 
 #### select the kernel computing the list of interactions
 #### -DOCL_KERNEL will enable an OpenCL kernel
-EXTRA += -DOCL_KERNEL
+#EXTRA += -DOCL_KERNEL
 #### -DSMP_ALTERNATIVE adds an SMP kernel via 'implements', can be with ot w/o OCL_KERNEL
-#EXTRA += -DSMP_ALTERNATIVE
+EXTRA += -DSMP_ALTERNATIVE
 #### -DSMP_KERNEL runs the interaction on the CPU only, has to be the only kernel
 #EXTRA += -DSMP_KERNEL
 
@@ -39,7 +39,7 @@ OMPSSCC    = oclmcc
 
 MACH       = oclmfc
 
-DEBUG      = 1
+DEBUG      = 0
 INSTRUMENT = 1
 MONITOR    = 0
 
@@ -67,13 +67,13 @@ FFLAGS     = -Wall -ffree-line-length-none -fopenmp -frecursive
 CFLAGS     = -Wall
 LDFLAGS    = -pthread -fopenmp
 ifeq ($(DEBUG), 1)
-  FFLAGS  += -g -k -fcheck=all
-  CFLAGS  += -g
-  LDFLAGS += -g -k -fcheck=all
+  FFLAGS  += -g -fcheck=all
+  CFLAGS  += -g 
+  LDFLAGS += -g -fcheck=all
 else
-  FFLAGS  += -O3 -g
-  CFLAGS  += -O3 -g
-  LDFLAGS += -O3 -g
+  FFLAGS  += -O3
+  CFLAGS  += -O3
+  LDFLAGS += -O3
 endif
 
 ifeq ($(OMPSS), 1)
@@ -82,7 +82,7 @@ ifeq ($(OMPSS), 1)
    LDFLAGS   = --Wn,-pthread,-fopenmp --ompss --opencl
    ifeq ($(DEBUG), 1)
       FFLAGS  += -g -k --Wn,-O0 --Wn,-fcheck=all
-      CFLAGS  += -g
+      CFLAGS  += -g -k
       LDFLAGS += -g -k --Wn,-O0 --Wn,-fcheck=all
    else
       FFLAGS  += -g -k --Wn,-O3,-finline-functions,-ftree-vectorize,-fdump-ipa-inline#,-fwhole-program
@@ -99,8 +99,8 @@ ifeq ($(OMPSS), 1)
    endif
    ifeq ($(MONITOR), 1)
       CPPFLAGS += -DMONITOR
-      #LDFLAGS  += -L/usr/local/OmpSs/packages/extrae/2.4.1-parastation-papi/lib -lnanostrace
-      LDFLAGS  += -L/usr/local/OmpSs/packages/extrae/2.5.1-parastation-papi/lib -lnanostrace
+      LDFLAGS  += -L/usr/local/OmpSs/packages/extrae/2.4.1-parastation-papi/lib -lnanostrace
+      #LDFLAGS  += -L/usr/local/OmpSs/packages/extrae/2.5.1-parastation-papi/lib -lnanostrace
    endif
 else
    CPPFLAGS += -DNO_NANOS
