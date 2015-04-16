@@ -133,6 +133,17 @@ module module_initialization
         n_bins = 0
         data_bins = 0.0_8
 
+        !if the following condition is met, particles can leave the system. Diagnostics for collisionality and heating
+        !(as they are implemented right now) won't work. So bool_hockney_diag ist set to .false.
+        IF ( ANY(boundaries(:)%type == 0) .OR. ANY(boundaries(:)%type == 1) .OR. &
+             ANY(boundaries(:)%type == 2) .OR. ANY(boundaries(:)%type == 3) ) THEN
+            bool_hockney_diag = .false.
+        END IF
+
+        !if the following condition is met, particles enter the system. Diagnostics for collisionality and heating
+        !(as they are implemented right now) won't work. So bool_hockney_diag ist set to .false.
+        IF ( ANY(species(:)%nfp /= 0) ) bool_hockney_diag = .false.
+
     end subroutine init
 
 
@@ -198,113 +209,124 @@ module module_initialization
 
   end subroutine set_parameters
 
-!====================================================================================== 
+  !======================================================================================
 
   subroutine init_after_resume()
-    use module_pepc
-    use module_interaction_specific
-    use module_mirror_boxes
-    use module_checkpoint
-    implicit none
-    include 'mpif.h'
+      use module_pepc
+      use module_interaction_specific
+      use module_mirror_boxes
+      use module_checkpoint
+      implicit none
+      include 'mpif.h'
       
-    integer, parameter :: fid = 666
-    integer(kind_particle) :: global_max_label,local_max_label
-    integer :: ip,ib,ispecies,i,j,rc
-    real(KIND=8) :: eps=1e-12
+      integer, parameter :: fid = 666
+      integer(kind_particle) :: global_max_label,local_max_label
+      integer :: ip,ib,ispecies,i,j,rc
+      real(KIND=8) :: eps=1e-12
 
-    !read probe positions
-    open(1234,file=trim(input_file))
-    read(1234,NML=probe_positions)
-    close(1234)
+      !read probe positions
+      open(1234,file=trim(input_file))
+      read(1234,NML=probe_positions)
+      close(1234)
 
-    npps=0
-    tnpps=0
+      npps=0
+      tnpps=0
 
-    !change charge and mass of particles if fsup was changed
-    IF (real_unequal(fsup_at_checkpoint, fsup, eps)) THEN
-        IF (root) write(*,*)
-        IF (root) write(*,*) "fsup was changed after resume. Existing particles will be adjusted. "
-        IF (root) write(*,*) "fsup_old:",fsup_at_checkpoint, "fsup:", fsup
-        IF (root) write(*,*)
-        DO ip=1,size(particles)
-            particles(ip)%data%m = particles(ip)%data%m / fsup_at_checkpoint * fsup
-            particles(ip)%data%q = particles(ip)%data%q / fsup_at_checkpoint * fsup
-        END DO
-    END IF
+      !change charge and mass of particles if fsup was changed
+      IF (real_unequal(fsup_at_checkpoint, fsup, eps)) THEN
+          IF (root) write(*,*)
+          IF (root) write(*,*) "fsup was changed after resume. Existing particles will be adjusted. "
+          IF (root) write(*,*) "fsup_old:",fsup_at_checkpoint, "fsup:", fsup
+          IF (root) write(*,*)
+          DO ip=1,size(particles)
+              particles(ip)%data%m = particles(ip)%data%m / fsup_at_checkpoint * fsup
+              particles(ip)%data%q = particles(ip)%data%q / fsup_at_checkpoint * fsup
+          END DO
+      END IF
 
-    !count particles per species (npps) in checkpoint data
-    DO ip=1,size(particles)
-        npps(particles(ip)%data%species)=npps(particles(ip)%data%species)+1
-    END DO
-    call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+      !count particles per species (npps) in checkpoint data
+      DO ip=1,size(particles)
+          npps(particles(ip)%data%species)=npps(particles(ip)%data%species)+1
+      END DO
+      call MPI_ALLREDUCE(npps, tnpps, nspecies, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-    !Check wallparticles
-    IF (tnpps(0)/=count_wallparticles()) THEN
-        IF (root) write(*,*) "Number of Wallparticles in checkpoint does not match number in input.",tnpps(0),count_wallparticles()
-        IF (root) write(*,*) "You can't change the number of Wallparticles when resuming"
-        STOP
-    END IF
-
-
-    ! set charges of wallparticles after resume according to q_tot input
-    DO ip=1, size(particles)
-        IF (particles(ip)%data%species/=0) CYCLE
-        ib = particles(ip)%data%mp_int1
-        particles(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
-    END DO
+      !Check wallparticles
+      IF (tnpps(0)/=count_wallparticles()) THEN
+          IF (root) write(*,*) "Number of Wallparticles in checkpoint does not match number in input.",tnpps(0),count_wallparticles()
+          IF (root) write(*,*) "You can't change the number of Wallparticles when resuming"
+          STOP
+      END IF
 
 
-    !find global maximum label
-    global_max_label = 0
-    local_max_label  = 0
-    DO ip=1,size(particles)
-        if (particles(ip)%label > local_max_label) local_max_label = particles(ip)%label
-    END DO
-    call MPI_ALLREDUCE(local_max_label, global_max_label, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
-    next_label = global_max_label + 1
+      ! set charges of wallparticles after resume according to q_tot input
+      DO ip=1, size(particles)
+          IF (particles(ip)%data%species/=0) CYCLE
+          ib = particles(ip)%data%mp_int1
+          particles(ip)%data%q = boundaries(ib)%q_tot / boundaries(ib)%nwp
+      END DO
 
-    !remove existing probes and re-add them (so the number of probes can be changed or new probe species can be added)
-    DO ispecies=1,nspecies-1
-        call remove_all_probes(ispecies,particles)
-    END DO
 
-    DO ispecies=1,nspecies-1
-        IF (.not. species(ispecies)%physical_particle) THEN
-           IF (root) THEN  !all probes are added on root and will be redistributed later automatically
-               npps(ispecies) = species(ispecies)%nip
-               call reallocate_particles(particles, size(particles), sum(npps))
-               j=0
-               DO i=1, npps(ispecies)
-                   ip = size(particles) - npps(ispecies) + i
-                   particles(ip)%data%B(1)=Bx
-                   particles(ip)%data%B(2)=By
-                   particles(ip)%data%B(3)=Bz
-                   particles(ip)%label       = next_label
-                   next_label = next_label + 1
-                   particles(ip)%data%q      = species(ispecies)%q*fsup
-                   particles(ip)%data%m      = species(ispecies)%m*fsup
-                   particles(ip)%data%species= species(ispecies)%indx
-                   particles(ip)%results%e   = 0.0_8
-                   particles(ip)%results%pot = 0.0_8
-                   particles(ip)%work        = 1.0_8
-                   particles(ip)%x(1) = probe_start_x(ispecies) + (j+0.5) * (probe_end_x(ispecies) - probe_start_x(ispecies)) / species(ispecies)%nip
-                   particles(ip)%x(2) = probe_start_y(ispecies) + (j+0.5) * (probe_end_y(ispecies) - probe_start_y(ispecies)) / species(ispecies)%nip
-                   particles(ip)%x(3) = probe_start_z(ispecies) + (j+0.5) * (probe_end_z(ispecies) - probe_start_z(ispecies)) / species(ispecies)%nip
-                   particles(ip)%data%v = 0.
-                   j=j+1
-               END DO
-           END IF
-           tnpps(ispecies) = tnpps(ispecies) + species(ispecies)%nip
-       END IF
-    END DO
+      !find global maximum label
+      global_max_label = 0
+      local_max_label  = 0
+      DO ip=1,size(particles)
+          if (particles(ip)%label > local_max_label) local_max_label = particles(ip)%label
+      END DO
+      call MPI_ALLREDUCE(local_max_label, global_max_label, 1, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
+      next_label = global_max_label + 1
 
-    allocate(n_bins(0:nspecies-1,diag_bins_x, diag_bins_y, diag_bins_z))
-    allocate(data_bins(0:nspecies-1,39,diag_bins_x, diag_bins_y, diag_bins_z))
-    n_bins = 0
-    data_bins = 0.0_8
+      !remove existing probes and re-add them (so the number of probes can be changed or new probe species can be added)
+      DO ispecies=1,nspecies-1
+          call remove_all_probes(ispecies,particles)
+      END DO
 
-    call MPI_BCAST(next_label, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, rc)
+      DO ispecies=1,nspecies-1
+          IF (.not. species(ispecies)%physical_particle) THEN
+              IF (root) THEN  !all probes are added on root and will be redistributed later automatically
+                  npps(ispecies) = species(ispecies)%nip
+                  call reallocate_particles(particles, size(particles), sum(npps))
+                  j=0
+                  DO i=1, npps(ispecies)
+                      ip = size(particles) - npps(ispecies) + i
+                      particles(ip)%data%B(1)=Bx
+                      particles(ip)%data%B(2)=By
+                      particles(ip)%data%B(3)=Bz
+                      particles(ip)%label       = next_label
+                      next_label = next_label + 1
+                      particles(ip)%data%q      = species(ispecies)%q*fsup
+                      particles(ip)%data%m      = species(ispecies)%m*fsup
+                      particles(ip)%data%species= species(ispecies)%indx
+                      particles(ip)%results%e   = 0.0_8
+                      particles(ip)%results%pot = 0.0_8
+                      particles(ip)%work        = 1.0_8
+                      particles(ip)%x(1) = probe_start_x(ispecies) + (j+0.5) * (probe_end_x(ispecies) - probe_start_x(ispecies)) / species(ispecies)%nip
+                      particles(ip)%x(2) = probe_start_y(ispecies) + (j+0.5) * (probe_end_y(ispecies) - probe_start_y(ispecies)) / species(ispecies)%nip
+                      particles(ip)%x(3) = probe_start_z(ispecies) + (j+0.5) * (probe_end_z(ispecies) - probe_start_z(ispecies)) / species(ispecies)%nip
+                      particles(ip)%data%v = 0.
+                      j=j+1
+                  END DO
+              END IF
+              tnpps(ispecies) = tnpps(ispecies) + species(ispecies)%nip
+          END IF
+      END DO
+
+      allocate(n_bins(0:nspecies-1,diag_bins_x, diag_bins_y, diag_bins_z))
+      allocate(data_bins(0:nspecies-1,39,diag_bins_x, diag_bins_y, diag_bins_z))
+      n_bins = 0
+      data_bins = 0.0_8
+
+      call MPI_BCAST(next_label, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, rc)
+
+      !if the following condition is met, particles can leave the system. Diagnostics for collisionality and heating
+      !(as they are implemented right now) won't work. So bool_hockney_diag ist set to .false.
+      IF ( ANY(boundaries(:)%type == 0) .OR. ANY(boundaries(:)%type == 1) .OR. &
+          ANY(boundaries(:)%type == 2) .OR. ANY(boundaries(:)%type == 3) ) THEN
+          bool_hockney_diag = .false.
+      END IF
+
+      !if the following condition is met, particles enter the system. Diagnostics for collisionality and heating
+      !(as they are implemented right now) won't work. So bool_hockney_diag ist set to .false.
+      IF ( ANY(species(:)%nfp /= 0) ) bool_hockney_diag = .false.
 
   end subroutine init_after_resume
 
