@@ -452,13 +452,16 @@ MODULE output
 
         integer,intent(in)      :: filehandle
         integer :: ib,ispecies
-        real(KIND=8) :: avg_1(nspecies-1), avg_2(nspecies-1), avg_3(nspecies-1), avg_4(nspecies-1), avg_5(nspecies-1), &
-                        avg_6(nspecies-1), avg_7(nspecies-1)
+        real(KIND=8) :: avg_1(nspecies-1), avg_2(nspecies-1), avg_3(nspecies-1), avg_4(nspecies-1), avg_5(nspecies-1)
+        real(KIND=8) :: avg_6(nspecies-1), avg_7(nspecies-1), avg_8(nspecies-1), avg_9(nspecies-1), avg_10(nspecies-1)
+        real(KIND=8) :: avg_11(nspecies-1), avg_12(nspecies-1), avg_13(nspecies-1), avg_14(nspecies-1), avg_15(nspecies-1)
+        real(KIND=8) :: avg_16(nspecies-1), avg_fields(12, nspecies-1)
 
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a)')"=================================== Info on particle-species ==================================="
         IF(root) write(filehandle,'(a)')"================================================================================================"
-        IF (bool_hockney_diag) call hockney_diag(particles, avg_1, avg_2, avg_3, avg_4, avg_5, avg_6, avg_7)
+        IF (bool_hockney_diag) call hockney_diag(particles, avg_1, avg_2, avg_3, avg_4, avg_5, avg_6, avg_7, avg_8, &
+                                                 avg_9, avg_10, avg_11, avg_12, avg_13, avg_14, avg_15, avg_16, avg_fields)
         DO ispecies=0,nspecies-1
             IF(root) THEN
                 IF (species(ispecies)%physical_particle) THEN
@@ -475,13 +478,35 @@ MODULE output
                 call energy_output(ispecies,filehandle)
                 IF (bool_hockney_diag) THEN
                     IF(root) write(filehandle,*)
-                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <beta(t)^2>^0.5: ",avg_1(ispecies)
-                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vperp(t)^2>^0.5: ",avg_2(ispecies)
-                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)>: ",avg_3(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <beta(t)>: ",avg_1(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|beta(t)|>: ",avg_2(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <beta(t)^2>^0.5: ",avg_3(ispecies)
                     IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)>: ",avg_4(ispecies)
-                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)^2>^0.5: ",avg_5(ispecies)
-                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <vpar(t)^2>: ",avg_6(ispecies)
-                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <vperp(t)^2>: ",avg_7(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|h(t)|>: ",avg_5(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)^2>^0.5: ",avg_6(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)>: ",avg_7(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vpar(t)|>: ",avg_8(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)^2>^0.5: ",avg_9(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vperp(t)|>: ",avg_10(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vperp(t)^2>^0.5: ",avg_11(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|v(t)|>: ",avg_12(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <v(t)^2>^0.5: ",avg_13(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <vpar(t)^2>: ",avg_14(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <vperp(t)^2>: ",avg_15(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <v^2>: ",avg_16(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <Ex>: ",avg_fields(1,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <Ey>: ",avg_fields(2,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <Ez>: ",avg_fields(3,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <ExEx>: ",avg_fields(4,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <EyEy>: ",avg_fields(5,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <EzEz>: ",avg_fields(6,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <ExEy>: ",avg_fields(7,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <EyEz>: ",avg_fields(8,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <EzEx>: ",avg_fields(9,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|E|>: ",avg_fields(10,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <E^2>: ",sum(avg_fields(4:6,ispecies))
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <pot>: ",avg_fields(11,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <pot^2>: ",avg_fields(12,ispecies)
                 END IF
                 IF(root) write(filehandle,*)
 
