@@ -543,10 +543,10 @@ MODULE output
 
         IF (diag_now) THEN
             last_diag_output = step
-            energy_resolved_hits = 0
-            angle_resolved_hits = 0
-            space_resolved_hits = 0
-            age_resolved_hits = 0
+            IF (bool_energy_resolved_hits) energy_resolved_hits = 0
+            IF (bool_angle_resolved_hits) angle_resolved_hits = 0
+            IF (bool_space_resolved_hits) space_resolved_hits = 0
+            IF (bool_age_resolved_hits) age_resolved_hits = 0
             n_bins = 0
             data_bins = 0.0_8
         END IF
