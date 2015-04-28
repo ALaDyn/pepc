@@ -51,7 +51,7 @@ module module_species_types
          integer :: nfp=0                    !< number of influxed particles per timestep (in addition to refluxed particles that hit an absorbing boundary)
          integer :: nip=0                    !< initial number of particles (irrelevant when resuming)
 
-         integer :: src_type
+         integer :: src_type_v, src_type_x
          real(KIND=8) :: src_x0(3)
          real(KIND=8) :: src_e1(3),src_e2(3),src_e3(3)
          real(KIND=8) :: src_v0=0._8         !< drift velocity if flux from drifting Maxwellian is used

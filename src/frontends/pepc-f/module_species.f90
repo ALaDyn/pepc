@@ -43,7 +43,7 @@ module module_species
         real(KIND=8), allocatable :: charge(:)
         logical,allocatable :: physical_particle(:)
         character(255),allocatable :: name(:)
-        integer, allocatable :: src_type(:),src_bnd(:)
+        integer, allocatable :: src_type_x(:),src_bnd(:),src_type_v(:)
         real(KIND=8), allocatable :: src_x0(:,:)
         real(KIND=8), allocatable :: src_e1(:,:),src_e2(:,:),src_e3(:,:)
         real(KIND=8), allocatable :: src_v0(:)
@@ -52,19 +52,20 @@ module module_species
         integer :: ns,ns_max
         integer :: rc,ispecies,fid=12
 
-        namelist /species_nml/ src_t,ns,nip,nfp,mass,charge,physical_particle,name,src_type,src_bnd,src_x0,src_e1,src_e2,src_e3,src_v0
+        namelist /species_nml/ src_t,ns,nip,nfp,mass,charge,physical_particle,name,src_type_x,src_type_v,src_bnd,src_x0,src_e1,src_e2,src_e3,src_v0
 
         ns=0
         ns_max=1000
 
-                allocate(nfp(0:ns_max),stat=rc)
+        allocate(nfp(0:ns_max),stat=rc)
         allocate(nip(0:ns_max),stat=rc)
         allocate(mass(0:ns_max),stat=rc)
         allocate(src_t(0:ns_max),stat=rc)
         allocate(charge(0:ns_max),stat=rc)
         allocate(physical_particle(0:ns_max),stat=rc)
         allocate(name(0:ns_max),stat=rc)
-        allocate(src_type(0:ns_max),stat=rc)
+        allocate(src_type_x(0:ns_max),stat=rc)
+        allocate(src_type_v(0:ns_max),stat=rc)
         allocate(src_bnd(0:ns_max),stat=rc)
         allocate(src_x0(0:ns_max,3),stat=rc)
         allocate(src_e1(0:ns_max,3),stat=rc)
@@ -84,7 +85,8 @@ module module_species
         deallocate(charge)
         deallocate(physical_particle)
         deallocate(name)
-        deallocate(src_type)
+        deallocate(src_type_x)
+        deallocate(src_type_v)
         deallocate(src_bnd)
         deallocate(src_x0)
         deallocate(src_e1)
@@ -100,7 +102,8 @@ module module_species
         allocate(charge(0:ns-1),stat=rc)
         allocate(physical_particle(0:ns-1),stat=rc)
         allocate(name(0:ns-1),stat=rc)
-        allocate(src_type(0:ns-1),stat=rc)
+        allocate(src_type_x(0:ns-1),stat=rc)
+        allocate(src_type_v(0:ns-1),stat=rc)
         allocate(src_bnd(0:ns-1),stat=rc)
         allocate(src_x0(0:ns-1,3),stat=rc)
         allocate(src_e1(0:ns-1,3),stat=rc)
@@ -114,7 +117,8 @@ module module_species
         physical_particle=.false.
         name=""
         src_t=0.
-        src_type=0
+        src_type_x=0
+        src_type_v=0
         src_bnd=0
         src_v0=0
         src_x0=0
@@ -152,12 +156,11 @@ module module_species
 
             IF (species(ispecies)%physical_particle) THEN
                 species(ispecies)%v_th = sqrt(species(ispecies)%src_t * e / species(ispecies)%m)
-                IF ((src_type(ispecies)==0) .OR. (src_type(ispecies)==-1)) THEN !surface source (whole surface)
+                IF (src_type_x(ispecies) == 1) THEN !surface source (whole surface)
                     src_x0(ispecies,:)=0.
                     src_e1(ispecies,:)=0.
                     src_e2(ispecies,:)=0.
                     src_e3(ispecies,:)=0.
-                    src_v0(ispecies)=0.
                     IF ((src_bnd(ispecies)<=0).or.(src_bnd(ispecies)>nb)) THEN
                         IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
                         STOP
@@ -166,62 +169,92 @@ module module_species
                         IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
                         STOP
                     END IF
-                    IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
-                                                          ,src_type(ispecies)," for species ",ispecies
+                    IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as surface source for species ",ispecies
 
-                ELSE IF ((src_type(ispecies)==5) .OR. (src_type(ispecies)==-5)) THEN ! surface source, exactly like type=0,
-                    src_x0(ispecies,:)=0.                                            ! but with a flux from a drifting Maxwellian
-                    src_e1(ispecies,:)=0.
-                    src_e2(ispecies,:)=0.
-                    src_e3(ispecies,:)=0.
-                    IF ((src_bnd(ispecies)<=0).or.(src_bnd(ispecies)>nb)) THEN
-                        IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
-                        STOP
-                    END IF
-                    IF(boundaries(src_bnd(ispecies))%type==2) THEN
-                        IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
-                        STOP
-                    END IF
-                    IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
-                                                          ,src_type(ispecies)," for species ",ispecies
-
-                ELSE IF (src_type(ispecies)==4) THEN !surface source, circle at bnd_x0 + src_x0(1) * e1 +
-                                                     !src_x0(2) * e2 with r = src_x0(3)*|e1|
-                                                     !this is a first test and only works if |e1| ~ |e2|
-                                                     !and src_x0 reasonable
-                    src_e1(ispecies,:)=0.
-                    src_e2(ispecies,:)=0.
-                    src_e3(ispecies,:)=0.
-                    src_v0(ispecies)=0.
-                    IF ((src_bnd(ispecies)<=0).or.(src_bnd(ispecies)>nb)) THEN
-                        IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
-                        STOP
-                    END IF
-                    IF(boundaries(src_bnd(ispecies))%type==2) THEN
-                        IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
-                        STOP
-                    END IF
-                    IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as surface source of type "&
-                                                          ,src_type(ispecies)," for species ",ispecies
-
-                ELSE IF ((src_type(ispecies)==1).or.(src_type(ispecies)==2).or.(src_type(ispecies)==3)) THEN !Volume Source
+                ELSE IF (src_type_x(ispecies)==2) THEN !Volume Source, uniformly distributed
                     src_bnd(ispecies)=0
-                    src_v0(ispecies)=0.
-                    IF (root) write(*,'(a,i2,a,i2,a)') " == Volume source of type ",src_type(ispecies)," for species ",ispecies," set. Parameters:"
+                    IF (root) write(*,'(a,i2,a,i2,a)') " == Volume source for species ",ispecies," set. Parameters:"
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == x0: ",src_x0(ispecies,:)
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == e1: ",src_e1(ispecies,:)
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == e2: ",src_e2(ispecies,:)
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == e3: ",src_e3(ispecies,:)
-                ELSE IF (src_type(ispecies)==6) THEN !Cylindircal Volume Source
+
+                ELSE IF (src_type_x(ispecies)==11) THEN !surface source, circle at bnd_x0 + src_x0(1) * e1 +
+                                                        !src_x0(2) * e2 with r = src_x0(3)*|e1|
+                                                        !this is a first test and only works if |e1| ~ |e2|
+                                                        !and src_x0 reasonable
+                    src_e1(ispecies,:)=0.
+                    src_e2(ispecies,:)=0.
+                    src_e3(ispecies,:)=0.
+                    IF ((src_bnd(ispecies)<=0).or.(src_bnd(ispecies)>nb)) THEN
+                        IF (root) write(*,'(a)') "You have to select one of the boundaries as surface source"
+                        STOP
+                    END IF
+                    IF(boundaries(src_bnd(ispecies))%type==2) THEN
+                        IF (root) write(*,'(a)') "Periodic boundary cannot be used as surface source"
+                        STOP
+                    END IF
+                    IF (root) write(*,'(a,i3,a,i3,a,i3)') " == Boundary ",src_bnd(ispecies)," chosen as cylindrical surface source for species ",ispecies
+
+                ELSE IF (src_type_x(ispecies)==12) THEN !Cylindrical Volume Source
                     src_bnd(ispecies)=0
                     src_e2(ispecies,:)=0.
                     src_e3(ispecies,:)=0.
-                    IF (root) write(*,'(a,i2,a,i2,a)') " == Volume source of type ",src_type(ispecies)," for species ",ispecies," set. Parameters:"
+                    IF (root) write(*,'(a,i2,a,i2,a)') " == Cylindrical Volume source of type for species ",ispecies," set. Parameters:"
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == reference point(x0): ",src_x0(ispecies,:)
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == axis(e1): ",src_e1(ispecies,:)
                     IF (root) write(*,'(a,(1pe14.5E3))') " == radius(v0): ",src_v0(ispecies)
                 ELSE
-                    IF (root) write(*,'(a,i3,a)') " Source cannot be set. Type ",src_type(ispecies)," not available."
+                    IF (root) write(*,'(a,i3,a)') " Source cannot be set. Type ",src_type_x(ispecies)," not available."
+                    STOP
+                END IF
+
+                IF (src_type_v(ispecies) == 1) THEN !Emmert Source along x, Maxwellian along y,z
+                    src_v0(ispecies) = 0.
+                ELSE IF (src_type_v(ispecies) == 2) THEN !Emmert source along B (along x if B=0)
+                    src_v0(ispecies) = 0.
+                ELSE IF (src_type_v(ispecies) == 3) THEN !Emmert source along cylinder axis for cylindrical volume source (along x if other src_type_x)
+                    src_v0(ispecies) = 0.
+                    IF (src_type_x(ispecies) /= 12) src_type_v(ispecies) = 2
+                ELSE IF (src_type_v(ispecies) == 4) THEN !Emmert source along surface normal for surface source (along x if other src_type_x)
+                    src_v0(ispecies) = 0.
+                    IF ( (src_type_x(ispecies) /= 1) .AND. (src_type_x(ispecies) /= 11) )  src_type_v(ispecies) = 2
+                ELSE IF (src_type_v(ispecies) == 5) THEN !Maxwellian in all directions (Bissel-Johnson)
+                    src_v0(ispecies) = 0.
+                ELSE IF (src_type_v(ispecies) == 6) THEN !Maxwellian flux along x
+                    src_v0(ispecies) = 0.
+                ELSE IF (src_type_v(ispecies) == -6) THEN !Maxwellian flux along -x
+                    src_v0(ispecies) = 0.
+                ELSE IF (src_type_v(ispecies) == 7) THEN !Maxwellian flux along B (along x if B=0)
+                    src_v0(ispecies) = 0.
+                ELSE IF (src_type_v(ispecies) == -7) THEN !Maxwellian flux along -B (along -x if B=0)
+                    src_v0(ispecies) = 0.
+                ELSE IF (src_type_v(ispecies) == 8) THEN !Maxwellian flux along cylinder axis for cylindrical volume source (along x if other src_type_x)
+                    src_v0(ispecies) = 0.
+                    IF (src_type_x(ispecies) /= 12) src_type_v(ispecies) = 6
+                ELSE IF (src_type_v(ispecies) == -8) THEN !Maxwellian flux along -1 * cylinder axis for cylindrical volume source (along -x if other src_type_x)
+                    src_v0(ispecies) = 0.
+                    IF (src_type_x(ispecies) /= 12) src_type_v(ispecies) = -6
+                ELSE IF (src_type_v(ispecies) == 9) THEN !Maxwellian flux along surface normal for surface source (along x if other src_type_x)
+                    src_v0(ispecies) = 0.
+                    IF ( (src_type_x(ispecies) /= 1) .AND. (src_type_x(ispecies) /= 11) )  src_type_v(ispecies) = 6
+                ELSE IF (src_type_v(ispecies) == -9) THEN !Maxwellian flux along -1 * surface normal for surface source (along -x if other src_type_x)
+                    src_v0(ispecies) = 0.
+                    IF ( (src_type_x(ispecies) /= 1) .AND. (src_type_x(ispecies) /= 11) )  src_type_v(ispecies) = -6
+                ELSE IF (src_type_v(ispecies) == 10) THEN !drifting Maxwellian flux along x
+                ELSE IF (src_type_v(ispecies) == -10) THEN !drifting Maxwellian flux along -x
+                ELSE IF (src_type_v(ispecies) == 11) THEN !drifting Maxwellian flux along B (along x if B=0)
+                ELSE IF (src_type_v(ispecies) == -11) THEN !drifting Maxwellian flux along -B (along -x if B=0)
+                ELSE IF (src_type_v(ispecies) == 12) THEN !drifting Maxwellian flux along cylinder axis for cylindrical volume source (along x if other src_type_x)
+                    IF (src_type_x(ispecies) /= 12) src_type_v(ispecies) = 10
+                ELSE IF (src_type_v(ispecies) == -12) THEN !drifting Maxwellian flux along -1 * cylinder axis for cylindrical volume source (along x if other src_type_x)
+                    IF (src_type_x(ispecies) /= 12) src_type_v(ispecies) = -10
+                ELSE IF (src_type_v(ispecies) == 13) THEN !drifting Maxwellian flux along surface normal for surface source (along x if other src_type_x)
+                    IF ( (src_type_x(ispecies) /= 1) .AND. (src_type_x(ispecies) /= 11) )  src_type_v(ispecies) = 10
+                ELSE IF (src_type_v(ispecies) == -13) THEN !drifting Maxwellian flux along -1 * surface normal for surface source (along -x if other src_type_x)
+                    IF ( (src_type_x(ispecies) /= 1) .AND. (src_type_x(ispecies) /= 11) )  src_type_v(ispecies) = -10
+                ELSE
+                    IF (root) write(*,'(a,i3,a)') " Source cannot be set. Type ",src_type_v(ispecies)," not available."
                     STOP
                 END IF
             ELSE
@@ -230,11 +263,13 @@ module module_species
                 src_e1(ispecies,:)=0.
                 src_e2(ispecies,:)=0.
                 src_e3(ispecies,:)=0.
-                src_type(ispecies)=0
+                src_type_x(ispecies)=0
+                src_type_v(ispecies)=0
                 src_bnd(ispecies)=0
                 src_v0(ispecies)=0.
             END IF
-            species(ispecies)%src_type=src_type(ispecies)
+            species(ispecies)%src_type_x=src_type_x(ispecies)
+            species(ispecies)%src_type_v=src_type_v(ispecies)
             species(ispecies)%src_bnd=src_bnd(ispecies)
             species(ispecies)%src_x0=src_x0(ispecies,:)
             species(ispecies)%src_e1=src_e1(ispecies,:)
@@ -292,7 +327,8 @@ module module_species
         deallocate(charge)
         deallocate(physical_particle)
         deallocate(name)
-        deallocate(src_type)
+        deallocate(src_type_x)
+        deallocate(src_type_v)
         deallocate(src_bnd)
         deallocate(src_x0)
         deallocate(src_e1)
@@ -325,7 +361,10 @@ module module_species
         sqrt2=sqrt(2._8)
 
         DO ispecies=0,nspecies-1
-            IF ((species(ispecies)%src_type == 5) .OR. (species(ispecies)%src_type == -5)) THEN
+            IF ((species(ispecies)%src_type_v == 10) .OR. (species(ispecies)%src_type_v == -10) .OR. &
+                (species(ispecies)%src_type_v == 11) .OR. (species(ispecies)%src_type_v == -11) .OR. &
+                (species(ispecies)%src_type_v == 12) .OR. (species(ispecies)%src_type_v == -12) .OR. &
+                (species(ispecies)%src_type_v == 13) .OR. (species(ispecies)%src_type_v == -13)) THEN
                 vth = sqrt(species(ispecies)%src_t*e/species(ispecies)%m)
                 v0 = species(ispecies)%src_v0
                 call linspace(0._8,7._8*max(v0,vth),maxw_flux_table_v(ispecies,:))

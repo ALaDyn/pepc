@@ -815,12 +815,12 @@ MODULE output
         real(KIND=8), allocatable :: src_e1(:,:)
         real(KIND=8), allocatable :: src_e2(:,:)
         real(KIND=8), allocatable :: src_e3(:,:)
-        integer, allocatable :: src_type(:)
+        integer, allocatable :: src_type_x(:), src_type_v(:)
         integer, allocatable :: src_bnd(:)
 
 
         namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,q_tot
-        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type
+        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type_x, src_type_v
 
 
         if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
@@ -850,7 +850,8 @@ MODULE output
             allocate(src_e1(0:nspecies-1,3))
             allocate(src_e2(0:nspecies-1,3))
             allocate(src_e3(0:nspecies-1,3))
-            allocate(src_type(0:nspecies-1))
+            allocate(src_type_x(0:nspecies-1))
+            allocate(src_type_v(0:nspecies-1))
             allocate(src_bnd(0:nspecies-1))
 
             open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
@@ -884,7 +885,8 @@ MODULE output
                 src_e1(ispecies,1:3)=species(ispecies)%src_e1
                 src_e2(ispecies,1:3)=species(ispecies)%src_e2
                 src_e3(ispecies,1:3)=species(ispecies)%src_e3
-                src_type(ispecies)=species(ispecies)%src_type
+                src_type_x(ispecies)=species(ispecies)%src_type_x
+                src_type_v(ispecies)=species(ispecies)%src_type_v
                 src_bnd(ispecies)=species(ispecies)%src_bnd
             END DO
             write(fid,NML=species_nml,DELIM="QUOTE")

@@ -917,17 +917,21 @@ module particlehandling
         real(KIND=8)       :: ran,ran1,ran2
         integer            :: n,ip,ib
         real(KIND=8)       :: mu,sigma
-        real(KIND=8)       :: t1(3),t2(3),n1(3),e1(3),vhelp(3),B_vector(3)
+        real(KIND=8)       :: n1B(3)
+        real(KIND=8)       :: t1(3),t2(3),n1(3)
+        real(KIND=8)       :: e1(3),vhelp(3),B_vector(3)
         real(KIND=8)       :: eps=1.0e-10
-        integer            :: direction=1
 
-        logical :: init_uniform_gaussian
-
-        init_uniform_gaussian=.false.
 
         B_vector(1) = Bx
         B_vector(2) = By
         B_vector(3) = Bz
+
+        IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
+            n1B = B_vector / sqrt(dotproduct(B_vector,B_vector))          ! normal vector along B
+        ELSE                                                              ! Without B Field
+            n1B = (/1.0_8, 0.0_8, 0.0_8/)                                 ! normal vector along x
+        END IF
 
         vhelp=0.0_8
         mu=0.0
@@ -943,76 +947,146 @@ module particlehandling
                 IF (p(ip)%data%species==0) THEN
                     p(ip)%data%v = 0.0_8
                     ib = p(ip)%data%mp_int1
-                    !ran1=rnd_num()
-                    !ran2=rnd_num()
                     ran1 = boundaries(ib)%wppe1(boundaries(ib)%wp_label_max - p(ip)%label + 1)
                     ran2 = boundaries(ib)%wppe2(boundaries(ib)%wp_label_max - p(ip)%label + 1)
                     p(ip)%x = boundaries(ib)%x0 + ran1*boundaries(ib)%e1 +ran2*boundaries(ib)%e2
                 END IF
             ELSE
                 sigma = species(p(ip)%data%species)%v_th
-                IF (init_uniform_gaussian) THEN
-                    IF (step==0) THEN
-                        ran=rnd_num()
-                        ran1=rnd_num()
-                        ran2=rnd_num()
-                        p(ip)%x(1)=ran
-                        p(ip)%x(2)=ran1
-                        p(ip)%x(3)=ran2
 
-                        p(ip)%x(1)         = p(ip)%x(1)*dx + xmin
-                        p(ip)%x(2)         = p(ip)%x(2)*dy + ymin
-                        p(ip)%x(3)         = p(ip)%x(3)*dz + zmin
-
-                        call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
-                        CYCLE
+                !Emmert
+                IF (species(p(ip)%data%species)%src_type_v <= 4) THEN
+                    IF (species(p(ip)%data%species)%src_type_v == 1) THEN
+                        n1 = (/1.0_8, 0.0_8, 0.0_8/)
+                        t1 = (/0.0_8, 1.0_8, 0.0_8/)
+                    ELSE IF (species(p(ip)%data%species)%src_type_v == 2) THEN
+                        n1 = n1B
+                        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                            t1 = (/-n1(2), n1(1), 0.0_8/)                          ! tangential vector
+                        ELSE
+                            t1 = (/1.0_8, 0.0_8, 0.0_8/)                           ! tangential vector
+                        END IF
+                        t1 = t1 / norm(t1)
+                    ELSE IF (species(p(ip)%data%species)%src_type_v == 3) THEN
+                        n1 = species(p(ip)%data%species)%src_e1
+                        n1 = n1 / norm(n1)
+                        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                            t1 = (/-n1(2), n1(1), 0.0_8/)                          ! tangential vector
+                        ELSE
+                            t1 = (/1.0_8, 0.0_8, 0.0_8/)                           ! tangential vector
+                        END IF
+                        t1 = t1 / norm(t1)
+                    ELSE IF (species(p(ip)%data%species)%src_type_v == 4) THEN
+                        n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n
+                        e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
+                        t1 = e1 / norm(e1)
                     END IF
-                END IF
-
-                IF ((species(p(ip)%data%species)%src_type==0) .OR. (species(p(ip)%data%species)%src_type==-1)) THEN !surface source (Maxwellian Flux)
-                    IF (species(p(ip)%data%species)%src_type==0) THEN
-                        direction = 1
-                    ELSE
-                        direction = -1
-                    END IF
-                    call random_gauss_list(vhelp(2:3),mu,sigma)
-                    call random_gaussian_flux(vhelp(1),sigma)
-                    e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
-                    n1 = direction * boundaries(species(p(ip)%data%species)%src_bnd)%n  ! n1 = normal vector on src_bnd (inverted if src_type=-1)
-                    t1 = e1 / sqrt(dotproduct(e1,e1))                                   ! t1 = tangential vector
-                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                                   ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
                     t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
                     t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
-                    t2=t2/sqrt(dotproduct(t2,t2))
+                    t2 = t2 / norm(t2)
+
+                    call random_gauss_list(vhelp(2:3),mu,sigma)
+                    call random_gaussian_flux(vhelp(1),sigma)
+                    ran=rnd_num()
+                    IF (ran>0.5) vhelp(1) = -vhelp(1)
                     p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
                     p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
                     p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
-                    ran=rnd_num()
-                    ran1=rnd_num()
-                    ran2=rnd_num()
-                    p(ip)%x = boundaries(species(p(ip)%data%species)%src_bnd)%x0 + &
-                              ran1*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
-                              ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
-                    p(ip)%x = p(ip)%x + n1 * dotproduct(n1,p(ip)%data%v) * dt * ran
 
-                ELSE IF ((species(p(ip)%data%species)%src_type == 5) .OR. (species(p(ip)%data%species)%src_type == -5)) THEN                 !surface source (drifting Maxwellian Flux)
-                    IF (species(p(ip)%data%species)%src_type > 0) THEN
-                        direction = 1
-                    ELSE
-                        direction = -1
+                !Bissel-Johnson
+                ELSE IF (species(p(ip)%data%species)%src_type_v == 5) THEN
+                    call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
+
+                !Maxwellian Flux
+                ELSE IF ( (abs(species(p(ip)%data%species)%src_type_v) >= 6) .AND. &
+                          (abs(species(p(ip)%data%species)%src_type_v) <= 9) ) THEN
+                    IF (abs(species(p(ip)%data%species)%src_type_v) == 6) THEN
+                        n1 = (/1.0_8, 0.0_8, 0.0_8/)
+                        t1 = (/0.0_8, 1.0_8, 0.0_8/)
+                    ELSE IF (abs(species(p(ip)%data%species)%src_type_v) == 7) THEN
+                        n1 = n1B
+                        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                            t1 = (/-n1(2), n1(1), 0.0_8/)                          ! tangential vector
+                        ELSE
+                            t1 = (/1.0_8, 0.0_8, 0.0_8/)                           ! tangential vector
+                        END IF
+                        t1 = t1 / norm(t1)
+                    ELSE IF (abs(species(p(ip)%data%species)%src_type_v) == 8) THEN
+                        n1 = species(p(ip)%data%species)%src_e1
+                        n1 = n1 / norm(n1)
+                        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                            t1 = (/-n1(2), n1(1), 0.0_8/)                          ! tangential vector
+                        ELSE
+                            t1 = (/1.0_8, 0.0_8, 0.0_8/)                           ! tangential vector
+                        END IF
+                        t1 = t1 / norm(t1)
+                    ELSE IF (abs(species(p(ip)%data%species)%src_type_v) == 9) THEN
+                        n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n
+                        e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
+                        t1 = e1 / norm(e1)
                     END IF
+                    IF (species(p(ip)%data%species)%src_type_v < 0) THEN
+                        n1 = -n1
+                    END IF
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                          ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+                    t2 = t2 / norm(t2)
+
+                    call random_gauss_list(vhelp(2:3),mu,sigma)
+                    call random_gaussian_flux(vhelp(1),sigma)
+                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
+                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
+                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
+
+                !Drifting Maxwellian Flux
+                ELSE IF ( (abs(species(p(ip)%data%species)%src_type_v) >= 10) .AND. &
+                          (abs(species(p(ip)%data%species)%src_type_v) <= 13) ) THEN
+                    IF (abs(species(p(ip)%data%species)%src_type_v) == 10) THEN
+                        n1 = (/1.0_8, 0.0_8, 0.0_8/)
+                        t1 = (/0.0_8, 1.0_8, 0.0_8/)
+                    ELSE IF (abs(species(p(ip)%data%species)%src_type_v) == 11)  THEN
+                        n1 = n1B
+                        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                            t1 = (/-n1(2), n1(1), 0.0_8/)                          ! tangential vector
+                        ELSE
+                            t1 = (/1.0_8, 0.0_8, 0.0_8/)                           ! tangential vector
+                        END IF
+                        t1 = t1 / norm(t1)
+                    ELSE IF (abs(species(p(ip)%data%species)%src_type_v) == 12) THEN
+                        n1 = species(p(ip)%data%species)%src_e1
+                        n1 = n1 / norm(n1)
+                        IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                            t1 = (/-n1(2), n1(1), 0.0_8/)                          ! tangential vector
+                        ELSE
+                            t1 = (/1.0_8, 0.0_8, 0.0_8/)                           ! tangential vector
+                        END IF
+                        t1 = t1 / norm(t1)
+                    ELSE IF (abs(species(p(ip)%data%species)%src_type_v) == 13) THEN
+                        n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n
+                        e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
+                        t1 = e1 / norm(e1)
+                    END IF
+
+                    IF (species(p(ip)%data%species)%src_type_v < 0) THEN
+                        n1 = -n1
+                    END IF
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                          ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+                    t2 = t2 / norm(t2)
+
                     call random_gauss_list(vhelp(2:3),mu,sigma)
                     call random_drifting_gaussian_flux(vhelp(1),maxw_flux_table_F(p(ip)%data%species,:),maxw_flux_table_v(p(ip)%data%species,:))
-                    e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
-                    n1 = direction * boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
-                    t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector
-                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
-                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
-                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
-                    t2=t2/sqrt(dotproduct(t2,t2))
                     p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
                     p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
                     p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
+
+                END IF
+
+                !Surface Source
+                IF (species(p(ip)%data%species)%src_type_x == 1) THEN
                     ran=rnd_num()
                     ran1=rnd_num()
                     ran2=rnd_num()
@@ -1021,19 +1095,23 @@ module particlehandling
                               ran2*boundaries(species(p(ip)%data%species)%src_bnd)%e2
                     p(ip)%x = p(ip)%x + n1 * dotproduct(n1,p(ip)%data%v) * dt * ran
 
-                ELSE IF (species(p(ip)%data%species)%src_type==4) THEN                 !surface source (plasma column)
-                    call random_gauss_list(vhelp(2:3),mu,sigma)
-                    call random_gaussian_flux(vhelp(1),sigma)
-                    e1 = boundaries(species(p(ip)%data%species)%src_bnd)%e1
-                    n1 = boundaries(species(p(ip)%data%species)%src_bnd)%n        ! n1 = normal vector on src_bnd
-                    t1 = e1 / sqrt(dotproduct(e1,e1))                             ! t1 = tangential vector
-                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
-                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
-                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
-                    t2=t2/sqrt(dotproduct(t2,t2))
-                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
-                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
-                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
+                !Standard Volume Source
+                ELSE IF (species(p(ip)%data%species)%src_type_x == 2) THEN
+                    ran=rnd_num()
+                    ran1=rnd_num()
+                    ran2=rnd_num()
+                    p(ip)%x = species(p(ip)%data%species)%src_x0 + &
+                              ran * species(p(ip)%data%species)%src_e1 + &
+                              ran1 * species(p(ip)%data%species)%src_e2 + &
+                              ran2 * species(p(ip)%data%species)%src_e3
+
+                !surface source, circle at bnd_x0 + src_x0(1) * e1 +
+                !src_x0(2) * e2 with r = src_x0(3)*|e1|
+                !this is a first test and only works if |e1| ~ |e2|
+                !and src_x0 reasonable
+                !Ich glaube, dass das noch falsch ist, weil ich r einfach naiv sample, r ist aber im Zylinder
+                !nicht gleichverteilt... Jetzt nicht so wichtig
+                ELSE IF (species(p(ip)%data%species)%src_type_x == 11) THEN
                     ran=rnd_num()
                     ran1=rnd_num() * species(p(ip)%data%species)%src_x0(3) !radius
                     ran2=rnd_num() * 2.0_8 * pi              !angle
@@ -1047,99 +1125,17 @@ module particlehandling
                               dotproduct(boundaries(species(p(ip)%data%species)%src_bnd)%n,p(ip)%data%v) * dt * ran
                               !and we moved the particle a little bit along n
 
-                ELSE IF (species(p(ip)%data%species)%src_type==1) THEN            ! Emmert source along x, Maxwellian perpendicular to x
-                    call random_gauss_list(p(ip)%data%v(2:3),mu,sigma)
-                    call random_gaussian_flux(p(ip)%data%v(1),sigma)
-                    ran=rnd_num()
-                    IF (ran>0.5) p(ip)%data%v(1)=-p(ip)%data%v(1)
-                    ran=rnd_num()
-                    ran1=rnd_num()
-                    ran2=rnd_num()
-                    p(ip)%x = species(p(ip)%data%species)%src_x0 + &
-                              ran * species(p(ip)%data%species)%src_e1 + &
-                              ran1 * species(p(ip)%data%species)%src_e2 + &
-                              ran2 * species(p(ip)%data%species)%src_e3
-
-                ELSE IF (species(p(ip)%data%species)%src_type==6) THEN            ! Emmert source along cylinder axis, Maxwellian perpendicular to axis
-                    n1 = species(p(ip)%data%species)%src_e1                       ! cylinder axis
-                    n1 = n1 /sqrt(dotproduct(n1,n1))
-                    IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
-                        t1(1) = -n1(2)                                            ! tangential vector
-                        t1(2) = n1(1)
-                        t1(3) = 0.0_8
-                    ELSE
-                        t1(1) = 1.0_8                                             ! tangential vector
-                        t1(2) = 0.0_8
-                        t1(3) = 0.0_8
-                    END IF
-                    t1 = t1 / sqrt(dotproduct(t1,t1))
-                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
-                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
-                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
-                    t2=t2/sqrt(dotproduct(t2,t2))
-
-                    call random_gauss_list(vhelp(2:3),mu,sigma)
-                    call random_gaussian_flux(vhelp(1),sigma)
-                    ran=rnd_num()
-                    IF (ran>0.5) vhelp(1)=-vhelp(1)
-                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
-                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
-                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
+                !Cylindrical Volume Source
+                !Gleiches Problem wie oben bei der zylindrischen Konfiguration
+                ELSE IF (species(p(ip)%data%species)%src_type_x == 12) THEN
                     ran=rnd_num()
                     ran1=rnd_num() * species(p(ip)%data%species)%src_v0 !radius
                     ran2=rnd_num() * 2.0_8 * pi              !angle
                     p(ip)%x = species(p(ip)%data%species)%src_x0                     !now we are at the center of the plasma column
                     p(ip)%x = p(ip)%x + ran*species(p(ip)%data%species)%src_e1       !now we moved the particle along the cylinder axis
                     p(ip)%x = p(ip)%x + ran1*sin(ran2)*t1 + ran1*cos(ran2)*t2        !and now perpendicular to it
-
-
-                ELSE IF (species(p(ip)%data%species)%src_type==3) THEN                ! Emmert source along B, Maxwellian perpendicular to B
-                    IF (real_unequal_zero(B,eps)) THEN                                ! With B Field
-                        n1 = B_vector / sqrt(dotproduct(B_vector,B_vector))           ! normal vector along B
-                    ELSE                                                              ! Without B Field
-                        n1(1) = 1.0_8                                                 ! normal vector along x
-                        n1(2) = 0.0_8
-                        n1(3) = 0.0_8
-                    END IF
-                    IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
-                        t1(1) = -n1(2)                                            ! tangential vector
-                        t1(2) = n1(1)
-                        t1(3) = 0.0_8
-                    ELSE
-                        t1(1) = 1.0_8                                             ! tangential vector
-                        t1(2) = 0.0_8
-                        t1(3) = 0.0_8
-                    END IF
-                    t1 = t1 / sqrt(dotproduct(t1,t1))
-                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
-                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
-                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
-                    t2=t2/sqrt(dotproduct(t2,t2))
-
-                    call random_gauss_list(vhelp(2:3),mu,sigma)
-                    call random_gaussian_flux(vhelp(1),sigma)
-                    ran=rnd_num()
-                    IF (ran>0.5) vhelp(1)=-vhelp(1)
-                    p(ip)%data%v(1) = n1(1)*vhelp(1) + t1(1)*vhelp(2) + t2(1)*vhelp(3) ! this gives the maxwellian flux
-                    p(ip)%data%v(2) = n1(2)*vhelp(1) + t1(2)*vhelp(2) + t2(2)*vhelp(3) ! along n1 and gaussian
-                    p(ip)%data%v(3) = n1(3)*vhelp(1) + t1(3)*vhelp(2) + t2(3)*vhelp(3) ! distribution along t1, t2
-                    ran=rnd_num()
-                    ran1=rnd_num()
-                    ran2=rnd_num()
-                    p(ip)%x = species(p(ip)%data%species)%src_x0 + &
-                              ran * species(p(ip)%data%species)%src_e1 + &
-                              ran1 * species(p(ip)%data%species)%src_e2 + &
-                              ran2 * species(p(ip)%data%species)%src_e3
-                ELSE IF (species(p(ip)%data%species)%src_type==2) THEN            ! Bissel Johnson source along x
-                    call random_gauss_list(p(ip)%data%v(1:3),mu,sigma)
-                    ran=rnd_num()
-                    ran1=rnd_num()
-                    ran2=rnd_num()
-                    p(ip)%x = species(p(ip)%data%species)%src_x0 + &
-                              ran * species(p(ip)%data%species)%src_e1 + &
-                              ran1 * species(p(ip)%data%species)%src_e2 + &
-                              ran2 * species(p(ip)%data%species)%src_e3
                 END IF
+
             END IF
         END DO
 
