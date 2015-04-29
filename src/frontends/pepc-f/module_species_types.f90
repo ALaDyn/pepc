@@ -56,6 +56,8 @@ module module_species_types
          real(KIND=8) :: src_e1(3),src_e2(3),src_e3(3)
          real(KIND=8) :: src_v0=0._8         !< drift velocity if flux from drifting Maxwellian is used
          integer :: src_bnd
+
+         real(KIND=8), allocatable :: starting_positions(:,:)
       end type t_species
 
 

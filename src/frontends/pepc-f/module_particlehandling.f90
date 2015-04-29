@@ -640,7 +640,7 @@ module particlehandling
                 call MPI_ALLREDUCE(reflux_now(ispecies,ib), treflux_now(ispecies,ib), 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
             END DO
         END DO
-        treflux_tot = treflux_tot + treflux_now
+        treflux_tot(:,:) = treflux_tot(:,:) + treflux_now(:,:)
         treflux_now = 0
 
         IF ( (step - last_reflux_step == reflux_interval) .OR. (checkpoint_now) ) THEN
@@ -915,7 +915,7 @@ module particlehandling
     SUBROUTINE source(p)
         type(t_particle),intent(inout),allocatable :: p(:)
         real(KIND=8)       :: ran,ran1,ran2
-        integer            :: n,ip,ib
+        integer            :: n, ip, ib, ipos(0:nspecies-1), ispecies
         real(KIND=8)       :: mu,sigma
         real(KIND=8)       :: n1B(3)
         real(KIND=8)       :: t1(3),t2(3),n1(3)
@@ -933,6 +933,7 @@ module particlehandling
             n1B = (/1.0_8, 0.0_8, 0.0_8/)                                 ! normal vector along x
         END IF
 
+        ipos=1
         vhelp=0.0_8
         mu=0.0
         IF (allocated(p)) THEN
@@ -1104,6 +1105,22 @@ module particlehandling
                               ran * species(p(ip)%data%species)%src_e1 + &
                               ran1 * species(p(ip)%data%species)%src_e2 + &
                               ran2 * species(p(ip)%data%species)%src_e3
+
+                !Poisson Disc Volume Source (only in first timestep of course)
+                ELSE IF (species(p(ip)%data%species)%src_type_x == 3) THEN
+                    ispecies = p(ip)%data%species
+                    IF (step == 0) THEN
+                        p(ip)%x = species(ispecies)%starting_positions(:,ipos(ispecies))
+                        ipos(ispecies) = ipos(ispecies) + 1
+                    ELSE
+                        ran=rnd_num()
+                        ran1=rnd_num()
+                        ran2=rnd_num()
+                        p(ip)%x = species(p(ip)%data%species)%src_x0 + &
+                                  ran * species(p(ip)%data%species)%src_e1 + &
+                                  ran1 * species(p(ip)%data%species)%src_e2 + &
+                                  ran2 * species(p(ip)%data%species)%src_e3
+                    END IF
 
                 !surface source, circle at bnd_x0 + src_x0(1) * e1 +
                 !src_x0(2) * e2 with r = src_x0(3)*|e1|

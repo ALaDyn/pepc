@@ -587,7 +587,7 @@ MODULE output
 
         thits_out(:,:) = thits
         treflux_out(:,:) = treflux
-        trethermalized_out = trethermalized
+        trethermalized_out(:) = trethermalized(:)
 
 
     END SUBROUTINE set_recycling_output_values

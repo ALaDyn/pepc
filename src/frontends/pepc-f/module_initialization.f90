@@ -97,31 +97,12 @@ module module_initialization
 
    subroutine init()
         implicit none
-        integer :: rc,ispecies
+        integer :: rc
 
         !read probe positions
         open(1234,file=trim(input_file))
         read(1234,NML=probe_positions)
         close(1234)
-
-        ! set initially number of local wall particles
-        ispecies=0
-        npps(ispecies) = tnpps(ispecies) / n_ranks
-        if(my_rank.eq.(n_ranks-1)) npps(ispecies) = npps(ispecies) + MOD(tnpps(ispecies), n_ranks)
-
-        ! set initially number of local particles
-        DO ispecies=1,nspecies-1
-            IF (species(ispecies)%physical_particle) THEN
-                npps(ispecies) = tnpps(ispecies) / n_ranks
-                if(my_rank.eq.(n_ranks-1)) npps(ispecies) = npps(ispecies) + MOD(tnpps(ispecies), n_ranks)
-            ELSE !probes only on root (will be moved to othe ranks in grow_tree anyway)
-                IF (my_rank == 0) THEN
-                    npps(ispecies) = tnpps(ispecies)
-                ELSE
-                    npps(ispecies) = 0
-                END IF
-            END IF
-        END DO
 
         allocate(particles(sum(npps)), stat=rc)
         if(rc.ne.0) write(*,*) " === particle allocation error!"

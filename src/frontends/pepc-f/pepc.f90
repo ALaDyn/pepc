@@ -75,10 +75,11 @@ program pepc
 
     call set_default_parameters()
     call set_parameters()
+    call init_rng()
+
     call init_boundaries()
     call init_species()
 
-    call init_rng()
     call init_periodicity()
     call pepc_prepare(3_kind_dim)
 
@@ -93,6 +94,7 @@ program pepc
     call write_parameters()
 
     if (bool_hockney_diag) call store_initial_velocities(particles)
+
 
     !get initial field configuration
     call pepc_particleresults_clear(particles)
