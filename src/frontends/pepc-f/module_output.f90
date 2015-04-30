@@ -158,6 +158,66 @@ MODULE output
         END IF
 
     END SUBROUTINE  plasma_props_output
+
+!===============================================================================
+
+    SUBROUTINE write_velocity_bins(ispecies,filehandle,nbs,dbs,write_data)
+        use diagnostics, only: fill_velocity_bins
+        use module_pepc_types
+        implicit none
+        include 'mpif.h'
+
+        integer                    :: rc,ivx,iv2
+
+        integer,intent(in)         :: filehandle,ispecies
+        integer                    :: npoints
+        real(KIND=8),intent(inout) :: dbs(:,:,:)
+        integer,intent(inout)      :: nbs(:,:)
+        logical,intent(in)         :: write_data
+        real(KIND=8)               :: tdata_bins(3,0:diag_bins_vx+1,diag_bins_v2+1)
+        integer                    :: tn_bins(0:diag_bins_vx+1,diag_bins_v2+1)
+        real(KIND=8)               :: tn_bins_dble(0:diag_bins_vx+1,diag_bins_v2+1)
+        real(KIND=8)               :: vxmin, vxmax, v2min, v2max
+
+
+        npoints = (diag_bins_vx+2) * (diag_bins_v2+1)
+
+        call fill_velocity_bins(ispecies,nbs,dbs)
+
+        IF (.not. write_data) THEN
+            RETURN
+        ELSE
+            call MPI_ALLREDUCE(nbs, tn_bins, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(dbs, tdata_bins, 3*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+
+            IF (bool_avg_btwn_diag_steps) THEN
+                tdata_bins = tdata_bins / (step - last_diag_output)
+                tn_bins_dble = DBLE(tn_bins) / (step - last_diag_output)
+            ELSE
+                tn_bins_dble = DBLE(tn_bins)
+            END IF
+
+            IF (root) THEN
+                write(filehandle,*)
+                write(filehandle,'(a,2(i6.5))')"collision analysis (nvx,nv2):", diag_bins_vx,diag_bins_v2
+                write(filehandle,'(a12,2(a7),4(a16),a12,3(a16))')"","ivx","iv2","vx_min","vx_max","v2_min","v2_max","N","dvx","dvx2","dv2"
+                DO ivx=0,diag_bins_vx+1
+                    vxmin = (-v_grid_max + ((ivx-1) * (v_grid_max*2)/diag_bins_vx))! * species(ispecies)%v_th*sqrt(2.)
+                    vxmax = (-v_grid_max + (ivx * (v_grid_max*2)/diag_bins_vx))! * species(ispecies)%v_th*sqrt(2.)
+                    if (ivx == 0) vxmin = -huge(vxmin)
+                    if (ivx == diag_bins_vx+1) vxmax = huge(vxmax)
+                    DO iv2=1,diag_bins_v2+1
+                        v2min = ((iv2-1) * (v_grid_max*3)/diag_bins_v2)! * species(ispecies)%v_th*sqrt(2.)
+                        v2max = (iv2 * (v_grid_max*3)/diag_bins_v2)! * species(ispecies)%v_th*sqrt(2.)
+                        if (iv2 == diag_bins_v2+1) v2max = huge(v2max)
+                        write(filehandle,'(a12,2(i7.5),4(1pe16.7E3),F14.3,3(1pe16.7E3))')"Bins_v:     ",ivx,iv2,vxmin,vxmax,v2min,v2max,&
+                                                                                          tn_bins_dble(ivx,iv2), tdata_bins(:,ivx,iv2)
+                    END DO
+                END DO
+            END IF
+        END IF
+
+    END SUBROUTINE  write_velocity_bins
 !===============================================================================
 
     SUBROUTINE probe_output(ispecies,filehandle)
@@ -513,6 +573,8 @@ MODULE output
                 IF (diag_now) THEN
                     call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:), &
                                              data_bins(ispecies,:,:,:,:),.True.)
+                    call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
+                                             data_bins_v(ispecies,:,:,:),.True.)
                     IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
                     IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
                     IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
@@ -521,6 +583,8 @@ MODULE output
                     IF (bool_avg_btwn_diag_steps) THEN
                         call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
                                                  data_bins(ispecies,:,:,:,:),.False.)
+                        call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
+                                                 data_bins_v(ispecies,:,:,:),.False.)
                     END IF
                 END IF
 
@@ -549,6 +613,8 @@ MODULE output
             IF (bool_age_resolved_hits) age_resolved_hits = 0
             n_bins = 0
             data_bins = 0.0_8
+            n_bins_v = 0
+            data_bins_v = 0.0_8
         END IF
 
         IF(root) write(filehandle,'(a)')"================================================================================================"

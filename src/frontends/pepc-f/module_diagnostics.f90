@@ -378,6 +378,49 @@ MODULE diagnostics
     end subroutine
 
 !===============================================================================
+    subroutine fill_velocity_bins(ispecies, nbs, dbs)
+        implicit none
+
+        integer, intent(in)         :: ispecies
+        integer, intent(inout)      :: nbs(:,:)
+        real(KIND=8), intent(inout) :: dbs(:,:,:)
+
+        integer :: ip, n
+        integer :: ivx, iv2
+        real(KIND=8) :: vth, cellsizevx, cellsizev2
+        real(KIND=8) :: v(3), v2
+        real(KIND=8) :: q,m,E(3)
+
+        n = size(particles)
+        vth = species(ispecies)%v_th*sqrt(2.)  !note: vth = sqrt(2T/m); Unterscheidet sich von sonst verwendeten v_th = sqrt(T/m) um sqrt(2)
+        cellsizevx = (v_grid_max*2)/diag_bins_vx
+        cellsizev2 = (v_grid_max*3)/diag_bins_v2
+
+        DO ip=1, n
+            IF (particles(ip)%data%species == ispecies) THEN
+                q = particles(ip)%data%q
+                m = particles(ip)%data%m
+                E = particles(ip)%results%e * fc
+                v = particles(ip)%data%v(1)
+                v2 = dotproduct(v,v)
+
+                ivx = int((v(1)/vth - (-v_grid_max)) / cellsizevx) + 1
+                iv2 = int((v2/vth**2) / cellsizev2) + 1
+                ivx = min( max(0, ivx), diag_bins_vx+1 )
+                iv2 = min( iv2, diag_bins_v2+1 )
+
+                nbs(ivx,iv2) = nbs(ivx,iv2) + 1
+
+                dbs(1,ivx,iv2) = dbs(1,ivx,iv2) + q/m*E(1)                                                !d(v_x)/dt
+                dbs(2,ivx,iv2) = dbs(2,ivx,iv2) + 2*q/m*v(1)*E(1) + dt*q**2/m**2*E(1)**2                  !d(v_x**2)/dt
+                dbs(3,ivx,iv2) = dbs(3,ivx,iv2) + 2*q/m*dotproduct(v,E) + dt*q**2/m**2*dotproduct(E,E)    !d(v**2)/dt
+            END IF
+        END DO
+
+
+    end subroutine fill_velocity_bins
+
+!===============================================================================
 
 
     subroutine fill_data_bins(ispecies,nbs,dbs)

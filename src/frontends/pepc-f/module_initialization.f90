@@ -90,6 +90,10 @@ module module_initialization
       diag_bins_y=1
       diag_bins_z=1
 
+      diag_bins_vx = 100
+      diag_bins_v2 = 100
+      v_grid_max = 3.0_8
+
       bool_hockney_diag = .true.
 
   end subroutine set_default_parameters
@@ -114,6 +118,11 @@ module module_initialization
         allocate(data_bins(0:nspecies-1,39,diag_bins_x, diag_bins_y, diag_bins_z))
         n_bins = 0
         data_bins = 0.0_8
+
+        allocate(n_bins_v(0:nspecies-1,0:diag_bins_vx+1, diag_bins_v2+1))
+        allocate(data_bins_v(0:nspecies-1,3,0:diag_bins_vx+1, diag_bins_v2+1))
+        n_bins_v = 0
+        data_bins_v = 0.0_8
 
         !if the following condition is met, particles can leave the system. Diagnostics for collisionality and heating
         !(as they are implemented right now) won't work. So bool_hockney_diag ist set to .false.

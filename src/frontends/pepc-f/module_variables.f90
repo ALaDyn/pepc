@@ -96,6 +96,13 @@ module variables
   real(KIND=8), allocatable :: data_bins(:,:,:,:,:) !(nspecies,38,diag_bins_x,diag_bins_y,diag_bins_z)
   integer, allocatable      :: n_bins(:,:,:,:)      !(nspecies,diag_bins_x,diag_bins_y,diag_bins_z)
 
+  ! variables for output of averaged physical quantities in velocity space
+  integer :: diag_bins_vx
+  integer :: diag_bins_v2
+  real(KIND=8) :: v_grid_max
+  real(KIND=8), allocatable :: data_bins_v(:,:,:,:) !(nspecies,38,diag_bins_vx,diag_bins_v2)
+  integer, allocatable      :: n_bins_v(:,:,:)      !(nspecies,diag_bins_vx,diag_bins_v2)
+
 
   ! variables for detailed boundary hit statistics
   logical :: bool_energy_resolved_hits
