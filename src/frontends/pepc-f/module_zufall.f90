@@ -19,12 +19,11 @@ MODULE zufall
     SUBROUTINE init_rng()
         implicit none
 
-        integer :: rsize,i,rngseed
+        integer :: rsize,i
         integer, allocatable :: rseed(:)
         real*8 ::  ran
 
         rng=1
-        rngseed=0
 
         if (rng==0) then
             call random_seed(size = rsize)

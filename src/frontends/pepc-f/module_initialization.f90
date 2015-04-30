@@ -49,6 +49,7 @@ module module_initialization
       fc = 0.25_8/eps0/pi
 
       !set default parameter values
+      rngseed = 0
       diag_interval   = 0
       checkp_interval = 0
       vtk_interval    = 0

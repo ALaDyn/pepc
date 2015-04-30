@@ -145,6 +145,7 @@ module variables
   logical :: diags !temp
   logical :: guiding_centre_electrons  ! treat electrons in guiding centre approximation (scheme by Benjamin, not sure if correct)
   integer :: rng   !type of rng (0=standard fortran,1=par_rand from module_zufall)
+  integer :: rngseed
   logical :: bool_hockney_diag
 
 
@@ -154,7 +155,7 @@ module variables
 
   ! namelists
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
-  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,&
+  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin, rngseed ,&
                    xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval,npy_interval,&
                    vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm,&
                    bool_angle_resolved_hits, bool_energy_resolved_hits, bool_space_resolved_hits, &
