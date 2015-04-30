@@ -382,8 +382,8 @@ MODULE diagnostics
         implicit none
 
         integer, intent(in)         :: ispecies
-        integer, intent(inout)      :: nbs(:,:)
-        real(KIND=8), intent(inout) :: dbs(:,:,:)
+        integer, intent(inout)      :: nbs(0:,:)
+        real(KIND=8), intent(inout) :: dbs(:,0:,:)
 
         integer :: ip, n
         integer :: ivx, iv2

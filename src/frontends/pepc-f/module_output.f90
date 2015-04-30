@@ -171,8 +171,8 @@ MODULE output
 
         integer,intent(in)         :: filehandle,ispecies
         integer                    :: npoints
-        real(KIND=8),intent(inout) :: dbs(:,:,:)
-        integer,intent(inout)      :: nbs(:,:)
+        real(KIND=8),intent(inout) :: dbs(:,0:,:)
+        integer,intent(inout)      :: nbs(0:,:)
         logical,intent(in)         :: write_data
         real(KIND=8)               :: tdata_bins(3,0:diag_bins_vx+1,diag_bins_v2+1)
         integer                    :: tn_bins(0:diag_bins_vx+1,diag_bins_v2+1)

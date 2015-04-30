@@ -223,7 +223,7 @@ module module_initialization
 
       npps=0
       tnpps=0
-      !hockney diag does not work when resuming (at leats not with the current implementation)
+      !hockney diag does not work when resuming (at least not with the current implementation)
       bool_hockney_diag = .false.
 
       !change charge and mass of particles if fsup was changed
