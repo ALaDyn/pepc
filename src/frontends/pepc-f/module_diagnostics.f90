@@ -401,8 +401,8 @@ MODULE diagnostics
                 q = particles(ip)%data%q
                 m = particles(ip)%data%m
                 E = particles(ip)%results%e * fc
-                v = particles(ip)%data%v(1)
-                v2 = dotproduct(v,v)
+                v = particles(ip)%data%v
+                v2 = v(2)*v(2) + v(3)*v(3)
 
                 ivx = int((v(1)/vth - (-v_grid_max)) / cellsizevx) + 1
                 iv2 = int((v2/vth**2) / cellsizev2) + 1
