@@ -154,6 +154,7 @@ module variables
   integer :: rng   !type of rng (0=standard fortran,1=par_rand from module_zufall)
   integer :: rngseed
   logical :: bool_hockney_diag
+  integer :: hockney_start_step
 
 
   ! other

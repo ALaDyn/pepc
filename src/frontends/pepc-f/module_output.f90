@@ -520,8 +520,10 @@ MODULE output
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a)')"=================================== Info on particle-species ==================================="
         IF(root) write(filehandle,'(a)')"================================================================================================"
-        IF (bool_hockney_diag) call hockney_diag(particles, avg_1, avg_2, avg_3, avg_4, avg_5, avg_6, avg_7, avg_8, &
-                                                 avg_9, avg_10, avg_11, avg_12, avg_13, avg_14, avg_15, avg_16, avg_fields)
+        IF ((step >= hockney_start_step) .AND. (bool_hockney_diag)) THEN
+            call hockney_diag(particles, avg_1, avg_2, avg_3, avg_4, avg_5, avg_6, avg_7, avg_8, &
+                                         avg_9, avg_10, avg_11, avg_12, avg_13, avg_14, avg_15, avg_16, avg_fields)
+        END IF
         DO ispecies=0,nspecies-1
             IF(root) THEN
                 IF (species(ispecies)%physical_particle) THEN
@@ -536,7 +538,7 @@ MODULE output
             IF (species(ispecies)%physical_particle) THEN
                 call velocity_output(ispecies,filehandle)
                 call energy_output(ispecies,filehandle)
-                IF (bool_hockney_diag) THEN
+                IF ((step >= hockney_start_step) .AND. (bool_hockney_diag)) THEN
                     IF(root) write(filehandle,*)
                     IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <beta(t)>: ",avg_1(ispecies)
                     IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|beta(t)|>: ",avg_2(ispecies)

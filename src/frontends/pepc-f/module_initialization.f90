@@ -95,6 +95,7 @@ module module_initialization
       v_grid_max = 3.0_8
 
       bool_hockney_diag = .true.
+      hockney_start_step = 50
 
   end subroutine set_default_parameters
 
@@ -222,6 +223,8 @@ module module_initialization
 
       npps=0
       tnpps=0
+      !hockney diag does not work when resuming (at leats not with the current implementation)
+      bool_hockney_diag = .false.
 
       !change charge and mass of particles if fsup was changed
       IF (real_unequal(fsup_at_checkpoint, fsup, eps)) THEN
