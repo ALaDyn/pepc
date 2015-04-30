@@ -122,7 +122,7 @@ program pepc
 
     !MAIN LOOP ====================================================================================================
     DO step=startstep+1, nt+startstep
-        IF ((step >= hockney_start_step) .AND. (bool_hockney_diag)) call store_initial_velocities(particles)
+        IF ((step == hockney_start_step) .AND. (bool_hockney_diag)) call store_initial_velocities(particles)
 
         ! check whether diag, vtk, npy or checkpoint output will be written in this step
         call check_output_intervals()
