@@ -210,7 +210,7 @@ MODULE output
                         v2min = ((iv2-1) * (v_grid_max*3)/diag_bins_v2)! * species(ispecies)%v_th*sqrt(2.)
                         v2max = (iv2 * (v_grid_max*3)/diag_bins_v2)! * species(ispecies)%v_th*sqrt(2.)
                         if (iv2 == diag_bins_v2+1) v2max = huge(v2max)
-                        write(filehandle,'(a12,2(i7.5),4(1pe16.7E3),F14.3,3(1pe16.7E3))')"Bins_v:     ",ivx,iv2,vxmin,vxmax,v2min,v2max,&
+                        write(filehandle,'(a12,2(i7.5),4(1pe16.7E3),0pF14.3,3(1pe16.7E3))')"Bins_v:     ",ivx,iv2,vxmin,vxmax,v2min,v2max,&
                                                                                           tn_bins_dble(ivx,iv2), tdata_bins(:,ivx,iv2)
                     END DO
                 END DO
