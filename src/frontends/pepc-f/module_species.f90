@@ -279,6 +279,7 @@ module module_species
                     l_starting_positions(1,:) = l_starting_positions_x
                     l_starting_positions(2,:) = l_starting_positions_y
                     l_starting_positions(3,:) = l_starting_positions_z
+                    allocate(species(ispecies)%starting_positions(3,npps(ispecies)))
                     species(ispecies)%starting_positions = l_starting_positions
 
 
