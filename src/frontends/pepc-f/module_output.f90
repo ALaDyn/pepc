@@ -526,16 +526,20 @@ MODULE output
         END IF
         DO ispecies=0,nspecies-1
             IF(root) THEN
-                IF (species(ispecies)%physical_particle) THEN
+                IF (species(ispecies)%physical_particle == 1) THEN
                     write(filehandle,'(a,i2,a)')"----------------------------------- Species ",ispecies," -----------------"
-                ELSE
-                    write(filehandle,'(a,i2,a)')"----------------------------------- Species ",ispecies," --(unphysical)---"
+                ELSE IF (species(ispecies)%physical_particle == 0) THEN
+                    write(filehandle,'(a,i2,a)')"-------------(wallparticle)-------- Species ",ispecies," --(unphysical)---"
+                ELSE IF (species(ispecies)%physical_particle == 2) THEN
+                    write(filehandle,'(a,i2,a)')"-------------(probe particle)------ Species ",ispecies," --(unphysical)---"
+                ELSE IF (species(ispecies)%physical_particle == 3) THEN
+                    write(filehandle,'(a,i2,a)')"-------------(test particle)------- Species ",ispecies," --(unphysical)---"
                 END IF
                 write(filehandle,'(a,a)')"Name: ",TRIM(species(ispecies)%name)
                 write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
                 write(filehandle,*)
             END IF
-            IF (species(ispecies)%physical_particle) THEN
+            IF (species(ispecies)%moving_particle) THEN
                 call velocity_output(ispecies,filehandle)
                 call energy_output(ispecies,filehandle)
                 IF ((step >= hockney_start_step) .AND. (bool_hockney_diag)) THEN
@@ -877,7 +881,7 @@ MODULE output
         real(KIND=8), allocatable :: mass(:)
         real(KIND=8), allocatable :: charge(:)
         real(KIND=8), allocatable :: src_t(:)
-        logical, allocatable :: physical_particle(:)
+        integer, allocatable :: physical_particle(:)
         character(255), allocatable :: name(:)
         real(KIND=8), allocatable :: src_x0(:,:)
         real(KIND=8), allocatable :: src_e1(:,:)
@@ -960,6 +964,31 @@ MODULE output
             write(fid,NML=species_nml,DELIM="QUOTE")
             write(fid,NML=walk_para_smpss,DELIM="QUOTE")
             close(fid)
+
+            deallocate(x0)
+            deallocate(e1)
+            deallocate(e2)
+            deallocate(n)
+            deallocate(type)
+            deallocate(opposite_bnd)
+            deallocate(reflux_particles)
+            deallocate(nwp)
+            deallocate(q_tot)
+
+            deallocate(nfp)
+            deallocate(nip)
+            deallocate(mass)
+            deallocate(charge)
+            deallocate(src_t)
+            deallocate(physical_particle)
+            deallocate(name)
+            deallocate(src_x0)
+            deallocate(src_e1)
+            deallocate(src_e2)
+            deallocate(src_e3)
+            deallocate(src_type_x)
+            deallocate(src_type_v)
+            deallocate(src_bnd)
 
         endif
 

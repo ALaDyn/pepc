@@ -385,7 +385,7 @@ module module_geometry
         x_hit=0.0_8
         x_hit_rel=0.0_8
 
-        IF (species(p%data%species)%physical_particle .eqv. .false.) THEN
+        IF (.NOT.(species(p%data%species)%moving_particle)) THEN
             RETURN !no hit
         END IF
 

@@ -44,7 +44,7 @@ module module_species
         real(KIND=8), allocatable :: mass(:)
         real(KIND=8), allocatable :: src_t(:)
         real(KIND=8), allocatable :: charge(:)
-        logical,allocatable :: physical_particle(:)
+        integer,allocatable :: physical_particle(:)
         character(255),allocatable :: name(:)
         integer, allocatable :: src_type_x(:),src_bnd(:),src_type_v(:)
         real(KIND=8), allocatable :: src_x0(:,:)
@@ -126,7 +126,7 @@ module module_species
         nip=0
         mass=0.
         charge=0.
-        physical_particle=.false.
+        physical_particle=0
         name=""
         src_t=0.
         src_type_x=0
@@ -169,10 +169,15 @@ module module_species
             species(ispecies)%nfp=nfp(ispecies)
             species(ispecies)%nip=nip(ispecies)
             tnpps(ispecies)=nip(ispecies)
+            IF ((species(ispecies)%physical_particle == 1) .OR. (species(ispecies)%physical_particle == 3)) THEN
+                species(ispecies)%moving_particle = .TRUE.
+            ELSE
+                species(ispecies)%moving_particle = .FALSE.
+            END IF
 
             ! initially set number of local particles
             IF (ispecies > 0) THEN
-                IF (species(ispecies)%physical_particle) THEN
+                IF (species(ispecies)%moving_particle) THEN
                     npps(ispecies) = tnpps(ispecies) / n_ranks
                     if(my_rank.eq.(n_ranks-1)) npps(ispecies) = npps(ispecies) + MOD(tnpps(ispecies), n_ranks)
                 ELSE !probes only on root (will be moved to othe ranks in grow_tree anyway)
@@ -186,7 +191,7 @@ module module_species
 
             call MPI_ALLGATHER(npps(ispecies), 1, MPI_INTEGER, npps_per_rank(:, ispecies), 1, MPI_INTEGER, MPI_COMM_WORLD,rc)
 
-            IF (species(ispecies)%physical_particle) THEN
+            IF (species(ispecies)%moving_particle) THEN
                 species(ispecies)%v_th = sqrt(species(ispecies)%src_t * e / species(ispecies)%m)
                 IF (src_type_x(ispecies) == 1) THEN !surface source (whole surface)
                     src_x0(ispecies,:)=0.
@@ -398,7 +403,7 @@ module module_species
             energy_resolved_hits = 0
             ehit_max=0.0_8
             DO ispecies=0,nspecies-1
-                IF (species(ispecies)%physical_particle) THEN
+                IF (species(ispecies)%moving_particle) THEN
                     ehit_max(ispecies) = ehit_max_in_T * species(ispecies)%src_t
                 END IF
             END DO
@@ -409,7 +414,7 @@ module module_species
             age_resolved_hits = 0
             agehit_max=0.0_8
             DO ispecies=0,nspecies-1
-                IF (species(ispecies)%physical_particle) THEN
+                IF (species(ispecies)%moving_particle) THEN
                     agehit_max(ispecies) = agehit_max_in_t_trav_ion * (dx/2) / species(2)%v_th  !maximum is set to 2 * ion_traversal_time
                 END IF
             END DO
@@ -503,8 +508,8 @@ module module_species
 
         integer :: ispecies
 
-        IF (species(0)%physical_particle) THEN
-            IF (root) write(*,'(a)') " Species 0 have to be wallparticles. physical_particle cannot be .true."
+        IF (species(0)%physical_particle /= 0) THEN
+            IF (root) write(*,'(a)') " Species 0 have to be wallparticles. physical_particle has to be 0"
             STOP
         END IF
 
@@ -515,11 +520,11 @@ module module_species
         END IF
 
         DO ispecies=0,nspecies-1
-            IF ((species(ispecies)%physical_particle .eqv. .false.) .and. (species(ispecies)%nfp/=0)) THEN
+            IF ((.NOT.(species(ispecies)%moving_particle)) .and. (species(ispecies)%nfp/=0)) THEN
                 IF (root) write(*,'(a,i3,a)') " A flux cannot be set for a nonphysical species (species ",ispecies," )."
                 STOP
             END IF
-            IF ((species(ispecies)%physical_particle .eqv. .false.) .and. ((species(ispecies)%src_t > 0.).or.(species(ispecies)%src_t < 0.))) THEN
+            IF ( (.NOT.(species(ispecies)%moving_particle)) .and. ((species(ispecies)%src_t > 0.).or.(species(ispecies)%src_t < 0.)) ) THEN
                 IF (root) write(*,'(a,i3,a)') " Source Temperature cannot be set for a nonphysical species (species ",ispecies," )."
                 STOP
             END IF

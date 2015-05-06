@@ -47,7 +47,8 @@ module module_species_types
          real*8 :: q                         !< charge
          integer :: indx                     !< index (should be the same as in the species array)
          character(255) :: name              !< name
-         logical :: physical_particle=.true. !< physical particle (true) or probe, wallparticle, ...(false)
+         integer :: physical_particle        !< physical particle(1) or probe (2) wallparticle(0) or test particle(3)
+         logical :: moving_particle          !< .true. for plasma or test particle, .false. for wall or probe particle
          integer :: nfp=0                    !< number of influxed particles per timestep (in addition to refluxed particles that hit an absorbing boundary)
          integer :: nip=0                    !< initial number of particles (irrelevant when resuming)
 

@@ -27,8 +27,8 @@ module particlehandling
         rp=sum(npps)
         ib=1
         DO WHILE (rp >= 1)
-            !Cycle if particle is no plasma particle
-            IF (species(p(rp)%data%species)%physical_particle .EQV. .FALSE.) THEN
+            !Cycle if particle is no moving particle (plasmaparticle or testparticle)
+            IF (species(p(rp)%data%species)%moving_particle .EQV. .FALSE.) THEN
                 rp = rp - 1
                 CYCLE
             END IF
@@ -280,7 +280,7 @@ module particlehandling
         IF (retherm < 0) THEN
             IF (retherm == -10) THEN !works for system with 2 walls and xmin < 0 and xmax > 0
                 DO ip =1,sum(npps)
-                    IF (species(p(ip)%data%species)%physical_particle) THEN
+                    IF (species(p(ip)%data%species)%moving_particle) THEN
                         IF (p(ip)%x(1) > xmax * 0.05) CYCLE
                         IF (p(ip)%x(1) < xmin * 0.05) CYCLE
                         xold(1) = p(ip)%x(1) - dt * p(ip)%data%v(1)
@@ -296,7 +296,7 @@ module particlehandling
                 END DO
             ELSE !only for 1 wall systems, was only used for testing purposes
                 DO ip =1,sum(npps)
-                    IF (species(p(ip)%data%species)%physical_particle) THEN
+                    IF (species(p(ip)%data%species)%moving_particle) THEN
                         IF (p(ip)%x(1) > species(p(ip)%data%species)%src_e1(1)) CYCLE
                         xold(1) = p(ip)%x(1) - dt * p(ip)%data%v(1)
                         IF (xold(1) < species(p(ip)%data%species)%src_e1(1)) CYCLE
@@ -463,7 +463,7 @@ module particlehandling
 
         DO ispecies=0,nspecies-1
             IF (species(ispecies)%nfp/=0) THEN
-                IF (species(ispecies)%physical_particle) THEN
+                IF (species(ispecies)%moving_particle) THEN
                     new_particles=species(ispecies)%nfp / n_ranks
                     next_label = next_label + my_rank * (new_particles)
                     IF (my_rank .eq. (n_ranks-1)) THEN
@@ -542,7 +542,7 @@ module particlehandling
         DO ib=1,nb
             IF (.NOT. boundaries(ib)%accumulate_charge) CYCLE
             DO ispecies=0,nspecies-1
-                IF (species(ispecies)%physical_particle) THEN
+                IF (species(ispecies)%physical_particle == 1) THEN !the wall is charged only due to plasma particles
                     dq(ib) = dq(ib) + thits(ispecies,ib)*species(ispecies)%q*fsup
                 END IF
             END DO
@@ -689,7 +689,7 @@ module particlehandling
             ELSE
                 nlp(p(ip)%data%species) = nlp(p(ip)%data%species) + 1
 
-                IF (species(p(ip)%data%species)%physical_particle) THEN
+                IF (species(p(ip)%data%species)%moving_particle) THEN
                     write(*,'(i6,a,i16,i16)')my_rank,": label,species: ", p(ip)%label,p(ip)%data%species
                     write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle velocity: ", p(ip)%data%v
                     write(*,'(i6,a,3(1pe16.7E3))')my_rank,": particle position: ", p(ip)%x
@@ -769,14 +769,18 @@ module particlehandling
 
         ip=0
         DO ispecies=1,nspecies-1
-            IF (species(ispecies)%physical_particle) THEN
+            IF (species(ispecies)%moving_particle) THEN
                 DO i=1, npps(ispecies)
                     ip = ip + 1
                     p(ip)%data%B(1)=Bx
                     p(ip)%data%B(2)=By
                     p(ip)%data%B(3)=Bz
                     p(ip)%label       = my_rank * SUM(tnpps(1:nspecies-1) / n_ranks) + ip
-                    p(ip)%data%q      = species(ispecies)%q*fsup
+                    IF (species(ispecies)%physical_particle == 1) THEN
+                        p(ip)%data%q      = species(ispecies)%q*fsup
+                    ELSE
+                        p(ip)%data%q      = 0.0_8 !test particles do not contribute to the fields
+                    END IF
                     p(ip)%data%m      = species(ispecies)%m*fsup
                     p(ip)%data%species= species(ispecies)%indx
                     p(ip)%results%e   = 0.0_8
@@ -865,7 +869,7 @@ module particlehandling
         integer, intent(in) :: ispecies
         integer :: i,j
 
-        IF (.not. species(ispecies)%physical_particle) THEN
+        IF (species(ispecies)%physical_particle == 2) THEN
             j = sum(npps)
             i = 1
             DO WHILE (i <= j)
@@ -944,7 +948,7 @@ module particlehandling
 
 
         DO ip=1, n
-            IF (species(p(ip)%data%species)%physical_particle .eqv. .false.) THEN
+            IF (species(p(ip)%data%species)%moving_particle .eqv. .false.) THEN
                 IF (p(ip)%data%species==0) THEN
                     p(ip)%data%v = 0.0_8
                     ib = p(ip)%data%mp_int1

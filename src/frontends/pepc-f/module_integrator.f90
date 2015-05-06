@@ -27,8 +27,10 @@ MODULE integrator
         if(root) write(*,'(a)') " == [boris_nonrel] calculate velocities "
 
         DO ip=1, size(p)
-            IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
-                beta=p(ip)%data%q / p(ip)%data%m *deltat*0.5     ! charge/mass constant needed in Boris-algorithm
+            IF (species(p(ip)%data%species)%moving_particle) THEN ! only move physical particals
+                ! charge/mass constant needed in Boris-algorithm
+                beta = species(p(ip)%data%species)%q / species(p(ip)%data%species)%m * deltat * 0.5
+
                 !   first half-accn <-> first part of Boris-algorithm
                 uxm = p(ip)%data%v(1) + beta * p(ip)%results%e(1) * fc
                 uym = p(ip)%data%v(2) + beta * p(ip)%results%e(2) * fc
@@ -76,8 +78,8 @@ MODULE integrator
 
 
         DO ip=1, size(p)
-            IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
-                p(ip)%data%v = p(ip)%data%v + deltat * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * fc
+            IF (species(p(ip)%data%species)%moving_particle) THEN ! only move physical particals
+                p(ip)%data%v = p(ip)%data%v + deltat * species(p(ip)%data%species)%q / species(p(ip)%data%species)%m * p(ip)%results%e * fc
             END IF
         END DO
 
@@ -97,7 +99,7 @@ MODULE integrator
         if(root) write(*,'(a)') " == [pusher] push particles "
 
         DO ip=1, size(p)
-            IF (species(p(ip)%data%species)%physical_particle) THEN ! only move physical particals
+            IF (species(p(ip)%data%species)%moving_particle) THEN ! only move physical particals
                 p(ip)%x      = p(ip)%x      + deltat * p(ip)%data%v
             END IF
         END DO

@@ -133,7 +133,8 @@ MODULE diagnostics
 
         do ip=1, sum(npps)
             ispecies = p(ip)%data%species
-            if (.not. species(ispecies)%physical_particle) cycle
+            IF (.NOT.(species(p(ip)%data%species)%moving_particle)) cycle
+
             v0_p = initial_velocities(:, p(ip)%label)
             e0_p = v0_p / norm(v0_p)
             v_p = p(ip)%data%v
@@ -398,8 +399,8 @@ MODULE diagnostics
 
         DO ip=1, n
             IF (particles(ip)%data%species == ispecies) THEN
-                q = particles(ip)%data%q
-                m = particles(ip)%data%m
+                q = species(ispecies)%q
+                m = species(ispecies)%m
                 E = particles(ip)%results%e * fc
                 v = particles(ip)%data%v
                 v2 = v(2)*v(2) + v(3)*v(3)

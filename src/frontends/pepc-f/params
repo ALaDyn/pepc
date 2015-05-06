@@ -26,19 +26,19 @@ ns=3
 name(0)="wall"
 mass(0)=10.
 charge(0)=0.
-physical_particle(0)=.false.
+physical_particle(0)=0
 
 name(1)="electrons"
 mass(1)=9.1093829e-31
 charge(1)=-1.602176565e-19
-physical_particle(1)=.true.
+physical_particle(1)=1
 nfp(1)=5
 nip(1)=22000
 
 name(2)="h-ions"
 mass(2)=1.67262177e-27
 charge(2)=1.602176565e-19
-physical_particle(2)=.true.
+physical_particle(2)=1
 nfp(2)=5
 nip(2)=22000
 /

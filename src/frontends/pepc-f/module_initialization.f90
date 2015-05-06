@@ -275,7 +275,7 @@ module module_initialization
       END DO
 
       DO ispecies=1,nspecies-1
-          IF (.not. species(ispecies)%physical_particle) THEN
+          IF (species(ispecies)%physical_particle == 2) THEN
               IF (root) THEN  !all probes are added on root and will be redistributed later automatically
                   npps(ispecies) = species(ispecies)%nip
                   call reallocate_particles(particles, size(particles), sum(npps))
