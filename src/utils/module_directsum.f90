@@ -40,13 +40,14 @@ module module_directsum
           use treevars, only: num_threads
           use module_timings
           use module_mirror_boxes
+          use module_debug
           implicit none
           include 'mpif.h'
 
           type(t_particle), intent(in) :: particles(:)
           integer(kind_particle), dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for
           integer(kind_particle), intent(in) :: ntest !< number of particles in testidx
-          type(t_particle_results), dimension(:), allocatable, intent(out) :: directresults !< test results
+          type(t_particle_results), dimension(:), intent(out) :: directresults !< test results
           integer, intent(in) :: comm
 
           integer(kind_particle) :: maxtest !< maximum ntest
@@ -153,7 +154,8 @@ module module_directsum
           end do
 
           ! copy results to output array
-          allocate(directresults(1:ntest))
+          DEBUG_ASSERT(ntest == nreceived)
+          DEBUG_ASSERT(size(directresults, kind = kind_particle) >= ntest)
           directresults(1:ntest) = received(1:nreceived)%results
 
           deallocate(received, sending, local_nodes)

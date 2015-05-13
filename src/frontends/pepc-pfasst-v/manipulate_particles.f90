@@ -1093,6 +1093,7 @@ contains
             indices(i) = i
         end do
 
+        allocate(directresults(int(np_local, kind=kind_particle)))
         call directforce(particles, indices, int(np_local, kind=kind_particle), directresults, MPI_COMM_SPACE)
         results(1:np_local) = directresults(1:np_local)
 
