@@ -783,7 +783,7 @@ contains
     subroutine sort_remesh(particles, m_np, m_nppm)
 
         use physvars
-        use treevars, only : nlev, idim
+        use treevars, only : maxlevel, idim
         use module_sort, only : sort
         implicit none
         include 'mpif.h'
@@ -815,7 +815,7 @@ contains
             end subroutine slsort_keys
         end interface
 
-        iplace = 2_8**(idim * nlev)
+        iplace = 2_8**(idim * maxlevel)
 
         indxl = 0
         irnkl = 0
@@ -864,7 +864,7 @@ contains
 
         boxsize = max(xmax-xmin, ymax-ymin, zmax-zmin)
 
-        s=boxsize/2**nlev       ! refinement length
+        s=boxsize/2**maxlevel       ! refinement length
 
         !! Start key generation
         ! TODO: Use module_spacefilling here, problem: this module uses treevars variables, but we do not (e.g. npp vs. m_np)
@@ -876,7 +876,7 @@ contains
 
         ! construct keys by interleaving coord bits and add placeholder bit
         ! - note use of 64-bit constants to ensure correct arithmetic
-        nbits = nlev+1
+        nbits = maxlevel+1
         do j = 1,m_np
             local_keys(j) = iplace
             do i=0,nbits-1

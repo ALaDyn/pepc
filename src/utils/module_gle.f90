@@ -173,7 +173,7 @@ module module_gle
 
 
 	  csnap=achar(mod(me,10)+48)
-      nbits=nlev+1
+      nbits=maxlevel+1
 
 	  !  Header file written out by root PE: does box and includes particle O/P from all PEs
 	  if ( me==0 ) then
@@ -222,10 +222,10 @@ module module_gle
 
 	  ! map of interleaved bits
 
-!	  ilev = nlev
+!	  ilev = maxlevel
 !	  s = boxsize/2**(ilev)          !  box length
 !	  ! recover box coordinates of parents
-!	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
+!	  ibt = maxlevel-ilev           ! bit shift factor (0=particle node, maxlevel-1 = root)
 !	  do j = 1,npp
 !	     ix = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-2-ibt) /) ))
 !	     iy = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
@@ -413,10 +413,10 @@ module module_gle
 
 	  ! map of interleaved bits
 
-!	  ilev = nlev
+!	  ilev = maxlevel
 !	  s = boxsize/2**(ilev)          !  box length
 !	  ! recover box coordinates of parents
-!	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
+!	  ibt = maxlevel-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
 !	  do j = 1,npp
 !	     ix = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-2-ibt) /) ))
 !	     iy = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-2-ibt) /) ))
@@ -494,7 +494,7 @@ module module_gle
 	  data lc/1,0,0,0,0/
 
 	  csnap=achar(mod(isnap,10)+48)
-	  nbits=nlev+1
+	  nbits=maxlevel+1
 
 	  cfile="box2d_"//csnap//".gle"
 	  DEBUG_INFO('(a)', cfile)
@@ -646,7 +646,7 @@ module module_gle
 	  data octy/-1., -.333, .333, 1., 1., .333, -.333, -1., 0./
 
 	  csnap=achar(mod(isnap,10)+48)
-	  nbits=nlev+1
+	  nbits=maxlevel+1
 
 	  cfile="box2d_"//csnap//".gle"
 	  write (15,'(a)') cfile
@@ -667,10 +667,10 @@ module module_gle
 	  ! parent cells - in blue, no symbol
 	  write (60,'(a)') 'set color yellow  lwidth .005'
 
-	  do ilev = nlev,1,-1
+	  do ilev = maxlevel,1,-1
 	     s = xl/2**(ilev)          !  box length
 	     ! recover box coordinates of parents
-	     ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
+	     ibt = maxlevel-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
 	     do j = 1,npp
 	        ix(j) = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-1-ibt) /) ))
 	        iy(j) = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-1-ibt) /) ))
@@ -696,10 +696,10 @@ module module_gle
 	  ! map of interleaved bits
 	  write (60,'(a)') 'set color blue lwidth .002'
 
-	  ilev = nlev
+	  ilev = maxlevel
 	  s = xl/2**(ilev)          !  box length
 	  ! recover box coordinates of parents
-	  ibt = nlev-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
+	  ibt = maxlevel-ilev           ! bit shift factor (0=particle node, nlev-1 = root)
 	  do j = 1,npp
 	     ix(j) = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i  ,1 ), i=0,nbits-1-ibt) /) ))
 	     iy(j) = int(SUM( (/ (2**i*ibits( ishft( particles(j)%key,-2*ibt ),2*i+1,1 ), i=0,nbits-1-ibt) /) ))

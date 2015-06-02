@@ -285,7 +285,7 @@ module module_tree_grow
     subroutine find_local_branches(t, p, bp, nb, bn)
       use module_spacefilling, only: shift_key_by_level
       use module_math_tools, only: bpi
-      use treevars, only: idim, nlev
+      use treevars, only: idim, maxlevel
       use module_debug, only: pepc_status
       use module_tree, only: tree_traverse_to_key
       implicit none
@@ -298,7 +298,7 @@ module module_tree_grow
 
       integer(kind_level) :: ilevel
       integer(kind_key) :: vld_llim, vld_rlim, L, D1, D2, pos, j, possible_branch
-      integer(kind_level) :: branch_level(0:nlev), branch_level_D1(0:nlev), branch_level_D2(0:nlev)
+      integer(kind_level) :: branch_level(0:maxlevel), branch_level_D1(0:maxlevel), branch_level_D2(0:maxlevel)
       integer(kind_node) :: found_branch
 
       call pepc_status('FIND BRANCHES')
@@ -316,8 +316,8 @@ module module_tree_grow
       end if
 
       ! get estimate for number of local branches per level and total
-      do ilevel = 0, nlev
-        pos = idim * (nlev - ilevel)
+      do ilevel = 0, maxlevel
+        pos = idim * (maxlevel - ilevel)
         branch_level_D1(ilevel) = int(ibits(D1, pos, idim), kind(branch_level_D1))
         branch_level_D2(ilevel) = int(ibits(D2, pos, idim), kind(branch_level_D2))
         branch_level(ilevel) = branch_level_D1(ilevel) + branch_level_D2(ilevel)
@@ -329,10 +329,10 @@ module module_tree_grow
       nb = 0
       ! for D1
       pos = L
-      do ilevel = 0, nlev
+      do ilevel = 0, maxlevel
         do j = 1, branch_level_D1(ilevel)
-          pos = pos - 2_kind_key**(idim * (nlev - ilevel))
-          possible_branch = shift_key_by_level(pos, -(nlev - ilevel))
+          pos = pos - 2_kind_key**(idim * (maxlevel - ilevel))
+          possible_branch = shift_key_by_level(pos, -(maxlevel - ilevel))
 
           ! After local build hashtable should contain branch key
           ! otherwise branch does not exists
@@ -347,10 +347,10 @@ module module_tree_grow
 
       ! for D2
       pos = L - 1
-      do ilevel = 0, nlev
+      do ilevel = 0, maxlevel
         do j = 1, int(branch_level_D2(ilevel))
-          pos = pos + 2_kind_key**(idim * (nlev - ilevel))
-          possible_branch = shift_key_by_level(pos, -(nlev - ilevel))
+          pos = pos + 2_kind_key**(idim * (maxlevel - ilevel))
+          possible_branch = shift_key_by_level(pos, -(maxlevel - ilevel))
 
           ! After build hashtable should contain branch key
           ! otherwise branch does not exists
@@ -370,7 +370,7 @@ module module_tree_grow
     !>
     subroutine find_vld_limits(t, p, bp, l, r)
       use module_math_tools, only: bpi
-      use treevars, only: idim, nlev
+      use treevars, only: idim, maxlevel
       implicit none
 
       type(t_tree), intent(in) :: t !< the tree
@@ -388,8 +388,8 @@ module module_tree_grow
       ! get key limits for neighbor tasks
       ! and build virtual limits, so that a minimum set of branch nodes comes arround
       ! boundary tasks can access their boundary space fully only need one virtual limit
-      l = 2_kind_key**(nlev * idim)
-      r = 2_kind_key**(nlev * idim + 1) - 1
+      l = 2_kind_key**(maxlevel * idim)
+      r = 2_kind_key**(maxlevel * idim + 1) - 1
 
       if (.not. t%comm_env%first) then
         lb = bp(1)%key
@@ -557,7 +557,7 @@ module module_tree_grow
   subroutine tree_build_from_particles(t, p, bp)
     use module_tree, only: t_tree, TREE_KEY_ROOT
     use module_tree_node, only: NODE_INVALID
-    use treevars, only : idim, nlev
+    use treevars, only : idim, maxlevel
     use module_pepc_types, only: t_particle, t_tree_node
     use module_spacefilling, only: level_from_key
     use module_tree_node
@@ -673,7 +673,7 @@ module module_tree_grow
         end if
         cur = cur + 1 ! `ki(cur)` has been inserted, consider `ki(cur + 1)` next
       else ! more particles left, split twig
-        if (l >= nlev) then ! no more levels left, cannot split
+        if (l >= maxlevel) then ! no more levels left, cannot split
           si = size(ki, kind = kind(si))
           DEBUG_WARNING_ALL('("Problem with tree: No more levels. Remaining particles ",I0,"..",I0,"  [i, key, label, x, y, z]:")', cur, si)
           DEBUG_ERROR_NO_HEADER('(I6,x,O22.22,x,I16,g20.12,x,g20.12,x,g20.12,x)', ( ip, p(ki(ip)%idx)%key, p(ki(ip)%idx)%label, p(ki(ip)%idx)%x(1:3), ip = cur, si ) )

@@ -130,7 +130,7 @@ module module_tree
     !>
     subroutine tree_create(t, nl, n, comm, comm_env)
       use module_tree_node, only: NODE_INVALID
-      use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult, nlev
+      use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult, maxlevel
       use module_interaction_specific, only: get_number_of_interactions_per_particle
       use module_comm_env, only: comm_env_dup, comm_env_mirror
       use module_timings
@@ -194,9 +194,9 @@ module module_tree
       call tree_communicator_create(t%communicator)
 
       ! Preprocessed box sizes for each level
-      allocate(t%boxlength2(0:nlev))
+      allocate(t%boxlength2(0:maxlevel))
       t%boxlength2(0) = maxval(t%bounding_box%boxsize)**2
-      do i = 1, nlev
+      do i = 1, maxlevel
         t%boxlength2(i) =  t%boxlength2(i-1)/4._8
       end do
 
