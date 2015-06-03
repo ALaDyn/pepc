@@ -300,7 +300,7 @@ contains
       real(kind_physics), dimension(:,:), intent(in) :: y
 
       fflat(:) = reshape(y, fflatshape)
-      call write_quantity_on_grid(yname, fflat(1 + my_offset : 1 + my_offset + field_grid%nl))
+      call write_quantity_on_grid(yname, fflat(1 + my_offset : 1 + my_offset + field_grid%nl - 1))
     end subroutine
 
     subroutine write_quantity_on_grid(yname, y)
