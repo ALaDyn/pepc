@@ -26,7 +26,7 @@
 !>
 module module_fmm_periodicity
       use module_pepc_kinds
-      use module_mirror_boxes, only: lattice_vect
+      use module_interaction_specific_types, only : t_tree_node_interaction_data
       implicit none
       include 'mpif.h'
       private
@@ -35,14 +35,13 @@ module module_fmm_periodicity
 
       !> far- and near-field contribution to potential energy (has to be calculated in fields.p90)
       real(kind_physics), public :: potfarfield, potnearfield
-      !> whether to do dipole correction or not, see [J.Chem.Phys. 107, 10131, eq. (19,20)]
+      !> whether to do dipole correction or not, see [Kudin 1998, eq. (2.8)]
       logical, public :: do_extrinsic_correction = .true.
 
       ! public subroutine declarations
       public fmm_periodicity_prepare
       public fmm_periodicity_timestep
       public fmm_periodicity_sum_lattice_force
-      public lattice_vect
       public fmm_periodicity_param_dump
 
       ! private variable declarations
@@ -60,6 +59,9 @@ module module_fmm_periodicity
       real(kfp), parameter :: zero = 0._kfp
       real(kfp), parameter :: one  = 1._kfp
       real(kfp), parameter :: two  = 2._kfp
+      real(kfp), parameter :: half = one / two
+      complex(kfp), parameter :: czero = (zero, zero)
+      complex(kfp), parameter :: ic = (zero, one)
       ! FMM-PARAMETERS
       integer, parameter :: pMultipoleFMMP = 30
       integer, parameter :: qTaylorFMMP    = pMultipoleFMMP * 2
@@ -69,9 +71,9 @@ module module_fmm_periodicity
       complex(kfp) :: mu_cent(0:qTaylorFMMP)
       complex(kfp) :: omega_tilde(1:pMultipoleFMMP)
       complex(kfp) :: BLattice(0:qTaylorFMMP, 1:pMultipoleFMMP)
-      !> variables for extrinsic to intrinsic correction
-      real(kfp) :: box_dipole(2) = zero
-      real(kfp) :: quad_trace    = zero
+      !> fictitious charges
+      type(t_tree_node_interaction_data) :: fictcharge(1:4)
+      integer :: nfictcharge = 0
 
       ! subroutine-implementation
 
@@ -82,6 +84,10 @@ module module_fmm_periodicity
       interface chop
         module procedure chop1D, chop2D
       end interface chop
+
+      interface matmul_careful
+        module procedure matmul_carefulMM, matmul_carefulMV
+      end interface matmul_careful
 
       contains
 
@@ -115,7 +121,7 @@ module module_fmm_periodicity
           end if
           LatticeCenter(3) = 0
 
-          BLattice = 0
+          BLattice = czero
 
           call calc_lattice_coefficients(BLattice)
 
@@ -142,7 +148,6 @@ module module_fmm_periodicity
 
           call calc_omega_tilde(particles)
           call calc_mu_cent(omega_tilde, mu_cent)
-          call calc_extrinsic_correction(particles)
         end subroutine fmm_periodicity_timestep
 
 
@@ -163,8 +168,8 @@ module module_fmm_periodicity
 
           call pepc_status('LATTICE COEFFICIENTS: Starting calculation')
 
-          Astar = 0
-          Bstar = 0
+          Astar = czero
+          Bstar = czero
 
           ! pretabulation of necessary values
           do k = 1, pMultipoleFMMP
@@ -213,7 +218,7 @@ module module_fmm_periodicity
         !>
         subroutine calc_omega_tilde(particles)
           use module_pepc_types
-          use module_mirror_boxes, only: LatticeCenter
+          use module_mirror_boxes, only: LatticeOrigin, LatticeCenter, Lattice, periodicity
           use module_debug
           implicit none
 
@@ -222,23 +227,14 @@ module module_fmm_periodicity
           integer :: k
           integer(kind_particle) :: p
           integer :: ierr
-          complex(kfp), parameter :: ic = (zero, one)
-          complex(kfp) :: z0
-          real(kfp) :: qtotal, x0(3)
+          real(kfp) :: qtotal
 
-          qtotal = 0
-          omega_tilde = 0
+          qtotal = zero
+          omega_tilde = czero
 
           ! calculate multipole contributions of all local particles
           do p=1,size(particles, kind=kind(p))
-            x0 = real(particles(p)%x - LatticeCenter, kind = kfp)
-            z0 = x0(1) + ic * x0(2)
-            qtotal = qtotal + real(particles(p)%data%q, kind = kfp)
-
-            do k=1,pMultipoleFMMP
-              omega_tilde(k) = omega_tilde(k) + omega(k, z0, real(particles(p)%data%q, kind = kfp))
-            end do
-
+            call addparticle(particles(p)%x(1:2), particles(p)%data%q)
           end do
 
           call chop(omega_tilde)
@@ -249,6 +245,38 @@ module module_fmm_periodicity
 
           call chop(omega_tilde)
 
+          if (do_extrinsic_correction) then
+            nfictcharge = 0
+
+            if (periodicity(1)) then
+              nfictcharge = nfictcharge + 1
+              fictcharge(nfictcharge)%coc(1:2) = LatticeOrigin(1:2) + Lattice(1, 1:2)
+              fictcharge(nfictcharge)%charge = real(omega_tilde(1), kind = kind_physics) / sqrt(dot_product(Lattice(1, 1:2), Lattice(1, 1:2)))
+
+              nfictcharge = nfictcharge + 1
+              fictcharge(nfictcharge)%coc(1:2) = LatticeOrigin(1:2)
+              fictcharge(nfictcharge)%charge = -fictcharge(nfictcharge - 1)%charge
+            end if
+
+            if (periodicity(2)) then
+              nfictcharge = nfictcharge + 1
+              fictcharge(nfictcharge)%coc(1:2) = LatticeOrigin(1:2) + Lattice(2, 1:2)
+              fictcharge(nfictcharge)%charge = real(aimag(omega_tilde(1)), kind = kind_physics) / sqrt(dot_product(Lattice(2, 1:2), Lattice(2, 1:2)))
+
+              nfictcharge = nfictcharge + 1
+              fictcharge(nfictcharge)%coc(1:2) = LatticeOrigin(1:2)
+              fictcharge(nfictcharge)%charge = -fictcharge(nfictcharge - 1)%charge
+            end if
+
+            if (nfictcharge > 0) then
+              do p=1,nfictcharge
+                call addparticle(fictcharge(p)%coc(1:2), fictcharge(p)%charge)
+              end do
+
+              call chop(omega_tilde)
+            end if
+          end if
+
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('omega_tilde.tab', omega_tilde)
           end if
@@ -257,46 +285,24 @@ module module_fmm_periodicity
             DEBUG_WARNING(*, 'The central box is not charge-neutral: Q_total=', qtotal, ' Setting to zero, resulting potentials might be wrong.' )
           end if
 
+          contains
+            subroutine addparticle(R, q)
+              implicit none
+
+              real(kind_physics), intent(in) :: R(2), q
+
+              real(kfp) :: x0(2)
+              complex(kfp) :: z0
+
+              x0 = real(R(1:2) - LatticeCenter(1:2), kind = kfp)
+              z0 = x0(1) + ic * x0(2)
+              qtotal = qtotal + real(q, kind = kfp)
+
+              do k=1,pMultipoleFMMP
+                omega_tilde(k) = omega_tilde(k) + omega(k, z0, real(q, kind = kfp))
+              end do
+            end subroutine addparticle
         end subroutine calc_omega_tilde
-
-
-        !>
-        !> Calculates the (cartesian) overall dipole moment
-        !> \f$\frac{4\pi}{3}\sum_p q(p){\vec r}_p\f$ and the
-        !> trace of the quadrupole matrix
-        !> \f$\frac{2\pi}{3}\sum_p q(p){\vec r}_p\cdot{\vec r}_p\f$
-        !> for performing the extrinsic-to-intrinsic correction
-        !> (see [J.Chem.Phys. 107, 10131, eqn.(19,20)] for details
-        !>       ^ inside this publication, the volume factor is missing
-        !>  [J. Chem. Phys. 101, 5024, eqn (5)] contains this volume
-        !>
-        subroutine calc_extrinsic_correction(particles)
-          use module_debug
-          use module_pepc_types
-          use module_mirror_boxes, only : unit_box_volume, LatticeCenter
-          implicit none
-
-          type(t_particle), intent(in) :: particles(:)
-
-          real(kfp), parameter :: pi = acos(-one)
-          real(kfp) :: r(2)
-          integer(kind_particle) :: p
-          integer(kind_default) :: ierr
-
-          if (do_extrinsic_correction) then
-            quad_trace = zero
-            do p=1,size(particles, kind=kind(p))
-              r = real(particles(p)%x(1:2) - LatticeCenter(1:2), kind = kfp)
-              quad_trace = quad_trace + real(particles(p)%data%q * dot_product(r, r), kind = kfp)
-            end do
-
-            call MPI_ALLREDUCE(MPI_IN_PLACE, quad_trace, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
-
-            box_dipole = -pi / unit_box_volume * [ real(omega_tilde(1), kind = kfp), real(aimag(omega_tilde(1)), kind = kfp) ]
-            quad_trace = pi / (2 * unit_box_volume) * quad_trace
-          end if
-
-        end subroutine calc_extrinsic_correction
 
 
         !>
@@ -310,7 +316,7 @@ module module_fmm_periodicity
           complex(kfp), intent(out) :: mu(0:qTaylorFMMP)
 
           ! contribution of all outer lattice cells, with regards to the centre of the original box
-          mu = matmul(BLattice, omega)
+          mu = matmul_careful(BLattice, omega)
 
           call chop(mu)
 
@@ -343,7 +349,7 @@ module module_fmm_periodicity
         !> i.e. the lattice contribution
         !>
         subroutine fmm_periodicity_sum_lattice_force(pos, e_lattice, phi_lattice)
-          use module_mirror_boxes, only: LatticeCenter
+          use module_mirror_boxes, only: LatticeCenter, num_neighbour_boxes, lattice_vect, neighbour_boxes
           use module_multipole
           use module_debug
           implicit none
@@ -351,30 +357,53 @@ module module_fmm_periodicity
           real(kind_physics), intent(in) :: pos(3)
           real(kind_physics), intent(out) ::  e_lattice(2), phi_lattice
 
-          integer :: k
-          real(kfp) :: x0(3)
-          complex(kfp), parameter :: ic = (zero, one)
+          integer :: k, ibox
+          integer(kind_particle) :: p
+          real(kfp) :: x0(2)
           complex(kfp) :: z0, cphi, ce
+          real(kind_physics) :: delta(3), phitmp, etmp(2)
 
-          x0 = real(pos - LatticeCenter, kind = kfp)
+          x0 = real(pos(1:2) - LatticeCenter(1:2), kind = kfp)
           z0 = x0(1) + ic * x0(2)
 
           cphi = -mu_cent(0) ! OMultipole(0, z0) = 1
-          ce   = 0           ! OmultipolePrime(0, z0) = 0
+          ce   = czero       ! OmultipolePrime(0, z0) = 0
 
           do k = 1, qTaylorFMMP
             cphi = cphi - mu_cent(k) * OMultipole(k, z0)
-            ce = ce + mu_cent(k) * OMultipolePrime(k, z0)
+            ce = ce - mu_cent(k) * OMultipolePrime(k, z0)
           end do
 
           ! E = -grad(Phi)
-          e_lattice  = -[ real(ce, kind = kind_physics), -real(aimag(ce), kind = kind_physics) ]
+          e_lattice  = [ -real(ce, kind = kind_physics), real(aimag(ce), kind = kind_physics) ]
           phi_lattice = real(cphi, kind = kind_physics)
 
           if (do_extrinsic_correction) then    ! extrinsic correction
-            e_lattice   = e_lattice   + real(box_dipole, kind = kind_physics)
-            phi_lattice = phi_lattice - real(dot_product(x0(1:2), box_dipole) + quad_trace, kind = kind_physics)
+            do p=1,nfictcharge
+              do ibox=1,num_neighbour_boxes
+                delta = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
+                call log2d_kernel(fictcharge(p)%charge, delta(1:2), phitmp, etmp(1:2))
+                e_lattice = e_lattice + etmp
+                phi_lattice = phi_lattice + phitmp
+              end do
+            end do
           end if
+
+          contains
+            subroutine log2d_kernel(q, d, phi, e)
+              implicit none
+
+              real(kind_physics), intent(in) :: q, d(2)
+              real(kind_physics), intent(out) :: phi, e(2)
+
+              real(kfp) :: d2, rd2
+
+              d2 = dot_product(d, d)
+              rd2 = one / d2
+
+              phi = -half * q * log(d2)
+              e = q * d * rd2
+            end subroutine log2d_kernel
         end subroutine fmm_periodicity_sum_lattice_force
 
 
@@ -415,7 +444,6 @@ module module_fmm_periodicity
           integer, intent(in) :: k, l
           real(kfp) :: rpart(num_neighbour_boxes), ipart(num_neighbour_boxes), rp, ip, x0(3)
           complex(kfp) :: z0, tmp
-          complex(kfp), parameter :: ic = (zero,one)
 
           integer :: i
 
@@ -457,7 +485,6 @@ module module_fmm_periodicity
           integer, intent(in) :: k, l
           real(kfp) :: rpart(num_neighbour_boxes*(num_neighbour_boxes-1)), ipart(num_neighbour_boxes*(num_neighbour_boxes-1)), rp, ip, x0(3)
           complex(kfp) :: z0, tmp
-          complex(kfp), parameter :: ic = (zero,one)
           integer :: i, ii, j
 
           j = 0
@@ -606,13 +633,12 @@ module module_fmm_periodicity
         end subroutine fmm_periodicity_param_dump
 
 
-        function matmul_careful(A, B)
+        function matmul_carefulMM(A, B) result(matmul_careful)
           implicit none
 
           complex(kfp), intent(in) :: A(:, :), B(:, :)
           complex(kfp) :: matmul_careful(size(A, dim = 1), size(B, dim = 2))
 
-          complex(kfp), parameter :: ic = (zero, one)
           complex(kfp) :: tmp
           real(kfp) :: rpart(size(A, dim = 2)), ipart(size(A, dim = 2)), rp, ip
           integer :: i, j, k
@@ -620,8 +646,8 @@ module module_fmm_periodicity
           do i = 1, size(A, dim = 1)
             do j = 1, size(B, dim = 2)
 
-              rpart = 0
-              ipart = 0
+              rpart = zero
+              ipart = zero
 
               do k = 1, size(A, dim = 2)
                 tmp = A(i,k) * B(k, j)
@@ -633,8 +659,8 @@ module module_fmm_periodicity
               call sort_abs(rpart)
               call sort_abs(ipart)
 
-              rp = 0
-              ip = 0
+              rp = zero
+              ip = zero
 
               do k = 1, size(A, dim = 2)
                 rp = rp + rpart(k)
@@ -645,7 +671,43 @@ module module_fmm_periodicity
             end do
           end do
 
-        end function matmul_careful
+        end function matmul_carefulMM
+
+
+        function matmul_carefulMV(A, x) result(matmul_careful)
+          implicit none
+
+          complex(kfp), intent(in) :: A(:, :), x(:)
+          complex(kfp) :: matmul_careful(size(A, dim = 1))
+
+          complex(kfp) :: tmp
+          real(kfp) :: rpart(size(A, dim = 2)), ipart(size(A, dim = 2)), rp, ip
+          integer :: i, j
+
+          do i = 1, size(A, dim = 1)
+            rpart = zero
+            ipart = zero
+
+            do j = 1, size(A, dim = 2)
+              tmp = A(i,j) * x(j)
+              rpart(j) = real(tmp, kind = kfp)
+              ipart(j) = real(aimag(tmp), kind = kfp)
+            end do
+
+            call sort_abs(rpart)
+            call sort_abs(ipart)
+
+            rp = zero
+            ip = zero
+
+            do j = 1, size(A, dim = 2)
+              rp = rp + rpart(j)
+              ip = ip + ipart(j)
+            end do
+
+            matmul_careful(i) = rp + ic * ip
+          end do
+        end function matmul_carefulMV
 
 
         !>
@@ -714,7 +776,6 @@ module module_fmm_periodicity
           implicit none
           complex(kfp), intent(inout) :: a(:)
           integer :: i
-          complex(kfp), parameter :: ic = (zero,one)
           real(kfp) :: re, im
 
           if (.not. chop_arrays) return
@@ -738,7 +799,6 @@ module module_fmm_periodicity
           implicit none
           complex(kfp), intent(inout) :: a(:,:)
           integer :: i, j
-          complex(kfp), parameter :: ic = (zero,one)
           real(kfp) :: re, im
 
           if (.not. chop_arrays) return
