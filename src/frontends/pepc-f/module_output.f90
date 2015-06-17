@@ -579,8 +579,10 @@ MODULE output
                 IF (diag_now) THEN
                     call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:), &
                                              data_bins(ispecies,:,:,:,:),.True.)
-                    call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
-                                             data_bins_v(ispecies,:,:,:),.True.)
+                    IF (bool_velocity_diag) THEN
+                        call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
+                                                 data_bins_v(ispecies,:,:,:),.True.)
+                    END IF
                     IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
                     IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
                     IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
@@ -589,8 +591,10 @@ MODULE output
                     IF (bool_avg_btwn_diag_steps) THEN
                         call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
                                                  data_bins(ispecies,:,:,:,:),.False.)
-                        call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
-                                                 data_bins_v(ispecies,:,:,:),.False.)
+                        IF (bool_velocity_diag) THEN
+                            call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
+                                                     data_bins_v(ispecies,:,:,:),.False.)
+                        END IF
                     END IF
                 END IF
 

@@ -93,6 +93,7 @@ module module_initialization
       diag_bins_vx = 100
       diag_bins_v2 = 100
       v_grid_max = 3.0_8
+      bool_velocity_diag = .false.
 
       bool_hockney_diag = .true.
       hockney_start_step = 50
@@ -120,10 +121,7 @@ module module_initialization
         n_bins = 0
         data_bins = 0.0_8
 
-        allocate(n_bins_v(0:nspecies-1,0:diag_bins_vx+1, diag_bins_v2+1))
-        allocate(data_bins_v(0:nspecies-1,3,0:diag_bins_vx+1, diag_bins_v2+1))
-        n_bins_v = 0
-        data_bins_v = 0.0_8
+
 
         !if the following condition is met, particles can leave the system. Diagnostics for collisionality and heating
         !(as they are implemented right now) won't work. So bool_hockney_diag ist set to .false.
@@ -135,6 +133,14 @@ module module_initialization
         !if the following condition is met, particles enter the system. Diagnostics for collisionality and heating
         !(as they are implemented right now) won't work. So bool_hockney_diag ist set to .false.
         IF ( ANY(species(:)%nfp /= 0) ) bool_hockney_diag = .false.
+
+        IF (bool_hockney_diag) bool_velocity_diag = .true.
+        IF (bool_velocity_diag) THEN
+            allocate(n_bins_v(0:nspecies-1,0:diag_bins_vx+1, diag_bins_v2+1))
+            allocate(data_bins_v(0:nspecies-1,3,0:diag_bins_vx+1, diag_bins_v2+1))
+            n_bins_v = 0
+            data_bins_v = 0.0_8
+        END IF
 
     end subroutine init
 

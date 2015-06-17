@@ -100,8 +100,9 @@ module variables
   integer :: diag_bins_vx
   integer :: diag_bins_v2
   real(KIND=8) :: v_grid_max
-  real(KIND=8), allocatable :: data_bins_v(:,:,:,:) !(nspecies,38,diag_bins_vx,diag_bins_v2)
-  integer, allocatable      :: n_bins_v(:,:,:)      !(nspecies,diag_bins_vx,diag_bins_v2)
+  real(KIND=8), allocatable :: data_bins_v(:,:,:,:) !(0:nspecies-1,3,0:diag_bins_vx+1, diag_bins_v2+1)
+  integer, allocatable      :: n_bins_v(:,:,:)      !(0:nspecies-1,0:diag_bins_vx+1, diag_bins_v2+1)
+  logical :: bool_velocity_diag
 
 
   ! variables for detailed boundary hit statistics
