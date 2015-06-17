@@ -623,8 +623,8 @@ MODULE output
             IF (bool_age_resolved_hits) age_resolved_hits = 0
             n_bins = 0
             data_bins = 0.0_8
-            n_bins_v = 0
-            data_bins_v = 0.0_8
+            IF (bool_velocity_diag) n_bins_v = 0
+            IF (bool_velocity_diag) data_bins_v = 0.0_8
         END IF
 
         IF(root) write(filehandle,'(a)')"================================================================================================"
