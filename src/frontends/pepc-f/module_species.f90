@@ -34,6 +34,7 @@ module module_species
 !======================================================================================
 
     subroutine init_species()
+        use helper, only: norm
         use module_geometry
         use module_species_types
         implicit none
@@ -316,12 +317,11 @@ module module_species
 
                 ELSE IF (src_type_x(ispecies)==12) THEN !Cylindrical Volume Source
                     src_bnd(ispecies)=0
-                    src_e2(ispecies,:)=0.
                     src_e3(ispecies,:)=0.
                     IF (root) write(*,'(a,i2,a,i2,a)') " == Cylindrical Volume source of type for species ",ispecies," set. Parameters:"
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == reference point(x0): ",src_x0(ispecies,:)
                     IF (root) write(*,'(a,3(1pe14.5E3))') " == axis(e1): ",src_e1(ispecies,:)
-                    IF (root) write(*,'(a,(1pe14.5E3))') " == radius(v0): ",src_v0(ispecies)
+                    IF (root) write(*,'(a,(1pe14.5E3))') " == radius(|e2|): ",norm(src_e2(ispecies,:))
                 ELSE
                     IF (root) write(*,'(a,i3,a)') " Source cannot be set. Type ",src_type_x(ispecies)," not available."
                     STOP

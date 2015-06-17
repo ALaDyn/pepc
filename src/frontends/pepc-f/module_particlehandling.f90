@@ -1149,8 +1149,24 @@ module particlehandling
                 !Cylindrical Volume Source
                 !Gleiches Problem wie oben bei der zylindrischen Konfiguration
                 ELSE IF (species(p(ip)%data%species)%src_type_x == 12) THEN
+                    n1 = species(p(ip)%data%species)%src_e1                       ! cylinder axis
+                    n1 = n1 /sqrt(dotproduct(n1,n1))
+                    IF ((real_unequal_zero(n1(1),eps)) .OR. (real_unequal_zero(n1(2),eps))) THEN
+                        t1(1) = -n1(2)                                            ! tangential vector
+                        t1(2) = n1(1)
+                        t1(3) = 0.0_8
+                    ELSE
+                        t1(1) = 1.0_8                                             ! tangential vector
+                        t1(2) = 0.0_8
+                        t1(3) = 0.0_8
+                    END IF
+                    t1 = t1 / sqrt(dotproduct(t1,t1))
+                    t2(1) = n1(2)*t1(3) - n1(3)*t1(2)                             ! t2 = n1 x t1 (2nd tangential vector)
+                    t2(2) = n1(3)*t1(1) - n1(1)*t1(3)
+                    t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
+                    t2=t2/sqrt(dotproduct(t2,t2))
                     ran=rnd_num()
-                    ran1=rnd_num() * species(p(ip)%data%species)%src_v0 !radius
+                    ran1=rnd_num() * norm(species(p(ip)%data%species)%src_e2) !radius
                     ran2=rnd_num() * 2.0_8 * pi              !angle
                     p(ip)%x = species(p(ip)%data%species)%src_x0                     !now we are at the center of the plasma column
                     p(ip)%x = p(ip)%x + ran*species(p(ip)%data%species)%src_e1       !now we moved the particle along the cylinder axis
