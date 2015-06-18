@@ -1130,11 +1130,9 @@ module particlehandling
                 !src_x0(2) * e2 with r = src_x0(3)*|e1|
                 !this is a first test and only works if |e1| ~ |e2|
                 !and src_x0 reasonable
-                !Ich glaube, dass das noch falsch ist, weil ich r einfach naiv sample, r ist aber im Zylinder
-                !nicht gleichverteilt... Jetzt nicht so wichtig
                 ELSE IF (species(p(ip)%data%species)%src_type_x == 11) THEN
                     ran=rnd_num()
-                    ran1=rnd_num() * species(p(ip)%data%species)%src_x0(3) !radius
+                    ran1=sqrt(rnd_num()) * species(p(ip)%data%species)%src_x0(3) !radius
                     ran2=rnd_num() * 2.0_8 * pi              !angle
                     p(ip)%x = boundaries(species(p(ip)%data%species)%src_bnd)%x0 + &
                               species(p(ip)%data%species)%src_x0(1)*boundaries(species(p(ip)%data%species)%src_bnd)%e1 + &
@@ -1147,7 +1145,6 @@ module particlehandling
                               !and we moved the particle a little bit along n
 
                 !Cylindrical Volume Source
-                !Gleiches Problem wie oben bei der zylindrischen Konfiguration
                 ELSE IF (species(p(ip)%data%species)%src_type_x == 12) THEN
                     n1 = species(p(ip)%data%species)%src_e1                       ! cylinder axis
                     n1 = n1 /sqrt(dotproduct(n1,n1))
@@ -1166,7 +1163,7 @@ module particlehandling
                     t2(3) = n1(1)*t1(2) - n1(2)*t1(1)
                     t2=t2/sqrt(dotproduct(t2,t2))
                     ran=rnd_num()
-                    ran1=rnd_num() * norm(species(p(ip)%data%species)%src_e2) !radius
+                    ran1=sqrt(rnd_num()) * norm(species(p(ip)%data%species)%src_e2) !radius
                     ran2=rnd_num() * 2.0_8 * pi              !angle
                     p(ip)%x = species(p(ip)%data%species)%src_x0                     !now we are at the center of the plasma column
                     p(ip)%x = p(ip)%x + ran*species(p(ip)%data%species)%src_e1       !now we moved the particle along the cylinder axis
