@@ -403,6 +403,7 @@ module module_interaction_specific
     use module_pepc_types
     use module_fmm_periodicity
     use module_mirror_boxes
+    use treevars, only: num_threads
     implicit none
 
     type(t_particle), intent(inout) :: particles(:)
@@ -415,6 +416,7 @@ module module_interaction_specific
     potnearfield = 0.
 
     if (do_periodic .and. include_far_field_if_periodic) then
+        !$omp parallel do default(shared) private(phi_lattice, e_lattice) reduction(+:potfarfield, potnearfield) num_threads(num_threads)
         do p = 1, size(particles, kind = kind(p))
           call fmm_periodicity_sum_lattice_force(particles(p)%x, e_lattice, phi_lattice)
 
@@ -424,6 +426,7 @@ module module_interaction_specific
           particles(p)%results%e     = particles(p)%results%e     + e_lattice
           particles(p)%results%pot   = particles(p)%results%pot   + phi_lattice
         end do
+        !$omp end parallel do
     end if
 
     call pepc_status('CALC FORCE PER PARTICLE DONE')
