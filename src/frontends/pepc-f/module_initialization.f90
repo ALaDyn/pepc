@@ -96,7 +96,7 @@ module module_initialization
       bool_velocity_diag = .false.
 
       bool_hockney_diag = .true.
-      hockney_start_step = 50
+      hockney_start_step = 100
 
   end subroutine set_default_parameters
 
