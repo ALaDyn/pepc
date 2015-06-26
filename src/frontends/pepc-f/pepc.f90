@@ -109,6 +109,9 @@ program pepc
     if(vtk_interval.ne.0) then
         call write_particles_vtk(particles,17_kind_particle)
     end if
+    if(npy_interval.ne.0) then
+        call write_particles_npy(particles, my_rank, startstep)
+    end if
 
     !initially integrate v half a step backwards for leap frog
     call boris_nonrel(particles, -dt/2)
