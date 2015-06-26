@@ -29,6 +29,7 @@ program pepc
     use module_timings
     use module_debug
     use module_vtk
+    use module_interaction_specific, only: theta2
 
     ! frontend helper routines
     use helper
@@ -47,7 +48,6 @@ program pepc
 
     ! timing variables
     real*8 :: timer(20)
-    integer :: rc,ip,imp,irp
     integer*8 :: npart
 
 
@@ -94,11 +94,15 @@ program pepc
     call write_parameters()
 
     !get initial field configuration
-    call pepc_particleresults_clear(particles)
-    call pepc_grow_tree(particles)
-    call pepc_traverse_tree(particles)
-    if (diags) call pepc_tree_diagnostics()
-    call pepc_timber_tree()
+    if (theta2 > 1.e-6) then
+        call pepc_particleresults_clear(particles)
+        call pepc_grow_tree(particles)
+        call pepc_traverse_tree(particles)
+        if (diags) call pepc_tree_diagnostics()
+        call pepc_timber_tree()
+    else
+        call compute_force_direct(particles, int(sum(npps),8))
+    end if
     call add_boundary_field(particles)
     call get_number_of_particles(particles)
 
@@ -118,8 +122,13 @@ program pepc
     if (.not. do_resume) call boris_nonrel(particles, -dt/2)
 
     timer(2) = get_time()
-    if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
-    if(root) write(*,*)""
+    if(root) then
+        write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
+        if (theta2 <= 1.e-5) then
+            write(*,'(a,f7.5,a)') " === Due to small value of theta (", sqrt(theta2),") direct force computation is used"
+        end if
+        write(*,*)""
+    end if
 
 
     !MAIN LOOP ====================================================================================================
@@ -140,46 +149,56 @@ program pepc
         call hits_on_boundaries(particles)
         timer(5) = get_time()
 
-        !pepc routines
+
+
+        !===================== compute internal fields ========================
         call pepc_particleresults_clear(particles)
 
-        !grow tree
-        if(root) write(*,'(a)') " == [main loop] grow tree"
-        call pepc_grow_tree(particles)
-        timer(6)=get_time() !6-5: grow_tree
-        !end grow tree
+        if (theta2 > 1.e-6) then
+            !grow tree
+            if(root) write(*,'(a)') " == [main loop] grow tree"
+            call pepc_grow_tree(particles)
+            timer(6)=get_time() !6-5: grow_tree
+            !end grow tree
+
+            !traverse tree
+            if(root) write(*,'(a)') " == [main loop] traverse tree"
+            call pepc_traverse_tree(particles)
+            timer(7)=get_time() !7-6: traverse_tree
+            !end traverse tree
+
+            !diagnostics
+            if (diags) call pepc_tree_diagnostics()
+            timer(8)=get_time()
+            !end diagnostics
+
+            !timber tree
+            if(root) write(*,'(a)') " == [main loop] timber tree"
+            call pepc_timber_tree()
+            call get_number_of_particles(particles)
+            timer(9)=get_time() !9-8: timber
+            !end timber tree
+
+            !further diagnostics
+            if (diags) call timings_GatherAndOutput(step)
+            timer(10)=get_time() !10-9 + 8-7: diag
+            !end further diagnostics
+        else
+            call compute_force_direct(particles, int(sum(npps),8))
+            timer(6)=timer(5)
+            timer(7)=get_time()
+            timer(8)=get_time()
+            timer(9)=get_time()
+            timer(10)=get_time()
+        end if
+        !===================== end compute internal fields ========================
 
 
-        !traverse tree
-        if(root) write(*,'(a)') " == [main loop] traverse tree"
-        call pepc_traverse_tree(particles)
-        timer(7)=get_time() !7-6: traverse_tree
-        !end traverse tree
-
-
-        !diagnostics
-        if (diags) call pepc_tree_diagnostics()
-        timer(8)=get_time()
-        !end diagnostics
-
-
-        !timber tree
-        if(root) write(*,'(a)') " == [main loop] timber tree"
-        call pepc_timber_tree()
-        call get_number_of_particles(particles)
-        timer(9)=get_time() !9-8: timber
-        !end timber tree
-
-
-        !further diagnostics
-        if (diags) call timings_GatherAndOutput(step)
-        timer(10)=get_time() !10-9 + 8-7: diag
-        !end further diagnostics
-
-
+        !===================== compute external fields ========================
         !add E-Field and Potential caused by boundaries of type 1 (treated as external field)
         call add_boundary_field(particles)
         timer(11)=get_time() !11-10: boundary field
+        !===================== end compute external fields ========================
 
 
         !vtk and checkpoints (positions and fields after current timestep)

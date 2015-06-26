@@ -299,6 +299,33 @@ module helper
 
 
 !=======================================================================================
+
+  subroutine compute_force_direct(particles, nforceparticles)
+      use module_pepc_types
+      use module_directsum
+      use module_debug, only : pepc_status
+      use module_interaction_specific_types, only: t_particle_results
+
+      implicit none
+      include 'mpif.h'
+      integer(kind_particle), intent(in) :: nforceparticles    !< number of particles to compute the force for, i.e. force is computed for particles(1:nforceparticles)
+      type(t_particle), intent(inout), allocatable :: particles(:) !< input particle data, initialize %x, %data appropriately (and optionally set %label) before calling this function
+
+      integer(kind_particle) :: i
+      type(t_particle_results), allocatable :: directresults(:)
+
+      call pepc_status('PEPC-F: DIRECTSUM')
+
+      allocate(directresults(nforceparticles))
+
+      call directforce(particles, [(i,i=1,nforceparticles)], nforceparticles, directresults, MPI_COMM_WORLD)
+      particles(1:nforceparticles)%results = directresults(1:nforceparticles)
+
+      deallocate(directresults)
+
+  end subroutine
+
+!=======================================================================================
   subroutine pepc_tree_diagnostics()
       use module_vtk
       use module_vtk_helpers
