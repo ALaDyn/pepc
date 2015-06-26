@@ -120,8 +120,6 @@ program pepc
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
     if(root) write(*,*)""
-    if(root) write(*,*)"spiegelladung=",spiegelladung
-
 
 
     !MAIN LOOP ====================================================================================================
@@ -142,56 +140,15 @@ program pepc
         call hits_on_boundaries(particles)
         timer(5) = get_time()
 
-
-        IF (spiegelladung==1) THEN
-            allocate(all_particles(size(particles)+sum(npps(1:2))),stat=rc)
-            all_particles(1:size(particles))=particles
-            imp=1
-            DO ip=1,size(particles)
-                IF (species(particles(ip)%data%species)%physical_particle /= 1) CYCLE
-                all_particles(size(particles)+imp) = particles(ip)
-                all_particles(size(particles)+imp)%data%q = -all_particles(size(particles)+imp)%data%q
-                all_particles(size(particles)+imp)%x(1) = -all_particles(size(particles)+imp)%x(1) + 2*(xmax-xmin)
-                all_particles(size(particles)+imp)%data%species = -1
-                imp = imp+1
-            END DO
-        END IF
-
-        IF (spiegelladung==2) THEN
-            allocate(all_particles(size(particles)+sum(npps(0:2))),stat=rc)
-            all_particles(1:size(particles))=particles
-            imp=1
-            DO ip=1,size(particles)
-                IF (particles(ip)%data%species > 2) CYCLE
-                all_particles(size(particles)+imp) = particles(ip)
-                all_particles(size(particles)+imp)%x(1) = -all_particles(size(particles)+imp)%x(1)
-                all_particles(size(particles)+imp)%data%species = -1
-                imp = imp+1
-            END DO
-        END IF
-
         !pepc routines
         call pepc_particleresults_clear(particles)
-        IF (spiegelladung/=0) call pepc_particleresults_clear(all_particles)
 
         !grow tree
         if(root) write(*,'(a)') " == [main loop] grow tree"
-        IF (spiegelladung==0)call pepc_grow_tree(particles)
-        IF (spiegelladung/=0)call pepc_grow_tree(all_particles)
-
-        IF (spiegelladung/=0) THEN
-            call get_number_of_particles(all_particles)
-            deallocate(particles)
-            allocate(particles(sum(npps)),stat=rc)
-            irp=1
-            DO ip=1,size(all_particles)
-                IF (all_particles(ip)%data%species==-1) CYCLE
-                particles(irp)=all_particles(ip)
-                irp=irp+1
-            END DO
-        END IF
+        call pepc_grow_tree(particles)
         timer(6)=get_time() !6-5: grow_tree
         !end grow tree
+
 
         !traverse tree
         if(root) write(*,'(a)') " == [main loop] traverse tree"
@@ -233,8 +190,7 @@ program pepc
             call write_particles_npy(particles, my_rank, step)
         END IF
         IF (vtk_now) THEN
-            IF (spiegelladung/=0) call write_particles_vtk(all_particles,1_kind_particle)
-            IF (spiegelladung==0) call write_particles_vtk(particles,17_kind_particle)
+            call write_particles_vtk(particles,17_kind_particle)
         END IF
         !end vtk and checkpoints
 
@@ -263,7 +219,6 @@ program pepc
         if (MOD(step-startstep,10)==0) call flush_files()
         !end output
 
-        IF (spiegelladung/=0) deallocate(all_particles)
     end do
     !END OF MAIN LOOP ====================================================================================================
 
