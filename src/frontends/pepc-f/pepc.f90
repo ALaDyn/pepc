@@ -114,7 +114,7 @@ program pepc
     end if
 
     !initially integrate v half a step backwards for leap frog
-    call boris_nonrel(particles, -dt/2)
+    if (.not. do_resume) call boris_nonrel(particles, -dt/2)
 
     timer(2) = get_time()
     if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
