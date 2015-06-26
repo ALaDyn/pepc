@@ -98,8 +98,9 @@ program pepc
     call pepc_grow_tree(particles)
     call pepc_traverse_tree(particles)
     if (diags) call pepc_tree_diagnostics()
-    call get_number_of_particles(particles)
     call pepc_timber_tree()
+    call add_boundary_field(particles)
+    call get_number_of_particles(particles)
 
 
     !write initial configuration
@@ -176,7 +177,6 @@ program pepc
         !grow tree
         if(root) write(*,'(a)') " == [main loop] grow tree"
         IF (spiegelladung==0)call pepc_grow_tree(particles)
-        IF (spiegelladung==0)call get_number_of_particles(particles)
         IF (spiegelladung/=0)call pepc_grow_tree(all_particles)
 
         IF (spiegelladung/=0) THEN
@@ -190,22 +190,18 @@ program pepc
                 irp=irp+1
             END DO
         END IF
-
         timer(6)=get_time() !6-5: grow_tree
         !end grow tree
 
         !traverse tree
         if(root) write(*,'(a)') " == [main loop] traverse tree"
         call pepc_traverse_tree(particles)
-
         timer(7)=get_time() !7-6: traverse_tree
         !end traverse tree
 
 
         !diagnostics
         if (diags) call pepc_tree_diagnostics()
-        IF (spiegelladung/=0)call get_number_of_particles(particles)
-
         timer(8)=get_time()
         !end diagnostics
 
@@ -213,15 +209,13 @@ program pepc
         !timber tree
         if(root) write(*,'(a)') " == [main loop] timber tree"
         call pepc_timber_tree()
-
-
+        call get_number_of_particles(particles)
         timer(9)=get_time() !9-8: timber
         !end timber tree
 
 
         !further diagnostics
         if (diags) call timings_GatherAndOutput(step)
-
         timer(10)=get_time() !10-9 + 8-7: diag
         !end further diagnostics
 
