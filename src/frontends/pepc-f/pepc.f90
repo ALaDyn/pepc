@@ -103,8 +103,8 @@ program pepc
     else
         call compute_force_direct(particles, int(sum(npps),8))
     end if
-    call add_boundary_field(particles)
     call get_number_of_particles(particles)
+    call add_boundary_field(particles)
 
 
     !write initial configuration
