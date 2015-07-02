@@ -1,0 +1,24 @@
+
+# only include charge in particle_data type (default)
+FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQ.f90 \
+              module_fmm_framework.f90  module_pepc_wrappers.f90 module_coulomb_kernels.f90
+
+FILES_UTILS = module_base64.f90 module_vtk.f90
+
+
+ifeq ($(BACKENDTYPE), darwin)
+# include charge, velocity,  mass and magnetic field in particle data type - darwin approximation
+FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQVMB.f90 \
+              module_fmm_framework.f90 module_coulomb_kernels.f90
+endif
+
+# in case of pure electrostatic test
+#ifeq ($(BACKENDTYPE), darwin)
+# #include charge, velocity,  mass and magnetic field in particle data type - darwin approximation
+#FILES_INT   = module_interaction_specific.f90 module_interaction_specific_types_XYZQVMB.f90 \
+#              module_fmm_framework.f90 module_coulomb_kernels.f90
+#endif
+
+SRC        += $(FILES_INT) $(FILES_UTILS)
+SRC_COPY   += $(addprefix ./src/interaction_specific/darwin/, $(FILES_INT)) \
+              $(addprefix $(UTILSDIR)/, $(FILES_UTILS))
