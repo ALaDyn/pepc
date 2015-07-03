@@ -46,14 +46,16 @@ MODULE diagnostics
 !===============================================================================
 
     subroutine hockney_diag(p, avg_1, avg_2, avg_3, avg_4, avg_5, avg_6, avg_7, &
-                            avg_8, avg_9, avg_10, avg_11, avg_12, avg_13, avg_14, avg_15, avg_16, avg_fields)
+                            avg_8, avg_9, avg_10, avg_11, avg_12, avg_13, avg_14, avg_15, avg_16, &
+                            avg_17, avg_18, avg_19, avg_20, avg_21, avg_fields)
         implicit none
         include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
         real(KIND=8), intent(inout) :: avg_1(:), avg_2(:), avg_3(:), avg_4(:), avg_5(:), avg_6(:), avg_7(:)
         real(KIND=8), intent(inout) :: avg_8(:), avg_9(:), avg_10(:), avg_11(:), avg_12(:), avg_13(:), avg_14(:)
-        real(KIND=8), intent(inout) :: avg_15(:), avg_16(:), avg_fields(:,:)
+        real(KIND=8), intent(inout) :: avg_15(:), avg_16(:), avg_17(:), avg_18(:), avg_19(:), avg_20(:),avg_21(:)
+        real(KIND=8), intent(inout) :: avg_fields(:,:)
         !avg_1 = <beta(t)>
         !avg_2 = <|beta(t)|>
         !avg_3 = <beta(t)^2>^0.5
@@ -70,6 +72,11 @@ MODULE diagnostics
         !avg_14 = <Ekin_par(t)> = 1/2 * m * <vpar(t)^2>
         !avg_15 = <Ekin_perp(t)> = 1/2 * m * <vperp(t)^2>
         !avg_16 = <Ekin(t)> = <Ekin_par(t)> + <Ekin_perp(t)>
+        !avg_17 = <|v(t)|^3>
+        !avg_18 = <|v(t)|^4>
+        !avg_19 = <|v(t)|^5>
+        !avg_20 = <|v(t)|^6>
+        !avg_21 = <|v(t)|^2 |v(0)|^2>
         !avg_fields(1,:) = <Ex(t)>
         !avg_fields(2,:) = <Ey(t)>
         !avg_fields(3,:) = <Ez(t)>
@@ -95,7 +102,8 @@ MODULE diagnostics
         real(KIND=8) :: avg_h(nspecies-1), avg_absh(nspecies-1), avg_h2(nspecies-1)
         real(KIND=8) :: avg_vpar(nspecies-1), avg_absvpar(nspecies-1), avg_vpar2(nspecies-1)
         real(KIND=8) :: avg_absvperp(nspecies-1), avg_vperp2(nspecies-1)
-        real(KIND=8) :: avg_absv(nspecies-1)
+        real(KIND=8) :: avg_absv(nspecies-1),avg_absv3(nspecies-1),avg_absv4(nspecies-1)
+        real(KIND=8) :: avg_absv5(nspecies-1),avg_absv6(nspecies-1),avg_vt2v02(nspecies-1)
         real(KIND=8) :: avg_fields_l(12, nspecies-1)
 
         avg_beta = 0.
@@ -110,6 +118,11 @@ MODULE diagnostics
         avg_absvperp = 0.
         avg_vperp2 = 0.
         avg_absv = 0.
+        avg_absv3 = 0.
+        avg_absv4 = 0.
+        avg_absv5 = 0.
+        avg_absv6 = 0.
+        avg_vt2v02 = 0.
 
         avg_fields_l = 0.
 
@@ -129,6 +142,11 @@ MODULE diagnostics
         avg_14 = 0.
         avg_15 = 0.
         avg_16 = 0.
+        avg_17 = 0.
+        avg_18 = 0.
+        avg_19 = 0.
+        avg_20 = 0.
+        avg_21 = 0.
         avg_fields = 0.
 
         do ip=1, sum(npps)
@@ -159,6 +177,11 @@ MODULE diagnostics
             avg_vperp2(ispecies) = avg_vperp2(ispecies) + vperp_p**2
 
             avg_absv(ispecies) = avg_absv(ispecies) + norm(v_p)
+            avg_absv3(ispecies) = avg_absv3(ispecies) + norm(v_p)**3
+            avg_absv4(ispecies) = avg_absv4(ispecies) + norm(v_p)**4
+            avg_absv5(ispecies) = avg_absv5(ispecies) + norm(v_p)**5
+            avg_absv6(ispecies) = avg_absv6(ispecies) + norm(v_p)**6
+            avg_vt2v02(ispecies) = avg_vt2v02(ispecies) + dotproduct(v_p,v_p)*dotproduct(v0_p,v0_p)
 
             avg_fields_l(1,ispecies) = avg_fields_l(1,ispecies) + p(ip)%results%E(1) * fc
             avg_fields_l(2,ispecies) = avg_fields_l(2,ispecies) + p(ip)%results%E(2) * fc
@@ -187,6 +210,12 @@ MODULE diagnostics
         call MPI_REDUCE(avg_vperp2, avg_11, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
         call MPI_REDUCE(avg_absv, avg_12, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
         call MPI_REDUCE(avg_fields_l, avg_fields, (nspecies-1)*12, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absv3, avg_17, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absv4, avg_18, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absv5, avg_19, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absv6, avg_20, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vt2v02, avg_21, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absv, avg_12, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
 
 
         avg_14 = 0.5 * species(1:)%m/e * avg_9(:) / tnpps(1:)
@@ -207,6 +236,11 @@ MODULE diagnostics
         avg_10 = avg_10(:) / tnpps(1:)
         avg_11 = sqrt(avg_11(:) / tnpps(1:))
         avg_12 = avg_12(:) / tnpps(1:)
+        avg_17 = avg_17(:) / tnpps(1:)
+        avg_18 = avg_18(:) / tnpps(1:)
+        avg_19 = avg_19(:) / tnpps(1:)
+        avg_20 = avg_20(:) / tnpps(1:)
+        avg_21 = avg_21(:) / tnpps(1:)
         do indx = 1, 11
             avg_fields(indx,:) = avg_fields(indx, :) / tnpps(1:)
         end do
