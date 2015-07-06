@@ -47,7 +47,10 @@ MODULE diagnostics
 
     subroutine hockney_diag(p, avg_1, avg_2, avg_3, avg_4, avg_5, avg_6, avg_7, &
                             avg_8, avg_9, avg_10, avg_11, avg_12, avg_13, avg_14, avg_15, avg_16, &
-                            avg_17, avg_18, avg_19, avg_20, avg_21, avg_fields)
+                            avg_17, avg_18, avg_19, avg_20, avg_21, avg_22, avg_23, avg_24, avg_25, &
+                            avg_26, avg_27, avg_28, avg_29, avg_30, avg_31, avg_32, avg_33, avg_34, &
+                            avg_35, avg_36, avg_37, avg_38, avg_39, avg_40, avg_41, avg_42, &
+                            avg_fields)
         implicit none
         include 'mpif.h'
 
@@ -55,6 +58,9 @@ MODULE diagnostics
         real(KIND=8), intent(inout) :: avg_1(:), avg_2(:), avg_3(:), avg_4(:), avg_5(:), avg_6(:), avg_7(:)
         real(KIND=8), intent(inout) :: avg_8(:), avg_9(:), avg_10(:), avg_11(:), avg_12(:), avg_13(:), avg_14(:)
         real(KIND=8), intent(inout) :: avg_15(:), avg_16(:), avg_17(:), avg_18(:), avg_19(:), avg_20(:),avg_21(:)
+        real(KIND=8), intent(inout) :: avg_22(:), avg_23(:), avg_24(:), avg_25(:), avg_26(:), avg_27(:),avg_28(:)
+        real(KIND=8), intent(inout) :: avg_29(:), avg_30(:), avg_31(:), avg_32(:), avg_33(:), avg_34(:),avg_35(:)
+        real(KIND=8), intent(inout) :: avg_36(:), avg_37(:), avg_38(:), avg_39(:), avg_40(:), avg_41(:),avg_42(:)
         real(KIND=8), intent(inout) :: avg_fields(:,:)
         !avg_1 = <beta(t)>
         !avg_2 = <|beta(t)|>
@@ -76,7 +82,29 @@ MODULE diagnostics
         !avg_18 = <|v(t)|^4>
         !avg_19 = <|v(t)|^5>
         !avg_20 = <|v(t)|^6>
-        !avg_21 = <|v(t)|^2 |v(0)|^2>
+        !avg_21 = <vx(t)>
+        !avg_22 = <vx(t)^2>
+        !avg_23 = <vx(t)^3>
+        !avg_24 = <vx(t)^4>
+        !avg_25 = <vx(t)^5>
+        !avg_26 = <vx(t)^6>
+        !avg_27 = <|vx(t)|>
+        !avg_28 = <|vx(t)|^3>
+        !avg_29 = <|vx(t)|^5>
+        !avg_30 = <vpar(t)^3>
+        !avg_31 = <vpar(t)^4>
+        !avg_32 = <vpar(t)^5>
+        !avg_33 = <vpar(t)^6>
+        !avg_34 = <|vpar(t)|^3>
+        !avg_35 = <|vpar(t)|^5>
+        !avg_36 = <v(t)^2 v(0)^2>
+        !avg_37 = <vx(t) vx(0)>
+        !avg_38 = <|vx(t)| |vx(0)|>
+        !avg_39 = <vx(t)^2 vx(0)^2>
+        !avg_40 = <vpar(t) vpar(0)>
+        !avg_41 = <|vpar(t)| |vpar(0)|>
+        !avg_42 = <vpar(t)^2 vpar(0)^2>
+
         !avg_fields(1,:) = <Ex(t)>
         !avg_fields(2,:) = <Ey(t)>
         !avg_fields(3,:) = <Ez(t)>
@@ -103,8 +131,19 @@ MODULE diagnostics
         real(KIND=8) :: avg_vpar(nspecies-1), avg_absvpar(nspecies-1), avg_vpar2(nspecies-1)
         real(KIND=8) :: avg_absvperp(nspecies-1), avg_vperp2(nspecies-1)
         real(KIND=8) :: avg_absv(nspecies-1),avg_absv3(nspecies-1),avg_absv4(nspecies-1)
-        real(KIND=8) :: avg_absv5(nspecies-1),avg_absv6(nspecies-1),avg_vt2v02(nspecies-1)
+        real(KIND=8) :: avg_absv5(nspecies-1),avg_absv6(nspecies-1)
+        real(KIND=8) :: avg_vt2v02(nspecies-1)
         real(KIND=8) :: avg_fields_l(12, nspecies-1)
+        real(KIND=8) :: avg_vx1(nspecies-1), avg_vx2(nspecies-1), avg_vx3(nspecies-1), &
+                        avg_vx4(nspecies-1), avg_vx5(nspecies-1), avg_vx6(nspecies-1)
+        real(KIND=8) :: avg_absvx1(nspecies-1), avg_absvx3(nspecies-1), avg_absvx5(nspecies-1)
+        real(KIND=8) :: avg_vpar3(nspecies-1), &
+                        avg_vpar4(nspecies-1), avg_vpar5(nspecies-1), avg_vpar6(nspecies-1)
+        real(KIND=8) :: avg_absvpar3(nspecies-1), avg_absvpar5(nspecies-1)
+        real(KIND=8) :: avg_vxt1vx01(nspecies-1), avg_absvxt1absvx01(nspecies-1), avg_vxt2vx02(nspecies-1)
+        real(KIND=8) :: avg_vpart1vpar01(nspecies-1), avg_absvpart1absvpar01(nspecies-1), avg_vpart2vpar02(nspecies-1)
+
+
 
         avg_beta = 0.
         avg_absbeta = 0.
@@ -122,6 +161,28 @@ MODULE diagnostics
         avg_absv4 = 0.
         avg_absv5 = 0.
         avg_absv6 = 0.
+        avg_vx1 = 0.
+        avg_vx2 = 0.
+        avg_vx3 = 0.
+        avg_vx4 = 0.
+        avg_vx5 = 0.
+        avg_vx6 = 0.
+        avg_absvx1 = 0.
+        avg_absvx3 = 0.
+        avg_absvx5 = 0.
+        avg_vpar3 = 0.
+        avg_vpar4 = 0.
+        avg_vpar5 = 0.
+        avg_vpar6 = 0.
+        avg_absvpar3 = 0.
+        avg_absvpar5 = 0.
+        avg_vxt1vx01 = 0.
+        avg_absvxt1absvx01 = 0.
+        avg_vxt2vx02 = 0.
+        avg_vpart1vpar01 = 0.
+        avg_absvpart1absvpar01 = 0.
+        avg_vpart2vpar02 = 0.
+
         avg_vt2v02 = 0.
 
         avg_fields_l = 0.
@@ -147,6 +208,27 @@ MODULE diagnostics
         avg_19 = 0.
         avg_20 = 0.
         avg_21 = 0.
+        avg_22 = 0.
+        avg_23 = 0.
+        avg_24 = 0.
+        avg_25 = 0.
+        avg_26 = 0.
+        avg_27 = 0.
+        avg_28 = 0.
+        avg_29 = 0.
+        avg_30 = 0.
+        avg_31 = 0.
+        avg_32 = 0.
+        avg_33 = 0.
+        avg_34 = 0.
+        avg_35 = 0.
+        avg_36 = 0.
+        avg_37 = 0.
+        avg_38 = 0.
+        avg_39 = 0.
+        avg_40 = 0.
+        avg_41 = 0.
+        avg_42 = 0.
         avg_fields = 0.
 
         do ip=1, sum(npps)
@@ -181,6 +263,30 @@ MODULE diagnostics
             avg_absv4(ispecies) = avg_absv4(ispecies) + norm(v_p)**4
             avg_absv5(ispecies) = avg_absv5(ispecies) + norm(v_p)**5
             avg_absv6(ispecies) = avg_absv6(ispecies) + norm(v_p)**6
+
+            avg_vx1(ispecies) = avg_vx1(ispecies) + v_p(1)
+            avg_vx2(ispecies) = avg_vx2(ispecies) + v_p(1)**2
+            avg_vx3(ispecies) = avg_vx3(ispecies) + v_p(1)**3
+            avg_vx4(ispecies) = avg_vx4(ispecies) + v_p(1)**4
+            avg_vx5(ispecies) = avg_vx5(ispecies) + v_p(1)**5
+            avg_vx6(ispecies) = avg_vx6(ispecies) + v_p(1)**6
+            avg_absvx1(ispecies) = avg_absvx1(ispecies) + abs(v_p(1))
+            avg_absvx3(ispecies) = avg_absvx3(ispecies) + abs(v_p(1))**3
+            avg_absvx5(ispecies) = avg_absvx5(ispecies) + abs(v_p(1))**5
+
+            avg_vpar3(ispecies) = avg_vpar3(ispecies) + vpar_p**3
+            avg_vpar4(ispecies) = avg_vpar4(ispecies) + vpar_p**4
+            avg_vpar5(ispecies) = avg_vpar5(ispecies) + vpar_p**5
+            avg_vpar6(ispecies) = avg_vpar6(ispecies) + vpar_p**6
+            avg_absvpar3(ispecies) = avg_absvpar3(ispecies) + abs(vpar_p)**3
+            avg_absvpar5(ispecies) = avg_absvpar5(ispecies) + abs(vpar_p)**5
+
+            avg_vxt1vx01(ispecies) = avg_vxt1vx01(ispecies) + v_p(1)*v0_p(1)
+            avg_absvxt1absvx01(ispecies) = avg_absvxt1absvx01(ispecies) + abs(v_p(1))*abs(v0_p(1))
+            avg_vxt2vx02(ispecies) = avg_vxt2vx02(ispecies) + v_p(1)**2*v0_p(1)**2
+            avg_vpart1vpar01(ispecies) = avg_vpart1vpar01(ispecies) + vpar_p*norm(v0_p)
+            avg_absvpart1absvpar01(ispecies) = avg_absvpart1absvpar01(ispecies) + abs(vpar_p)*norm(v0_p)
+            avg_vpart2vpar02(ispecies) = avg_vpart2vpar02(ispecies) + vpar_p**2*norm(v0_p)**2
             avg_vt2v02(ispecies) = avg_vt2v02(ispecies) + dotproduct(v_p,v_p)*dotproduct(v0_p,v0_p)
 
             avg_fields_l(1,ispecies) = avg_fields_l(1,ispecies) + p(ip)%results%E(1) * fc
@@ -214,9 +320,28 @@ MODULE diagnostics
         call MPI_REDUCE(avg_absv4, avg_18, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
         call MPI_REDUCE(avg_absv5, avg_19, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
         call MPI_REDUCE(avg_absv6, avg_20, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-        call MPI_REDUCE(avg_vt2v02, avg_21, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-        call MPI_REDUCE(avg_absv, avg_12, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-
+        call MPI_REDUCE(avg_vx1, avg_21, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vx2, avg_22, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vx3, avg_23, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vx4, avg_24, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vx5, avg_25, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vx6, avg_26, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absvx1, avg_27, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absvx3, avg_28, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absvx5, avg_29, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vpar3, avg_30, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vpar4, avg_31, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vpar5, avg_32, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vpar6, avg_33, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absvpar3, avg_34, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absvpar5, avg_35, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vt2v02, avg_36, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vxt1vx01, avg_37, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absvxt1absvx01, avg_38, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vxt2vx02, avg_39, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vpart1vpar01, avg_40, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_absvpart1absvpar01, avg_41, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+        call MPI_REDUCE(avg_vpart2vpar02, avg_42, nspecies-1, MPI_REAL8, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
 
         avg_14 = 0.5 * species(1:)%m/e * avg_9(:) / tnpps(1:)
         avg_15 = 0.5 * species(1:)%m/e * avg_11(:) / tnpps(1:)
@@ -241,6 +366,27 @@ MODULE diagnostics
         avg_19 = avg_19(:) / tnpps(1:)
         avg_20 = avg_20(:) / tnpps(1:)
         avg_21 = avg_21(:) / tnpps(1:)
+        avg_22 = avg_22(:) / tnpps(1:)
+        avg_23 = avg_23(:) / tnpps(1:)
+        avg_24 = avg_24(:) / tnpps(1:)
+        avg_25 = avg_25(:) / tnpps(1:)
+        avg_26 = avg_26(:) / tnpps(1:)
+        avg_27 = avg_27(:) / tnpps(1:)
+        avg_28 = avg_28(:) / tnpps(1:)
+        avg_29 = avg_29(:) / tnpps(1:)
+        avg_30 = avg_30(:) / tnpps(1:)
+        avg_31 = avg_31(:) / tnpps(1:)
+        avg_32 = avg_32(:) / tnpps(1:)
+        avg_33 = avg_33(:) / tnpps(1:)
+        avg_34 = avg_34(:) / tnpps(1:)
+        avg_35 = avg_35(:) / tnpps(1:)
+        avg_36 = avg_36(:) / tnpps(1:)
+        avg_37 = avg_37(:) / tnpps(1:)
+        avg_38 = avg_38(:) / tnpps(1:)
+        avg_39 = avg_39(:) / tnpps(1:)
+        avg_40 = avg_40(:) / tnpps(1:)
+        avg_41 = avg_41(:) / tnpps(1:)
+        avg_42 = avg_42(:) / tnpps(1:)
         do indx = 1, 11
             avg_fields(indx,:) = avg_fields(indx, :) / tnpps(1:)
         end do
