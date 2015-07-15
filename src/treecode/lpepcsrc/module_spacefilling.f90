@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -103,7 +103,7 @@ module module_spacefilling
           integer(kind_key) :: shift_key_by_level
 
           DEBUG_ASSERT(0 <= level_from_key(key) + lvl)
-          DEBUG_ASSERT(level_from_key(key) + lvl < nlev)
+          DEBUG_ASSERT(level_from_key(key) + lvl <= maxlevel)
 
           shift_key_by_level = ishft(key, idim * lvl)
         end function shift_key_by_level
@@ -159,10 +159,10 @@ module module_spacefilling
 
 
         !>
-        !> checks whether `ka` is an ancestor of `kp` (which must be at highest tree level `nlev`, i.e. a particle key)
+        !> checks whether `ka` is an ancestor of `kp` (which must be at highest tree level `maxlevel`, i.e. a particle key)
         !>
         DEBUG_PURE function is_ancestor_of_particle(ka, kp)
-          use treevars, only: nlev
+          use treevars, only: maxlevel
           use module_debug
           implicit none
           logical :: is_ancestor_of_particle
@@ -170,19 +170,19 @@ module module_spacefilling
 
           integer(kind_level) :: la
 
-          DEBUG_ASSERT(level_from_key(kp) == nlev)
+          DEBUG_ASSERT(level_from_key(kp) == maxlevel)
 
           la = level_from_key(ka)
-          is_ancestor_of_particle = is_ancestor_of_with_level(ka, la, kp, nlev)
+          is_ancestor_of_particle = is_ancestor_of_with_level(ka, la, kp, maxlevel)
         end function
 
 
         !>
         !> checks whether `ka` at level `la` is an ancestor of `kp`
-        !> (which must be at highest tree level `nlev`, i.e. a particle key)
+        !> (which must be at highest tree level `maxlevel`, i.e. a particle key)
         !>
         DEBUG_PURE function is_ancestor_of_particle_with_level(ka, la, kp)
-          use treevars, only: nlev
+          use treevars, only: maxlevel
           use module_debug
           implicit none
           logical :: is_ancestor_of_particle_with_level
@@ -191,15 +191,15 @@ module module_spacefilling
           integer(kind_key), intent(in) :: kp
 
           DEBUG_ASSERT(level_from_key(ka) == la)
-          DEBUG_ASSERT(level_from_key(kp) == nlev)
+          DEBUG_ASSERT(level_from_key(kp) == maxlevel)
 
-          is_ancestor_of_particle_with_level = is_ancestor_of_with_level(ka, la, kp, nlev)
+          is_ancestor_of_particle_with_level = is_ancestor_of_with_level(ka, la, kp, maxlevel)
         end function
 
 
         function coord_to_intcoord(b, x) result(intcoord)
           use module_box, only: t_box
-          use treevars, only: idim, nlev
+          use treevars, only: idim, maxlevel
           implicit none
 
           integer(kind_key) :: intcoord(idim)
@@ -209,7 +209,7 @@ module module_spacefilling
 
           real(kind_physics) :: s(3)
 
-          s = b%boxsize / 2_kind_key**nlev       ! refinement length
+          s = b%boxsize / 2_kind_key**maxlevel       ! refinement length
           intcoord = coord_to_intcoord_with_refinement_length(b, s, x)
         end function coord_to_intcoord
 
@@ -233,7 +233,7 @@ module module_spacefilling
         !> calculates keys from local particles (faster than per-particle call to coord_to_key())
         !>
         subroutine compute_particle_keys(b, particles)
-          use treevars, only: idim, nlev
+          use treevars, only: idim, maxlevel
           use module_pepc_types, only: t_particle
           use module_box, only: t_box
           use module_debug
@@ -246,7 +246,7 @@ module module_spacefilling
           integer(kind_particle) :: j, nl
 
           nl = ubound(particles, 1)
-          s = b%boxsize / 2_kind_key**nlev       ! refinement length
+          s = b%boxsize / 2_kind_key**maxlevel       ! refinement length
 
           ! construct particle keys
           select case (idim)
@@ -315,7 +315,7 @@ module module_spacefilling
           intcoord_to_key_morton1D = 1_kind_key
 
           ! key generation
-          do i = nlev - 1_kind_level, 0_kind_level, -1_kind_level
+          do i = maxlevel - 1_kind_level, 0_kind_level, -1_kind_level
             intcoord_to_key_morton1D = ior(ishft(intcoord_to_key_morton1D, 1), ibits(ic(1), i, 1_kind_key))
           end do
         end function intcoord_to_key_morton1D
@@ -357,7 +357,7 @@ module module_spacefilling
           intcoord_to_key_hilbert2D = 1
 
           ! key generation
-          do i=nlev-1_kind_level,0_kind_level,-1_kind_level
+          do i=maxlevel-1_kind_level,0_kind_level,-1_kind_level
 
             cval = 0_kind_key
 
@@ -417,7 +417,7 @@ module module_spacefilling
           intcoord_to_key_hilbert3D = 1
 
           ! key generation
-          do i=nlev-1_kind_level,0_kind_level,-1_kind_level
+          do i=maxlevel-1_kind_level,0_kind_level,-1_kind_level
 
             cval = 0_kind_key
 
@@ -459,7 +459,7 @@ module module_spacefilling
         !> calculates particle coordinate as vector from key
         !>
         subroutine key_to_coord(b, key, x)
-          use treevars, only : idim, nlev
+          use treevars, only : idim, maxlevel
           use module_box
           use module_debug
           implicit none
@@ -481,7 +481,7 @@ module module_spacefilling
               DEBUG_ERROR(*, "Key generation implemented for 1D, 2D and 3D")
           end select
 
-          s = b%boxsize(1:idim) / 2_kind_key**nlev       ! refinement length
+          s = b%boxsize(1:idim) / 2_kind_key**maxlevel       ! refinement length
 
           x(1:idim) = (real(ic, kind_physics) + 0.5_kind_physics) * s + b%boxmin(1:idim)
         end subroutine key_to_coord
@@ -507,7 +507,7 @@ module module_spacefilling
           ic = 0_kind_key
 
           do i = 0_kind_level, lev - 1_kind_level
-            ic(1) = ior(ic(1), ishft(ibits(key, i, 1), nlev - lev + i))
+            ic(1) = ior(ic(1), ishft(ibits(key, i, 1), maxlevel - lev + i))
           end do
         end subroutine key_to_intcoord_morton
 
@@ -578,7 +578,7 @@ module module_spacefilling
           end do
 
           do j=1_kind_dim,idim
-            ic(j) = ishft(ic(j), nlev-lev)
+            ic(j) = ishft(ic(j), maxlevel-lev)
           end do
         end subroutine key_to_intcoord_hilbert
 end module module_spacefilling

@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -531,13 +531,11 @@ module module_fmm_framework
 
           ! calculate multipole contributions of all local particles
 
-          !$ call omp_set_num_threads(num_threads)
-          !$OMP  PARALLEL DO DEFAULT(PRIVATE) SHARED(particles,LatticeCenter) SCHEDULE(RUNTIME) REDUCTION(+:omega_tilde)
+          !$OMP PARALLEL DO DEFAULT(NONE) SHARED(particles,LatticeCenter) SCHEDULE(RUNTIME) REDUCTION(+:omega_tilde) NUM_THREADS(num_threads)
           do p=1,size(particles, kind=kind(p))
             call addparticle(omega_tilde, particles(p)%x, particles(p)%data%q)
           end do
-          !$OMP  END PARALLEL DO
-          !$ call omp_set_num_threads(1)
+          !$OMP END PARALLEL DO
 
           ! extrinsic correction via fictitious charges according to [Kudin & Scuseria, ChemPhysLet 283, 61 (1998)] on rank 0
           if (fmm_extrinsic_correction == FMM_EXTRINSIC_CORRECTION_FICTCHARGE) then

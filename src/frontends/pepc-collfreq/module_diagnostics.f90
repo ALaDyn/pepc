@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -56,6 +56,8 @@ contains
         call pepc_status('PEPC-MW: DIRECTSUM')
 
         call timer_start(t_all)
+
+        allocate(directresults(size(particles,kind=kind_particle)))
 
         call directforce(particles, [(i,i=1,size(particles,kind=kind_particle))], size(particles,kind=kind_particle), directresults, MPI_COMM_PEPC)
         particles(1:size(particles,kind=kind_particle))%results = directresults(1:size(particles,kind=kind_particle))

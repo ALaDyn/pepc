@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -123,16 +123,7 @@ module helper
 !======================================================================================
   subroutine init_files()
       implicit none
-      character(100) :: ph_timing_file, detailed_timing_file
 
-      IF (bool_particle_handling_timing) THEN
-          write(ph_timing_file,'("ph_timing_",i4.4,".dat")') my_rank
-          open(unit=ph_timing_out,file=trim(ph_timing_file),status='UNKNOWN',position='APPEND')
-      END IF
-      IF (bool_detailed_timing) THEN
-          write(detailed_timing_file,'("timing_",i4.4,".dat")') my_rank
-          open(unit=detailed_timing_out,file=trim(detailed_timing_file),status='UNKNOWN',position='APPEND')
-      END IF
       !if(root) open(unit=recycling_out,file='recycling.out',status='UNKNOWN',position='APPEND')
       if(root) open(unit=out,file='pepcf.out',status='UNKNOWN',position='APPEND')
 
@@ -142,12 +133,6 @@ module helper
   subroutine close_files()
       implicit none
 
-      IF (bool_particle_handling_timing) THEN
-          close(ph_timing_out)
-      END IF
-      IF (bool_detailed_timing) THEN
-          close(detailed_timing_out)
-      END IF
       !if(root) close(recycling_out)
       if(root) close(out)
 
@@ -312,6 +297,33 @@ module helper
     end if
   end subroutine
 
+
+!=======================================================================================
+
+  subroutine compute_force_direct(particles, nforceparticles)
+      use module_pepc_types
+      use module_directsum
+      use module_debug, only : pepc_status
+      use module_interaction_specific_types, only: t_particle_results
+
+      implicit none
+      include 'mpif.h'
+      integer(kind_particle), intent(in) :: nforceparticles    !< number of particles to compute the force for, i.e. force is computed for particles(1:nforceparticles)
+      type(t_particle), intent(inout), allocatable :: particles(:) !< input particle data, initialize %x, %data appropriately (and optionally set %label) before calling this function
+
+      integer(kind_particle) :: i
+      type(t_particle_results), allocatable :: directresults(:)
+
+      call pepc_status('PEPC-F: DIRECTSUM')
+
+      allocate(directresults(nforceparticles))
+
+      call directforce(particles, [(i,i=1,nforceparticles)], nforceparticles, directresults, MPI_COMM_WORLD)
+      particles(1:nforceparticles)%results = directresults(1:nforceparticles)
+
+      deallocate(directresults)
+
+  end subroutine
 
 !=======================================================================================
   subroutine pepc_tree_diagnostics()

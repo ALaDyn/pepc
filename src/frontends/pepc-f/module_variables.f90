@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -66,6 +66,10 @@ module variables
   integer :: vtk_interval     ! interval for writing vtk output
   integer :: checkp_interval  ! interval for setting checkpoints
   integer :: npy_interval     ! interval for dumping particles in npy format
+  logical :: checkpoint_now
+  logical :: vtk_now
+  logical :: diag_now
+  logical :: npy_now
 
 
   ! Physcial System
@@ -92,6 +96,14 @@ module variables
   real(KIND=8), allocatable :: data_bins(:,:,:,:,:) !(nspecies,38,diag_bins_x,diag_bins_y,diag_bins_z)
   integer, allocatable      :: n_bins(:,:,:,:)      !(nspecies,diag_bins_x,diag_bins_y,diag_bins_z)
 
+  ! variables for output of averaged physical quantities in velocity space
+  integer :: diag_bins_vx
+  integer :: diag_bins_v2
+  real(KIND=8) :: v_grid_max
+  real(KIND=8), allocatable :: data_bins_v(:,:,:,:) !(0:nspecies-1,3,0:diag_bins_vx+1, diag_bins_v2+1)
+  integer, allocatable      :: n_bins_v(:,:,:)      !(0:nspecies-1,0:diag_bins_vx+1, diag_bins_v2+1)
+  logical :: bool_velocity_diag
+
 
   ! variables for detailed boundary hit statistics
   logical :: bool_energy_resolved_hits
@@ -111,6 +123,11 @@ module variables
   integer, allocatable :: space_resolved_hits(:,:,:,:)
   integer :: nbins_age_resolved_hits
   integer, allocatable :: age_resolved_hits(:,:,:)
+
+
+  ! variables for delayed refluxing (Benjamin apparently did this every second step)
+  integer :: last_reflux_step
+  integer :: reflux_interval
 
 
   ! particle arrays
@@ -133,11 +150,12 @@ module variables
   ! control variables (some are only temporary/for testing)
   integer :: spiegelladung = 0  !temp
   integer :: retherm = 0        !temp
-  logical :: bool_particle_handling_timing = .false.  !temp
-  logical :: bool_detailed_timing=.false.             !temp
   logical :: diags !temp
   logical :: guiding_centre_electrons  ! treat electrons in guiding centre approximation (scheme by Benjamin, not sure if correct)
   integer :: rng   !type of rng (0=standard fortran,1=par_rand from module_zufall)
+  integer :: rngseed
+  logical :: bool_hockney_diag
+  integer :: hockney_start_step
 
 
   ! other
@@ -146,13 +164,13 @@ module variables
 
   ! namelists
   namelist /probe_positions/ probe_start_x, probe_start_y, probe_start_z,probe_end_x, probe_end_y, probe_end_z
-  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin ,&
+  namelist /pepcf/ fsup,guiding_centre_electrons, nt, dt, Bx, By, Bz, xmin, rngseed ,&
                    xmax, ymin, ymax, zmin, zmax, diag_interval, checkp_interval,npy_interval,&
                    vtk_interval,spiegelladung, diag_bins_x,diag_bins_y,diag_bins_z,retherm,&
                    bool_angle_resolved_hits, bool_energy_resolved_hits, bool_space_resolved_hits, &
                    bool_age_resolved_hits, nbins_age_resolved_hits, &
                    nbins_angle_resolved_hits, nbins_energy_resolved_hits, nbins_e1_space_resolved_hits, &
-                   nbins_e2_space_resolved_hits, bool_diag_bins_cylinder, bool_avg_btwn_diag_steps
+                   nbins_e2_space_resolved_hits, bool_diag_bins_cylinder, bool_avg_btwn_diag_steps, reflux_interval
   namelist /walk_para_smpss/ chunk_size_default
 
 end module

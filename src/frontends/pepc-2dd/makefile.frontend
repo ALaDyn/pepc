@@ -1,0 +1,24 @@
+FILES_L   = pepc-time.f90 module_helper.f90 \
+			encap.f90 field_helper.f90 \
+			module_globals.f90         \
+			module_integration.f90 module_nk.f90 \
+			module_zufall.f90 shortcut.f90 \
+			mpi_io.f90
+
+
+FILES_L_U = module_vtk_helpers.f90 \
+            module_directsum.f90
+
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+BACKEND		= darwin
+BACKENDTYPE = darwin
+
+#WALK = smpss
+#WALK = pthreads_blocking
+#WALK = simple

@@ -85,8 +85,8 @@ contains
 
 
    subroutine read_in_physics_params(physics_namelist, file_available, file_name)
-      use mpi
       implicit none
+      include 'mpif.h'
 
       type(physics_nml_t), intent(out) :: physics_namelist
       logical, intent(in) :: file_available
@@ -280,10 +280,10 @@ contains
 
 
   subroutine physics_dump(pepc_pars, physics_pars, time_pars, step, p)
-    use mpi
     use module_pepc_types
     use encap
     implicit none
+    include 'mpif.h'
 
     type(pepc_pars_t), intent(in) :: pepc_pars
     type(physics_pars_t), intent(in) :: physics_pars

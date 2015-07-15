@@ -37,9 +37,9 @@ contains
 
 
   subroutine read_in_time_params(file_name, time_pars)
-    use mpi
     use encap
     implicit none
+    include 'mpif.h'
 
     character(*), intent(in) :: file_name
     type(time_pars_t), intent(out) :: time_pars

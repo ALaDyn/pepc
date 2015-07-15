@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -185,7 +185,7 @@ MODULE module_boundary_field
         Bu2 = -xp*lnxpypy
 
         Ao = Ao1 + Ao2 - z*atanxmym
-        Au = Au1 + Au2 - z*atanxpyp
+        Au = Au1 + Au2 - z*atanxpym
         Bo = Bo1 + Bo2 - z*atanxmyp
         Bu = Bu1 + Bu2 - z*atanxpyp
 

@@ -301,6 +301,7 @@ module pfm_feval
       call pepc_status('DIRECTSUM')
 
       call timer_start(t_all)
+      allocate(directresults(size(particles,kind=kind_particle)))
       call directforce(particles, [(i,i=1,size(particles,kind=kind_particle))], size(particles,kind=kind_particle), directresults, comm)
       particles(:)%results = directresults(:)
       deallocate(directresults)

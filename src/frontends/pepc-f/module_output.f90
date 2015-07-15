@@ -34,6 +34,37 @@ MODULE output
 
 !===============================================================================
 
+    SUBROUTINE check_output_intervals()
+        implicit none
+
+        IF ( (checkp_interval /=0) .AND. ( ( MOD(step,checkp_interval) == 0 ) .OR. ( step == nt+startstep ) ) ) THEN
+            checkpoint_now = .TRUE.
+        ELSE
+            checkpoint_now = .FALSE.
+        END IF
+
+        IF ( (npy_interval /= 0) .AND. ( ( MOD(step,npy_interval) == 0 ) .OR. ( step == nt+startstep ) ) ) THEN
+            npy_now = .TRUE.
+        ELSE
+            npy_now = .FALSE.
+        END IF
+
+        IF ( (vtk_interval /= 0) .AND. ( ( MOD(step,vtk_interval) == 0 ) .OR. ( step == nt+startstep ) ) ) THEN
+            vtk_now = .TRUE.
+        ELSE
+            vtk_now = .FALSE.
+        END IF
+
+        IF ( (diag_interval /= 0) .AND. ( ( MOD(step,diag_interval) == 0 ) .OR. ( step == nt+startstep ) .OR. ( step == 1 ) ) ) THEN
+            diag_now = .TRUE.
+        ELSE
+            diag_now = .FALSE.
+        END IF
+
+    END SUBROUTINE check_output_intervals
+
+!===============================================================================
+
     SUBROUTINE velocity_output(ispecies,filehandle)
         use diagnostics
         implicit none
@@ -48,8 +79,6 @@ MODULE output
         v_th=sqrt(2*species(ispecies)%src_t*e/species(ispecies)%m)
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity (1,2,3) [m/s]     : ",v_mean
         if(root) write(filehandle,'(a,3(1pe16.7E3))') "Average velocity/v_th (1,2,3)      : ",v_mean/v_th
-
-
 
 
     END SUBROUTINE  velocity_output
@@ -120,7 +149,7 @@ MODULE output
                 DO iz=1,diag_bins_z
                     DO iy=1,diag_bins_y
                         DO ix=1,diag_bins_x
-                            write(filehandle,'(a12,3(i7.5),F12.3,39(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins_dble(ix,iy,iz), &
+                            write(filehandle,'(a12,3(i7.5),F14.3,39(1pe16.7E3))')"Bins:       ",ix,iy,iz,tn_bins_dble(ix,iy,iz), &
                                                         tdata_bins(:,ix,iy,iz)
                         END DO
                     END DO
@@ -129,6 +158,66 @@ MODULE output
         END IF
 
     END SUBROUTINE  plasma_props_output
+
+!===============================================================================
+
+    SUBROUTINE write_velocity_bins(ispecies,filehandle,nbs,dbs,write_data)
+        use diagnostics, only: fill_velocity_bins
+        use module_pepc_types
+        implicit none
+        include 'mpif.h'
+
+        integer                    :: rc,ivx,iv2
+
+        integer,intent(in)         :: filehandle,ispecies
+        integer                    :: npoints
+        real(KIND=8),intent(inout) :: dbs(:,0:,:)
+        integer,intent(inout)      :: nbs(0:,:)
+        logical,intent(in)         :: write_data
+        real(KIND=8)               :: tdata_bins(3,0:diag_bins_vx+1,diag_bins_v2+1)
+        integer                    :: tn_bins(0:diag_bins_vx+1,diag_bins_v2+1)
+        real(KIND=8)               :: tn_bins_dble(0:diag_bins_vx+1,diag_bins_v2+1)
+        real(KIND=8)               :: vxmin, vxmax, v2min, v2max
+
+
+        npoints = (diag_bins_vx+2) * (diag_bins_v2+1)
+
+        call fill_velocity_bins(ispecies,nbs,dbs)
+
+        IF (.not. write_data) THEN
+            RETURN
+        ELSE
+            call MPI_ALLREDUCE(nbs, tn_bins, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(dbs, tdata_bins, 3*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+
+            IF (bool_avg_btwn_diag_steps) THEN
+                tdata_bins = tdata_bins / (step - last_diag_output)
+                tn_bins_dble = DBLE(tn_bins) / (step - last_diag_output)
+            ELSE
+                tn_bins_dble = DBLE(tn_bins)
+            END IF
+
+            IF (root) THEN
+                write(filehandle,*)
+                write(filehandle,'(a,2(i6.5))')"collision analysis (nvx,nv2):", diag_bins_vx,diag_bins_v2
+                write(filehandle,'(a12,2(a7),4(a16),a12,3(a16))')"","ivx","iv2","vx_min","vx_max","v2_min","v2_max","N","dvx","dvx2","dv2"
+                DO ivx=0,diag_bins_vx+1
+                    vxmin = (-v_grid_max + ((ivx-1) * (v_grid_max*2)/diag_bins_vx))! * species(ispecies)%v_th*sqrt(2.)
+                    vxmax = (-v_grid_max + (ivx * (v_grid_max*2)/diag_bins_vx))! * species(ispecies)%v_th*sqrt(2.)
+                    if (ivx == 0) vxmin = -huge(vxmin)
+                    if (ivx == diag_bins_vx+1) vxmax = huge(vxmax)
+                    DO iv2=1,diag_bins_v2+1
+                        v2min = ((iv2-1) * (v_grid_max*3)/diag_bins_v2)! * species(ispecies)%v_th*sqrt(2.)
+                        v2max = (iv2 * (v_grid_max*3)/diag_bins_v2)! * species(ispecies)%v_th*sqrt(2.)
+                        if (iv2 == diag_bins_v2+1) v2max = huge(v2max)
+                        write(filehandle,'(a12,2(i7.5),4(1pe16.7E3),0pF14.3,3(1pe16.7E3))')"Bins_v:     ",ivx,iv2,vxmin,vxmax,v2min,v2max,&
+                                                                                          tn_bins_dble(ivx,iv2), tdata_bins(:,ivx,iv2)
+                    END DO
+                END DO
+            END IF
+        END IF
+
+    END SUBROUTINE  write_velocity_bins
 !===============================================================================
 
     SUBROUTINE probe_output(ispecies,filehandle)
@@ -246,7 +335,7 @@ MODULE output
 
         dir = "./energy_resolved_hits/"
         write(tmp_file,'(a,"erh_species_",i3.3,".dat")') trim(dir), ispecies
-        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i8)"
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i9)"
 
         binwidth = ehit_max(ispecies)/nbins_energy_resolved_hits
 
@@ -290,7 +379,7 @@ MODULE output
 
         dir = "./age_resolved_hits/"
         write(tmp_file,'(a,"agerh_species_",i3.3,".dat")') trim(dir), ispecies
-        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i8)"
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i9)"
 
         binwidth = agehit_max(ispecies)/nbins_age_resolved_hits
 
@@ -333,7 +422,7 @@ MODULE output
 
         dir = "./angle_resolved_hits/"
         write(tmp_file,'(a,"arh_species_",i3.3,".dat")') trim(dir), ispecies
-        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i8)"
+        write(format,'(a,i3,a)') "(2es13.5,",  nb  ,"i9)"
 
         binwidth = 90./nbins_angle_resolved_hits
 
@@ -373,7 +462,7 @@ MODULE output
         call MPI_ALLREDUCE(space_resolved_hits(ispecies,:,:,:), hits, nbins_e1_space_resolved_hits*nbins_e2_space_resolved_hits*nb, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
 
         dir = "./space_resolved_hits/"
-        write(format,'(a,i3,a)') "(",nbins_e2_space_resolved_hits  ,"i8)"
+        write(format,'(a,i3,a)') "(",nbins_e2_space_resolved_hits  ,"i9)"
 
 
         IF(root) THEN
@@ -418,42 +507,132 @@ MODULE output
 !===============================================================================
 
     SUBROUTINE main_output(filehandle)
+        use diagnostics, only: hockney_diag
         implicit none
 
         integer,intent(in)      :: filehandle
         integer :: ib,ispecies
+        real(KIND=8) :: avg_1(nspecies-1), avg_2(nspecies-1), avg_3(nspecies-1), avg_4(nspecies-1), avg_5(nspecies-1)
+        real(KIND=8) :: avg_6(nspecies-1), avg_7(nspecies-1), avg_8(nspecies-1), avg_9(nspecies-1), avg_10(nspecies-1)
+        real(KIND=8) :: avg_11(nspecies-1), avg_12(nspecies-1), avg_13(nspecies-1), avg_14(nspecies-1), avg_15(nspecies-1)
+        real(KIND=8) :: avg_16(nspecies-1), avg_17(nspecies-1), avg_18(nspecies-1), avg_19(nspecies-1), avg_20(nspecies-1)
+        real(KIND=8) :: avg_21(nspecies-1), avg_22(nspecies-1), avg_23(nspecies-1), avg_24(nspecies-1), avg_25(nspecies-1)
+        real(KIND=8) :: avg_26(nspecies-1), avg_27(nspecies-1), avg_28(nspecies-1), avg_29(nspecies-1), avg_30(nspecies-1)
+        real(KIND=8) :: avg_31(nspecies-1), avg_32(nspecies-1), avg_33(nspecies-1), avg_34(nspecies-1), avg_35(nspecies-1)
+        real(KIND=8) :: avg_36(nspecies-1), avg_37(nspecies-1), avg_38(nspecies-1), avg_39(nspecies-1), avg_40(nspecies-1)
+        real(KIND=8) :: avg_41(nspecies-1), avg_42(nspecies-1)
+        real(KIND=8) :: avg_fields(12, nspecies-1)
 
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a)')"=================================== Info on particle-species ==================================="
         IF(root) write(filehandle,'(a)')"================================================================================================"
+        IF ((step >= hockney_start_step) .AND. (bool_hockney_diag)) THEN
+            call hockney_diag(particles, avg_1, avg_2, avg_3, avg_4, avg_5, avg_6, avg_7, avg_8, &
+                                         avg_9, avg_10, avg_11, avg_12, avg_13, avg_14, avg_15, avg_16, &
+                                         avg_17, avg_18, avg_19, avg_20, avg_21, avg_22, avg_23, avg_24, &
+                                         avg_25, avg_26, avg_27, avg_28, avg_29, avg_30, avg_31, avg_32, &
+                                         avg_33, avg_34, avg_35, avg_36, avg_37, avg_38, avg_39, avg_40, &
+                                         avg_41, avg_42, &
+                                         avg_fields)
+
+        END IF
         DO ispecies=0,nspecies-1
             IF(root) THEN
-                IF (species(ispecies)%physical_particle) THEN
+                IF (species(ispecies)%physical_particle == 1) THEN
                     write(filehandle,'(a,i2,a)')"----------------------------------- Species ",ispecies," -----------------"
-                ELSE
-                    write(filehandle,'(a,i2,a)')"----------------------------------- Species ",ispecies," --(unphysical)---"
+                ELSE IF (species(ispecies)%physical_particle == 0) THEN
+                    write(filehandle,'(a,i2,a)')"-------------(wallparticle)-------- Species ",ispecies," --(unphysical)---"
+                ELSE IF (species(ispecies)%physical_particle == 2) THEN
+                    write(filehandle,'(a,i2,a)')"-------------(probe particle)------ Species ",ispecies," --(unphysical)---"
+                ELSE IF (species(ispecies)%physical_particle == 3) THEN
+                    write(filehandle,'(a,i2,a)')"-------------(test particle)------- Species ",ispecies," --(unphysical)---"
                 END IF
                 write(filehandle,'(a,a)')"Name: ",TRIM(species(ispecies)%name)
                 write(filehandle,'(a,i10)') "Number of particles:",tnpps(ispecies)
                 write(filehandle,*)
             END IF
-            IF (species(ispecies)%physical_particle) THEN
+            IF (species(ispecies)%moving_particle) THEN
                 call velocity_output(ispecies,filehandle)
                 call energy_output(ispecies,filehandle)
+                IF ((step >= hockney_start_step) .AND. (bool_hockney_diag)) THEN
+                    IF(root) write(filehandle,*)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <beta(t)>: ",avg_1(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|beta(t)|>: ",avg_2(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <beta(t)^2>^0.5: ",avg_3(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)>: ",avg_4(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|h(t)|>: ",avg_5(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <h(t)^2>^0.5: ",avg_6(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)>: ",avg_7(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vpar(t)|>: ",avg_8(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)^2>^0.5: ",avg_9(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vperp(t)|>: ",avg_10(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vperp(t)^2>^0.5: ",avg_11(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|v(t)|>: ",avg_12(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <v(t)^2>^0.5: ",avg_13(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <vpar(t)^2>: ",avg_14(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <vperp(t)^2>: ",avg_15(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney 1/2 * m * <v^2>: ",avg_16(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <Ex>: ",avg_fields(1,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <Ey>: ",avg_fields(2,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <Ez>: ",avg_fields(3,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <ExEx>: ",avg_fields(4,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <EyEy>: ",avg_fields(5,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <EzEz>: ",avg_fields(6,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <ExEy>: ",avg_fields(7,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <EyEz>: ",avg_fields(8,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <EzEx>: ",avg_fields(9,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|E|>: ",avg_fields(10,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <E^2>: ",sum(avg_fields(4:6,ispecies))
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <pot>: ",avg_fields(11,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <pot^2>: ",avg_fields(12,ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|v(t)|^3>: ",avg_17(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|v(t)|^4>: ",avg_18(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|v(t)|^5>: ",avg_19(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|v(t)|^6>: ",avg_20(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vx(t)>: ",avg_21(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vx(t)^2>: ",avg_22(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vx(t)^3>: ",avg_23(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vx(t)^4>: ",avg_24(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vx(t)^5>: ",avg_25(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vx(t)^6>: ",avg_26(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vx(t)|>: ",avg_27(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vx(t)|^3>: ",avg_28(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vx(t)|^5>: ",avg_29(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)^3>: ",avg_30(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)^4>: ",avg_31(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)^5>: ",avg_32(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)^6>: ",avg_33(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vpar(t)|^3>: ",avg_34(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vpar(t)|^5>: ",avg_35(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <v(t)^2 v(0)^2>: ",avg_36(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vx(t) vx(0)>: ",avg_37(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vx(t)| |vx(0)|>: ",avg_38(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vx(t)^2 vx(0)^2>: ",avg_39(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t) vpar(0)>: ",avg_40(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <|vpar(t)| |vpar(0)|>: ",avg_41(ispecies)
+                    IF(root) write(filehandle,'(a,(1pe16.7E3))') "Hockney <vpar(t)^2 vpar(0)^2>: ",avg_42(ispecies)
+
+                END IF
                 IF(root) write(filehandle,*)
 
-                IF(diag_interval.ne.0) THEN
-                    IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                        call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:), &
-                                                 data_bins(ispecies,:,:,:,:),.True.)
-                        IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
-                        IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
-                        IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
-                        IF (bool_age_resolved_hits) call age_resolved_hits_output(ispecies)
-                    ELSE
-                        IF (bool_avg_btwn_diag_steps) THEN
-                            call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
-                                                     data_bins(ispecies,:,:,:,:),.False.)
+                IF (diag_now) THEN
+                    call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:), &
+                                             data_bins(ispecies,:,:,:,:),.True.)
+                    IF (bool_velocity_diag) THEN
+                        call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
+                                                 data_bins_v(ispecies,:,:,:),.True.)
+                    END IF
+                    IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
+                    IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
+                    IF (bool_space_resolved_hits) call space_resolved_hits_output(ispecies)
+                    IF (bool_age_resolved_hits) call age_resolved_hits_output(ispecies)
+                ELSE
+                    IF (bool_avg_btwn_diag_steps) THEN
+                        call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
+                                                 data_bins(ispecies,:,:,:,:),.False.)
+                        IF (bool_velocity_diag) THEN
+                            call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
+                                                     data_bins_v(ispecies,:,:,:),.False.)
                         END IF
                     END IF
                 END IF
@@ -467,26 +646,24 @@ MODULE output
                 IF(root) write(filehandle,'(a,i10)') "Rethermalized particles :",trethermalized_out(ispecies)
                 IF(root) write(filehandle,*)
             ELSE
-                IF(diag_interval.ne.0) THEN
-                    IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                        IF(species(ispecies)%indx /= 0) call probe_output(ispecies,filehandle)
-                    END IF
+                IF (diag_now) THEN
+                    IF(species(ispecies)%indx /= 0) call probe_output(ispecies,filehandle)
                 END IF
                 IF(root) write(filehandle,*)
             END IF
 
         END DO
 
-        IF(diag_interval.ne.0) THEN
-            IF ((MOD(step,diag_interval)==0).or.(step==nt+startstep) .or. (step==1)) THEN
-                last_diag_output=step
-                energy_resolved_hits = 0
-                angle_resolved_hits = 0
-                space_resolved_hits = 0
-                age_resolved_hits = 0
-                n_bins = 0
-                data_bins = 0.0_8
-            END IF
+        IF (diag_now) THEN
+            last_diag_output = step
+            IF (bool_energy_resolved_hits) energy_resolved_hits = 0
+            IF (bool_angle_resolved_hits) angle_resolved_hits = 0
+            IF (bool_space_resolved_hits) space_resolved_hits = 0
+            IF (bool_age_resolved_hits) age_resolved_hits = 0
+            n_bins = 0
+            data_bins = 0.0_8
+            IF (bool_velocity_diag) n_bins_v = 0
+            IF (bool_velocity_diag) data_bins_v = 0.0_8
         END IF
 
         IF(root) write(filehandle,'(a)')"================================================================================================"
@@ -506,8 +683,8 @@ MODULE output
         IF(root) write(filehandle,'(a)')"================================================================================================"
         IF(root) write(filehandle,'(a,i16)')    " == Total number of particles            :", sum(tnpps)
 
-        thits_out=0
-        treflux_out=0
+        thits_out = 0
+        treflux_out = 0
 
     END SUBROUTINE main_output
 
@@ -525,7 +702,7 @@ MODULE output
 
         thits_out(:,:) = thits
         treflux_out(:,:) = treflux
-        trethermalized_out = trethermalized
+        trethermalized_out(:) = trethermalized(:)
 
 
     END SUBROUTINE set_recycling_output_values
@@ -614,7 +791,7 @@ MODULE output
 
         !create npy file header
         !https://github.com/numpy/numpy/blob/master/doc/neps/npy-format.rst for more info on the file format
-        write(format,'(a,i2,a)') "(3a,i",6,",a)"
+        write(format,'(a,i2,a)') "(3a,i",9,",a)"
         write(HEADER,format) "{'descr': [('label', '>i8'), ('x', '>f8'), ('y', '>f8'), ('z', '>f8'), ('vx', '>f8'), ('vy', '>f8'), ", &
                            "('vz', '>f8'), ('q', '>f8'), ('m', '>f8'), ('age', '>f8'), ('species', '>i4'), ('mp_int1', '>i4'), ", &
                            "('Ex', '>f8'), ('Ey', '>f8'), ('Ez', '>f8'), ('phi', '>f8')], 'fortran_order': False, 'shape': (", &
@@ -747,18 +924,18 @@ MODULE output
         real(KIND=8), allocatable :: mass(:)
         real(KIND=8), allocatable :: charge(:)
         real(KIND=8), allocatable :: src_t(:)
-        logical, allocatable :: physical_particle(:)
+        integer, allocatable :: physical_particle(:)
         character(255), allocatable :: name(:)
         real(KIND=8), allocatable :: src_x0(:,:)
         real(KIND=8), allocatable :: src_e1(:,:)
         real(KIND=8), allocatable :: src_e2(:,:)
         real(KIND=8), allocatable :: src_e3(:,:)
-        integer, allocatable :: src_type(:)
+        integer, allocatable :: src_type_x(:), src_type_v(:)
         integer, allocatable :: src_bnd(:)
 
 
         namelist /geometry/ x0,e1,e2,n,type,opposite_bnd,reflux_particles,nwp,nbnd,q_tot
-        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type
+        namelist /species_nml/ ns,nip,nfp,mass,charge,physical_particle,name,src_t,src_x0,src_e1,src_e2,src_e3,src_bnd,src_type_x, src_type_v
 
 
         if(root) write(*,'(a,i6)') " == [set_checkpoint] checkpoint at timestep",step
@@ -788,7 +965,8 @@ MODULE output
             allocate(src_e1(0:nspecies-1,3))
             allocate(src_e2(0:nspecies-1,3))
             allocate(src_e3(0:nspecies-1,3))
-            allocate(src_type(0:nspecies-1))
+            allocate(src_type_x(0:nspecies-1))
+            allocate(src_type_v(0:nspecies-1))
             allocate(src_bnd(0:nspecies-1))
 
             open(fid,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
@@ -822,12 +1000,38 @@ MODULE output
                 src_e1(ispecies,1:3)=species(ispecies)%src_e1
                 src_e2(ispecies,1:3)=species(ispecies)%src_e2
                 src_e3(ispecies,1:3)=species(ispecies)%src_e3
-                src_type(ispecies)=species(ispecies)%src_type
+                src_type_x(ispecies)=species(ispecies)%src_type_x
+                src_type_v(ispecies)=species(ispecies)%src_type_v
                 src_bnd(ispecies)=species(ispecies)%src_bnd
             END DO
             write(fid,NML=species_nml,DELIM="QUOTE")
             write(fid,NML=walk_para_smpss,DELIM="QUOTE")
             close(fid)
+
+            deallocate(x0)
+            deallocate(e1)
+            deallocate(e2)
+            deallocate(n)
+            deallocate(type)
+            deallocate(opposite_bnd)
+            deallocate(reflux_particles)
+            deallocate(nwp)
+            deallocate(q_tot)
+
+            deallocate(nfp)
+            deallocate(nip)
+            deallocate(mass)
+            deallocate(charge)
+            deallocate(src_t)
+            deallocate(physical_particle)
+            deallocate(name)
+            deallocate(src_x0)
+            deallocate(src_e1)
+            deallocate(src_e2)
+            deallocate(src_e3)
+            deallocate(src_type_x)
+            deallocate(src_type_v)
+            deallocate(src_bnd)
 
         endif
 

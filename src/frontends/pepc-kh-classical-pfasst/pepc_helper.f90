@@ -136,8 +136,8 @@ contains
 
 
   function get_time()
-    use mpi
     implicit none
+    include 'mpif.h'
 
     real(kind = 8) :: get_time
 

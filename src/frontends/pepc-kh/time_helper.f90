@@ -39,8 +39,8 @@ contains
 
 
    subroutine read_in_time_params(time_namelist, file_available, file_name)
-      use mpi
       implicit none
+      include 'mpif.h'
 
       type(time_nml_t), intent(out) :: time_namelist
       logical, intent(in) :: file_available

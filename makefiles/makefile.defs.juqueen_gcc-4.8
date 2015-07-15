@@ -34,10 +34,17 @@ CPP      = cpp -Uvector
 CPPFLAGS = -P -C -DLITTLEENDIAN -ffreestanding -D__TOS_BGQ__
                                # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
-INLINING = -fkeep-inline-functions -findirect-inlining -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects -fuse-linker-plugin
+INLINING = -flto -fuse-linker-plugin  \
+	   -fipa-matrix-reorg
+
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+INLINING += -u run_communication_loop -u walk_worker_thread
 
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
-FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
 
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
@@ -47,25 +54,18 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
   LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
-  FFLAGS   = -O3 \
-    -fsign-zero -fno-protect-parens -faggressive-function-elimination \
+  FFLAGS   = -Ofast \
+    -fno-protect-parens -faggressive-function-elimination \
     $(INLINING) \
     $(FFEATURES) \
     $(FWARNINGS)
-  CFLAGS   = -O3 -pthread -Wall
-  LDFLAGS  = -O3 -pthread $(INLINING)
+  CFLAGS   = -Ofast -pthread -Wall $(INLINING)
+  LDFLAGS  = -Ofast -pthread $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
 
 # ensure that the BG-Personality features are used correctly
 CFLAGS += -D__TOS_BGQ__
-
-# solve the following issue with lto:
-#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
-#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
-#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
-LDFLAGS += -u walk_worker_thread -u run_communication_loop
-FFLAGS += -u walk_worker_thread -u run_communication_loop
 
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
@@ -115,6 +115,3 @@ COMPILER = $(shell $(FC) --version | head -n 1)
 # $>  hpcstruct  ./pepc-mini
 # Build the measurement database from the measurements:
 # $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
-#
-#
-

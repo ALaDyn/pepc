@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -123,7 +123,7 @@ module module_tree_walk
 
     recursive subroutine tree_walk_init_aux(k, l, p)
       use module_spacefilling, only: child_key_from_parent_key, is_ancestor_of_particle
-      use treevars, only: idim, nlev
+      use treevars, only: idim, maxlevel
       implicit none
 
       integer(kind_key), intent(in) :: k
@@ -143,7 +143,7 @@ module module_tree_walk
         num_walk_tiles = num_walk_tiles + 1
         walk_tiles(num_walk_tiles)%p => p(:)
       else
-        if (l >= nlev) then ! no more levels left, cannot split
+        if (l >= maxlevel) then ! no more levels left, cannot split
           DEBUG_ERROR(*, "walk_simple: insufficient key resolution in tile formation.")
         end if
 
@@ -213,7 +213,7 @@ module module_tree_walk
 
   subroutine tree_walk_single(tl, vbox)
     use module_debug
-    use treevars, only: nlev
+    use treevars, only: maxlevel
     implicit none
 
     type(t_walk_tile), intent(inout) :: tl
@@ -223,14 +223,14 @@ module module_tree_walk
     integer(kind_node) :: ni
     integer(kind_particle) :: ip, np
     integer(kind_level) :: i
-    real(kind_physics) :: b2(0:nlev)
+    real(kind_physics) :: b2(0:maxlevel)
     real*8 :: num_int, num_mac
 
     num_int = 0.0_8
     num_mac = 0.0_8
 
     b2(0) = maxval(walk_tree%bounding_box%boxsize)**2
-    do i = 1, nlev
+    do i = 1, maxlevel
       b2(i) = b2(i - 1) / 4.0_8
     end do
 

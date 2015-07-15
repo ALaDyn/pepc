@@ -21,20 +21,19 @@ contains
     type(pepc_comm_t), intent(in) :: pepc_comm
 
     type(field_grid_nml_t) :: field_grid_nml
-    integer(kind_default) :: mpi_size, mpi_rank
-    integer(kind_particle) :: ipl, ipg, ix, iy
+    integer(kind_particle) :: ipl, ipg, ix, iy, mpi_size, mpi_rank
 
     call create_directory(field_dir)
 
     call read_in_field_grid_params(field_grid_nml, para_file_available, para_file_name)
 
-    mpi_rank = int(pepc_comm%mpi_rank, kind = kind(mpi_rank))
-    mpi_size = int(pepc_comm%mpi_size, kind = kind(mpi_size))
+    mpi_rank = int(pepc_comm%mpi_rank, kind = kind_particle)
+    mpi_size = int(pepc_comm%mpi_size, kind = kind_particle)
 
     field_grid%n = field_grid_nml%n
     field_grid%ntot = product(field_grid%n)
     field_grid%nl = field_grid%ntot / mpi_size
-    if (mpi_rank < mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) &
+    if (mpi_rank < mod(field_grid%ntot, mpi_size)) &
       field_grid%nl = field_grid%nl + 1
     field_grid%offset = field_grid_nml%offset
     field_grid%extent = field_grid_nml%extent
@@ -61,10 +60,12 @@ contains
       field_grid%viy(field_grid%n(1), field_grid%n(2)))
 
     do ipl = 1, field_grid%nl
-      ipg = ipl + min(int(mpi_rank, kind=kind_particle), mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) * &
-        (field_grid%ntot / mpi_size + 1) + &
-        max(0_kind_particle, mpi_rank - mod(field_grid%ntot, int(mpi_size, kind=kind_particle))) * &
-        (field_grid%ntot / mpi_size)
+      ! calculate the global index of a particle as number of particles on lower ranks plus local index
+      ipg = min(mpi_rank, mod(field_grid%ntot, mpi_size)) * & ! lower ranks up to ntot % mpi_size
+        (field_grid%ntot / mpi_size + 1) + & ! have ntot / mpi_size + 1 particles
+        max(0_kind_particle, mpi_rank - mod(field_grid%ntot, mpi_size)) * & ! lower ranks excluding the ntot % mpi_size first
+        (field_grid%ntot / mpi_size) + & ! have ntot / mpi_size particles
+        ipl ! local index
 
       ix = mod(ipg - 1, field_grid%n(1)) + 1
       iy = (ipg - 1) / field_grid%n(1) + 1
@@ -79,9 +80,9 @@ contains
   end subroutine setup_field_grid
 
 
-   subroutine read_in_field_grid_params(field_grid_namelist, file_available, file_name) 
-      use mpi
+   subroutine read_in_field_grid_params(field_grid_namelist, file_available, file_name)
       implicit none
+      include 'mpif.h'
 
       type(field_grid_nml_t), intent(out) :: field_grid_namelist
       logical, intent(in) :: file_available
@@ -143,11 +144,11 @@ contains
 
 
   subroutine compute_field(pepc_pars, field_grid, p)
-    use mpi
     use module_pepc, only: pepc_particleresults_clear, pepc_traverse_tree
     use encap
     use physics_helper
     implicit none
+    include 'mpif.h'
 
     type(pepc_pars_t), intent(in) :: pepc_pars
     type(field_grid_t), intent(inout) :: field_grid
@@ -246,9 +247,9 @@ contains
 
 
   subroutine write_field_on_grid(pepc_comm, time_pars, step, physics_pars, field_grid)
-    use mpi
     use encap
     implicit none
+    include 'mpif.h'
 
     type(pepc_comm_t), intent(in) :: pepc_comm
     type(time_pars_t), intent(in) :: time_pars
@@ -258,7 +259,7 @@ contains
 
     integer :: fh, mpi_err
     integer, dimension(MPI_STATUS_SIZE) :: mpi_stat
-    integer(kind_particle) :: my_count, fflatshape(1)
+    integer(kind_particle) :: my_count, fflatshape(1), mpi_rank, mpi_size
     integer(kind = MPI_OFFSET_KIND) :: my_offset
     real(kind_physics), dimension(:), allocatable :: fflat
     real(kind = 8), dimension(:), allocatable :: real8_buf
@@ -267,12 +268,14 @@ contains
     fflatshape(1) = field_grid%ntot
     allocate(real8_buf(field_grid%nl))
 
+    mpi_rank = int(pepc_comm%mpi_rank, kind = kind_particle)
+    mpi_size = int(pepc_comm%mpi_size, kind = kind_particle)
+
     my_count = field_grid%nl
-    my_offset = min(int(pepc_comm%mpi_rank, kind=kind_particle), &
-      mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) &
-      * (field_grid%ntot / pepc_comm%mpi_size + 1) + &
-      max(0_kind_particle, pepc_comm%mpi_rank - mod(field_grid%ntot, int(pepc_comm%mpi_size, kind=kind_particle))) * &
-      (field_grid%ntot / pepc_comm%mpi_size)
+    my_offset = min(mpi_rank, mod(field_grid%ntot, mpi_size)) &
+      * (field_grid%ntot / mpi_size + 1) + &
+      max(0_kind_particle, mpi_rank - mod(field_grid%ntot, mpi_size)) * &
+      (field_grid%ntot / mpi_size)
 
     call write_quantity_on_grid("potential", field_grid%p(:)%results%pot)
     call write_quantity_on_grid("ex", field_grid%p(:)%results%e(1))
@@ -297,13 +300,13 @@ contains
       real(kind_physics), dimension(:,:), intent(in) :: y
 
       fflat(:) = reshape(y, fflatshape)
-      call write_quantity_on_grid(yname, fflat(1 + my_offset : 1 + my_offset + field_grid%nl))
+      call write_quantity_on_grid(yname, fflat(1 + my_offset : 1 + my_offset + field_grid%nl - 1))
     end subroutine
 
     subroutine write_quantity_on_grid(yname, y)
-      use mpi
       use module_debug
       implicit none
+      include 'mpif.h'
 
       character(*), intent(in) :: yname
       real(kind_physics), dimension(:), intent(in) :: y

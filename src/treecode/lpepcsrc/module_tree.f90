@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -131,7 +131,7 @@ module module_tree
     !>
     subroutine tree_create(t, nl, n, comm, comm_env)
       use module_tree_node, only: NODE_INVALID
-      use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult, nlev
+      use treevars, only: interaction_list_length_factor, MPI_COMM_lpepc, np_mult, maxlevel
       use module_interaction_specific, only: get_number_of_interactions_per_particle
       use module_comm_env, only: comm_env_dup, comm_env_mirror
       use module_timings
@@ -195,11 +195,11 @@ module module_tree
       call tree_communicator_create(t%communicator)
 
       ! Preprocessed box sizes for each level
-      allocate(t%boxlength2(0:nlev))
-      allocate(t%boxdiaglength(0:nlev))
+      allocate(t%boxlength2(0:maxlevel))
+      allocate(t%boxdiaglength(0:maxlevel))
       t%boxlength2(0) = maxval(t%bounding_box%boxsize)**2
       t%boxdiaglength(0) = sqrt(dot_product(t%bounding_box%boxsize, t%bounding_box%boxsize))
-      do i = 1, nlev
+      do i = 1, maxlevel
         t%boxlength2(i) =  0.25 * t%boxlength2(i-1)
         t%boxdiaglength(i) = 0.5 * t%boxdiaglength(i-1)
       end do

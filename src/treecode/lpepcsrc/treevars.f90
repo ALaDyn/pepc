@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -35,7 +35,7 @@ module treevars
   integer :: num_threads = 3 !< number of threads to be used for hybrid parallelization (Pthreads, OpenMP, etc.), for compatibility, we set it to num_walk_threads in tree_walk_read_parameters() for now
   integer :: main_thread_processor_id !< id of processor that runs the applications main thread
 
-  integer(kind_level) :: nlev !< max refinement level
+  integer(kind_level) :: maxlevel !< max refinement level
   integer(kind_dim)   :: idim = 3_kind_dim !< dimension of the system
 
 ! Memory control
@@ -52,7 +52,7 @@ module treevars
     if (present(dim)) then; idim = dim; end if
 
                                 ! we do not use the first (sign) bit and need space for one additional placeholder-bit
-    nlev = int(bit_size(1_kind_key) - 2, kind_level) / idim
+    maxlevel = int(bit_size(1_kind_key) - 2, kind_level) / idim
   end subroutine treevars_prepare
 
 

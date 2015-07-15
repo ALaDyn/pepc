@@ -83,8 +83,8 @@ contains
 
 
    subroutine read_in_field_grid_params(field_grid_namelist, file_available, file_name)
-      use mpi
       implicit none
+      include 'mpif.h'
 
       type(field_grid_nml_t), intent(out) :: field_grid_namelist
       logical, intent(in) :: file_available
@@ -141,12 +141,12 @@ contains
 
 
   subroutine compute_field(pepc_pars, field_grid, p)
-    use mpi
     use module_pepc
     use module_tree, only : tree_allocated
     use encap
     use physics_helper
     implicit none
+    include 'mpif.h'
 
     type(pepc_pars_t), intent(in) :: pepc_pars
     type(field_grid_t), intent(inout) :: field_grid
@@ -251,9 +251,9 @@ contains
 
 
   subroutine write_field_on_grid(pepc_comm, time_pars, step, physics_pars, field_grid)
-    use mpi
     use encap
     implicit none
+    include 'mpif.h'
 
     type(pepc_comm_t), intent(in) :: pepc_comm
     type(time_pars_t), intent(in) :: time_pars
@@ -300,9 +300,9 @@ contains
     contains
 
     subroutine write_quantity_on_grid(yname, y)
-      use mpi
       use module_debug
       implicit none
+      include 'mpif.h'
 
       character(*), intent(in) :: yname
       real(kind = 8), dimension(:), intent(in) :: y

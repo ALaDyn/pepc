@@ -19,12 +19,11 @@ MODULE zufall
     SUBROUTINE init_rng()
         implicit none
 
-        integer :: rsize,i,rngseed
+        integer :: rsize,i
         integer, allocatable :: rseed(:)
         real*8 ::  ran
 
         rng=1
-        rngseed=0
 
         if (rng==0) then
             call random_seed(size = rsize)
@@ -170,9 +169,52 @@ MODULE zufall
         x=vtherm*sqrt(-2.*log(1-y))          
           
     END SUBROUTINE
+
+
 !======================================================================================
+    subroutine get_uniformly_distributed_number(r, opt_min, opt_max)
+        implicit none
+        real(KIND=8), intent(out) :: r
+        real(KIND=8), intent(in), optional :: opt_min, opt_max
+
+        real(KIND=8) :: rmin, rmax
+
+        rmin = 0.0_8
+        rmax = 1.0_8
+
+        if (present(opt_min)) rmin = opt_min
+        if (present(opt_max)) rmax = opt_max
+
+        r = rnd_num()
+        r = r*(rmax-rmin) + rmin
+
+    end subroutine get_uniformly_distributed_number
 
 
+!======================================================================================
+    subroutine get_uniformly_distributed_numbers(r, opt_min, opt_max)
+        implicit none
+        real(KIND=8), intent(inout) :: r(:)
+        real(KIND=8), intent(in), optional :: opt_min, opt_max
+
+        real(KIND=8) :: rmin, rmax
+        integer :: ir
+
+        rmin = 0.0_8
+        rmax = 1.0_8
+
+        if (present(opt_min)) rmin = opt_min
+        if (present(opt_max)) rmax = opt_max
+
+        do ir=1, size(r)
+            r(ir) = rnd_num()
+            r(ir) = r(ir)*(rmax-rmin) + rmin
+        end do
+
+    end subroutine get_uniformly_distributed_numbers
+
+
+!======================================================================================
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> portable random number generator, see numerical recipes
@@ -264,3 +306,295 @@ MODULE zufall
     end function
 
 END MODULE
+
+
+
+!==================================================================================
+!==================================================================================
+!==================================================================================
+
+MODULE poisson_disc_sampling
+    use variables
+    implicit none
+
+    integer, parameter :: D = 3 !Dimension
+    integer :: MaxCandidates
+    real(KIND=8) :: Radius
+    real(KIND=8) :: CellSize
+
+    integer, allocatable :: Grid(:,:,:)
+    integer :: GridShape(3)
+
+    real(KIND=8) :: gDomainMin(D), gDomainMax(D)
+    real(KIND=8) :: gDomainSize(D)
+
+    real(KIND=8), allocatable :: ActiveSamples(:,:), AllSamples(:,:)
+    integer :: iAllSamples, iActiveSamples, nSamples, nActiveSamples
+
+    CONTAINS
+
+
+!==================================================================================
+    real(KIND=8) function distance(a, b)
+        implicit none
+
+        real(KIND=8), intent(in) :: a(:), b(:)
+        integer :: j
+
+        distance = 0.
+        do j = 1, D
+            distance = (a(j) - b(j))**2 + distance
+        end do
+
+        distance = sqrt(distance)
+    end function distance
+
+!==================================================================================
+    subroutine init()
+        use zufall
+        implicit none
+
+        real(KIND=8), allocatable :: ran(:)
+
+        !This is an educated guess. The number of sampled positions will be close to, but smaller nSamples
+        Radius =  0.855 * (product(gDomainSize)/nSamples)**(1/dble(D))
+
+        call init_grid()
+
+        allocate(ActiveSamples(D, nSamples))
+        ActiveSamples = 0.0_8
+        allocate(AllSamples(D, nSamples))
+        AllSamples = 0.0_8
+
+        nActiveSamples = 1
+        iActiveSamples = 1
+        iAllSamples = 1
+
+        !sample first position
+        allocate(ran(D))
+        call get_uniformly_distributed_number(ran(1), gDomainMin(1), gDomainMax(1))
+        call get_uniformly_distributed_number(ran(2), gDomainMin(2), gDomainMax(2))
+        call get_uniformly_distributed_number(ran(3), gDomainMin(3), gDomainMax(3))
+        ActiveSamples(:, iActiveSamples) = ran
+        AllSamples(:, iAllSamples) = ActiveSamples(:, iActiveSamples)
+        call add_sample_to_grid()
+
+    end subroutine init
+
+
+!==================================================================================
+    subroutine init_grid()
+        implicit none
+
+        integer :: nx, ny, nz
+
+        CellSize = Radius/sqrt(dble(D))
+
+        nx = ceiling(gDomainSize(1) / CellSize)
+        ny = ceiling(gDomainSize(2) / CellSize)
+        nz = ceiling(gDomainSize(3) / CellSize)
+
+        allocate(Grid(-1:nx+2,-1:ny+2,-1:nz+2))
+        Grid = -1
+        GridShape = (/nx,ny,nz/)
+
+    end subroutine init_grid
+
+
+!==================================================================================
+    subroutine add_sample_to_grid()
+        implicit none
+
+        integer :: GridPosition(D)
+
+        GridPosition(:) = int((AllSamples(:,iAllSamples) - gDomainMin(:)) / CellSize) + 1
+
+        if (Grid(GridPosition(1),GridPosition(2),GridPosition(3)) > -1) then
+            write(*,*) "Grid Position besetzt. Fehler im Algorithmus"
+            stop
+        else
+            Grid(GridPosition(1),GridPosition(2),GridPosition(3)) = iAllSamples
+        end if
+
+        !Add Sample to ghost cells too, if they are close to the boundary
+        Grid(-1:0, :, :) = Grid(GridShape(1)-1:GridShape(1), :, :)
+        Grid(GridShape(1)+1:GridShape(1)+2, :, :) = Grid(1:2, :, :)
+        Grid(:, -1:0, :) = Grid(:, GridShape(2)-1:GridShape(2), :)
+        Grid(:, GridShape(2)+1:GridShape(2)+2, :) = Grid(:, 1:2, :)
+        Grid(:, :, -1:0) = Grid(:, :, GridShape(3)-1:GridShape(3))
+        Grid(:, :, GridShape(3)+1:GridShape(3)+2) = Grid(:, :, 1:2)
+
+    end subroutine add_sample_to_grid
+
+
+!==================================================================================
+    subroutine sample_new_position()
+        use zufall
+        implicit none
+
+        real(KIND=8) :: ActiveSample(D), Candidate(D)
+        logical :: CandidateAccepted
+        integer :: iCandidate
+        real(KIND=8) :: dist
+
+        CandidateAccepted = .False.
+        ActiveSample = ActiveSamples(:,iActiveSamples)
+
+        do iCandidate = 1, MaxCandidates
+            do
+                call get_uniformly_distributed_numbers(Candidate, -2*Radius, 2*Radius)
+                Candidate = Candidate + ActiveSample
+                dist = distance(Candidate, ActiveSample)
+                if ( (Radius <= dist) .and. (2*Radius >= dist) ) exit
+            end do
+            call test_candidate(CandidateAccepted, Candidate)
+            if (CandidateAccepted) then
+                iAllSamples = iAllSamples + 1
+                nActiveSamples = nActiveSamples + 1
+                AllSamples(:, iAllSamples) = Candidate
+                ActiveSamples(:, nActiveSamples) = Candidate
+                call add_sample_to_grid()
+                exit
+            end if
+        end do
+
+        if (CandidateAccepted .eqv. .False.) then
+            ActiveSamples(:, iActiveSamples) = ActiveSamples(:, nActiveSamples)
+            nActiveSamples = nActiveSamples - 1
+        end if
+
+    end subroutine sample_new_position
+
+
+!==================================================================================
+    subroutine test_candidate(CandidateAccepted, Candidate)
+        implicit none
+
+        logical, intent(out) :: CandidateAccepted
+        real(KIND=8), intent(in) :: Candidate(D)
+
+        real(KIND=8) :: NeighborSamplePosition(D), rMirror(3)
+        integer :: GridPosition(D), NeighborGridPosition(D)
+        integer :: ix,iy,iz,j
+        real(KIND=8) :: dist
+
+        GridPosition(:) = int((Candidate(:) - gDomainMin(:)) / CellSize) + 1
+        rMirror = 0.0_8
+
+        if ( (any(Candidate-gDomainMin < 0.)) .or. (any(Candidate-gDomainMax > 0.)) ) then
+            CandidateAccepted = .False.
+            return
+        end if
+
+        !Grid cell is occupied
+        if (Grid(GridPosition(1),GridPosition(2),GridPosition(3)) > -1) then
+            CandidateAccepted = .False.
+            return
+        end if
+
+        !have a look at cells in the direct vicinity
+        do ix = -2,2
+            do iy = -2,2
+                do iz = -2,2
+                    NeighborGridPosition = GridPosition + (/ix,iy,iz/)
+
+                    !this is the cell of the new sample
+                    if ( (ix==0) .and. (iy==0) .and. (iz==0) ) cycle
+
+                    !Neighbor cell is empty
+                    if (Grid(NeighborGridPosition(1),NeighborGridPosition(2),&
+                             NeighborGridPosition(3)) < 0) then
+                        cycle
+                    end if
+
+                    !Neighbors in Ghost cells
+                    rMirror = 0.0_8
+                    if ( (any(NeighborGridPosition < 1)) .or. (any(NeighborGridPosition - GridShape > 0)) ) then
+                        do j=1,D
+                            if (NeighborGridPosition(j) < 1) rMirror(j) = -gDomainSize(j)
+                            if (NeighborGridPosition(j) > GridShape(j)) rMirror(j) = gDomainSize(j)
+                        end do
+                    end if
+
+                    NeighborSamplePosition = AllSamples(:, Grid(NeighborGridPosition(1), &
+                                                                NeighborGridPosition(2), &
+                                                                NeighborGridPosition(3)))
+                    NeighborSamplePosition = NeighborSamplePosition + rMirror
+
+                    dist = distance(Candidate, NeighborSamplePosition)
+                    if (dist < Radius) then
+                        CandidateAccepted = .False.
+                        return
+                    end if
+                end do
+            end do
+        end do
+
+        CandidateAccepted = .True.
+        return
+
+    end subroutine test_candidate
+
+
+!==================================================================================
+    subroutine poisson_sampler(DomainMin, DomainMax, positions_x, positions_y, positions_z)
+        use zufall
+        implicit none
+
+        real(KIND=8), intent(in) :: DomainMin(:), DomainMax(:)
+        real(KIND=8), intent(out) :: positions_x(:),positions_y(:),positions_z(:)
+
+        real(KIND=8) :: ran
+        integer :: j=1
+
+        MaxCandidates = 100
+
+        nSamples = size(positions_x)
+        gDomainMin(:)= DomainMin(:)
+        gDomainMax(:) = DomainMax(:)
+        gDomainSize(:) = gDomainMax(:) - gDomainMin(:)
+
+        call init()
+
+        do
+            do while ((nActiveSamples > 0) .and. (iAllSamples < nSamples))
+                call get_uniformly_distributed_number(ran, 1._8, dble(nActiveSamples))
+                iActiveSamples = int(ran)
+                call sample_new_position()
+            end do
+            if (iAllSamples == nSamples) then !this means that the algorithm did not finish
+                                              !in a sense that the maximum number of samples was reached
+                                              !before all Active Samples were processed (i.e. the domain was filled)
+                Radius = Radius*1.001         !increased radius will decrease the number of particles when restarting the algorithm
+                write(*,'(a)', advance='yes') "Poisson disc sampler reached maximum number of samples before filling the domain. "
+                write(*,'(a,i8)') "Active Samples left: ",nActiveSamples
+                write(*,'(a,es12.4)')        "Restarting with larger radius R = R*1.001 = ", Radius
+            else
+                exit
+            end if
+            ActiveSamples(:,1:) = 0.0_8
+            AllSamples(:,1:) = 0.0_8
+            Grid = -1
+
+            nActiveSamples = 1
+            iActiveSamples = 1
+            iAllSamples = 1
+
+            call add_sample_to_grid()
+        end do
+
+        positions_x(1:iAllSamples) = AllSamples(1,1:iAllSamples)
+        positions_y(1:iAllSamples) = AllSamples(2,1:iAllSamples)
+        positions_z(1:iAllSamples) = AllSamples(3,1:iAllSamples)
+        do j = iAllSamples + 1, nSamples
+             call get_uniformly_distributed_number(positions_x(j), gDomainMin(1), gDomainMax(1))
+             call get_uniformly_distributed_number(positions_y(j), gDomainMin(2), gDomainMax(2))
+             call get_uniformly_distributed_number(positions_z(j), gDomainMin(3), gDomainMax(3))
+        end do
+
+        if (allocated(Grid)) deallocate(Grid)
+        if (allocated(ActiveSamples)) deallocate(ActiveSamples)
+        if (allocated(AllSamples)) deallocate(AllSamples)
+
+    end subroutine poisson_sampler
+END module poisson_disc_sampling

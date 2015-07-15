@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -455,19 +455,17 @@ module helper
 
   subroutine write_particles(p)
     use module_vtk
+    use module_vtk_helpers
     implicit none
 
-    type(t_particle), allocatable, intent(in) :: p(:)
+    include 'mpif.h'
 
-    integer(kind_particle) :: i
-    type(vtkfile_unstructured_grid) :: vtk
+    type(t_particle), intent(in) :: p(:)
+
     integer :: vtk_step
-    real*8 :: time
     real*8 :: ta, tb
 
     ta = get_time()
-
-    time = dt * step
 
     if (step .eq. 0) then
       vtk_step = VTK_STEP_FIRST
@@ -477,35 +475,26 @@ module helper
       vtk_step = VTK_STEP_NORMAL
     endif
 
-    call vtk%create_parallel("particles", step, my_rank, n_ranks, time, vtk_step)
-    call vtk%write_headers(np, 0_kind_particle)
-    call vtk%startpoints()
-    call vtk%write_data_array("xyz", p(1:np)%x(1), p(1:np)%x(2), p(1:np)%x(3))
-    call vtk%finishpoints()
-    call vtk%startpointdata()
-    call vtk%write_data_array("velocity", p(1:np)%data%v(1), &
-                                          p(1:np)%data%v(2), &
-                                          p(1:np)%data%v(3))
-    call vtk%write_data_array("el_field", p(1:np)%results%e(1), &
-                                          p(1:np)%results%e(2), &
-                                          p(1:np)%results%e(3))
-    call vtk%write_data_array("el_pot", p(1:np)%results%pot)
-    call vtk%write_data_array("charge", p(1:np)%data%q)
-    call vtk%write_data_array("mass", p(1:np)%data%m)
-    call vtk%write_data_array("work", p(1:np)%work)
-    call vtk%write_data_array("pelabel", p(1:np)%label)
-    call vtk%write_data_array("local index", [(i,i=1,np)])
-    call vtk%write_data_array("processor", int(np, kind = 4), my_rank)
-    if(particle_test) call vtk%write_data_array("L2 error", direct_L2(1:np))
-    call vtk%finishpointdata()
-    call vtk%dont_write_cells()
-    call vtk%write_final()
-    call vtk%close()
+    call vtk_write_particles("particles", MPI_COMM_WORLD, step, dt * step, vtk_step, p, coulomb_and_l2)
 
     tb = get_time()
 
     if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
 
+    contains
+
+    subroutine coulomb_and_l2(d, r, vtkf)
+      use module_vtk
+      use module_interaction_specific_types
+      implicit none
+
+      type(t_particle_data), intent(in) :: d(:)
+      type(t_particle_results), intent(in) :: r(:)
+      type(vtkfile_unstructured_grid), intent(inout) :: vtkf
+
+      call vtk_write_particle_data_results(d, r, vtkf)
+      if(particle_test) call vtkf%write_data_array("L2 error", direct_L2(:))
+    end subroutine
   end subroutine write_particles
 
   subroutine write_domain(p)

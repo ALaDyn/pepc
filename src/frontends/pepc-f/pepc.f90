@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -29,6 +29,7 @@ program pepc
     use module_timings
     use module_debug
     use module_vtk
+    use module_interaction_specific, only: theta2
 
     ! frontend helper routines
     use helper
@@ -47,7 +48,7 @@ program pepc
 
     ! timing variables
     real*8 :: timer(20)
-    integer :: rc,ip,imp,irp
+    integer*8 :: npart
 
 
     !!! initialize pepc library and MPI
@@ -62,14 +63,23 @@ program pepc
 
     call read_args()
 
+    if (do_convert) then
+        call read_particles_mpiio_from_filename(MPI_COMM_WORLD,step,npart,particles,&
+                                                convert_file,noparams=.true.)
+        call write_particles_npy(particles,my_rank,convert_step)
+        call pepc_finalize()
+        stop
+    end if
+
     call init_files()
 
     call set_default_parameters()
     call set_parameters()
+    call init_rng()
+
     call init_boundaries()
     call init_species()
 
-    call init_rng()
     call init_periodicity()
     call pepc_prepare(3_kind_dim)
 
@@ -84,12 +94,17 @@ program pepc
     call write_parameters()
 
     !get initial field configuration
-    call pepc_particleresults_clear(particles)
-    call pepc_grow_tree(particles)
-    call pepc_traverse_tree(particles)
-    if (diags) call pepc_tree_diagnostics()
+    if (theta2 > 1.e-6) then
+        call pepc_particleresults_clear(particles)
+        call pepc_grow_tree(particles)
+        call pepc_traverse_tree(particles)
+        if (diags) call pepc_tree_diagnostics()
+        call pepc_timber_tree()
+    else
+        call compute_force_direct(particles, int(sum(npps),8))
+    end if
     call get_number_of_particles(particles)
-    call pepc_timber_tree()
+    call add_boundary_field(particles)
 
 
     !write initial configuration
@@ -99,20 +114,34 @@ program pepc
     if(vtk_interval.ne.0) then
         call write_particles_vtk(particles,17_kind_particle)
     end if
+    if(npy_interval.ne.0) then
+        call write_particles_npy(particles, my_rank, startstep)
+    end if
+
+    !initially integrate v half a step backwards for leap frog
+    if (.not. do_resume) call boris_nonrel(particles, -dt/2)
 
     timer(2) = get_time()
-    if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
-    if(root) write(*,*)""
-    if(root) write(*,*)"spiegelladung=",spiegelladung
+    if(root) then
+        write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
+        if (theta2 <= 1.e-5) then
+            write(*,'(a,f7.5,a)') " === Due to small value of theta (", sqrt(theta2),") direct force computation is used"
+        end if
+        write(*,*)""
+    end if
 
 
     !MAIN LOOP ====================================================================================================
     DO step=startstep+1, nt+startstep
+        IF ((step == hockney_start_step) .AND. (bool_hockney_diag)) call store_initial_velocities(particles)
+
+        ! check whether diag, vtk, npy or checkpoint output will be written in this step
+        call check_output_intervals()
         timer(3) = get_time()
 
-
         ! Move particles according to electric field configuration
-        call boris_nonrel(particles)
+        call boris_nonrel(particles, dt)
+        call push_particles(particles, dt)
         timer(4) = get_time()
 
 
@@ -121,117 +150,74 @@ program pepc
         timer(5) = get_time()
 
 
-        IF (spiegelladung==1) THEN
-            allocate(all_particles(size(particles)+sum(npps(1:2))),stat=rc)
-            all_particles(1:size(particles))=particles
-            imp=1
-            DO ip=1,size(particles)
-                IF (species(particles(ip)%data%species)%physical_particle .eqv. .false.) CYCLE
-                all_particles(size(particles)+imp) = particles(ip)
-                all_particles(size(particles)+imp)%data%q = -all_particles(size(particles)+imp)%data%q
-                all_particles(size(particles)+imp)%x(1) = -all_particles(size(particles)+imp)%x(1) + 2*(xmax-xmin)
-                all_particles(size(particles)+imp)%data%species = -1
-                imp = imp+1
-            END DO
-        END IF
 
-        IF (spiegelladung==2) THEN
-            allocate(all_particles(size(particles)+sum(npps(0:2))),stat=rc)
-            all_particles(1:size(particles))=particles
-            imp=1
-            DO ip=1,size(particles)
-                IF (particles(ip)%data%species > 2) CYCLE
-                all_particles(size(particles)+imp) = particles(ip)
-                all_particles(size(particles)+imp)%x(1) = -all_particles(size(particles)+imp)%x(1)
-                all_particles(size(particles)+imp)%data%species = -1
-                imp = imp+1
-            END DO
-        END IF
-
-        !pepc routines
+        !===================== compute internal fields ========================
         call pepc_particleresults_clear(particles)
-        IF (spiegelladung/=0) call pepc_particleresults_clear(all_particles)
 
-        !grow tree
-        if(root) write(*,'(a)') " == [main loop] grow tree"
-        IF (spiegelladung==0)call pepc_grow_tree(particles)
-        IF (spiegelladung==0)call get_number_of_particles(particles)
-        IF (spiegelladung/=0)call pepc_grow_tree(all_particles)
+        if (theta2 > 1.e-6) then
+            !grow tree
+            if(root) write(*,'(a)') " == [main loop] grow tree"
+            call pepc_grow_tree(particles)
+            timer(6)=get_time() !6-5: grow_tree
+            !end grow tree
 
-        IF (spiegelladung/=0) THEN
-            call get_number_of_particles(all_particles)
-            deallocate(particles)
-            allocate(particles(sum(npps)),stat=rc)
-            irp=1
-            DO ip=1,size(all_particles)
-                IF (all_particles(ip)%data%species==-1) CYCLE
-                particles(irp)=all_particles(ip)
-                irp=irp+1
-            END DO
-        END IF
+            !traverse tree
+            if(root) write(*,'(a)') " == [main loop] traverse tree"
+            call pepc_traverse_tree(particles)
+            timer(7)=get_time() !7-6: traverse_tree
+            !end traverse tree
 
-        timer(6)=get_time() !6-5: grow_tree
-        !end grow tree
+            !diagnostics
+            if (diags) call pepc_tree_diagnostics()
+            timer(8)=get_time()
+            !end diagnostics
 
-        !traverse tree
-        if(root) write(*,'(a)') " == [main loop] traverse tree"
-        call pepc_traverse_tree(particles)
+            !timber tree
+            if(root) write(*,'(a)') " == [main loop] timber tree"
+            call pepc_timber_tree()
+            call get_number_of_particles(particles)
+            timer(9)=get_time() !9-8: timber
+            !end timber tree
 
-        timer(7)=get_time() !7-6: traverse_tree
-        !end traverse tree
-
-
-        !diagnostics
-        if (diags) call pepc_tree_diagnostics()
-        IF (spiegelladung/=0)call get_number_of_particles(particles)
-
-        timer(8)=get_time()
-        !end diagnostics
-
-
-        !timber tree
-        if(root) write(*,'(a)') " == [main loop] timber tree"
-        call pepc_timber_tree()
+            !further diagnostics
+            if (diags) call timings_GatherAndOutput(step)
+            timer(10)=get_time() !10-9 + 8-7: diag
+            !end further diagnostics
+        else
+            call compute_force_direct(particles, int(sum(npps),8))
+            timer(6)=timer(5)
+            timer(7)=get_time()
+            timer(8)=get_time()
+            timer(9)=get_time()
+            timer(10)=get_time()
+        end if
+        !===================== end compute internal fields ========================
 
 
-        timer(9)=get_time() !9-8: timber
-        !end timber tree
-
-
-        !further diagnostics
-        if (diags) call timings_GatherAndOutput(step)
-
-        timer(10)=get_time() !10-9 + 8-7: diag
-        !end further diagnostics
-
-
+        !===================== compute external fields ========================
         !add E-Field and Potential caused by boundaries of type 1 (treated as external field)
         call add_boundary_field(particles)
         timer(11)=get_time() !11-10: boundary field
+        !===================== end compute external fields ========================
 
 
         !vtk and checkpoints (positions and fields after current timestep)
-        if(checkp_interval.ne.0) then
-            if ((MOD(step,checkp_interval)==0).or.(step==nt+startstep)) then
-                call set_checkpoint()
-            end if
-        end if
-        if(npy_interval.ne.0) then
-            if ((MOD(step,npy_interval)==0).or.(step==nt+startstep)) then
-                call write_particles_npy(particles, my_rank, step)
-            end if
-        end if
-        if(vtk_interval.ne.0) then
-            if ((MOD(step,vtk_interval)==0).or.(step==nt+startstep)) THEN
-                IF (spiegelladung/=0) call write_particles_vtk(all_particles,1_kind_particle)
-                IF (spiegelladung==0) call write_particles_vtk(particles,17_kind_particle)
-            end if
-        end if
+        IF (checkpoint_now) THEN
+            call set_checkpoint()
+        END IF
+        IF (npy_now) THEN
+            call write_particles_npy(particles, my_rank, step)
+        END IF
+        IF (vtk_now) THEN
+            call write_particles_vtk(particles,17_kind_particle)
+        END IF
         !end vtk and checkpoints
 
 
-        !output
+        !output (particle velocities are moved to be at the same time as positions)
+        call boris_nonrel(particles, dt/2)
         call main_output(out)
+        call boris_nonrel(particles, -dt/2)
 
         timer(12)=get_time()
         if(root) then
@@ -248,16 +234,10 @@ program pepc
                                timer(12)-timer(11), out)
             call end_of_ts_output(step,out)
         end if
-        if (bool_detailed_timing) then
-            call timing_output(timer(4)-timer(3), timer(5)-timer(4), timer(6)-timer(5), timer(7)-timer(6),&
-                               timer(10)-timer(9)+timer(8)-timer(7), timer(9)-timer(8), timer(11)-timer(10),&
-                               timer(12)-timer(11), detailed_timing_out)
-            call end_of_ts_output(step,detailed_timing_out)
-        end if
+
         if (MOD(step-startstep,10)==0) call flush_files()
         !end output
 
-        IF (spiegelladung/=0) deallocate(all_particles)
     end do
     !END OF MAIN LOOP ====================================================================================================
 

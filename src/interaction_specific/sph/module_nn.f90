@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -29,7 +29,7 @@ module module_nn
 
   subroutine nn_prepare_particleresults(t, particles)
     use module_tree, only: t_tree
-    use treevars, only: nlev
+    use treevars, only: maxlevel
     use module_tree_node, only: NODE_INVALID
     use module_pepc_types, only: t_particle, t_tree_node
     use module_interaction_specific_types, only: num_neighbour_particles
@@ -42,9 +42,9 @@ module module_nn
     integer :: i
     real*8, dimension(:), allocatable :: boxdiag2
 
-    allocate(boxdiag2(0:nlev))
+    allocate(boxdiag2(0:maxlevel))
     boxdiag2(0) = 3.*dot_product(t%bounding_box%boxsize,t%bounding_box%boxsize)
-    do i=1,nlev
+    do i=1,maxlevel
        boxdiag2(i) =  boxdiag2(i-1)/4.
     end do
 

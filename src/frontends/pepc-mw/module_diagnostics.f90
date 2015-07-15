@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2015 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -136,6 +136,8 @@ contains
         call pepc_status('PEPC-MW: DIRECTSUM')
 
         call timer_start(t_all)
+
+        allocate(directresults(nforceparticles))
 
         call directforce(particles, [(i,i=1,nforceparticles)], nforceparticles, directresults, MPI_COMM_PEPC)
         particles(1:nforceparticles)%results = directresults(1:nforceparticles)
@@ -645,6 +647,7 @@ contains
 
         if (my_rank ==0) write(*,'("-- DIRECT VERIFICATION --")')
 
+        allocate(res(ntest))
         call directforce(particles, testidx, ntest, res, comm)
 
         deviation     = 0.
