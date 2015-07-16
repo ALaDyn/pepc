@@ -191,8 +191,8 @@ MODULE output
             call MPI_ALLREDUCE(dbs, tdata_bins, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
             IF (bool_avg_btwn_diag_steps) THEN
-                tdata_bins = tdata_bins / (step - last_diag_output)
-                tn_bins_dble = DBLE(tn_bins) / (step - last_diag_output)
+                tdata_bins = tdata_bins / (step - max(hockney_start_step-1, last_diag_output))
+                tn_bins_dble = DBLE(tn_bins) / (step - max(hockney_start_step-1, last_diag_output))
             ELSE
                 tn_bins_dble = DBLE(tn_bins)
             END IF
