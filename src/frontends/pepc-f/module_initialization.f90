@@ -90,9 +90,8 @@ module module_initialization
       diag_bins_y=1
       diag_bins_z=1
 
-      diag_bins_vx = 100
-      diag_bins_v2 = 100
-      v_grid_max = 3.0_8
+      diag_bins_vpar = 100
+      v_grid_max = 4.0_8
       bool_velocity_diag = .false.
 
       bool_hockney_diag = .true.
@@ -136,8 +135,8 @@ module module_initialization
 
         IF (bool_hockney_diag) bool_velocity_diag = .true.
         IF (bool_velocity_diag) THEN
-            allocate(n_bins_v(0:nspecies-1,0:diag_bins_vx+1, diag_bins_v2+1))
-            allocate(data_bins_v(0:nspecies-1,3,0:diag_bins_vx+1, diag_bins_v2+1))
+            allocate(n_bins_v(0:nspecies-1,2,0:diag_bins_vpar+1))
+            allocate(data_bins_v(0:nspecies-1,6,0:diag_bins_vpar+1))
             n_bins_v = 0
             data_bins_v = 0.0_8
         END IF

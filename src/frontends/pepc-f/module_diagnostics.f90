@@ -563,38 +563,48 @@ MODULE diagnostics
         implicit none
 
         integer, intent(in)         :: ispecies
-        integer, intent(inout)      :: nbs(0:,:)
-        real(KIND=8), intent(inout) :: dbs(:,0:,:)
+        integer, intent(inout)      :: nbs(:,0:)
+        real(KIND=8), intent(inout) :: dbs(:,0:)
 
         integer :: ip, n
-        integer :: ivx, iv2
-        real(KIND=8) :: vth, cellsizevx, cellsizev2
-        real(KIND=8) :: v(3), v2
-        real(KIND=8) :: q,m,E(3)
-
+        integer :: ivpar
+        real(KIND=8) :: cellsizevpar
+        real(KIND=8) :: v(3), v0_p(3), e0_p(3), h_p, vpar_p, vperp_p, beta_p, vpar0_p, vth
+        real(KIND=8) :: q,m
         n = size(particles)
-        vth = species(ispecies)%v_th*sqrt(2.)  !note: vth = sqrt(2T/m); Unterscheidet sich von sonst verwendeten v_th = sqrt(T/m) um sqrt(2)
-        cellsizevx = (v_grid_max*2)/diag_bins_vx
-        cellsizev2 = (v_grid_max*3)/diag_bins_v2
+        cellsizevpar = (v_grid_max*2)/diag_bins_vpar
+        vth = species(ispecies)%v_th
 
         DO ip=1, n
             IF (particles(ip)%data%species == ispecies) THEN
                 q = species(ispecies)%q
                 m = species(ispecies)%m
-                E = particles(ip)%results%e * fc
                 v = particles(ip)%data%v
-                v2 = v(2)*v(2) + v(3)*v(3)
 
-                ivx = int((v(1)/vth - (-v_grid_max)) / cellsizevx) + 1
-                iv2 = int((v2/vth**2) / cellsizev2) + 1
-                ivx = min( max(0, ivx), diag_bins_vx+1 )
-                iv2 = min( iv2, diag_bins_v2+1 )
+                v0_p = initial_velocities(:, particles(ip)%label)
+                e0_p = v0_p / norm(v0_p)
+                h_p = 0.5 * species(ispecies)%m/e * (sum(v**2) - sum(v0_p**2))
+                vpar_p = dotproduct(v, e0_p)
+                vpar0_p = dotproduct(v0_p, e0_p)
+                vperp_p = sqrt(sum(v**2) - vpar_p**2)
+                beta_p = acos( dotproduct(v0_p, v) / (norm(v0_p) * norm(v)) ) !range of acos func: 0..pi
 
-                nbs(ivx,iv2) = nbs(ivx,iv2) + 1
+                !binning for the pdf is based on current parallel velocity vpar_p
+                ivpar = int((vpar_p/vth - (-v_grid_max)) / cellsizevpar) + 1
+                ivpar = min( max(0, ivpar), diag_bins_vpar+1 )
+                nbs(1,ivpar) = nbs(1,ivpar) + 1
 
-                dbs(1,ivx,iv2) = dbs(1,ivx,iv2) + q/m*E(1)                                                !d(v_x)/dt
-                dbs(2,ivx,iv2) = dbs(2,ivx,iv2) + 2*q/m*v(1)*E(1) + dt*q**2/m**2*E(1)**2                  !d(v_x**2)/dt
-                dbs(3,ivx,iv2) = dbs(3,ivx,iv2) + 2*q/m*dotproduct(v,E) + dt*q**2/m**2*dotproduct(E,E)    !d(v**2)/dt
+                !binning for velocity resolved Hockney diag is based on the initial parallel velocity vpar0_p
+                ivpar = int((vpar0_p/vth - (-v_grid_max)) / cellsizevpar) + 1
+                ivpar = min( max(0, ivpar), diag_bins_vpar+1 )
+                nbs(2,ivpar) = nbs(2,ivpar) + 1
+                dbs(1,ivpar) = dbs(1,ivpar) + vpar_p
+                dbs(2,ivpar) = dbs(2,ivpar) + vpar_p**2
+                dbs(3,ivpar) = dbs(3,ivpar) + vperp_p**2
+                dbs(4,ivpar) = dbs(4,ivpar) + beta_p**2
+                dbs(5,ivpar) = dbs(5,ivpar) + h_p
+                dbs(6,ivpar) = dbs(6,ivpar) + h_p**2
+
             END IF
         END DO
 

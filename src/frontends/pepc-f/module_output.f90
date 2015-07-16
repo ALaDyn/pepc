@@ -167,28 +167,28 @@ MODULE output
         implicit none
         include 'mpif.h'
 
-        integer                    :: rc,ivx,iv2
+        integer                    :: rc,ivpar
 
         integer,intent(in)         :: filehandle,ispecies
         integer                    :: npoints
-        real(KIND=8),intent(inout) :: dbs(:,0:,:)
-        integer,intent(inout)      :: nbs(0:,:)
+        real(KIND=8),intent(inout) :: dbs(:,0:)
+        integer,intent(inout)      :: nbs(:,0:)
         logical,intent(in)         :: write_data
-        real(KIND=8)               :: tdata_bins(3,0:diag_bins_vx+1,diag_bins_v2+1)
-        integer                    :: tn_bins(0:diag_bins_vx+1,diag_bins_v2+1)
-        real(KIND=8)               :: tn_bins_dble(0:diag_bins_vx+1,diag_bins_v2+1)
-        real(KIND=8)               :: vxmin, vxmax, v2min, v2max
+        real(KIND=8)               :: tdata_bins(6,0:diag_bins_vpar+1)
+        integer                    :: tn_bins(2,0:diag_bins_vpar+1)
+        real(KIND=8)               :: tn_bins_dble(2,0:diag_bins_vpar+1)
+        real(KIND=8)               :: vmin, vmax
 
 
-        npoints = (diag_bins_vx+2) * (diag_bins_v2+1)
+        npoints = (diag_bins_vpar+2)
 
         call fill_velocity_bins(ispecies,nbs,dbs)
 
         IF (.not. write_data) THEN
             RETURN
         ELSE
-            call MPI_ALLREDUCE(nbs, tn_bins, npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(dbs, tdata_bins, 3*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(nbs, tn_bins, 2*npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(dbs, tdata_bins, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
             IF (bool_avg_btwn_diag_steps) THEN
                 tdata_bins = tdata_bins / (step - last_diag_output)
@@ -199,20 +199,15 @@ MODULE output
 
             IF (root) THEN
                 write(filehandle,*)
-                write(filehandle,'(a,2(i6.5))')"collision analysis (nvx,nv2):", diag_bins_vx,diag_bins_v2
-                write(filehandle,'(a12,2(a7),4(a16),a12,3(a16))')"","ivx","iv2","vx_min","vx_max","v2_min","v2_max","N","dvx","dvx2","dv2"
-                DO ivx=0,diag_bins_vx+1
-                    vxmin = (-v_grid_max + ((ivx-1) * (v_grid_max*2)/diag_bins_vx))! * species(ispecies)%v_th*sqrt(2.)
-                    vxmax = (-v_grid_max + (ivx * (v_grid_max*2)/diag_bins_vx))! * species(ispecies)%v_th*sqrt(2.)
-                    if (ivx == 0) vxmin = -huge(vxmin)
-                    if (ivx == diag_bins_vx+1) vxmax = huge(vxmax)
-                    DO iv2=1,diag_bins_v2+1
-                        v2min = ((iv2-1) * (v_grid_max*3)/diag_bins_v2)! * species(ispecies)%v_th*sqrt(2.)
-                        v2max = (iv2 * (v_grid_max*3)/diag_bins_v2)! * species(ispecies)%v_th*sqrt(2.)
-                        if (iv2 == diag_bins_v2+1) v2max = huge(v2max)
-                        write(filehandle,'(a12,2(i7.5),4(1pe16.7E3),0pF14.3,3(1pe16.7E3))')"Bins_v:     ",ivx,iv2,vxmin,vxmax,v2min,v2max,&
-                                                                                          tn_bins_dble(ivx,iv2), tdata_bins(:,ivx,iv2)
-                    END DO
+                write(filehandle,'(a,2(i6.5))')"collision analysis (nvpar):", diag_bins_vpar
+                write(filehandle,'(a12,1(a7),2(a16),2(a14),6(a16))')"","ivpar","vpar_min","vpar_max","N","N0","<vpar>","<vpar^2>","<vperp^2>","<beta^2>","<h>","<h^2>"
+                DO ivpar=0,diag_bins_vpar+1
+                    vmin = (-v_grid_max + ((ivpar-1) * (v_grid_max*2)/diag_bins_vpar))! * species(ispecies)%v_th*sqrt(2.)
+                    vmax = (-v_grid_max + (ivpar * (v_grid_max*2)/diag_bins_vpar))! * species(ispecies)%v_th*sqrt(2.)
+                    if (ivpar == 0) vmin = -huge(vmin)
+                    if (ivpar == diag_bins_vpar+1) vmax = huge(vmax)
+                    write(filehandle,'(a12,1(i7.5),2(1pe16.7E3),0pF14.3,0pF14.3,6(1pe16.7E3))')"Bins_v:     ",ivpar,vmin,vmax,&
+                                                                                        tn_bins_dble(:,ivpar), tdata_bins(:,ivpar)/tn_bins_dble(2,ivpar)
                 END DO
             END IF
         END IF
@@ -618,9 +613,9 @@ MODULE output
                 IF (diag_now) THEN
                     call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:), &
                                              data_bins(ispecies,:,:,:,:),.True.)
-                    IF (bool_velocity_diag) THEN
+                    IF ((step >= hockney_start_step) .AND. (bool_velocity_diag)) THEN
                         call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
-                                                 data_bins_v(ispecies,:,:,:),.True.)
+                                                 data_bins_v(ispecies,:,:),.True.)
                     END IF
                     IF (bool_energy_resolved_hits) call energy_resolved_hits_output(ispecies)
                     IF (bool_angle_resolved_hits) call angle_resolved_hits_output(ispecies)
@@ -630,9 +625,9 @@ MODULE output
                     IF (bool_avg_btwn_diag_steps) THEN
                         call plasma_props_output(ispecies,filehandle,n_bins(ispecies,:,:,:),  &
                                                  data_bins(ispecies,:,:,:,:),.False.)
-                        IF (bool_velocity_diag) THEN
+                        IF ((step >= hockney_start_step) .AND. (bool_velocity_diag)) THEN
                             call write_velocity_bins(ispecies,filehandle,n_bins_v(ispecies,:,:), &
-                                                     data_bins_v(ispecies,:,:,:),.False.)
+                                                     data_bins_v(ispecies,:,:),.False.)
                         END IF
                     END IF
                 END IF

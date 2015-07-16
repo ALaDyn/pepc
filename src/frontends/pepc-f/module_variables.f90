@@ -97,11 +97,10 @@ module variables
   integer, allocatable      :: n_bins(:,:,:,:)      !(nspecies,diag_bins_x,diag_bins_y,diag_bins_z)
 
   ! variables for output of averaged physical quantities in velocity space
-  integer :: diag_bins_vx
-  integer :: diag_bins_v2
+  integer :: diag_bins_vpar
   real(KIND=8) :: v_grid_max
-  real(KIND=8), allocatable :: data_bins_v(:,:,:,:) !(0:nspecies-1,3,0:diag_bins_vx+1, diag_bins_v2+1)
-  integer, allocatable      :: n_bins_v(:,:,:)      !(0:nspecies-1,0:diag_bins_vx+1, diag_bins_v2+1)
+  real(KIND=8), allocatable :: data_bins_v(:,:,:) !(0:nspecies-1,6,0:diag_bins_vpar+1)
+  integer, allocatable      :: n_bins_v(:,:,:)      !(0:nspecies-1,2,0:diag_bins_vpar+1)
   logical :: bool_velocity_diag
 
 
