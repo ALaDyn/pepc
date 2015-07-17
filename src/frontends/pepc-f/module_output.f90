@@ -175,8 +175,8 @@ MODULE output
         integer,intent(inout)      :: nbs(:,0:)
         logical,intent(in)         :: write_data
         real(KIND=8)               :: tdata_bins(6,0:diag_bins_vpar+1)
-        integer                    :: tn_bins(2,0:diag_bins_vpar+1)
-        real(KIND=8)               :: tn_bins_dble(2,0:diag_bins_vpar+1)
+        integer                    :: tn_bins(3,0:diag_bins_vpar+1)
+        real(KIND=8)               :: tn_bins_dble(3,0:diag_bins_vpar+1)
         real(KIND=8)               :: vmin, vmax
 
 
@@ -187,7 +187,7 @@ MODULE output
         IF (.not. write_data) THEN
             RETURN
         ELSE
-            call MPI_ALLREDUCE(nbs, tn_bins, 2*npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(nbs, tn_bins, 3*npoints, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, rc)
             call MPI_ALLREDUCE(dbs, tdata_bins, 6*npoints, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, rc)
 
             IF (bool_avg_btwn_diag_steps) THEN
@@ -200,14 +200,14 @@ MODULE output
             IF (root) THEN
                 write(filehandle,*)
                 write(filehandle,'(a,2(i6.5))')"collision analysis (nvpar):", diag_bins_vpar
-                write(filehandle,'(a12,1(a7),2(a16),2(a14),6(a16))')"","ivpar","vpar_min","vpar_max","N","N0","<vpar>","<vpar^2>","<vperp^2>","<beta^2>","<h>","<h^2>"
+                write(filehandle,'(a12,1(a7),2(a16),3(a14),6(a16))')"","ivpar","vpar_min","vpar_max","N","N0","Nx","<vpar>","<vpar^2>","<vperp^2>","<beta^2>","<h>","<h^2>"
                 DO ivpar=0,diag_bins_vpar+1
                     vmin = (-v_grid_max + ((ivpar-1) * (v_grid_max*2)/diag_bins_vpar))! * species(ispecies)%v_th*sqrt(2.)
                     vmax = (-v_grid_max + (ivpar * (v_grid_max*2)/diag_bins_vpar))! * species(ispecies)%v_th*sqrt(2.)
                     if (ivpar == 0) vmin = -huge(vmin)
                     if (ivpar == diag_bins_vpar+1) vmax = huge(vmax)
-                    write(filehandle,'(a12,1(i7.5),2(1pe16.7E3),0pF14.3,0pF14.3,6(1pe16.7E3))')"Bins_v:     ",ivpar,vmin,vmax,&
-                                                                                        tn_bins_dble(:,ivpar), tdata_bins(:,ivpar)/tn_bins_dble(2,ivpar)
+                    write(filehandle,'(a12,1(i7.5),2(1pe16.7E3),0pF14.3,0pF14.3,0pF14.3,6(1pe16.7E3))')"Bins_v:     ",ivpar,vmin,vmax,&
+                                                                      tn_bins_dble(:,ivpar), tdata_bins(:,ivpar)/tn_bins_dble(2,ivpar)
                 END DO
             END IF
         END IF

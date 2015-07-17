@@ -594,6 +594,11 @@ MODULE diagnostics
                 ivpar = min( max(0, ivpar), diag_bins_vpar+1 )
                 nbs(1,ivpar) = nbs(1,ivpar) + 1
 
+                !binning for the pdf in x direction is based on current velocity v(1)
+                ivpar = int((v(1)/vth - (-v_grid_max)) / cellsizevpar) + 1
+                ivpar = min( max(0, ivpar), diag_bins_vpar+1 )
+                nbs(3,ivpar) = nbs(3,ivpar) + 1
+
                 !binning for velocity resolved Hockney diag is based on the initial parallel velocity vpar0_p
                 ivpar = int((vpar0_p/vth - (-v_grid_max)) / cellsizevpar) + 1
                 ivpar = min( max(0, ivpar), diag_bins_vpar+1 )

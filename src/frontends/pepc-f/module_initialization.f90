@@ -135,7 +135,7 @@ module module_initialization
 
         IF (bool_hockney_diag) bool_velocity_diag = .true.
         IF (bool_velocity_diag) THEN
-            allocate(n_bins_v(0:nspecies-1,2,0:diag_bins_vpar+1))
+            allocate(n_bins_v(0:nspecies-1,3,0:diag_bins_vpar+1))
             allocate(data_bins_v(0:nspecies-1,6,0:diag_bins_vpar+1))
             n_bins_v = 0
             data_bins_v = 0.0_8
