@@ -1,4 +1,4 @@
-MOD_LOAD  = intel-para/2014.12-mt
+MOD_LOAD  = intel/2015.07
 
 HELP = "\
 \# Makefile for  using ifort/icc\n\
@@ -6,7 +6,7 @@ HELP = "\
 module load $(MOD_LOAD)\
 "
 
-MACH     = JUROPATEST_intel
+MACH     = JURECA_intel
 
 DEBUG    = 0
 
@@ -16,7 +16,7 @@ AR       = xiar
 ARFLAGS  = -rs
 
 CPP      = cpp
-CPPFLAGS = -P -C -D__INTEL_COMPILER
+CPPFLAGS = -P -C -D__INTEL_COMPILER -ffreestanding
 
 OPTIMIZATION = -Ofast -xHost -finline -finline-functions -ipo-separate
 
