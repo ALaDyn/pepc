@@ -550,7 +550,6 @@ module module_tree
 
       call pepc_status('DIAGNOSE')
       DEBUG_ASSERT(associated(t%nodes))
-      call debug_ipefile_open()
 
       ! output node storage
       write(debug_ipefile,'(/a)') 'Node Storage'
@@ -625,7 +624,7 @@ module module_tree
         end do
       end if
 
-      call debug_ipefile_close()
+      flush(debug_ipefile)
     end subroutine
 
     !>

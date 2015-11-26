@@ -170,6 +170,7 @@ module module_pepc
       ! create and register mpi types
       call register_lpepc_mpi_types()
 
+      call debug_initialize()
       call pepc_prepare()
     end subroutine
 
@@ -323,6 +324,7 @@ module module_pepc
         DEBUG_INFO(*, "pthreads_uninit() failed!")
       end if
 
+      call debug_finalize()
       call MPI_COMM_FREE(MPI_COMM_lpepc, ierr)
       if (pepc_initializes_mpi) then
         if (present(comm)) then; call MPI_COMM_FREE(comm, ierr); end if

@@ -54,16 +54,15 @@ module module_debug
       integer, parameter, public :: DBG_WALK        = B'0000010000000000'    ! 1024
       integer, parameter, public :: DBG_PERIODIC    = B'0000100000000000'    ! 2048
 
-      logical, private       :: debug_initialized = .false.
       character(30), private :: debug_ipefile_name
 
       public dbg
       public pepc_status
-      public debug_ipefile_open
-      public debug_ipefile_close
       public debug_mpi_abort
       public debug_barrier
       public debug_print_timestamp
+      public debug_initialize
+      public debug_finalize
 
    contains
 
@@ -77,12 +76,9 @@ module module_debug
        character(*), intent(in) :: stat
 
        if (dbg(DBG_STATUS)) then
-          if (debug_initialized) then ! output to ipefile only if it already has been created
-            call debug_ipefile_open()
-            call debug_print_timestamp(debug_ipefile)
-            write(debug_ipefile,'(" LPEPC | ", a)') stat
-            call debug_ipefile_close()
-          endif
+          call debug_print_timestamp(debug_ipefile)
+          write(debug_ipefile,'(" LPEPC | ", a)') stat
+          flush(debug_ipefile)
 
           if (me==0) then
             call debug_print_timestamp(output_unit)
@@ -93,7 +89,7 @@ module module_debug
 
 
      !>
-     !>  module initialization (is called automatically on first call to debug_ipefile_open)
+     !>  module initialization (is automatically called when PEPC is initialized)
      !>
      subroutine debug_initialize()
        use treevars
@@ -113,10 +109,18 @@ module module_debug
        open(debug_ipefile, file=trim(debug_ipefile_name),STATUS='UNKNOWN', POSITION = 'REWIND')
        call debug_print_timestamp(debug_ipefile)
        write (debug_ipefile, '(a)') " PEPC on ["//procname(1:resultlen)//"]"
-       close(debug_ipefile)
-
-       debug_initialized = .true.
+       flush(debug_ipefile)
      end subroutine debug_initialize
+
+
+     !>
+     !> module finalization (is automatically called when PEPC is finalized)
+     !>
+     subroutine debug_finalize()
+       implicit none
+
+       close(debug_ipefile)
+     end subroutine
 
 
      !>
@@ -163,19 +167,6 @@ module module_debug
 
 
      !>
-     !>  opens the processor diagnostic file, afterwards, the application may
-     !>  write to file stream debug_ipefile
-     !>
-     subroutine debug_ipefile_open()
-       implicit none
-
-       if (.not. debug_initialized) call debug_initialize()
-
-       open(debug_ipefile, file=trim(debug_ipefile_name),STATUS='UNKNOWN', POSITION = 'APPEND')
-     end subroutine
-
-
-     !>
      !>  calls MPI_ABORT(MPI_COMM_lpepc, 1, ierr)
      !>
      subroutine debug_mpi_abort()
@@ -218,16 +209,6 @@ module module_debug
        integer(kind_default) :: ierr
 
        call MPI_BARRIER(MPI_COMM_lpepc, ierr)
-     end subroutine
-
-
-     !>
-     !>  closes the processor diagnostic file, afterwards, the application may not
-     !>  write to file stream debug_ipefile
-     !>
-     subroutine debug_ipefile_close()
-       implicit none
-       close(debug_ipefile)
      end subroutine
 
 

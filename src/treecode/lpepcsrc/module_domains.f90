@@ -415,13 +415,12 @@ module module_domains
 
     integer(kind_particle) :: j
 
-    call debug_ipefile_open()
     write (debug_ipefile,'(/a/)') callinfo
     do j=1,npart
       write(debug_ipefile,'(i10)',advance='no') j
       write(debug_ipefile,*)                     particles(j)
     end do
     write(debug_ipefile,'(/)')
-    call debug_ipefile_close()
+    flush(debug_ipefile)
   end subroutine
 end module module_domains
