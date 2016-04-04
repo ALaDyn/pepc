@@ -25,485 +25,400 @@
 
 module module_diagnostic
 
-  use module_pepc_kinds
-  use module_pepc_types
-  use module_interaction_Specific_types
-  use module_globals!, only: root,np,nt,my_rank, n_ranks
+!  use module_pepc_kinds
+!  use module_pepc_types
+!  use module_interaction_Specific_types
+  use module_globals    !,only: root
+  use module_shortcut   ,only: zero,one,half
+  use module_tool       ,only: cross_product
   implicit none
-
-  ! particle data (position, velocity, mass, charge)
-  type(t_particle), allocatable :: particles(:)
 
   contains
 
-
-      subroutine test_particles()
-
-        use module_pepc_types
-        use module_directsum
-        use helper, only: get_time
-        implicit none
-        include 'mpif.h'
-
-        integer(kind_particle), allocatable   :: tindx(:)
-        real(kind_particle), allocatable      :: trnd(:)
-        type(t_particle_results), allocatable :: trslt(:)
-        integer(kind_particle)                :: tn, tn_global, ti
-        integer                               :: rc
-        real(kind_particle)                   :: Ex,ExTilde,Ey,EyTilde,E_norm_loc,E_norm_global,E_global,E_local
-        real(kind_particle)                   :: Bz,BzTilde,B_norm,B_norm_global,B_local,B_global,B_norm_loc
-        real(kind_particle)                   :: Ax,AxTilde,Ay,AyTilde,A_norm,A_norm_global,A_local,A_global,A_norm_loc
-        real(kind_particle)                   :: phi,phiTilde,phi_global,phi_norm_loc,phi_norm_global,ta,tb,phi_local
-        real(kind_particle)                   :: rho,rhoTilde,rho_norm_global,rho_global,rho_local,rho_norm_loc, Jx,JxTilde,Jy,JyTilde
-        real(kind_particle)                   :: J_norm_global,J_global,J_local,J_norm_loc,devE,devPhi
-        real(kind_particle)                   :: F_dar_loc,F_dar_glo,F_dar_den_loc,F_dar_den_glo,F_el_loc,F_el_glo,F_el_den_loc,F_el_den_glo,vx,vy,x,y,z,m,q
-
-
-        ta = get_time()
-
-    !    if(allocated(direct_L2)) then
-    !      deallocate(direct_L2)
-    !    end if
-    !    if(allocated(direct_EL2A)) then
-    !      deallocate(direct_EL2A)
-    !    end if
-    !    if(allocated(direct_EL2B)) then
-    !      deallocate(direct_EL2B)
-    !    end if
-    !    if(allocated(direct_EL2Pot)) then
-    !      deallocate(direct_EL2Pot)
-    !    end if
-    !    if(allocated(direct_EL2rho)) then
-    !      deallocate(direct_EL2rho)
-    !    end if
-    !
-    !    allocate(direct_L2(np))
-    !    allocate(direct_EL2rho(np))
-    !    allocate(direct_EL2Pot(np))
-    !    allocate(direct_EL2B(np))
-    !    allocate(direct_EL2A(np))
-    !
-    !    direct_L2 = -1.0_8
-    !    direct_EL2rho = -1.0_8
-    !    direct_EL2Pot = -1.0_8
-    !    direct_EL2A = -1.0_8
-    !    direct_EL2A = -1.0_8
-
-        E_local       = 0.0_8
-        E_norm_loc    = 0.0_8
-        E_global      = 0.0_8
-        E_norm_global = 0.0_8
-
-        phi_local     = 0.0_8
-        phi_norm_loc  = 0.0_8
-        phi_global    = 0.0_8
-
-        B_global      = 0.0_8
-        B_norm_global = 0.0_8
-        B_local       = 0.0_8
-        B_norm_loc    = 0.0_8
-
-        A_global      = 0.0_8
-        A_norm_global = 0.0_8
-        A_local       = 0.0_8
-        A_norm_loc    = 0.0_8
-
-        J_global      = 0.0_8
-        J_norm_global = 0.0_8
-        J_local       = 0.0_8
-        J_norm_loc    = 0.0_8
-
-        rho_global      = 0.0_8
-        rho_norm_global = 0.0_8
-        rho_local       = 0.0_8
-        rho_norm_loc    = 0.0_8
-
-        F_dar_loc           = 0.0_8
-        F_dar_glo           = 0.0_8
-        F_dar_den_loc       = 0.0_8
-        F_dar_den_glo       = 0.0_8
-
-        F_el_loc           = 0.0_8
-        F_el_glo           = 0.0_8
-        F_el_den_loc       = 0.0_8
-        F_el_den_glo       = 0.0_8
-
-        tn = np!particle_direct / n_ranks
-        if(my_rank.eq.(n_ranks-1)) tn = tn + MOD(particle_direct, n_ranks)
-
-        allocate(tindx(tn), trnd(tn), trslt(tn))
-
-        call random(trnd)
-
-        tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
-
-        call directforce(particles, tindx, tn, trslt, MPI_COMM_WORLD)
-
-        do ti = 1, tn
-
-          vx          = particles(tindx(ti))%data%v(1)
-          vy          = particles(tindx(ti))%data%v(2)
-
-          x           = particles(tindx(ti))%x(1)
-          y           = particles(tindx(ti))%x(2)
-
-          m           = particles(tindx(ti))%data%m
-          q           = particles(tindx(ti))%data%q
-
-          Ex          = trslt(ti)%e(1)
-          Ey          = trslt(ti)%e(2)
-
-          ExTilde     = particles(tindx(ti))%results%e(1)
-          EyTilde     = particles(tindx(ti))%results%e(2)
-
-          Ax          = trslt(ti)%A(1)
-          Ay          = trslt(ti)%A(2)
-
-          AxTilde     = particles(tindx(ti))%results%A(1)
-          AyTilde     = particles(tindx(ti))%results%A(2)
-
-          Jx          = trslt(ti)%J(1)
-          Jy          = trslt(ti)%J(2)
-
-          JxTilde     = particles(tindx(ti))%results%J(1)
-          JyTilde     = particles(tindx(ti))%results%J(2)
-
-          Bz          = trslt(ti)%B(3)
-
-          BzTilde     = particles(tindx(ti))%results%B(3)
-
-          rho         = trslt(ti)%rho
-
-          rhoTilde    = particles(tindx(ti))%results%rho
-
-          E_local     = E_local + ( ExTilde -  Ex )**2 + ( EyTilde - Ey )**2
-          E_norm_loc  = E_norm_loc + Ex**2 + Ey**2
-
-          phi         = trslt(ti)%pot
-          phiTilde    = particles(tindx(ti))%results%pot
-
-          phi_local        = phi_local +  ( phi - phiTilde )**2
-          phi_norm_loc     = phi_norm_loc +  phi**2
-
-
-          A_local     = A_local + ( AxTilde -  Ax )**2 + ( AyTilde - Ay )**2
-          A_norm_loc  = A_norm_loc + Ax**2 + Ay**2
-
-          B_local     = B_local + ( BzTilde -  Bz )**2
-          B_norm_loc  = B_norm_loc + Bz**2
-
-          J_local     = J_local + ( JxTilde -  Jx )**2 + ( JyTilde - Jy )**2
-          J_norm_loc  = J_norm_loc + Jx**2 + Jy**2
-
-          rho_local        = rho_local +  ( rho - rhoTilde )**2
-          rho_norm_loc     = rho_norm_loc +  rho**2
-
-          F_dar_loc       = F_dar_loc + (q)**2*( ( ExTilde -  Ex )**2 + ( EyTilde - Ey )**2 &
-                        +   ( vx**2 + vy**2 )*( BzTilde -  Bz )**2 + 2*( BzTilde -  Bz )*( vx*( ExTilde -  Ex ) + vy* ( EyTilde -  Ey ) )  )
-
-          F_dar_den_loc  = F_dar_den_loc + (q)**2*( Ex**2 +  Ey**2 &
-                        +   ( vx**2 + vy**2 )*Bz**2 + 2*Bz*( vx*Ex+ vy*Ey  )  )
-
-          F_el_loc       = F_el_loc + (q)**2*( ( ExTilde -  Ex )**2 + ( EyTilde - Ey )**2 )
-
-          F_el_den_loc  = F_el_den_loc + (q)**2*( Ex**2 +  Ey**2 )
-
-
-
-    !      direct_L2(tindx(ti)) = L2
-
-    !      EL2A          = &
-    !                    (particles(tindx(ti))%results%A(1) - trslt(ti)%A(1))**2+ &
-    !                    (particles(tindx(ti))%results%A(2) - trslt(ti)%A(2))**2
-    !      EL2Asum_local = EL2Asum_local + EL2A
-    !      direct_EL2A(tindx(ti)) = EL2A
-
-    !      EL2B          = (particles(tindx(ti))%results%B(3) - trslt(ti)%B(3))**2
-    !      EL2Bsum_local = EL2Bsum_local + EL2B
-    !      direct_EL2B(tindx(ti)) = EL2B
-
-    !      direct_EL2Pot(tindx(ti)) = EL2Pot
-
-    !      EL2rho      = &
-    !                    (particles(tindx(ti))%results%rho - trslt(ti)%rho)**2
-    !      EL2rhosum_local = EL2rhosum_local + EL2rho
-    !      direct_EL2rho(tindx(ti)) = EL2rho
-        end do
-
-        call MPI_ALLREDUCE(tn, tn_global, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(phi_local, phi_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(phi_norm_loc, phi_norm_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(E_local, E_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(E_norm_loc, E_norm_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(B_norm_loc, B_norm_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(B_local, B_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(A_local, A_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(A_norm_loc, A_norm_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(J_local, J_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(J_norm_loc, J_norm_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(rho_local, rho_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(rho_norm_loc, rho_norm_global, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(F_dar_loc, F_dar_glo, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(F_dar_den_loc, F_dar_den_glo, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(F_el_loc, F_el_glo, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(F_el_den_loc, F_el_den_glo, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-
-
-        devE                 = sqrt(E_global)/(tn_global-1.0_8)
-        devPhi               = sqrt(phi_global)/(tn_global-1.0_8)
-
-        phi_global           = sqrt(phi_global) / sqrt(phi_norm_global)
-        rho_global           = sqrt(rho_global) / sqrt(rho_norm_global)
-        E_global             = sqrt(E_global) / sqrt(E_norm_global)
-        A_global             = sqrt(A_global) / sqrt(A_norm_global)
-        B_global             = sqrt(B_global) / sqrt(B_norm_global)
-        J_global             = sqrt(J_global) / sqrt(J_norm_global)
-        F_dar_glo            = sqrt(F_dar_glo  / F_dar_den_glo )
-        F_el_glo             = sqrt(F_el_glo  / F_el_den_glo )
-
-
-        tb = get_time()
-        if(root) then
-          write(*,'(a,i12)')    " == [direct test] number tested particles         : ", tn
-    !      write(*,'(a,es12.4)') " == [direct test] l2 A                            : ", A_norm_global
-    !      write(*,'(a,es12.4)') " == [direct test] l2 A error                      : ", A_global
-    !      write(*,'(a,es12.4)') " == [direct test] l2 B                            : ", B_norm_global
-    !      write(*,'(a,es12.4)') " == [direct test] l2 B error                      : ", B_global
-          write(*,'(a,es12.4)') " == [direct test] Relative error in El Pot        : ", phi_global
-          write(*,'(a,es12.4)') " == [direct test] Relative error in E             : ", E_global
-          write(*,'(a,es12.4)') " == [direct test] Relative error in A             : ", A_global
-          write(*,'(a,es12.4)') " == [direct test] Relative error in B             : ", B_global
-          write(*,'(a,es12.4)') " == [direct test] Relative error in J             : ", J_global
-          write(*,'(a,es12.4)') " == [direct test] Relative error in rho           : ", rho_global
-          write(*,'(a,es12.4)') " == [direct test] Relative error in F dar         : ", F_dar_glo
-          write(*,'(a,es12.4)') " == [direct test] Relative error in F el          : ", F_el_glo
-          write(*,'(a,es12.4)') " == [direct test] L2 error in E                   : ", devE
-          write(*,'(a,es12.4)') " == [direct test] L2 error in El Pot              : ", devPhi
-          write(*,'(a,es12.4)') " == [direct test] time in test [s]                : ", tb - ta
-
-
-        end if
-
-        deallocate(tindx)
-        deallocate(trnd)
-        deallocate(trslt)
-
-      end subroutine test_particles
-!
-!
-!
-      subroutine write_field(p)
-        type(t_particle), allocatable, intent(in) :: p(:)
-        integer(kind_particle) :: indexvec(7), tmp
-        character (len=12), dimension(7) :: stringvec
-
-        integer(kind_particle) :: ifield, ip
-        indexvec = (/ 1, 2, 3, 4, 5, 6, 7/)
-        stringvec = (/ "data/xyz.dat", "data/phi.dat", "data/EEE.dat","data/BBB.dat", "data/rho.dat","data/JJJ.dat","data/AAA.dat"/)
-
-        do ifield = 1,7
-
-            open (unit=indexvec(ifield),file=stringvec(ifield),action="write",status="replace")
-
-        enddo
-
-
-        write(*,*) " ==  fields written "
-        do tmp = 1, np
-
-                do ip = 1, np
-
-                    if ( p(ip)%label .eq. tmp ) then
-
-                        write (1,*) p(ip)%x(1),p(ip)%x(2),0.0_8
-                        write (2,*) p(ip)%results%pot
-                        write (3,*) p(ip)%results%E(1),p(ip)%results%E(2),0.0_8
-                        write (4,*) 0.0_8,0.0_8,p(ip)%results%B(3)
-                        write (5,*) p(ip)%results%rho
-                        write (6,*) p(ip)%results%J(1),p(ip)%results%J(2),0.0_8
-                        write (7,*) p(ip)%results%A(1),p(ip)%results%A(2),0.0_8
-
-                    endif
-
-                enddo
-
-        enddo
-
-
-        do ifield = 1,7
-
-            close ( unit=indexvec(ifield) )
-
-        enddo
+    subroutine hamiltonian(np,p,pold,t)
+      use module_globals,only: flag_classic,lorentz_tilde
+      implicit none
+      include 'mpif.h'
+      type(t_particle), allocatable, intent(in) :: p(:),pold(:)
+      real(kind_particle)          , intent(in) :: t
+      integer(kind_particle)       , intent(in) :: np
+      integer(kind_particle)                    :: ip,rc=201,rd=202
+      real(kind_particle)                       :: upot,uekin,uikin,udar,gam,upot_loc,uekin_loc,uikin_loc,udar_loc,&
+                                                   v2,ploc(3),pglo(3),p0(3),q0(3),pn(3),qn(3),   &
+                                                   cross(3),cross_glo(3),crossloc(1:3)
+
+      upot     = zero
+      uekin    = zero
+      uikin    = zero
+      udar     = zero
+      upot_loc = zero
+      uekin_loc= zero
+      uikin_loc= zero
+      udar_loc = zero
+      ploc     = -one
+      crossloc = -one 
+      pglo     = -one
+
+      do ip = 1,np
+
+      !!!!   ENERGY !!!!!!!!!!
+        v2       = dot_product( p(ip)%data%v/vtilde, p(ip)%data%v/vtilde )
+        gam      = v2/( p(ip)%data%g + one ) 
+!        if (flag_classic) gam         =  half*v2
+        
+        upot_loc = upot_loc + half*p(ip)%data%q*p(ip)%results%pot
+        udar_loc = udar_loc + half/lorentz_tilde*p(ip)%data%q*dot_product( p(ip)%results%A(1:3) , p(ip)%data%v(1:3) )/p(ip)%data%g
+!        udar_loc = udar_loc + half/lorentz_tilde*p(ip)%data%q*( p(ip)%results%A(3)*p(ip)%data%v(3) )
+        
+        if ( p(ip)%data%q .lt. zero ) then
+            uekin_loc = uekin_loc +                    p(ip)%data%m*gam*vtilde**2
+        else 
+            uikin_loc = uikin_loc +                    p(ip)%data%m*gam*vtilde**2
+        endif
+
+      !!!!!! CANONICAL MOMENTUM - Max Norm !!!!!!
+        ploc(1:3)= max(abs( p(ip)%data%m*( p(ip)%data%v(1:3) - pold(ip)%data%v(1:3) ) +                         &
+                p(ip)%data%q/lorentz_tilde*( p(ip)%results%A(1:3) - pold(ip)%results%A(1:3) ) ) , ploc(1:3) )
+
+      !!!!!!!!!!!!!! Symplecity !!!!!!!!!!!!!
+        p0(1:3)  = pold(ip)%x(1:3)
+        pn(1:3)  = p(ip)%x(1:3)
+        
+        q0(1:3)  = p(ip)%data%m*pold(ip)%data%v(1:3) + p(ip)%data%q/lorentz_tilde*pold(ip)%results%A(1:3)
+        qn(1:3)  = p(ip)%data%m*p(ip)%data%v(1:3)        + p(ip)%data%q/lorentz_tilde*p(ip)%results%A(1:3)
+
+
+        cross        = cross_product( p0 , q0 ) - cross_product( pn , qn )
+        cross        = abs(cross)
+        crossloc(1:3)= max( cross(1:3)  , crossloc(1:3) )
+
+      enddo
+
+      call MPI_ALLREDUCE(upot_loc , upot     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(uekin_loc, uekin    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(uikin_loc, uikin    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(udar_loc , udar     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(ploc     , pglo     , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(crossloc , cross_glo, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+
+      if (root) then
+        open(unit=rc,file=trim(folder)//trim("energy_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        open(unit=rd,file=trim(folder)//trim("momentum_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        write(rc,*) t,uekin,uikin,upot,udar,upot+udar+uekin+uikin
+        write(rd,*) t,pglo,cross
+        close (rc )
+        close (rd )
+      endif
+
+      end subroutine hamiltonian
+      
+      
+      
+      subroutine hamiltonian_weibel(np,p,pold,t)
+      use module_globals,only: flag_classic,lorentz_tilde
+      implicit none
+      include 'mpif.h'
+      type(t_particle), allocatable, intent(in) :: p(:),pold(:)
+      real(kind_particle)          , intent(in) :: t
+      integer(kind_particle)       , intent(in) :: np
+      integer(kind_particle)                    :: ip,rc=201,rd=202
+      real(kind_particle)                       :: uepot,ubpot,uipot,uekin,uikin,uedar,ubdar,uidar,gam,uekin_loc,uikin_loc,    &
+                                                   uedar_loc,ubdar_loc,uidar_loc,v2,ploc(3),pglo(3),p0(3),q0(3),pn(3),qn(3),   &
+                                                   cross(3),cross_glo(3),crossloc(1:3),ubkin,ubkin_loc,                        &
+                                                   uepot_loc,uipot_loc,ubpot_loc,utot,dar,keav,kiav,kbav,                      &
+                                                   ke2,ki2,kb2,ke2_tot,ki2_tot,kb2_tot,rtnp
+
+      uekin     = zero
+      ubkin     = zero
+      uikin     = zero
+      uedar     = zero
+      ubdar     = zero
+      uidar     = zero
+      uepot     = zero
+      ubpot     = zero
+      uipot     = zero
+      uepot_loc = zero
+      ubpot_loc = zero
+      uipot_loc = zero
+      uekin_loc = zero
+      ubkin_loc = zero
+      uikin_loc = zero
+      uedar_loc = zero
+      ubdar_loc = zero
+      uidar_loc = zero
+      ploc      = -one
+      crossloc  = -one 
+      pglo      = -one
+      keav      =  zero
+      kiav      =  zero
+      kbav      =  zero
+      ke2       =  zero
+      ki2       =  zero
+      kb2       =  zero
+      ke2_tot   =  zero
+      ki2_tot   =  zero
+      kb2_tot   =  zero
+      
+      rtnp            = real(tnp, kind=kind_particle)   
+      
+      do ip = 1,np
+
+      !!!!   ENERGY !!!!!!!!!!
+        v2       = dot_product( p(ip)%data%v/vtilde, p(ip)%data%v/vtilde )
+        gam      = v2/( p(ip)%data%g + one ) 
+        dar      = dot_product( p(ip)%results%A(1:3) , p(ip)%data%v(1:3) )
+        
+        if ( p(ip)%label .eq. -1 ) then
+            uekin_loc = uekin_loc +                    p(ip)%data%m*gam*vtilde**2
+            ke2       = ke2       +                  ( p(ip)%data%m*gam*vtilde**2 )**2 
+            uepot_loc = uepot_loc + half*p(ip)%data%q*p(ip)%results%pot
+            uedar_loc = uedar_loc + half/lorentz_tilde*p(ip)%data%q*dar/p(ip)%data%g
+        elseif ( p(ip)%label .eq. 1 ) then 
+            uikin_loc = uikin_loc +                    p(ip)%data%m*gam*vtilde**2
+            ki2       = ki2       +                  ( p(ip)%data%m*gam*vtilde**2 )**2
+            uipot_loc = uipot_loc + half*p(ip)%data%q*p(ip)%results%pot
+            uidar_loc = uidar_loc + half/lorentz_tilde*p(ip)%data%q*dar/p(ip)%data%g
+        elseif ( p(ip)%label .eq. 0 ) then 
+            ubkin_loc = ubkin_loc +                    p(ip)%data%m*gam*vtilde**2
+            kb2       = kb2       +                  ( p(ip)%data%m*gam*vtilde**2 )**2
+            ubpot_loc = ubpot_loc + half*p(ip)%data%q*p(ip)%results%pot
+            ubdar_loc = ubdar_loc + half/lorentz_tilde*p(ip)%data%q*dar/p(ip)%data%g
+        endif
+
+      !!!!!! CANONICAL MOMENTUM - Max Norm !!!!!!
+        ploc(1:3)= max(abs( p(ip)%data%m*( p(ip)%data%v(1:3) - pold(ip)%data%v(1:3) )                   +&
+                p(ip)%data%q/lorentz_tilde*( p(ip)%results%A(1:3) - pold(ip)%results%A(1:3) ) ) , ploc(1:3) )
+
+      !!!!!!!!!!!!!! Symplecity !!!!!!!!!!!!!
+        p0(1:3)  = pold(ip)%x(1:3)
+        pn(1:3)  = p(ip)%x(1:3)
+        
+        q0(1:3)  = p(ip)%data%m*pold(ip)%data%v(1:3) + p(ip)%data%q/lorentz_tilde*pold(ip)%results%A(1:3)
+        qn(1:3)  = p(ip)%data%m*p(ip)%data%v(1:3)        + p(ip)%data%q/lorentz_tilde*p(ip)%results%A(1:3)
+
+
+        cross        = cross_product( p0 , q0 ) - cross_product( pn , qn )
+        cross        = abs(cross)
+        crossloc(1:3)= max( cross(1:3)  , crossloc(1:3) )
+
+      enddo
+      
+      
+      call MPI_ALLREDUCE(uepot_loc, uepot   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(ubpot_loc, ubpot   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(uipot_loc, uipot   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(uekin_loc, uekin   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(ubkin_loc, ubkin   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(uikin_loc, uikin   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(ki2      , ki2_tot , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(ke2      , ke2_tot , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(kb2      , kb2_tot , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(uedar_loc, uedar   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(ubdar_loc, ubdar   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(uidar_loc, uidar   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(ploc     , pglo    , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(crossloc, cross_glo, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+      
+      keav      =    uekin/(rtnp)
+      kiav      =    uikin/(rtnp)
+      kbav      =    ubkin/(rtnp)
+      ki2_tot   =   rtnp/( rtnp - one )*( ki2_tot/(rtnp) - kiav**2  )
+      ke2_tot   =   rtnp/( rtnp - one )*( ke2_tot/(rtnp) - keav**2 )
+      kb2_tot   =   rtnp/( rtnp - one )*( kb2_tot/(rtnp) - kbav**2  )
+
+      if (root) then
+        open(unit=rc,file=trim(folder)//trim("energy_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        open(unit=rd,file=trim(folder)//trim("momentum_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        utot = uekin+uikin+ubkin+uepot+uipot+ubpot+uedar+uidar+ubdar
+        write(rc,*) t,uekin,uikin,ubkin,keav,kiav,kbav,ke2_tot,ki2_tot,kb2_tot,uepot,uipot,ubpot,uedar,uidar,ubdar,utot
+        write(rd,*) t,pglo,cross
+        close (rc )
+        close (rd )
+      endif
+
+      end subroutine hamiltonian_weibel
+      
+      
+      
+      subroutine densities_weibel(np,p,t)
+      implicit none
+      include 'mpif.h'
+      type(t_particle), allocatable, intent(in) :: p(:)
+      real(kind_particle)          , intent(in) :: t
+      integer(kind_particle)       , intent(in) :: np
+      integer(kind_particle)                    :: ip,j,rc=201
+      real(kind_particle)                       :: Eeloc(3),Eeglo(3),Eiloc(3),Eiglo(3),Ebloc(3),Ebglo(3),&
+                                                   Beloc(3),Beglo(3),Biloc(3),Biglo(3),Bbloc(3),Bbglo(3)
+
+      Eeloc = zero
+      Beloc = zero
+      Eeglo = zero
+      Beglo = zero
+      Eiloc = zero
+      Biloc = zero
+      Eiglo = zero
+      Biglo = zero
+      Ebloc = zero
+      Bbloc = zero
+      Ebglo = zero
+      Bbglo = zero
+
+      do ip = 1,np
+        if ( p(ip)%label .eq. -1 ) then
+            do j =1,3
+                Eeloc(j) = Eeloc(j) + p(ip)%results%E(j)**2
+                Beloc(j) = Beloc(j) + p(ip)%results%B(j)**2
+            enddo
+        else if ( p(ip)%label .eq. 1 ) then
+            do j =1,3
+                Eiloc(j) = Eiloc(j) + p(ip)%results%E(j)**2
+                Biloc(j) = Biloc(j) + p(ip)%results%B(j)**2
+            enddo
+        else if ( p(ip)%label .eq. 0 ) then
+            do j =1,3
+                Ebloc(j) = Ebloc(j) + p(ip)%results%E(j)**2
+                Bbloc(j) = Bbloc(j) + p(ip)%results%B(j)**2
+            enddo
+        endif
+      enddo
+      
+      call MPI_ALLREDUCE(Eeloc, Eeglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(Eiloc, Eiglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(Ebloc, Ebglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(Beloc, Beglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(Biloc, Biglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(Bbloc, Bbglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+
+      if (root) then
+        open(unit=rc,file=trim(folder)//trim("density_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        write(rc,*) t,Eeglo(1:3),Eiglo(1:3),Ebglo(1:3),Beglo(1:3),Biglo(1:3),Bbglo(1:3)
+        close (rc )
+
+      endif
+
+      end subroutine densities_weibel
+
+
+      subroutine densities(np,p,t)
+      implicit none
+      include 'mpif.h'
+      type(t_particle), allocatable, intent(in) :: p(:)
+      real(kind_particle)          , intent(in) :: t
+      integer(kind_particle)       , intent(in) :: np
+      integer(kind_particle)                    :: ip,j,jp,rc=201
+      real(kind_particle)                       :: Eloc(3),Eglo(3),Bloc(3),Bglo(3)
+
+      Eloc = zero
+      Bloc = zero
+      Eglo = zero
+      Bglo = zero
+
+
+      do ip = 1,np
+!        if ( MOD(p(ipl)%label,2_kind_particle) .eq. one ) then
+            jp = ip! 2*ip-1
+            do j =1,3
+                Eloc(j) = Eloc(j) + p(jp)%results%E(j)**2
+                Bloc(j) = Bloc(j) + p(jp)%results%B(j)**2
+            enddo
+!        endif
+      enddo
+
+      call MPI_ALLREDUCE(Eloc, Eglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(Bloc, Bglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+
+      if (root) then
+        open(unit=rc,file=trim(folder)//trim("density_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        write(rc,*) t,Eglo(1:3),Bglo(1:3)
+        close (rc )
+
+      endif
 
       end subroutine
 
-      subroutine write_field_rectilinear_grid(p)
-        use module_vtk
-        use helper, only: get_time
-        implicit none
-        type(t_particle), allocatable, intent(in) :: p(:)
-        integer(kind_particle)  :: i
-        integer, dimension(2,3) ::  nnp
-        type(vtkfile_rectilinear_grid) :: vtk
-        integer :: vtk_step
-        real(kind_particle) :: time
-        real(kind_particle) :: ta, tb,Ex(np),Ey(np),Ez(np),x(np),y(np),z(np)
 
+      subroutine interpolated_densities(field,t)
+      use encap, only: field_grid_t
+      implicit none
+      include 'mpif.h'
+      type(field_grid_t)           ,   intent(in) :: field
+      real(kind_particle)          , intent(in)   :: t
+      integer(kind_particle)                      :: np,ip,j,jp,rc=201
+      real(kind_particle)                         :: Eloc(3),Eglo(3),Bloc(3),Bglo(3)
 
-        ta = get_time()
-        time = dt * step
+      Eloc = zero
+      Bloc = zero
+      Eglo = zero
+      Bglo = zero
 
-        if (step .eq. 0) then
-          vtk_step = VTK_STEP_FIRST
-        else if (step .eq. nt) then
-          vtk_step = VTK_STEP_LAST
-        else
-          vtk_step = VTK_STEP_NORMAL
-        endif
+      np   = field%nl
 
-        x  = p(:)%x(1)
-        y  = p(:)%x(2)
-        z  = p(:)%x(3)
+      do ip = 1,np
+!        if ( MOD(p(ipl)%label,2_kind_particle) .eq. one ) then
+            jp = ip! 2*ip-1
+            do j =1,3
+                Eloc(j) = Eloc(j) + field%p(jp)%results%E(j)**2
+                Bloc(j) = Bloc(j) + field%p(jp)%results%B(j)**2
+            enddo
+!        endif
+      enddo
 
-        Ex = p(:)%results%E(1)
-        Ey = p(:)%results%E(2)
-        Ez = p(:)%results%E(3)
-    !    nnp(1) = np
-    !    nnp(2) = np
-    !    nnp(3) = 1
+      call MPI_ALLREDUCE(Eloc, Eglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(Bloc, Bglo, 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 
+      if (root) then
+        open(unit=rc,file=trim(folder)//trim("interpolated_density_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        write(rc,*) t,Eglo(1:3),Bglo(1:3)
+        close (rc )
 
-        !nnp = np
-
-        call vtk%create_parallel("fields_on_grid", step, my_rank, n_ranks, time, vtk_step)
-        call vtk%write_headers(nnp, nnp)
-        call vtk%startcoordinates()
-        call vtk%write_data_array("x_coordinate", x )
-        call vtk%write_data_array("y_coordinate", y )
-        call vtk%write_data_array("z_coordinate", 0 )
-
-        call vtk%finishcoordinates()
-        call vtk%startpointdata()
-
-        call vtk%write_data_array("E", Ex,  Ey,  Ez )
-              ! no point data here
-        call vtk%finishpointdata()
-        call vtk%startcelldata()
-              ! no cell data here
-        call vtk%finishcelldata()
-        call vtk%write_final()
-        call vtk%close()
-
-
-
-        tb = get_time()
-
-        if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
-
-
-
-           !call vtk%write_data_array(vectorname, vectorvalues(:,:,:,1), vectorvalues(:,:,:,2), vectorvalues(:,:,:,3))
+      endif
 
       end subroutine
-!
-      subroutine write_particles(p)
-        use module_vtk
-        use helper, only: get_time
-        implicit none
 
-        type(t_particle), allocatable, intent(in) :: p(:)
 
-        integer(kind_particle) :: i
-        type(vtkfile_unstructured_grid) :: vtk
-        integer :: vtk_step
-        real*8 :: time,vect(np)
-        real*8 :: ta, tb
+      subroutine beam_rnv(tnp,p,t)
+      implicit none
+      include 'mpif.h'
+      type(t_particle), allocatable, intent(in) :: p(:)
+      real(kind_particle)          , intent(in) :: t
+      integer(kind_particle)       , intent(in) :: tnp
+      integer(kind_particle)                    :: ip,jp,np,rc=201
+      real(kind_particle)                       :: rloc,rglo,vloc(1:3),vglo(1:3),vrloc,vrglo,rtnp
 
-        ta = get_time()
-        time = dt * step
+      rloc      = zero
+      vloc(1:3) = zero
+      vrloc     = zero
+      rglo      = zero
+      vglo(1:3) = zero      
+      vrglo     = zero
 
-        if (step .eq. 0) then
-          vtk_step = VTK_STEP_FIRST
-        else if (step .eq. nt) then
-          vtk_step = VTK_STEP_LAST
-        else
-          vtk_step = VTK_STEP_NORMAL
-        endif
+      np    = size(p, kind=kind_particle)
+      rtnp  = real(tnp, kind=kind_particle)
 
-        vect = 0.0_8
+      do ip = 1,np
+            rloc  = rloc   + dot_product(p(ip)%x , p(ip)%x)
+            vrloc = vrloc  + dot_product(p(ip)%data%v , p(ip)%x)/p(ip)%data%g
+            do jp = 1,3
+                vloc(jp)  = vloc(jp)   + p(ip)%data%v(jp)**2/p(ip)%data%g**2
+            enddo
+      enddo
 
-        write(*,*) "particles"
-        call vtk%create_parallel("particles", step, my_rank, n_ranks, time, vtk_step)
-        call vtk%write_headers(np, 0_kind_particle)
-        call vtk%startpoints()
-        call vtk%write_data_array("x", p(1:np)%x(1), p(1:np)%x(2), vect(1:np) )
-        call vtk%finishpoints()
-        call vtk%startpointdata()
-        call vtk%write_data_array("v", p(1:np)%data%v(1), &
-                                       p(1:np)%data%v(2), &
-                                       vect(1:np) )
+      call MPI_ALLREDUCE(rloc , rglo , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(vloc , vglo , 3, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(vrloc, vrglo, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 
-        call vtk%write_data_array("E", p(1:np)%results%e(1), &
-                                       p(1:np)%results%e(2), &
-                                       vect(1:np) )
+      rglo       = sqrt(rglo/rtnp)
+      vglo(1:3)  = sqrt(vglo(1:3)/rtnp)
+      vrglo      = vrglo/rtnp/rglo
 
-        call vtk%write_data_array("A", p(1:np)%results%A(1), &
-                                       p(1:np)%results%A(2), &
-                                       vect )
 
-        call vtk%write_data_array("rho", p(1:np)%results%rho )
+      if (root) then
+        open(unit=rc,file=trim(folder)//trim("beam_rnv_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        write(rc,*) t,rglo,vglo(1:3),vrglo
+        close (rc )
+      endif
 
-        call vtk%write_data_array("B",   vect(1:np),&
-                                         vect(1:np),&
-                                         p(1:np)%results%B(3) )
-
-        call vtk%write_data_array("J",   p(1:np)%results%J(1),&
-                                         p(1:np)%results%J(2),&
-                                         vect(1:np) )
-
-        call vtk%write_data_array("phi", p(1:np)%results%pot)
-        call vtk%write_data_array("q", p(1:np)%data%q)
-        call vtk%write_data_array("m", p(1:np)%data%m)
-        call vtk%write_data_array("work", p(1:np)%work)
-        call vtk%write_data_array("pelabel", p(1:np)%label)
-        call vtk%write_data_array("local index", [(i,i=1,np)])
-        call vtk%write_data_array("processor", int(np, kind = 4), my_rank)
-!        if(particle_test) call vtk%write_data_array("L2 error", direct_L2(1:np))
-        call vtk%finishpointdata()
-        call vtk%dont_write_cells()
-        call vtk%write_final()
-        call vtk%close()
-
-        tb = get_time()
-
-        if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
-
-      end subroutine write_particles
-!
-      subroutine write_domain(p)
-
-        use module_vtk
-        use module_vtk_helpers
-        use module_pepc, only: global_tree
-        implicit none
-
-        type(t_particle), allocatable, intent(in) :: p(:)
-
-        integer :: vtk_step
-
-        ! output of tree diagnostics
-        if (step .eq. 0) then
-          vtk_step = VTK_STEP_FIRST
-        else if (step .eq. nt) then
-          vtk_step = VTK_STEP_LAST
-        else
-          vtk_step = VTK_STEP_NORMAL
-        endif
-        call vtk_write_branches(step,  dt * step, vtk_step, global_tree)
-        call vtk_write_spacecurve(step, dt * step, vtk_step, p)
-
-      end subroutine write_domain
+      end subroutine
 
 
 

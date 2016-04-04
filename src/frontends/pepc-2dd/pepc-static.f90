@@ -39,21 +39,22 @@ program pepc
 !  use module_mpi_io
   use module_shortcut
   implicit none
-
+  include 'mpif.h'
   ! timing variables
   real(kind_particle)                        :: timer(5)
-  real(kind_particle)                        :: t1, t2,t!,tau,I
+  real(kind_particle)                        :: t1, t2,t,tau,I
 !  type(t_particle), allocatable              :: q(:),r(:)
 !  type(physics_pars_t)                       :: physics_pars
   type(field_grid_t)                         :: field_grid
+  type(time_pars_t)                          :: time_pars
   type(pepc_pars_t)                          :: pepc_pars
-!  type(pepc_comm_t)                          :: pepc_comm
-  real(kind_particle)                        :: new_extent(3),new_offset(3)
+  type(pepc_comm_t)                          :: pepc_comm
+  real(kind_particle)                        :: new_extent(3),new_offset(3),vxmin,vymin,vzmin,vxmax,vymax,vzmax
   type(t_particle)          , allocatable    :: pold(:)
-!  integer(kind_particle)                     :: step
+  integer(kind_particle)                     :: ip,rc=1
 
   ! control variable
-  logical :: dorestart,dointerp, explicit =.false. !dogrid,
+  logical :: dogrid,dorestart,dointerp, explicit =.false.
 
   !!! initialize pepc library and MPI
 
@@ -75,23 +76,9 @@ program pepc
   t        = 0
   
 
-  if(root) then
+    if(root) then
       write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
       write(*,'(a,es12.4)') " ====== Plasma frequency :", wpe
-    end if
-
-  if (ischeme=="leapfrog") explicit = .true.
-
-  new_extent = extent
-  new_offset = offset
-
-  call copy_particle(particles,pold,np)
-  
-  do step=0, nt
-    if(root) then
-      write(*,*) " "
-      write(*,'(a,i12)')    " ====== computing step   :", step
-      write(*,'(a,es12.4)') " ====== simulation time  :", step * dt
     end if
 
     timer(3) = get_time()
@@ -115,50 +102,23 @@ program pepc
     timer(5) = get_time()
     t        = t + timer(5) - timer(1)
     
-!    np = size(particles, kind=kind_particle)
-!    if (root) write(*,*) "====== time  integration"
-
     np = size(particles, kind=kind_particle)
-!    if (periodicity_particles) call periodic_particles(np,particles)
-    dointerp = mod( step , diag_interval) .eq. 0 .and. step .ne. 0
     
     call normalize(np, particles)
-    
-!    call hamiltonian(np,particles,particles,real(step, kind = kind_particle)*dt)
-    call hamiltonian_weibel(np,particles,pold,real(step, kind = kind_particle)*dt)
 
-   
-
-    call beam_rnv(tnp,particles,real(step, kind = kind_particle)*dt)
-    call densities_weibel(np,particles,real(step, kind = kind_particle)*dt)
+    call time_step(particles)
     
-    call copy_particle(particles,pold,np)
-    call march(np,dt,particles,ischeme,adv)
+!    call compute_field(pepc_pars, field_grid, particles)
+!    call write_field_on_grid(pepc_comm, 0, field_grid)
 !    call write_particles(particles)
-
-    dorestart = .false.!(mod( step , restart_step) .eq. 0).and.(step.ne.0)
-    if (dorestart)   call write_restart_2d(particles,int(step, kind=kind_particle))
-    if ( (mod( step , diag_interval) .eq. 0) )   then 
-        call compute_field(pepc_pars, field_grid, particles)
-!        call write_field_on_grid_ascii(field_grid,step)
-        call write_particles_ascii(step, particles)
-        call write_field_on_grid(pepc_pars%pepc_comm, step, field_grid)
-!        call write_particles(particles)
-    end if
-
-!    if (  step  .le. 100 )    call write_particles(particles)
+!    call write_particles_vtk(particles, 0, 0.0_8)
+!    call write_particles_ascii(0, particles)
+!    call write_field_on_grid_ascii(field_grid,0)
+!    call hamiltonian_weibel(np,particles,particles,real(0, kind = kind_particle)*dt)
+!    call write_particle_ascii(particles,int(step, kind = kind_particle) )
 
     timer(4) = get_time()
     if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer(4) - timer(1)
-
-!    call timings_GatherAndOutput(step, 0)
-    
-!# @ bg_size = 512
-!# @ queue
-!#mkdir $WORK/bench/$(job_name)
-!runjob --np 2048 --ranks-per-node 4 --exe ../../bin/pepc-b --args "./sheath.h"
-
-  end do
 
 
   deallocate(particles)

@@ -69,13 +69,13 @@ module module_interaction_specific
       !>
       subroutine multipole_from_particle(particle_pos, particle, multipole)
         use module_globals , only: vtilde
-        use module_shortcut, only: zero,one
+        use module_shortcut, only: zero,one  
         implicit none
-        real(kind_physics), intent(in) :: particle_pos(3)
-        type(t_particle_data), intent(in) :: particle
+        real(kind_physics)                , intent(in)  :: particle_pos(3)
+        type(t_particle_data)             , intent(in)  :: particle
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
-        real(kind_physics) vx, vy, vz, q, g
+        real(kind_physics) vx, vy, vz, q,g
 
         
         q  = particle%q
@@ -101,7 +101,7 @@ module module_interaction_specific
                                      (/zero, zero, zero/), &                      !current density diagonal quadrupole - qj*vzj*x**2 - qj*vzj*y**2 - qj*vzj*z**2
                                      (/zero, zero, zero/), &                      !current density mixed quadrupole
                                      (/zero, zero, zero/), &                      !current density mixed quadrupole
-                                     (/zero, zero, zero/), zero )                   !current density mixed quadrupole / bmax
+                                     (/zero, zero, zero/), zero )              !current density mixed quadrupole /  bmax
  
 
       end subroutine
@@ -111,10 +111,10 @@ module module_interaction_specific
       !> Accumulates multipole properties of child nodes to parent node
       !>
       subroutine shift_multipoles_up(parent, children)
-        use module_shortcut, only: zero
+        use module_shortcut, only:zero
         implicit none
         type(t_tree_node_interaction_data), intent(out) :: parent
-        type(t_tree_node_interaction_data), intent(in)  :: children(:)
+        type(t_tree_node_interaction_data), intent(in) :: children(:)
 
         integer :: nchild, j
 
@@ -150,7 +150,7 @@ module module_interaction_specific
          parent%coc(1:3) = parent%coc(1:3) / nchild
         endif
 
-        ! multipole properties
+                ! multipole properties
         parent%dip(1:3)    = zero
         parent%quad(1:3)   = zero
         parent%xyquad      = zero
@@ -209,14 +209,18 @@ module module_interaction_specific
       subroutine results_add(res1, res2)
         implicit none
         type(t_particle_results), intent(inout) :: res1
-        type(t_particle_results), intent(in) :: res2
+        type(t_particle_results), intent(in)    :: res2
 
         res1%E    = res1%E    + res2%E
         res1%pot  = res1%pot  + res2%pot
+        res1%rho  = res1%rho  + res2%rho
         res1%A    = res1%A    + res2%A
+        res1%dxA  = res1%dxA  + res2%dxA
+        res1%dyA  = res1%dyA  + res2%dyA
         res1%B    = res1%B    + res2%B
         res1%J    = res1%J    + res2%J
         res1%Jirr = res1%Jirr + res2%Jirr
+        
       end subroutine
 
 
@@ -387,20 +391,27 @@ module module_interaction_specific
 
         real(kind_physics) :: exyz(3),elxyz(3), Bxyz(3), Jxyz(3), Jirrxyz(3), phic, rhoc, Axyz(3), gradxA(1:3), gradyA(1:3)
 
-        
-              call calc_force_coulomb_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
+              !  compute 2D-Coulomb/Darwin fields and potential
+              ! It's a leaf, do direct summation with calc_force_darwin_2D_direct
+              call calc_force_darwin_2D_direct(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, eps2, elxyz(1:2), Axyz(1:2), Jxyz(1:2), Jirrxyz(1:2), Bxyz(3), phic, gradxA(1:3), gradyA(1:3))
 
-              particle%results%E         = particle%results%E    + exyz
-              particle%results%pot       = particle%results%pot  + phic
+              particle%results%A(1:2)       = particle%results%A(1:2)    + Axyz(1:2)    
+              particle%results%B(3)         = particle%results%B(3)      + Bxyz(3)      
+              particle%results%J(1:2)       = particle%results%J(1:2)    + Jxyz(1:2)    
+              particle%results%Jirr(1:2)    = particle%results%Jirr(1:2) + Jirrxyz(1:2) 
+              particle%results%E(1:2)       = particle%results%E(1:2)    + elxyz(1:2)  
+              particle%results%dxA(1:3)     = particle%results%dxA(1:3)  + gradxA(1:3)
+              particle%results%dyA(1:3)     = particle%results%dyA(1:3)  + gradyA(1:3)
+              particle%results%pot          = particle%results%pot       + phic      
+              particle%results%rho          = particle%results%rho       + rhoc
 
               particle%results%E(3)         = zero
-              particle%results%B            = zero
-              particle%results%A(1:3)       = zero
-              particle%results%dxA(1:3)     = zero
-              particle%results%dyA(1:3)     = zero
-              particle%results%J(1:3)       = zero
-              particle%results%Jirr(1:3)    = zero
-
+              particle%results%B(1:2)       = zero
+              particle%results%A(3)         = zero
+              particle%results%dxA(3)       = zero
+              particle%results%dyA(3)       = zero
+              particle%results%J(3)         = zero
+              particle%results%Jirr(3)      = zero
 
 
       end subroutine
@@ -424,21 +435,29 @@ module module_interaction_specific
         real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
 
         real(kind_physics) :: exyz(3),elxyz(3), Bxyz(3), Jxyz(3), Jirrxyz(3), phic, rhoc, Axyz(3), gradxA(1:3), gradyA(1:3)
-
-        
-              !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-              call calc_force_coulomb_2D(       node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
-
-              particle%results%E         = particle%results%E    + exyz
-              particle%results%pot       = particle%results%pot  + phic
+             
+              ! compute 2D-Coulomb/Darwin fields and potential
+              ! It's a leaf, do direct summation with calc_force_darwin_2D
+              !call calc_force_darwin_2D(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, eps2, exyz(1:2), Axyz(1:2), Jxyz(1:2), Bxyz(3), phic, rhoc)
+              call calc_force_darwin_2D(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, eps2, elxyz(1:2), Axyz(1:2), Jxyz(1:2), Jirrxyz(1:2), Bxyz(3), phic, gradxA(1:3), gradyA(1:3))
+              particle%results%A(1:2)       = particle%results%A(1:2)    + Axyz(1:2)        
+              particle%results%B(3)         = particle%results%B(3)      + Bxyz(3)         
+              particle%results%J(1:2)       = particle%results%J(1:2)    + Jxyz(1:2)        
+              particle%results%Jirr(1:2)    = particle%results%Jirr(1:2) + Jirrxyz(1:2)     
+              particle%results%E(1:2)       = particle%results%E(1:2)    + elxyz(1:2)   
+              particle%results%dxA(1:3)     = particle%results%dxA(1:3)  + gradxA(1:3)
+              particle%results%dyA(1:3)     = particle%results%dyA(1:3)  + gradyA(1:3)
+              particle%results%pot          = particle%results%pot       + phic            
+              particle%results%rho          = particle%results%rho       + rhoc
 
               particle%results%E(3)         = zero
-              particle%results%B(1:3)       = zero
-              particle%results%A(1:3)       = zero
-              particle%results%dxA(1:3)     = zero
-              particle%results%dyA(1:3)     = zero
-              particle%results%J(1:3)       = zero
-              particle%results%Jirr(1:3)    = zero
+              particle%results%B(1:2)       = zero
+              particle%results%A(3)         = zero
+              particle%results%dxA(3)       = zero
+              particle%results%dyA(3)       = zero
+              particle%results%J(3)         = zero
+              particle%results%Jirr(3)      = zero
+
 
       end subroutine
 

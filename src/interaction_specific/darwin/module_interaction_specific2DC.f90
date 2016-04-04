@@ -75,7 +75,7 @@ module module_interaction_specific
         type(t_particle_data), intent(in) :: particle
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
-        real(kind_physics) vx, vy, vz, q, g
+        real(kind_physics) vx, vy, vz, q,g
 
         
         q  = particle%q
@@ -92,7 +92,7 @@ module module_interaction_specific
                                      (/zero, zero, zero/), &                      !dipole
                                      (/zero, zero, zero/), &                      !diagonal quadrupole
                                        zero, zero, zero, &                        !mixed quadrupole
-                                     (/vx/g, vy/g, vz/g/), &                      !current density monopole - qj*vxj - qj*vxj - qj*vxj
+                                     (/vx/g, vy/g, vz/g /), &                     !current density monopole - qj*vxj - qj*vxj - qj*vxj
                                      (/zero, zero, zero/), &                      !current density dipole - qj*vxj*x - qj*vxj*y - qj*vxj*z
                                      (/zero, zero, zero/), &                      !current density dipole - qj*vyj*x - qj*vyj*y - qj*vyj*z
                                      (/zero, zero, zero/), &                      !current density dipole - qj*vzj*x - qj*vzj*y - qj*vzj*z
@@ -101,7 +101,7 @@ module module_interaction_specific
                                      (/zero, zero, zero/), &                      !current density diagonal quadrupole - qj*vzj*x**2 - qj*vzj*y**2 - qj*vzj*z**2
                                      (/zero, zero, zero/), &                      !current density mixed quadrupole
                                      (/zero, zero, zero/), &                      !current density mixed quadrupole
-                                     (/zero, zero, zero/), zero )                   !current density mixed quadrupole / bmax
+                                     (/zero, zero, zero/), zero )              !current density mixed quadrupole / g, bmax
  
 
       end subroutine
@@ -111,10 +111,10 @@ module module_interaction_specific
       !> Accumulates multipole properties of child nodes to parent node
       !>
       subroutine shift_multipoles_up(parent, children)
-        use module_shortcut, only: zero
+        use module_shortcut, only:zero
         implicit none
         type(t_tree_node_interaction_data), intent(out) :: parent
-        type(t_tree_node_interaction_data), intent(in)  :: children(:)
+        type(t_tree_node_interaction_data), intent(in) :: children(:)
 
         integer :: nchild, j
 
@@ -165,7 +165,6 @@ module module_interaction_specific
         parent%quadjxy(1:3)= zero
         parent%quadjyz(1:3)= zero
         parent%quadjzx(1:3)= zero
-        
 
         do j=1,nchild
 
@@ -213,7 +212,10 @@ module module_interaction_specific
 
         res1%E    = res1%E    + res2%E
         res1%pot  = res1%pot  + res2%pot
+        res1%rho  = res1%rho  + res2%rho
         res1%A    = res1%A    + res2%A
+        res1%dyA  = res1%dyA  + res2%dyA
+        res1%dxA  = res1%dxA  + res2%dxA
         res1%B    = res1%B    + res2%B
         res1%J    = res1%J    + res2%J
         res1%Jirr = res1%Jirr + res2%Jirr
@@ -400,6 +402,7 @@ module module_interaction_specific
               particle%results%dyA(1:3)     = zero
               particle%results%J(1:3)       = zero
               particle%results%Jirr(1:3)    = zero
+              particle%results%rho          = zero
 
 
 
@@ -439,6 +442,7 @@ module module_interaction_specific
               particle%results%dyA(1:3)     = zero
               particle%results%J(1:3)       = zero
               particle%results%Jirr(1:3)    = zero
+              particle%results%rho          = zero
 
       end subroutine
 

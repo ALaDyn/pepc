@@ -30,53 +30,19 @@ module newton_krylov
   !use module_debug
   use module_pepc_kinds
   use module_shortcut
+  use module_globals, only:vtilde
   !use module_interaction_Specific_types
   implicit none
   include 'mpif.h'
   save
   private
 
-    ! shortcut notations
-!  real(kind_physics), parameter :: zero             =  0._kind_physics
-!  real(kind_physics), parameter :: dotone           =  0.1_kind_physics
-!  real(kind_physics), parameter :: half             =  0.5_kind_physics
-!  real(kind_physics), parameter :: dotnine          =  0.9_kind_physics
-!  real(kind_physics), parameter :: one              =  1._kind_physics
-!  real(kind_physics), parameter :: tentominusfive   =  1.E-5_kind_physics
-!  real(kind_physics), parameter :: tentominusseven  =  1.E-7_kind_physics
-!  real(kind_physics), parameter :: tentominuseight  =  1.E-8_kind_physics
-
   public dirder
   public gmres
   public nsolgm
-  public linear
 
 
   contains
-
-    subroutine linear(n,dt,x_tn,x_tn1,res)
-
-    implicit none
-    integer(kind_particle)         , intent(in)     :: n
-    real(kind_particle)            , intent(in)     :: dt
-    type(t_particle), allocatable  , intent(in)     :: x_tn(:)
-!    real(kind_particle),allocatable, intent(in)     :: x_tn(:)!,x_tn1(:)
-!    real(kind_particle),allocatable, intent(out)    :: res(:)
-
-    real(kind_particle),             intent(in)     :: x_tn1(n)
-    real(kind_particle),             intent(out)    :: res(n)
-
-    integer(kind_particle)                          :: i,rc
-
-!    if ( allocated(res) )   deallocate(res)
-!    allocate(res(n)   , stat=rc )
-
-!    write(*,*) "linear", n, size(x_tn) , size(x_tn1) , size(res)
-    do i = 1,n
-        res(i) = 2.0*x_tn1(i) + 1.0
-    enddo
-
-    end subroutine
 
 
     subroutine dirder(np,dt,x_tn,x_tn1,w,funz,f0,z)
@@ -99,36 +65,25 @@ module newton_krylov
     !                before the call to dirder
     implicit none
     integer(kind_particle)         , intent(in)     :: np
-    integer(kind_particle)                          :: n
     real(kind_particle)            , intent(in)     :: dt
     type(t_particle), allocatable  , intent(in)     :: x_tn(:)
 !    real(kind_particle),allocatable, intent(in)     :: x_tn(:)!,x_tn1(:),w(:),f0(:)
 !    real(kind_particle),allocatable, intent(out)    :: z(:)
-    real(kind_particle),             intent(in)     :: x_tn1(12*np),w(12*np),f0(12*np)
-    real(kind_particle),             intent(out)    :: z(12*np)
+    real(kind_particle),             intent(in)     :: x_tn1(9*np),w(9*np),f0(9*np)
+    real(kind_particle),             intent(out)    :: z(9*np)
     external                                           funz
 
-!    real(kind_particle),allocatable                 :: f1(:),del(:)
-    real(kind_particle)                             :: f1(12*np),del(12*np)
-    real(kind_particle)                             :: epsnew,dot
-    integer(kind_particle)                          :: rc
+    real(kind_particle)                             :: del(9*np),epsnew,dot
+    integer(kind_particle)                          :: n
 
-!    if ( allocated(z) )     deallocate(z)
-!
-!    allocate(z(n)   , stat=rc )
-!    allocate(f1(n)  , stat=rc )
-!    allocate(del(n) , stat=rc )
-    ! Hardwired difference increment.
-    n      = 12*np
+    n      = 9*np
     epsnew = tentominusseven
 
     ! scale the step
     dot = dot_product(w,w)
+    z(1:n) = zero
 
-    if ( dot .eq. zero )  then
-        z(1:n) = zero
-        return
-    endif
+    if ( dot .eq. zero )  return
 
     epsnew = epsnew/dot
     dot = dot_product(x_tn1,x_tn1)
@@ -139,11 +94,9 @@ module newton_krylov
     !
     del(1:n) = x_tn1(1:n) + epsnew*w(1:n)
 
-    call funz(np,dt,x_tn,del,f1)
-    z(1:n) = (f1(1:n) - f0(1:n))/epsnew
+    call funz(np,dt,x_tn,del,z)
+    z(1:n) = (z(1:n) - f0(1:n))/epsnew
 
-!    deallocate(f1)
-!    deallocate(del)
 
     end subroutine dirder
 
@@ -160,6 +113,7 @@ module newton_krylov
     ! iter=number of iterations
     !
     !
+      use module_globals, only: my_rank
       implicit none
 
       integer(kind_particle)          , intent(in)     :: np,itsub
@@ -167,23 +121,23 @@ module newton_krylov
       real(kind_particle)             , intent(in)     :: dt
       type(t_particle), allocatable   , intent(in)     :: x_tn(:)
 !      real(kind_particle), allocatable, intent(in)     :: x_tn(:)!,res_in(:),x_in(:)
-      real(kind_particle),             intent(in)      :: res_in(12*np),x_in(12*np)
+      real(kind_particle),             intent(in)      :: res_in(9*np),x_in(9*np)
       integer(kind_particle)          , intent(out)    :: iter
 !      real(kind_particle), allocatable, intent(out)    :: phi(:)
-      real(kind_particle),             intent(out)     :: phi(12*np)
+      real(kind_particle),             intent(out)     :: phi(9*np)
       real(kind_particle)                              :: rnorm,bnorm,errtol,rnorm_loc
 !      real(kind_particle), allocatable                 :: residu(:),aq(:),wk1(:)
-      real(kind_particle)                              :: residu(12*np),aq(12*np),wk1(12*np)
+      real(kind_particle)                              :: residu(9*np),aq(9*np),wk1(9*np)
 
-      real(kind_particle)                              :: q(12*np,itsub),dot,dot_loc,g1,g2,ws
+      real(kind_particle)                              :: q(9*np,itsub),dot,dot_loc,g1,g2,ws
       real(kind_particle)                              :: g(itsub+1,2),s(itsub+1),h(itsub+1,itsub+1)
-      integer(kind_particle)                           :: k,ip,ii,jj,iterp1
+      integer(kind_particle)                           :: k,ip,ii,jj,iterp1,ierr_MPI_B
       integer(kind_particle)                           :: rc = 0
     !
       external f
 
 
-      nkrylov = 12*np
+      nkrylov = 9*np
       bnorm   = sqrt(sum(res_in**2))
       errtol  = errtol*bnorm
 
@@ -202,7 +156,8 @@ module newton_krylov
       residu(1:nkrylov) = residu(1:nkrylov) - res_in(1:nkrylov)
 
       dot_loc = dot_product(residu,residu) ! changed
-      call MPI_ALLREDUCE(dot_loc           , dot       , 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc) ! changed
+      dot     = zero
+      call MPI_ALLREDUCE(dot_loc           , dot       , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc) ! changed
 
       dot    = sqrt(dot)  ! changed
 
@@ -240,8 +195,10 @@ module newton_krylov
             aq(1:nkrylov) = aq(1:nkrylov) - dot*q(1:nkrylov,k)
          enddo
 
+!         dot        = dot_product(aq,aq)
+
          dot_loc        = dot_product(aq,aq) ! changed
-         call MPI_ALLREDUCE(dot_loc           , dot       , 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc) ! changed
+         call MPI_ALLREDUCE(dot_loc           , dot       , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc) ! changed
          dot            = sqrt(dot)
          h(iterp1,iter) = dot
 
@@ -273,8 +230,9 @@ module newton_krylov
 
          !     |s(iter+1)| is the norm of the current residual
          !     check for convergence
+!         rnorm      = abs(s(iterp1))
          rnorm_loc      = abs(s(iterp1))                                                                           ! changed
-         call MPI_ALLREDUCE(rnorm_loc           , rnorm       , 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc) ! changed
+         call MPI_ALLREDUCE(rnorm_loc           , rnorm       , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc) ! changed
          if ( (rnorm .le.errtol ).or.(iter .eq. itsub) ) go to 2
 
          !     normalize next q
@@ -313,7 +271,7 @@ module newton_krylov
     end subroutine gmres
 
 
-    subroutine nsolgm(np,dt,x_tn,f,sol,ierr,itc,fnrm,static_gmres)
+    subroutine nsolgm(np,dt,x_tn,f,ierr,itc,fnrm,static_gmres)
 
     ! Newton-GMRES locally convergent solver for f(x) = 0
     !
@@ -364,29 +322,33 @@ module newton_krylov
     !
     ! Requires fdgmres.m and givapp.m
     !
-!    use module_global:
+    use module_tool   , only: cross_product
+    use module_globals, only: root,my_rank,ixdim,ivdim
     implicit none
 !    include 'mpif.h'
 
     integer(kind_particle)          , intent(in)     :: np
     integer(kind_particle)                           :: n
     real(kind_particle)             , intent(in)     :: dt
-    type(t_particle), allocatable   , intent(in)     :: x_tn(:)
+    type(t_particle), allocatable   , intent(inout)  :: x_tn(:)
 !    real(kind_particle), allocatable, intent(in)     :: x_tn(:)
     integer(kind_particle)          , intent(out)    :: ierr,itc
     real(kind_particle)             , intent(out)    :: fnrm
-    real(kind_particle)             , intent(out)    :: sol(12*np)
+!    type(t_particle), allocatable   , intent(out)    :: particle(:)
+    real(kind_particle)                              :: sol(9*np)
 !    real(kind_particle), allocatable, intent(out)    :: sol(:)
 
 !    real(kind_particle), allocatable                 :: step(:),f0(:)
-    real(kind_particle)                              :: step(12*np),f0(12*np)
+    real(kind_particle)                              :: step(9*np),f0(9*np)
     integer(kind_particle)                           :: maxit,lmaxit,debug,                 &
                                                         inner_it_count,gmkmax
-    integer(kind_particle)                           :: rc,ip,jp
+    integer(kind_particle)                           :: rc,ip,jp,ierr_MPI_B
     real(kind_particle)                              :: atol,rtol,etamax,gamma,gmerrtol,        &
                                                         fnrmo,rat,etaold,etanew,stop_tol,       &
                                                         lf,static_gmres(3),tmp_min,tmp_max,     &
-                                                        tmp_mean,fnrm_loc
+                                                        tmp_mean,fnrm_loc,m,P(3),rot(3),e,v(3), &
+                                                        B(3),A(3),Eirr(3),x(3),&
+                                                        eta,u(3),uAh(3),h(3),s(3)
 !    character(255)                                   :: str_proc
     external f
 
@@ -394,17 +356,17 @@ module newton_krylov
     !
     ! set the debug parameter, 1 turns display on, otherwise off
     !
-    n     = 12*np
+    n     = 9*np
     debug = 0
     !
     ! initialize it_hist, ierr, and set the iteration parameters
     !
     gamma   = dotnine
-    atol    = tentominuseight
-    rtol    = tentominuseight
+    atol    = tentominuseight!tentominuseight
+    rtol    = tentominuseight!tentominuseight
     maxit   = 100
     lmaxit  = 100
-    etamax  = tentominuseight
+    etamax  = tentominuseight!tentominuseight
 
     ierr    = 0
 
@@ -416,20 +378,56 @@ module newton_krylov
     ! compute the stop tolerance
 
 
-    sol(1:n) = zero
-!    do ip = 1,np
-!        jp = (ip-1)*12
-!        sol(jp+1:jp+3)      = x_tn(ip)%x
-!        lf                  = one!sqrt( 1 - dot_product(x_tn(ip)%data%v,x_tn(ip)%data%v) )
-!        sol(jp+4:jp+6)      = x_tn(ip)%data%m*x_tn(ip)%data%v/lf
-!        sol(jp+7:jp+9)      = x_tn(ip)%results%A
-!        sol(jp+10:jp+12)    = x_tn(ip)%results%B
-!    enddo
+!    sol(1:n) = zero
+    do ip = 1,np
+        jp = (ip-1)*9
+
+        rot                 = zero
+        x                   = zero
+        v                   = zero
+        A                   = zero
+        Eirr                = zero
+        B                   = zero
+
+        x(1:ixdim)          = x_tn(ip)%x(1:ixdim)
+        Eirr(1:ixdim)       = x_tn(ip)%results%E(1:ixdim)
+        v(1:ivdim)          = x_tn(ip)%data%v(1:ivdim)
+        e                   = x_tn(ip)%data%q
+        m                   = x_tn(ip)%data%m
+        A                   = dotone*x_tn(ip)%results%A
+        B                   = x_tn(ip)%results%B
+
+        lf                  = one!one/sqrt( one - dot_product( v(1:ivdim) , v(1:ivdim) ) )
+        rot                 = cross_product( v/vtilde , B )
+
+        if (ivdim .eq. 1)  then
+            rot = zero
+            A   = zero
+        endif
+
+
+          eta          = half*e*dt/m
+          u            = v + dotone*eta*x_tn(ip)%results%E
+          h            = dotone*eta*B
+          s            = two*h/(1.0_8 + dot_product(h,h) )
+          uAh          = u + cross_product( u,h )
+          uAh          = cross_product( uAh , s )
+
+          v            = u + uAh + eta* x_tn(ip)%results%e
+          x            = x_tn(ip)%x      + dotone*dt   * x_tn(ip)%data%v
+
+
+        sol(jp+1:jp+3)      = x !+ dotone*dt*v
+        sol(jp+4:jp+6)      = m*v*lf !+ A !+ dotone*e*( Eirr +  rot )
+        sol(jp+7:jp+9)      = zero!(one+dotone)*A
+
+    enddo
 
     call f(np,dt,x_tn,sol,f0)
 
     fnrm_loc        =  sum(f0**2)/dble(n)                                                                       ! changed
-    call MPI_ALLREDUCE(fnrm_loc           , fnrm       , 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc)     ! changed
+    fnrm            =  zero
+    call MPI_ALLREDUCE(fnrm_loc           , fnrm       , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)     ! changed
 
     fnrm            = sqrt(fnrm)
     fnrmo           = one
@@ -447,6 +445,7 @@ module newton_krylov
     ! of successive residual norms and
     ! the iteration counter (itc)
     !
+!        write(*,*) "Inside Newton", fnrm, itc, my_rank
         rat     = fnrm/fnrmo
         fnrmo   = fnrm
         itc     = itc + 1
@@ -461,6 +460,7 @@ module newton_krylov
     ! to use  Kelley's gmres uncomment
     !	call fdgmres(n,f0,f,x,gmerrtol,gmkmax,step,error,inner_it_count)
     ! to use my usual gmres uncomment
+!        call MPI_Barrier(MPI_COMM_WORLD, ierr_MPI_B)
         call gmres(np,dt,f0,f,x_tn,sol,gmerrtol,gmkmax,step,inner_it_count)
 !        write( str_proc , '(i10)' ) my_rank
 !        open (unit=my_rank,file=trim("nk/nk_")//trim("_")//trim(adjustl(str_proc))//".dat",action="write",status="replace")
@@ -475,8 +475,9 @@ module newton_krylov
 
         call f(np,dt,x_tn,sol,f0)
 
+!        fnrm = sum(f0**2) / dble(n)
         fnrm_loc = sum(f0**2) / dble(n)                                                                             ! changed
-        call MPI_ALLREDUCE(fnrm_loc           , fnrm       , 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, rc)     ! changed
+        call MPI_ALLREDUCE(fnrm_loc           , fnrm       , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)     ! changed
 
         fnrm = sqrt(fnrm)                                                                                           ! changed
 
@@ -494,7 +495,6 @@ module newton_krylov
             gmerrtol = max(gmerrtol,half*stop_tol/fnrm)
 
         endif
-        write(*,*) itc, fnrm , stop_tol
 
     enddo
 
@@ -503,8 +503,44 @@ module newton_krylov
     if (fnrm > stop_tol)  ierr = 1
     static_gmres(2) = static_gmres(2)/itc
 
+    if (root)  write(*,*) itc, fnrm , stop_tol,ierr
+
+
+    do ip = 1,np
+
+        jp                         = (ip-1)*9
+
+        x                          = zero
+        v                          = zero
+        Eirr                       = zero
+        A                          = zero
+
+        x(1:ixdim)                 = sol(jp+1:jp+ixdim)
+        P(1:ivdim)                 = sol(jp+4:jp+3+ivdim)
+        A(1:ivdim)                 = sol(jp+7:jp+6+ivdim)
+
+
+
+        e                          = x_tn(ip)%data%q
+        m                          = x_tn(ip)%data%m
+
+        if (ivdim .eq. 1) A = zero
+
+!        P                          = ( P - e/vtilde*A )/m
+        P                          = ( P  )/m
+
+        lf                         = one!sqrt( one + dot_product( P(1:ivdim)/vtilde,P(1:ivdim)/vtilde ) )
+        x_tn(ip)%data%v            = P/lf
+        x_tn(ip)%x                 = x !+ dt*( x_tn(ip)%data%v )
+
+    enddo
+
 
     end subroutine nsolgm
+
+
+
+
 
 
 end module

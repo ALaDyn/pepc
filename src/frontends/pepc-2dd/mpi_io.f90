@@ -23,7 +23,6 @@
 module module_mpi_io
   use module_pepc_kinds
   use module_pepc_types
-!  use module_globals,only:np
   implicit none
   include 'mpif.h'
   save

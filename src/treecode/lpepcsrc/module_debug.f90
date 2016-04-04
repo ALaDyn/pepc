@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -178,14 +178,8 @@ module module_debug
        include 'mpif.h'
        integer(kind_default) :: ierr
 
-       #if defined(__ICC) || defined(__INTEL_COMPILER)
-         ! http://software.intel.com/sites/products/documentation/hpc/composerxe/en-us/2011Update/fortran/lin/lref_for/source_files/rftrace.htm
-         call tracebackqq("stacktrace", -1)
-       #elif defined(__IBMC__) || defined(__IBMCPP__)
-         ! http://publib.boulder.ibm.com/infocenter/comphelp/v8v101/index.jsp?topic=%2Fcom.ibm.xlf101a.doc%2Fxlflr%2Fsup-xltrbk.htm
-         call xl__trbk()
-       #elif defined(__GNUC__)
-        ! starting from GCC version 4.8, a backtrace() subroutine is provided by gfortran
+       ! starting from GCC version 4.8, a backtrace() subroutine is provided by gfortran
+       #if defined(__GNUC__)
          #define GCC_VERSION (__GNUC__ * 10000 \
                             + __GNUC_MINOR__ * 100 \
                             + __GNUC_PATCHLEVEL__)
@@ -193,6 +187,12 @@ module module_debug
            ! http://gcc.gnu.org/onlinedocs/gfortran/BACKTRACE.html
            call backtrace()
          #endif
+       #elif defined(__ICC) || defined(__INTEL_COMPILER)
+         ! http://software.intel.com/sites/products/documentation/hpc/composerxe/en-us/2011Update/fortran/lin/lref_for/source_files/rftrace.htm
+         call tracebackqq("stacktrace", -1)
+       #elif defined(__IBMC__) || defined(__IBMCPP__)
+         ! http://publib.boulder.ibm.com/infocenter/comphelp/v8v101/index.jsp?topic=%2Fcom.ibm.xlf101a.doc%2Fxlflr%2Fsup-xltrbk.htm
+         call xl__trbk()
        #endif
 
        call MPI_ABORT(MPI_COMM_lpepc, 1, ierr)
