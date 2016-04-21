@@ -193,6 +193,8 @@ module module_coulomb_kernels
 
 
     subroutine calc_force_darwin_2D(t, d, d2,eps2, exy, Axy, Jxy, Jirrxy, Bz, phi, gradxA, gradyA )
+      use module_tool   , only: cross_product,double_cross_product_left
+    subroutine calc_force_darwin_2D(t, d, d2,eps2, exy, Axy, Jxy, Jirrxy, Bz, phi, gradxA, gradyA )
       use module_globals, only: vtilde 
       use module_tool   , only: cross_product,double_cross_product_left
       implicit none
@@ -325,6 +327,275 @@ module module_coulomb_kernels
       A3yyy_oct(2)  = three*over**3*( six*dy2*over2 - one - five*dy2**2*over4  )
       A3yyy_oct(3)  = zero
 
+      
+      phi        = ( t%charge*phi_mono      )                                                              &! Monopole
+                  +( dot_product(t%dip(1:2),phi_dip(1:2) ) )                                               &! Dipole
+                  +( dot_product(t%quad(1:2),phi_quad(1:2) ) )                                             &! Quadrupole
+                  +( phi_quad(3)*t%xyquad )                                                                 ! Quadrupole
+      phi        = half*phi
+                   
+      exy(1:2)   = ( t%charge*E_mono(1:2)   )                                                              &! Monopole
+                  +( t%dip(1)*Ex_dip(1:2) + t%dip(2)*Ey_dip(1:2)  )                                        &! Dipole
+                  +( t%quad(1)*Exx_quad(1:2) + t%quad(2)*Eyy_quad(1:2) )                                   &! Quadrupole
+                  +( t%xyquad*Exy_quad(1:2) )                                                               ! Quadrupole 
+      
+      exy(1:2)   = half*exy(1:2)
+      
+      Jxy(1:3)   = ( t%monoj(1:3)*rho_mono )                                                               &! Monopole
+                  +( rho_dip(1)*t%dipjx(1:3) + rho_dip(2)*t%dipjy(1:3)  )                                  &! Dipole
+                  +( t%quadjx(1:3)*rho_quad(1) + t%quadjy(1:3)*rho_quad(2) )                               &! Quadrupole
+                  +( t%quadjxy(1:3) *rho_quad(3) )                                                          ! Quadrupole 
+                  
+      Jxy(1:3)   = half*eps2/pi*Jxy(1:3)
+                  
+                  
+      Jirrxy(1:3)= ( t%monoj(1:3)*(three*half*Jir_mono - eps2*rho_mono)                                     &
+                   + double_cross_product_left( E_mono(1:3), E_mono(1:3), t%monoj(1:3)  ) )                 &! Monopole
+                 + ( t%dipjx(1:3)*( three*half*Jir_dip(1)   - eps2*rho_dip(1) ) )                           &! Dipole - x 
+                 + ( double_cross_product_left( Ex_dip(1:3), E_mono(1:3), t%dipjx(1:3)  ) )                 &
+                 + ( double_cross_product_left( E_mono(1:3), Ex_dip(1:3), t%dipjx(1:3)  ) )                 &
+                 + ( t%dipjy(1:3)*( three*half*Jir_dip(2)   - eps2*rho_dip(2) ) )                           &! Dipole - y 
+                 + ( double_cross_product_left( Ey_dip(1:3), E_mono(1:3), t%dipjy(1:3)  ) )                 &
+                 + ( double_cross_product_left( E_mono(1:3), Ey_dip(1:3), t%dipjy(1:3)  ) )                 &
+                 + ( t%quadjx(1:3)*( three*half*Jir_quad(1)   - eps2*rho_quad(1) ) )                        &! Quadrupole - xx 
+                 + ( double_cross_product_left( Exx_quad(1:3), E_mono(1:3), t%quadjx(1:3)  ) )              &
+                 + ( double_cross_product_left( E_mono(1:3), Exx_quad(1:3), t%quadjx(1:3)  ) )              &
+                 + ( two*double_cross_product_left( Ex_dip(1:3), Ex_dip(1:3), t%quadjx(1:3)  ) )            &
+                 + ( t%quadjy(1:3)*( three*half*Jir_quad(2)   - eps2*rho_quad(2) ) )                        &! Quadrupole - yy 
+                 + ( double_cross_product_left( Eyy_quad(1:3), E_mono(1:3), t%quadjy(1:3)  ) )              &
+                 + ( double_cross_product_left( E_mono(1:3), Eyy_quad(1:3), t%quadjy(1:3)  ) )              &
+                 + ( two*double_cross_product_left( Ey_dip(1:3), Ey_dip(1:3), t%quadjy(1:3)  ) )            &
+                 + ( t%quadjxy(1:3)*( three*half*Jir_quad(3)   - eps2*rho_quad(3) ) )                       &! Quadrupole - xy 
+                 + ( double_cross_product_left( Exy_quad(1:3), E_mono(1:3), t%quadjxy(1:3)  ) )             &
+                 + ( double_cross_product_left( E_mono(1:3), Exy_quad(1:3), t%quadjxy(1:3)  ) )             &
+                 + ( double_cross_product_left( Ex_dip(1:3), Ey_dip(1:3), t%quadjxy(1:3)  ) )               &
+                 + ( double_cross_product_left( Ey_dip(1:3), Ex_dip(1:3), t%quadjxy(1:3)  ) ) 
+                 
+      Jirrxy(1:3)= half*oneoverpi*Jirrxy(1:3)
+                 
+      Bxy(1:3)   = cross_product(t%monoj(1:3), E_mono(1:3) )                                                &! Monopole
+                  +( cross_product(t%dipjx(1:3),Ex_dip(1:3) )   )                                           &! Dipole x
+                  +( cross_product(t%dipjy(1:3),Ey_dip(1:3) )   )                                           &! Dipole y
+                  +( cross_product(t%quadjx(1:3),Exx_quad(1:3) ) )                                          &! Quadrupole xx
+                  +( cross_product(t%quadjy(1:3),Eyy_quad(1:3) ) )                                          &! Quadrupole yy
+                  +( cross_product(t%quadjxy(1:3),Exy_quad(1:3) ) )                                          ! Quadrupole xy
+                  
+      Bxy(1:3)   = half*Bxy(1:3)  
+      
+      Axy(1:3)   = half*t%monoj(1:3)*( one - A1_mono - log(d2)  )                                           &
+                 + A1_mono*double_cross_product_left( A3_mono(1:3), t%monoj(1:3), A3_mono(1:3)  )           &! Monopole
+                 + half*( t%dipjx(1:3)*( -A1_dip(1) + phi_dip(1) ) )                                        &! Dipole - x 
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3),A3x_dip(1:3)  ) )        &
+                 + A1_dip(1)*( double_cross_product_left(A3_mono(1:3), t%dipjx(1:3),A3_mono(1:3)  ) )       &
+                 + half*( t%dipjy(1:3)*( -A1_dip(2) + phi_dip(2) ) )                                        &! Dipole - y 
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3),A3y_dip(1:3)  ) )        &
+                 + A1_dip(2)*( double_cross_product_left(A3_mono(1:3), t%dipjy(1:3),A3_mono(1:3)  ) )       &
+                 + half*( t%quadjx(1:3)*( -A1_quad(1) + phi_quad(1) ) )                                     &! Quadrupole - xx 
+                 + A1_mono*( double_cross_product_left( A3xx_quad(1:3), t%quadjx(1:3), A3_mono(1:3)  ) )    &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%quadjx(1:3), A3xx_quad(1:3)  ) )    &
+                 + A1_mono*( two*double_cross_product_left( A3x_dip(1:3), t%quadjx(1:3), A3x_dip(1:3)  ) )  & 
+!                 
+                 + two*A1_dip(1)*( double_cross_product_left( A3x_dip(1:3), t%quadjx(1:3), A3_mono(1:3)  ) )&
+                 + two*A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%quadjx(1:3), A3x_dip(1:3)  ) )&
+                 + A1_quad(1)*double_cross_product_left( A3_mono(1:3), t%quadjx(1:3), A3_mono(1:3)  )       &
+                 
+                 + half*( t%quadjy(1:3)*( -A1_quad(2) + phi_quad(2) ) )                                     &! Quadrupole - yy
+                 + A1_mono*( double_cross_product_left( A3yy_quad(1:3), t%quadjy(1:3), A3_mono(1:3)  ) )    &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%quadjy(1:3), A3yy_quad(1:3)  ) )    &
+                 + A1_mono*( two*double_cross_product_left( A3y_dip(1:3), t%quadjy(1:3), A3y_dip(1:3)  ) )  &
+                 
+                 + two*A1_dip(2)*( double_cross_product_left( A3y_dip(1:3), t%quadjy(1:3), A3_mono(1:3)  ) )&
+                 + two*A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%quadjy(1:3), A3y_dip(1:3)  ) )&
+                 + A1_quad(2)*double_cross_product_left( A3_mono(1:3), t%quadjy(1:3), A3_mono(1:3)  )       &
+                 
+                 + half*( t%quadjxy(1:3)*( -A1_quad(3) + phi_quad(3) ) )                                    &! Quadrupole - xy
+                 + A1_mono*( double_cross_product_left( A3xy_quad(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) )   &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%quadjxy(1:3), A3xy_quad(1:3)  ) )   &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%quadjxy(1:3), A3y_dip(1:3)  ) )     &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%quadjxy(1:3), A3x_dip(1:3)  ) )     &
+!                 
+                 + A1_dip(1)*( double_cross_product_left( A3y_dip(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%quadjxy(1:3), A3y_dip(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3x_dip(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%quadjxy(1:3), A3x_dip(1:3)  ) )  &
+                 + A1_quad(3)*double_cross_product_left( A3_mono(1:3) , t%quadjxy(1:3), A3_mono(1:3)  )     
+!                 
+      Axy(3)     = t%monoj(3)*phi_mono                                                                     &! Monopole
+                  +  t%dipjx(3)*phi_dip(1)   + t%dipjy(3)*phi_dip(2)                                       &! Dipole
+                  +  t%quadjx(3)*phi_quad(1) + t%quadjy(3)*phi_quad(2)                                     &! Quadrupole
+                  +  t%quadjxy(3)*phi_quad(3)                                                               ! Quadrupole 
+                  
+      Axy(1:3)   = half*Axy(1:3)
+      
+      
+                 
+      gradxA(1:3)=  half*( t%monoj(1:3)*( -A1_dip(1) + phi_dip(1) ) )                                       &! Monopole 
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%monoj(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%monoj(1:3),A3x_dip(1:3)  ) )        &
+                 + A1_dip(1)*( double_cross_product_left(A3_mono(1:3), t%monoj(1:3),A3_mono(1:3)  ) )       &
+                 + half*( t%dipjx(1:3)*( -A1_quad(1) + phi_quad(1) ) )                                      &! Dipole - x 
+                 + A1_mono*( double_cross_product_left( A3xx_quad(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )     &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3xx_quad(1:3)  ) )     &
+                 + A1_quad(1)*double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3_mono(1:3)  )       &
+                 + two*A1_mono*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3x_dip(1:3)  ) )   & 
+                 + two*A1_dip(1)*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )&
+                 + two*A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3x_dip(1:3)  ) )&
+                 
+                 + half*( t%dipjy(1:3)*( -A1_quad(3) + phi_quad(3) ) )                                    &! Dipole - y
+                 + A1_mono*( double_cross_product_left( A3xy_quad(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )   &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3xy_quad(1:3)  ) )   &
+                 + A1_quad(3)*double_cross_product_left( A3_mono(1:3) , t%dipjy(1:3), A3_mono(1:3)  )    &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%dipjy(1:3), A3y_dip(1:3)  ) )     &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3x_dip(1:3)  ) )     &
+                 + A1_dip(1)*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3y_dip(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3x_dip(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3x_dip(1:3)  ) )  &
+                 
+                 + half*( t%quadjx(1:3)*( -A1_oct(1) - Exx_quad(1) ) )                                   &! Quadrupole - xx
+                 + A1_mono*( double_cross_product_left( A3xxx_oct(1:3), t%quadjx(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xxx_oct(1:3) ) ) &
+                 + A1_oct(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_quad(1)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_quad(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + three*A1_dip(1)*( double_cross_product_left( A3xx_quad(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xx_quad(1:3) ) ) &
+                 + three*A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3xx_quad(1:3) ) ) &
+                 + three*A1_mono*( double_cross_product_left( A3xx_quad(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + six  *A1_dip(1)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 
+                 + half*( t%quadjy(1:3)*( -A1_oct(3) - Exy_quad(2) ) )                                   &! Quadrupole - yy
+                 + A1_mono*( double_cross_product_left( A3xyy_oct(1:3), t%quadjy(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3xyy_oct(1:3) ) ) &
+                 + A1_oct(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(1)*( double_cross_product_left( A3yy_quad(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3yy_quad(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3yy_quad(1:3),  t%quadjy(1:3), A3x_dip(1:3) ) ) &
+                 + A1_quad(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjy(1:3), A3yy_quad(1:3) ) ) &
+                 + A1_quad(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3xy_quad(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3xy_quad(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3xy_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3xy_quad(1:3) ) ) &
+                 
+                 + half*( t%quadjxy(1:3)*( -A1_oct(2) - Exy_quad(1) ) )                                   &! Quadrupole - xy
+                 + A1_mono*( double_cross_product_left( A3xxy_oct(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xxy_oct(1:3) ) ) &
+                 + A1_oct(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(2)*( double_cross_product_left( A3xx_quad(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3xx_quad(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3xx_quad(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + A1_quad(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_quad(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xx_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3xy_quad(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3xy_quad(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3xy_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xy_quad(1:3) ) ) 
+                  
+                 
+                 
+      gradxA(3)  = t%monoj(3)*phi_dip(1)                                                                    &! Monopole
+                   + t%dipjx(3)*phi_quad(1)   + t%dipjy(3)*phi_quad(3)                                      &! Dipole
+                   -  t%quadjx(3)*Exx_quad(1) - t%quadjy(3)*Eyy_quad(1)                                     &! Quadrupole
+                   -  t%quadjxy(3)*Exx_quad(2)                                                               ! Quadrupole 
+                  
+      gradyA(1:3)= half*( t%monoj(1:3)*( -A1_dip(2) + phi_dip(2) ) )                                        &! Monopole 
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%monoj(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%monoj(1:3),A3y_dip(1:3)  ) )        &
+                 + A1_dip(2)*( double_cross_product_left(A3_mono(1:3), t%monoj(1:3),A3_mono(1:3)  ) )       &
+                 
+                 + half*( t%dipjx(1:3)*( -A1_quad(3) + phi_quad(3) ) )                                    &! Dipole - x
+                 + A1_mono*( double_cross_product_left( A3xy_quad(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )   &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3xy_quad(1:3)  ) )   &
+                 + A1_quad(3)*double_cross_product_left( A3_mono(1:3) , t%dipjx(1:3), A3_mono(1:3)  )    &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3y_dip(1:3)  ) )     &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%dipjx(1:3), A3x_dip(1:3)  ) )     &
+                 + A1_dip(1)*( double_cross_product_left( A3y_dip(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3y_dip(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3x_dip(1:3)  ) )  &
+                 
+                 + half*( t%dipjy(1:3)*( -A1_quad(2) + phi_quad(2) ) )                                     &! Dipole - y
+                 + A1_mono*( double_cross_product_left( A3yy_quad(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )    &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3yy_quad(1:3)  ) )    &
+                 + A1_quad(2)*double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3_mono(1:3)  )       &
+                 + two*A1_mono*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3y_dip(1:3)  ) )  &
+                 + two*A1_dip(2)*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )&
+                 + two*A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3y_dip(1:3)  ) )&
+                 
+                 + half*( t%quadjx(1:3)*( -A1_oct(2) - Exy_quad(1) ) )                                   &! Quadrupole - xx
+                 + A1_mono*( double_cross_product_left( A3xxy_oct(1:3), t%quadjx(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xxy_oct(1:3) ) ) &
+                 + A1_oct(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(2)*( double_cross_product_left( A3xx_quad(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjx(1:3), A3xx_quad(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3xx_quad(1:3),  t%quadjx(1:3), A3y_dip(1:3) ) ) &
+                 + A1_quad(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + A1_quad(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3y_dip(1:3) ) ) &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xx_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3xy_quad(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3xy_quad(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3xy_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xy_quad(1:3) ) ) &
+                 
+                 + half*( t%quadjy(1:3)*( -A1_oct(4) - Eyy_quad(2) ) )                                   &! Quadrupole - yy
+                 + A1_mono*( double_cross_product_left( A3yyy_oct(1:3), t%quadjy(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3yyy_oct(1:3) ) ) &
+                 + A1_oct(4)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_quad(2)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_quad(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + three*A1_dip(2)*( double_cross_product_left( A3yy_quad(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3yy_quad(1:3) ) ) &
+                 + three*A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3yy_quad(1:3) ) ) &
+                 + three*A1_mono*( double_cross_product_left( A3yy_quad(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + six  *A1_dip(2)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &  
+                 
+                 + half*( t%quadjxy(1:3)*( -A1_oct(3) - Exy_quad(2) ) )                                   &! Quadrupole - xy
+                 + A1_mono*( double_cross_product_left( A3xyy_oct(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xyy_oct(1:3) ) ) &
+                 + A1_oct(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(1)*( double_cross_product_left( A3yy_quad(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3yy_quad(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3yy_quad(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + A1_quad(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3yy_quad(1:3) ) ) &
+                 + A1_quad(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3xy_quad(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3xy_quad(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3xy_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xy_quad(1:3) ) ) 
+      
+      gradyA(3)  = t%monoj(3)*phi_dip(2)                                                                     &! Monopole
+                   + t%dipjx(3)*phi_quad(3)  + t%dipjy(3)*phi_quad(2)                                        &! Dipole
+                   - t%quadjx(3)*Exx_quad(2) - t%quadjy(3)*Eyy_quad(2)                                       &! Quadrupole
+                   - t%quadjxy(3)*Exy_quad(2)                                                                 ! Quadrupole 
+                   
+      gradxA(1:3)= half*gradxA(1:3)
+      gradyA(1:3)= half*gradyA(1:3)
       
       phi        = ( t%charge*phi_mono      )                                                              &! Monopole
                   +( dot_product(t%dip(1:2),phi_dip(1:2) ) )                                               &! Dipole
@@ -606,6 +877,11 @@ module module_coulomb_kernels
     end subroutine calc_force_darwin_2D
     
     subroutine calc_force_darwin_2D3V(t, d, d2,eps2, exy, Axy, Jxy, Jirrxy, Bxy, phi, gradxA, gradyA)
+      use module_tool   , only: cross_product,double_cross_product_left
+      implicit none
+    end subroutine calc_force_darwin_2D
+    
+    subroutine calc_force_darwin_2D3V(t, d, d2,eps2, exy, Axy, Jxy, Jirrxy, Bxy, phi, gradxA, gradyA)
       use module_globals, only: vtilde 
       use module_tool   , only: cross_product,double_cross_product_left
       implicit none
@@ -738,6 +1014,280 @@ module module_coulomb_kernels
       A3yyy_oct(2)  = three*over**3*( six*dy2*over2 - one - five*dy2**2*over4  )
       A3yyy_oct(3)  = zero
 
+      
+      phi        = ( t%charge*phi_mono      )                                                              &! Monopole
+                  +( dot_product(t%dip(1:2),phi_dip(1:2) ) )                                               &! Dipole
+                  +( dot_product(t%quad(1:2),phi_quad(1:2) ) )                                             &! Quadrupole
+                  +( phi_quad(3)*t%xyquad )                                                                 ! Quadrupole
+      phi        = half*phi
+                         
+      exy(1:2)   = ( t%charge*E_mono(1:2)   )                                                              &! Monopole
+                  +( t%dip(1)*Ex_dip(1:2) + t%dip(2)*Ey_dip(1:2)  )                                        &! Dipole
+                  +( t%quad(1)*Exx_quad(1:2) + t%quad(2)*Eyy_quad(1:2) )                                   &! Quadrupole
+                  +( t%xyquad*Exy_quad(1:2) )                                                               ! Quadrupole 
+      
+      exy(1:2)   = half*exy(1:2)
+      
+      Jxy(1:3)   = ( t%monoj(1:3)*rho_mono )                                                               &! Monopole
+                  +( rho_dip(1)*t%dipjx(1:3) + rho_dip(2)*t%dipjy(1:3)  )                                  &! Dipole
+                  +( t%quadjx(1:3)*rho_quad(1) + t%quadjy(1:3)*rho_quad(2) )                               &! Quadrupole
+                  +( t%quadjxy(1:3) *rho_quad(3) )                                                          ! Quadrupole 
+                  
+      Jxy(1:3)   = half*eps2/pi*Jxy(1:3)
+                  
+                  
+      Jirrxy(1:3)= ( t%monoj(1:3)*(three*half*Jir_mono - eps2*rho_mono)                                     &
+                   + double_cross_product_left( E_mono(1:3), E_mono(1:3), t%monoj(1:3)  ) )                 &! Monopole
+                 + ( t%dipjx(1:3)*( three*half*Jir_dip(1)   - eps2*rho_dip(1) ) )                           &! Dipole - x 
+                 + ( double_cross_product_left( Ex_dip(1:3), E_mono(1:3), t%dipjx(1:3)  ) )                 &
+                 + ( double_cross_product_left( E_mono(1:3), Ex_dip(1:3), t%dipjx(1:3)  ) )                 &
+                 + ( t%dipjy(1:3)*( three*half*Jir_dip(2)   - eps2*rho_dip(2) ) )                           &! Dipole - y 
+                 + ( double_cross_product_left( Ey_dip(1:3), E_mono(1:3), t%dipjy(1:3)  ) )                 &
+                 + ( double_cross_product_left( E_mono(1:3), Ey_dip(1:3), t%dipjy(1:3)  ) )                 &
+                 + ( t%quadjx(1:3)*( three*half*Jir_quad(1)   - eps2*rho_quad(1) ) )                        &! Quadrupole - xx 
+                 + ( double_cross_product_left( Exx_quad(1:3), E_mono(1:3), t%quadjx(1:3)  ) )              &
+                 + ( double_cross_product_left( E_mono(1:3), Exx_quad(1:3), t%quadjx(1:3)  ) )              &
+                 + ( two*double_cross_product_left( Ex_dip(1:3), Ex_dip(1:3), t%quadjx(1:3)  ) )            &
+                 + ( t%quadjy(1:3)*( three*half*Jir_quad(2)   - eps2*rho_quad(2) ) )                        &! Quadrupole - yy 
+                 + ( double_cross_product_left( Eyy_quad(1:3), E_mono(1:3), t%quadjy(1:3)  ) )              &
+                 + ( double_cross_product_left( E_mono(1:3), Eyy_quad(1:3), t%quadjy(1:3)  ) )              &
+                 + ( two*double_cross_product_left( Ey_dip(1:3), Ey_dip(1:3), t%quadjy(1:3)  ) )            &
+                 + ( t%quadjxy(1:3)*( three*half*Jir_quad(3)   - eps2*rho_quad(3) ) )                       &! Quadrupole - xy 
+                 + ( double_cross_product_left( Exy_quad(1:3), E_mono(1:3), t%quadjxy(1:3)  ) )             &
+                 + ( double_cross_product_left( E_mono(1:3), Exy_quad(1:3), t%quadjxy(1:3)  ) )             &
+                 + ( double_cross_product_left( Ex_dip(1:3), Ey_dip(1:3), t%quadjxy(1:3)  ) )               &
+                 + ( double_cross_product_left( Ey_dip(1:3), Ex_dip(1:3), t%quadjxy(1:3)  ) ) 
+                 
+      Jirrxy(1:3)= half*oneoverpi*Jirrxy(1:3)
+                 
+      Bxy(1:3)   = cross_product(t%monoj(1:3), E_mono(1:3) )                                                &! Monopole
+                  +( cross_product(t%dipjx(1:3),Ex_dip(1:3) )   )                                           &! Dipole x
+                  +( cross_product(t%dipjy(1:3),Ey_dip(1:3) )   )                                           &! Dipole y
+                  +( cross_product(t%quadjx(1:3),Exx_quad(1:3) ) )                                          &! Quadrupole xx
+                  +( cross_product(t%quadjy(1:3),Eyy_quad(1:3) ) )                                          &! Quadrupole yy
+                  +( cross_product(t%quadjxy(1:3),Exy_quad(1:3) ) )                                          ! Quadrupole xy
+                  
+      Bxy(1:3)   = half*Bxy(1:3)  
+      
+      Axy(1:3)   = half*t%monoj(1:3)*( one - A1_mono - log(d2)  )                                           &
+                 + A1_mono*double_cross_product_left( A3_mono(1:3), t%monoj(1:3), A3_mono(1:3)  )           &! Monopole
+                 + half*( t%dipjx(1:3)*( -A1_dip(1) + phi_dip(1) ) )                                        &! Dipole - x 
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3),A3x_dip(1:3)  ) )        &
+                 + A1_dip(1)*( double_cross_product_left(A3_mono(1:3), t%dipjx(1:3),A3_mono(1:3)  ) )       &
+                 + half*( t%dipjy(1:3)*( -A1_dip(2) + phi_dip(2) ) )                                        &! Dipole - y 
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3),A3y_dip(1:3)  ) )        &
+                 + A1_dip(2)*( double_cross_product_left(A3_mono(1:3), t%dipjy(1:3),A3_mono(1:3)  ) )       &
+                 + half*( t%quadjx(1:3)*( -A1_quad(1) + phi_quad(1) ) )                                     &! Quadrupole - xx 
+                 + A1_mono*( double_cross_product_left( A3xx_quad(1:3), t%quadjx(1:3), A3_mono(1:3)  ) )    &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%quadjx(1:3), A3xx_quad(1:3)  ) )    &
+                 + A1_mono*( two*double_cross_product_left( A3x_dip(1:3), t%quadjx(1:3), A3x_dip(1:3)  ) )  & 
+!                 
+                 + two*A1_dip(1)*( double_cross_product_left( A3x_dip(1:3), t%quadjx(1:3), A3_mono(1:3)  ) )&
+                 + two*A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%quadjx(1:3), A3x_dip(1:3)  ) )&
+                 + A1_quad(1)*double_cross_product_left( A3_mono(1:3), t%quadjx(1:3), A3_mono(1:3)  )       &
+                 
+                 + half*( t%quadjy(1:3)*( -A1_quad(2) + phi_quad(2) ) )                                     &! Quadrupole - yy
+                 + A1_mono*( double_cross_product_left( A3yy_quad(1:3), t%quadjy(1:3), A3_mono(1:3)  ) )    &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%quadjy(1:3), A3yy_quad(1:3)  ) )    &
+                 + A1_mono*( two*double_cross_product_left( A3y_dip(1:3), t%quadjy(1:3), A3y_dip(1:3)  ) )  &
+                 
+                 + two*A1_dip(2)*( double_cross_product_left( A3y_dip(1:3), t%quadjy(1:3), A3_mono(1:3)  ) )&
+                 + two*A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%quadjy(1:3), A3y_dip(1:3)  ) )&
+                 + A1_quad(2)*double_cross_product_left( A3_mono(1:3), t%quadjy(1:3), A3_mono(1:3)  )       &
+                 
+                 + half*( t%quadjxy(1:3)*( -A1_quad(3) + phi_quad(3) ) )                                    &! Quadrupole - xy
+                 + A1_mono*( double_cross_product_left( A3xy_quad(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) )   &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%quadjxy(1:3), A3xy_quad(1:3)  ) )   &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%quadjxy(1:3), A3y_dip(1:3)  ) )     &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%quadjxy(1:3), A3x_dip(1:3)  ) )     &
+!                 
+                 + A1_dip(1)*( double_cross_product_left( A3y_dip(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%quadjxy(1:3), A3y_dip(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3x_dip(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%quadjxy(1:3), A3x_dip(1:3)  ) )  &
+                 + A1_quad(3)*double_cross_product_left( A3_mono(1:3) , t%quadjxy(1:3), A3_mono(1:3)  )     
+!                 
+      Axy(3)     = t%monoj(3)*phi_mono                                                                     &! Monopole
+                  +  t%dipjx(3)*phi_dip(1)   + t%dipjy(3)*phi_dip(2)                                       &! Dipole
+                  +  t%quadjx(3)*phi_quad(1) + t%quadjy(3)*phi_quad(2)                                     &! Quadrupole
+                  +  t%quadjxy(3)*phi_quad(3)                                                               ! Quadrupole 
+                  
+      Axy(1:3)   = half*Axy(1:3)
+      
+!       Axy = (t%monoj*phi_mono) 
+!       Axy = half * Axy
+      
+                 
+      gradxA(1:3)=  half*( t%monoj(1:3)*( -A1_dip(1) + phi_dip(1) ) )                                       &! Monopole 
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%monoj(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%monoj(1:3),A3x_dip(1:3)  ) )        &
+                 + A1_dip(1)*( double_cross_product_left(A3_mono(1:3), t%monoj(1:3),A3_mono(1:3)  ) )       &
+                 + half*( t%dipjx(1:3)*( -A1_quad(1) + phi_quad(1) ) )                                      &! Dipole - x 
+                 + A1_mono*( double_cross_product_left( A3xx_quad(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )     &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3xx_quad(1:3)  ) )     &
+                 + A1_quad(1)*double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3_mono(1:3)  )       &
+                 + two*A1_mono*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3x_dip(1:3)  ) )   & 
+                 + two*A1_dip(1)*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )&
+                 + two*A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3x_dip(1:3)  ) )&
+                 
+                 + half*( t%dipjy(1:3)*( -A1_quad(3) + phi_quad(3) ) )                                    &! Dipole - y
+                 + A1_mono*( double_cross_product_left( A3xy_quad(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )   &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3xy_quad(1:3)  ) )   &
+                 + A1_quad(3)*double_cross_product_left( A3_mono(1:3) , t%dipjy(1:3), A3_mono(1:3)  )    &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%dipjy(1:3), A3y_dip(1:3)  ) )     &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3x_dip(1:3)  ) )     &
+                 + A1_dip(1)*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3y_dip(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3x_dip(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3x_dip(1:3)  ) )  &
+                 
+                 + half*( t%quadjx(1:3)*( -A1_oct(1) - Exx_quad(1) ) )                                   &! Quadrupole - xx
+                 + A1_mono*( double_cross_product_left( A3xxx_oct(1:3), t%quadjx(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xxx_oct(1:3) ) ) &
+                 + A1_oct(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_quad(1)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_quad(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + three*A1_dip(1)*( double_cross_product_left( A3xx_quad(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xx_quad(1:3) ) ) &
+                 + three*A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3xx_quad(1:3) ) ) &
+                 + three*A1_mono*( double_cross_product_left( A3xx_quad(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + six  *A1_dip(1)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 
+                 + half*( t%quadjy(1:3)*( -A1_oct(3) - Exy_quad(2) ) )                                   &! Quadrupole - yy
+                 + A1_mono*( double_cross_product_left( A3xyy_oct(1:3), t%quadjy(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3xyy_oct(1:3) ) ) &
+                 + A1_oct(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(1)*( double_cross_product_left( A3yy_quad(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3yy_quad(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3yy_quad(1:3),  t%quadjy(1:3), A3x_dip(1:3) ) ) &
+                 + A1_quad(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjy(1:3), A3yy_quad(1:3) ) ) &
+                 + A1_quad(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3xy_quad(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3xy_quad(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3xy_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3xy_quad(1:3) ) ) &
+                 
+                 + half*( t%quadjxy(1:3)*( -A1_oct(2) - Exy_quad(1) ) )                                   &! Quadrupole - xy
+                 + A1_mono*( double_cross_product_left( A3xxy_oct(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xxy_oct(1:3) ) ) &
+                 + A1_oct(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(2)*( double_cross_product_left( A3xx_quad(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3xx_quad(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3xx_quad(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + A1_quad(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_quad(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xx_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3xy_quad(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3xy_quad(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3xy_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xy_quad(1:3) ) ) 
+                  
+                 
+                 
+      gradxA(3)  = t%monoj(3)*phi_dip(1)                                                                    &! Monopole
+                   + t%dipjx(3)*phi_quad(1)   + t%dipjy(3)*phi_quad(3)                                      &! Dipole
+                   -  t%quadjx(3)*Exx_quad(1) - t%quadjy(3)*Eyy_quad(1)                                     &! Quadrupole
+                   -  t%quadjxy(3)*Exx_quad(2)                                                               ! Quadrupole 
+                  
+      gradyA(1:3)= half*( t%monoj(1:3)*( -A1_dip(2) + phi_dip(2) ) )                                        &! Monopole 
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%monoj(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%monoj(1:3),A3y_dip(1:3)  ) )        &
+                 + A1_dip(2)*( double_cross_product_left(A3_mono(1:3), t%monoj(1:3),A3_mono(1:3)  ) )       &
+                 
+                 + half*( t%dipjx(1:3)*( -A1_quad(3) + phi_quad(3) ) )                                    &! Dipole - x
+                 + A1_mono*( double_cross_product_left( A3xy_quad(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )   &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3xy_quad(1:3)  ) )   &
+                 + A1_quad(3)*double_cross_product_left( A3_mono(1:3) , t%dipjx(1:3), A3_mono(1:3)  )    &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3y_dip(1:3)  ) )     &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%dipjx(1:3), A3x_dip(1:3)  ) )     &
+                 + A1_dip(1)*( double_cross_product_left( A3y_dip(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3y_dip(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3x_dip(1:3), t%dipjx(1:3), A3_mono(1:3)  ) )  &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%dipjx(1:3), A3x_dip(1:3)  ) )  &
+                 
+                 + half*( t%dipjy(1:3)*( -A1_quad(2) + phi_quad(2) ) )                                     &! Dipole - y
+                 + A1_mono*( double_cross_product_left( A3yy_quad(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )    &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3yy_quad(1:3)  ) )    &
+                 + A1_quad(2)*double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3_mono(1:3)  )       &
+                 + two*A1_mono*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3y_dip(1:3)  ) )  &
+                 + two*A1_dip(2)*( double_cross_product_left( A3y_dip(1:3), t%dipjy(1:3), A3_mono(1:3)  ) )&
+                 + two*A1_dip(2)*( double_cross_product_left( A3_mono(1:3), t%dipjy(1:3), A3y_dip(1:3)  ) )&
+                 
+                 + half*( t%quadjx(1:3)*( -A1_oct(2) - Exy_quad(1) ) )                                   &! Quadrupole - xx
+                 + A1_mono*( double_cross_product_left( A3xxy_oct(1:3), t%quadjx(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xxy_oct(1:3) ) ) &
+                 + A1_oct(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(2)*( double_cross_product_left( A3xx_quad(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjx(1:3), A3xx_quad(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3xx_quad(1:3),  t%quadjx(1:3), A3y_dip(1:3) ) ) &
+                 + A1_quad(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + A1_quad(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3y_dip(1:3) ) ) &
+                 + A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xx_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3xy_quad(1:3),  t%quadjx(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3xy_quad(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjx(1:3), A3xy_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjx(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjx(1:3), A3xy_quad(1:3) ) ) &
+                 
+                 + half*( t%quadjy(1:3)*( -A1_oct(4) - Eyy_quad(2) ) )                                   &! Quadrupole - yy
+                 + A1_mono*( double_cross_product_left( A3yyy_oct(1:3), t%quadjy(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3yyy_oct(1:3) ) ) &
+                 + A1_oct(4)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_quad(2)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_quad(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + three*A1_dip(2)*( double_cross_product_left( A3yy_quad(1:3),  t%quadjy(1:3), A3_mono(1:3) ) ) &
+                 + three*A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjy(1:3), A3yy_quad(1:3) ) ) &
+                 + three*A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3yy_quad(1:3) ) ) &
+                 + three*A1_mono*( double_cross_product_left( A3yy_quad(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &
+                 + six  *A1_dip(2)*( double_cross_product_left( A3y_dip(1:3),  t%quadjy(1:3), A3y_dip(1:3) ) ) &  
+                 
+                 + half*( t%quadjxy(1:3)*( -A1_oct(3) - Exy_quad(2) ) )                                   &! Quadrupole - xy
+                 + A1_mono*( double_cross_product_left( A3xyy_oct(1:3), t%quadjxy(1:3), A3_mono(1:3)  ) ) &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xyy_oct(1:3) ) ) &
+                 + A1_oct(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(1)*( double_cross_product_left( A3yy_quad(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_dip(1)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3yy_quad(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3yy_quad(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + A1_quad(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3yy_quad(1:3) ) ) &
+                 + A1_quad(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3xy_quad(1:3),  t%quadjxy(1:3), A3_mono(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3x_dip(1:3) ) ) &
+                 + two*A1_dip(1)*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3xy_quad(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_mono*( double_cross_product_left( A3y_dip(1:3),  t%quadjxy(1:3), A3xy_quad(1:3) ) ) &
+                 + two*A1_quad(3)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3x_dip(1:3),  t%quadjxy(1:3), A3y_dip(1:3) ) ) &
+                 + two*A1_dip(2)*( double_cross_product_left( A3_mono(1:3),  t%quadjxy(1:3), A3xy_quad(1:3) ) ) 
+      
+      gradyA(3)  = t%monoj(3)*phi_dip(2)                                                                     &! Monopole
+                   + t%dipjx(3)*phi_quad(3)  + t%dipjy(3)*phi_quad(2)                                        &! Dipole
+                   - t%quadjx(3)*Exx_quad(2) - t%quadjy(3)*Eyy_quad(2)                                       &! Quadrupole
+                   - t%quadjxy(3)*Exy_quad(2)                                                                 ! Quadrupole 
+                   
+      gradxA(1:3)= half*gradxA(1:3)
+      gradyA(1:3)= half*gradyA(1:3)
+      
+      
+    end subroutine calc_force_darwin_2D3V
       
       phi        = ( t%charge*phi_mono      )                                                              &! Monopole
                   +( dot_product(t%dip(1:2),phi_dip(1:2) ) )                                               &! Dipole
@@ -1013,6 +1563,7 @@ module module_coulomb_kernels
 
 
     subroutine calc_force_darwin_3D(t, d, d2,eps2, exyz, Axyz, Jxyz, Jirrxyz, Bxyz, phi)
+      implicit none
       use module_globals, only: vtilde  
       implicit none
 
@@ -1438,6 +1989,13 @@ module module_coulomb_kernels
       Jirrxyz        = half*Jirrxyz
       Axyz           = half*Axyz
       
+      phi            = half*phi
+      exyz           = half*exyz
+      Jxyz           = half*Jxyz
+      Bxyz           = half*Bxyz
+      Jirrxyz        = half*Jirrxyz
+      Axyz           = half*Axyz
+      
       Axyz           =  Axyz/vtilde  
       Bxyz           =  Bxyz/vtilde
 
@@ -1534,6 +2092,8 @@ module module_coulomb_kernels
 
 
     subroutine calc_force_darwin_2D_direct(t, d, d2,eps2, exy, Axy, Jxy, Jirrxy, Bz, phi, gradxA, gradyA)
+      use module_tool   , only: cross_product,double_cross_product_left
+    subroutine calc_force_darwin_2D_direct(t, d, d2,eps2, exy, Axy, Jxy, Jirrxy, Bz, phi, gradxA, gradyA)
       use module_globals, only: vtilde 
       use module_tool   , only: cross_product,double_cross_product_left
       implicit none
@@ -1613,6 +2173,62 @@ module module_coulomb_kernels
                  
       Bxy(1:3)   = cross_product(t%monoj(1:3), E_mono(1:3) )   
                   
+      Bxy(1:3)   = half*Bxy(1:3)  
+      
+      Axy(1:3)   = half*t%monoj(1:3)*( one - A1_mono - log(d2)  )                                            &
+                 + A1_mono*double_cross_product_left( A3_mono(1:3), t%monoj(1:3), A3_mono(1:3)  )  
+!                 
+!      Axy(3)     = t%monoj(3)*phi_mono       ! this is for testing periodic bc - for uniform velocity A must be proportional to phi
+                  
+      Axy(1:3)   = half*Axy(1:3)
+      
+      
+                 
+      gradxA(1:3)=  half*( t%monoj(1:3)*( -A1_dip(1) + phi_dip(1) ) )                                       &! Monopole 
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%monoj(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%monoj(1:3),A3x_dip(1:3)  ) )        &
+                 + A1_dip(1)*( double_cross_product_left(A3_mono(1:3), t%monoj(1:3),A3_mono(1:3)  ) )       &
+                 + half*( t%dipjx(1:3)*( -A1_quad(1) + phi_quad(1) ) )                                      
+                 
+                  
+      gradyA(1:3)= half*( t%monoj(1:3)*( -A1_dip(2) + phi_dip(2) ) )                                        &! Monopole 
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%monoj(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%monoj(1:3),A3y_dip(1:3)  ) )        &
+                 + A1_dip(2)*( double_cross_product_left(A3_mono(1:3), t%monoj(1:3),A3_mono(1:3)  ) )                  
+      
+      gradxA(1:3)= half*gradxA(1:3)
+      gradyA(1:3)= half*gradyA(1:3)           
+      E_mono(1:2)= -phi_dip
+      E_mono(3)  =  zero
+      A1_mono    =  logR2e - one
+      A1_dip(1:2)=  two*eps2*d(1:2)*rd2*over2 - two*over2*logR2e*d(1:2)
+      
+      
+      A3_mono(1:3)  = over*dist(1:3)
+      A3x_dip(1)    = over - dx2*over*over2
+      A3x_dip(2)    =      - dx*dy*over*over2
+      A3x_dip(3)    = zero
+      A3y_dip(1)    =      - dx*dy*over*over2 
+      A3y_dip(2)    = over - dy2*over*over2
+      A3y_dip(3)    = zero
+      
+      phi        = ( t%charge*phi_mono      )                                                              ! Quadrupole
+      phi        = half*phi
+                   
+      exy(1:2)   = ( t%charge*E_mono(1:2)   )            
+      exy(1:2)   = half*exy(1:2)
+      
+      Jxy(1:3)   = ( t%monoj(1:3)*rho_mono )                
+      Jxy(1:3)   = half*eps2/pi*Jxy(1:3)
+                  
+                  
+      Jirrxy(1:3)= ( t%monoj(1:3)*(three*half*Jir_mono - eps2*rho_mono)                                     &
+                   + double_cross_product_left( E_mono(1:3), E_mono(1:3), t%monoj(1:3)  ) )!                 
+                 
+      Jirrxy(1:3)= half*oneoverpi*Jirrxy(1:3)
+                 
+      Bxy(1:3)   = cross_product(t%monoj(1:3), E_mono(1:3) )   
+                  
       Bxy(1:3)   = half/vtilde*Bxy(1:3)  
       
       Axy(1:3)   = half*t%monoj(1:3)*( one - A1_mono - log(d2)  )                                            &
@@ -1653,6 +2269,9 @@ module module_coulomb_kernels
 
 
 
+    subroutine calc_force_darwin_2D3V_direct(t, d, d2,eps2, exy, Axy, Jxy, Jirrxy, Bxy, phi, gradxA, gradyA )
+      use module_tool   , only: cross_product,double_cross_product_left
+      implicit none
     subroutine calc_force_darwin_2D3V_direct(t, d, d2,eps2, exy, Axy, Jxy, Jirrxy, Bxy, phi, gradxA, gradyA )
       use module_globals, only: vtilde 
       use module_tool   , only: cross_product,double_cross_product_left
@@ -1702,6 +2321,69 @@ module module_coulomb_kernels
       phi_quad(2)=  four*dy2*rd4 - two*rd2
       phi_quad(3)=  four*dy*dx*rd4 
 
+      E_mono(1:2)= -phi_dip
+      E_mono(3)  =  zero
+      A1_mono    =  logR2e - one
+      A1_dip(1:2)=  two*eps2*d(1:2)*rd2*over2 - two*over2*logR2e*d(1:2)
+      
+      
+      A3_mono(1:3)  = over*dist(1:3)
+      A3x_dip(1)    = over - dx2*over*over2
+      A3x_dip(2)    =      - dx*dy*over*over2
+      A3x_dip(3)    = zero
+      A3y_dip(1)    =      - dx*dy*over*over2 
+      A3y_dip(2)    = over - dy2*over*over2
+      A3y_dip(3)    = zero
+      
+      phi        = ( t%charge*phi_mono      )                                                              ! Quadrupole
+      phi        = half*phi
+      
+                   
+      exy(1:2)   = ( t%charge*E_mono(1:2)   )            
+      exy(1:2)   = half*exy(1:2)
+      
+      Jxy(1:3)   = ( t%monoj(1:3)*rho_mono )                
+      Jxy(1:3)   = half*eps2/pi*Jxy(1:3)
+                  
+                  
+      Jirrxy(1:3)= ( t%monoj(1:3)*(three*half*Jir_mono - eps2*rho_mono)                                     &
+                   + double_cross_product_left( E_mono(1:3), E_mono(1:3), t%monoj(1:3)  ) )!                 
+                 
+      Jirrxy(1:3)= half*oneoverpi*Jirrxy(1:3)
+                 
+      Bxy(1:3)   = cross_product(t%monoj(1:3), E_mono(1:3) )   
+                  
+      Bxy(1:3)   = half*Bxy(1:3)  
+      
+      Axy(1:3)   = half*t%monoj(1:3)*( one - A1_mono - log(d2)  )                                            &
+                 + A1_mono*double_cross_product_left( A3_mono(1:3), t%monoj(1:3), A3_mono(1:3)  )  
+!                 
+      Axy(3)     = t%monoj(3)*phi_mono                                                              ! Quadrupole 
+                  
+!      Axy = t%monoj(1:3)* phi_mono  ! this is for testing periodic bc - for uniform velocity A must be proportional to phi
+      Axy(1:3)   = half*Axy(1:3)
+      
+      
+                 
+      gradxA(1:3)=  half*( t%monoj(1:3)*( -A1_dip(1) + phi_dip(1) ) )                                       &! Monopole 
+                 + A1_mono*( double_cross_product_left( A3x_dip(1:3), t%monoj(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%monoj(1:3),A3x_dip(1:3)  ) )        &
+                 + A1_dip(1)*( double_cross_product_left(A3_mono(1:3), t%monoj(1:3),A3_mono(1:3)  ) )       &
+                 + half*( t%dipjx(1:3)*( -A1_quad(1) + phi_quad(1) ) )                                      
+                 
+      gradxA(3)  = t%monoj(3)*phi_dip(1)                                                                     
+                  
+      gradyA(1:3)= half*( t%monoj(1:3)*( -A1_dip(2) + phi_dip(2) ) )                                        &! Monopole 
+                 + A1_mono*( double_cross_product_left( A3y_dip(1:3), t%monoj(1:3), A3_mono(1:3)  ) )       &
+                 + A1_mono*( double_cross_product_left( A3_mono(1:3), t%monoj(1:3),A3y_dip(1:3)  ) )        &
+                 + A1_dip(2)*( double_cross_product_left(A3_mono(1:3), t%monoj(1:3),A3_mono(1:3)  ) )                  
+      
+      gradyA(3)  = t%monoj(3)*phi_dip(2)                                                                     
+      
+      gradxA(1:3)= half*gradxA(1:3)
+      gradyA(1:3)= half*gradyA(1:3)
+      
+      
       E_mono(1:2)= -phi_dip
       E_mono(3)  =  zero
       A1_mono    =  logR2e - one
@@ -1810,6 +2492,12 @@ module module_coulomb_kernels
       Axyz(1:3)     = one *t%monoj(1:3)*( rd - half*rEps*over2 + half*eps2*over3*asinh( sqrt( r2/eps2 ) )  ) &
                     - half *over4*eps2*d(1:3)*( three*over*asinh( sqrt( r2/eps2 ) ) - ( r2/eps2 + three )*rd )*v_dot_x_mono
 
+      phi            = half*phi
+      exyz           = half*exyz
+      Jxyz           = half*Jxyz
+      Bxyz           = half*Bxyz
+      Jirrxyz        = half*Jirrxyz
+      Axyz           = half*Axyz
       phi            = half*phi
       exyz           = half*exyz
       Jxyz           = half*Jxyz
