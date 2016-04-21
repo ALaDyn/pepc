@@ -155,7 +155,7 @@ module module_init
   subroutine langmuir_waves(p,field_grid)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
     use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t  
+    use encap         , only: field_grid_t
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)
@@ -238,7 +238,7 @@ module module_init
   subroutine weibell_instability(p,field_grid)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp,root
     use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t  
+    use encap         , only: field_grid_t
     implicit none
     include 'mpif.h'
 
@@ -294,8 +294,7 @@ module module_init
 !        if ( x(1)**2 + x(2)**2 .le. r0**2 ) then
 !            
 !            ipl                = ipl +1
-            p(ipl)%data%q                      = -one
-            if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
+            p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
             p(ipl)%data%m      =  mi/me
 
             p(ipl)%label       = 1
@@ -379,7 +378,7 @@ module module_init
   subroutine weibell_instability_equilibrium(p,field_grid)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp,root
     use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t  
+    use encap         , only: field_grid_t
     implicit none
     include 'mpif.h'
 
@@ -447,7 +446,7 @@ module module_init
   subroutine neutral_plasma(p,field_grid)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp,root
     use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t  
+    use encap         , only: field_grid_t
     implicit none
     include 'mpif.h'
 
@@ -509,8 +508,7 @@ module module_init
 
   end subroutine neutral_plasma
   
-    
-  subroutine periodic_test(p,field_grid)
+    subroutine periodic_test(p,field_grid)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
     use module_tool   , only: random_gauss
     use zufall        , only: random_gaussian_flux
@@ -668,7 +666,7 @@ module module_init
 
   subroutine beam(p)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use zufall, only: random_gaussian_flux
+    use zufall        , only: random_gaussian_flux
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)
@@ -733,8 +731,8 @@ module module_init
 
   subroutine beam_disk(p)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool, only: random_gauss
-    use zufall, only: random_gaussian_flux
+    use module_tool   , only: random_gauss
+    use zufall        , only: random_gaussian_flux
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)
@@ -806,8 +804,8 @@ module module_init
   
   subroutine solenoid_infinite(p)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool, only: random_gauss
-    use zufall, only: random_gaussian_flux
+    use module_tool   , only: random_gauss
+    use zufall        , only: random_gaussian_flux
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)
@@ -866,8 +864,8 @@ module module_init
   
   subroutine solenoid(p)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool, only: random_gauss
-    use zufall, only: random_gaussian_flux
+    use module_tool   , only: random_gauss
+    use zufall        , only: random_gaussian_flux
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)
@@ -916,7 +914,7 @@ module module_init
 
   subroutine thermal(p)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool, only: random_gauss
+    use module_tool   , only: random_gauss
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)
@@ -958,7 +956,7 @@ module module_init
 
   subroutine thermal2D3V(p)
     use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool, only: random_gauss
+    use module_tool   , only: random_gauss
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)

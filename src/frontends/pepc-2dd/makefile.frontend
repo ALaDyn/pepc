@@ -1,9 +1,6 @@
 FILES_L   = pepc-time.f90 tool.f90 \
 			module_helper.f90 encap.f90 field_helper.f90 \
 			module_globals.f90 init.f90         \
-FILES_L   = pepc-time.f90 tool.f90 \
-			module_helper.f90 encap.f90 field_helper.f90 \
-			module_globals.f90 init.f90         \
 			module_integration.f90 module_nk.f90 \
 			module_zufall.f90 shortcut.f90 \
 			diagnostic.f90
