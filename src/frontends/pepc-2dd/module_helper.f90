@@ -165,6 +165,10 @@ module helper
     bool_exp = ischeme .eq. "leapfrog"
     bool_nk  = ischeme .eq. "midpoint3D" .or. ischeme .eq. "trapezoidal3D" 
     bool_pic = ischeme .eq. "midpoint_picard" .or. ischeme .eq. "trapezoidal_picard" .or. &
+    ischeme .eq."midpoint_picard_electrostatic" .or. ischeme .eq."hamiltonian_boris"!.or. ischeme .eq. "trapezoidal_broyden"
+    bool_exp = ischeme .eq. "leapfrog"
+    bool_nk  = ischeme .eq. "midpoint3D" .or. ischeme .eq. "trapezoidal3D" 
+    bool_pic = ischeme .eq. "midpoint_picard" .or. ischeme .eq. "trapezoidal_picard" .or. &
     ischeme .eq."midpoint_picard_electrostatic" .or. ischeme .eq."hamiltonian_boris".or. ischeme .eq. "trapezoidal_broyden"
 
     adv = -1
@@ -275,6 +279,33 @@ subroutine init_particles(p,field_grid)
     ! set random seed
     dummy = par_rand(my_rank)
 
+    select case (initial_setup)
+          case (1)  ! Load State
+              call read_restart_2d(p,"restart_0_")
+          case (2)  !  Default initial setup - 2D random particles with thermal velocity
+              call thermal(p)
+          case (3)  ! initial setup - 2D random particles with 3D thermal velocity
+              call thermal2D3V(p)
+          case (4)  ! 2D Landau Damping
+              call landau_damping(p,field_grid)
+          case (5)  ! Langmuir waves
+              call langmuir_waves(p,field_grid)
+          case (6)  ! 1D beam
+              call beam(p)
+          case (7)  ! 1D beam
+              call beam_disk(p)
+          case (8)  ! 1D beam
+              call weibell_instability(p,field_grid)
+          case (9)  ! 1D beam
+              call solenoid(p)
+          case (10)  ! 1D beam
+              call solenoid_infinite(p) 
+          case (12)  ! 1D beam 
+              call neutral_plasma(p,field_grid)
+          case (13)  ! 1D beam 
+              call periodic_test(p,field_grid)
+          case default
+              call thermal(p)
     select case (initial_setup)
           case (1)  ! Load State
               call read_restart_2d(p,"restart_0_")
@@ -564,9 +595,22 @@ subroutine init_particles(p,field_grid)
     integer(kind_particle)       , intent(in)    :: np
 
     integer(kind_particle)                       :: ip
+!    real(kind_particle) ::err= zero
+    integer(kind_particle)                       :: ip
 
     do ip = 1,np
 
+        p(ip)%results%E(1:3)    = p(ip)%results%E(1:3)      *etilde
+        p(ip)%results%B(1:3)    = p(ip)%results%B(1:3)      *btilde/vtilde
+        p(ip)%results%A(1:3)    = p(ip)%results%A(1:3)      *atilde/vtilde
+        p(ip)%results%dxA(1:3)  = p(ip)%results%dxA(1:3)    *atilde/vtilde
+        p(ip)%results%dyA(1:3)  = p(ip)%results%dyA(1:3)    *atilde/vtilde
+        p(ip)%results%J(1:3)    = p(ip)%results%J(1:3)      *jtilde
+        p(ip)%results%Jirr(1:3) = p(ip)%results%Jirr(1:3)   *jtilde
+        p(ip)%results%pot       = p(ip)%results%pot         *phitilde
+!        p(ip)%results%rho       = p(ip)%results%rho         *rhotilde
+        
+!        err = err + ( p(ip)%data%v(1)/p(ip)%data%g*p(ip)%results%pot-p(ip)%results%A(1) )**2
         p(ip)%results%E(1:3)    = p(ip)%results%E(1:3)      *etilde
         p(ip)%results%B(1:3)    = p(ip)%results%B(1:3)      *btilde
         p(ip)%results%A(1:3)    = p(ip)%results%A(1:3)      *atilde
@@ -578,15 +622,35 @@ subroutine init_particles(p,field_grid)
 !        p(ip)%results%rho       = p(ip)%results%rho         *rhotilde
 
     enddo
+!    write(*,*) "errore2: ",err
+  end subroutine normalize
+  
+  subroutine inormalize(ip,np,p)
+    implicit none
+    enddo
 
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    integer(kind_particle)       , intent(in)    :: np,ip
   end subroutine normalize
   
   subroutine inormalize(ip,np,p)
     implicit none
 
+        p(ip)%results%E(1:3)    = p(ip)%results%E(1:3)      *etilde
+        p(ip)%results%B(1:3)    = p(ip)%results%B(1:3)      *btilde/vtilde
+        p(ip)%results%A(1:3)    = p(ip)%results%A(1:3)      *atilde/vtilde
+        p(ip)%results%dxA(1:3)  = p(ip)%results%dxA(1:3)    *atilde/vtilde
+        p(ip)%results%dyA(1:3)  = p(ip)%results%dyA(1:3)    *atilde/vtilde
+        p(ip)%results%J(1:3)    = p(ip)%results%J(1:3)      *jtilde
+        p(ip)%results%Jirr(1:3) = p(ip)%results%Jirr(1:3)   *jtilde
+        p(ip)%results%pot       = p(ip)%results%pot         *phitilde
+!        p(ip)%results%rho       = p(ip)%results%rho         *rhotilde
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle)       , intent(in)    :: np,ip
 
+  end subroutine inormalize
+  
+  
         p(ip)%results%E(1:3)    = p(ip)%results%E(1:3)      *etilde
         p(ip)%results%B(1:3)    = p(ip)%results%B(1:3)      *btilde
         p(ip)%results%A(1:3)    = p(ip)%results%A(1:3)      *atilde
@@ -1375,6 +1439,27 @@ subroutine init_particles(p,field_grid)
         end subroutine write_particles_vtk
         
         
+        subroutine write_particles_ascii_nospecies(itime, p)    
+            use module_pepc_types
+            use module_utils
+            use module_globals, only: folder
+            implicit none
+!            integer(kind_pe), intent(in) :: my_rank
+            integer(kind_default), intent(in)               :: itime
+            type(t_particle)     , intent(in), dimension(:) :: p
+            logical                                         :: firstcall  = .true.
+            character(50)                                   :: dir
+            character(100)                                  :: filename_i
+            integer(kind_particle)                          :: ip
+            
+            character(12), parameter                        :: part_dir = 'particles/'
+            integer, parameter :: filehandle_i = 40
+              call vtk_write_particle_data_results(d, r, vtkf)
+            end subroutine
+            
+        end subroutine write_particles_vtk
+        
+        
         subroutine write_particles_ascii(itime, p)    
             use module_pepc_types
             use module_utils
@@ -1400,12 +1485,86 @@ subroutine init_particles(p,field_grid)
               firstcall = .false.
             endif
             
+            write(filename_i,'(a,"particle_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
+            
+            open(filehandle_i, file=trim(filename_i), STATUS='REPLACE')
+            
+            do ip=1, size(p,kind=kind(ip))
+                write(filehandle_i,'(26(f8.3,x))') p(ip)%x(1:3), p(ip)%data%v(1:3), p(ip)%results%E(1:3),&
+                p(ip)%results%A(1:3), p(ip)%results%B(1:3), p(ip)%results%J(1:3),p(ip)%results%pot, p(ip)%data%g,&
+                p(ip)%results%dxA(1:3),p(ip)%results%dyA(1:3)
+            end do
+            close(filehandle_i)
+            
+            if (firstcall) then
+              call create_directory(trim(folder))
+              call create_directory(trim(folder)//trim(part_dir))
+              firstcall = .false.
+            endif
+            
             write(filename_i,'(a,"particle_ions_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
             write(filename_e,'(a,"particle_elec_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
             write(filename_b,'(a,"particle_beam_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
 
+        end subroutine
+        
+        
+        subroutine write_particles_ascii(itime, p)    
+            use module_pepc_types
+            use module_utils
+            use module_globals, only: folder
+            implicit none
+!            integer(kind_pe), intent(in) :: my_rank
+            integer(kind_default), intent(in)               :: itime
+            type(t_particle)     , intent(in), dimension(:) :: p
+            logical                                         :: firstcall  = .true.
+            character(50)                                   :: dir
+            character(100)                                  :: filename_i,filename_e,filename_b
+            integer(kind_particle)                          :: ip
+            
+            character(12), parameter                        :: part_dir = 'particles/'
+            integer, parameter :: filehandle_i = 40
+            integer, parameter :: filehandle_e = 41
+            integer, parameter :: filehandle_b = 42
             
 
+            
+            if (firstcall) then
+              call create_directory(trim(folder))
+              call create_directory(trim(folder)//trim(part_dir))
+              firstcall = .false.
+            endif
+            
+            write(filename_i,'(a,"particle_ions_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
+            write(filename_e,'(a,"particle_elec_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
+            write(filename_b,'(a,"particle_beam_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
+            open(filehandle_i, file=trim(filename_i), STATUS='REPLACE')
+            open(filehandle_e, file=trim(filename_e), STATUS='REPLACE')
+            open(filehandle_b, file=trim(filename_b), STATUS='REPLACE')
+            
+            do ip=1, size(p,kind=kind(ip))
+              if (p(ip)%label .eq. 1)  then
+                write(filehandle_i,'(26(f8.3,x))') p(ip)%x(1:3), p(ip)%data%v(1:3), p(ip)%results%E(1:3),&
+                p(ip)%results%A(1:3), p(ip)%results%B(1:3), p(ip)%results%J(1:3),p(ip)%results%pot, p(ip)%data%g,&
+                p(ip)%results%dxA(1:3),p(ip)%results%dyA(1:3)
+              else if (p(ip)%label .eq. -1) then
+                write(filehandle_e,'(26(f8.3,x),i12)') p(ip)%x(1:3), p(ip)%data%v(1:3), p(ip)%results%E(1:3),&
+                p(ip)%results%A(1:3), p(ip)%results%B(1:3), p(ip)%results%J(1:3),p(ip)%results%pot,  p(ip)%data%g,&
+                p(ip)%results%dxA(1:3),p(ip)%results%dyA(1:3)
+              else if (p(ip)%label .eq. 0) then
+                write(filehandle_b,'(26(f8.3,x),i12)') p(ip)%x(1:3), p(ip)%data%v(1:3), p(ip)%results%E(1:3),&
+                p(ip)%results%A(1:3), p(ip)%results%B(1:3), p(ip)%results%J(1:3),p(ip)%results%pot,  p(ip)%data%g,&
+                p(ip)%results%dxA(1:3),p(ip)%results%dyA(1:3)
+              endif
+            end do
+            close(filehandle_i)
+            close(filehandle_e)
+            close(filehandle_b)
+
+            
+
+        end subroutine
+  
             open(filehandle_i, file=trim(filename_i), STATUS='REPLACE')
             open(filehandle_e, file=trim(filename_e), STATUS='REPLACE')
             open(filehandle_b, file=trim(filename_b), STATUS='REPLACE')

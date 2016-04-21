@@ -132,9 +132,28 @@ program pepc
     call beam_rnv(tnp,particles,real(step, kind = kind_particle)*dt)
     call densities_weibel(np,particles,real(step, kind = kind_particle)*dt)
     
+    call write_particles_vtk(particles, step, step*dt)
     call copy_particle(particles,pold,np)
     call march(np,dt,particles,ischeme,adv)
 !    call write_particles(particles)
+    call write_particles_vtk(particles, step+1, (step+1)*dt)
+    dorestart = .false.!(mod( step , restart_step) .eq. 0).and.(step.ne.0)
+    if (dorestart)   call write_restart_2d(particles,int(step, kind=kind_particle))
+!    if ( (mod( step , diag_interval) .eq. 0) )   then 
+!        call compute_field(pepc_pars, field_grid, particles)
+!!        call write_field_on_grid_ascii(field_grid,step)
+!        call write_particles_ascii(step, particles)
+!        call write_field_on_grid(pepc_pars%pepc_comm, step, field_grid)
+!!        call write_particles(particles)
+!    end if
+    call beam_rnv(tnp,particles,real(step, kind = kind_particle)*dt)
+    call densities_weibel(np,particles,real(step, kind = kind_particle)*dt)
+    
+    call copy_particle(particles,pold,np)
+    call march(np,dt,particles,ischeme,adv)
+!    call write_particles(particles)
+
+!    if (  step  .le. 100 )    call write_particles(particles)
 
     dorestart = .false.!(mod( step , restart_step) .eq. 0).and.(step.ne.0)
     if (dorestart)   call write_restart_2d(particles,int(step, kind=kind_particle))

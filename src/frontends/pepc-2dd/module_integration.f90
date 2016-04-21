@@ -51,10 +51,20 @@ module module_integration
 
 
   type pv_particle
+    real(kind_physics), dimension(1:3) :: x, v
+    real(kind_physics)               :: gamma
+  end type pv_particle
+  type pv_particle
     real(kind_physics), dimension(3) :: x, v
     real(kind_physics)               :: gamma
   end type pv_particle
 
+  type pma_particle
+    real(kind_physics), dimension(1:3) :: x, P, A,dxA,dyA
+    real(kind_physics)                 :: gamma
+  end type pma_particle
+  
+   abstract interface
   type pma_particle
     real(kind_physics), dimension(3) :: x, P, A
     real(kind_physics)               :: gamma
@@ -93,6 +103,11 @@ module module_integration
         integer(kind_particle)          , intent(in)     :: np
         real(kind_particle)             , intent(in)     :: dt
         type(t_particle), allocatable   , intent(inout)  :: p(:)
+        integer(kind_particle)          , intent(out)    :: itc
+        real(kind_particle)             , intent(out)    :: tolg,ierr(1:3,1:5)
+        integer(kind_particle)          , intent(in)     :: np
+        real(kind_particle)             , intent(in)     :: dt
+        type(t_particle), allocatable   , intent(inout)  :: p(:)
         integer(kind_particle)          , intent(out)    :: ierr,itc
         real(kind_particle)             , intent(out)    :: tolg
 
@@ -117,6 +132,13 @@ module module_integration
         procedure (explicit_ptr)      , pointer      :: exp_ptr => null ()
         real(kind_particle)                          :: x_tn1(9*np) ! NK-Iteration
         real(kind_particle)                          :: res(9*np) ,static_gmres(3) ! Residual - NK-Iteration and statistics
+        integer(kind_particle)                       :: errmsg_nk,iter,rc=100    ! Picard Iteration
+        real(kind_particle)                          :: errnk,toll,errmsg(1:3,1:5)        ! Global Error - Picard Iteration
+        procedure (implicit_picardPtr), pointer      :: pic_ptr => null ()
+        procedure (implicit_nkPtr)    , pointer      :: nk_ptr  => null ()
+        procedure (explicit_ptr)      , pointer      :: exp_ptr => null ()
+        real(kind_particle)                          :: x_tn1(9*np) ! NK-Iteration
+        real(kind_particle)                          :: res(9*np) ,static_gmres(3) ! Residual - NK-Iteration and statistics
         integer(kind_particle)                       :: errmsg,iter,rc=100    ! Picard Iteration
         real(kind_particle)                          :: errnk        ! Global Error - Picard Iteration
 
@@ -136,6 +158,37 @@ module module_integration
 
             call exp_ptr(np,dt,p)
 
+        elseif (adv.eq.1) then
+            select case (ischeme)
+!                case ("midpoint_picard")
+!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Midpoint Picard"
+!                    pic_ptr => midpoint
+!                case ("midpoint_picard_electrostatic")
+!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Midpoint Picard Electrostatic"
+!                    pic_ptr => midpoint_electrostatic
+                case ("trapezoidal_picard")
+                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Trapezoidal_picard"
+                    pic_ptr => trapezoidal
+!                case ("trapezoidal_broyden")
+!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Trapezoidal_picard"
+!                    pic_ptr => trapezoidal_broyden
+!                case ("hamiltonian_boris")
+!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Boris - Hamiltonian Integrator"
+!                    pic_ptr => hamiltonian_boris 
+!                case default
+!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Boris - Hamiltonian Integrator"
+!                    pic_ptr => hamiltonian_boris    
+                    
+                end select
+                call pic_ptr(np,dt,p,errmsg,iter,errnk)
+                
+                if (root) then
+!                    write(*,'(a,i4,2x,es12.4,es12.4,es12.4,es12.4,es12.4,es12.4)') " == Resual : ", iter,errnk,errmsg
+                    write(*,'(a,i4,2x,es12.4)') " == Resual : ", iter,errnk
+                    open(unit=rc,file=trim(folder)//trim("residuo_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+                    write(rc,*) iter,errnk,errmsg(:,1),errmsg(:,2),errmsg(:,3),errmsg(:,4),errmsg(:,5)
+                    close (rc )
+                endif
         elseif (adv.eq.1) then
             select case (ischeme)
                 case ("midpoint_picard")
@@ -169,6 +222,26 @@ module module_integration
 
         elseif (adv.eq.2) then
 
+            select case (ischeme)
+                case ("midpoint3D")
+                    nk_ptr => midpoint3D
+                case ("trapezoidal3D")
+                    nk_ptr => trapezoidal3D
+                case default
+                    nk_ptr => midpoint3D
+                end select
+                call nsolgm(np,dt,p,nk_ptr,errmsg_nk,iter,errnk,static_gmres)
+                
+                if (root) then
+                    write(*,'(a,es12.4)') " == Resual : ", iter,errnk,errmsg_nk
+                    open(unit=rc,file=trim(folder)//trim("residuo_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+                    write(rc,*) errmsg_nk,iter,errnk
+                    close (rc )
+                endif
+                
+        elseif (adv.eq.-1) then
+            if (my_rank.eq. 0) write(*,'(a)')        " ====== Wrong choice of time integrator"
+            call exit(1)
             select case (ischeme)
                 case ("midpoint3D")
                     nk_ptr => midpoint3D
@@ -431,6 +504,11 @@ module module_integration
 
   end subroutine trapezoidal3D
 
+    subroutine midpoint(np,dt,p,ierr,itc,toll)
+    use module_tool   , only: cross_product
+    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,lorentz_tilde,vtilde,periodicity_particles
+    use helper        , only: iperiodic_particles,inormalize
+    use module_pepc
     subroutine midpoint(np,dt,p,ierr,itc,tolg)
     use module_tool   , only: cross_product
     use module_globals, only: root,my_rank,ixdim,ivdim,tnp,lorentz_tilde,vtilde,periodicity_particles
@@ -444,9 +522,19 @@ module module_integration
     integer(kind_particle)                           :: n
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)
+    integer(kind_particle)          , intent(out)    :: itc
+    real(kind_particle)             , intent(out)    :: toll,ierr(1:5)
+    integer(kind_particle)          , intent(in)     :: np
+    integer(kind_particle)                           :: n
+    real(kind_particle)             , intent(in)     :: dt
+    type(t_particle), allocatable   , intent(inout)  :: p(:)
     integer(kind_particle)          , intent(out)    :: ierr,itc
     real(kind_particle)             , intent(out)    :: tolg
 
+    real(kind_particle)                              :: e,m,stop_tol,alpha,rot(3),grad(3),v(3),err_x,err_v,err_A,err_dxA,err_dyA
+    type(t_particle), allocatable                    :: r(:)
+    type(pma_particle), allocatable                  :: x(:)
+    integer(kind_particle)                           :: rc,ip,maxit
     real(kind_particle)                              :: e,m,toll,stop_tol,alpha,rot(3),grad(3),v(3)
     type(t_particle), allocatable                    :: r(:)
     type(pma_particle), allocatable                  :: x(:)
@@ -457,6 +545,11 @@ module module_integration
     allocate( r(np), stat=rc )
     allocate( x(np), stat=rc )
 
+    ierr            = 0
+    itc             = 0
+    maxit           = 100
+    toll            = one
+    stop_tol        = prec!tentominusseven!prec
     ierr            = 0
     itc             = 0
     maxit           = 100
@@ -481,8 +574,992 @@ module module_integration
     ! main iteration loop
     !
 
+    do while(toll .gt. stop_tol .and. itc .lt. maxit)
     do while(tolg .gt. stop_tol .and. itc .lt. maxit)
 
+        itc = itc + 1
+
+            do ip = 1,np
+
+              e                 =  p(ip)%data%q
+              m                 =  p(ip)%data%m
+
+              v                 = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
+              r(ip)%data%g      = sqrt( one + dot_product(v/vtilde,v/vtilde) ) + p(ip)%data%g
+              
+              r(ip)%data%v      = (v + p(ip)%data%v)!/( p(ip)%data%g + r(ip)%data%g ) ! p(ip)%data%v == gamma*v
+
+              r(ip)%x           = half*(x(ip)%x + p(ip)%x)
+              r(ip)%x(3)        = zero
+
+              r(ip)%label       = p(ip)%label
+              r(ip)%data%q      = e
+              r(ip)%data%m      = m
+
+              r(ip)%results%e   = zero
+              r(ip)%results%pot = zero
+              r(ip)%results%B   = zero
+              r(ip)%results%A   = zero
+              r(ip)%results%dxA = zero
+              r(ip)%results%dyA = zero
+              r(ip)%results%Jirr= zero
+              r(ip)%results%J   = zero
+              r(ip)%work        = one
+              
+              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+
+            enddo
+
+
+        !!! Update fields
+
+            call pepc_particleresults_clear(r)
+            call pepc_grow_tree(r)
+            call pepc_traverse_tree(r)
+            call pepc_restore_particles(r)
+            call pepc_timber_tree()
+
+            toll = zero
+
+            do ip = 1,np
+
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+
+              r(ip)%x           = p(ip)%x +      dt*r(ip)%data%v
+              r(ip)%x(3)        = zero
+              
+              call  inormalize(ip,np,r)
+              
+              rot               = cross_product( r(ip)%data%v, r(ip)%results%B )
+              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1)
+              grad(2)           = v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
+              grad(3)           = v(1)*r(ip)%results%dxA(3) + v(2)*r(ip)%results%dyA(3)
+              
+              rot               = rot/r(ip)%data%g/lorentz_tilde
+              grad              = grad/r(ip)%data%g/lorentz_tilde
+              
+              r(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A + dt*e*( r(ip)%results%E + rot + grad )
+
+              err_x             = dot_product(r(ip)%x               - x(ip)%x        , r(ip)%x                - x(ip)%x)  
+              err_v             = dot_product(r(ip)%data%v(1:3)     - x(ip)%P(1:3)   , r(ip)%data%v(1:3)      - x(ip)%P(1:3))
+              err_A             = dot_product(r(ip)%results%A(1:3)  - x(ip)%A(1:3)   , r(ip)%results%A(1:3)   - x(ip)%A(1:3))
+              err_dxA           = zero!dot_product(r(ip)%results%dxA(1:3)- x(ip)%dxA(1:3) , r(ip)%results%dxA(1:3) - x(ip)%dxA(1:3))
+              err_dyA           = zero!dot_product(r(ip)%results%dyA(1:3)- x(ip)%dyA(1:3) , r(ip)%results%dyA(1:3) - x(ip)%dyA(1:3)) 
+
+              if (periodicity_particles) call iperiodic_particles(ip,np,r)                         
+              x(ip)%P           =  r(ip)%data%v
+              x(ip)%x           =  r(ip)%x
+              x(ip)%x(3)        =  zero
+              x(ip)%A           =  r(ip)%results%A
+
+              
+            enddo
+
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            
+            
+            toll = err_x + err_v + err_A + err_dxA + err_dyA
+            toll = sqrt(toll)/real(tnp,kind=kind_particle)
+
+
+    enddo
+ 
+    ierr(1) = err_x
+    ierr(2) = err_v
+    ierr(3) = err_A
+    ierr(4) = err_dxA
+    ierr(5) = err_dyA
+          
+
+    do ip = 1,np
+
+        e                 = p(ip)%data%q
+        m                 = p(ip)%data%m
+
+        p(ip)%data%v      = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
+        p(ip)%data%g      = sqrt( one + dot_product(p(ip)%data%v/vtilde,p(ip)%data%v/vtilde) )
+        p(ip)%data%v      = p(ip)%data%v
+        p(ip)%x           = x(ip)%x + dt*p(ip)%data%v/p(ip)%data%g
+        p(ip)%x(3)        = zero
+        if (periodicity_particles) call iperiodic_particles(ip,np,p)
+
+    enddo
+
+    deallocate( r,x )
+
+
+    end subroutine midpoint
+    
+    
+    subroutine midpoint_electrostatic(np,dt,p,ierr,itc,toll)
+    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,periodicity_particles
+    use helper        , only: iperiodic_particles,inormalize
+    use module_pepc
+
+    implicit none
+    include 'mpif.h'
+
+    integer(kind_particle)          , intent(in)     :: np
+    integer(kind_particle)                           :: n
+    real(kind_particle)             , intent(in)     :: dt
+    type(t_particle), allocatable   , intent(inout)  :: p(:)
+    integer(kind_particle)          , intent(out)    :: itc
+    real(kind_particle)             , intent(out)    :: toll,ierr(1:5)
+
+    real(kind_particle)                              :: e,m,stop_tol,v(3),err_x,err_v,err_A,err_dxA,err_dyA
+    type(t_particle), allocatable                    :: r(:)
+    type(pma_particle), allocatable                  :: x(:)
+    integer(kind_particle)                           :: rc,ip,maxit
+
+    if (allocated(r)) deallocate(r)
+    if (allocated(x)) deallocate(x)
+    allocate( r(np), stat=rc )
+    allocate( x(np), stat=rc )
+
+    ierr            = 0
+    itc             = 0
+    maxit           = 100
+    toll            = one
+    stop_tol        = prec!prec
+
+
+    !!! Initial Guess
+    do ip = 1,np
+
+            e                 =  p(ip)%data%q
+
+            x(ip)%P           =  p(ip)%data%v
+            x(ip)%x           =  p(ip)%x 
+
+            r(ip)%label       =  p(ip)%label
+            r(ip)%data%q      =  e
+            r(ip)%data%m      =  m
+            
+    enddo
+    ! main iteration loop
+    !
+
+    do while(toll .gt. stop_tol .and. itc .lt. maxit)
+
+        itc = itc + 1
+
+            do ip = 1,np
+
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m 
+
+              v                 = x(ip)%P
+              
+              r(ip)%data%g      = sqrt(one + dot_product(v/vtilde,v/vtilde) )
+              r(ip)%data%v      = v!half*(v       + p(ip)%data%v)
+              r(ip)%x           = x(ip)%x!half*(x(ip)%x + p(ip)%x     )
+              r(ip)%x(3)        = zero
+
+              r(ip)%label       = p(ip)%label
+              r(ip)%data%q      = e
+              r(ip)%data%m      = m
+
+              r(ip)%results%E   = zero
+              r(ip)%results%pot = zero
+              r(ip)%results%B   = zero
+              r(ip)%results%A   = zero
+              r(ip)%results%dxA = zero
+              r(ip)%results%dyA = zero
+              r(ip)%results%Jirr= zero
+              r(ip)%results%J   = zero
+              r(ip)%work        = one
+              
+              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+
+            enddo
+
+
+        !!! Update fields
+
+            call pepc_particleresults_clear(r)
+            call pepc_grow_tree(r)
+            call pepc_traverse_tree(r)
+            call pepc_restore_particles(r)
+            call pepc_timber_tree()
+
+            toll = zero
+
+            do ip = 1,np
+
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+              
+              call  inormalize(ip,np,r)
+
+              r(ip)%data%v      = p(ip)%data%v  + half*dt*e/m*( r(ip)%results%E +  p(ip)%results%E ) 
+              r(ip)%x           = p(ip)%x             + dt*    ( r(ip)%data%v    +  p(ip)%data%v    )/( r(ip)%data%g + p(ip)%data%g  ) 
+              r(ip)%x(3)        = zero
+
+
+              err_x             = dot_product(r(ip)%x               - x(ip)%x        , r(ip)%x                - x(ip)%x)  
+              err_v             = dot_product(r(ip)%data%v(1:3)     - x(ip)%P(1:3)   , r(ip)%data%v(1:3)      - x(ip)%P(1:3))
+              err_A             = zero!dot_product(r(ip)%results%A(1:3)  - x(ip)%A(1:3)   , r(ip)%results%A(1:3)   - x(ip)%A(1:3))
+              err_dxA           = zero!dot_product(r(ip)%results%dxA(1:3)- x(ip)%dxA(1:3) , r(ip)%results%dxA(1:3) - x(ip)%dxA(1:3))
+              err_dyA           = zero!dot_product(r(ip)%results%dyA(1:3)- x(ip)%dyA(1:3) , r(ip)%results%dyA(1:3) - x(ip)%dyA(1:3))     
+                                       
+              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+              x(ip)%P           =  r(ip)%data%v
+              x(ip)%x           =  r(ip)%x
+              x(ip)%x(3)        =  zero
+
+              
+            enddo
+
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            
+            
+            toll = err_x + err_v + err_A + err_dxA + err_dyA
+            toll = sqrt(toll)/real(tnp,kind=kind_particle)
+
+    enddo
+
+    ierr(1) = err_x
+    ierr(2) = err_v
+    ierr(3) = err_A
+    ierr(4) = err_dxA
+    ierr(5) = err_dyA
+    
+
+    do ip = 1,np
+
+        p(ip)%x           = x(ip)%x + dt*( p(ip)%data%v + x(ip)%P )/( p(ip)%data%g + r(ip)%data%g )  
+        p(ip)%x(3)        = zero
+        p(ip)%data%v      = ( x(ip)%P  )
+        p(ip)%data%g      = sqrt( one + dot_product(p(ip)%data%v/vtilde,p(ip)%data%v/vtilde) )
+          
+        
+        
+        if (periodicity_particles) call iperiodic_particles(ip,np,p)
+
+    enddo
+
+    deallocate( r,x )
+
+
+    end subroutine midpoint_electrostatic
+
+
+
+    subroutine trapezoidal(np,dt,p,ierr,itc,toll)
+    use module_tool   , only: cross_product
+    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,periodicity_particles
+    use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
+    use module_pepc
+
+    implicit none
+    include 'mpif.h'
+
+    integer(kind_particle)          , intent(in)     :: np
+    integer(kind_particle)                           :: n
+    real(kind_particle)             , intent(in)     :: dt
+    type(t_particle), allocatable   , intent(inout)  :: p(:)
+    integer(kind_particle)          , intent(out)    :: itc
+    real(kind_particle)             , intent(out)    :: toll,ierr(1:3,1:5)
+
+    real(kind_particle)                              :: e,m,stop_tol,alpha,v(1:3),grad(1:3),err_x(1:3),err_v(1:3),err_A(1:3),err_dxA(1:3),err_dyA(1:3)!,rot(1:3)
+    type(t_particle), allocatable                    :: r(:)!,error(:)
+    type(pma_particle), allocatable                  :: x(:)
+    integer(kind_particle)                           :: rc,ip,j,maxit
+
+    if (allocated(r)) deallocate(r)
+    if (allocated(x)) deallocate(x)
+!    if (allocated(error)) deallocate(error)
+    allocate( r(np), stat=rc )
+    allocate( x(np), stat=rc )
+!    allocate( error(np), stat=rc )
+
+    ierr            = 0
+    itc             = 0
+    maxit           = 6
+    toll            = one
+    stop_tol        = tentominusnine!prec!tentominusseven!prec
+
+
+    !!! Initial Guess
+    do ip = 1,np
+
+            e            =  p(ip)%data%q
+            m            =  p(ip)%data%m
+
+            x(ip)%P      =  m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A
+            x(ip)%x      =  p(ip)%x 
+            x(ip)%x(3)   =  zero
+            x(ip)%A      =  p(ip)%results%A
+            x(ip)%dxA    =  p(ip)%results%dxA
+            x(ip)%dyA    =  p(ip)%results%dyA
+
+            r(ip)%label       = p(ip)%label
+            r(ip)%data%q      = e
+            r(ip)%data%m      = m
+    enddo
+    ! main iteration loop
+    !
+
+    do while(toll .gt. stop_tol .and. itc .lt. maxit)
+
+        itc = itc + 1
+
+            do ip = 1,np
+
+              e                 =  p(ip)%data%q
+              m                 =  p(ip)%data%m
+
+              r(ip)%data%v      = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
+!              if ( r(ip)%label .eq. 1 ) r(ip)%data%v = zero
+              r(ip)%data%g      = sqrt( one + dot_product(r(ip)%data%v/vtilde,r(ip)%data%v/vtilde) )
+              r(ip)%x           = x(ip)%x
+              r(ip)%x(3)        = zero
+
+              r(ip)%label       = p(ip)%label
+              r(ip)%results%E   = zero
+              r(ip)%results%pot = zero
+              r(ip)%results%B   = zero
+              r(ip)%results%A   = zero
+              r(ip)%results%dxA = zero
+              r(ip)%results%dyA = zero
+              r(ip)%results%Jirr= zero
+              r(ip)%results%J   = zero
+              r(ip)%work        = one
+              
+              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+
+            enddo
+
+
+        !!! Update fields
+
+            call pepc_particleresults_clear(r)
+            call pepc_grow_tree(r)
+            call pepc_traverse_tree(r)
+            call pepc_restore_particles(r)
+            call pepc_timber_tree()
+
+            toll        = zero
+            err_x       = zero
+            err_v       = zero
+            err_A       = zero
+            err_dxA     = zero
+            err_dyA     = zero
+
+            do ip = 1,np
+
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+              
+              call  inormalize(ip,np,r)
+
+              v                 = ( r(ip)%data%v + p(ip)%data%v )
+              
+!              if ( r(ip)%label .eq. 1 ) v = zero
+              
+!              rot               = cross_product( v , ( r(ip)%results%B + p(ip)%results%B ) )
+              
+!              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1)
+!              grad(2)           = v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
+!              grad(3)           = v(1)*r(ip)%results%dxA(3) + v(2)*r(ip)%results%dyA(3)
+!              
+!              grad(1)           = grad(1) + v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dyA(1)
+!              grad(2)           = grad(2) + v(1)*p(ip)%results%dxA(2) + v(2)*p(ip)%results%dyA(2)
+!              grad(3)           = grad(3) + v(1)*p(ip)%results%dxA(3) + v(2)*p(ip)%results%dyA(3)
+              
+              grad              = zero
+              
+              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dxA(2) + v(3)*r(ip)%results%dxA(3)
+              grad(2)           = v(1)*r(ip)%results%dyA(2) + v(2)*r(ip)%results%dyA(2) + v(3)*r(ip)%results%dyA(3)
+                            
+              grad(1)           = grad(1) + v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dxA(2) + v(3)*p(ip)%results%dxA(3)
+              grad(2)           = grad(2) + v(1)*p(ip)%results%dyA(2) + v(2)*p(ip)%results%dyA(2) + v(3)*p(ip)%results%dyA(3)
+              
+!              rot               = rot/( r(ip)%data%g + p(ip)%data%g )/lorentz_tilde
+              grad              = grad/(r(ip)%data%g + p(ip)%data%g )/lorentz_tilde
+              
+              
+              r(ip)%x           = p(ip)%x + dt*v/( r(ip)%data%g + p(ip)%data%g )
+              
+              r(ip)%data%v(1:2) = m*p(ip)%data%v(1:2) + e/lorentz_tilde*p(ip)%results%A(1:2)  &
+                                  + half*dt*e*( r(ip)%results%E(1:2)  + p(ip)%results%E(1:2)  + grad(1:2) )    ! Canonical Momentum
+                                  
+              r(ip)%x(3)        = zero                    
+              r(ip)%data%v(3)   = m*p(ip)%data%v(3) + e/lorentz_tilde*p(ip)%results%A(3)                
+              
+!              err_x             = err_x   + dot_product(r(ip)%x               - x(ip)%x        , r(ip)%x                - x(ip)%x)  
+!              err_v             = err_v   + dot_product(r(ip)%data%v(1:3)     - x(ip)%P(1:3)   , r(ip)%data%v(1:3)      - x(ip)%P(1:3))
+!              err_A             = err_A   + dot_product(r(ip)%results%A(1:3)  - x(ip)%A(1:3)   , r(ip)%results%A(1:3)   - x(ip)%A(1:3))
+!              err_dxA           = err_dxA + dot_product(r(ip)%results%dxA(1:3)- x(ip)%dxA(1:3) , r(ip)%results%dxA(1:3) - x(ip)%dxA(1:3))
+!              err_dyA           = err_dyA + dot_product(r(ip)%results%dyA(1:3)- x(ip)%dyA(1:3) , r(ip)%results%dyA(1:3) - x(ip)%dyA(1:3)) 
+              
+              do j = 1,3
+                  
+                err_x(j)             = max( abs ( r(ip)%x(j)          - x(ip)%x(j)   ) , err_x(j) )  
+                err_v(j)             = max( abs ( r(ip)%data%v(j)     - x(ip)%P(j)   ) , err_v(j) ) 
+                err_A(j)             = max( abs ( r(ip)%results%A(j)  - x(ip)%A(j)   ) , err_A(j) ) 
+                err_dxA(j)           = max( abs ( r(ip)%results%dxA(j)- x(ip)%dxA(j) ) , err_dxA(j)) 
+                err_dyA(j)           = max( abs ( r(ip)%results%dyA(j)- x(ip)%dyA(j) ) , err_dyA(j)) 
+               
+              
+              enddo
+              
+!              error(ip)%label              = p(ip)%label
+!              error(ip)%x                  = err_x
+!              error(ip)%data%v             = err_v
+!              error(ip)%data%q             = p(ip)%data%q
+!              error(ip)%results%A          = err_A
+!              error(ip)%results%dxA        = err_dxA
+!              error(ip)%results%dyA        = err_dyA
+!              
+!              error(ip)%results%E        = zero
+!              error(ip)%results%B        = zero
+!              error(ip)%results%pot      = zero
+!              error(ip)%results%J        = zero
+!              error(ip)%results%Jirr     = zero
+!              error(ip)%data%g           = zero
+                                       
+              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+                                       
+              x(ip)%P           =  r(ip)%data%v
+              x(ip)%x           =  r(ip)%x
+              x(ip)%x(3)        =  zero
+              x(ip)%A           =  r(ip)%results%A
+              x(ip)%dxA(1:3)    =  r(ip)%results%dxA(1:3)
+              x(ip)%dyA(1:3)    =  r(ip)%results%dyA(1:3)
+              
+              
+
+            enddo
+
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLDcall MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc), rc)
+            
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+            
+                       
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%x  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%data%v  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%results%A  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%results%dxA, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%results%dyA, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+            
+            toll = maxval(err_v)
+            
+!            toll = err_x + err_v + err_A + err_dxA + err_dyA
+!            toll = sqrt(toll)/real(tnp,kind=kind_particle)
+            
+!            write(*,*) "err_x ,err_v , err_A , err_dxA , err_dyA :",err_x ,err_v , err_A , err_dxA , err_dyA 
+
+
+    enddo
+
+    ierr(:,1) = err_x
+    ierr(:,2) = err_v
+    ierr(:,3) = err_A
+    ierr(:,4) = err_dxA
+    ierr(:,5) = err_dyA
+    
+!    call write_particles(error)
+!    if ( toll .gt. stop_tol )  then
+!        call write_particles_ascii(0, error)
+!        call write_particles_vtk(error,0,dt)
+!        call write_particles_vtk(r,1,dt)
+!    endif
+
+    do ip = 1,np
+
+        e                 = p(ip)%data%q
+        m                 = p(ip)%data%m
+
+        p(ip)%data%v      = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
+!        if ( p(ip)%label .eq. 1 ) p(ip)%data%v = zero
+        p(ip)%data%g      = sqrt( one + dot_product( p(ip)%data%v/vtilde ,  p(ip)%data%v/vtilde ) )
+        p(ip)%x           = x(ip)%x
+        p(ip)%x(3)        = zero
+        if (periodicity_particles) call iperiodic_particles(ip,np,p)
+        
+    enddo
+
+    deallocate( r,x)!,error )
+
+
+    end subroutine trapezoidal
+
+    
+    
+!    subroutine trapezoidal_broyden(np,dt,p,ierr,itc,tolg)
+!    use module_tool   , only: cross_product
+!    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,periodicity_particles
+!    use helper        , only: iperiodic_particles,inormalize
+!    use module_pepc
+!
+!    implicit none
+!    include 'mpif.h'
+!
+!    integer(kind_particle)          , intent(in)     :: np
+!    real(kind_particle)             , intent(in)     :: dt
+!    type(t_particle), allocatable   , intent(inout)  :: p(:)
+!    integer(kind_particle)          , intent(out)    :: ierr(1:5),itc
+!    real(kind_particle)             , intent(out)    :: tolg
+!
+!    real(kind_particle)                              :: e,m,toll,stop_tol,alpha,rot(1:3),v(1:3),grad(1:3),z(1:5), &
+!                                                        err_x,err_v,err_A,err_dxA,err_dyA    
+!    type(t_particle), allocatable                    :: r(:)
+!    type(pma_particle), allocatable                  :: x(:)
+!    integer(kind_particle)                           :: rc,ip,jp,maxit
+!    real(kind_particle)  , allocatable               :: s(:,:)
+! 
+!    ierr            = 0
+!    itc             = 0
+!    maxit           = 100
+!    tolg            = one
+!    stop_tol        = prec!tentominusseven!prec
+!    
+!    if (allocated(r)) deallocate(r)
+!    if (allocated(s)) deallocate(s)
+!    if (allocated(x)) deallocate(x)
+!    allocate( r(np), stat=rc )
+!    allocate( x(np), stat=rc )
+!    allocate( s(maxit,5*np), stat=rc )
+!    
+!    !!! Initial Guess
+!    
+!    
+!    
+!    do ip = 1,np
+!            
+!        e           =    p(ip)%data%q
+!        rot         =    cross_product( p(ip)%data%v , p(ip)%results%B )
+!        grad(1)     =    p(ip)%data%v(1)*p(ip)%results%dxA(1) + p(ip)%data%v(2)*p(ip)%results%dyA(1)
+!        grad(2)     =    p(ip)%data%v(1)*p(ip)%results%dxA(2) + p(ip)%data%v(2)*p(ip)%results%dyA(2)
+!        grad(3)     =    p(ip)%data%v(1)*p(ip)%results%dxA(3) + p(ip)%data%v(2)*p(ip)%results%dyA(3)
+!        
+!        rot         = rot/lorentz_tilde/p(ip)%data%g
+!        grad        = rot/lorentz_tilde/p(ip)%data%g
+!        
+!        s(1,ip)     =    dt*p(ip)%data%v(1)
+!        s(1,np+ip)  =    dt*p(ip)%data%v(2)
+!        s(1,2*np+ip)=    e*dt*(p(ip)%results%E(1) + rot(1) + grad(1) )
+!        s(1,3*np+ip)=    e*dt*(p(ip)%results%E(2) + rot(2) + grad(2) )   
+!        s(1,4*np+ip)=    e*dt*(                     rot(3) + grad(3) )   
+!        
+!        x(ip)%A(1:3)=    p(ip)%results%A(1:3)
+!        
+!        
+!        r(ip)%x     = p(ip)%x
+!        r(ip)%x(3)  = zero
+!        r(ip)%data%v= p(ip)%data%v 
+!        r(ip)%data%g= p(ip)%data%g
+!        
+!            
+!    enddo
+!    ! main iteration loop
+!    !
+!
+!    do while(tolg .gt. stop_tol .and. itc .lt. maxit)
+!
+!        itc = itc + 1
+!
+!            do ip = 1,np
+!
+!              e                 =  p(ip)%data%q
+!              m                 =  p(ip)%data%m
+!
+!              r(ip)%x(1)        = r(ip)%x(1)      + s(itc,ip)
+!              r(ip)%x(2)        = r(ip)%x(2)      + s(itc,np+ip)
+!              r(ip)%x(3)        = zero
+!              r(ip)%data%v(1)   = r(ip)%data%v(1) + ( s(itc,2*np+ip) - e*x(ip)%A(1) )/m
+!              r(ip)%data%v(2)   = r(ip)%data%v(2) + ( s(itc,3*np+ip) - e*x(ip)%A(2) )/m
+!              r(ip)%data%v(3)   = r(ip)%data%v(3) + ( s(itc,4*np+ip) - e*x(ip)%A(3) )/m
+!              
+!              r(ip)%data%g      = sqrt( one + dot_product(r(ip)%data%v/vtilde,r(ip)%data%v/vtilde) )
+!              
+!
+!              r(ip)%label       = p(ip)%label
+!              r(ip)%results%E   = zero
+!              r(ip)%results%pot = zero
+!              r(ip)%results%B   = zero
+!              r(ip)%results%A   = zero
+!              r(ip)%results%dxA = zero
+!              r(ip)%results%dyA = zero
+!              r(ip)%results%Jirr= zero
+!              r(ip)%results%J   = zero
+!              r(ip)%work        = one
+!              
+!              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+!
+!            enddo
+!
+!
+!        !!! Update fields
+!
+!            call pepc_particleresults_clear(r)
+!            call pepc_grow_tree(r)
+!            call pepc_traverse_tree(r)
+!            call pepc_restore_particles(r)
+!            call pepc_timber_tree()
+!
+!            toll = zero
+!            tolg = zero
+! 
+!            do ip = 1,np
+!
+!              e                 = p(ip)%data%q
+!              m                 = p(ip)%data%m
+!              
+!              call  inormalize(ip,np,r)
+!
+!              v                 = ( r(ip)%data%v + p(ip)%data%v )
+!              
+!              rot               = cross_product( v , ( r(ip)%results%B + p(ip)%results%B ) )
+!              
+!              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1)
+!              grad(2)           = v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
+!              grad(3)           = v(1)*r(ip)%results%dxA(3) + v(2)*r(ip)%results%dyA(3)
+!              
+!              grad(1)           = grad(1) + v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dyA(1)
+!              grad(2)           = grad(2) + v(1)*p(ip)%results%dxA(2) + v(2)*p(ip)%results%dyA(2)
+!              grad(3)           = grad(3) + v(1)*p(ip)%results%dxA(3) + v(2)*p(ip)%results%dyA(3)
+!              
+!              rot               = rot/( r(ip)%data%g + p(ip)%data%g )/lorentz_tilde
+!              grad              = grad/(r(ip)%data%g + p(ip)%data%g )/lorentz_tilde
+!              
+!              r(ip)%x           = p(ip)%x + dt*v/( r(ip)%data%g + p(ip)%data%g )
+!              r(ip)%x(3)        = zero
+!              r(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A  &
+!                                  + half*dt*e*( r(ip)%results%E  + p(ip)%results%E + rot + grad)    ! Canonical Momentum
+!                                  
+!                                  
+!              z(1:2)            =  r(ip)%x(1:2)      - x(ip)%x(1:2)
+!              z(3:5)            =  r(ip)%data%v(1:3) - x(ip)%P(1:3)
+!              
+!              do jp = 2,itc
+!                  
+!                  alpha = s(jp,ip)*s(jp-1,ip) + s(jp,np+ip)*s(jp-1,np+ip)     + s(jp,2*np+ip)*s(jp-1,2*np+ip) &
+!                                              + s(jp,3*np+ip)*s(jp-1,3*np+ip) + s(jp,4*np+ip)*s(jp-1,4*np+ip)   
+!                  alpha = alpha/( s(jp-1,ip)**2 + s(jp-1,np+ip)**2 + s(jp-1,2*np+ip)**2 + s(jp-1,3*np+ip)**2 + s(jp-1,4*np+ip)**2 )                              
+!                  z     = z + alpha*z
+!                  
+!              enddo
+!              
+!              alpha             =    s(itc,ip)*z(1) + s(itc,np+ip)*z(2) + s(itc,2*np+ip)*z(3) + s(itc,3*np+ip)*z(4) + s(itc,4*np+ip)*z(5)
+!              alpha             =    alpha/( s(itc,ip)**2 + s(itc,np+ip)**2 + s(itc,2*np+ip)**2 + s(itc,3*np+ip)**2 + s(itc,4*np+ip)**2 )
+!              alpha             =    one - alpha
+!              s(itc+1,ip)       =    z(1)/alpha
+!              s(itc+1,np+ip)    =    z(2)/alpha
+!              s(itc+1,2*np+ip)  =    z(3)/alpha
+!              s(itc+1,3*np+ip)  =    z(4)/alpha 
+!              s(itc+1,4*np+ip)  =    z(5)/alpha 
+!              
+!              
+!
+!              toll              = toll + s(itc+1,ip)**2 + s(itc+1,np+ip)**2 + s(itc+1,2*np+ip)**2 + s(itc+1,3*np+ip)**2 +&
+!                                         s(itc+1,4*np+ip)**2   
+!                                         
+!              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+!                                       
+!              x(ip)%x           = r(ip)%x
+!              x(ip)%x(3)        = zero
+!              x(ip)%P           = r(ip)%data%v
+!              x(ip)%A           = r(ip)%results%A              
+!
+!            enddo
+!
+!            call MPI_ALLREDUCE(toll, tolg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+!!            tolg  = sqrt(tolg)/real(tnp,kind=kind_particle)
+!
+!
+!    enddo
+!
+!    if (toll > stop_tol)  then 
+!        
+!        ierr(1) = err_x
+!        ierr(2) = err_v
+!        ierr(3) = err_A
+!        ierr(4) = err_dxA
+!        ierr(5) = err_dyA
+!        
+!  
+!    endif
+!    
+!
+!    do ip = 1,np
+!
+!        e                 = p(ip)%data%q
+!        m                 = p(ip)%data%m
+!
+!        p(ip)%data%v      = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
+!        p(ip)%data%g      = sqrt( one + dot_product( p(ip)%data%v/vtilde ,  p(ip)%data%v/vtilde ) )
+!        p(ip)%x           = x(ip)%x
+!        p(ip)%x(3)        = zero
+!        if (periodicity_particles) call iperiodic_particles(ip,np,p)
+!        
+!    enddo
+!
+!    deallocate( r,x,s )
+!
+!
+!    end subroutine trapezoidal_broyden
+!    
+!    subroutine res_trapezoidal_broyden(np,dt,p,r,res)
+!    use module_tool   , only: cross_product
+!    use module_pepc
+!
+!    implicit none
+!    include 'mpif.h'
+!
+!    integer(kind_particle)          , intent(in)     :: np
+!    real(kind_particle)             , intent(in)     :: dt
+!    type(t_particle), allocatable   , intent(in)     :: p(:),r(:)
+!
+!    real(kind_particle)                              :: e,m,rot(1:3),v(1:3),grad(1:3),Eirr(1:3)
+!    real(kind_particle), allocatable                 :: res(:,:)
+!    integer(kind_particle)                           :: ip,rc
+!    
+!    if (allocated(res)) deallocate(res)
+!    allocate( res(5,np), stat=rc )
+!    
+!    do ip = 1,np
+!        
+!        
+!        Eirr              = zero
+!        Eirr(1:2)         = half*( p(ip)%results%E(1:2) + r(ip)%results%E(1:2) )
+!        
+!        v                 = p(ip)%data%v + r(ip)%data%v
+!        rot               = cross_product( v , p(ip)%results%B + r(ip)%results%B )
+!        
+!        grad(1)           = v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dyA(1)
+!        grad(2)           = v(1)*p(ip)%results%dxA(2) + v(2)*p(ip)%results%dyA(2)
+!        grad(3)           = v(1)*p(ip)%results%dxA(3) + v(2)*p(ip)%results%dyA(3)
+!              
+!        grad(1)           = grad(1) + v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1)
+!        grad(2)           = grad(2) + v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
+!        grad(3)           = grad(3) + v(1)*r(ip)%results%dxA(3) + v(2)*r(ip)%results%dyA(3)
+!        
+!        rot               = rot/lorentz_tilde/( r(ip)%data%g + p(ip)%data%g )
+!        grad              = grad/lorentz_tilde/( r(ip)%data%g + p(ip)%data%g )
+!        
+!        res(1:2,ip)       = p(ip)%x(1:2)      -  r(ip)%x(1:2) - dt*v(1:2)/( r(ip)%data%g + p(ip)%data%g )
+!        res(3:5,ip)       = p(ip)%data%v(1:3) -  r(ip)%data%v(1:3) - half*dt*( Eirr + rot + grad  )
+!                
+!    enddo
+!    
+!    
+!    end subroutine res_trapezoidal_broyden
+    
+    subroutine hamiltonian_boris(np,dt,p,ierr,itc,toll)
+    use module_tool   , only: cross_product
+    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,periodicity_particles
+    use helper        , only: iperiodic_particles,inormalize
+    use module_pepc
+!!!!  This integrator does not work with relativistic velocities
+    implicit none
+    include 'mpif.h'
+
+    integer(kind_particle)          , intent(in)     :: np
+    integer(kind_particle)                           :: n
+    real(kind_particle)             , intent(in)     :: dt
+    type(t_particle), allocatable   , intent(inout)  :: p(:)
+    integer(kind_particle)          , intent(out)    :: itc
+    real(kind_particle)             , intent(out)    :: toll,ierr(1:5)
+
+    real(kind_particle)                              :: Pn(1:3),Pold(1:3),P_(1:3),B(1:3),e,m,Bnorm,Ppar(1:3),Pnor(1:3),     &
+                                                        Ef(1:3),Af(1:3),beta,x_(1:2),stop_tol,alpha,gamma,gamma_old,eta,    &
+                                                        gradA(1:3),gradP(1:3),delta,err_x,err_v,err_A,err_dxA,err_dyA
+    
+    type(t_particle), allocatable                    :: r(:)
+    type(pma_particle), allocatable                  :: x(:)
+    integer(kind_particle)                           :: rc,ip,maxit
+
+    if (allocated(r)) deallocate(r)
+    if (allocated(x)) deallocate(x)
+    allocate( r(np), stat=rc )
+    allocate( x(np), stat=rc )
+
+    ierr            = 0
+    itc             = 0
+    maxit           = 50
+    toll            = one
+    stop_tol        = prec
+
+
+    !!! Initial Guess
+    do ip = 1,np
+
+            e            =  p(ip)%data%q
+            m            =  p(ip)%data%m
+
+            x(ip)%P      =  p(ip)%data%v + half*dt*e/m*p(ip)%results%E !+ dt*e/m*( p(ip)%results%E + p(ip)%results%Et + cross_product(p(ip)%data%v/vtilde,p(ip)%results%B ) )
+            x(ip)%x      =  p(ip)%x      
+            x(ip)%x(3)   =  zero
+            x(ip)%A      =  p(ip)%results%A
+            x(ip)%gamma  =  one/sqrt( one - dot_product( x(ip)%P/vtilde, x(ip)%P/vtilde ) ) !one!
+                
+            r(ip)%label       = p(ip)%label
+            r(ip)%data%q      = e
+            r(ip)%data%m      = m
+    enddo
+    ! main iteration loop
+    !
+
+    do while(toll .gt. stop_tol .and. itc .lt. maxit)
+
+        itc = itc + 1
+
+            do ip = 1,np
+
+              r(ip)%data%v      = p(ip)%data%v!half*(x(ip)%v + p(ip)%data%v)!
+              r(ip)%x           = half*(x(ip)%x + p(ip)%x)!x(ip)%x
+              r(ip)%x(3)        = zero
+
+              r(ip)%results%E   = zero
+              r(ip)%results%pot = zero
+              r(ip)%results%B   = zero
+              r(ip)%results%A   = zero
+              r(ip)%results%dxA = zero
+              r(ip)%results%dyA = zero
+              r(ip)%results%Jirr= zero
+              r(ip)%results%J   = zero
+              r(ip)%work        = one
+              
+              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+
+            enddo
+
+
+        !!! Update fields
+
+            call pepc_particleresults_clear(r)
+            call pepc_grow_tree(r)
+            call pepc_traverse_tree(r)
+            call pepc_restore_particles(r)
+            call pepc_timber_tree()
+
+            toll = zero
+
+            do ip = 1,np
+
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+              call  inormalize(ip,np,r)
+              
+              B                 = half*( p(ip)%results%B + p(ip)%results%B )!r(ip)%results%B!
+              Af(1:3)           = half*( p(ip)%results%A + p(ip)%results%A )
+              Ef(1:2)           = half*( p(ip)%results%E(1:2) + p(ip)%results%E(1:2) )
+              Ef(3)             = zero
+              
+              Bnorm             = B(1)**2 + B(2)**2 + B(3)**2
+
+              alpha             = half*e*dt
+              beta              = half*e/m/lorentz_tilde/x(ip)%gamma*dt
+              eta               = half/m/x(ip)%gamma*(e/lorentz_tilde)**2*dt
+              delta             = half/m/x(ip)%gamma*e*dt
+              
+              gamma_old         = one/sqrt( one - dot_product( p(ip)%data%v/vtilde, p(ip)%data%v/vtilde )  ) !one!
+              Pold              = gamma_old*m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A
+              
+              gradA(1)          = p(ip)%results%A(1)*p(ip)%results%dxA(1) + p(ip)%results%A(2)*p(ip)%results%dyA(1) 
+              gradA(2)          = p(ip)%results%A(1)*p(ip)%results%dxA(2) + p(ip)%results%A(2)*p(ip)%results%dyA(2)
+              gradA(3)          = p(ip)%results%A(1)*p(ip)%results%dxA(3) + p(ip)%results%A(2)*p(ip)%results%dyA(3)
+              
+              gradP(1)          = Pold(1)*p(ip)%results%dxA(1) + Pold(2)*p(ip)%results%dyA(1) 
+              gradP(2)          = Pold(1)*p(ip)%results%dxA(2) + Pold(2)*p(ip)%results%dyA(2)
+              gradP(3)          = Pold(1)*p(ip)%results%dxA(3) + Pold(2)*p(ip)%results%dyA(3)
+              
+              gradP(1)          = gradP(1) + Pold(1)*r(ip)%results%dxA(1) + Pold(2)*r(ip)%results%dyA(1) 
+              gradP(2)          = gradP(2) + Pold(1)*r(ip)%results%dxA(2) + Pold(2)*r(ip)%results%dyA(2)
+              gradP(3)          = gradP(3) + Pold(1)*r(ip)%results%dxA(3) + Pold(2)*r(ip)%results%dyA(3)
+                            
+              P_                = Pold + ( alpha*Ef - eta*cross_product(Af,B ) - eta*gradA + half*delta*gradP )
+              x_(1:2)           = p(ip)%x(1:2) - beta*Af(1:2) 
+              
+              Ppar              = delta*( dot_product(P_,B) )*B
+              Pnor              = cross_product(P_,B)
+              Pn                = (P_ + delta*( Ppar + Pnor ) )/( one + (delta)**2*Bnorm )
+!              
+!              Pn                = Pold + e/m/lorentz_tilde*dt*( half*gradP - e/lorentz_tilde*gradA  )!two*Pn - Pold
+              Af(1:3)           = half*( r(ip)%results%A + p(ip)%results%A )
+              
+              
+              r(ip)%data%v      = ( Pn - e/lorentz_tilde*Af )/m !half*x(ip)%P +  half*( Pn - e/lorentz_tilde*Af )/m
+              gamma             = sqrt( one + dot_product( r(ip)%data%v/vtilde, r(ip)%data%v/vtilde ) ) !one!
+
+              r(ip)%data%v      = r(ip)%data%v/gamma
+              
+              r(ip)%x(1:2)      = two*x_(1:2) - p(ip)%x(1:2) + dt/m/gamma*Pn(1:2)
+              r(ip)%x(3)        = zero
+              
+              
+              err_x             = dot_product(r(ip)%x               - x(ip)%x        , r(ip)%x                - x(ip)%x)  
+              err_v             = dot_product(r(ip)%data%v(1:3)     - x(ip)%P(1:3)   , r(ip)%data%v(1:3)      - x(ip)%P(1:3))
+              err_A             = dot_product(r(ip)%results%A(1:3)  - x(ip)%A(1:3)   , r(ip)%results%A(1:3)   - x(ip)%A(1:3))
+              err_dxA           = dot_product(r(ip)%results%dxA(1:3)- x(ip)%dxA(1:3) , r(ip)%results%dxA(1:3) - x(ip)%dxA(1:3))
+              err_dyA           = dot_product(r(ip)%results%dyA(1:3)- x(ip)%dyA(1:3) , r(ip)%results%dyA(1:3) - x(ip)%dyA(1:3))
+              
+              
+              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+
+              x(ip)%P           =  r(ip)%data%v
+              x(ip)%x           =  r(ip)%x
+              x(ip)%x(3)        =  zero 
+              x(ip)%A           =  r(ip)%results%A
+              x(ip)%gamma       =  gamma
+
+            enddo
+
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+            
+            
+            toll = err_x + err_v + err_A + err_dxA + err_dyA
+            toll = sqrt(toll)/real(tnp,kind=kind_particle)
+
+
+    enddo
+
+    ierr(1) = err_x
+    ierr(2) = err_v
+    ierr(3) = err_A
+    ierr(4) = err_dxA
+    ierr(5) = err_dyA
+    
+
+    do ip = 1,np
+
+        p(ip)%data%v      = x(ip)%P
+        p(ip)%x           = x(ip)%x
+        p(ip)%x(3)        = zero
+
+    enddo
+
+    deallocate( r,x )
+
+
+    end subroutine hamiltonian_boris
+
+
+
+  end module module_integration
         itc = itc + 1
 
             do ip = 1,np

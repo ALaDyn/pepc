@@ -131,7 +131,7 @@ contains
       field_grid%viz(field_grid%n(1), field_grid%n(2), field_grid%n(3)), &
       field_grid%vbx(field_grid%n(1), field_grid%n(2), field_grid%n(3)), &
       field_grid%vby(field_grid%n(1), field_grid%n(2), field_grid%n(3)), &
-      field_grid%vbz(field_grid%n(1), field_grid%n(2), field_grid%n(3)), &
+      field_grid%vbz(field_grid%n(1), field_grid%n(2), field_grid%n(3))  &
       
 !      field_grid%Jex(field_grid%n(1), field_grid%n(2), field_grid%n(3)), &
 !      field_grid%Jey(field_grid%n(1), field_grid%n(2), field_grid%n(3)), &
@@ -313,7 +313,7 @@ contains
       field_grid%viz(field_grid%n(1), field_grid%n(2), field_grid%n(3) ), &
       field_grid%vbx(field_grid%n(1), field_grid%n(2), field_grid%n(3) ), &
       field_grid%vby(field_grid%n(1), field_grid%n(2), field_grid%n(3) ), &
-      field_grid%vbz(field_grid%n(1), field_grid%n(2), field_grid%n(3) ), & 
+      field_grid%vbz(field_grid%n(1), field_grid%n(2), field_grid%n(3) )  & 
       
 !      field_grid%Jex(field_grid%n(1), field_grid%n(2), field_grid%n(3)), &
 !      field_grid%Jey(field_grid%n(1), field_grid%n(2), field_grid%n(3)), &
