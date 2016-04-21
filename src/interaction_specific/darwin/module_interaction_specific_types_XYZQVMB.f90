@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -82,13 +82,8 @@ module module_interaction_specific_types
         real(kind_physics) :: quadjzx(3)     ! current density quadrupole - qj*vxj*x*z - qj*vyj*x*z - qj*vzj*x*z
 !        real(kind_physics) :: g
         real(kind_physics) :: bmax
-        real(kind_physics) :: cojx(3)    ! centre of current density jx
-        real(kind_physics) :: cojy(3)    ! centre of current density jy
-        real(kind_physics) :: cojz(3)    ! centre of current density jz
-        real(kind_physics) :: current(3) ! net current density sum
-        real(kind_physics) :: abs_current(3)!  absolute current density sum
       end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 24
+      integer, private, parameter :: nprops_tree_node_interaction_data = 19
 
       contains
 
@@ -191,13 +186,11 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 3, 3, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1 , 3, 3, 3, 3 , 3]
+        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 3, 3, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1]
         types(1:nprops_tree_node_interaction_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
                                                               MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
                                                               MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
-                                                              MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS , MPI_KIND_PHYSICS, &
-                                                              MPI_KIND_PHYSICS, MPI_KIND_PHYSICS,MPI_KIND_PHYSICS, MPI_KIND_PHYSICS ]
-                                                              
+                                                              MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )
@@ -219,12 +212,7 @@ module module_interaction_specific_types
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjzx,    address(18), ierr )
 !        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%g,          address(19), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(19), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%cojx,       address(20), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%cojy,       address(21), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%cojz,       address(22), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%current,    address(23), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%abs_current,address(24), ierr )
-!        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%jj,         address(9), ierr )
+        !call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%jj,         address(9), ierr )
 
         displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
