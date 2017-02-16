@@ -124,6 +124,7 @@ module helper
     integer(kind_particle) :: ip
     integer :: rc
     real*8 :: dummy
+    real(kind_physics) :: pi, phi, theta, rnd(1:2), s
 
     if(root) write(*,'(a)') " == [init] init particles "
 
@@ -141,23 +142,54 @@ module helper
     ! set random seed
     dummy = par_rand(1*my_rank)
 
+    pi = 2.0_kind_physics*acos(0.0_kind_physics)
+
     ! setup random qubic particle cloud
+#define COUEX
+#ifdef COUEX
     do ip=1, np
-      p(ip)%label       = my_rank * (tnp / n_ranks) + ip - 1
-      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2_kind_particle)) * 2.0_8 * &
+       p(ip)%label       = my_rank * (tnp / n_ranks) + ip - 1
+       p(ip)%data%q      = -1.0_8 * 2.0_8 * &
                             plasma_dimensions(1) * plasma_dimensions(2) * &
                             plasma_dimensions(3) / tnp
-      p(ip)%data%m      = 1.0_8
-      if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
+       p(ip)%data%m      = 1.d-2
+       if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
 
-      call random(p(ip)%x)
-      p(ip)%x           = p(ip)%x * plasma_dimensions
+       ! obtain 2 random numbers
+       call random(rnd)
 
-      call random_gauss(p(ip)%data%v)
-      p(ip)%data%v      = p(ip)%data%v / sqrt(p(ip)%data%m)
+       ! get angles to point into sphere
+       phi               = rnd(1) * 2*pi
+       theta             = acos(rnd(2) * 2 - 1)
 
-      p(ip)%work        = 1.0_8
+       ! compute a radial coordinate from distribution Eq.(9) in Kaplan's paper, \mu = 1
+       s                 = ( 1./(1-real(p(ip)%label)/tnp) - 1 )**(1./3.)
+
+       ! fill cartesian coordinates
+       p(ip)%x           = s * [cos(phi)*sin(theta), sin(phi)*sin(theta), cos(theta)] * plasma_dimensions
+
+       p(ip)%data%v      = 0.0_8
+
+       p(ip)%work        = 1.0_8
     end do
+#else
+    do ip=1, np
+       p(ip)%label       = my_rank * (tnp / n_ranks) + ip - 1
+       p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2_kind_particle)) * 2.0_8 * &
+                            plasma_dimensions(1) * plasma_dimensions(2) * &
+                            plasma_dimensions(3) / tnp
+       p(ip)%data%m      = 1.0_8
+       if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
+
+       call random(p(ip)%x)
+       p(ip)%x           = p(ip)%x * plasma_dimensions
+
+       call random_gauss(p(ip)%data%v)
+       p(ip)%data%v      = p(ip)%data%v / sqrt(p(ip)%data%m)
+
+       p(ip)%work        = 1.0_8
+    end do
+#endif
   end subroutine init_particles
 
 
