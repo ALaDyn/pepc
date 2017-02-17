@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -40,23 +40,24 @@ module module_globals
   integer(kind_particle) :: np  ! local number of particles
   real(kind_particle)    :: eps2!,theta2
   integer(kind_dim)      :: ixdim
-  integer(kind_dim)      :: ivdim
-  integer(kind_particle) :: initial_setup,normal
+  integer(kind_particle) :: x_distribution,v_distribution,normal,tracks
+  logical                :: load             ! load from file: true/false = on/off
   logical                :: particle_output  ! turn vtk output on/off
   logical                :: domain_output    ! turn vtk outpuit on/off
-  logical                :: particle_test    ! turn direct summation on/off
   logical                :: periodicity_particles    ! particle periodicity on/off
   logical                :: flag_classic             ! classic/relativistic time integrator 
   integer                :: diag_interval    ! number of timesteps between all diagnostics and IO
   integer                :: restart_step     ! number of timesteps between all diagnostics and IO
   integer                :: nsp              ! number of species
+  integer                :: unique_species   ! number of unique species
   integer(kind_particle) :: adv              ! numeical scheme
   real(kind_particle)    :: Volume           ! Volume
   real(kind_particle)    :: wpe              ! Plasma density
   real(kind_particle)    :: we               ! Ratio of the number of real particles and simulated particles 
   real(kind_particle)    :: vmax             ! Max velocity - for velocity normalized by vth
+  real(kind_particle)    :: radius
 
-  real(kind_particle)    :: norm_factor
+!  real(kind_particle)    :: norm_factor
             !!!!!  CGS System  !!!!!
   real(kind_particle), parameter  :: c  = 2.998e+10     ! speed of light
   real(kind_particle), parameter  :: qe = 4.803e-10     ! proton charge
@@ -73,22 +74,45 @@ module module_globals
   real(kind_particle), parameter  :: hcut    = 1.0546e-34                       ! [Js]
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  integer(kind_physics)               :: woutput
-  integer(kind_physics), dimension(3) :: n       = [ 0 , 0  , 0  ]
-  integer(kind_physics), dimension(3) :: nppd    = [ 0 , 0  , 0  ] ! number of particle per direction
+  integer(kind_physics)   , dimension(3) :: n               = [ 0 , 0  , 0  ]
+
+
   real(kind_physics)   , dimension(3) :: offset  = [ 0., 0. , 0. ]
   real(kind_physics)   , dimension(3) :: extent  = [ 0., 0. , 0. ]
-  real(kind_physics)   , dimension(3) :: veth    = [ 0., 0. , 0. ]
-  real(kind_physics)   , dimension(3) :: vedrift = [ 0., 0. , 0. ]
-  real(kind_physics)   , dimension(3) :: vith    = [ 0., 0. , 0. ]
-  real(kind_physics)   , dimension(3) :: vidrift = [ 0., 0. , 0. ]
+  
+  real(kind_physics)   , dimension(3) :: B0  ! Background Magnetic field
+    
+  
+  integer(kind_particle), parameter  :: ns_tot = 5
+  
+  real(kind_physics)   , dimension(ns_tot) :: uth  
+  real(kind_physics)   , dimension(ns_tot) :: vth    
+  real(kind_physics)   , dimension(ns_tot) :: wth    
+  real(kind_physics)   , dimension(ns_tot) :: udrift 
+  real(kind_physics)   , dimension(ns_tot) :: vdrift 
+  real(kind_physics)   , dimension(ns_tot) :: wdrift 
+  
+  real(kind_physics)   , dimension(ns_tot) :: x_pert
+  real(kind_physics)   , dimension(ns_tot) :: y_pert
+  real(kind_physics)   , dimension(ns_tot) :: z_pert
+  real(kind_physics)   , dimension(ns_tot) :: u_pert 
+  real(kind_physics)   , dimension(ns_tot) :: v_pert 
+  real(kind_physics)   , dimension(ns_tot) :: w_pert 
+  
+  integer(kind_physics)     , dimension(ns_tot+1) :: percentages
+  real(kind_physics)        , dimension(ns_tot)   :: charge_init
+  real(kind_physics)        , dimension(ns_tot)   :: mass_init
 
   real(kind_physics)                  :: xtilde,vtilde,ttilde,qtilde,mtilde,&
                                          etilde,btilde,jtilde,rhotilde,atilde,&
-                                         phitilde,lorentz_tilde
+                                         phitilde,lorentz_tilde,newmark_x,newmark_v,&
+                                         newmark_Es,newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0
 
   character(*), parameter :: FRONTEND_NAME = "pepc-2dd"
   character(255)          :: ischeme,restart_file,folder
+  
+  type(t_particle)          , allocatable    :: pold(:)
+  type(t_particle)          , allocatable    :: poldold(:)
 
 
 end module

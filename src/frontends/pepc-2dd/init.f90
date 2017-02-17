@@ -28,974 +28,472 @@ module module_init
   use module_pepc_types
   use module_shortcut  ! , only:two,one,zero,pi
   use module_tool       , only: random,random_boltzmann,random_gauss
-  use module_globals    , only: me,mi
+  use module_globals    , only: me,mi,n_ranks,my_rank
   implicit none
 
 
   contains
-
-  subroutine read_restart_2d(p,filename)
-    use module_globals, only: my_rank
+  
+  
+  
+  subroutine rect(p)
+    use module_globals, only: extent,offset,my_rank,n_ranks,nsp,Volume,tnp,root
+!    use encap         , only: field_grid_t
     implicit none
-    character(*)                 , intent(in)    :: filename
+
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ip,rc,jp,size_tmp,io_stat,open_status,np
-    real(kind_particle), allocatable             :: tmp(:,:)
-    character(255)                               :: str_proc
-
-
-    np       = size(p, kind = kind_particle )
-    size_tmp = 6
-
-    if (allocated(tmp)) deallocate(tmp)
-    allocate(tmp(np,size_tmp), stat = rc)
-
-    write( str_proc , '(i10)' ) my_rank
-    open (unit=my_rank,file=trim(filename)//trim(adjustl(str_proc))//".dat",action="read", position='rewind')
-
-    do ip = 1,np
-        read(my_rank,*) tmp(ip,1:size_tmp)
-
-        p(ip)%label       = int(tmp(ip,1), kind= kind_particle)
-        p(ip)%data%q      = tmp(ip,2)
-        p(ip)%data%m      = 1.0_8
-
-        if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * mi/me
-
-        p(ip)%x(1)        = tmp(ip,3)
-        p(ip)%x(2)        = tmp(ip,4)
-        p(ip)%x(3)        = 0.0_8
-
-        p(ip)%data%v(1)   = tmp(ip,5)
-        p(ip)%data%v(2)   = tmp(ip,6)
-        p(ip)%data%v(3)   = 0.0_8
-
-
-    end do
-
-
-    close(unit=my_rank)
-    deallocate(tmp)
-
-  end subroutine read_restart_2d
-
-
-!  subroutine langmuir_waves(p,field_grid)
-!    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp,nsp
-!    use zufall, only: random_gaussian_flux
-!    use encap
-!    implicit none
-!
-!    type(t_particle), allocatable, intent(inout) :: p(:)
 !    type(field_grid_t)           , intent(in)    :: field_grid
-!    integer(kind_particle)                       :: ipl,ipg,ix,iy,iz,np,ni(2),jp!,tnp,rc
-!    real(kind_particle)                          :: dx(3),L(3)
-!
-!    real(kind_particle),parameter                :: v0 = 1.0e-2
-!
-!    np = size(p, kind=kind_particle)
-!
-!    dx(1:2) = zero
-!    ni(1:2) = nppd(1:2)/nsp
-!    dx(1:2) = extent(1:2)/ni(1:2)
-!    
-!    L  = extent  + offset
-!
-!
-!    Volume = L(1)
-!    if ( dx(2) .gt. zero ) Volume = Volume*L(2)
-!    if ( dx(3) .gt. zero ) Volume = Volume*L(3)
-!
-!    do ipl = 1, np
-!
-!      p(ipl)%data%q                      = -one
-!      if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-!      p(ipl)%data%m                      = one
-!      if(p(ipl)%data%q .lt. zero)   then
-!
-!        call random(p(ipl)%x)
-!
-!        jp          = mod(ipl,field_grid%nl) + 1
-!
-!        p(ipl)%x(1) = field_grid%dx(1)*p(ipl)%x(1) + field_grid%p(jp)%x(1)
-!        p(ipl)%x(2) = field_grid%dx(2)*p(ipl)%x(2) + field_grid%p(jp)%x(2)
-!        p(ipl)%x(3) = zero
-!        call random_boltzmann(p(ipl)%data%v,veth,vedrift)
-!
-!
-!            !!! perturbations
-!
-!          p(ipl)%data%v(1)    = p(ipl)%data%v(1) +  v0*cos( two*pi/L(1)*p(ipl)%x(1)  )
-!    !      p(ipl)%data%v(2)    = zero!p(ipl)%data%v(2) +  v0*cos( two*pi/L(2)*p(ipl)%x(2)  )
-!          p(ipl)%data%v(3)    = zero
-!          
-!      else
-!          
-!        ipg = ipl + min(int(my_rank, kind=kind_particle), mod(tnp, int(n_ranks, kind=kind_particle))) * (tnp / n_ranks + 1) + &
-!          max(0_kind_particle, my_rank - mod(tnp, int(n_ranks, kind=kind_particle))) *(tnp / n_ranks)
-!
-!        ix = mod(ipg - 1, ni(1) ) + 1
-!        iy = mod( (ipg - 1) / ni(1) , ni(2) )  + 1
-!        iz = (ipg - 1) / ( ni(1) * ni(2) )  + 1
-!
-!
-!        p(ipl)%x(1) = (ix - half)*dx(1) + offset(1)
-!        p(ipl)%x(2) = (iy - half)*dx(2) + offset(2)
-!        p(ipl)%x(3) = (iz - half)*dx(3) + offset(3)
-!
-!        p(ipl)%data%m    = p(ipl)%data%m * mi/me
-!        p(ipl)%data%v    = zero
-!        
-!      endif
-!
-!    end do
-!
-!  end subroutine langmuir_waves
-
-  subroutine langmuir_waves(p,field_grid)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t
-    implicit none
-
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ipl,ipg,ix,iy,iz,np,jp!,tnp,rc
-    real(kind_particle)                          :: L(3)!,dx(3)
-
-    real(kind_particle),parameter                :: v0 = 1.0e-2
-
-    np = size(p, kind=kind_particle)
-
-!    dx = zero
-!    dx(1:2) = extent(1:2)/nppd(1:2)
+    integer(kind_particle)                       :: ipl,np!,jp
     
-    L  = extent  + offset
-
-
-    Volume = L(1)
-    if ( field_grid%dx(2) .gt. zero ) Volume = Volume*L(2)
-    if ( field_grid%dx(3) .gt. zero ) Volume = Volume*L(3)
-
+    if (root)     write(*,*)            "== ...Loading Particle's Position  "
+    np = size(p, kind=kind_particle)
+    
     do ipl = 1, np
 
-      p(ipl)%data%q                      = -one
-      if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-      p(ipl)%data%m                      = one
-
-
-!      ipg = ipl + min(int(my_rank, kind=kind_particle), mod(tnp, int(n_ranks, kind=kind_particle))) * (tnp / n_ranks + 1) + &
-!        max(0_kind_particle, my_rank - mod(tnp, int(n_ranks, kind=kind_particle))) *(tnp / n_ranks)
-!
-!      ix = mod(ipg - 1, nppd(1) ) + 1
-!      iy = mod( (ipg - 1) / nppd(1) , nppd(2) )  + 1
-!      iz = (ipg - 1) / ( nppd(1) * nppd(2) )  + 1
-!
-!
-!      p(ipl)%x(1) = (ix - half)*dx(1) + offset(1)
-!      p(ipl)%x(2) = (iy - half)*dx(2) + offset(2)
-!      p(ipl)%x(3) = (iz - half)*dx(3) + offset(3)
-      
       call random(p(ipl)%x)
       
-      jp          = mod(ipl,field_grid%nl) + 1
+!      jp          = mod(ipl,field_grid%nl) + 1
       
-      p(ipl)%x(1) = field_grid%dx(1)*p(ipl)%x(1) + field_grid%p(jp)%x(1)
-      p(ipl)%x(2) = field_grid%dx(2)*p(ipl)%x(2) + field_grid%p(jp)%x(2)
-!      write(*,*)ipl,jp,field_grid%p(jp)%x(1),field_grid%p(jp)%x(2)
+!      p(ipl)%x(1) = field_grid%dx(1)*p(ipl)%x(1) + field_grid%p(jp)%x(1)
+!      p(ipl)%x(2) = field_grid%dx(2)*p(ipl)%x(2) + field_grid%p(jp)%x(2)
+      p(ipl)%x(1:2) = ( extent(1:2) - offset(1:2) )*p(ipl)%x(1:2) + offset(1:2)
       p(ipl)%x(3) = zero
-      call random_boltzmann(p(ipl)%data%v,veth,vedrift)
-      
 
-        !!! perturbations
 
-      p(ipl)%data%v(1)    = p(ipl)%data%v(1) +  v0*cos( two*pi/L(1)*p(ipl)%x(1)  )
-!      p(ipl)%data%v(2)    = zero!p(ipl)%data%v(2) +  v0*cos( two*pi/L(2)*p(ipl)%x(2)  )
-      p(ipl)%data%v(3)    = zero
-
-      if(p(ipl)%data%q .gt. zero)   then
-        p(ipl)%data%m    = p(ipl)%data%m * mi/me
-        p(ipl)%data%v    = zero
-      endif
-
-      
-      p(ipl)%label       = my_rank * (tnp / n_ranks) + ipl
-
-      p(ipl)%results%E   = zero
-      p(ipl)%results%pot = zero
-      p(ipl)%results%A   = zero
-      p(ipl)%results%dxA = zero
-      p(ipl)%results%dyA = zero
-      p(ipl)%results%B   = zero
-      p(ipl)%results%J   = zero
-      p(ipl)%results%Jirr= zero
-      p(ipl)%work        = one
 
     end do
 
-  end subroutine langmuir_waves
-
-  subroutine weibell_instability(p,field_grid)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp,root
-    use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t
+  end subroutine rect
+  
+  
+  subroutine load_file(p)
+    use module_globals, only: folder,root,my_rank,vtilde
+    use mpi
     implicit none
-    include 'mpif.h'
 
     type(t_particle), allocatable, intent(inout) :: p(:)
-    type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ipl,jp,np,n,npp,nb,ne,ni,ni_tot,ne_tot,nb_tot,pratio,rc=202
-    real(kind_particle)                          :: r,r0,theta,alpha,rtnp,rtnb,sumV,sumv_tot,rtne,x(1:2),L(1:3)
-    logical                                      :: tmp
+    integer(kind_particle)                       :: ip,np,rc=125
+    character(255)                               :: filename
+    character(*), parameter                      :: part_dir = "particles/"
+    integer(kind = MPI_OFFSET_KIND)              :: mpi_disp,my_offset
+    integer                                      :: fh, mpi_err
+    integer         , dimension(MPI_STATUS_SIZE) :: mpi_stat
 
-!    r0 = two*tentominusthree   
-!    r0  = two*tentominusfive
-!    r0 = tentominustwo*one/five
-    r0          = three!one/five!ten/four!one/five!
-    pratio      = 10
+        
+    if (root)     write(*,*)            "== ...Loading from File  "
+    np = size(p, kind=kind_particle)
 
-    np     = size(p, kind=kind_particle)
-    ne     = 0
-    ni     = 0
-    nb     = 0
-    ne_tot = 0
-    ni_tot = 0
-    nb_tot = 0
-    sumV   = zero 
-    sumV_tot= zero
     
-    rtnp   = real(tnp, kind=kind_particle)
-    rtnb   = rtnp/real(pratio, kind=kind_particle)
+    my_offset = np*my_rank
+    
+    write(filename,'(a,"restart_label.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_int(filename,p(:)%label)
+    
+    write(filename,'(a,"restart_m.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_real(filename,p(:)%data%q)
+    write(filename,'(a,"restart_m.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_real(filename,p(:)%data%m)
+    write(filename,'(a,"restart_x.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_real(filename,p(:)%x(1))
+    write(filename,'(a,"restart_y.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_real(filename,p(:)%x(2))
+    write(filename,'(a,"restart_z.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_real(filename,p(:)%x(3))
+    write(filename,'(a,"restart_vx.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_real(filename,p(:)%data%v(1))
+    write(filename,'(a,"restart_vy.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_real(filename,p(:)%data%v(2))
+    write(filename,'(a,"restart_vz.dat")') trim(folder)//trim(part_dir) 
+    call read_mpi_real(filename,p(:)%data%v(3))
+    
+    
+    do ip = 1,np
+        p(ip)%data%g = sqrt( one + dot_product( p(ip)%data%v(:), p(ip)%data%v(:) ) )
+        call iclean_fields(p(ip))
+    enddo
+    
+        contains
+        
+        subroutine read_mpi_real(filename,p)
+        implicit none
+
+        character(*)                    , intent(in)  :: filename
+        real(kind_physics), dimension(:), intent(out) :: p
      
-    if(my_rank.eq.(n_ranks-1)) rtnb = rtnb + MOD(tnp/pratio, int(n_ranks, kind=kind_particle))
-    if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, int(n_ranks, kind=kind_particle))
-    
-    rtne   = ( half*rtnp -  rtnb )
-    
-    
-!    Volume = pi*r0**2
-    L  = extent  + offset
-
-
-    Volume = L(1)
-    if ( field_grid%dx(2) .gt. zero ) Volume = Volume*L(2)
-    if ( field_grid%dx(3) .gt. zero ) Volume = Volume*L(3)
-
-
-    alpha = pi*(three - sqrt(five) )
-
-    do ipl = 1, np
-!    ipl     = 0
-!    do while (ipl < np)
-!
-!        call random(x)
-!        x           = r0*( two*x - one )
-!        
-!        if ( x(1)**2 + x(2)**2 .le. r0**2 ) then
-!            
-!            ipl                = ipl +1
-            p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-            p(ipl)%data%m      =  mi/me
-
-            p(ipl)%label       = 1
-            
-            call random(p(ipl)%x)
-!      
-!            jp          = mod(ipl,field_grid%nl) + 1
-      
-            p(ipl)%x(1) = extent(1)*p(ipl)%x(1) + offset(1)
-            p(ipl)%x(2) = extent(2)*p(ipl)%x(2) + offset(2)
-!            
-!            theta = real(ipl, kind=kind_particle)*alpha 
-!            r     = r0*sqrt( ( real(my_rank *np + ipl , kind=kind_particle) )/rtnp )
-!
-!            p(ipl)%x(1)   = r*cos(theta)
-!            p(ipl)%x(2)   = r*sin(theta)
-            
-!            p(ipl)%x(1:2) = x
-            p(ipl)%x(3)   = zero
-            ni            = ni + 1
-            p(ipl)%data%v = zero
-
-
-            if ( (mod(ipl,pratio) .eq. 0 )  ) then
-
-                p(ipl)%data%m    =  p(ipl)%data%m * me/mi
-                p(ipl)%data%q    = -one
-                call random_boltzmann(p(ipl)%data%v,veth,vedrift)
-                p(ipl)%data%v(3) = veth(3)
-!                p(ipl)%data%v(1:3) = veth(1:3)
-                p(ipl)%label     = 0
-                nb               = nb+1
-                ni               = ni-1
-
-            else if ( (p(ipl)%data%q .lt. zero).and.( mod(ipl,pratio) .ne. 0 ) ) then
-
-              p(ipl)%data%m    =  p(ipl)%data%m * me/mi
-!              p(ipl)%data%v(1:3) = veth(1:3)
-!              p(ipl)%data%v(3) = -veth(3)
-              call random_boltzmann(p(ipl)%data%v,veth,vedrift)
-              p(ipl)%data%v(3) = -rtnb*veth(3)/rtne
-              p(ipl)%label     = -1
-              ne               = ne+1
-              ni               = ni-1
-
-            endif
-
-
-
-            p(ipl)%results%E   = zero
-            p(ipl)%results%pot = zero
-            p(ipl)%results%A   = zero
-            p(ipl)%results%dxA = zero
-            p(ipl)%results%dyA = zero
-            p(ipl)%results%B   = zero
-            p(ipl)%results%J   = zero
-            p(ipl)%results%Jirr= zero
-            p(ipl)%work        = one
-
-            sumV               = sumV + p(ipl)%data%v(3)
+        real(kind = 8)   , dimension(:), allocatable :: real8_buf
         
-!        endif
-
-
-    end do
-    
-     call MPI_ALLREDUCE(ne, ne_tot     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-     call MPI_ALLREDUCE(ni, ni_tot     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-     call MPI_ALLREDUCE(nb, nb_tot     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-     call MPI_ALLREDUCE(sumV, sumV_tot , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-
-     if (root) then
-        write(*,*) ne_tot,ni_tot,nb_tot,ne_tot+ni_tot+nb_tot,rtne,rtnb,sumv_tot 
-     endif
-    
-
-  end subroutine weibell_instability
-  
-  
-  
-  subroutine weibell_instability_equilibrium(p,field_grid)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp,root
-    use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t
-    implicit none
-    include 'mpif.h'
-
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ipl,np,rc=202
-    real(kind_particle)                          :: x(1:2),L(1:3),v0 = 2.0e-5
-    logical                                      :: tmp
-
-
-    np     = size(p, kind=kind_particle)    
-    if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, int(n_ranks, kind=kind_particle))
-
-    L  = extent  + offset
-    Volume = L(1)
-    if ( field_grid%dx(2) .gt. zero ) Volume = Volume*L(2)
-    if ( field_grid%dx(3) .gt. zero ) Volume = Volume*L(3)
-
-
-    do ipl = 1, np
-
-            p(ipl)%data%q                      = -one
-            if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-            p(ipl)%data%m      =  mi/me
-
-            p(ipl)%label       = 1
-            
-            call random(p(ipl)%x)
-      
-            p(ipl)%x(1) = extent(1)*p(ipl)%x(1) + offset(1)
-            p(ipl)%x(2) = extent(2)*p(ipl)%x(2) + offset(2)
-            p(ipl)%x(3) = zero
-
-            call random_boltzmann(p(ipl)%data%v,vith,vidrift)
-
-
-            if ( p(ipl)%data%q .lt. zero  ) then
-
-              p(ipl)%label       = -1  
-              p(ipl)%data%m      =  p(ipl)%data%m * me/mi
-              call random_boltzmann(p(ipl)%data%v,veth,vedrift) 
-              p(ipl)%data%v(1)   =  p(ipl)%data%v(1) +  v0*cos( two*pi/L(1)*p(ipl)%x(1)  )
-            
-            endif
-
-
-
-            p(ipl)%results%E   = zero
-            p(ipl)%results%pot = zero
-            p(ipl)%results%A   = zero
-            p(ipl)%results%dxA = zero
-            p(ipl)%results%dyA = zero
-            p(ipl)%results%B   = zero
-            p(ipl)%results%J   = zero
-            p(ipl)%results%Jirr= zero
-            p(ipl)%work        = one
-
-    end do
-    
-
-  end subroutine weibell_instability_equilibrium
-
-
-    
-  subroutine neutral_plasma(p,field_grid)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp,root
-    use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t
-    implicit none
-    include 'mpif.h'
-
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ipl,np,rc=202
-    real(kind_particle)                          :: x(1:2),L(1:3),v0 = 2.0e-5
-    logical                                      :: tmp
-
-
-    np     = size(p, kind=kind_particle)    
-    if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, int(n_ranks, kind=kind_particle))
-
-    L  = extent  + offset
-    Volume = L(1)
-    if ( field_grid%dx(2) .gt. zero ) Volume = Volume*L(2)
-    if ( field_grid%dx(3) .gt. zero ) Volume = Volume*L(3)
-
-
-    do ipl = 1, np
-
-            p(ipl)%data%q                      = -one
-            if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-            p(ipl)%data%m      =  mi/me
-
-            p(ipl)%label       = 1
-            
-            call random(p(ipl)%x)
-      
-            p(ipl)%x(1) = extent(1)*p(ipl)%x(1) + offset(1)
-            p(ipl)%x(2) = extent(2)*p(ipl)%x(2) + offset(2)
-            p(ipl)%x(3) = zero
-
-            call random_boltzmann(p(ipl)%data%v,vith,vidrift)
-
-
-            if ( p(ipl)%data%q .lt. zero  ) then
-
-              p(ipl)%label       = -1  
-              p(ipl)%data%m      =  p(ipl)%data%m * me/mi
-              call random_boltzmann(p(ipl)%data%v,veth,vedrift) 
-            
-            endif
-
-
-
-            p(ipl)%results%E   = zero
-            p(ipl)%results%pot = zero
-            p(ipl)%results%A   = zero
-            p(ipl)%results%dxA = zero
-            p(ipl)%results%dyA = zero
-            p(ipl)%results%B   = zero
-            p(ipl)%results%J   = zero
-            p(ipl)%results%Jirr= zero
-            p(ipl)%work        = one
-
-    end do
-    
-
-  end subroutine neutral_plasma
-  
-    subroutine periodic_test(p,field_grid)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool   , only: random_gauss
-    use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t 
-    implicit none
-
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ipl,jp,np,n
-    real(kind_particle)                          :: r,r0,rtnp,x(1:2)
-
-!    r0 = two*tentominusthree   
-!    r0  = two*tentominusfive
-!    r0 = tentominustwo*one/five
-    r0     = one/five!six/five!one/five!ten/four!one/five!
-
-    np     = size(p, kind=kind_particle)
-    rtnp   = real(tnp, kind=kind_particle)
-    Volume = pi*r0**2
-
-    ipl     = 0
-    do while (ipl < np)
-
-        call random(x)
-        x           = r0*( two*x - one )
         
-        if ( x(1)**2 + x(2)**2 .le. r0**2 ) then
+        if ( allocated(real8_buf) ) deallocate(real8_buf)
+        allocate( real8_buf( np ) )
+                    
+             
+        call mpi_file_open(MPI_COMM_WORLD, filename, MPI_MODE_RDONLY, MPI_INFO_NULL, fh, mpi_err)
+      
+!        if (mpi_err .ne. MPI_SUCCESS) DEBUG_ERROR(*, 'write_restart(): I/O error for ', filename)
+        call MPI_BARRIER(MPI_COMM_WORLD, mpi_err)       
+        call mpi_file_set_view(    fh, 0_MPI_OFFSET_KIND, MPI_DOUBLE_PRECISION , MPI_DOUBLE_PRECISION,'native'           , MPI_INFO_NULL      , mpi_err)  
+        call mpi_file_read_at(fh, my_offset        , real8_buf, int(np, kind = kind_default), MPI_DOUBLE_PRECISION, mpi_stat, mpi_err)
+        call MPI_BARRIER(MPI_COMM_WORLD, mpi_err)  
+        call mpi_file_close(fh, mpi_err)
+
+        p(:)  = real8_buf(:)
+        
+        deallocate(real8_buf)
+        
             
-            ipl                = ipl +1
+        end subroutine read_mpi_real
+        
+        
+        subroutine read_mpi_int(filename,p)
+        implicit none
 
-            p(ipl)%data%q                      = -one
-            if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-            p(ipl)%data%m                      =  one
+        character(*)                       , intent(in)  :: filename
+        integer(kind_physics), dimension(:), intent(out) :: p
+                
+        integer(kind_physics)   , dimension(:), allocatable :: real8_buf
+        
+        
+        if ( allocated(real8_buf) ) deallocate(real8_buf)
+        allocate( real8_buf( np ) )
             
-            p(ipl)%x(1:2) = x
-            p(ipl)%x(3)   = zero
+             
+        call mpi_file_open(MPI_COMM_WORLD, filename, MPI_MODE_RDONLY, MPI_INFO_NULL, fh, mpi_err)
+      
+!        if (mpi_err .ne. MPI_SUCCESS) DEBUG_ERROR(*, 'write_restart(): I/O error for ', filename)
+             
+        call mpi_file_set_view(    fh, 0_MPI_OFFSET_KIND, MPI_INTEGER8 , MPI_INTEGER8,'native'           , MPI_INFO_NULL      , mpi_err)  
+        call mpi_file_read_at(fh, my_offset        , real8_buf, int(np, kind = kind_default), MPI_INTEGER8, mpi_stat, mpi_err)
+        call mpi_file_close(fh, mpi_err)
+
+        
+        p(:)  = real8_buf(:) 
+        
+        deallocate(real8_buf)
+        
             
-            do jp = 1,3
-                if ( p(ipl)%x(jp) .lt. offset(jp) )              p(ipl)%x(jp) = p(ipl)%x(jp) + extent(jp)
-                if ( p(ipl)%x(jp) .gt. offset(jp) + extent(jp) ) p(ipl)%x(jp) = mod( p(ipl)%x(jp) , extent(jp) )
-            enddo
-
-            p(ipl)%data%v = veth
-
-            if(p(ipl)%data%q .gt. zero) then
-
-                p(ipl)%data%m    = p(ipl)%data%m * mi/me
-                call random_gauss(p(ipl)%data%v)!p(ipl)%data%v    = vith
-
-            endif
-
-            p(ipl)%label       = my_rank * (tnp / n_ranks) + ipl
-
-            p(ipl)%results%E   = zero
-            p(ipl)%results%pot = zero
-            p(ipl)%results%A   = zero
-            p(ipl)%results%dxA = zero
-            p(ipl)%results%dyA = zero
-            p(ipl)%results%B   = zero
-            p(ipl)%results%J   = zero
-            p(ipl)%results%Jirr= zero
-            p(ipl)%work        = one
-            
-        endif
-
-
-    end do
+        end subroutine read_mpi_int
     
-
-  end subroutine periodic_test
+  end subroutine load_file
   
   
-  subroutine landau_damping(p,field_grid)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp,ixdim
-    use zufall        , only: random_gaussian_flux
-    use encap         , only: field_grid_t
+  
+  
+    subroutine cube(p)
+    use module_globals, only: extent,offset,root!,my_rank,n_ranks,Volume,tnp,root
+!    use encap         , only: field_grid_t1:
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)
-    type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ipl,ipg,ix,iy,iz,n(3),np,jp!,tnp,rc
-    real(kind_particle)                          :: dx(3),L(3)
-
-    real(kind_particle),parameter                :: v0 = five*tentominustwo
-
+!    type(field_grid_t)           , intent(in)    :: field_grid
+    integer(kind_particle)                       :: ipl,np,jp
+    
+    if (root)     write(*,*)            "== ...Loading Particle's Position  "
     np = size(p, kind=kind_particle)
-
-    dx = zero
-    dx(1:2) = extent(1:2)/nppd(1:2)
     
-    L  = extent  + offset
-
-
-    Volume = L(1)
-    if ( dx(2) .gt. zero ) Volume = Volume*L(2)
-    if ( dx(3) .gt. zero ) Volume = Volume*L(3)
-
+    
     do ipl = 1, np
 
-      p(ipl)%data%q                      = -one
-      if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-      p(ipl)%data%m                      = one
-
-
-!      ipg = ipl + min(int(my_rank, kind=kind_particle), mod(tnp, int(n_ranks, kind=kind_particle))) * (tnp / n_ranks + 1) + &
-!        max(0_kind_particle, my_rank - mod(tnp, int(n_ranks, kind=kind_particle))) *(tnp / n_ranks)
-!
-!      ix = mod(ipg - 1, nppd(1) ) + 1
-!      iy = mod( (ipg - 1) / nppd(1) , nppd(2) )  + 1
-!      iz = (ipg - 1) / ( nppd(1) * nppd(2) )  + 1
-!
-!
-!      p(ipl)%x(1) = (ix - half)*dx(1) + offset(1)
-!      p(ipl)%x(2) = (iy - half)*dx(2) + offset(2)
-!      p(ipl)%x(3) = (iz - half)*dx(3) + offset(3)
-      
       call random(p(ipl)%x)
       
-      jp          = mod(ipl,field_grid%nl) + 1
-      
-      p(ipl)%x(1) = field_grid%dx(1)*p(ipl)%x(1) + field_grid%p(jp)%x(1)
-      p(ipl)%x(2) = field_grid%dx(2)*p(ipl)%x(2) + field_grid%p(jp)%x(2)
-      p(ipl)%x(3) = zero
-      call random_boltzmann(p(ipl)%data%v,veth,vedrift)
-      
-
-        !!! perturbations
-
-      p(ipl)%data%v(1)    = p(ipl)%data%v(1) +  v0*cos( two*pi/L(1)*p(ipl)%x(1)  )
-!      p(ipl)%data%v(2)    = p(ipl)%data%v(2) +  v0*cos( two*pi/L(2)*p(ipl)%x(2)  )
-      p(ipl)%data%v(3)    = zero
-
-      if(p(ipl)%data%q .gt. zero)   then
-        p(ipl)%data%m    = p(ipl)%data%m * mi/me
-        p(ipl)%data%v    = zero
-      endif
-
-      p(ipl)%label       = my_rank * (tnp / n_ranks) + ipl
-
-      p(ipl)%results%E   = zero
-      p(ipl)%results%pot = zero
-      p(ipl)%results%A   = zero
-      p(ipl)%results%dxA = zero
-      p(ipl)%results%dyA = zero
-      p(ipl)%results%B   = zero
-      p(ipl)%results%J   = zero
-      p(ipl)%results%Jirr= zero
-      p(ipl)%work        = one
+!      jp          = mod(ipl,field_grid%nl) + 1
+!      
+!      p(ipl)%x(1) = field_grid%dx(1)*p(ipl)%x(1) + field_grid%p(jp)%x(1)
+!      p(ipl)%x(2) = field_grid%dx(2)*p(ipl)%x(2) + field_grid%p(jp)%x(2)
+!      p(ipl)%x(3) = field_grid%dx(3)*p(ipl)%x(3) + field_grid%p(jp)%x(3)
 
       
-    end do
-
-  end subroutine landau_damping
-
-
-  subroutine beam(p)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use zufall        , only: random_gaussian_flux
-    implicit none
-
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ipl,ipg,ix,iy,iz,n(3),np!,tnp,rc
-    real(kind_particle)                          :: dx(3),L(3)
-
-    real(kind_particle),parameter :: v0     = 1e-1
-    real(kind_particle),parameter :: x0     = 1e-1
-
-    np = size(p, kind=kind_particle)
-    n  = nppd
-    dx = extent/tnp
-    L  = extent  !+ offset
-
-    do ipl = 1, np
-
-      p(ipl)%data%q                      = -one
-      if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-      p(ipl)%data%m                      = one
-
-
-      ipg = ipl + min(int(my_rank, kind=kind_particle), mod(tnp, int(n_ranks, kind=kind_particle))) * (tnp / n_ranks + 1) + &
-        max(0_kind_particle, my_rank - mod(tnp, int(n_ranks, kind=kind_particle))) *(tnp / n_ranks)
-
-      ix = mod(ipg - 1, nppd(1) ) + 1
-      iy = mod( (ipg - 1) / nppd(1) , nppd(2) )  + 1
-      iz = (ipg - 1) / ( nppd(1) * nppd(2) )  + 1
-
-
-      p(ipl)%x(1:3) = (/ ix , iy ,iz /) *dx(1:3) + offset(1:3)
-      p(ipl)%data%v = veth
-
-      p(ipl)%x(2:3) = zero
-      if(p(ipl)%data%q .gt. zero) then
-
-        p(ipl)%data%m    = p(ipl)%data%m * mi/me
-        p(ipl)%data%v    = vith
-
-      endif
-
-
-      p(ipg)%data%v(1:2) = zero
-      
-      p(ipl)%label       = my_rank * (tnp / n_ranks) + ipl
-
-      p(ipl)%results%E   = zero
-      p(ipl)%results%pot = zero
-      p(ipl)%results%A   = zero
-      p(ipl)%results%dxA = zero
-      p(ipl)%results%dyA = zero
-      p(ipl)%results%B   = zero
-      p(ipl)%results%J   = zero
-      p(ipl)%results%Jirr= zero
-      p(ipl)%work        = one
-
+      p(ipl)%x(1:3) = ( extent(1:3) - offset(1:3) )*( p(ipl)%x(1:3) ) + offset(1:3)
 
     end do
 
-  end subroutine beam
-
-
-
-  subroutine beam_disk(p)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool   , only: random_gauss
-    use zufall        , only: random_gaussian_flux
+  end subroutine cube
+  
+  
+  subroutine disk(p)
+    use module_globals, only: extent,offset,my_rank,n_ranks,Volume,tnp,radius,root
     implicit none
-
+!
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle)                       :: ipl,np,n
-    real(kind_particle)                          :: r,r0,theta,alpha, phase,rtnp
+    real(kind_particle)                          :: r,r0,theta,rtnp
 
-!    r0 = two*tentominusthree   
-!    r0  = two*tentominusfive
-!    r0 = tentominustwo*one/five
-    r0     = ten/four!six/five!one/five!ten/four!one/five!
+    if (root)   write(*,*)            "== ...Loading Particle's Position "
+
+    r0     = radius
 
     np     = size(p, kind=kind_particle)
     rtnp   = real(tnp, kind=kind_particle)
-    Volume = pi*r0**2
+    
+      
+    ipl    = 1
+    
+    do while (ipl .le. np)
+        
+        call random(p(ipl)%x)
+        
+        p(ipl)%x(1) = r0*( two*p(ipl)%x(1)-one )
+        p(ipl)%x(2) = r0*( two*p(ipl)%x(2)-one )
+        p(ipl)%x(3) = zero
+        
+        if ( p(ipl)%x(1)**2 + p(ipl)%x(2)**2 .le. r0**2 ) ipl = ipl+1
+	
+    end do
 
-    call random(p(1)%x)
+  end subroutine disk
+  
+  subroutine uniform_disk(p)
+    use module_globals, only: extent,offset,my_rank,n_ranks,Volume,tnp,radius,root
+    implicit none
+!
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    integer(kind_particle)                       :: ipl,np,n!,rc
+    real(kind_particle)                          :: r,r0,theta,alpha,r1,rtnp
+!    character(100)                                  :: filename_i
+    if (root)   write(*,*)            "== ...Loading Particle's Position "
+
+    r0     = radius
+
+    np     = size(p, kind=kind_particle)
+    rtnp   = real(tnp, kind=kind_particle)
+
 
     alpha = pi*(three - sqrt(five) )
-    phase = two*pi*p(1)%x(1)
 
+!    write(filename_i,'("part_",i6.6,".dat")')  my_rank
+!    open(unit=rc,file=filename_i,form='formatted',status='unknown',position='append')
     do ipl = 1, np
 
-      p(ipl)%data%q                      = -one
-      if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-      p(ipl)%data%m                      =  one
-
-!      theta = ipl*alpha + phase
-!      r     = r0*( real(my_rank * (tnp / n_ranks) + ipl , kind=kind_particle) )/rtnp
-      
       theta = real(ipl, kind=kind_particle)*alpha 
-      r     = r0*sqrt( ( real(my_rank * (tnp / n_ranks) + ipl , kind=kind_particle) )/rtnp )
-      
-!      call random(p(ipl)%x)
-!      theta = two*pi*p(ipl)%x(1)
-!      r     = r0*sqrt( pi*p(ipl)%x(2) )
-
-        
+      call random( p(ipl)%x )
+      r1    = dot_product( p(ipl)%x, p(ipl)%x )
+      r     = r0*sqrt( r1*( real( (my_rank+1) * (tnp / n_ranks) , kind=kind_particle) )/rtnp )
+!      r     = r0*sqrt( ( real(my_rank * (tnp / n_ranks) + ipl , kind=kind_particle) )/rtnp )
+!      write(rc,*) ipl,r,sqrt( ( real(my_rank * (tnp / n_ranks) + ipl , kind=kind_particle) )/rtnp ),sqrt( p(ipl)%x(1)*( real( (my_rank+1) * (tnp / n_ranks) , kind=kind_particle) )/rtnp )        
       p(ipl)%x(1)   = r*cos(theta)
       p(ipl)%x(2)   = r*sin(theta)
       p(ipl)%x(3)   = zero
 
-      p(ipl)%data%v = veth
-
-      if(p(ipl)%data%q .gt. zero) then
-
-        p(ipl)%data%m    = p(ipl)%data%m * mi/me
-        call random_gauss(p(ipl)%data%v)!p(ipl)%data%v    = vith
-
-      endif
-
-      p(ipl)%label       = my_rank * (tnp / n_ranks) + ipl
-
-      p(ipl)%results%E   = zero
-      p(ipl)%results%pot = zero
-      p(ipl)%results%A   = zero
-      p(ipl)%results%dxA = zero
-      p(ipl)%results%dyA = zero
-      p(ipl)%results%B   = zero
-      p(ipl)%results%J   = zero
-      p(ipl)%results%Jirr= zero
-      p(ipl)%work        = one
-
 
     end do
+!    close (rc )
 
-
-  end subroutine beam_disk
+  end subroutine uniform_disk
+   
   
-  
-  subroutine solenoid_infinite(p)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool   , only: random_gauss
-    use zufall        , only: random_gaussian_flux
+  subroutine cylinder(p)
+    use module_globals, only: extent,offset,root,tnp,radius!,my_rank,n_ranks,Volume,root
+!    use encap         , only: field_grid_t
     implicit none
-
+!
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ipl,np,n
-    real(kind_particle)                          :: r,r0,theta,alpha, phase,rtnp
+!    type(field_grid_t)           , intent(in)    :: field_grid
+    integer(kind_particle)                       :: ipl,np,n!,jp
+    real(kind_particle)                          :: r,r0,theta,rtnp
 
-    r0 = one!0.2
-    np  = size(p, kind=kind_particle)
-    rtnp= real(tnp, kind=kind_particle)
-    Volume = pi*r0**2
+    if (root)   write(*,*)            "== ...Loading Particle's Position "
 
-    call random(p(1)%x)
+    r0     = radius
 
-    alpha = pi*(three - sqrt(five) )
-    phase = two*pi*p(1)%x(1)
-
-    do ipl = 1, np
-
-      p(ipl)%data%q                      = -one
-      if (nsp .eq. 2) p(ipl)%data%q      = (-one + two*MOD(ipl,2_kind_particle))
-      p(ipl)%data%m                      = one
-
-      theta = ipl*alpha + phase
-
-      p(ipl)%x(1)   = r0*cos(theta)
-      p(ipl)%x(2)   = r0*sin(theta)
-      p(ipl)%x(3)   = zero
-
-      p(ipl)%data%v = veth
-
-      if(p(ipl)%data%q .gt. zero) then
-
-        p(ipl)%data%m    = p(ipl)%data%m * mi/me
-        call random_gauss(p(ipl)%data%v)!p(ipl)%data%v    = vith
-
-      endif
-
-      p(ipl)%label       = my_rank * (tnp / n_ranks) + ipl
-
-      p(ipl)%results%E   = zero
-      p(ipl)%results%pot = zero
-      p(ipl)%results%A   = zero
-      p(ipl)%results%dxA = zero
-      p(ipl)%results%dyA = zero
-      p(ipl)%results%B   = zero
-      p(ipl)%results%J   = zero
-      p(ipl)%results%Jirr= zero
-      p(ipl)%work        = one
-
-      
-    end do
-
-
-  end subroutine solenoid_infinite
-  
-  
-  subroutine solenoid(p)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool   , only: random_gauss
-    use zufall        , only: random_gaussian_flux
-    implicit none
-
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ipl,np,n
-    real(kind_particle)                          :: r0,rtnp,L,dx
-
-    r0     = half
-    L      = 100.0
     np     = size(p, kind=kind_particle)
     rtnp   = real(tnp, kind=kind_particle)
-    Volume = L*r0
-    dx     = two*L/rtnp
     
+      
+    ipl    = 1
+    
+    do while (ipl .le. np)
+        
+        call random(p(ipl)%x)
+        
+        p(ipl)%x(1) = r0*( two*p(ipl)%x(1)-one )
+        p(ipl)%x(2) = r0*( two*p(ipl)%x(2)-one )
+        
+!        jp          = mod(ipl,field_grid%nl) + 1
+        
+        p(ipl)%x(3) = ( extent(3) - offset(3) )*( p(ipl)%x(3) ) + offset(3)
+        
+        if ( p(ipl)%x(1)**2 + p(ipl)%x(2)**2 .le. r0**2 ) ipl = ipl+1
+	
+    end do
+
+  end subroutine cylinder
+  
+  
+  subroutine clean_fields(p)
+    use module_globals, only: root
+    implicit none
+!
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    integer(kind_particle)                       :: ipl,np
+     
+    
+    if (root)   write(*,*)            "== ...Cleaning Fields  "
+
+    np     = size(p, kind=kind_particle)
+
     do ipl = 1, np
 
-      p(ipl)%data%q                      = (-one + two*MOD(ipl,2_kind_particle))
-
-      p(ipl)%data%m                      = one
-      if(p(ipl)%data%q .gt. zero) p(ipl)%data%m    = p(ipl)%data%m * mi/me
-
-      p(ipl)%x(1)   = -L + ( real(ipl, kind=kind_particle) + (-one + MOD(ipl,2_kind_particle)) )*dx
-      p(ipl)%x(2)   = p(ipl)%data%q*r0
-      p(ipl)%x(3)   = zero
-
-      p(ipl)%data%v = veth
-
-      p(ipl)%label       = my_rank * (tnp / n_ranks) + ipl
 
       p(ipl)%results%E   = zero
       p(ipl)%results%pot = zero
       p(ipl)%results%A   = zero
       p(ipl)%results%dxA = zero
       p(ipl)%results%dyA = zero
+      p(ipl)%results%dzA = zero
+!      p(ipl)%results%dxxA= zero
+!      p(ipl)%results%dxyA= zero
+!      p(ipl)%results%dyyA= zero
       p(ipl)%results%B   = zero
       p(ipl)%results%J   = zero
       p(ipl)%results%Jirr= zero
       p(ipl)%work        = one
 
-      
-    end do
-
-
-  end subroutine solenoid
-
-
-
-  subroutine thermal(p)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool   , only: random_gauss
-    implicit none
-
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ip,np!,tnp
-
-    real(kind_particle)          , parameter     :: Tkb=1e-3
-
-    np = size(p, kind=kind_particle)
-    Volume = one
-
-    do ip=1, np
-
-      p(ip)%data%q                      = one
-      if (nsp .eq. 2) p(ip)%data%q      = (-one + two*MOD(ip,2_kind_particle))
-      p(ip)%data%m      = one
-
-      if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * mi/me
-
-      call random(p(ip)%x)
-
-      call random_gauss(p(ip)%data%v)
-      p(ip)%data%v      = p(ip)%data%v*sqrt(Tkb * p(ip)%data%m) / p(ip)%data%m
-
-      p(ip)%label       = my_rank * (tnp / n_ranks) + ip
-
-      p(ip)%results%E   = zero
-      p(ip)%results%pot = zero
-      p(ip)%results%A   = zero
-      p(ip)%results%dxA = zero
-      p(ip)%results%dyA = zero
-      p(ip)%results%B   = zero
-      p(ip)%results%J   = zero
-      p(ip)%results%Jirr= zero
-      p(ip)%work        = one
 
     end do
 
-  end subroutine thermal
 
-  subroutine thermal2D3V(p)
-    use module_globals, only: nppd,extent,offset,my_rank,n_ranks,nsp,veth,vith,vedrift,vidrift,Volume,tnp
-    use module_tool   , only: random_gauss
+  end subroutine clean_fields
+  
+  
+  
+  subroutine iclean_fields(p)
+    use module_globals, only: root
     implicit none
+!
+    type(t_particle), intent(inout) :: p
+     
 
+      p%results%E   = zero
+      p%results%pot = zero
+      p%results%A   = zero
+      p%results%dxA = zero
+      p%results%dyA = zero
+      p%results%dzA = zero
+!      p%results%dxxA= zero
+!      p%results%dxyA= zero
+!      p%results%dyyA= zero
+      p%results%B   = zero
+      p%results%J   = zero
+      p%results%Jirr= zero
+      p%work        = one
+
+
+  end subroutine iclean_fields
+  
+  
+  subroutine velocity_profile(p)
+   use module_globals, only: nsp,ns_tot,percentages,my_rank,n_ranks,tnp,vth,vdrift,uth,udrift,wth,wdrift,root,nsp
+    implicit none
+    include 'mpif.h'
+!
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ip,np!,tnp
+    integer(kind_particle)                       :: ip,np,n,j1,species,count_species(1:nsp),rc
+    real(kind_particle)                          :: v_th(1:3),v_drift(1:3),sumV
 
-    real(kind_particle)          , parameter     :: Tkb=1e-3
-
-    np = size(p, kind=kind_particle)
-    Volume = one
-
-    do ip=1, np
-
-      p(ip)%data%q                      = one
-      if (nsp .eq. 2) p(ip)%data%q      = (-one + two*MOD(ip,2_kind_particle))
-      p(ip)%data%m      = one
-
-      if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * mi/me
-
-      call random(p(ip)%x)
-      p(ip)%x(3)    = zero
-!      call random_gauss(p(ip)%data%v)
-      p(ip)%data%v      = half!p(ip)%data%v*sqrt(Tkb * p(ip)%data%m) / p(ip)%data%m
-
-      p(ip)%label       = my_rank * (tnp / n_ranks) + ip
-
-      p(ip)%results%E   = zero
-      p(ip)%results%pot = zero
-      p(ip)%results%A   = zero
-      p(ip)%results%dxA = zero
-      p(ip)%results%dyA = zero
-      p(ip)%results%B   = zero
-      p(ip)%results%J   = zero
-      p(ip)%results%Jirr= zero
-      p(ip)%work        = one
-
+    np     = size(p, kind=kind_particle)
+    if (root)   write(*,*)            "== ...Loading Particle's Velocity  "
+    count_species   = 0
+    sumV            = zero
+    
+    do ip = 1,np
+                species                            = p(ip)%label
+                count_species(species)             = count_species(species)+1
+                v_th                               = (/ uth(species),vth(species),wth(species) /)
+                v_drift                            = (/ udrift(species),vdrift(species),wdrift(species) /)                
+                call random_boltzmann(p(ip)%data%v,v_th,v_drift)
+                sumV                               = sumV +  p(ip)%data%v(3)
     end do
     
-  end subroutine thermal2D3V
+    call MPI_ALLREDUCE(MPI_IN_PLACE , count_species(1:nsp)  , nsp, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+    call MPI_ALLREDUCE(MPI_IN_PLACE , sumV                  , 1  , MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+
+    if ( root ) then
+        write(*,*) 'Number of particles per species: ',count_species(1:nsp)
+        write(*,*) 'Sum                            : ',sum(count_species)
+        write(*,*) 'Sum of currents                : ',sumV       
+    endif
+
+  end subroutine velocity_profile
+  
+  
+  subroutine charge_mass_label(p)
+    use module_globals, only: nsp,ns_tot,charge_init,mass_init,percentages,my_rank,n_ranks,tracks,tnp,nsp,root
+    implicit none
+!
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    integer(kind_particle)                       :: ip,ipl,np,n,delta,j1,species
+
+    np     = size(p, kind=kind_particle)
+    
+!    rdelta = ( real( np/percentages(ns_tot+1) , kind=kind_particle ) )
+    if (root)   write(*,*)            "== ...Loading Particle's Charge  "
+!    if ( mod(rdelta,one) .gt. zero ) then
+!        write(*,*) my_rank,np,percentages(ns_tot+1),rdelta
+!        call exit(1)
+!    endif
+    
+    delta = ( int( np/percentages(ns_tot+1) , kind=kind_particle ) )
+    ipl   = 0
+    
+    do ip = 1, delta
+
+        do species = 1,nsp
+            
+            do j1 = 1,percentages(species)
+                ipl                                = ipl+1
+                p(ipl)%data%q                      = real(charge_init(species), kind=kind_particle)
+                p(ipl)%data%m                      = real(  mass_init(species), kind=kind_particle)
+
+!                if ( tracks .eq. 0 ) then 
+                    ! track single particle
+!                    p(ipl)%label       = my_rank * (tnp / n_ranks) + ipl 
+!                else if ( tracks .eq. 1 ) then
+!                     track per species
+                    p(ipl)%label       = species
+!                endif
+
+            enddo
+            
+        enddo
+        
+    end do
 
 
+  end subroutine charge_mass_label
+  
+  subroutine perturbations(p)
+    use module_globals, only: nsp,ns_tot,charge_init,mass_init,percentages,my_rank,n_ranks,tracks,x_pert,y_pert,z_pert,&
+                              u_pert,v_pert,w_pert,extent,nsp,root
+    implicit none
+!
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    integer(kind_particle)                       :: ip,np,n,j1,species
+    real(kind_particle)                          :: dL(1:3)
+
+    np     = size(p, kind=kind_particle)
+    dL     = extent
+    if (root)   write(*,*)            "== ...Loading Perturbation  "
+    
+    do ip = 1, np
+        
+                species                           = p(ip)%label 
+                
+                p(ip)%x(1)                        = p(ip)%x(1) + x_pert(species)*cos( two*pi/dL(1)*p(ip)%x(1)  )
+                p(ip)%x(2)                        = p(ip)%x(2) + y_pert(species)*cos( two*pi/dL(2)*p(ip)%x(2)  )
+                if ( dL(3) .gt. zero ) then
+                p(ip)%x(3)                        = p(ip)%x(3) + z_pert(species)*cos( two*pi/dL(3)*p(ip)%x(3)  )
+                endif
+
+                p(ip)%data%v(1)                   = p(ip)%data%v(1) + u_pert(species)*cos( two*pi/dL(1)*p(ip)%x(1)  )
+                p(ip)%data%v(2)                   = p(ip)%data%v(2) + v_pert(species)*cos( two*pi/dL(2)*p(ip)%x(2)  )
+                if ( dL(3) .gt. zero ) then
+                p(ip)%data%v(3)                   = p(ip)%data%v(3) + v_pert(species)*cos( two*pi/dL(3)*p(ip)%x(3)  )
+                endif
+       
+    end do
+
+
+  end subroutine perturbations
+  
+  
 
 end module module_init

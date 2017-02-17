@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -30,35 +30,45 @@ module module_integration
   use module_debug
   use module_pepc_kinds
   use module_interaction_Specific_types
-  use module_globals, only: dt,ixdim,ivdim,vtilde,lorentz_tilde,folder
+  use module_globals, only: vtilde,lorentz_tilde,folder
   use module_shortcut
   implicit none
   save
   private
 
-  public midpoint3D
-  public trapezoidal3D
-  public midpoint_electrostatic
-  public hamiltonian_boris
+!  public iNKmidpoint_2D3V
+!  public NKmidpoint_2D3V
+!  public iNKtrapezoidal_2D3V
+!  public NKtrapezoidal_2D3V
+  public trapezoidal_electrostatic
+!  public boris
   public leapfrog
-  public midpoint
+!  public midpoint
   public trapezoidal
   public implicit_nkPtr
   public implicit_picardPtr
   public explicit_ptr
   public march
+!  public inverse
 !  public boris
 
 
   type pv_particle
     real(kind_physics), dimension(1:3) :: x, v
-    real(kind_physics)               :: gamma
+    real(kind_physics)                 :: gamma
   end type pv_particle
-
+  
   type pma_particle
     real(kind_physics), dimension(1:3) :: x, P, A,dxA,dyA
     real(kind_physics)                 :: gamma
   end type pma_particle
+  
+      
+  type broyden_particle
+      real(kind_physics), dimension(1:3)                   :: x, P, A,dxA,dyA
+      real(kind_physics), dimension(1:5)                   :: res,res_old
+      real(kind_physics)                                   :: gamma,norm_res,error
+  end type broyden_particle
   
    abstract interface
 
@@ -72,20 +82,45 @@ module module_integration
 
       end subroutine explicit_ptr
 
-      subroutine implicit_nkPtr(np,dt,x_tn,x_tn1,res)
+      subroutine implicit_nkPtr(n,dt,p,r,s,res)
       use module_pepc_types
       use module_pepc_kinds
       implicit none
 
-        integer(kind_particle)       , intent(in)    :: np
+        integer(kind_particle)       , intent(in)    :: n
         real(kind_particle)          , intent(in)    :: dt
-        type(t_particle)             , intent(in)    :: x_tn(np)    ! Actual values of the particles
-        real(kind_particle)          , intent(in)    :: x_tn1(9*np) ! Next iteration of the particles
-        real(kind_particle)          , intent(out)   :: res(9*np)   ! Residual
+        type(t_particle)             , intent(in)    :: p,r    ! Actual values of the particles
+        real(kind_particle)          , intent(in)    :: s(n)
+        real(kind_particle)          , intent(out)   :: res(n)       ! Residual
 
       end subroutine implicit_nkPtr
+      
+      subroutine implicit_nkPtr_update(np,n,dt,p,s,res)
+      use module_pepc_types
+      use module_pepc_kinds
+      implicit none
 
-      subroutine implicit_picardPtr(np,dt,p,ierr,itc,tolg)
+        integer(kind_particle)             , intent(in)    :: n,np
+        real(kind_particle)                , intent(in)    :: dt
+        type(t_particle)                   , intent(in)    :: p(1:np)
+        real(kind_particle)                , intent(in)    :: s(n,np)
+        real(kind_particle)                , intent(out)   :: res(n,np) 
+
+      end subroutine implicit_nkPtr_update
+      
+      subroutine implicit_nkPtr_scheme(n,p,step,r)
+      use module_pepc_types
+      use module_pepc_kinds
+      implicit none
+
+        integer(kind_particle)       , intent(in)    :: n
+        type(t_particle)             , intent(in)    :: p
+        real(kind_particle)          , intent(in)    :: step(1:n)
+        type(t_particle)             , intent(out)   :: r    ! Actual values of the particles
+
+      end subroutine implicit_nkPtr_scheme
+
+      subroutine implicit_picardPtr(np,dt,p,itc,tolg)
       use module_pepc_types
       use module_pepc_kinds
       implicit none
@@ -94,7 +129,7 @@ module module_integration
         real(kind_particle)             , intent(in)     :: dt
         type(t_particle), allocatable   , intent(inout)  :: p(:)
         integer(kind_particle)          , intent(out)    :: itc
-        real(kind_particle)             , intent(out)    :: tolg,ierr(1:3,1:5)
+        real(kind_particle)             , intent(out)    :: tolg
 
       end subroutine implicit_picardPtr
    end interface
@@ -103,8 +138,8 @@ module module_integration
 
 
   subroutine march(np,dt,p,ischeme,adv)
-  use newton_krylov, only: nsolgm
-  use module_globals, only: my_rank,root
+!  use newton_krylov, only: nsolgm
+  use module_globals, only: root
   implicit none
         integer(kind_particle)       , intent(in)    :: np
         character(255)               , intent(in)    :: ischeme ! numerical scheme
@@ -112,25 +147,38 @@ module module_integration
         real(kind_particle)          , intent(in)    :: dt
         type(t_particle), allocatable, intent(inout) :: p(:)    ! Actual values of the particles
 
-        procedure (implicit_picardPtr), pointer      :: pic_ptr => null ()
-        procedure (implicit_nkPtr)    , pointer      :: nk_ptr  => null ()
-        procedure (explicit_ptr)      , pointer      :: exp_ptr => null ()
-        real(kind_particle)                          :: x_tn1(9*np) ! NK-Iteration
-        real(kind_particle)                          :: res(9*np) ,static_gmres(3) ! Residual - NK-Iteration and statistics
-        integer(kind_particle)                       :: errmsg_nk,iter,rc=100    ! Picard Iteration
-        real(kind_particle)                          :: errnk,toll,errmsg(1:3,1:5)        ! Global Error - Picard Iteration
+        procedure (implicit_picardPtr)       , pointer      :: pic_ptr        => null ()
+        procedure (implicit_nkPtr)           , pointer      :: nk_ptr         => null ()
+        procedure (implicit_nkPtr_update)    , pointer      :: nk_ptr_update  => null ()
+        procedure (implicit_nkPtr_scheme)    , pointer      :: nk_ptr_scheme  => null ()
+        procedure (explicit_ptr)             , pointer      :: exp_ptr        => null ()
+        integer(kind_particle)                              :: errmsg_nk,iter,rc=100                          ! Picard Iteration
+        real(kind_particle)                                 :: errnk,static_gmres!,errmsg(1:3,1:5)        ! Global Error - Picard Iteration
 
         if (adv .eq. 0) then
 
             select case (ischeme)
-!                case ("boris")
-!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Boris Integrator"
-!                    exp_ptr => boris
                 case ("leapfrog")
-                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Leapfrog Integrator"
+                    if (root) write(*,'(a)')        " ====== Leapfrog Integrator"
                     exp_ptr => leapfrog
+                case ("explicit")
+                    if (root) write(*,'(a)')        " ====== Explicit Integrator"
+                    exp_ptr => explicit
+                case ("euler_method")    
+                    if (root) write(*,'(a)')        " ====== Euler Method"
+                    exp_ptr => euler_method
+                case ("euler_method3d")    
+                    if (root) write(*,'(a)')        " ====== Euler Method 3D"
+                    exp_ptr => euler_method3d
+                case ("explicit_verlet")    
+                    if (root) write(*,'(a)')        " ====== Explicit Verlet"
+                    exp_ptr => explicit_verlet
+                case ("euler_method_electrostatic")    
+                    if (root) write(*,'(a)')        " ====== Euler Method Electrostatic"
+                    exp_ptr => euler_method_electrostatic
+                    
                 case default
-                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Leapfrog Integrator"
+                    if (root) write(*,'(a)')        " ====== Leapfrog Integrator"
                     exp_ptr => leapfrog
                 end select
 
@@ -139,56 +187,72 @@ module module_integration
         elseif (adv.eq.1) then
             select case (ischeme)
 !                case ("midpoint_picard")
-!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Midpoint Picard"
+!                    if (root) write(*,'(a)')        " ====== Midpoint Picard"
 !                    pic_ptr => midpoint
-!                case ("midpoint_picard_electrostatic")
-!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Midpoint Picard Electrostatic"
-!                    pic_ptr => midpoint_electrostatic
+                case ("trapezoidal_picard_electrostatic")
+                    if (root) write(*,'(a)')        " ====== Trapezoidal Picard Electrostatic"
+                    pic_ptr => trapezoidal_electrostatic
                 case ("trapezoidal_picard")
-                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Trapezoidal_picard"
+                    if (root) write(*,'(a)')        " ====== Trapezoidal_picard"
                     pic_ptr => trapezoidal
-!                case ("trapezoidal_broyden")
-!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Trapezoidal_picard"
-!                    pic_ptr => trapezoidal_broyden
+!                case ("trapezoidal_broyden2D3V")
+!                    if (root) write(*,'(a)')        " ====== Trapezoidal_Broyden"
+!                    pic_ptr => broyden_trapezoidal2D3V
+!                case ("mfnk_trapezoidal2D3V")
+!                    if (root) write(*,'(a)')        " ====== Modified Newton-Gmres"
+!                    pic_ptr => mfnk_trapezoidal2D3V
+!                    
+!                case ("boris")
+!                    if (root) write(*,'(a)')        " ====== Boris  Integrator"
+!                    pic_ptr => boris 
 !                case ("hamiltonian_boris")
-!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Boris - Hamiltonian Integrator"
+!                    if (root) write(*,'(a)')        " ====== Boris - Hamiltonian - Integrator"
 !                    pic_ptr => hamiltonian_boris 
 !                case default
-!                    if (my_rank.eq. 0) write(*,'(a)')        " ====== Boris - Hamiltonian Integrator"
+!                    if (root) write(*,'(a)')        " ====== Boris - Hamiltonian Integrator"
 !                    pic_ptr => hamiltonian_boris    
                     
                 end select
-                call pic_ptr(np,dt,p,errmsg,iter,errnk)
+                call pic_ptr(np,dt,p,iter,errnk)
                 
                 if (root) then
 !                    write(*,'(a,i4,2x,es12.4,es12.4,es12.4,es12.4,es12.4,es12.4)') " == Resual : ", iter,errnk,errmsg
                     write(*,'(a,i4,2x,es12.4)') " == Resual : ", iter,errnk
                     open(unit=rc,file=trim(folder)//trim("residuo_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
-                    write(rc,*) iter,errnk,errmsg(:,1),errmsg(:,2),errmsg(:,3),errmsg(:,4),errmsg(:,5)
+                    write(rc,*) iter,errnk!(:,1),errmsg(:,2),errmsg(:,3),errmsg(:,4),errmsg(:,5)
                     close (rc )
                 endif
 
         elseif (adv.eq.2) then
-
-            select case (ischeme)
-                case ("midpoint3D")
-                    nk_ptr => midpoint3D
-                case ("trapezoidal3D")
-                    nk_ptr => trapezoidal3D
-                case default
-                    nk_ptr => midpoint3D
-                end select
-                call nsolgm(np,dt,p,nk_ptr,errmsg_nk,iter,errnk,static_gmres)
-                
-                if (root) then
-                    write(*,'(a,es12.4)') " == Resual : ", iter,errnk,errmsg_nk
-                    open(unit=rc,file=trim(folder)//trim("residuo_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
-                    write(rc,*) errmsg_nk,iter,errnk
-                    close (rc )
-                endif
+            
+            if (root) write(*,'(a)')        " ====== NK Solver is deactivated"
+            call exit(1)
+!            select case (ischeme)
+!                case ("midpoint2VD")
+!                    if (root) write(*,'(a)')        " ====== Midpoint_Rule with NK solver"
+!!                    nk_ptr        => iNKmidpoint_2D3V
+!!                    nk_ptr_update =>  NKmidpoint_2D3V
+!!                    nk_ptr_scheme =>  NKmidpoint
+!                case ("trapezoidal2V3D")
+!                    if (root) write(*,'(a)')        " ====== Trapezoidal_Rule with NK solver"
+!                    nk_ptr_update =>  NKtrapezoidal_2D3V
+!                case default
+!!                    nk_ptr        => iNKmidpoint_2D3V
+!!                    nk_ptr_update =>  NKmidpoint_2D3V
+!!                    nk_ptr_scheme =>  NKmidpoint
+!                end select
+!                
+!                call nsolgm(np,dt,p,nk_ptr_update,errmsg_nk,iter,errnk,static_gmres)
+!                
+!                if (root) then
+!                    write(*,'(a,i4,2x,es12.4)') " == Resual : ", iter,errnk
+!                    open(unit=rc,file=trim(folder)//trim("residuo_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+!                    write(rc,*) errmsg_nk,iter,errnk
+!                    close (rc )
+!                endif
                 
         elseif (adv.eq.-1) then
-            if (my_rank.eq. 0) write(*,'(a)')        " ====== Wrong choice of time integrator"
+            if (root) write(*,'(a)')        " ====== Wrong choice of time integrator"
             call exit(1)
 
         endif
@@ -199,311 +263,247 @@ module module_integration
 
 
   subroutine leapfrog(np,dt,p)
+      use module_tool  , only: cross_product 
     use helper         ,only: iperiodic_particles
     use module_shortcut,only: one
-    use module_globals ,only: periodicity_particles
+    use module_globals ,only: periodicity_particles,B0
 
     implicit none
+    
+!------------------------------------------------------------------------------------------------------------------------------
+!    
+!    This subroutine is meant to compute the advance in time with the well known leap-frog integration.
+!    Notice this integrator is very efficient for electrostatic problems, but it fails for Electro-Darwin formulation.
+!    
+!    x^(t+1)      = x^(t) +   dt*v^(t+1/2)
+!    v^(t+1)      = v^(t) + q*dt*E^(t)
+!    
+!    np represents the number of particles of the current process
+!    
+!    dt is the time step
+!    
+!    p is the array of particles at the old time step, "t".
+!    
+!------------------------------------------------------------------------------------------------------------------------------ 
+    
+    
     integer(kind_particle)       , intent(in)    :: np
     type(t_particle), allocatable, intent(inout) :: p(:)
     real(kind_particle)          , intent(in)    :: dt
 
     integer(kind_particle) :: ip
-    real(kind_particle)    :: v(3),gamma
-
+    real(kind_particle)    :: vxb(1:3),v(1:3)
 
     do ip=1, np
-      gamma             = one!/sqrt( one - dot_product( p(ip)%data%v/vtilde, p(ip)%data%v/vtilde ) ) 
-      v                 = gamma*p(ip)%data%v + dt * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e
-      gamma             = sqrt( one + dot_product( v/vtilde, v/vtilde ) )
+        
+      
+      v                 = p(ip)%data%v/p(ip)%data%g
+      vxb               = cross_product(v,B0)
+      
+      p(ip)%data%v      = p(ip)%data%v + dt * p(ip)%data%q / p(ip)%data%m * ( p(ip)%results%e + vxb )
+!      p(ip)%data%v      = p(ip)%data%v + dt * p(ip)%data%q / p(ip)%data%m * ( vxb )
+      p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
 
-      p(ip)%data%v      = v/gamma
-      p(ip)%x           = p(ip)%x      + dt   * p(ip)%data%v
+      v                 = p(ip)%data%v/p(ip)%data%g
+      
+      p(ip)%x           = p(ip)%x      + dt   * v
 
       p(ip)%x(3)        = zero
-      if (periodicity_particles) call iperiodic_particles(ip,np,p)
+      if (periodicity_particles) call iperiodic_particles(p(ip))
 
     end do
 
   end subroutine leapfrog
 
+  
+  subroutine explicit(np,dt,p)
+    use helper         ,only: iperiodic_particles
+    use module_shortcut,only: one
+    use module_globals ,only: periodicity_particles,pold
 
-!subroutine boris(np,dt,p)
-!    use module_tool   , only: cross_product
-!    implicit none
-!    include 'mpif.h'
-!
-!    integer(kind_particle)       , intent(in)    :: np
-!    real(kind_particle)          , intent(in)    :: dt
-!    type(t_particle),allocatable , intent(inout) :: p(:)    ! Actual values of the particles
-!
-!    integer(kind_particle)                    :: ip,jp,rc,ierr
-!    real(kind_particle)                       :: v(3),e,m,gamma,&
-!                                                 alpha,Bnorm,B(3),v_(3),vpar(3),vnor(3)
-!
-!
-!    do ip=1, np
-!
-!      e                 = p(ip)%data%q
-!      m                 = p(ip)%data%m
-!      B                 = p(ip)%results%B
-!      Bnorm             = B(1)**2 + B(2)**2 + B(3)**2
-!
-!      alpha             = half*e*dt/m
-!
-!      v_                = p(ip)%data%v + alpha*( p(ip)%results%E )
-!      vpar              = alpha*( dot_product(v_,B) )*B
-!      vnor              = cross_product(v_,B)
-!      v                 = (v_ + alpha*( vpar + vnor ) )/( one + alpha**2*Bnorm )
-!
-!      p(ip)%data%v      = two*v - p(ip)%data%v
-!      p(ip)%x           = p(ip)%x + dt*v
-!
-!    end do
-!
-!  end subroutine boris
-
-
-  subroutine midpoint3D(np,dt,x_tn,x_tn1,res)
-    use module_tool     , only: cross_product
     implicit none
-    include 'mpif.h'
+    
+!------------------------------------------------------------------------------------------------------------------------------
+!    
+!    This subroutine is meant to compute the advance in time with the well known leap-frog integration.
+!    Notice this integrator is very efficient for electrostatic problems, but it fails for Electro-Darwin formulation.
+!    
+!    x^(t+1)      = x^(t) +   dt*v^(t+1/2)
+!    v^(t+1)      = v^(t) + q*dt*E^(t)
+!    
+!    np represents the number of particles of the current process
+!    
+!    dt is the time step
+!    
+!    p is the array of particles at the old time step, "t".
+!    
+!------------------------------------------------------------------------------------------------------------------------------ 
+    
+    
+    integer(kind_particle)       , intent(in)    :: np
+    type(t_particle), allocatable, intent(inout) :: p(:)
+    real(kind_particle)          , intent(in)    :: dt
 
-    integer(kind_particle)       , intent(in) :: np
-!    integer(kind_particle)                    :: n
-    real(kind_particle)          , intent(in) :: dt
-    type(t_particle)             , intent(in) :: x_tn(np)    ! Actual values of the particles
-    real(kind_particle)          , intent(in) :: x_tn1(9*np) ! Next iteration of the particles
-    real(kind_particle)          , intent(out):: res(9*np)   ! Residual
+    integer(kind_particle) :: ip
+    real(kind_particle)    :: grad(1:3),v(1:3),m,e
 
-    type(t_particle), allocatable             :: r(:)
-    integer(kind_particle)                    :: ip,jp,rc,ierr
-    real(kind_particle)                       :: v(3),x(3),p(3),rot(3),e,m,gamma
+    do ip=1, np
+        
+                        
+              
+        v                 = p(ip)%data%v
+        grad              = zero
+        grad(1)           = v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dxA(2) + v(3)*p(ip)%results%dxA(3)
+        grad(2)           = v(1)*p(ip)%results%dyA(2) + v(2)*p(ip)%results%dyA(2) + v(3)*p(ip)%results%dyA(3)
+        grad              = grad/lorentz_tilde
+              
+        m                 = p(ip)%data%m
+        e                 = p(ip)%data%q
+        
+        p(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde*pold(ip)%results%A + dt * e * ( p(ip)%results%e + grad )
+      
+        p(ip)%data%v      = ( m*p(ip)%data%v  - e/lorentz_tilde*p(ip)%results%A )/m
+        
+        p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
+        
+        p(ip)%x           = p(ip)%x      + dt   * p(ip)%data%v/p(ip)%data%g
+        p(ip)%x(3)        = zero
+        if (periodicity_particles) call iperiodic_particles(p(ip))
 
-    if ( allocated(r) ) deallocate(r)
-    allocate( r(size(x_tn, kind=kind_particle)) , stat = rc )
-    if(rc.ne.0) write(*,*) " === particle allocation error!"
+    end do
 
-    do ip = 1, np
-
-        jp                = (ip-1)*9
-        m                 = x_tn(ip)%data%m
-        e                 = x_tn(ip)%data%q
-
-        r(ip)%label       = x_tn(ip)%label
-        r(ip)%data%q      = e
-        r(ip)%data%m      = m
-
-        x(1:3)            = x_tn1(jp+1:jp+3)
-        v(1:3)            = (x_tn1(jp+4:jp+6) - e/lorentz_tilde*x_tn1(jp+7:jp+9))/m
-        gamma             = sqrt( one + dot_product(v/vtilde,v/vtilde) )
-        v(1:3)            = v(1:3)/gamma
-
-        r(ip)%x           = half*( x + x_tn(ip)%x )
-        r(ip)%data%v      = half*( v + x_tn(ip)%data%v )
-
-        r(ip)%results%e   = zero
-        r(ip)%results%pot = zero
-        r(ip)%results%B   = zero
-        r(ip)%results%A   = zero
-        r(ip)%results%dxA = zero
-        r(ip)%results%dyA = zero
-        r(ip)%results%Jirr= zero
-        r(ip)%results%J   = zero
-        r(ip)%work        = one
-
-    enddo
-
-    call pepc_particleresults_clear(r)
-    call pepc_grow_tree(r)
-    call pepc_traverse_tree(r)
-    call pepc_restore_particles(r)
-    call pepc_timber_tree()
-
-    do ip = 1,np
-
-        jp                = (ip-1)*9
-        m                 = x_tn(ip)%data%m
-        e                 = x_tn(ip)%data%q
-
-        gamma             = one/sqrt( one - dot_product( x_tn(ip)%data%v/vtilde, x_tn(ip)%data%v/vtilde ) )
-
-        p(1:3)            = gamma*m*x_tn(ip)%data%v(1:3) + e/lorentz_tilde*x_tn(ip)%results%A
-
-        !!! v cross B
-
-        rot               = cross_product( r(ip)%data%v/lorentz_tilde,r(ip)%results%B )
-
-        res(jp+4:jp+6)    = x_tn1(jp+4:jp+6)   - p(1:3)             - e*dt*(  r(ip)%results%E(1:3) + rot  )
-        res(jp+1:jp+3)    = x_tn1(jp+1:jp+3)   - x_tn(ip)%x(1:3)    - dt*r(ip)%data%v
-        res(jp+7:jp+9)    = x_tn1(jp+7:jp+9)   - r(ip)%results%A
-
-    enddo
-
-    deallocate(r)
-
-  end subroutine midpoint3D
-
-  subroutine trapezoidal3D(np,dt,x_tn,x_tn1,res)
-    use module_tool   , only: cross_product
-    use module_globals, only: norm_factor
-    implicit none
-    include 'mpif.h'
-
-    integer(kind_particle)       , intent(in) :: np
-!    integer(kind_particle)                    :: n
-    real(kind_particle)          , intent(in) :: dt
-    type(t_particle)             , intent(in) :: x_tn(np)     ! Actual values of the particles
-    real(kind_particle)          , intent(in) :: x_tn1(9*np) ! Next iteration of the particles
-    real(kind_particle)          , intent(out):: res(9*np)   ! Residual
-
-    type(t_particle), allocatable             :: r(:)
-    integer(kind_particle)                    :: ip,jp,rc,ierr
-    real(kind_particle)                       :: v(3),vn(3),x(3),p(3),rot(3),e,m,gamma,B(3),Bn(3)
-    !n  = 6*np
-
-    if ( allocated(r) ) deallocate(r)
-    allocate( r(size(x_tn, kind=kind_particle)) , stat = rc )
-    if(rc.ne.0) write(*,*) " === particle allocation error!"
-
-    do ip = 1, np
-
-        jp                = (ip-1)*9
-        m                 = x_tn(ip)%data%m
-        e                 = x_tn(ip)%data%q
-
-        r(ip)%label       = x_tn(ip)%label
-        r(ip)%data%q      = e
-        r(ip)%data%m      = m
-
-        v(1:3)            = (x_tn1(jp+4:jp+6) - e/lorentz_tilde*x_tn1(jp+7:jp+9))/m
-        gamma             = one!sqrt( one + dot_product(v,v) )
-        v(1:3)            = v(1:3)/gamma
-
-        r(ip)%x           = x_tn1(jp+1:jp+3)
-        r(ip)%data%v      = v
-
-        r(ip)%results%e   = zero
-        r(ip)%results%pot = zero
-        r(ip)%results%B   = zero
-        r(ip)%results%A   = zero
-        r(ip)%results%dxA = zero
-        r(ip)%results%dyA = zero
-        r(ip)%results%Jirr= zero
-        r(ip)%results%J   = zero
-        r(ip)%work        = one
-
-    enddo
-
-    !!! Here we update the fields at x^n+1 and v^n+1
-
-    call pepc_particleresults_clear(r)
-    call pepc_grow_tree(r)
-    call pepc_traverse_tree(r)
-    call pepc_restore_particles(r)
-    call pepc_timber_tree()
+  end subroutine explicit
 
 
-    do ip = 1,np
-
-        jp                = (ip-1)*9
-        m                 = x_tn(ip)%data%m
-        e                 = x_tn(ip)%data%q
-
-        x                 = x_tn(ip)%x       ! x^n
-        v                 = x_tn(ip)%data%v  ! v^n
-        gamma             = one!one/sqrt( 1 - dot_product(v(1:ivdim)/vtilde,v(1:ivdim)/vtilde) )
-        p                 = gamma*m*v +  e/lorentz_tilde*x_tn(ip)%results%A ! p^n
-        B                 = x_tn(ip)%results%B
-
-        vn                = r(ip)%data%v  ! v^n
-        Bn                = r(ip)%results%B
-        rot               = cross_product( ( v + vn )/lorentz_tilde , half*( B + Bn ) )
-
-
-
-        res(jp+1:jp+3)    = x_tn1(jp+1:jp+3) - x(1:3) - half*dt*( v(1:3) + vn(1:3) )
-        res(jp+4:jp+6)    = x_tn1(jp+4:jp+6) - p(1:3) - half*e*dt*(  r(ip)%results%E(1:3) + x_tn(ip)%results%E(1:3) + rot(1:3)  )
-        res(jp+7:jp+9)    = x_tn1(jp+7:jp+9) - r(ip)%results%A(1:3)
-
-    enddo
-
-    deallocate(r)
-
-  end subroutine trapezoidal3D
-
-    subroutine midpoint(np,dt,p,ierr,itc,toll)
-    use module_tool   , only: cross_product
-    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,lorentz_tilde,vtilde,periodicity_particles
-    use helper        , only: iperiodic_particles,inormalize
+    subroutine trapezoidal_electrostatic(np,dt,p,itc,toll)
+    use module_tool   , only: cross_product    
+    use module_globals, only: periodicity_particles,ischeme,root,my_rank,folder,step,pold,newmark_x,newmark_v,newmark_Es,&
+                              newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0,poldold,B0
+    use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
     use module_pepc
-
     implicit none
+    
+!------------------------------------------------------------------------------------------------------------------------------
+!    
+!    Ref.: Leimkuhler B., Reich S. -Simulating Hamiltonian dynamics
+!    
+!    This subroutine is meant to push in time the particles. We implement here  the time integration scheme (Trapezoidal rule):
+!    
+!    x^(t+1)      = x^(t) +   dt*v^(t+1/2)
+!    P^(t+1)      = P^(t) + q*dt*( E^(t+1/2) + grad( A^(t+1/2) . v^(t+1/2) ) )
+!    
+!    Since the Trapezoidal rule is an implicit scheme, the nonlinearity is resolved with a Picard iteration.
+!    Picard method is very simple to implement, compared to Newton-Krylov, but it is not guaranteed the method converge toward 
+!    the solution. In fact, it is, required the function  (the map which advance in time) is a contraction in the phase space. 
+!    
+!    np represents the number of particles in the current process
+!    
+!    dt is the time step
+!    
+!    p is the array of particles at the old time step, "t".
+!    
+!            
+!------------------------------------------------------------------------------------------------------------------------------ 
     include 'mpif.h'
 
     integer(kind_particle)          , intent(in)     :: np
-    integer(kind_particle)                           :: n
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)
     integer(kind_particle)          , intent(out)    :: itc
-    real(kind_particle)             , intent(out)    :: toll,ierr(1:5)
+    real(kind_particle)             , intent(out)    :: toll
 
-    real(kind_particle)                              :: e,m,stop_tol,alpha,rot(3),grad(3),v(3),err_x,err_v,err_A,err_dxA,err_dyA
-    type(t_particle), allocatable                    :: r(:)
-    type(pma_particle), allocatable                  :: x(:)
-    integer(kind_particle)                           :: rc,ip,maxit
+    real(kind_particle)                              :: e,m,stop_tol,v(1:3),grad(1:3),vnablaA(1:3),Eirr(1:3),&
+                                                        coef1,coef2,vxb(1:3)
+
+!    real(kind_particle)                              :: err_A(1:3),err_dxA(1:3),err_dyA(1:3),err_x(1:3)        
+    real(kind_particle)                              :: err_x,err_v,rat,toll_old        
+    type(t_particle), allocatable                    :: r(:)!,error(:)
+    type(pma_particle), allocatable                  :: s(:)
+    integer(kind_particle)                           :: rc,ip,j,maxit
+    integer(kind_particle) , parameter               :: filehandle =  40_kind_physics
+    character(100)                                   :: filename
+    integer                                          :: iteration
 
     if (allocated(r)) deallocate(r)
-    if (allocated(x)) deallocate(x)
+    if (allocated(s)) deallocate(s)
+!    if (allocated(error)) deallocate(error)
     allocate( r(np), stat=rc )
-    allocate( x(np), stat=rc )
+    allocate( s(np), stat=rc )
+!    allocate( error(np), stat=rc )
 
-    ierr            = 0
     itc             = 0
-    maxit           = 100
+    maxit           = 10
     toll            = one
-    stop_tol        = prec!tentominusseven!prec
+    stop_tol        = tentominusnine!prec!tentominusseven!prec
+
+!    alpha           = theta_Ar      ! theta parameter - A        - in the rhs: grad(A*v) 1/2 works ok. if alpha = 0 => explicit
+!    beta            = theta_Al      ! theta parameter - A        - in the canonical momentum. For large A beta > 0 is recommended.
+!    eta             = theta_vr  ! theta parameter - velocity - in the rhs: grad(A*v) 1/2 works ok. if eta = 0 => explicit
+!    theta           = theta_vl  ! theta parameter - velocity - in the canonical momentum.  
 
 
-    !!! Initial Guess
+!------------------------------------------------------------------------------------------------------------------------------
+!        Here, we define the initial guess, all iterative methods need an initial guess, supposed to be close enough to the solution.
+!        We assume the guess solution is the configuration at old time t.
+!------------------------------------------------------------------------------------------------------------------------------
+
     do ip = 1,np
 
             e            =  p(ip)%data%q
             m            =  p(ip)%data%m
-    
-            x(ip)%P      =  m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A  ! p(ip)%data%v == gamma*v
-            x(ip)%x      =  p(ip)%x 
-            x(ip)%A      =  p(ip)%results%A
+
+            
+            s(ip)%x      =  p(ip)%x 
+            s(ip)%x(3)   =  zero
+            s(ip)%P      =  p(ip)%data%v 
 
             r(ip)%label       = p(ip)%label
             r(ip)%data%q      = e
             r(ip)%data%m      = m
     enddo
-    ! main iteration loop
-    !
 
+
+!------------------------------------------------------------------------------------------------------------------------------
+!
+!                            main iteration loop
+!
+!------------------------------------------------------------------------------------------------------------------------------
+    
     do while(toll .gt. stop_tol .and. itc .lt. maxit)
 
         itc = itc + 1
 
             do ip = 1,np
+!------------------------------------------------------------------------------------------------------------------------------
+!        At each iteration we update the canonical momentums, according to the Trapezoidal rule.
+!        This method assumes the fields are computed at the future values:
+!                
+!                x^(t+1) 
+!                P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!        
+!        We slightly modify the definition of velocity, we replace the natural definition of   v^(t+1/2) = ( v^(t) + v^(t+1) )/2    
+!        with  v^(t+1/2) = ( v^(t) + v^(t+1) )/( gamma^(t) + gamma^(t+1) ).
+!        
+!        It turns out that for non relativistic velocities the two definitions are equivalent.
+!                
+!        So, the fields are evaluated as average values, for instance E^(t+1/2) = ( E( x^(t+1) ) + E( x^(t) ) )/2, etc.      
+!        Notice:  s(ip)%P is the canonical momentum at time t+1, but regarding the previous iteration of the Picard method.
+!        In this piece of code s(ip) contains the information of the particle at time time t+1.        
+!        We are redefining the particle position r(ip) as explained before.        
+!        Be aware the fields are calculated at the phase space point x, gamma*v        
+!------------------------------------------------------------------------------------------------------------------------------
 
               e                 =  p(ip)%data%q
               m                 =  p(ip)%data%m
-
-              v                 = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
-              r(ip)%data%g      = sqrt( one + dot_product(v/vtilde,v/vtilde) ) + p(ip)%data%g
               
-              r(ip)%data%v      = (v + p(ip)%data%v)!/( p(ip)%data%g + r(ip)%data%g ) ! p(ip)%data%v == gamma*v
-
-              r(ip)%x           = half*(x(ip)%x + p(ip)%x)
+              r(ip)%data%v      = newmark_v*s(ip)%P  + (one - newmark_v)*p(ip)%data%v  
+              
+              r(ip)%data%g      = sqrt( one + sum( (r(ip)%data%v/vtilde)**2 ) )
+              r(ip)%x           = newmark_x*s(ip)%x + (one-newmark_x)*p(ip)%x 
               r(ip)%x(3)        = zero
 
               r(ip)%label       = p(ip)%label
-              r(ip)%data%q      = e
-              r(ip)%data%m      = m
-
-              r(ip)%results%e   = zero
+              r(ip)%results%E   = zero
               r(ip)%results%pot = zero
               r(ip)%results%B   = zero
               r(ip)%results%A   = zero
@@ -513,323 +513,287 @@ module module_integration
               r(ip)%results%J   = zero
               r(ip)%work        = one
               
-              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+              if (periodicity_particles) call iperiodic_particles(r(ip))
 
             enddo
 
 
-        !!! Update fields
 
+!------------------------------------------------------------------------------------------------------------------------------
+!            The fields are, as written above, evaluated at the future predicted phase space point, t+1. 
+!------------------------------------------------------------------------------------------------------------------------------
+            
             call pepc_particleresults_clear(r)
             call pepc_grow_tree(r)
             call pepc_traverse_tree(r)
             call pepc_restore_particles(r)
             call pepc_timber_tree()
+            
+!            do ip = 1,np
+!                call  inormalize(r(ip))
+!            enddo
+!            
+!            iteration = step*10+itc
+!            call write_particles_ascii(iteration, r)
+            
+            
 
-            toll = zero
+            toll_old    = toll
+            toll        = zero
+            err_x       = zero
+            err_v       = zero
 
             do ip = 1,np
 
+!------------------------------------------------------------------------------------------------------------------------------
+!            Once the fields are updated, we push the particle in time according to the Trapezoidal rule:
+!              
+!              x^(t+1) = x^(t) +   dt*v^(t+1/2)
+!              P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!              P^(t+1) = P^(t) + q*dt*(E^(t+1/2) + q/c*grad( A^(t+1/2).v^(t+1/2) )
+!------------------------------------------------------------------------------------------------------------------------------
+                
               e                 = p(ip)%data%q
               m                 = p(ip)%data%m
-
-              r(ip)%x           = p(ip)%x +      dt*r(ip)%data%v
-              r(ip)%x(3)        = zero
               
-              call  inormalize(ip,np,r)
-              
-              rot               = cross_product( r(ip)%data%v, r(ip)%results%B )
-              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1)
-              grad(2)           = v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
-              grad(3)           = v(1)*r(ip)%results%dxA(3) + v(2)*r(ip)%results%dyA(3)
-              
-              rot               = rot/r(ip)%data%g/lorentz_tilde
-              grad              = grad/r(ip)%data%g/lorentz_tilde
-              
-              r(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A + dt*e*( r(ip)%results%E + rot + grad )
+              call  inormalize(r(ip))
 
-              err_x             = dot_product(r(ip)%x               - x(ip)%x        , r(ip)%x                - x(ip)%x)  
-              err_v             = dot_product(r(ip)%data%v(1:3)     - x(ip)%P(1:3)   , r(ip)%data%v(1:3)      - x(ip)%P(1:3))
-              err_A             = dot_product(r(ip)%results%A(1:3)  - x(ip)%A(1:3)   , r(ip)%results%A(1:3)   - x(ip)%A(1:3))
-              err_dxA           = zero!dot_product(r(ip)%results%dxA(1:3)- x(ip)%dxA(1:3) , r(ip)%results%dxA(1:3) - x(ip)%dxA(1:3))
-              err_dyA           = zero!dot_product(r(ip)%results%dyA(1:3)- x(ip)%dyA(1:3) , r(ip)%results%dyA(1:3) - x(ip)%dyA(1:3)) 
+              v                 = ( newmark_g*r(ip)%data%v + (one - newmark_g)*p(ip)%data%v )/( newmark_g*r(ip)%data%g + (one - newmark_g)*p(ip)%data%g )
+                                          
+              grad              = zero
+!              vnablaA           = zero     
+!              gradE             = zero
+!              nabla2A           = zero
+              Eirr              = zero
+              
+         
+!              gradE(1)          = v(1)*r(ip)%results%dxE(1) + v(2)*r(ip)%results%dxE(2) 
+!              gradE(2)          = v(1)*r(ip)%results%dyE(1) + v(2)*r(ip)%results%dyE(2)
+              
+!              gradE             = gradE/lorentz_tilde
+              
+              Eirr              = newmark_Ei*r(ip)%results%E  + ( one - newmark_Ei)*p(ip)%results%E
+              
+!              coef1             = -    dot_product( Eirr , v )/p(ip)%data%g**2/lorentz_tilde**2
+!              coef2             = -two*dot_product( grad , v )/p(ip)%data%g**2/lorentz_tilde**2
+              
+              vxb               = cross_product(v,B0)
+!              
+              
+              r(ip)%x           = p(ip)%x        + dt*v            !                                                       &
+!                                + half*dt**2*e*( m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A )*coef1                 &
+!                                + half*dt**2*e*( m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A )*coef2                 &
+!                                + half*dt**2*e*( grad + vnablaA + Eirr  )/m/p(ip)%data%g 
+              
+              r(ip)%data%v      = p(ip)%data%v + dt*e/m*( Eirr + vxb ) !                     + & ! Canonical Momentum
+!                                       - half*dt**2*e/m*( gradE + nabla2A     )
 
-              if (periodicity_particles) call iperiodic_particles(ip,np,r)                         
-              x(ip)%P           =  r(ip)%data%v
-              x(ip)%x           =  r(ip)%x
-              x(ip)%x(3)        =  zero
-              x(ip)%A           =  r(ip)%results%A
+              r(ip)%x(3)        = zero                    
+                              
+              if (periodicity_particles) call iperiodic_particles(r(ip))
+                                       
+              err_x             =  sum( ( s(ip)%x(1:2)   - r(ip)%x(1:2) )**2             ) 
+              err_v             =  sum( ( s(ip)%P(1:3)   - r(ip)%data%v(1:3) )**2        )
+              
+              toll              = max( toll , sqrt( err_x + err_v ) )
+              
+              
+            enddo
+            
+            call MPI_ALLREDUCE(MPI_IN_PLACE, toll  , 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+            rat = toll/toll_old
+            
+            if ( .false. .and. ( rat .gt. one ).and.( itc .eq. maxit ) ) then !( itc .eq. maxit ) then !
+                
+                if (root) then
+                    write(*,'(a,es12.4,es12.4)') " == Picard iteration is not converging : ", toll,toll_old
+                endif
+                
+                write(filename,'(a,"errors_",i6.6,".dat")') trim(folder), my_rank
+                open(filehandle, file=trim(filename), STATUS='REPLACE')
+                
+                do ip = 1,np
 
+                    err_x             =  sum( ( s(ip)%x(1:2)   - r(ip)%x(1:2) )**2             ) 
+                    err_v             =  sum( ( s(ip)%P(1:3)   - r(ip)%data%v(1:3) )**2        )
+                    
+                    write(filehandle,*) ip,err_x,err_v
+
+                enddo
+                
+                close (rc )
+            endif
+                
+                
+                
+                
+!            endif
+            
+            
+            do ip = 1,np
+                              
+              s(ip)%P           =  r(ip)%data%v
+              s(ip)%x           =  r(ip)%x
+              s(ip)%x(3)        =  zero
               
             enddo
 
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            
-            
-            toll = err_x + err_v + err_A + err_dxA + err_dyA
-            toll = sqrt(toll)/real(tnp,kind=kind_particle)
-
-
     enddo
- 
-    ierr(1) = err_x
-    ierr(2) = err_v
-    ierr(3) = err_A
-    ierr(4) = err_dxA
-    ierr(5) = err_dyA
-          
-
+  
+        
     do ip = 1,np
 
         e                 = p(ip)%data%q
         m                 = p(ip)%data%m
-
-        p(ip)%data%v      = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
-        p(ip)%data%g      = sqrt( one + dot_product(p(ip)%data%v/vtilde,p(ip)%data%v/vtilde) )
-        p(ip)%data%v      = p(ip)%data%v
-        p(ip)%x           = x(ip)%x + dt*p(ip)%data%v/p(ip)%data%g
-        p(ip)%x(3)        = zero
-        if (periodicity_particles) call iperiodic_particles(ip,np,p)
-
-    enddo
-
-    deallocate( r,x )
-
-
-    end subroutine midpoint
-    
-    
-    subroutine midpoint_electrostatic(np,dt,p,ierr,itc,toll)
-    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,periodicity_particles
-    use helper        , only: iperiodic_particles,inormalize
-    use module_pepc
-
-    implicit none
-    include 'mpif.h'
-
-    integer(kind_particle)          , intent(in)     :: np
-    integer(kind_particle)                           :: n
-    real(kind_particle)             , intent(in)     :: dt
-    type(t_particle), allocatable   , intent(inout)  :: p(:)
-    integer(kind_particle)          , intent(out)    :: itc
-    real(kind_particle)             , intent(out)    :: toll,ierr(1:5)
-
-    real(kind_particle)                              :: e,m,stop_tol,v(3),err_x,err_v,err_A,err_dxA,err_dyA
-    type(t_particle), allocatable                    :: r(:)
-    type(pma_particle), allocatable                  :: x(:)
-    integer(kind_particle)                           :: rc,ip,maxit
-
-    if (allocated(r)) deallocate(r)
-    if (allocated(x)) deallocate(x)
-    allocate( r(np), stat=rc )
-    allocate( x(np), stat=rc )
-
-    ierr            = 0
-    itc             = 0
-    maxit           = 100
-    toll            = one
-    stop_tol        = prec!prec
-
-
-    !!! Initial Guess
-    do ip = 1,np
-
-            e                 =  p(ip)%data%q
-
-            x(ip)%P           =  p(ip)%data%v
-            x(ip)%x           =  p(ip)%x 
-
-            r(ip)%label       =  p(ip)%label
-            r(ip)%data%q      =  e
-            r(ip)%data%m      =  m
-            
-    enddo
-    ! main iteration loop
-    !
-
-    do while(toll .gt. stop_tol .and. itc .lt. maxit)
-
-        itc = itc + 1
-
-            do ip = 1,np
-
-              e                 = p(ip)%data%q
-              m                 = p(ip)%data%m 
-
-              v                 = x(ip)%P
-              
-              r(ip)%data%g      = sqrt(one + dot_product(v/vtilde,v/vtilde) )
-              r(ip)%data%v      = v!half*(v       + p(ip)%data%v)
-              r(ip)%x           = x(ip)%x!half*(x(ip)%x + p(ip)%x     )
-              r(ip)%x(3)        = zero
-
-              r(ip)%label       = p(ip)%label
-              r(ip)%data%q      = e
-              r(ip)%data%m      = m
-
-              r(ip)%results%E   = zero
-              r(ip)%results%pot = zero
-              r(ip)%results%B   = zero
-              r(ip)%results%A   = zero
-              r(ip)%results%dxA = zero
-              r(ip)%results%dyA = zero
-              r(ip)%results%Jirr= zero
-              r(ip)%results%J   = zero
-              r(ip)%work        = one
-              
-              if (periodicity_particles) call iperiodic_particles(ip,np,r)
-
-            enddo
-
-
-        !!! Update fields
-
-            call pepc_particleresults_clear(r)
-            call pepc_grow_tree(r)
-            call pepc_traverse_tree(r)
-            call pepc_restore_particles(r)
-            call pepc_timber_tree()
-
-            toll = zero
-
-            do ip = 1,np
-
-              e                 = p(ip)%data%q
-              m                 = p(ip)%data%m
-              
-              call  inormalize(ip,np,r)
-
-              r(ip)%data%v      = p(ip)%data%v  + half*dt*e/m*( r(ip)%results%E +  p(ip)%results%E ) 
-              r(ip)%x           = p(ip)%x             + dt*    ( r(ip)%data%v    +  p(ip)%data%v    )/( r(ip)%data%g + p(ip)%data%g  ) 
-              r(ip)%x(3)        = zero
-
-
-              err_x             = dot_product(r(ip)%x               - x(ip)%x        , r(ip)%x                - x(ip)%x)  
-              err_v             = dot_product(r(ip)%data%v(1:3)     - x(ip)%P(1:3)   , r(ip)%data%v(1:3)      - x(ip)%P(1:3))
-              err_A             = zero!dot_product(r(ip)%results%A(1:3)  - x(ip)%A(1:3)   , r(ip)%results%A(1:3)   - x(ip)%A(1:3))
-              err_dxA           = zero!dot_product(r(ip)%results%dxA(1:3)- x(ip)%dxA(1:3) , r(ip)%results%dxA(1:3) - x(ip)%dxA(1:3))
-              err_dyA           = zero!dot_product(r(ip)%results%dyA(1:3)- x(ip)%dyA(1:3) , r(ip)%results%dyA(1:3) - x(ip)%dyA(1:3))     
-                                       
-              if (periodicity_particles) call iperiodic_particles(ip,np,r)
-              x(ip)%P           =  r(ip)%data%v
-              x(ip)%x           =  r(ip)%x
-              x(ip)%x(3)        =  zero
-
-              
-            enddo
-
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            
-            
-            toll = err_x + err_v + err_A + err_dxA + err_dyA
-            toll = sqrt(toll)/real(tnp,kind=kind_particle)
-
-    enddo
-
-    ierr(1) = err_x
-    ierr(2) = err_v
-    ierr(3) = err_A
-    ierr(4) = err_dxA
-    ierr(5) = err_dyA
-    
-
-    do ip = 1,np
-
-        p(ip)%x           = x(ip)%x + dt*( p(ip)%data%v + x(ip)%P )/( p(ip)%data%g + r(ip)%data%g )  
-        p(ip)%x(3)        = zero
-        p(ip)%data%v      = ( x(ip)%P  )
-        p(ip)%data%g      = sqrt( one + dot_product(p(ip)%data%v/vtilde,p(ip)%data%v/vtilde) )
-          
         
+        v                 = p(ip)%data%v  
+        p(ip)%data%v      = s(ip)%P 
+
+        !        if ( p(ip)%label .eq. 1 ) p(ip)%data%v = zero
+        p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
+        p(ip)%x           = s(ip)%x
+        p(ip)%x(3)        = zero
+        if (periodicity_particles) call iperiodic_particles(p(ip))
         
-        if (periodicity_particles) call iperiodic_particles(ip,np,p)
-
     enddo
-
-    deallocate( r,x )
-
-
-    end subroutine midpoint_electrostatic
+    
+    
+    deallocate( r,s)!,error )
 
 
+    end subroutine trapezoidal_electrostatic
 
-    subroutine trapezoidal(np,dt,p,ierr,itc,toll)
-    use module_tool   , only: cross_product
-    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,periodicity_particles
+
+    
+    subroutine trapezoidal(np,dt,p,itc,toll)
+    use module_tool   , only: cross_product    
+    use module_globals, only: periodicity_particles,ischeme,root,my_rank,folder,step,pold,newmark_x,newmark_v,newmark_Es,&
+                              newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0,poldold,B0
     use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
     use module_pepc
-
     implicit none
+    
+!------------------------------------------------------------------------------------------------------------------------------
+!    
+!    Ref.: Leimkuhler B., Reich S. -Simulating Hamiltonian dynamics
+!    
+!    This subroutine is meant to push in time the particles. We implement here  the time integration scheme (Trapezoidal rule):
+!    
+!    x^(t+1)      = x^(t) +   dt*v^(t+1/2)
+!    P^(t+1)      = P^(t) + q*dt*( E^(t+1/2) + grad( A^(t+1/2) . v^(t+1/2) ) )
+!    
+!    Since the Trapezoidal rule is an implicit scheme, the nonlinearity is resolved with a Picard iteration.
+!    Picard method is very simple to implement, compared to Newton-Krylov, but it is not guaranteed the method converge toward 
+!    the solution. In fact, it is, required the function  (the map which advance in time) is a contraction in the phase space. 
+!    
+!    np represents the number of particles in the current process
+!    
+!    dt is the time step
+!    
+!    p is the array of particles at the old time step, "t".
+!    
+!            
+!------------------------------------------------------------------------------------------------------------------------------ 
     include 'mpif.h'
 
     integer(kind_particle)          , intent(in)     :: np
-    integer(kind_particle)                           :: n
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)
     integer(kind_particle)          , intent(out)    :: itc
-    real(kind_particle)             , intent(out)    :: toll,ierr(1:3,1:5)
+    real(kind_particle)             , intent(out)    :: toll
 
-    real(kind_particle)                              :: e,m,stop_tol,alpha,v(1:3),grad(1:3),err_x(1:3),err_v(1:3),err_A(1:3),err_dxA(1:3),err_dyA(1:3)!,rot(1:3)
+    real(kind_particle)                              :: e,m,stop_tol,v(1:3),grad(1:3),vnablaA(1:3),Aold(1:3),Anew(1:3),Eirr(1:3),&
+                                                        Esol(1:3),gradE(1:3),nabla2A(1:3),vxb(1:3),coef1,coef2
+
+!    real(kind_particle)                              :: err_A(1:3),err_dxA(1:3),err_dyA(1:3),err_x(1:3)        
+    real(kind_particle)                              :: err_A,err_dxA,err_dyA,err_x,err_v,rat,toll_old        
     type(t_particle), allocatable                    :: r(:)!,error(:)
-    type(pma_particle), allocatable                  :: x(:)
+    type(pma_particle), allocatable                  :: s(:)
     integer(kind_particle)                           :: rc,ip,j,maxit
+    integer(kind_particle) , parameter               :: filehandle =  40_kind_physics
+    character(100)                                   :: filename
+    integer                                          :: iteration
 
     if (allocated(r)) deallocate(r)
-    if (allocated(x)) deallocate(x)
+    if (allocated(s)) deallocate(s)
 !    if (allocated(error)) deallocate(error)
     allocate( r(np), stat=rc )
-    allocate( x(np), stat=rc )
+    allocate( s(np), stat=rc )
 !    allocate( error(np), stat=rc )
 
-    ierr            = 0
     itc             = 0
-    maxit           = 6
+    maxit           = 10
     toll            = one
     stop_tol        = tentominusnine!prec!tentominusseven!prec
 
+!    alpha           = theta_Ar      ! theta parameter - A        - in the rhs: grad(A*v) 1/2 works ok. if alpha = 0 => explicit
+!    beta            = theta_Al      ! theta parameter - A        - in the canonical momentum. For large A beta > 0 is recommended.
+!    eta             = theta_vr  ! theta parameter - velocity - in the rhs: grad(A*v) 1/2 works ok. if eta = 0 => explicit
+!    theta           = theta_vl  ! theta parameter - velocity - in the canonical momentum.  
 
-    !!! Initial Guess
+
+!------------------------------------------------------------------------------------------------------------------------------
+!        Here, we define the initial guess, all iterative methods need an initial guess, supposed to be close enough to the solution.
+!        We assume the guess solution is the configuration at old time t.
+!------------------------------------------------------------------------------------------------------------------------------
+
     do ip = 1,np
 
             e            =  p(ip)%data%q
             m            =  p(ip)%data%m
 
-            x(ip)%P      =  m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A
-            x(ip)%x      =  p(ip)%x 
-            x(ip)%x(3)   =  zero
-            x(ip)%A      =  p(ip)%results%A
-            x(ip)%dxA    =  p(ip)%results%dxA
-            x(ip)%dyA    =  p(ip)%results%dyA
+            
+            s(ip)%x      =  p(ip)%x 
+!            s(ip)%x(3)   =  zero
+            s(ip)%A      =  p(ip)%results%A 
+            s(ip)%P      =  p(ip)%data%v 
+            s(ip)%dxA    =  p(ip)%results%dxA
+            s(ip)%dyA    =  p(ip)%results%dyA
 
             r(ip)%label       = p(ip)%label
             r(ip)%data%q      = e
             r(ip)%data%m      = m
     enddo
-    ! main iteration loop
-    !
 
+
+!------------------------------------------------------------------------------------------------------------------------------
+!
+!                            main iteration loop
+!
+!------------------------------------------------------------------------------------------------------------------------------
+    
     do while(toll .gt. stop_tol .and. itc .lt. maxit)
 
         itc = itc + 1
 
             do ip = 1,np
+!------------------------------------------------------------------------------------------------------------------------------
+!        At each iteration we update the canonical momentums, according to the Trapezoidal rule.
+!        This method assumes the fields are computed at the future values:
+!                
+!                x^(t+1) 
+!                P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!        
+!        We slightly modify the definition of velocity, we replace the natural definition of   v^(t+1/2) = ( v^(t) + v^(t+1) )/2    
+!        with  v^(t+1/2) = ( v^(t) + v^(t+1) )/( gamma^(t) + gamma^(t+1) ).
+!        
+!        It turns out that for non relativistic velocities the two definitions are equivalent.
+!                
+!        So, the fields are evaluated as average values, for instance E^(t+1/2) = ( E( x^(t+1) ) + E( x^(t) ) )/2, etc.      
+!        Notice:  s(ip)%P is the canonical momentum at time t+1, but regarding the previous iteration of the Picard method.
+!        In this piece of code s(ip) contains the information of the particle at time time t+1.        
+!        We are redefining the particle position r(ip) as explained before.        
+!        Be aware the fields are calculated at the phase space point x, gamma*v        
+!------------------------------------------------------------------------------------------------------------------------------
 
               e                 =  p(ip)%data%q
               m                 =  p(ip)%data%m
-
-              r(ip)%data%v      = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
-!              if ( r(ip)%label .eq. 1 ) r(ip)%data%v = zero
-              r(ip)%data%g      = sqrt( one + dot_product(r(ip)%data%v/vtilde,r(ip)%data%v/vtilde) )
-              r(ip)%x           = x(ip)%x
-              r(ip)%x(3)        = zero
+              
+              r(ip)%data%v      = newmark_v*s(ip)%P  + (one - newmark_v)*p(ip)%data%v  
+              
+              r(ip)%data%g      = sqrt( one + sum( (r(ip)%data%v/vtilde)**2 ) )
+              r(ip)%x           = newmark_x*s(ip)%x + (one-newmark_x)*p(ip)%x 
+!              r(ip)%x(3)        = zero
 
               r(ip)%label       = p(ip)%label
               r(ip)%results%E   = zero
@@ -842,19 +806,32 @@ module module_integration
               r(ip)%results%J   = zero
               r(ip)%work        = one
               
-              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+              if (periodicity_particles) call iperiodic_particles(r(ip))
 
             enddo
 
 
-        !!! Update fields
 
+!------------------------------------------------------------------------------------------------------------------------------
+!            The fields are, as written above, evaluated at the future predicted phase space point, t+1. 
+!------------------------------------------------------------------------------------------------------------------------------
+            
             call pepc_particleresults_clear(r)
             call pepc_grow_tree(r)
             call pepc_traverse_tree(r)
             call pepc_restore_particles(r)
             call pepc_timber_tree()
+            
+!            do ip = 1,np
+!                call  inormalize(r(ip))
+!            enddo
+!            
+!            iteration = step*10+itc
+!            call write_particles_ascii(iteration, r)
+            
+            
 
+            toll_old    = toll
             toll        = zero
             err_x       = zero
             err_v       = zero
@@ -864,478 +841,239 @@ module module_integration
 
             do ip = 1,np
 
+!------------------------------------------------------------------------------------------------------------------------------
+!            Once the fields are updated, we push the particle in time according to the Trapezoidal rule:
+!              
+!              x^(t+1) = x^(t) +   dt*v^(t+1/2)
+!              P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!              P^(t+1) = P^(t) + q*dt*(E^(t+1/2) + q/c*grad( A^(t+1/2).v^(t+1/2) )
+!------------------------------------------------------------------------------------------------------------------------------
+                
               e                 = p(ip)%data%q
               m                 = p(ip)%data%m
               
-              call  inormalize(ip,np,r)
+              call  inormalize(r(ip))
 
-              v                 = ( r(ip)%data%v + p(ip)%data%v )
-              
-!              if ( r(ip)%label .eq. 1 ) v = zero
-              
-!              rot               = cross_product( v , ( r(ip)%results%B + p(ip)%results%B ) )
-              
-!              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1)
-!              grad(2)           = v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
-!              grad(3)           = v(1)*r(ip)%results%dxA(3) + v(2)*r(ip)%results%dyA(3)
-!              
-!              grad(1)           = grad(1) + v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dyA(1)
-!              grad(2)           = grad(2) + v(1)*p(ip)%results%dxA(2) + v(2)*p(ip)%results%dyA(2)
-!              grad(3)           = grad(3) + v(1)*p(ip)%results%dxA(3) + v(2)*p(ip)%results%dyA(3)
-              
+              v                 = ( newmark_g*r(ip)%data%v + (one - newmark_g)*p(ip)%data%v )/( newmark_g*r(ip)%data%g + (one - newmark_g)*p(ip)%data%g )
+                                          
               grad              = zero
+!              vnablaA           = zero     
+!              gradE             = zero
+!              nabla2A           = zero
+              Eirr              = zero
+              Esol              = zero
               
               grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dxA(2) + v(3)*r(ip)%results%dxA(3)
-              grad(2)           = v(1)*r(ip)%results%dyA(2) + v(2)*r(ip)%results%dyA(2) + v(3)*r(ip)%results%dyA(3)
-                            
-              grad(1)           = grad(1) + v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dxA(2) + v(3)*p(ip)%results%dxA(3)
-              grad(2)           = grad(2) + v(1)*p(ip)%results%dyA(2) + v(2)*p(ip)%results%dyA(2) + v(3)*p(ip)%results%dyA(3)
+              grad(2)           = v(1)*r(ip)%results%dyA(1) + v(2)*r(ip)%results%dyA(2) + v(3)*r(ip)%results%dyA(3)
+              grad(2)           = v(1)*r(ip)%results%dzA(1) + v(2)*r(ip)%results%dzA(2) + v(3)*r(ip)%results%dzA(3)
               
-!              rot               = rot/( r(ip)%data%g + p(ip)%data%g )/lorentz_tilde
-              grad              = grad/(r(ip)%data%g + p(ip)%data%g )/lorentz_tilde
+              grad              = newmark_B*grad              
+              grad(1)           = grad(1) + ( one - newmark_B)*( v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dxA(2) + v(3)*p(ip)%results%dxA(3) )
+              grad(2)           = grad(2) + ( one - newmark_B)*( v(1)*p(ip)%results%dyA(1) + v(2)*p(ip)%results%dyA(2) + v(3)*p(ip)%results%dyA(3) )
+              grad(3)           = grad(3) + ( one - newmark_B)*( v(1)*p(ip)%results%dzA(1) + v(2)*p(ip)%results%dzA(2) + v(3)*p(ip)%results%dzA(3) )
               
               
-              r(ip)%x           = p(ip)%x + dt*v/( r(ip)%data%g + p(ip)%data%g )
-              
-              r(ip)%data%v(1:2) = m*p(ip)%data%v(1:2) + e/lorentz_tilde*p(ip)%results%A(1:2)  &
-                                  + half*dt*e*( r(ip)%results%E(1:2)  + p(ip)%results%E(1:2)  + grad(1:2) )    ! Canonical Momentum
-                                  
-              r(ip)%x(3)        = zero                    
-              r(ip)%data%v(3)   = m*p(ip)%data%v(3) + e/lorentz_tilde*p(ip)%results%A(3)                
-              
-!              err_x             = err_x   + dot_product(r(ip)%x               - x(ip)%x        , r(ip)%x                - x(ip)%x)  
-!              err_v             = err_v   + dot_product(r(ip)%data%v(1:3)     - x(ip)%P(1:3)   , r(ip)%data%v(1:3)      - x(ip)%P(1:3))
-!              err_A             = err_A   + dot_product(r(ip)%results%A(1:3)  - x(ip)%A(1:3)   , r(ip)%results%A(1:3)   - x(ip)%A(1:3))
-!              err_dxA           = err_dxA + dot_product(r(ip)%results%dxA(1:3)- x(ip)%dxA(1:3) , r(ip)%results%dxA(1:3) - x(ip)%dxA(1:3))
-!              err_dyA           = err_dyA + dot_product(r(ip)%results%dyA(1:3)- x(ip)%dyA(1:3) , r(ip)%results%dyA(1:3) - x(ip)%dyA(1:3)) 
-              
-              do j = 1,3
-                  
-                err_x(j)             = max( abs ( r(ip)%x(j)          - x(ip)%x(j)   ) , err_x(j) )  
-                err_v(j)             = max( abs ( r(ip)%data%v(j)     - x(ip)%P(j)   ) , err_v(j) ) 
-                err_A(j)             = max( abs ( r(ip)%results%A(j)  - x(ip)%A(j)   ) , err_A(j) ) 
-                err_dxA(j)           = max( abs ( r(ip)%results%dxA(j)- x(ip)%dxA(j) ) , err_dxA(j)) 
-                err_dyA(j)           = max( abs ( r(ip)%results%dyA(j)- x(ip)%dyA(j) ) , err_dyA(j)) 
-               
-              
-              enddo
-              
-!              error(ip)%label              = p(ip)%label
-!              error(ip)%x                  = err_x
-!              error(ip)%data%v             = err_v
-!              error(ip)%data%q             = p(ip)%data%q
-!              error(ip)%results%A          = err_A
-!              error(ip)%results%dxA        = err_dxA
-!              error(ip)%results%dyA        = err_dyA
+!              vnablaA(1)        = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1) 
+!              vnablaA(2)        = v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
 !              
-!              error(ip)%results%E        = zero
-!              error(ip)%results%B        = zero
-!              error(ip)%results%pot      = zero
-!              error(ip)%results%J        = zero
-!              error(ip)%results%Jirr     = zero
-!              error(ip)%data%g           = zero
-                                       
-              if (periodicity_particles) call iperiodic_particles(ip,np,r)
-                                       
-              x(ip)%P           =  r(ip)%data%v
-              x(ip)%x           =  r(ip)%x
-              x(ip)%x(3)        =  zero
-              x(ip)%A           =  r(ip)%results%A
-              x(ip)%dxA(1:3)    =  r(ip)%results%dxA(1:3)
-              x(ip)%dyA(1:3)    =  r(ip)%results%dyA(1:3)
+!              nabla2A(1)        = ( v(1)*r(ip)%results%dxxA(1) + v(2)*r(ip)%results%dxxA(2) + v(3)*r(ip)%results%dxxA(3) )*v(1) +&
+!                                  ( v(1)*r(ip)%results%dxyA(1) + v(2)*r(ip)%results%dxyA(2) + v(3)*r(ip)%results%dxyA(3) )*v(2)
+!                                  
+!              nabla2A(2)        = ( v(1)*r(ip)%results%dxyA(1) + v(2)*r(ip)%results%dxyA(2) + v(3)*r(ip)%results%dxyA(3) )*v(1) +&
+!                                  ( v(1)*r(ip)%results%dyyA(1) + v(2)*r(ip)%results%dyyA(2) + v(3)*r(ip)%results%dyyA(3) )*v(2)
+!              
+!              gradE(1)          = v(1)*r(ip)%results%dxE(1) + v(2)*r(ip)%results%dxE(2) 
+!              gradE(2)          = v(1)*r(ip)%results%dyE(1) + v(2)*r(ip)%results%dyE(2)
+              
+              grad              = grad/lorentz_tilde
+!              vnablaA           = vnablaA/lorentz_tilde
+!              gradE             = gradE/lorentz_tilde
+!              nabla2A           = nabla2A/lorentz_tilde
+!              
+              Eirr              = newmark_Ei*r(ip)%results%E  + ( one - newmark_Ei)*p(ip)%results%E
+              
+!              coef1             = -    dot_product( Eirr , v )/p(ip)%data%g**2/lorentz_tilde**2
+!              coef2             = -two*dot_product( grad , v )/p(ip)%data%g**2/lorentz_tilde**2
               
               
+!              
+              Anew              = ( dA_1*r(ip)%results%A + dA_0*p(ip)%results%A    + dA__1*pold(ip)%results%A )/lorentz_tilde/dt
+              Aold              = ( dA_1*p(ip)%results%A + dA_0*pold(ip)%results%A + dA__1*poldold(ip)%results%A )/lorentz_tilde/dt
+              Esol              = newmark_Es*Anew  + ( one - newmark_Es)*Aold
+              
+              vxb               = cross_product(v,B0)
+              
+              r(ip)%x           = p(ip)%x        + dt*v            !                                                       &
+!                                + half*dt**2*e*( m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A )*coef1                 &
+!                                + half*dt**2*e*( m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A )*coef2                 &
+!                                + half*dt**2*e*( grad + vnablaA + Eirr  )/m/p(ip)%data%g 
+              
+              r(ip)%data%v      = p(ip)%data%v + dt*e/m*( Eirr - Esol  + grad + vxb )!                     + & ! Canonical Momentum
+!                                       - half*dt**2*e/m*( gradE + nabla2A     )
 
+!              r(ip)%x(3)        = zero                    
+                              
+              if (periodicity_particles) call iperiodic_particles(r(ip))
+                                       
+              err_x             =  sum( ( s(ip)%x(1:2)   - r(ip)%x(1:2) )**2             ) 
+              err_v             =  sum( ( s(ip)%P(1:3)   - r(ip)%data%v(1:3) )**2        )
+              
+              toll              = max( toll , sqrt( err_x + err_v ) )
+              
+              
+            enddo
+            
+            call MPI_ALLREDUCE(MPI_IN_PLACE, toll  , 1, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
+            rat = toll/toll_old
+            
+            if ( .false. .and. ( rat .gt. one ).and.( itc .eq. maxit ) ) then !( itc .eq. maxit ) then !
+                
+                if (root) then
+                    write(*,'(a,es12.4,es12.4)') " == Picard iteration is not converging : ", toll,toll_old
+                endif
+                
+                write(filename,'(a,"errors_",i6.6,".dat")') trim(folder), my_rank
+                open(filehandle, file=trim(filename), STATUS='REPLACE')
+                
+                do ip = 1,np
+
+                    err_x             =  sum( ( s(ip)%x(1:2)   - r(ip)%x(1:2) )**2             ) 
+                    err_v             =  sum( ( s(ip)%P(1:3)   - r(ip)%data%v(1:3) )**2        )
+                    err_A             =  sum( ( s(ip)%A(1:3)   - r(ip)%results%A(1:3) )**2     )
+                    err_dxA           =  sum( ( s(ip)%dxA(1:3) - r(ip)%results%dxA(1:3) )**2   )
+                    err_dyA           =  sum( ( s(ip)%dyA(1:3) - r(ip)%results%dyA(1:3) )**2   )
+                    
+                    write(filehandle,*) ip,err_x,err_v,err_A,err_dxA,err_dyA
+
+                enddo
+                
+                close (rc )
+            endif
+                
+                
+                
+                
+!            endif
+            
+            
+            do ip = 1,np
+                              
+              s(ip)%P           =  r(ip)%data%v
+              s(ip)%x           =  r(ip)%x
+!              s(ip)%x(3)        =  zero
+              s(ip)%A           =  r(ip)%results%A
+
+              s(ip)%dxA(1:3)    =  r(ip)%results%dxA(1:3)
+              s(ip)%dyA(1:3)    =  r(ip)%results%dyA(1:3)
+              
             enddo
 
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLDcall MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc), rc)
-            
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-            
-                       
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%x  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%data%v  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%results%A  , 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%results%dxA, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-!            call MPI_ALLREDUCE(MPI_IN_PLACE, error(ip)%results%dyA, 3, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-            
-            toll = maxval(err_v)
-            
-!            toll = err_x + err_v + err_A + err_dxA + err_dyA
-!            toll = sqrt(toll)/real(tnp,kind=kind_particle)
-            
-!            write(*,*) "err_x ,err_v , err_A , err_dxA , err_dyA :",err_x ,err_v , err_A , err_dxA , err_dyA 
-
-
     enddo
-
-    ierr(:,1) = err_x
-    ierr(:,2) = err_v
-    ierr(:,3) = err_A
-    ierr(:,4) = err_dxA
-    ierr(:,5) = err_dyA
-    
-!    call write_particles(error)
-!    if ( toll .gt. stop_tol )  then
-!        call write_particles_ascii(0, error)
-!        call write_particles_vtk(error,0,dt)
-!        call write_particles_vtk(r,1,dt)
-!    endif
-
+  
+        
     do ip = 1,np
 
         e                 = p(ip)%data%q
         m                 = p(ip)%data%m
+        
+        v                 = p(ip)%data%v  
+        p(ip)%data%v      = s(ip)%P 
 
-        p(ip)%data%v      = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
-!        if ( p(ip)%label .eq. 1 ) p(ip)%data%v = zero
-        p(ip)%data%g      = sqrt( one + dot_product( p(ip)%data%v/vtilde ,  p(ip)%data%v/vtilde ) )
-        p(ip)%x           = x(ip)%x
-        p(ip)%x(3)        = zero
-        if (periodicity_particles) call iperiodic_particles(ip,np,p)
+        !        if ( p(ip)%label .eq. 1 ) p(ip)%data%v = zero
+        p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
+        p(ip)%x           = s(ip)%x
+!        p(ip)%x(3)        = zero
+        if (periodicity_particles) call iperiodic_particles(p(ip))
         
     enddo
-
-    deallocate( r,x)!,error )
+    
+    
+    deallocate( r,s)!,error )
 
 
     end subroutine trapezoidal
+    
 
-    
-    
-!    subroutine trapezoidal_broyden(np,dt,p,ierr,itc,tolg)
-!    use module_tool   , only: cross_product
-!    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,periodicity_particles
-!    use helper        , only: iperiodic_particles,inormalize
-!    use module_pepc
-!
-!    implicit none
-!    include 'mpif.h'
-!
-!    integer(kind_particle)          , intent(in)     :: np
-!    real(kind_particle)             , intent(in)     :: dt
-!    type(t_particle), allocatable   , intent(inout)  :: p(:)
-!    integer(kind_particle)          , intent(out)    :: ierr(1:5),itc
-!    real(kind_particle)             , intent(out)    :: tolg
-!
-!    real(kind_particle)                              :: e,m,toll,stop_tol,alpha,rot(1:3),v(1:3),grad(1:3),z(1:5), &
-!                                                        err_x,err_v,err_A,err_dxA,err_dyA    
-!    type(t_particle), allocatable                    :: r(:)
-!    type(pma_particle), allocatable                  :: x(:)
-!    integer(kind_particle)                           :: rc,ip,jp,maxit
-!    real(kind_particle)  , allocatable               :: s(:,:)
-! 
-!    ierr            = 0
-!    itc             = 0
-!    maxit           = 100
-!    tolg            = one
-!    stop_tol        = prec!tentominusseven!prec
-!    
-!    if (allocated(r)) deallocate(r)
-!    if (allocated(s)) deallocate(s)
-!    if (allocated(x)) deallocate(x)
-!    allocate( r(np), stat=rc )
-!    allocate( x(np), stat=rc )
-!    allocate( s(maxit,5*np), stat=rc )
-!    
-!    !!! Initial Guess
-!    
-!    
-!    
-!    do ip = 1,np
-!            
-!        e           =    p(ip)%data%q
-!        rot         =    cross_product( p(ip)%data%v , p(ip)%results%B )
-!        grad(1)     =    p(ip)%data%v(1)*p(ip)%results%dxA(1) + p(ip)%data%v(2)*p(ip)%results%dyA(1)
-!        grad(2)     =    p(ip)%data%v(1)*p(ip)%results%dxA(2) + p(ip)%data%v(2)*p(ip)%results%dyA(2)
-!        grad(3)     =    p(ip)%data%v(1)*p(ip)%results%dxA(3) + p(ip)%data%v(2)*p(ip)%results%dyA(3)
-!        
-!        rot         = rot/lorentz_tilde/p(ip)%data%g
-!        grad        = rot/lorentz_tilde/p(ip)%data%g
-!        
-!        s(1,ip)     =    dt*p(ip)%data%v(1)
-!        s(1,np+ip)  =    dt*p(ip)%data%v(2)
-!        s(1,2*np+ip)=    e*dt*(p(ip)%results%E(1) + rot(1) + grad(1) )
-!        s(1,3*np+ip)=    e*dt*(p(ip)%results%E(2) + rot(2) + grad(2) )   
-!        s(1,4*np+ip)=    e*dt*(                     rot(3) + grad(3) )   
-!        
-!        x(ip)%A(1:3)=    p(ip)%results%A(1:3)
-!        
-!        
-!        r(ip)%x     = p(ip)%x
-!        r(ip)%x(3)  = zero
-!        r(ip)%data%v= p(ip)%data%v 
-!        r(ip)%data%g= p(ip)%data%g
-!        
-!            
-!    enddo
-!    ! main iteration loop
-!    !
-!
-!    do while(tolg .gt. stop_tol .and. itc .lt. maxit)
-!
-!        itc = itc + 1
-!
-!            do ip = 1,np
-!
-!              e                 =  p(ip)%data%q
-!              m                 =  p(ip)%data%m
-!
-!              r(ip)%x(1)        = r(ip)%x(1)      + s(itc,ip)
-!              r(ip)%x(2)        = r(ip)%x(2)      + s(itc,np+ip)
-!              r(ip)%x(3)        = zero
-!              r(ip)%data%v(1)   = r(ip)%data%v(1) + ( s(itc,2*np+ip) - e*x(ip)%A(1) )/m
-!              r(ip)%data%v(2)   = r(ip)%data%v(2) + ( s(itc,3*np+ip) - e*x(ip)%A(2) )/m
-!              r(ip)%data%v(3)   = r(ip)%data%v(3) + ( s(itc,4*np+ip) - e*x(ip)%A(3) )/m
-!              
-!              r(ip)%data%g      = sqrt( one + dot_product(r(ip)%data%v/vtilde,r(ip)%data%v/vtilde) )
-!              
-!
-!              r(ip)%label       = p(ip)%label
-!              r(ip)%results%E   = zero
-!              r(ip)%results%pot = zero
-!              r(ip)%results%B   = zero
-!              r(ip)%results%A   = zero
-!              r(ip)%results%dxA = zero
-!              r(ip)%results%dyA = zero
-!              r(ip)%results%Jirr= zero
-!              r(ip)%results%J   = zero
-!              r(ip)%work        = one
-!              
-!              if (periodicity_particles) call iperiodic_particles(ip,np,r)
-!
-!            enddo
-!
-!
-!        !!! Update fields
-!
-!            call pepc_particleresults_clear(r)
-!            call pepc_grow_tree(r)
-!            call pepc_traverse_tree(r)
-!            call pepc_restore_particles(r)
-!            call pepc_timber_tree()
-!
-!            toll = zero
-!            tolg = zero
-! 
-!            do ip = 1,np
-!
-!              e                 = p(ip)%data%q
-!              m                 = p(ip)%data%m
-!              
-!              call  inormalize(ip,np,r)
-!
-!              v                 = ( r(ip)%data%v + p(ip)%data%v )
-!              
-!              rot               = cross_product( v , ( r(ip)%results%B + p(ip)%results%B ) )
-!              
-!              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1)
-!              grad(2)           = v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
-!              grad(3)           = v(1)*r(ip)%results%dxA(3) + v(2)*r(ip)%results%dyA(3)
-!              
-!              grad(1)           = grad(1) + v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dyA(1)
-!              grad(2)           = grad(2) + v(1)*p(ip)%results%dxA(2) + v(2)*p(ip)%results%dyA(2)
-!              grad(3)           = grad(3) + v(1)*p(ip)%results%dxA(3) + v(2)*p(ip)%results%dyA(3)
-!              
-!              rot               = rot/( r(ip)%data%g + p(ip)%data%g )/lorentz_tilde
-!              grad              = grad/(r(ip)%data%g + p(ip)%data%g )/lorentz_tilde
-!              
-!              r(ip)%x           = p(ip)%x + dt*v/( r(ip)%data%g + p(ip)%data%g )
-!              r(ip)%x(3)        = zero
-!              r(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A  &
-!                                  + half*dt*e*( r(ip)%results%E  + p(ip)%results%E + rot + grad)    ! Canonical Momentum
-!                                  
-!                                  
-!              z(1:2)            =  r(ip)%x(1:2)      - x(ip)%x(1:2)
-!              z(3:5)            =  r(ip)%data%v(1:3) - x(ip)%P(1:3)
-!              
-!              do jp = 2,itc
-!                  
-!                  alpha = s(jp,ip)*s(jp-1,ip) + s(jp,np+ip)*s(jp-1,np+ip)     + s(jp,2*np+ip)*s(jp-1,2*np+ip) &
-!                                              + s(jp,3*np+ip)*s(jp-1,3*np+ip) + s(jp,4*np+ip)*s(jp-1,4*np+ip)   
-!                  alpha = alpha/( s(jp-1,ip)**2 + s(jp-1,np+ip)**2 + s(jp-1,2*np+ip)**2 + s(jp-1,3*np+ip)**2 + s(jp-1,4*np+ip)**2 )                              
-!                  z     = z + alpha*z
-!                  
-!              enddo
-!              
-!              alpha             =    s(itc,ip)*z(1) + s(itc,np+ip)*z(2) + s(itc,2*np+ip)*z(3) + s(itc,3*np+ip)*z(4) + s(itc,4*np+ip)*z(5)
-!              alpha             =    alpha/( s(itc,ip)**2 + s(itc,np+ip)**2 + s(itc,2*np+ip)**2 + s(itc,3*np+ip)**2 + s(itc,4*np+ip)**2 )
-!              alpha             =    one - alpha
-!              s(itc+1,ip)       =    z(1)/alpha
-!              s(itc+1,np+ip)    =    z(2)/alpha
-!              s(itc+1,2*np+ip)  =    z(3)/alpha
-!              s(itc+1,3*np+ip)  =    z(4)/alpha 
-!              s(itc+1,4*np+ip)  =    z(5)/alpha 
-!              
-!              
-!
-!              toll              = toll + s(itc+1,ip)**2 + s(itc+1,np+ip)**2 + s(itc+1,2*np+ip)**2 + s(itc+1,3*np+ip)**2 +&
-!                                         s(itc+1,4*np+ip)**2   
-!                                         
-!              if (periodicity_particles) call iperiodic_particles(ip,np,r)
-!                                       
-!              x(ip)%x           = r(ip)%x
-!              x(ip)%x(3)        = zero
-!              x(ip)%P           = r(ip)%data%v
-!              x(ip)%A           = r(ip)%results%A              
-!
-!            enddo
-!
-!            call MPI_ALLREDUCE(toll, tolg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-!!            tolg  = sqrt(tolg)/real(tnp,kind=kind_particle)
-!
-!
-!    enddo
-!
-!    if (toll > stop_tol)  then 
-!        
-!        ierr(1) = err_x
-!        ierr(2) = err_v
-!        ierr(3) = err_A
-!        ierr(4) = err_dxA
-!        ierr(5) = err_dyA
-!        
-!  
-!    endif
-!    
-!
-!    do ip = 1,np
-!
-!        e                 = p(ip)%data%q
-!        m                 = p(ip)%data%m
-!
-!        p(ip)%data%v      = ( x(ip)%P - e/lorentz_tilde*x(ip)%A )/m
-!        p(ip)%data%g      = sqrt( one + dot_product( p(ip)%data%v/vtilde ,  p(ip)%data%v/vtilde ) )
-!        p(ip)%x           = x(ip)%x
-!        p(ip)%x(3)        = zero
-!        if (periodicity_particles) call iperiodic_particles(ip,np,p)
-!        
-!    enddo
-!
-!    deallocate( r,x,s )
-!
-!
-!    end subroutine trapezoidal_broyden
-!    
-!    subroutine res_trapezoidal_broyden(np,dt,p,r,res)
-!    use module_tool   , only: cross_product
-!    use module_pepc
-!
-!    implicit none
-!    include 'mpif.h'
-!
-!    integer(kind_particle)          , intent(in)     :: np
-!    real(kind_particle)             , intent(in)     :: dt
-!    type(t_particle), allocatable   , intent(in)     :: p(:),r(:)
-!
-!    real(kind_particle)                              :: e,m,rot(1:3),v(1:3),grad(1:3),Eirr(1:3)
-!    real(kind_particle), allocatable                 :: res(:,:)
-!    integer(kind_particle)                           :: ip,rc
-!    
-!    if (allocated(res)) deallocate(res)
-!    allocate( res(5,np), stat=rc )
-!    
-!    do ip = 1,np
-!        
-!        
-!        Eirr              = zero
-!        Eirr(1:2)         = half*( p(ip)%results%E(1:2) + r(ip)%results%E(1:2) )
-!        
-!        v                 = p(ip)%data%v + r(ip)%data%v
-!        rot               = cross_product( v , p(ip)%results%B + r(ip)%results%B )
-!        
-!        grad(1)           = v(1)*p(ip)%results%dxA(1) + v(2)*p(ip)%results%dyA(1)
-!        grad(2)           = v(1)*p(ip)%results%dxA(2) + v(2)*p(ip)%results%dyA(2)
-!        grad(3)           = v(1)*p(ip)%results%dxA(3) + v(2)*p(ip)%results%dyA(3)
-!              
-!        grad(1)           = grad(1) + v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dyA(1)
-!        grad(2)           = grad(2) + v(1)*r(ip)%results%dxA(2) + v(2)*r(ip)%results%dyA(2)
-!        grad(3)           = grad(3) + v(1)*r(ip)%results%dxA(3) + v(2)*r(ip)%results%dyA(3)
-!        
-!        rot               = rot/lorentz_tilde/( r(ip)%data%g + p(ip)%data%g )
-!        grad              = grad/lorentz_tilde/( r(ip)%data%g + p(ip)%data%g )
-!        
-!        res(1:2,ip)       = p(ip)%x(1:2)      -  r(ip)%x(1:2) - dt*v(1:2)/( r(ip)%data%g + p(ip)%data%g )
-!        res(3:5,ip)       = p(ip)%data%v(1:3) -  r(ip)%data%v(1:3) - half*dt*( Eirr + rot + grad  )
-!                
-!    enddo
-!    
-!    
-!    end subroutine res_trapezoidal_broyden
-    
-    subroutine hamiltonian_boris(np,dt,p,ierr,itc,toll)
-    use module_tool   , only: cross_product
-    use module_globals, only: root,my_rank,ixdim,ivdim,tnp,periodicity_particles
-    use helper        , only: iperiodic_particles,inormalize
+    subroutine euler_method(np,dt,p)
+    use module_tool   , only: cross_product    
+    use module_globals, only: periodicity_particles,ischeme,root,my_rank,folder,step,pold,newmark_x,newmark_v,newmark_Es,&
+                              newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0,poldold,B0
+    use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
     use module_pepc
-!!!!  This integrator does not work with relativistic velocities
     implicit none
+    
+!------------------------------------------------------------------------------------------------------------------------------
+!    
+!    Ref.: Leimkuhler B., Reich S. -Simulating Hamiltonian dynamics
+!    
+!    This subroutine is meant to push in time the particles. We implement here  the time integration scheme (Trapezoidal rule):
+!    
+!    x^(t+1)      = x^(t) +   dt*v^(t+1/2)
+!    P^(t+1)      = P^(t) + q*dt*( E^(t+1/2) + grad( A^(t+1/2) . v^(t+1/2) ) )
+!    
+!    Since the Trapezoidal rule is an implicit scheme, the nonlinearity is resolved with a Picard iteration.
+!    Picard method is very simple to implement, compared to Newton-Krylov, but it is not guaranteed the method converge toward 
+!    the solution. In fact, it is, required the function  (the map which advance in time) is a contraction in the phase space. 
+!    
+!    np represents the number of particles in the current process
+!    
+!    dt is the time step
+!    
+!    p is the array of particles at the old time step, "t".
+!    
+!            
+!------------------------------------------------------------------------------------------------------------------------------ 
     include 'mpif.h'
 
     integer(kind_particle)          , intent(in)     :: np
-    integer(kind_particle)                           :: n
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)
-    integer(kind_particle)          , intent(out)    :: itc
-    real(kind_particle)             , intent(out)    :: toll,ierr(1:5)
+!    integer(kind_particle)          , intent(out)    :: itc
+!    real(kind_particle)             , intent(out)    :: toll
 
-    real(kind_particle)                              :: Pn(1:3),Pold(1:3),P_(1:3),B(1:3),e,m,Bnorm,Ppar(1:3),Pnor(1:3),     &
-                                                        Ef(1:3),Af(1:3),beta,x_(1:2),stop_tol,alpha,gamma,gamma_old,eta,    &
-                                                        gradA(1:3),gradP(1:3),delta,err_x,err_v,err_A,err_dxA,err_dyA
-    
-    type(t_particle), allocatable                    :: r(:)
-    type(pma_particle), allocatable                  :: x(:)
-    integer(kind_particle)                           :: rc,ip,maxit
+    real(kind_particle)                              :: e,m,v(1:3),grad(1:3),vxb(1:3)
+
+    type(t_particle), allocatable                    :: r(:)!,error(:)
+    integer(kind_particle)                           :: rc,ip
 
     if (allocated(r)) deallocate(r)
-    if (allocated(x)) deallocate(x)
     allocate( r(np), stat=rc )
-    allocate( x(np), stat=rc )
 
-    ierr            = 0
-    itc             = 0
-    maxit           = 50
-    toll            = one
-    stop_tol        = prec
+!------------------------------------------------------------------------------------------------------------------------------
+!        Here, we define the initial guess, all iterative methods need an initial guess, supposed to be close enough to the solution.
+!        We assume the guess solution is the configuration at old time t.
+!------------------------------------------------------------------------------------------------------------------------------
 
 
-    !!! Initial Guess
     do ip = 1,np
+!------------------------------------------------------------------------------------------------------------------------------
+!        At each iteration we update the canonical momentums, according to the Trapezoidal rule.
+!        This method assumes the fields are computed at the future values:
+!                
+!                x^(t+1) 
+!                P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!        
+!        We slightly modify the definition of velocity, we replace the natural definition of   v^(t+1/2) = ( v^(t) + v^(t+1) )/2    
+!        with  v^(t+1/2) = ( v^(t) + v^(t+1) )/( gamma^(t) + gamma^(t+1) ).
+!        
+!        It turns out that for non relativistic velocities the two definitions are equivalent.
+!                
+!        So, the fields are evaluated as average values, for instance E^(t+1/2) = ( E( x^(t+1) ) + E( x^(t) ) )/2, etc.      
+!        Notice:  s(ip)%P is the canonical momentum at time t+1, but regarding the previous iteration of the Picard method.
+!        In this piece of code s(ip) contains the information of the particle at time time t+1.        
+!        We are redefining the particle position r(ip) as explained before.        
+!        Be aware the fields are calculated at the phase space point x, gamma*v        
+!------------------------------------------------------------------------------------------------------------------------------
 
-            e            =  p(ip)%data%q
-            m            =  p(ip)%data%m
-
-            x(ip)%P      =  p(ip)%data%v + half*dt*e/m*p(ip)%results%E !+ dt*e/m*( p(ip)%results%E + p(ip)%results%Et + cross_product(p(ip)%data%v/vtilde,p(ip)%results%B ) )
-            x(ip)%x      =  p(ip)%x      
-            x(ip)%x(3)   =  zero
-            x(ip)%A      =  p(ip)%results%A
-            x(ip)%gamma  =  one/sqrt( one - dot_product( x(ip)%P/vtilde, x(ip)%P/vtilde ) ) !one!
-                
-            r(ip)%label       = p(ip)%label
-            r(ip)%data%q      = e
-            r(ip)%data%m      = m
-    enddo
-    ! main iteration loop
-    !
-
-    do while(toll .gt. stop_tol .and. itc .lt. maxit)
-
-        itc = itc + 1
-
-            do ip = 1,np
-
-              r(ip)%data%v      = p(ip)%data%v!half*(x(ip)%v + p(ip)%data%v)!
-              r(ip)%x           = half*(x(ip)%x + p(ip)%x)!x(ip)%x
+              r(ip)%data%q      = p(ip)%data%q
+              r(ip)%data%m      = p(ip)%data%m
+              
+              r(ip)%data%v      = p(ip)%data%v  
+              r(ip)%data%g      = sqrt( one + sum( (r(ip)%data%v/vtilde)**2 ) )
+              r(ip)%x           = p(ip)%x + dt*p(ip)%data%v/p(ip)%data%g 
               r(ip)%x(3)        = zero
 
+              r(ip)%label       = p(ip)%label
               r(ip)%results%E   = zero
               r(ip)%results%pot = zero
               r(ip)%results%B   = zero
@@ -1346,124 +1084,570 @@ module module_integration
               r(ip)%results%J   = zero
               r(ip)%work        = one
               
-              if (periodicity_particles) call iperiodic_particles(ip,np,r)
+              if (periodicity_particles) call iperiodic_particles(r(ip))
 
-            enddo
-
-
-        !!! Update fields
-
-            call pepc_particleresults_clear(r)
-            call pepc_grow_tree(r)
-            call pepc_traverse_tree(r)
-            call pepc_restore_particles(r)
-            call pepc_timber_tree()
-
-            toll = zero
-
-            do ip = 1,np
-
-              e                 = p(ip)%data%q
-              m                 = p(ip)%data%m
-              call  inormalize(ip,np,r)
-              
-              B                 = half*( p(ip)%results%B + p(ip)%results%B )!r(ip)%results%B!
-              Af(1:3)           = half*( p(ip)%results%A + p(ip)%results%A )
-              Ef(1:2)           = half*( p(ip)%results%E(1:2) + p(ip)%results%E(1:2) )
-              Ef(3)             = zero
-              
-              Bnorm             = B(1)**2 + B(2)**2 + B(3)**2
-
-              alpha             = half*e*dt
-              beta              = half*e/m/lorentz_tilde/x(ip)%gamma*dt
-              eta               = half/m/x(ip)%gamma*(e/lorentz_tilde)**2*dt
-              delta             = half/m/x(ip)%gamma*e*dt
-              
-              gamma_old         = one/sqrt( one - dot_product( p(ip)%data%v/vtilde, p(ip)%data%v/vtilde )  ) !one!
-              Pold              = gamma_old*m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A
-              
-              gradA(1)          = p(ip)%results%A(1)*p(ip)%results%dxA(1) + p(ip)%results%A(2)*p(ip)%results%dyA(1) 
-              gradA(2)          = p(ip)%results%A(1)*p(ip)%results%dxA(2) + p(ip)%results%A(2)*p(ip)%results%dyA(2)
-              gradA(3)          = p(ip)%results%A(1)*p(ip)%results%dxA(3) + p(ip)%results%A(2)*p(ip)%results%dyA(3)
-              
-              gradP(1)          = Pold(1)*p(ip)%results%dxA(1) + Pold(2)*p(ip)%results%dyA(1) 
-              gradP(2)          = Pold(1)*p(ip)%results%dxA(2) + Pold(2)*p(ip)%results%dyA(2)
-              gradP(3)          = Pold(1)*p(ip)%results%dxA(3) + Pold(2)*p(ip)%results%dyA(3)
-              
-              gradP(1)          = gradP(1) + Pold(1)*r(ip)%results%dxA(1) + Pold(2)*r(ip)%results%dyA(1) 
-              gradP(2)          = gradP(2) + Pold(1)*r(ip)%results%dxA(2) + Pold(2)*r(ip)%results%dyA(2)
-              gradP(3)          = gradP(3) + Pold(1)*r(ip)%results%dxA(3) + Pold(2)*r(ip)%results%dyA(3)
-                            
-              P_                = Pold + ( alpha*Ef - eta*cross_product(Af,B ) - eta*gradA + half*delta*gradP )
-              x_(1:2)           = p(ip)%x(1:2) - beta*Af(1:2) 
-              
-              Ppar              = delta*( dot_product(P_,B) )*B
-              Pnor              = cross_product(P_,B)
-              Pn                = (P_ + delta*( Ppar + Pnor ) )/( one + (delta)**2*Bnorm )
-!              
-!              Pn                = Pold + e/m/lorentz_tilde*dt*( half*gradP - e/lorentz_tilde*gradA  )!two*Pn - Pold
-              Af(1:3)           = half*( r(ip)%results%A + p(ip)%results%A )
-              
-              
-              r(ip)%data%v      = ( Pn - e/lorentz_tilde*Af )/m !half*x(ip)%P +  half*( Pn - e/lorentz_tilde*Af )/m
-              gamma             = sqrt( one + dot_product( r(ip)%data%v/vtilde, r(ip)%data%v/vtilde ) ) !one!
-
-              r(ip)%data%v      = r(ip)%data%v/gamma
-              
-              r(ip)%x(1:2)      = two*x_(1:2) - p(ip)%x(1:2) + dt/m/gamma*Pn(1:2)
-              r(ip)%x(3)        = zero
-              
-              
-              err_x             = dot_product(r(ip)%x               - x(ip)%x        , r(ip)%x                - x(ip)%x)  
-              err_v             = dot_product(r(ip)%data%v(1:3)     - x(ip)%P(1:3)   , r(ip)%data%v(1:3)      - x(ip)%P(1:3))
-              err_A             = dot_product(r(ip)%results%A(1:3)  - x(ip)%A(1:3)   , r(ip)%results%A(1:3)   - x(ip)%A(1:3))
-              err_dxA           = dot_product(r(ip)%results%dxA(1:3)- x(ip)%dxA(1:3) , r(ip)%results%dxA(1:3) - x(ip)%dxA(1:3))
-              err_dyA           = dot_product(r(ip)%results%dyA(1:3)- x(ip)%dyA(1:3) , r(ip)%results%dyA(1:3) - x(ip)%dyA(1:3))
-              
-              
-              if (periodicity_particles) call iperiodic_particles(ip,np,r)
-
-              x(ip)%P           =  r(ip)%data%v
-              x(ip)%x           =  r(ip)%x
-              x(ip)%x(3)        =  zero 
-              x(ip)%A           =  r(ip)%results%A
-              x(ip)%gamma       =  gamma
-
-            enddo
-
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_x  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_v  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_A  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dxA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            call MPI_ALLREDUCE(MPI_IN_PLACE, err_dyA, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-            
-            
-            toll = err_x + err_v + err_A + err_dxA + err_dyA
-            toll = sqrt(toll)/real(tnp,kind=kind_particle)
-
-
+           
     enddo
 
-    ierr(1) = err_x
-    ierr(2) = err_v
-    ierr(3) = err_A
-    ierr(4) = err_dxA
-    ierr(5) = err_dyA
-    
 
+
+!------------------------------------------------------------------------------------------------------------------------------
+!            The fields are, as written above, evaluated at the future predicted phase space point, t+1. 
+!------------------------------------------------------------------------------------------------------------------------------
+            
+           
+    call pepc_particleresults_clear(r)
+    call pepc_grow_tree(r)
+    call pepc_traverse_tree(r)
+    call pepc_restore_particles(r)
+    call pepc_timber_tree()
+            
+
+           
     do ip = 1,np
 
-        p(ip)%data%v      = x(ip)%P
-        p(ip)%x           = x(ip)%x
-        p(ip)%x(3)        = zero
+!------------------------------------------------------------------------------------------------------------------------------
+!            Once the fields are updated, we push the particle in time according to the Trapezoidal rule:
+!              
+!              x^(t+1) = x^(t) +   dt*v^(t)
+!              P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!              P^(t+1) = P^(t) + q*dt*(E^(t+1) + q/c*grad( A^(t+1).v^(t) )
+!------------------------------------------------------------------------------------------------------------------------------
+                
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+              
+              call  inormalize(r(ip))
 
+              v                 = p(ip)%data%v/p(ip)%data%g
+                                          
+              grad              = zero              
+              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dxA(2) + v(3)*r(ip)%results%dxA(3)
+              grad(2)           = v(1)*r(ip)%results%dyA(1) + v(2)*r(ip)%results%dyA(2) + v(3)*r(ip)%results%dyA(3)
+              grad              = grad/lorentz_tilde
+              
+              vxb               = cross_product(v,B0)
+              
+              p(ip)%x           = p(ip)%x        + dt*v      
+!              p(ip)%data%v      = p(ip)%data%v   + dt/m*e*( vxb )
+              p(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A + dt*e*( r(ip)%results%E  + grad + vxb )
+              p(ip)%data%v      = ( p(ip)%data%v  - e/lorentz_tilde*r(ip)%results%A )/m
+              p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
+              p(ip)%x(3)        = zero                    
+                              
+              if (periodicity_particles) call iperiodic_particles(p(ip))
+                                       
+              
+            enddo
+            
+            
+    
+    deallocate(r)
+
+    end subroutine euler_method
+    
+    
+    subroutine euler_method3d(np,dt,p)
+    use module_tool   , only: cross_product    
+    use module_globals, only: periodicity_particles,B0
+    use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
+    use module_pepc
+    implicit none
+    
+!------------------------------------------------------------------------------------------------------------------------------
+!    
+!    Ref.: Leimkuhler B., Reich S. -Simulating Hamiltonian dynamics
+!    
+!    This subroutine is meant to push in time the particles. We implement here  the time integration scheme (Trapezoidal rule):
+!    
+!    x^(t+1)      = x^(t) +   dt*v^(t+1/2)
+!    P^(t+1)      = P^(t) + q*dt*( E^(t+1/2) + grad( A^(t+1/2) . v^(t+1/2) ) )
+!    
+!    Since the Trapezoidal rule is an implicit scheme, the nonlinearity is resolved with a Picard iteration.
+!    Picard method is very simple to implement, compared to Newton-Krylov, but it is not guaranteed the method converge toward 
+!    the solution. In fact, it is, required the function  (the map which advance in time) is a contraction in the phase space. 
+!    
+!    np represents the number of particles in the current process
+!    
+!    dt is the time step
+!    
+!    p is the array of particles at the old time step, "t".
+!    
+!            
+!------------------------------------------------------------------------------------------------------------------------------ 
+    include 'mpif.h'
+
+    integer(kind_particle)          , intent(in)     :: np
+    real(kind_particle)             , intent(in)     :: dt
+    type(t_particle), allocatable   , intent(inout)  :: p(:)
+!    integer(kind_particle)          , intent(out)    :: itc
+!    real(kind_particle)             , intent(out)    :: toll
+
+    real(kind_particle)                              :: e,m,v(1:3),grad(1:3),vxb(1:3)
+
+    type(t_particle), allocatable                    :: r(:)!,error(:)
+    integer(kind_particle)                           :: rc,ip
+
+    if (allocated(r)) deallocate(r)
+    allocate( r(np), stat=rc )
+
+!------------------------------------------------------------------------------------------------------------------------------
+!        Here, we define the initial guess, all iterative methods need an initial guess, supposed to be close enough to the solution.
+!        We assume the guess solution is the configuration at old time t.
+!------------------------------------------------------------------------------------------------------------------------------
+
+
+    do ip = 1,np
+!------------------------------------------------------------------------------------------------------------------------------
+!        At each iteration we update the canonical momentums, according to the Trapezoidal rule.
+!        This method assumes the fields are computed at the future values:
+!                
+!                x^(t+1) 
+!                P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!        
+!        We slightly modify the definition of velocity, we replace the natural definition of   v^(t+1/2) = ( v^(t) + v^(t+1) )/2    
+!        with  v^(t+1/2) = ( v^(t) + v^(t+1) )/( gamma^(t) + gamma^(t+1) ).
+!        
+!        It turns out that for non relativistic velocities the two definitions are equivalent.
+!                
+!        So, the fields are evaluated as average values, for instance E^(t+1/2) = ( E( x^(t+1) ) + E( x^(t) ) )/2, etc.      
+!        Notice:  s(ip)%P is the canonical momentum at time t+1, but regarding the previous iteration of the Picard method.
+!        In this piece of code s(ip) contains the information of the particle at time time t+1.        
+!        We are redefining the particle position r(ip) as explained before.        
+!        Be aware the fields are calculated at the phase space point x, gamma*v        
+!------------------------------------------------------------------------------------------------------------------------------
+
+              r(ip)%data%q      = p(ip)%data%q
+              r(ip)%data%m      = p(ip)%data%m
+              
+              r(ip)%data%v      = p(ip)%data%v  
+              r(ip)%data%g      = sqrt( one + sum( (r(ip)%data%v/vtilde)**2 ) )
+              r(ip)%x           = p(ip)%x + dt*p(ip)%data%v/p(ip)%data%g 
+
+              r(ip)%label       = p(ip)%label
+              r(ip)%results%E   = zero
+              r(ip)%results%pot = zero
+              r(ip)%results%B   = zero
+              r(ip)%results%A   = zero
+              r(ip)%results%dxA = zero
+              r(ip)%results%dyA = zero
+              r(ip)%results%dzA = zero
+              r(ip)%results%Jirr= zero
+              r(ip)%results%J   = zero
+              r(ip)%work        = one
+              
+              if (periodicity_particles) call iperiodic_particles(r(ip))
+
+           
     enddo
 
-    deallocate( r,x )
 
 
-    end subroutine hamiltonian_boris
+!------------------------------------------------------------------------------------------------------------------------------
+!            The fields are, as written above, evaluated at the future predicted phase space point, t+1. 
+!------------------------------------------------------------------------------------------------------------------------------
+            
+           
+    call pepc_particleresults_clear(r)
+    call pepc_grow_tree(r)
+    call pepc_traverse_tree(r)
+    call pepc_restore_particles(r)
+    call pepc_timber_tree()
+            
+
+           
+    do ip = 1,np
+
+!------------------------------------------------------------------------------------------------------------------------------
+!            Once the fields are updated, we push the particle in time according to the Trapezoidal rule:
+!              
+!              x^(t+1) = x^(t) +   dt*v^(t)
+!              P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!              P^(t+1) = P^(t) + q*dt*(E^(t+1) + q/c*grad( A^(t+1).v^(t) )
+!------------------------------------------------------------------------------------------------------------------------------
+                
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+              
+              call  inormalize(r(ip))
+
+              v                 = p(ip)%data%v/p(ip)%data%g
+                                          
+              grad              = zero              
+              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dxA(2) + v(3)*r(ip)%results%dxA(3)
+              grad(2)           = v(1)*r(ip)%results%dyA(1) + v(2)*r(ip)%results%dyA(2) + v(3)*r(ip)%results%dyA(3)
+              grad(3)           = v(1)*r(ip)%results%dzA(1) + v(2)*r(ip)%results%dzA(2) + v(3)*r(ip)%results%dzA(3)
+              grad              = grad/lorentz_tilde
+              
+              vxb               = cross_product(v,B0)
+              
+              p(ip)%x           = p(ip)%x        + dt*v      
+              p(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A + dt*e*( r(ip)%results%E  + grad + vxb )
+              p(ip)%data%v      = ( p(ip)%data%v  - e/lorentz_tilde*r(ip)%results%A )/m
+              p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
+                              
+              if (periodicity_particles) call iperiodic_particles(p(ip))
+                                       
+              
+            enddo
+            
+            
+    
+    deallocate(r)
+
+    end subroutine euler_method3d
+    
+    
+
+    subroutine explicit_verlet(np,dt,p)
+    use module_tool   , only: cross_product    
+    use module_globals, only: periodicity_particles,ischeme,root,my_rank,folder,step,pold,newmark_x,newmark_v,newmark_Es,&
+                              newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0,poldold,B0
+    use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
+    use module_pepc
+    implicit none
+    
+!------------------------------------------------------------------------------------------------------------------------------
+!    
+!    Ref.: Leimkuhler B., Reich S. -Simulating Hamiltonian dynamics
+!    
+!    This subroutine is meant to push in time the particles. We implement here  the time integration scheme (Trapezoidal rule):
+!    
+!    x^(t+1)      = x^(t) +   dt*v^(t+1/2)
+!    P^(t+1)      = P^(t) + q*dt*( E^(t+1/2) + grad( A^(t+1/2) . v^(t+1/2) ) )
+!    
+!    Since the Trapezoidal rule is an implicit scheme, the nonlinearity is resolved with a Picard iteration.
+!    Picard method is very simple to implement, compared to Newton-Krylov, but it is not guaranteed the method converge toward 
+!    the solution. In fact, it is, required the function  (the map which advance in time) is a contraction in the phase space. 
+!    
+!    np represents the number of particles in the current process
+!    
+!    dt is the time step
+!    
+!    p is the array of particles at the old time step, "t".
+!    
+!            
+!------------------------------------------------------------------------------------------------------------------------------ 
+    include 'mpif.h'
+
+    integer(kind_particle)          , intent(in)     :: np
+    real(kind_particle)             , intent(in)     :: dt
+    type(t_particle), allocatable   , intent(inout)  :: p(:)
+!    integer(kind_particle)          , intent(out)    :: itc
+!    real(kind_particle)             , intent(out)    :: toll
+
+    real(kind_particle)                              :: e,m,v(1:3),grad(1:3),vxb(1:3)
+
+    type(t_particle), allocatable                    :: r(:),s(:)!,error(:)
+    integer(kind_particle)                           :: rc,ip
+
+    if (allocated(r)) deallocate(r)
+    allocate( r(np), stat=rc )
+    if (allocated(s)) deallocate(s)
+    allocate( s(np), stat=rc )
+
+!------------------------------------------------------------------------------------------------------------------------------
+!        Here, we define the initial guess, all iterative methods need an initial guess, supposed to be close enough to the solution.
+!        We assume the guess solution is the configuration at old time t.
+!------------------------------------------------------------------------------------------------------------------------------
+
+
+    do ip = 1,np
+!------------------------------------------------------------------------------------------------------------------------------
+!        At each iteration we update the canonical momentums, according to the Trapezoidal rule.
+!        This method assumes the fields are computed at the future values:
+!                
+!                x^(t+1) 
+!                P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!        
+!        We slightly modify the definition of velocity, we replace the natural definition of   v^(t+1/2) = ( v^(t) + v^(t+1) )/2    
+!        with  v^(t+1/2) = ( v^(t) + v^(t+1) )/( gamma^(t) + gamma^(t+1) ).
+!        
+!        It turns out that for non relativistic velocities the two definitions are equivalent.
+!                
+!        So, the fields are evaluated as average values, for instance E^(t+1/2) = ( E( x^(t+1) ) + E( x^(t) ) )/2, etc.      
+!        Notice:  s(ip)%P is the canonical momentum at time t+1, but regarding the previous iteration of the Picard method.
+!        In this piece of code s(ip) contains the information of the particle at time time t+1.        
+!        We are redefining the particle position r(ip) as explained before.        
+!        Be aware the fields are calculated at the phase space point x, gamma*v        
+!------------------------------------------------------------------------------------------------------------------------------
+
+              r(ip)%data%q      = p(ip)%data%q
+              r(ip)%data%m      = p(ip)%data%m
+              
+              r(ip)%data%v      = p(ip)%data%v  
+              r(ip)%data%g      = sqrt( one + sum( (r(ip)%data%v/vtilde)**2 ) )
+              r(ip)%x           = p(ip)%x + dt*p(ip)%data%v/p(ip)%data%g 
+              r(ip)%x(3)        = zero
+
+              r(ip)%label       = p(ip)%label
+              r(ip)%results%E   = zero
+              r(ip)%results%pot = zero
+              r(ip)%results%B   = zero
+              r(ip)%results%A   = zero
+              r(ip)%results%dxA = zero
+              r(ip)%results%dyA = zero
+              r(ip)%results%Jirr= zero
+              r(ip)%results%J   = zero
+              r(ip)%work        = one
+              
+              if (periodicity_particles) call iperiodic_particles(r(ip))
+
+           
+    enddo
 
 
 
+!------------------------------------------------------------------------------------------------------------------------------
+!            The fields are, as written above, evaluated at the future predicted phase space point, t+1. 
+!------------------------------------------------------------------------------------------------------------------------------
+            
+           
+    call pepc_particleresults_clear(r)
+    call pepc_grow_tree(r)
+    call pepc_traverse_tree(r)
+    call pepc_restore_particles(r)
+    call pepc_timber_tree()
+            
+
+           
+    do ip = 1,np
+
+!------------------------------------------------------------------------------------------------------------------------------
+!            Once the fields are updated, we push the particle in time according to the Trapezoidal rule:
+!              
+!              x^(t+1) = x^(t) +   dt*v^(t)
+!              P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!              P^(t+1) = P^(t) + q*dt*(E^(t+1) + q/c*grad( A^(t+1).v^(t) )
+!------------------------------------------------------------------------------------------------------------------------------
+                
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+              
+              call  inormalize(r(ip))
+
+              v                 = p(ip)%data%v/p(ip)%data%g
+                                          
+              grad              = zero              
+              grad(1)           = v(1)*r(ip)%results%dxA(1) + v(2)*r(ip)%results%dxA(2) + v(3)*r(ip)%results%dxA(3)
+              grad(2)           = v(1)*r(ip)%results%dyA(1) + v(2)*r(ip)%results%dyA(2) + v(3)*r(ip)%results%dyA(3)
+              grad              = grad/lorentz_tilde
+              
+              vxb               = cross_product(v,B0)
+              
+              s(ip)%x           = p(ip)%x        + half*dt*v      
+!              p(ip)%data%v      = p(ip)%data%v   + dt/m*e*( vxb )
+              s(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde*p(ip)%results%A + half*dt*e*( r(ip)%results%E  + grad + vxb )
+              s(ip)%data%v      = ( p(ip)%data%v  - e/lorentz_tilde*r(ip)%results%A )/m
+              s(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
+              s(ip)%x(3)        = zero                    
+                              
+              if (periodicity_particles) call iperiodic_particles(s(ip))
+                                       
+              s(ip)%label       = p(ip)%label
+              s(ip)%results%E   = zero
+              s(ip)%results%pot = zero
+              s(ip)%results%B   = zero
+              s(ip)%results%A   = zero
+              s(ip)%results%dxA = zero
+              s(ip)%results%dyA = zero
+              s(ip)%results%Jirr= zero
+              s(ip)%results%J   = zero
+              s(ip)%work        = one
+              
+            enddo
+            
+            
+    call pepc_particleresults_clear(s)
+    call pepc_grow_tree(s)
+    call pepc_traverse_tree(s)
+    call pepc_restore_particles(s)
+    call pepc_timber_tree()
+
+         
+    do ip = 1,np
+
+!------------------------------------------------------------------------------------------------------------------------------
+!            Once the fields are updated, we push the particle in time according to the Trapezoidal rule:
+!              
+!              x^(t+1) = x^(t) +   dt*v^(t)
+!              P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!              P^(t+1) = P^(t) + q*dt*(E^(t+1) + q/c*grad( A^(t+1).v^(t) )
+!------------------------------------------------------------------------------------------------------------------------------
+                
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+              
+              call  inormalize(r(ip))
+
+              v                 = s(ip)%data%v/s(ip)%data%g
+                                          
+              grad              = zero              
+              grad(1)           = v(1)*s(ip)%results%dxA(1) + v(2)*s(ip)%results%dxA(2) + v(3)*s(ip)%results%dxA(3)
+              grad(2)           = v(1)*s(ip)%results%dyA(1) + v(2)*s(ip)%results%dyA(2) + v(3)*s(ip)%results%dyA(3)
+              grad              = grad/lorentz_tilde
+              
+              vxb               = cross_product(v,B0)
+              
+              p(ip)%x           = s(ip)%x        + half*dt*v      
+!              p(ip)%data%v      = p(ip)%data%v   + dt/m*e*( vxb )
+              p(ip)%data%v      = m*r(ip)%data%v + e/lorentz_tilde*r(ip)%results%A + half*dt*e*( s(ip)%results%E  + grad + vxb )
+              p(ip)%data%v      = ( p(ip)%data%v  - e/lorentz_tilde*s(ip)%results%A )/m
+              p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
+              p(ip)%x(3)        = zero                    
+                              
+              if (periodicity_particles) call iperiodic_particles(p(ip))
+                                       
+              
+            enddo
+    
+    deallocate(r,s)
+
+    end subroutine explicit_verlet
+    
+    
+    
+    subroutine euler_method_electrostatic(np,dt,p)
+    use module_tool   , only: cross_product    
+    use module_globals, only: periodicity_particles,ischeme,root,my_rank,folder,step,pold,newmark_x,newmark_v,newmark_Es,&
+                              newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0,poldold,B0
+    use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
+    use module_pepc
+    implicit none
+    
+!------------------------------------------------------------------------------------------------------------------------------
+!    
+!    Ref.: Leimkuhler B., Reich S. -Simulating Hamiltonian dynamics
+!    
+!    This subroutine is meant to push in time the particles. We implement here  the time integration scheme (Trapezoidal rule):
+!    
+!    x^(t+1)      = x^(t) +   dt*v^(t+1/2)
+!    P^(t+1)      = P^(t) + q*dt*( E^(t+1/2) + grad( A^(t+1/2) . v^(t+1/2) ) )
+!    
+!    Since the Trapezoidal rule is an implicit scheme, the nonlinearity is resolved with a Picard iteration.
+!    Picard method is very simple to implement, compared to Newton-Krylov, but it is not guaranteed the method converge toward 
+!    the solution. In fact, it is, required the function  (the map which advance in time) is a contraction in the phase space. 
+!    
+!    np represents the number of particles in the current process
+!    
+!    dt is the time step
+!    
+!    p is the array of particles at the old time step, "t".
+!    
+!            
+!------------------------------------------------------------------------------------------------------------------------------ 
+    include 'mpif.h'
+
+    integer(kind_particle)          , intent(in)     :: np
+    real(kind_particle)             , intent(in)     :: dt
+    type(t_particle), allocatable   , intent(inout)  :: p(:)
+!    integer(kind_particle)          , intent(out)    :: itc
+!    real(kind_particle)             , intent(out)    :: toll
+
+    real(kind_particle)                              :: e,m,v(1:3),vxb(1:3)
+
+    type(t_particle), allocatable                    :: r(:)!,error(:)
+    integer(kind_particle)                           :: rc,ip
+
+    if (allocated(r)) deallocate(r)
+    allocate( r(np), stat=rc )
+
+!------------------------------------------------------------------------------------------------------------------------------
+!        Here, we define the initial guess, all iterative methods need an initial guess, supposed to be close enough to the solution.
+!        We assume the guess solution is the configuration at old time t.
+!------------------------------------------------------------------------------------------------------------------------------
+
+
+    do ip = 1,np
+!------------------------------------------------------------------------------------------------------------------------------
+!        At each iteration we update the canonical momentums, according to the Trapezoidal rule.
+!        This method assumes the fields are computed at the future values:
+!                
+!                x^(t+1) 
+!                P^(t+1) = m*gamma*v^(t+1) + q/c*A^(t+1)
+!        
+!        We slightly modify the definition of velocity, we replace the natural definition of   v^(t+1/2) = ( v^(t) + v^(t+1) )/2    
+!        with  v^(t+1/2) = ( v^(t) + v^(t+1) )/( gamma^(t) + gamma^(t+1) ).
+!        
+!        It turns out that for non relativistic velocities the two definitions are equivalent.
+!                
+!        So, the fields are evaluated as average values, for instance E^(t+1/2) = ( E( x^(t+1) ) + E( x^(t) ) )/2, etc.      
+!        Notice:  s(ip)%P is the canonical momentum at time t+1, but regarding the previous iteration of the Picard method.
+!        In this piece of code s(ip) contains the information of the particle at time time t+1.        
+!        We are redefining the particle position r(ip) as explained before.        
+!        Be aware the fields are calculated at the phase space point x, gamma*v        
+!------------------------------------------------------------------------------------------------------------------------------
+
+              r(ip)%data%q      = p(ip)%data%q
+              r(ip)%data%m      = p(ip)%data%m
+              
+              r(ip)%data%v      = p(ip)%data%v  
+              r(ip)%data%g      = sqrt( one + sum( (r(ip)%data%v/vtilde)**2 ) )
+              r(ip)%x           = p(ip)%x + dt*p(ip)%data%v/p(ip)%data%g 
+              r(ip)%x(3)        = zero
+
+              r(ip)%label       = p(ip)%label
+              r(ip)%results%E   = zero
+              r(ip)%results%pot = zero
+              r(ip)%results%B   = zero
+              r(ip)%results%A   = zero
+              r(ip)%results%dxA = zero
+              r(ip)%results%dyA = zero
+              r(ip)%results%Jirr= zero
+              r(ip)%results%J   = zero
+              r(ip)%work        = one
+              
+              if (periodicity_particles) call iperiodic_particles(r(ip))
+
+           
+    enddo
+
+
+
+!------------------------------------------------------------------------------------------------------------------------------
+!            The fields are, as written above, evaluated at the future predicted phase space point, t+1. 
+!------------------------------------------------------------------------------------------------------------------------------
+            
+           
+    call pepc_particleresults_clear(r)
+    call pepc_grow_tree(r)
+    call pepc_traverse_tree(r)
+    call pepc_restore_particles(r)
+    call pepc_timber_tree()
+            
+
+           
+    do ip = 1,np
+
+!------------------------------------------------------------------------------------------------------------------------------
+!            Once the fields are updated, we push the particle in time according to the Trapezoidal rule:
+!              
+!              x^(t+1) = x^(t) +   dt*v^(t)
+!              P^(t+1) = P^(t) + q/m*dt*(E^(t+1) 
+!------------------------------------------------------------------------------------------------------------------------------
+                
+              e                 = p(ip)%data%q
+              m                 = p(ip)%data%m
+              
+              call  inormalize(r(ip))
+
+              v                 = p(ip)%data%v/p(ip)%data%g
+              vxb               = cross_product(v,B0)
+              
+              p(ip)%x           = p(ip)%x        + dt*v      
+              p(ip)%data%v      = p(ip)%data%v + dt*e/m*( r(ip)%results%E  + vxb )
+              p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
+              p(ip)%x(3)        = zero                    
+                              
+              if (periodicity_particles) call iperiodic_particles(p(ip))
+                                       
+              
+            enddo
+            
+            
+    
+    deallocate(r)
+
+    end subroutine euler_method_electrostatic
+    
   end module module_integration

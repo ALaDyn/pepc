@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -41,23 +41,30 @@ module module_interaction_specific_types
       end type t_particle_data
       integer, private, parameter :: nprops_particle_data = 4
 
+      
       !> Data structure for shipping results
       type t_particle_results
          real(kind_physics)               :: pot    !< Scalar potential
          real(kind_physics), dimension(3) :: E      !< tranversal part electric field - irrotational part of Electric Field
          real(kind_physics), dimension(3) :: A      !< Vector potential
-         real(kind_physics), dimension(3) :: dxA    !< Gradiend x Vector potential
-         real(kind_physics), dimension(3) :: dyA    !< Gradiend y Vector potential
          real(kind_physics), dimension(3) :: B      !< Magnetic Field - it has only Bz, orthogonal to xy plane
          real(kind_physics), dimension(3) :: J      !< Total Current density
          real(kind_physics), dimension(3) :: Jirr   !< Irrotational Current density
+         real(kind_physics), dimension(3) :: dxA    !< Gradiend x Vector potential
+         real(kind_physics), dimension(3) :: dyA    !< Gradiend y Vector potential
+         real(kind_physics), dimension(3) :: dzA    !< Gradiend z Vector potential
+!         real(kind_physics), dimension(3) :: dxE    !< Gradiend x tranversal part electric field 
+!         real(kind_physics), dimension(3) :: dyE    !< Gradiend y tranversal part electric field 
+!         real(kind_physics), dimension(3) :: dxxA   !< Hessian xx Vector potential
+!         real(kind_physics), dimension(3) :: dxyA   !< Hessian xy Vector potential
+!         real(kind_physics), dimension(3) :: dyyA   !< Hessian yy Vector potential
 !         real(kind_physics)               :: rho    !< Charge density
 
       end type t_particle_results
-      integer, private, parameter :: nprops_particle_results = 8
+      integer, private, parameter :: nprops_particle_results = 9
 
-      type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results(0.,[0., 0., 0.],[0., 0., 0.], [0., 0., 0.]&
-      ,[0., 0., 0.],[0., 0., 0.],[0., 0., 0.],[0., 0., 0.] )
+      type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results(0.,[0., 0., 0.],[0., 0., 0.], [0., 0., 0.],&
+      [0., 0., 0.],[0., 0., 0.],[0., 0., 0.],[0., 0., 0.],[0., 0., 0.] )
       !type(t_particle_results), parameter :: EMPTY_PARTICLE_RESULTS = t_particle_results(0.,[0., 0., 0.])
 
       !> Data structure for storing multiple moments of tree nodes
@@ -80,10 +87,11 @@ module module_interaction_specific_types
         real(kind_physics) :: quadjxy(3)     ! current density quadrupole - qj*vxj*x*y - qj*vyj*x*y - qj*vzj*x*y
         real(kind_physics) :: quadjyz(3)     ! current density quadrupole - qj*vxj*z*y - qj*vyj*z*y - qj*vzj*z*y
         real(kind_physics) :: quadjzx(3)     ! current density quadrupole - qj*vxj*x*z - qj*vyj*x*z - qj*vzj*x*z
+        real(kind_physics) :: current(3)     ! net current density sum
 !        real(kind_physics) :: g
         real(kind_physics) :: bmax
       end type t_tree_node_interaction_data
-      integer, private, parameter :: nprops_tree_node_interaction_data = 19
+      integer, private, parameter :: nprops_tree_node_interaction_data = 20
 
       contains
 
@@ -107,8 +115,9 @@ module module_interaction_specific_types
 !        call vtkf%write_data_array("rho"    , r(:)%rho                                  )
         call vtkf%write_data_array("E"      , r(:)%e(1)   , r(:)%e(2)   , r(:)%e(3)     )
         call vtkf%write_data_array("A"      , r(:)%A(1)   , r(:)%A(2)   , r(:)%A(3)     )
-        call vtkf%write_data_array("dxA"    , r(:)%dxA(1) , r(:)%dxA(2) , r(:)%dxA(3)   )
-        call vtkf%write_data_array("dyA"    , r(:)%dyA(1) , r(:)%dyA(2) , r(:)%dyA(3)   )
+!        call vtkf%write_data_array("dxA"    , r(:)%dxA(1) , r(:)%dxA(2) , r(:)%dxA(3)   )
+!        call vtkf%write_data_array("dyA"    , r(:)%dyA(1) , r(:)%dyA(2) , r(:)%dyA(3)   )
+!        call vtkf%write_data_array("dzA"    , r(:)%dzA(1) , r(:)%dzA(2) , r(:)%dzA(3)   )
         call vtkf%write_data_array("B"      , r(:)%B(1)   , r(:)%B(2)   , r(:)%B(3)     )
         call vtkf%write_data_array("J"      , r(:)%J(1)   , r(:)%J(2)   , r(:)%J(3)     )
         call vtkf%write_data_array("Jirr"   , r(:)%Jirr(1), r(:)%Jirr(2), r(:)%Jirr(3)  )
@@ -127,8 +136,9 @@ module module_interaction_specific_types
         type(t_tree_node_interaction_data), intent(in) :: d(:)
         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
 
-        call vtkf%write_data_array("charge", d(:)%charge)
-        call vtkf%write_data_array("abs_charge", d(:)%abs_charge)
+        call vtkf%write_data_array("charge"         , d(:)%charge    )
+        call vtkf%write_data_array("abs_charge"     , d(:)%abs_charge)
+!        call vtkf%write_data_array("current density", d(:)%current   )
       end subroutine vtk_write_node_interaction_data
 
 
@@ -166,19 +176,26 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
 
         ! register results data type
-        blocklengths(1:nprops_particle_results)  = [1, 3, 3, 3, 3, 3, 3, 3 ]
+        blocklengths(1:nprops_particle_results)  = [1, 3, 3, 3, 3, 3, 3, 3, 3]
         types(1:nprops_particle_results)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS,&
-                                                    MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS ]!,&
-!                                                    MPI_KIND_PHYSICS]
-        call MPI_GET_ADDRESS( dummy_particle_results     , address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%pot , address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%E   , address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%A   , address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%B   , address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%J   , address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%Jirr, address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%dxA , address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%dyA , address(8), ierr )
+                                                    MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS,&
+                                                    MPI_KIND_PHYSICS ]
+                                                    
+        call MPI_GET_ADDRESS( dummy_particle_results      , address(0) , ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%pot  , address(1) , ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%E    , address(2) , ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%A    , address(3) , ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%B    , address(4) , ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%J    , address(5) , ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%Jirr , address(6) , ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%dxA  , address(7) , ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%dyA  , address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%dzA  , address(9), ierr )
+!        call MPI_GET_ADDRESS( dummy_particle_results%dxE  , address(7) , ierr )
+!        call MPI_GET_ADDRESS( dummy_particle_results%dyE  , address(8) , ierr )
+!        call MPI_GET_ADDRESS( dummy_particle_results%dxxA , address(12), ierr )
+!        call MPI_GET_ADDRESS( dummy_particle_results%dxyA , address(13), ierr )
+!        call MPI_GET_ADDRESS( dummy_particle_results%dyyA , address(14), ierr )
 !        call MPI_GET_ADDRESS( dummy_particle_results%rho , address(9), ierr )
 
         displacements(1:nprops_particle_results) = int(address(1:nprops_particle_results) - address(0))
@@ -186,11 +203,11 @@ module module_interaction_specific_types
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
-        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 3, 3, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1]
+        blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 3, 3, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1]
         types(1:nprops_tree_node_interaction_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
                                                               MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
                                                               MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
-                                                              MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
+                                                              MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )
@@ -211,7 +228,8 @@ module module_interaction_specific_types
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjyz,    address(17), ierr )
         call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjzx,    address(18), ierr )
 !        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%g,          address(19), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(19), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%current,    address(19), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(20), ierr )
         !call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%jj,         address(9), ierr )
 
         displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))

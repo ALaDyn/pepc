@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2015 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -44,6 +44,7 @@ module module_fmm_framework
       public fmm_framework_timestep
       public fmm_sum_lattice_force
       public fmm_framework_param_dump
+      public fmm_sum_lattice_force_darwin
 
       ! private variable declarations
 
@@ -70,8 +71,19 @@ module module_fmm_framework
       integer :: ws = 1
       ! internally calculated FMM variables
       complex(kfp) :: mu_cent(0:qTaylorFMMP)
+      complex(kfp) :: mu_cent_E(0:qTaylorFMMP)
+      complex(kfp) :: mu_cent_jx(0:qTaylorFMMP)
+      complex(kfp) :: mu_cent_jy(0:qTaylorFMMP)
+      complex(kfp) :: mu_cent_jz(0:qTaylorFMMP)
       complex(kfp) :: omega_tilde(1:pMultipoleFMMP)
+      complex(kfp) :: omega_tilde_E(1:pMultipoleFMMP)
+      complex(kfp) :: omega_tilde_jx(1:pMultipoleFMMP)
+      complex(kfp) :: omega_tilde_jy(1:pMultipoleFMMP)
+      complex(kfp) :: omega_tilde_jz(1:pMultipoleFMMP)
       complex(kfp) :: BLattice(0:qTaylorFMMP, 1:pMultipoleFMMP)
+      complex(kfp) :: BLattice_jx(0:qTaylorFMMP, 1:pMultipoleFMMP)
+      complex(kfp) :: BLattice_jy(0:qTaylorFMMP, 1:pMultipoleFMMP)
+      complex(kfp) :: BLattice_jz(0:qTaylorFMMP, 1:pMultipoleFMMP)
       !> fictitious charges
       type(t_tree_node_interaction_data) :: fictcharge(1:4)
       integer :: nfictcharge = 0
@@ -122,12 +134,21 @@ module module_fmm_framework
           end if
           LatticeCenter(3) = 0
 
-          BLattice = czero
+          BLattice    = czero
+!          BLattice_jx = czero
+!          BLattice_jy = czero
+!          BLattice_jz = czero
 
           call calc_lattice_coefficients(BLattice)
+!          call calc_lattice_coefficients(BLattice_jx)
+!          call calc_lattice_coefficients(BLattice_jy)
+!          call calc_lattice_coefficients(BLattice_jz)
 
           if ((myrank == 0) .and. dbg(DBG_PERIODIC)) then
             call WriteTableToFile('BLattice.tab', BLattice)
+!            call WriteTableToFile('BLattice_jx.tab', BLattice_jx)
+!            call WriteTableToFile('BLattice_jy.tab', BLattice_jy)
+!            call WriteTableToFile('BLattice_jz.tab', BLattice_jz)
           end if
         end subroutine fmm_framework_prepare
 
@@ -148,7 +169,12 @@ module module_fmm_framework
           end if
 
           call calc_omega_tilde(particles)
-          call calc_mu_cent(omega_tilde, mu_cent)
+          call calc_mu_cent(omega_tilde   , mu_cent)
+          call calc_mu_cent(omega_tilde_E , mu_cent_E)
+          call calc_mu_cent(omega_tilde_jx, mu_cent_jx)
+          call calc_mu_cent(omega_tilde_jy, mu_cent_jy)
+          call calc_mu_cent(omega_tilde_jz, mu_cent_jz)
+          
         end subroutine fmm_framework_timestep
 
 
@@ -225,34 +251,63 @@ module module_fmm_framework
 
           type(t_particle), intent(in) :: particles(:)
 
-          integer :: k
+          integer                :: k,ierr
           integer(kind_particle) :: p
-          integer :: ierr
-          real(kfp) :: qtotal
+          real(kfp)              :: qtotal,noqtotal,ctotal(1:3),j(1:3)
 
-          qtotal = zero
-          omega_tilde = czero
+          qtotal         = zero
+          noqtotal       = zero
+          ctotal         = zero
+          omega_tilde    = czero
+          omega_tilde_jx = czero
+          omega_tilde_jy = czero
+          omega_tilde_jz = czero
+          omega_tilde_E  = czero
 
           ! calculate multipole contributions of all local particles
           do p=1,size(particles, kind=kind(p))
-            call addparticle(particles(p)%x(1:2), particles(p)%data%q)
+                j = particles(p)%data%q*particles(p)%data%v
+                j = j/particles(p)%data%g
+                call addparticle(particles(p)%x(1:2), particles(p)%data%q   , qtotal   , omega_tilde)
+                call addparticle(particles(p)%x(1:2), one                   , noqtotal , omega_tilde_E)
+                call addparticle(particles(p)%x(1:2), j(1)                  , ctotal(1), omega_tilde_jx)
+                call addparticle(particles(p)%x(1:2), j(2)                  , ctotal(2), omega_tilde_jy)
+                call addparticle(particles(p)%x(1:2), j(3)                  , ctotal(3), omega_tilde_jz)
           end do
 
           call chop(omega_tilde)
+          call chop(omega_tilde_jx)
+          call chop(omega_tilde_jy)
+          call chop(omega_tilde_jz)
+          call chop(omega_tilde_E)
+          
 
           ! sum multipole contributions from all processors - treat complex as two real numbers since e.g. complex*32 is not supported by mpi
           call MPI_ALLREDUCE(MPI_IN_PLACE, qtotal, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
-          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde, 2 * pMultipoleFMMP, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, noqtotal, 1, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, ctotal, 3, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde   , 2 * pMultipoleFMMP, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde_jx, 2 * pMultipoleFMMP, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde_jy, 2 * pMultipoleFMMP, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde_jz, 2 * pMultipoleFMMP, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
+          call MPI_ALLREDUCE(MPI_IN_PLACE, omega_tilde_E , 2 * pMultipoleFMMP, MPI_REAL_fmm, MPI_SUM, MPI_COMM_fmm, ierr)
 
           call chop(omega_tilde)
+          call chop(omega_tilde_jx)
+          call chop(omega_tilde_jy)
+          call chop(omega_tilde_jz)
+          call chop(omega_tilde_E)
 
           if (do_extrinsic_correction) then
             nfictcharge = 0
 
             if (periodicity(1)) then
               nfictcharge = nfictcharge + 1
-              fictcharge(nfictcharge)%coc(1:2) = LatticeOrigin(1:2) + Lattice(1, 1:2)
-              fictcharge(nfictcharge)%charge = real(omega_tilde(1), kind = kind_physics) / sqrt(dot_product(Lattice(1, 1:2), Lattice(1, 1:2)))
+              fictcharge(nfictcharge)%coc(1:2)  = LatticeOrigin(1:2) + Lattice(1, 1:2)
+              fictcharge(nfictcharge)%charge    = real(omega_tilde(1)   , kind = kind_physics) / sqrt(dot_product(Lattice(1, 1:2), Lattice(1, 1:2)))
+              fictcharge(nfictcharge)%current(1)= real(omega_tilde_jx(1), kind = kind_physics) / sqrt(dot_product(Lattice(1, 1:2), Lattice(1, 1:2)))
+              fictcharge(nfictcharge)%current(2)= real(omega_tilde_jy(1), kind = kind_physics) / sqrt(dot_product(Lattice(1, 1:2), Lattice(1, 1:2)))
+              fictcharge(nfictcharge)%current(3)= real(omega_tilde_jz(1), kind = kind_physics) / sqrt(dot_product(Lattice(1, 1:2), Lattice(1, 1:2)))
 
               nfictcharge = nfictcharge + 1
               fictcharge(nfictcharge)%coc(1:2) = LatticeOrigin(1:2)
@@ -261,20 +316,33 @@ module module_fmm_framework
 
             if (periodicity(2)) then
               nfictcharge = nfictcharge + 1
-              fictcharge(nfictcharge)%coc(1:2) = LatticeOrigin(1:2) + Lattice(2, 1:2)
-              fictcharge(nfictcharge)%charge = real(aimag(omega_tilde(1)), kind = kind_physics) / sqrt(dot_product(Lattice(2, 1:2), Lattice(2, 1:2)))
+              fictcharge(nfictcharge)%coc(1:2)  = LatticeOrigin(1:2) + Lattice(2, 1:2)
+              fictcharge(nfictcharge)%charge    = real(aimag(omega_tilde(1)), kind = kind_physics) / sqrt(dot_product(Lattice(2, 1:2), Lattice(2, 1:2)))
+              fictcharge(nfictcharge)%current(1)= real(aimag(omega_tilde_jx(1)), kind = kind_physics) / sqrt(dot_product(Lattice(2, 1:2), Lattice(2, 1:2)))
+              fictcharge(nfictcharge)%current(2)= real(aimag(omega_tilde_jy(1)), kind = kind_physics) / sqrt(dot_product(Lattice(2, 1:2), Lattice(2, 1:2)))
+              fictcharge(nfictcharge)%current(3)= real(aimag(omega_tilde_jz(1)), kind = kind_physics) / sqrt(dot_product(Lattice(2, 1:2), Lattice(2, 1:2)))
 
               nfictcharge = nfictcharge + 1
               fictcharge(nfictcharge)%coc(1:2) = LatticeOrigin(1:2)
-              fictcharge(nfictcharge)%charge = -fictcharge(nfictcharge - 1)%charge
+              fictcharge(nfictcharge)%charge   = -fictcharge(nfictcharge - 1)%charge
+              fictcharge(nfictcharge)%current  = -fictcharge(nfictcharge - 1)%current
             end if
 
             if (nfictcharge > 0) then
               do p=1,nfictcharge
-                call addparticle(fictcharge(p)%coc(1:2), fictcharge(p)%charge)
+                call addparticle(fictcharge(p)%coc(1:2), fictcharge(p)%charge    , qtotal   , omega_tilde)
+                call addparticle(fictcharge(p)%coc(1:2), fictcharge(p)%current(1), ctotal(1), omega_tilde_jx)
+                call addparticle(fictcharge(p)%coc(1:2), fictcharge(p)%current(2), ctotal(2), omega_tilde_jy)
+                call addparticle(fictcharge(p)%coc(1:2), fictcharge(p)%current(3), ctotal(3), omega_tilde_jz)
               end do
 
+              
               call chop(omega_tilde)
+              call chop(omega_tilde_jx)
+              call chop(omega_tilde_jy)
+              call chop(omega_tilde_jz)
+!              call chop(omega_tilde_E)
+              
             end if
           end if
 
@@ -287,12 +355,14 @@ module module_fmm_framework
           end if
 
           contains
-            subroutine addparticle(R, q)
+            subroutine addparticle(R, q, qtotal, omega_tilde)
               implicit none
 
-              real(kind_physics), intent(in) :: R(2), q
+              real(kind_physics)   , intent(in)   :: R(2), q
+              real(kind_physics)   , intent(inout):: qtotal
+              complex(kind_physics), intent(out)  :: omega_tilde(1:pMultipoleFMMP)
 
-              real(kfp) :: x0(2)
+              real(kfp)    :: x0(2)
               complex(kfp) :: z0
 
               x0 = real(R(1:2) - LatticeCenter(1:2), kind = kfp)
@@ -303,6 +373,60 @@ module module_fmm_framework
                 omega_tilde(k) = omega_tilde(k) + omega(k, z0, real(q, kind = kfp))
               end do
             end subroutine addparticle
+            
+!            
+!            subroutine addparticle_jx(R, q)
+!              implicit none
+!
+!              real(kind_physics), intent(in) :: R(2), q
+!
+!              real(kfp) :: x0(2)
+!              complex(kfp) :: z0
+!
+!              x0 = real(R(1:2) - LatticeCenter(1:2), kind = kfp)
+!              z0 = x0(1) + ic * x0(2)
+!              qtotal = qtotal + real(q, kind = kfp)
+!
+!              do k=1,pMultipoleFMMP
+!                omega_tilde_jx(k) = omega_tilde_jx(k) + omega(k, z0, real(q, kind = kfp))
+!              end do
+!            end subroutine addparticle_jx
+!            
+!            
+!            subroutine addparticle_jy(R, q)
+!              implicit none
+!
+!              real(kind_physics), intent(in) :: R(2), q
+!
+!              real(kfp) :: x0(2)
+!              complex(kfp) :: z0
+!
+!              x0 = real(R(1:2) - LatticeCenter(1:2), kind = kfp)
+!              z0 = x0(1) + ic * x0(2)
+!              qtotal = qtotal + real(q, kind = kfp)
+!
+!              do k=1,pMultipoleFMMP
+!                omega_tilde_jy(k) = omega_tilde_jy(k) + omega(k, z0, real(q, kind = kfp))
+!              end do
+!            end subroutine addparticle_jy
+!            
+!            subroutine addparticle_jz(R, q)
+!              implicit none
+!
+!              real(kind_physics), intent(in) :: R(2), q
+!
+!              real(kfp) :: x0(2)
+!              complex(kfp) :: z0
+!
+!              x0 = real(R(1:2) - LatticeCenter(1:2), kind = kfp)
+!              z0 = x0(1) + ic * x0(2)
+!              qtotal = qtotal + real(q, kind = kfp)
+!
+!              do k=1,pMultipoleFMMP
+!                omega_tilde_jz(k) = omega_tilde_jz(k) + omega(k, z0, real(q, kind = kfp))
+!              end do
+!            end subroutine addparticle_jz
+            
         end subroutine calc_omega_tilde
 
 
@@ -313,7 +437,7 @@ module module_fmm_framework
         subroutine calc_mu_cent(omega, mu)
           use module_debug
           implicit none
-          complex(kfp), intent(in) :: omega(1:pMultipoleFMMP)
+          complex(kfp), intent(in)  :: omega(1:pMultipoleFMMP)
           complex(kfp), intent(out) :: mu(0:qTaylorFMMP)
 
           ! contribution of all outer lattice cells, with regards to the centre of the original box
@@ -335,9 +459,9 @@ module module_fmm_framework
         complex(kfp) function omega(k, z0, q)
           use module_multipole
           implicit none
-          integer, intent(in) :: k
-          complex(kfp), intent(in) :: z0
-          real(kfp), intent(in) :: q
+          integer     , intent(in)      :: k
+          complex(kfp), intent(in)      :: z0
+          real(kfp)   , intent(in)      :: q
 
           omega = - q * OMultipole(k, z0) / k
 
@@ -410,59 +534,75 @@ module module_fmm_framework
         end subroutine fmm_sum_lattice_force
 
 
-        subroutine fmm_sum_lattice_force_darwin(pos,v, e_lattice, phi_lattice, B_lattice, A_lattice)
+        subroutine fmm_sum_lattice_force_darwin(pos,v, e_lattice, phi_lattice, B_lattice, A_lattice, dxA_lattice, dyA_lattice)
           use module_mirror_boxes, only: LatticeCenter, num_neighbour_boxes, lattice_vect, neighbour_boxes
           use module_multipole
           use module_debug
           implicit none
 
           real(kind_physics), intent(in)  ::  pos(3),v(3)
-          real(kind_physics), intent(out) ::  e_lattice(2), phi_lattice, B_lattice(3), A_lattice(3)
+          real(kind_physics), intent(out) ::  e_lattice(2), phi_lattice, B_lattice(3), A_lattice(3), dxA_lattice(3), dyA_lattice(3)
 
           integer                         ::  k, ibox
           integer(kind_particle)          ::  p
-          real(kfp)                       ::  x0(2)
-          complex(kfp)                    ::  z0, cphi, ce, cA_log, cA_exp, cB_log
-          real(kind_physics)              ::  delta(3), phitmp, etmp(2),Atmp(1:3),Btmp(1:3),Atmp1(1:2),Atmp2(1:2),Btmp1(1:2)
+          real(kfp)                       ::  x0(2),d2
+          complex(kfp)                    ::  z0, cphi, ce, ce_tilde, cA1(1:3), cA2(1:3), mu_cent_j(1:3)
+          real(kind_physics)              ::  delta(3), phitmp, etmp(2), Atmp(1:3), dxAtmp(1:3), dyAtmp(1:3),e_tildex(1:3),&
+                                              Btmp(1:3),e_tilde(1:3),jvE_i(1:2),jvE_j(1:2),jvE_k(1:2),e_tilded2(1:3),e_tildey(1:3)
 
           x0 = real(pos(1:2) - LatticeCenter(1:2), kind = kfp)
           z0 = x0(1) + ic * x0(2)
+          d2 = dot_product( x0, x0 )
 
-          cphi     = -mu_cent(0)  ! OMultipole(0, z0) = 1
-          ce       =  czero       ! OmultipolePrime(0, z0) = 0
-          cA_log   =  czero       ! OmultipolePrime(0, z0) = 0
-          cA_exp   =  czero       ! OmultipolePrime(0, z0) = 0
-          cB_log   =  czero       ! OmultipolePrime(0, z0) = 0
+          cphi      = -mu_cent(0)     ! OMultipole(0, z0) = 1
+          cA1(1)    = -mu_cent_jx(0)  ! OMultipole(0, z0) = 1
+          cA1(2)    = -mu_cent_jy(0)  ! OMultipole(0, z0) = 1
+          cA1(3)    = -mu_cent_jz(0)  ! OMultipole(0, z0) = 1
+          
+          ce       =  czero 
+          ce_tilde =  czero
+          cA2      =  czero 
 
           do k = 1, qTaylorFMMP
-            cphi     = cphi     - mu_cent(k) * OMultipole(k, z0)
-            ce       = ce       - mu_cent(k) * OMultipolePrime(k, z0)
-            cA_log   = cA_log   - mu_cent(k) * OMultipolePrime(k, log(z0))
-            cA_exp   = cA_exp   - mu_cent(k) * OMultipolePrime(k, exp(z0))
-            cB_log   = cB_log   - mu_cent(k) * OMultipolePrime(k, z0)
+            mu_cent_j= (/ mu_cent_jx(k), mu_cent_jy(k), mu_cent_jz(k) /)  
+            cphi     = cphi     - mu_cent(k)   * OMultipole(k, z0)
+            cA1      = cA1      - mu_cent_j    * OMultipole(k, z0)
+            ce       = ce       - mu_cent(k)   * OMultipolePrime(k, z0)
+            ce_tilde = ce_tilde - mu_cent_E(k) * OMultipolePrime(k, z0)
+            cA2      = cA2      - mu_cent_j    * OMultipolePrime(k, z0)
+            
           end do
 
           ! E = -grad(Phi)
-          e_lattice         = [ -real(ce, kind = kind_physics), real(aimag(ce), kind = kind_physics) ]
-          phi_lattice       = real(cphi, kind = kind_physics)
-          Atmp1             = [ -real(cA_log, kind = kind_physics), real(aimag(cA_log), kind = kind_physics) ]
-          Atmp2             = [ -real(cA_exp, kind = kind_physics), real(aimag(cA_exp), kind = kind_physics) ]
-          Btmp1             = [ -real(cB_log, kind = kind_physics), real(aimag(cB_log), kind = kind_physics) ]
-
-          A_lattice(1:3)    = phi_lattice*v
-          A_lattice(1:2)    = A_lattice(1:2) + ( v(1)*Atmp1(1) + v(2)*Atmp1(2)  )*Atmp2(1:2)
-          B_lattice(1:3)    = Btmp(2)*v(3)
-          B_lattice(2)      =-Btmp(1)*v(3)
-          B_lattice(3)      = Btmp(1)*v(2)   - Btmp(2)*v(1)
-
+          e_tilde           = zero
+          e_tilded2         = zero
+          e_tildex          = zero
+          e_tildey          = zero
+          
+          e_lattice         = [ -real(ce             , kind = kind_physics), real(aimag(ce)                , kind = kind_physics) ]
+          e_tilde(1:2)      = [ -real(ce_tilde       , kind = kind_physics), real(aimag(ce_tilde)          , kind = kind_physics) ]
+          e_tilded2(1:2)    = [ -real(d2*ce_tilde    , kind = kind_physics), real(aimag(d2*ce_tilde)       , kind = kind_physics) ]
+          e_tildex(1:2)     = [ -real(x0(1)*ce_tilde , kind = kind_physics), real(aimag(x0(1)*ce_tilde)    , kind = kind_physics) ]
+          e_tildey(1:2)     = [ -real(x0(2)*ce_tilde , kind = kind_physics), real(aimag(x0(2)*ce_tilde)    , kind = kind_physics) ]
+          jvE_i             = [ -real(cA2(1)         , kind = kind_physics), real(aimag(cA2(1))            , kind = kind_physics) ]
+          jvE_j             = [ -real(cA2(2)         , kind = kind_physics), real(aimag(cA2(2))            , kind = kind_physics) ]
+          jvE_k             = [ -real(cA2(3)         , kind = kind_physics), real(aimag(cA2(3))            , kind = kind_physics) ]
+          
+          phi_lattice       = real(cphi  , kind = kind_physics)
+          A_lattice         = real(cA1   , kind = kind_physics)
+          
+          B_lattice         = (/ -jvE_k(2), jvE_k(1), jvE_i(2) - jvE_j(1) /)
+          
           if (do_extrinsic_correction) then    ! extrinsic correction
             do p=1,nfictcharge
               do ibox=1,num_neighbour_boxes
                 delta = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
-                call log2d_kernel_darwin2D3V(fictcharge(p)%charge,fictcharge(p)%monoj(1:3), delta(1:2), phitmp, etmp(1:2),Atmp(1:3),Btmp(1:3))
+                call log2d_kernel_darwin2D3V(fictcharge(p)%charge,fictcharge(p)%current(1:3), delta(1:2), phitmp, etmp(1:2), Atmp(1:3), dxAtmp(1:3),dyAtmp(1:3),Btmp(1:3))
                 e_lattice       = e_lattice   + etmp
                 phi_lattice     = phi_lattice + phitmp
                 A_lattice       = A_lattice   + Atmp
+                dxA_lattice     = dxA_lattice + dxAtmp
+                dyA_lattice     = dyA_lattice + dyAtmp
                 B_lattice       = B_lattice   + Btmp
               end do
             end do
@@ -471,15 +611,15 @@ module module_fmm_framework
           contains
 
 
-            subroutine log2d_kernel_darwin2D3V(q, j, d, phi, e, A, B)
-              use module_tool   , only: cross_product
-              use module_shortcut, only: half,quarter,zero
+            subroutine log2d_kernel_darwin2D3V(q, j, d, phi, e, A, dxA, dyA, B)
+              use module_tool    , only: cross_product,double_cross_product_left
+              use module_shortcut, only: half,quarter,zero,two
               implicit none
 
               real(kind_physics), intent(in)     :: q, d(2),j(3)
-              real(kind_physics), intent(out)    :: phi, e(2), A(3), B(3)
+              real(kind_physics), intent(out)    :: phi, e(2), A(3), dxA(3), dyA(3), B(3)
 
-              real(kfp) :: d2, rd2,x(3)
+              real(kfp) :: d2, rd2,x(3),e_tilde(3),dxe_tilde(3),dye_tilde(3)
 
               x(1:3)   = zero
               x(1:2)   = d(1:2)
@@ -488,10 +628,21 @@ module module_fmm_framework
 
               phi      = -half * q * log(d2)
               e        = q * d * rd2
-              A(1:3)   = -quarter* q * log(d2)*v(1:3)
-              A(1:2)   = A(1:2) + half*q*( j(1)*d(1) + j(2)*d(2) )*j(1:2)*rd2
+              e_tilde  =     x * rd2
+              dxe_tilde = 0.0
+              A(1:3)   = -quarter* j *( log(d2) - two )
+              A(1:3)   =  A(1:3) + half*double_cross_product_left( d2*e_tilde, e_tilde, j )
               A(3)     = -half* q * log(d2)*j(3)
               B(1:3)   = -q*rd2 * cross_product(x,j)
+              dxA      =  q*double_cross_product_left( dxe_tilde, e_tilde  , j ) + &
+                          q*double_cross_product_left( e_tilde  , dxe_tilde, j ) + &
+                    two*q*x(1)*double_cross_product_left(    e_tilde  , e_tilde  , j )
+              dxA      =  half*( dxA - j*x(1)*rd2 ) 
+              
+              dyA      =  q*d2*double_cross_product_left( d2*dye_tilde, e_tilde  , j ) + &
+                          q*d2*double_cross_product_left( d2*e_tilde  , dye_tilde, j ) + &
+                    two*q*x(2)*double_cross_product_left(    e_tilde  , e_tilde  , j )
+              dyA      =  half*( dyA - j*x(2)*rd2 )
 
             end subroutine log2d_kernel_darwin2D3V
 

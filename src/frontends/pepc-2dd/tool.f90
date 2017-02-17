@@ -153,7 +153,7 @@ module module_tool
     implicit none
     real(kind_particle), intent(out)   :: list(:)
     real(kind_particle), intent(in)    :: vth(3),vdrift(3)
-    real(kind_particle)                :: v(2), r, theta
+    real(kind_particle)                :: v(2), r, theta,gth,gdrift
     integer(kind_particle)             :: i,n
 
     n = size(list,kind= kind_particle)
@@ -161,17 +161,24 @@ module module_tool
     call random(v)
     r         = sqrt(-two*log( one - 0.9999_8*v(1) ) )
     theta     = two*pi*v(2)
+!    gth       = one/sqrt( one - sum( ( vth/vtilde )**2 ) )
+!    gdrift    = one/sqrt( one - sum( ( vdrift/vtilde )**2 ) )
+!    list(1)   = gdrift*vdrift(1) + gth*vth(1)*r*cos(theta)
+!    list(2)   = gdrift*vdrift(2) + gth*vth(2)*r*sin(theta)
     list(1)   = vdrift(1) + vth(1)*r*cos(theta)
-    if (n .ge. 2) list(2)   = vdrift(2) + vth(2)*r*sin(theta)
+    list(2)   = vdrift(2) + vth(2)*r*sin(theta)
     
-    if (n .eq. 3) then 
+!    if (n .eq. 3) then 
         call random(v)
         r         = sqrt(-two*log( one - 0.9999_8*v(1) ) )
         theta     = two*pi*v(2)
+!        list(3)   = gdrift*vdrift(3) + gth*vth(3)*r*cos(theta)
         list(3)   = vdrift(3) + vth(3)*r*cos(theta)
-    endif
+!    endif
 
-
+!    gth  = sqrt( one + sum( (list/vtilde)**2 ) )
+!    list = list/gth
+    
   end subroutine
 
 
@@ -188,7 +195,7 @@ module module_tool
 
 
   end function cross_product
-  
+    
     function double_cross_product_left(x,y,z)
     implicit none
     real(kind_particle)            :: double_cross_product_left(3)
@@ -199,58 +206,43 @@ module module_tool
 
 
   end function double_cross_product_left
-
   
+  
+            
+  subroutine scramble_particles(p)
+!    USE IFPORT
+    use module_globals, only: root  
+    implicit none
 
-!subroutine change_unit(p,q,flagin,flagout)
-!    use module_pepc
-!    use module_shortcut,only: pi
-!    use module_globals,only: qe,c,me
-!    implicit none
-!
-!    type(t_particle), allocatable, intent(in)    :: p(:)
-!    type(t_particle), allocatable, intent(out)   :: q(:)
-!    integer(kind_particle)       , intent(in)    :: flagin,flagout
-!
-!    integer(kind_particle)                       :: ip
-!    real(kind_particle)                          :: etilde,phitilde,atilde,btilde,mtilde,qtilde,xtilde,&
-!                                                    ttilde,vtilde,wp,ctilde
-!
-!
-!
-!    if ( flagin .ne. 0 .or. flagout .ne. 1) then
-!        write(*,*) " Wrong choice of flagin in conversion of unit"
-!        call exit(1)
-!    end if
-!    if ( flagout .ne. 0 .or. flagout .ne. 1) then
-!        write(*,*) " Wrong choice of flagout in conversion of unit"
-!        call exit(1)
-!    end if
-!
-!    select case (flagin)
-!          case (0)  !
-!
-!            etilde          =  one/Volume
-!            phitilde        =  one/Volume
-!            btilde          =  one/Volume
-!            atilde          =  one/Volume
-!            jtilde          =  one/Volume
-!            rhotilde        =  one/Volume
-!
-!          case (1)  !
-!            etilde          =  one
-!            phitilde        =  one
-!            btilde          =  one
-!            atilde          =  one
-!            jtilde          =  one
-!            rhotilde        =  one
-!
-!          case default
-!
-!
-!    end select
-!
-!end subroutine change_unit
+    type(t_particle), allocatable, intent(inout)    :: p(:)
+    
+    integer(kind_particle)                          :: jp,ip,k,np
+    integer                                         :: seed = 86456
+    real(kind_particle)                             :: x(1:3)
+
+!    call srand(seed)
+    np = size(p, kind=kind_particle) 
+    k  = np
+    if (root)   write(*,*)            "== ...Scrambling Particle  "
+    do ip = 1,np-1
+        
+        
+        call random(x)
+        jp               = 1 + floor((k-1)*x(1))
+!        jp               = IRAND()
+!        
+!        jp               = mod(jp,k)
+        if (jp .eq. 0) jp = 1
+        x(1:3)           = p(jp)%x(1:3)
+        p(jp)%x(1:3)     = p(ip)%x(1:3)
+        p(ip)%x(1:3)     = x(1:3)
+        k   = k - 1
+        
+    enddo
+    
+
+  end subroutine scramble_particles
+
 
 subroutine copy_particle(p,q,np)
     implicit none
@@ -268,18 +260,55 @@ subroutine copy_particle(p,q,np)
         q(ip)%label             = p(ip)%label
         q(ip)%x(1:3)            = p(ip)%x(1:3)
         q(ip)%data%v(1:3)       = p(ip)%data%v(1:3)
+        q(ip)%data%g            = p(ip)%data%g
         q(ip)%data%q            = p(ip)%data%q
         q(ip)%data%m            = p(ip)%data%m
         q(ip)%results%E(1:3)    = p(ip)%results%E(1:3)
         q(ip)%results%B(1:3)    = p(ip)%results%B(1:3)
         q(ip)%results%A(1:3)    = p(ip)%results%A(1:3)
+        q(ip)%results%dxA(1:3)  = p(ip)%results%dxA(1:3)
+        q(ip)%results%dyA(1:3)  = p(ip)%results%dyA(1:3)
+        q(ip)%results%dzA(1:3)  = p(ip)%results%dzA(1:3)
         q(ip)%results%J(1:3)    = p(ip)%results%J(1:3)
         q(ip)%results%Jirr(1:3) = p(ip)%results%Jirr(1:3)
         q(ip)%results%pot       = p(ip)%results%pot
+        q(ip)%work              = p(ip)%work
 
     enddo
 
 end subroutine copy_particle
+
+subroutine icopy_particle(p,q,np,ip)
+    implicit none
+
+    type(t_particle), allocatable, intent(in)    :: p(:)
+    type(t_particle), allocatable, intent(out)   :: q(:)
+    integer(kind_particle)       , intent(in)    :: np,ip
+
+    integer(kind_particle)                       :: rc
+
+    if (allocated(q)) deallocate(q)
+    allocate(q(np),stat=rc )
+
+        q(ip)%label             = p(ip)%label
+        q(ip)%x(1:3)            = p(ip)%x(1:3)
+        q(ip)%data%v(1:3)       = p(ip)%data%v(1:3)
+        q(ip)%data%g            = p(ip)%data%g
+        q(ip)%data%q            = p(ip)%data%q
+        q(ip)%data%m            = p(ip)%data%m
+        q(ip)%results%E(1:3)    = p(ip)%results%E(1:3)
+        q(ip)%results%B(1:3)    = p(ip)%results%B(1:3)
+        q(ip)%results%A(1:3)    = p(ip)%results%A(1:3)
+        q(ip)%results%dxA(1:3)  = p(ip)%results%dxA(1:3)
+        q(ip)%results%dyA(1:3)  = p(ip)%results%dyA(1:3)
+        q(ip)%results%dzA(1:3)  = p(ip)%results%dzA(1:3)
+        q(ip)%results%J(1:3)    = p(ip)%results%J(1:3)
+        q(ip)%results%Jirr(1:3) = p(ip)%results%Jirr(1:3)
+        q(ip)%results%pot       = p(ip)%results%pot
+        q(ip)%work              = p(ip)%work
+
+
+end subroutine icopy_particle
 
 function gyrofrequency(p)
     implicit none
@@ -344,46 +373,5 @@ function inv3x3(p)
 
 end function inv3x3
 
-
-function integrate(field)
-    use encap
-    implicit none
-    include 'mpif.h'
-    type(field_grid_t), intent(in)               :: field
-    real(kind_particle)                          :: integrate_loc,integrate,dx,dy,estimated_loc,estimated
-    integer(kind_particle)                       :: ip,jp, nx,ny,np,rc
-
-    nx             = field%n(1)
-    ny             = field%n(2)
-    dx             = field%dx(1)
-    dy             = field%dx(2)
-
-    integrate      = zero
-    integrate_loc  = zero
-    estimated_loc  = zero
-    estimated      = zero
-
-    do jp = 2,ny-1
-        do ip = 1,nx-1
-            integrate_loc = integrate_loc + quarter*dx*dy*( field%p(ip)%results%J(3) + field%p(ip+1)%results%J(3) + field%p((jp-1)*nx)%results%J(3) + field%p(jp*nx)%results%J(3) )
-!            it = it +1
-!            write(*,*) it, field%p(ip)%x(1),field%p(ip+1)%x(1),field%p((jp-1)*nx)%x(2),field%p(jp*nx)%x(2)
-        enddo
-!        integrate_loc = integrate_loc !+ dot_product(p(ip)%results%B,p(ip)%results%B)
-    enddo
-
-
-    do ip = 1,field%nl
-        estimated_loc = estimated_loc + field%p(ip)%results%J(3)
-    enddo
-
-    call MPI_ALLREDUCE(integrate_loc, integrate, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-    call MPI_ALLREDUCE(estimated_loc, estimated, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-
-    if (root)    write(*,*) "current I ===",integrate, estimated/field%nl*(0.2)**2*pi
-
-
-
-end function integrate
 
 end module module_tool
