@@ -6,6 +6,7 @@
 =                 Mathias Winkel
 =                 Robert Speck
 =                 Lukas Arnold
+=                 Benedikt Steinbusch
 =                 Forschungszentrum Juelich GmbH
 =                 Juelich Supercomputing Centre
 =
@@ -18,7 +19,7 @@
 
 This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 
-Copyright (C) 2002-2016 Juelich Supercomputing Centre, 
+Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
                         Forschungszentrum Juelich GmbH,
                         Germany
 
@@ -79,37 +80,13 @@ to show information/recommendation on machine specifics.
 After setting the proper environment (modules, paths) 
 call 
 
-"make pepc-mini"
+"make pepc-benchmark"
 
-to build the pepc-mini frontend into the ./bin/ directory. 
+to build the pepc-benchmark frontend into the ./bin/ directory. 
 Parallel make (i.e. "make -j") should work.
 
-There are several different frontends available at the moment:
-
-pepc-b:    Laser/beam-plasma with magnetic fields
-pepc-e:    pure electrostatics
-             simple molecular dynamics, 
-             some diagnostics for energy, performance, vtk output etc.
-pepc-mini: pure electrostatics
-             simple molecular dynamics
-             no diagnostics
-             minimum requirements to get pepc running
-pepc-mw:   frontend for laser-plasma interaction (experimental)
-pepc-s:    library version for inclusion in ScaFaCoS project
-pepc-nn:   tree-based nearest neighbour search
-pepc-sph:  gravitation and smoothed particle hydrodynamics (sph)
-           for astrophysics research (experimental)
-pepc-v:    vortex dynamics using the vortex particle method
-
-To build an alternative frontend, just call
-
-"make pepc-e"
-or
-"make pepc-mw"
-
-All frontends can be built using 
-
-"make (-j) all"
+Since this is the benchmarking version of PEPC, al other frontends
+have been removed.
 
 At the current stage, there is no real documentation available for the
 different frontends. However, you might simply want to take a look at 
@@ -126,7 +103,7 @@ it is for example called "params". It contains user-adjustable
 parameters and can be fed to the executable as first command
 line parameter:
 $ cd bin
-$ mpirun -np 32 pepc-essential ../src/frontneds/pepc/essential/params
+$ mpirun -np 32 pepc-benchmark ../src/frontneds/pepc-benchmark/params
 
 ============================================================
 

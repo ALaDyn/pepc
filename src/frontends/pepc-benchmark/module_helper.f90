@@ -25,6 +25,7 @@ module helper
   use module_pepc_kinds
   use module_pepc_types
   use module_timings
+  use module_random
   implicit none
 
   ! timing variables
@@ -59,11 +60,9 @@ module helper
   type(t_particle), allocatable   :: particles(:)
   real(kind_physics), allocatable :: direct_L2(:)
   
+  ! PRNG state, PER MPI RANK, NOT THREAD!
+  type(random_state_t) :: rng_state
 
-  interface random
-    module procedure random8, random16
-  end interface
-  
   contains
 
   subroutine set_parameter()
@@ -76,7 +75,7 @@ module helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    namelist /pepcessential/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, particle_test, diag_interval, plasma_dimensions
+    namelist /pepcbenchmark/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, particle_test, diag_interval, plasma_dimensions
 
     ! set default parameter values
     tnp               = 10000
@@ -93,9 +92,9 @@ module helper
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
     if (read_para_file) then
-      if(root) write(*,'(a)') " == reading parameter file, section pepcessential: ", para_file
+      if(root) write(*,'(a)') " == reading parameter file, section pepcbenchmark: ", para_file
       open(fid,file=para_file)
-      read(fid,NML=pepcessential)
+      read(fid,NML=pepcbenchmark)
       close(fid)
     else
       if(root) write(*,*) " == no param file, using default parameter "
@@ -139,8 +138,9 @@ module helper
     if (rc.ne.0) write(*,*) " === direct_L2 allocation error!"
     direct_L2 = -1.0_8
 
-    ! set random seed
-    dummy = par_rand(1*my_rank)
+    ! set random seed to MPI rank
+    rng_state%idum = -(my_rank + 1)
+    call random(dummy, rng_state)
 
     pi = 2.0_kind_physics*acos(0.0_kind_physics)
 
@@ -156,7 +156,7 @@ module helper
        if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
 
        ! obtain 2 random numbers
-       call random(rnd)
+       call random(rnd, rng_state)
 
        ! get angles to point into sphere
        phi               = rnd(1) * 2*pi
@@ -181,10 +181,10 @@ module helper
        p(ip)%data%m      = 1.0_8
        if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
 
-       call random(p(ip)%x)
+       call random(p(ip)%x, rng_state)
        p(ip)%x           = p(ip)%x * plasma_dimensions
 
-       call random_gauss(p(ip)%data%v)
+       call random_gauss(p(ip)%data%v, rng_state)
        p(ip)%data%v      = p(ip)%data%v / sqrt(p(ip)%data%m)
 
        p(ip)%work        = 1.0_8
@@ -276,7 +276,7 @@ module helper
           tindx(ti) = ti
        enddo
     else
-       call random(trnd(1:tn))
+       call random(trnd(1:tn), rng_state)
 
        tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
     endif
@@ -379,10 +379,11 @@ module helper
   end subroutine write_domain
 
 
-  subroutine random_gauss(list)
+  subroutine random_gauss(list, state)
     implicit none
 
     real(kind_physics), intent(inout) :: list(:)
+    type(random_state_t), intent(inout) :: state
 
     real(kind_physics) :: v(2), pi, r, p
     integer :: n, i
@@ -392,7 +393,7 @@ module helper
 
     do i=1, n, 2
 
-      call random(v)
+      call random(v, state)
 
       r = sqrt(-2.0_8 * log(v(1)))
       p = 2.0_8*pi*v(2)
@@ -403,100 +404,4 @@ module helper
     end do
   end subroutine
 
-
-  subroutine random8(array)
-    implicit none
-    real*8 :: array(:)
-    integer :: i
-
-    do i = 1,size(array)
-       array(i) = par_rand()
-    end do
-  end subroutine random8
-
-
-  subroutine random16(array)
-    implicit none
-    real*16 :: array(:)
-    integer :: i
-
-    do i = 1,size(array)
-       array(i) = par_rand()
-    end do
-  end subroutine random16
-
-
-  !>
-  !> portable random number generator, see numerical recipes
-  !> check for the random numbers:
-  !> the first numbers should be 0.2853809, 0.2533582 and 0.0934685
-  !> the parameter iseed is optional
-  !>
-  function par_rand(iseed)
-    implicit none
-    real :: par_rand
-    integer, intent(in), optional :: iseed
-
-    integer, parameter :: IM1  = 2147483563
-    integer, parameter :: IM2  = 2147483399
-    real,    parameter :: AM   = 1.0/IM1
-    integer, parameter :: IMM1 = IM1-1
-    integer, parameter :: IA1  = 40014
-    integer, parameter :: IA2  = 40692
-    integer, parameter :: IQ1  = 53668
-    integer, parameter :: IQ2  = 52774
-    integer, parameter :: IR1  = 12211
-    integer, parameter :: IR2  = 3791
-    integer, parameter :: NTAB = 32
-    integer, parameter :: NDIV = 1+IMM1/NTAB
-    real,    parameter :: eps_ = 1.2e-7 ! epsilon(eps_)
-    real,    parameter :: RNMX = 1.0 - eps_
-
-    integer :: j, k
-    integer, volatile, save :: idum  = -1
-    integer, volatile, save :: idum2 =  123456789
-    integer, volatile, save :: iy    =  0
-    integer, volatile, save :: iv(NTAB)
-
-
-    if (idum <=0 .or. present(iseed)) then
-       if (present(iseed)) then
-          idum = iseed
-       else
-          if (-idum < 1) then
-             idum = 1
-          else
-             idum = -idum
-          endif
-       endif
-
-       idum2 = idum
-
-       do j = NTAB+7,0,-1
-          k = idum/IQ1
-          idum = IA1 * (idum-k*IQ1) - k*IR1
-          if (idum < 0 ) idum = idum + IM1
-
-          if (j<NTAB) iv(j+1) = idum
-
-       end do
-       iy = iv(1)
-    end if
-
-    k = idum/IQ1
-    idum = IA1 * (idum-k*IQ1) - k*IR1
-    if (idum < 0) idum = idum + IM1
-
-    k = idum2/IQ2
-    idum2 = IA2 * (idum2-k*IQ2) - k*IR2
-    if (idum2 < 0) idum2 = idum2 + IM2
-
-    j = iy/NDIV + 1
-    iy = iv(j)-idum2
-    iv(j) = idum
-
-    if (iy < 1) iy = iy + IMM1
-    par_rand = AM*iy
-    if (par_rand > RNMX) par_rand = RNMX
-  end function par_rand
 end module
