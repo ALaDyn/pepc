@@ -73,6 +73,8 @@ program pepc
     if(doDiag .and. particle_output) call write_particles(particles)
         
     call push_particles(particles)    
+    call check_energies_local(particles)
+    call check_energies()
     
     if(reflecting_walls) call filter_particles(particles)
     

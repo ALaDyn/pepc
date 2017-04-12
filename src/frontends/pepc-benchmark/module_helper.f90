@@ -59,6 +59,8 @@ module helper
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable   :: particles(:)
   real(kind_physics), allocatable :: direct_L2(:)
+  ! summaries of some particle data
+  real(kind_physics)              :: e_kin, e_pot, v_max, r_max
   
   ! PRNG state, PER MPI RANK, NOT THREAD!
   type(random_state_t) :: rng_state
@@ -199,17 +201,76 @@ module helper
 
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle) :: ip
-    real*8  :: fact
 
     if(root) write(*,'(a)') " == [pusher] push particles "
 
-    fact = dt
-
     do ip=1, np
-      p(ip)%data%v = p(ip)%data%v + fact * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e
-      p(ip)%x      = p(ip)%x      + dt   * p(ip)%data%v
+      p(ip)%data%v = p(ip)%data%v + dt * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e
+      p(ip)%x      = p(ip)%x      + dt * p(ip)%data%v
     end do
   end subroutine push_particles
+
+
+  subroutine check_energies_local(p)
+    use module_mirror_boxes
+    implicit none
+
+    type(t_particle), allocatable, intent(inout) :: p(:)
+
+    integer(kind_particle) :: ip
+    real(kind_physics) :: v_(size(p(1)%data%v)), v, r, rel_gamma
+
+    if(root) write(*,'(a)') " == [energies] compute local net energies "
+
+    e_kin = 0._kind_physics
+    e_pot = 0._kind_physics
+    v_max = -1._kind_physics
+    r_max = -1._kind_physics
+
+    do ip=1, np
+       ! velocity at -1/2*dt to sync w/ potential
+       v_ = p(ip)%data%v - dt * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * 0.5_kind_physics
+       rel_gamma = sqrt(1 + dot_product(v_, v_))
+
+       ! compute kinetic and potential energies (a.u.)
+       e_kin = e_kin + (rel_gamma - 1) * p(ip)%data%m
+       e_pot = e_pot + p(ip)%data%q * p(ip)%results%pot * 0.5_kind_physics
+
+       ! keep maximum velocity and distance to origin
+       v = norm2(p(ip)%data%v)
+       if (v .gt. v_max) v_max = v
+       r = norm2(p(ip)%x)
+       if (r .gt. r_max) r_max = r
+    end do
+  end subroutine check_energies_local
+
+
+  subroutine check_energies()
+    implicit none
+    include 'mpif.h'
+
+    integer            :: info
+    real(kind_physics) :: local(4), global(4)
+
+    if(root) write(*,'(a)') " == [energies] gather global energies "
+
+    local = [e_kin, e_pot, v_max, r_max]
+    global = 0._kind_physics
+
+    call MPI_ALLREDUCE(local, global, 4, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, info)
+    e_kin = global(1) 
+    e_pot = global(2) 
+    v_max = global(3) 
+    r_max = global(4) 
+
+    if(root) then
+       write(*,'(a, es12.4)') " == [energies]          kinetic energy: ", e_kin
+       write(*,'(a, es12.4)') " == [energies]        potential energy: ", e_pot
+       write(*,'(a, es12.4)') " == [energies]        maximum velocity: ", v_max
+       write(*,'(a, es12.4)') " == [energies] maximum radial distance: ", r_max
+    end if
+
+  end subroutine check_energies
 
 
   subroutine filter_particles(p)
