@@ -115,8 +115,9 @@ module module_domains
     use module_pepc_types, only: t_particle, mpi_type_particle
     use module_box, only: t_box
     use module_timings
-    use module_spacefilling, only: key_to_coord
+    use module_spacefilling, only: key_to_coord, level_from_key
     use module_debug
+    use treevars, only: maxlevel
     implicit none
     include 'mpif.h'
 
@@ -215,8 +216,14 @@ module module_domains
     call timer_start(t_domains_add_alltoallv)
 
     ! perform permute
+    do i = 1, d%npold
+       DEBUG_ASSERT(level_from_key(ship_parts(i)%key) == maxlevel)
+    end do
     call MPI_ALLTOALLV(ship_parts, d%islen, d%fposts, mpi_type_particle, &
       get_parts, d%irlen, d%gposts, MPI_TYPE_particle, d%comm_env%comm, ierr)
+    do i = 1, d%npnew
+       DEBUG_ASSERT(level_from_key(get_parts(i)%key) == maxlevel)
+    end do
 
     call timer_stop(t_domains_add_alltoallv)
 
