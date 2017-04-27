@@ -1,4 +1,4 @@
-MOD_LOAD  = intel/2015.07
+MOD_LOAD  = Intel/2017.0.098-GCC-5.4.0 ParaStationMPI/5.1.5-1-mt
 
 HELP = "\
 \# Makefile for  using ifort/icc\n\
@@ -18,16 +18,17 @@ ARFLAGS  = -rs
 CPP      = cpp
 CPPFLAGS = -P -C -D__INTEL_COMPILER -ffreestanding
 
-OPTIMIZATION = -Ofast -xHost -finline -finline-functions -ipo-separate
+#OPTIMIZATION = -Ofast -xHost -finline -finline-functions -ipo-separate UBBEARABLY SLOW TO COMPILE
+OPTIMIZATION = -O3 -xHost -finline -finline-functions -ipo-separate
 
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -g -O0 -warn all -reentrancy threaded -openmp
+  FFLAGS   = -g -O0 -warn all -reentrancy threaded -qopenmp -CA -CB -CU -fsource-asm
   CFLAGS   = -g -O0
-  LDFLAGS  = -g -O0 -warn all -reentrancy threaded -openmp
+  LDFLAGS  = -g -O0 -warn all -reentrancy threaded -qopenmp
 else
-  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -qopenmp -CB -CA -CU
   CFLAGS   =           $(OPTIMIZATION)
-  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -qopenmp
   CPPFLAGS += -DNDEBUG
 endif
 

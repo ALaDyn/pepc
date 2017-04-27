@@ -4,7 +4,7 @@
 
 MACH     = linux_gcc-4.9
 
-DEBUG    = 0
+DEBUG    = 1
 OMP      = 1
 GPERFTOOLS = 0
 
@@ -21,17 +21,17 @@ CPPFLAGS = -P -C -ffreestanding
 
 INLINING = -fkeep-inline-functions -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects -fuse-linker-plugin
 
-FCPRE    = 
+FCPRE    = MPICH_FC=gfortran
 FC       = mpif90
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all -fstack-protector-all
+  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all -fstack-protector-all -dA
   CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -fstack-protector-all
-  LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
+  LDFLAGS  = -pthread -gdwarf-3 -gstrict-dwarf       -O0 -g 
 else
-  FFLAGS   = -Wall -O3 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING) -save-temps
+  FFLAGS   = -Wall -O3 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING) -save-temps -fcheck=all
   CFLAGS   = -Wall -O3 -g
   LDFLAGS  = -pthread -O3 -g $(INLINING)
-  CPPFLAGS += -DNDEBUG
+#  CPPFLAGS += -DNDEBUG
 endif
 
 # solve the following issue with lto:
@@ -45,10 +45,10 @@ ifeq ($(OMP), 1)
   LDFLAGS  += -fopenmp 
 endif
 
-CCPRE    = 
+CCPRE    = MPICH_CC=gcc
 CC       = mpicc
 
-LDPRE    = 
+LDPRE    = MPICH_FC=gfortran
 LD       = mpif90
 LDLIBS   = -lgfortran -lm -lquadmath
 

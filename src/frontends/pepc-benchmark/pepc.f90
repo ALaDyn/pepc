@@ -31,7 +31,7 @@ program pepc
   implicit none
     
   ! control variable
-  logical :: doDiag
+  logical :: doDiag, doIO, doCheck
       
   ! initialize pepc library and MPI
   call pepc_initialize("pepc-benchmark", my_rank, n_ranks, .true.)
@@ -55,7 +55,9 @@ program pepc
     
     call timer_start(t_user_step)
     
-    doDiag = MOD(step, diag_interval) .eq. 0
+    doDiag  =  MOD(step, diag_interval) .eq. 0
+    doIO    =  MOD(step, io_interval) .eq. 0
+    doCheck = (MOD(step, check_step) .eq. 0) .and. (step .gt. 0)
     
     call pepc_particleresults_clear(particles)
     call pepc_grow_tree(particles)
@@ -64,21 +66,27 @@ program pepc
     call pepc_traverse_tree(particles)
     if(root) write(*,'(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
 
-    if(doDiag .and. domain_output) call write_domain(particles)
+    if(doIO .and. domain_output) call write_domain(particles)
     
     if (dbg(DBG_STATS)) call pepc_statistics(step)
     call pepc_timber_tree()
+    if(root) write(*,'(a,es12.4)') " ====== tree comm reqs  :", timer_read(t_comm_sendreqs)
+    if(root) write(*,'(a,es12.4)') " ====== tree comm recv  :", timer_read(t_comm_recv)
     
     if(doDiag .and. particle_test) call test_particles()  
-    if(doDiag .and. particle_output) call write_particles(particles)
+    if(doIO .and. particle_output) call write_particles(particles)
         
     call push_particles(particles)    
-    call check_energies_local(particles)
-    call check_energies()
+    if(doDiag .and. diag_test) call check_energies_local(particles)
+    if(doDiag .and. diag_test) call check_energies()
+    if(doDiag .and. diag_test) call histogram_local(particles)
+    if(doDiag .and. diag_test) call test_histogram()
+    if(doCheck .and. diag_test) call test_histogram(.true.)
     
     if(reflecting_walls) call filter_particles(particles)
     
     call timer_stop(t_user_step)
+    if(root) write(*,'(a,es12.4)') " ====== push/test/write :", timer_read(t_user_step) - timer_read(t_all)
     if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer_read(t_user_step)
 
     call timings_GatherAndOutput(step, 0, 0 == step)

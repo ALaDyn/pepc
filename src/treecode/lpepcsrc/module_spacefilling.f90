@@ -190,8 +190,8 @@ module module_spacefilling
           integer(kind_level), intent(in) :: la
           integer(kind_key), intent(in) :: kp
 
-          DEBUG_ASSERT(level_from_key(ka) == la)
-          DEBUG_ASSERT(level_from_key(kp) == maxlevel)
+          DEBUG_ASSERT(level_from_key(ka) == la)         ! key of ancester (ka) shoud be on level la
+          DEBUG_ASSERT(level_from_key(kp) == maxlevel)   ! particles keys (kp) always have level maxlevel
 
           is_ancestor_of_particle_with_level = is_ancestor_of_with_level(ka, la, kp, maxlevel)
         end function

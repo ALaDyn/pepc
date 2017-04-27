@@ -376,6 +376,7 @@ module module_tree_communicator
   subroutine send_data(t, nodes, numnodes, adressee)
     use module_tree, only: t_tree
     use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, t_request_eager
+    use module_debug
     implicit none
     include 'mpif.h'
 
@@ -385,6 +386,8 @@ module module_tree_communicator
     integer(kind_pe), intent(in) :: adressee
     integer(kind_default) :: ierr
 
+    !write(*,'(a,i0,a,i0)') 'snd:', numnodes, '->', adressee
+    DEBUG_ASSERT(nodes(1)%parent .ne. 0)
     ! Ship child data back to PE that requested it
     call MPI_BSEND(nodes, numnodes, MPI_TYPE_tree_node_package, &
       adressee, TREE_COMM_TAG_REQUESTED_DATA, t%comm_env%comm, ierr)
@@ -425,6 +428,7 @@ module module_tree_communicator
 
     nchild = 0
     n = req(1)
+    DEBUG_ASSERT(req(2) .ne. 0)
 
     do
       nchild = nchild + 1
@@ -484,6 +488,7 @@ module module_tree_communicator
 
       ! we set the parent for the first entry correctly for insertion on the receiver side. request%parent is a valid node index there.
       children_to_send(1)%parent = request%parent
+      DEBUG_ASSERT(request%parent .ne. 0)
 
       call send_data(t, children_to_send, nchild, ipe_sender)
 
@@ -558,6 +563,7 @@ module module_tree_communicator
     DEBUG_ASSERT(num_children > 0)
 
     parent_node = child_data(1)%parent
+    DEBUG_ASSERT(parent_node .ne. 0)
 
     if (tree_node_children_available(t%nodes(parent_node))) then
       DEBUG_WARNING_ALL(*, 'Received some node data but parent flags indicate that respective children are already present. Ignoring these nodes.')
@@ -891,10 +897,19 @@ module module_tree_communicator
             ! actually receive the data...
             ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
             call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_package, num_children, ierr)
-            allocate(child_data(num_children))
+            allocate(child_data(num_children), stat=ierr)
+            !write(*,'(a,i0,a,i0)') 'recv:', num_children, '     <-', ipe_sender
+            DEBUG_ASSERT(ierr.eq.0)
+            DEBUG_ASSERT(num_children.gt.0)
+            child_data(:)%parent = -666 ! if a quick glance at the code is
+                                        ! correct, the first value will be meaningful after the RECV, all
+                                        ! others should be -1?
             call MPI_RECV(child_data, num_children, MPI_TYPE_tree_node_package, ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
             ! ... and put it into the tree and all other data structures
+            !if (any(child_data(:)%parent.eq.0)) write(*,*) child_data(:)%parent
+            !if(child_data(1)%parent.eq.0) write(*,*) child_data(1)
+            DEBUG_ASSERT(all(child_data(:)%parent.gt.-2))
             call unpack_data(t, child_data, num_children, ipe_sender)
             deallocate(child_data)
 

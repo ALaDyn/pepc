@@ -78,6 +78,7 @@ module module_tree_grow
 
     ! determine total number of particles
     call MPI_ALLREDUCE(nl, n, 1, MPI_KIND_PARTICLE, MPI_SUM, tree_comm_env%comm, ierr)
+    DEBUG_ASSERT(n .ge. nl)
 
     ! Domain decomposition: allocate particle keys to PEs
     call domain_decompose(t%decomposition, t%bounding_box, n, p, bp, tree_comm_env)

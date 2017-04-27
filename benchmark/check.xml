@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE jube SYSTEM "<jube.dtd path>">
+<jube>
+   <benchmark name="PEPC Consistency Check" outpath="../run/benchmark">
+
+      <!-- ############################################################################################ -->
+      <!-- the check will copy all sources, compile PEPC and initiate a number of runs                  -->
+      <!--    after runs are finished, a table of results may be printed                                -->
+      <!--                                                                                              -->
+
+      <!-- PARAMETER SETS ############################################################################# -->
+      <!-- set up different MPI environments -->
+      <parameterset name="mpiset">
+	 <!--possible choices: intel_intel, gcc_mvapich, intel_mvapich, gcc_ps, gcc_pssilly, gcc_ompi, gcc_ompi_nb, gcc_ps_pin, gcc_ps_new, gcc_ps_new_malloc, gcc_ps_old, gcc_ps_old_rdzv -->
+	 <parameter name="mpi">gcc_ps_pin</parameter>
+      </parameterset>
+      <!-- define all parameter set we possibly use to benchmark -->
+      <parameterset name="nodeset">
+	 <!-- Jureca has 2 x 12 cores, SMT, PEPC uses 1 comm thread, the rest remains for workers -->
+	 <parameter name="nodes" type="int">12</parameter>
+	 <parameter name="taskspnode" type="int">2</parameter>
+	 <parameter name="threads" type="int">24</parameter>
+	 <parameter name="workerthreads" mode="python" type="int">$threads-1</parameter>
+      </parameterset>
+
+      <!-- FILE SETS ################################################################################## -->
+      <!-- copy environment setter -->
+      <fileset name="environment">
+	 <copy directory=".">prepare_env.sh</copy>
+      </fileset>
+      <!-- copy all souce files -->
+      <fileset name="sources">
+	 <copy directory="../.">makefile, makefile.defs_*, makefiles, src, tools, show_affinity.x</copy>
+      </fileset>
+      <!-- link executable -->
+      <fileset name="executable">
+	 <link rel_path_ref="internal">compile/bin/pepc-benchmark</link>
+	 <link rel_path_ref="internal">compile/show_affinity.x</link>
+      </fileset>
+      <!-- copy all files to run later -->
+      <fileset name="runfiles">
+	 <copy directory=".">params.skel, job_jureca.slurm.skel</copy>
+      </fileset>
+
+      <!-- SUBSTITUIONS ############################################################################### -->
+      <!-- define the substitute sets for parameters above, to be enabled individually -->
+      <substituteset name="inputsub">
+	 <iofile in="params.skel" out="params" />
+	 <sub source="##SETUP##" dest="'test'" />
+	 <sub source="##THREADS##" dest="$workerthreads" />
+	 <sub source="##DIAG##" dest=".true." />
+	 <sub source="##DT##" dest="0.2e-1" />
+	 <sub source="##NT##" dest="10000" />
+	 <sub source="##NPARTICLES##" dest="1000000" />
+      </substituteset>
+      <substituteset name="runsub">
+	 <iofile in="job_jureca.slurm.skel" out="job_jureca.slurm" />
+	 <sub source="##MPI##" dest="$mpi" />
+	 <sub source="##NODES##" dest="$nodes" />
+	 <sub source="##TASKSPNODE##" dest="$taskspnode" />
+	 <sub source="##THREADS##" dest="$threads" />
+      </substituteset>
+
+      <!-- JOB STEPS ################################################################################## -->
+      <!-- compile the code, apply substitutions as necessary -->
+      <step name="compile">
+	 <use>environment</use>
+	 <use>sources</use>
+	 <use>mpiset</use>
+	 <do done_file="bin/pepc-benchmark">./prepare_env.sh $mpi</do>
+      </step>
+      <!-- run the binary, apply substitutions as necessary -->
+      <step name="run" depend="compile" iterations="1">
+	 <use>mpiset</use>
+	 <use>nodeset</use>
+	 <use>environment</use>
+	 <use>executable</use>
+	 <use>runfiles</use>
+	 <use>inputsub</use>
+	 <use>runsub</use>
+	 <do done_file="the_eagle_has_landed">sbatch job_jureca.slurm</do>
+      </step>
+
+      <!-- OUTPUT ANALYSIS ############################################################################ -->
+      <!-- define timing patternset -->
+      <!-- Regex pattern -->
+      <patternset name="timing_pattern">
+	 <pattern unit="secs" name="wallclock" type="float" >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="tree_walk" type="float" >====== tree walk time  :\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="tree_grow" type="float" >====== tree grow time  :\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="step_time" type="float" >== time in step.*:\s+${jube_pat_fp}</pattern>
+	 <pattern             name="l2_test"   type="float" >== \[direct test\] L2 error in probed particles\s+:\s+${jube_pat_fp}</pattern>
+	 <pattern unit="a.u." name="egy_tot"   type="float" >== \[energies\]\s+energy:\s+${jube_pat_fp}</pattern>
+	 <pattern             name="n_peak"    type="int"   >== \[histogram\] number of peaks found:\s+${jube_pat_int}</pattern>
+	 <pattern             name="check"     type="string">== \[histogram\] check\s+:\s+${jube_pat_wrd}</pattern>
+      </patternset>
+      <!-- ====== tree walk time  :  8.7359E-02  // many of those
+	   [...]
+	   ===== total run time [s]:   2.8961E+03
+	   BLOODY REGEX!!@$!
+
+           ====== computing step  :           0
+           ====== simulation time :  0.0000E+00
+           ====== tree grow time  :  2.9118E-01
+           ====== tree walk time  :  3.5322E-01
+           ====== tree comm reqs  :  3.5733E-02
+           ====== tree comm recv  :  1.0981E-01
+	   == [write particles] time in vtk output [s]      :   1.0478E+00
+           [...]
+           == [direct test] L2 error in probed particles    :   1.8615E-07
+           == [direct test] time in test [s]                :   1.1188E+02
+           [...]
+           == [energies]          kinetic energy:   1.4306E-07
+           == [energies]        potential energy:   1.6119E+00
+           == [energies]                  energy:   1.61185576E+00
+           == [energies]        maximum velocity:   4.3941E-05
+           == [energies] maximum radial distance:   3.8901E+01
+           == [histogram] compute local histogram 
+           == [histogram] number of peaks found: 1
+           [...]
+           == time in step [s]                              :   1.2952E+01
+                      t_all =    12.9479424953 s
+                      t_tot =     0.0000000000 s
+
+       -->
+
+      <!-- TABLE OUTPUT ############################################################################### -->
+      <!-- Analyse timings -->
+      <analyser name="analysis">
+	 <use>timing_pattern</use> <!-- use existing patternset -->
+	 <analyse step="run">
+	    <file>log</file> <!-- file which should be scanned -->
+	 </analyse>
+      </analyser>
+
+      <!-- Create result table -->
+      <result>
+	 <use>analysis</use> <!-- use existing analyser -->
+	 <table name="result" style="pretty" sort="threads">
+	    <column             >mpi</column>
+	    <column             >threads</column>
+	    <column format=".5f">egy_tot_max</column>
+	    <column format=".5f">egy_tot_avg</column>
+	    <column format=".5f">egy_tot_min</column>
+	    <column             >l2_test_max</column>
+	    <column             >l2_test_min</column>
+	    <column             >n_peak_max</column>
+	    <column             >n_peak_min</column>
+	    <column             >check</column>
+	    <!--column format=".2f">tree_walk_max</column>
+	    <column format=".2f">tree_walk_avg</column>
+	    <column format=".2f">tree_walk_min</column-->
+	    <column             >tree_walk_cnt</column>
+	    <!--column format=".2f">step_time_max</column>
+	    <column format=".2f">step_time_min</column-->
+	    <column format=".2f">step_time_avg</column>
+	    <column format=".2f">wallclock</column>
+	 </table>
+      </result>
+   </benchmark>
+</jube>

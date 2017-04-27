@@ -679,10 +679,14 @@ module module_tree_walk
       else
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
+#define EAGER
+#ifdef EAGER
         ! eager requests
         call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle, shifted_particle_position) ! fetch children from remote
+#else
         ! simple requests
-        ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
+#endif
         num_post_request = num_post_request + 1
         ! if posting the request failed, this is not a problem, since we defer the particle anyway
         ! since it will not be available then, the request will simply be repeated

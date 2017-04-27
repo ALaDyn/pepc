@@ -85,7 +85,7 @@ module module_pepc
       integer(kind_default) :: ierr, provided
 
       ! "Multiple threads may call MPI, with no restrictions." - MPI-2.2, p. 385
-      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE
+      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_SERIALIZED!EMPI_THREAD_MULTIPLE
 
       call pepc_status('SETUP')
 
@@ -153,7 +153,7 @@ module module_pepc
           write(*,'("Frontend application did not call to MPI_INIT_THREAD correctly. Needed/provided level of multithreading:", I2, "/" ,I2)') &
                          MPI_THREAD_LEVEL, provided
         endif
-        !DEBUG_ERROR(*, 'Not trying to run with provided level of multithreading. This would lead to incorrect results or crashes.')
+        DEBUG_ERROR(*, 'Not trying to run with provided level of multithreading. This would lead to incorrect results or crashes.')
       end if
 
       if (present(my_rank)) my_rank = me
