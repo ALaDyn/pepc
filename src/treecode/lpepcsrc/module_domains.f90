@@ -245,8 +245,6 @@ module module_domains
     if (dbg(DBG_DOMAIN)) call print_particle_list(particles, d%npnew, &
       'Particle list after key sort (see t_particle in module_pepc_types.f90 for meaning of the columns)')
 
-    if (debug_my_rank .eq. 0) write(*,*) "n_particles on rank 0: ", d%npnew
-
     ! Each PE now has sorted segment of particles of length npp
     ! Note that now npp /= npart/num_pe, only approx depending on key distribution, or target shape.
 

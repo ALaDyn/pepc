@@ -47,6 +47,7 @@
       <substituteset name="inputsub">
 	 <iofile in="params.skel" out="params" />
 	 <sub source="##SETUP##" dest="'test'" />
+	 <sub source="##BOX##" dest="'.false.'" />
 	 <sub source="##THREADS##" dest="$workerthreads" />
 	 <sub source="##DIAG##" dest=".true." />
 	 <sub source="##DT##" dest="0.2e-1" />

@@ -1,33 +1,33 @@
 &pepcbenchmark
 
 ! setup case, either benchmark or test
-setup = ##SETUP##
+setup = benchmark
 
 ! total number of particles
 tnp = ##NPARTICLES##
 
 ! number of time steps
-nt = ##NT##
+nt = 25
 
 ! time step
-dt = ##DT##
+dt = 0.1e-1
 
 ! turn particle reflections (leaving simulation box) on/off 
-reflecting_walls = ##BOX##
+reflecting_walls = .true.
 
 ! diagnostics and output interval
 diag_interval = 100
 io_interval = 500
 
 ! turn data and domain output on/off
-particle_output = ##IO##
+particle_output = .false.
 domain_output = .false.
 
 ! run diagnostics
-diag_test = ##DIAG##
+diag_test = .false.
 
 ! turn direct summation test on/off
-particle_test = ##DIAG##
+particle_test = .false.
 particle_direct = 1000
 
 ! size of the simulation box
