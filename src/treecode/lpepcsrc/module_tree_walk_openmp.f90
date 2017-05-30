@@ -272,7 +272,6 @@ module module_tree_walk
 
     !$omp parallel num_threads(num_walk_threads) private(ith) default(shared)
     ith = omp_get_thread_num()
-    if (ith == 0) print *, ith, " of ", omp_get_num_threads()
     threaddata(ith + 1)%id = ith + 1 ! TODO: throw away?
     call walk_worker_thread(threaddata(ith + 1))
     !$omp end parallel

@@ -80,7 +80,7 @@ program pepc
     if(doDiag .and. diag_test) call check_energies_local(particles)
     if(doDiag .and. diag_test) call check_energies()
     if(doDiag .and. diag_test) call histogram_local(particles)
-    if(doDiag .and. diag_test) call test_histogram()
+    if(doDiag .and. (.not. doCheck) .and. diag_test) call test_histogram(.false.)
     if(doCheck .and. diag_test) call test_histogram(.true.)
     
     if(reflecting_walls) call filter_particles(particles)

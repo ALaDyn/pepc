@@ -1,13 +1,13 @@
 &pepcbenchmark
 
 ! setup case, either benchmark or test
-setup = benchmark
+setup = 'benchmark'
 
 ! total number of particles
-tnp = ##NPARTICLES##
+tnp = 50000000
 
 ! number of time steps
-nt = 25
+nt = 10
 
 ! time step
 dt = 0.1e-1
@@ -62,7 +62,7 @@ eps2 = 1e-4
 /
 
 &walk_para_pthreads
- max_particles_per_thread = 400
+ max_particles_per_thread = 50
 /
 
 &walk_para_pthreads_clustered

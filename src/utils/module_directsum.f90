@@ -72,12 +72,12 @@ module module_directsum
           call timer_reset(t_direct_force)
           call timer_reset(t_direct_comm)
 
-          ! Inform the user that openmp is used, and with how many threads
-          !$OMP PARALLEL DEFAULT(NONE) SHARED(my_rank) NUM_THREADS(num_threads)
-          !$OMP MASTER
-          !$ if (my_rank .eq. 0) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
-          !$OMP END MASTER
-          !$OMP END PARALLEL
+          !! Inform the user that openmp is used, and with how many threads
+          !!$OMP PARALLEL DEFAULT(NONE) SHARED(my_rank) NUM_THREADS(num_threads)
+          !!$OMP MASTER
+          !!$ if (my_rank .eq. 0) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
+          !!$OMP END MASTER
+          !!$OMP END PARALLEL
 
           ! determine right and left neighbour
           nextrank = modulo(my_rank + 1_kind_pe, n_cpu)

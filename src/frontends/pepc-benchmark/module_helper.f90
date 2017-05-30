@@ -66,7 +66,7 @@ module helper
    ! summaries of some particle data
    real(kind_physics)              :: e_kin, e_pot, v_max, r_max
    integer, parameter              :: n_bins =  50,   & ! number of bins for the histogram
-                                      histo_r = 10      ! radial distrance bin we want to monitor speeds in 
+                                      histo_r = 10      ! radial distance bin we want to monitor speeds in 
    integer, dimension(0:n_bins)    :: velocity_histo
 
    ! PRNG state, PER MPI RANK, NOT THREAD!
@@ -273,12 +273,12 @@ contains
 
       local = [e_kin, e_pot]
       global = 0._kind_physics
-      call MPI_ALLREDUCE(local, global, 4, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, info)
+      call MPI_ALLREDUCE(local, global, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, info)
       e_kin = global(1) 
       e_pot = global(2) 
       local = [v_max, r_max]
       global = 0._kind_physics
-      call MPI_ALLREDUCE(local, global, 4, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, info)
+      call MPI_ALLREDUCE(local, global, 2, MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, info)
       v_max = global(1) 
       r_max = global(2) 
 
@@ -327,12 +327,12 @@ contains
       implicit none
       include 'mpif.h'
 
-      logical, intent(in), optional :: check
+      logical, intent(in)           :: check
       logical                       :: peak
       integer                       :: v_pos, c_peaks, info
       integer, dimension(0:n_bins)  :: global_velocity_histo 
 
-      peak   = .false.
+      peak    = .false.
       c_peaks = 0
 
       ! gather histogram data from other ranks
@@ -357,13 +357,13 @@ contains
                end if
             end if
          end do
-         if (present(check)) then
-            if(check) then
-               if(c_peaks .eq. 2) then
-                  write(*,'(a, i0)') " == [histogram] check                : passed"
-               else
-                  write(*,'(a, i0)') " == [histogram] check                : failed"
-               end if
+
+         write(*,'(a, i0)') " == [histogram] number of peaks found: ", c_peaks
+         if(check) then
+            if(c_peaks .eq. 2) then
+               write(*,'(a)') " == [histogram] check                : passed"
+            else
+               write(*,'(a)') " == [histogram] check                : failed"
             end if
          else
             write(*,'(a, i0)') " == [histogram] number of peaks found: ", c_peaks

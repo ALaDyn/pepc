@@ -1,7 +1,7 @@
 &pepcbenchmark
 
 ! setup case, either benchmark or test
-setup = test
+setup = 'test'
 
 ! total number of particles
 tnp = 1000000
@@ -20,7 +20,7 @@ diag_interval = 100
 io_interval = 500
 
 ! turn data and domain output on/off
-particle_output = .true.
+particle_output = .false.
 domain_output = .false.
 
 ! run diagnostics
@@ -62,7 +62,7 @@ eps2 = 1e-4
 /
 
 &walk_para_pthreads
- max_particles_per_thread = 400
+ max_particles_per_thread = 50
 /
 
 &walk_para_pthreads_clustered
