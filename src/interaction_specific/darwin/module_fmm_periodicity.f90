@@ -44,7 +44,7 @@ module module_fmm_framework
       public fmm_framework_timestep
       public fmm_sum_lattice_force
       public fmm_framework_param_dump
-      public fmm_sum_lattice_force_darwin
+!      public fmm_sum_lattice_force_darwin
 
       ! private variable declarations
 
@@ -534,119 +534,123 @@ module module_fmm_framework
         end subroutine fmm_sum_lattice_force
 
 
-        subroutine fmm_sum_lattice_force_darwin(pos,v, e_lattice, phi_lattice, B_lattice, A_lattice, dxA_lattice, dyA_lattice)
-          use module_mirror_boxes, only: LatticeCenter, num_neighbour_boxes, lattice_vect, neighbour_boxes
-          use module_multipole
-          use module_debug
-          implicit none
-
-          real(kind_physics), intent(in)  ::  pos(3),v(3)
-          real(kind_physics), intent(out) ::  e_lattice(2), phi_lattice, B_lattice(3), A_lattice(3), dxA_lattice(3), dyA_lattice(3)
-
-          integer                         ::  k, ibox
-          integer(kind_particle)          ::  p
-          real(kfp)                       ::  x0(2),d2
-          complex(kfp)                    ::  z0, cphi, ce, ce_tilde, cA1(1:3), cA2(1:3), mu_cent_j(1:3)
-          real(kind_physics)              ::  delta(3), phitmp, etmp(2), Atmp(1:3), dxAtmp(1:3), dyAtmp(1:3),e_tildex(1:3),&
-                                              Btmp(1:3),e_tilde(1:3),jvE_i(1:2),jvE_j(1:2),jvE_k(1:2),e_tilded2(1:3),e_tildey(1:3)
-
-          x0 = real(pos(1:2) - LatticeCenter(1:2), kind = kfp)
-          z0 = x0(1) + ic * x0(2)
-          d2 = dot_product( x0, x0 )
-
-          cphi      = -mu_cent(0)     ! OMultipole(0, z0) = 1
-          cA1(1)    = -mu_cent_jx(0)  ! OMultipole(0, z0) = 1
-          cA1(2)    = -mu_cent_jy(0)  ! OMultipole(0, z0) = 1
-          cA1(3)    = -mu_cent_jz(0)  ! OMultipole(0, z0) = 1
-          
-          ce       =  czero 
-          ce_tilde =  czero
-          cA2      =  czero 
-
-          do k = 1, qTaylorFMMP
-            mu_cent_j= (/ mu_cent_jx(k), mu_cent_jy(k), mu_cent_jz(k) /)  
-            cphi     = cphi     - mu_cent(k)   * OMultipole(k, z0)
-            cA1      = cA1      - mu_cent_j    * OMultipole(k, z0)
-            ce       = ce       - mu_cent(k)   * OMultipolePrime(k, z0)
-            ce_tilde = ce_tilde - mu_cent_E(k) * OMultipolePrime(k, z0)
-            cA2      = cA2      - mu_cent_j    * OMultipolePrime(k, z0)
-            
-          end do
-
-          ! E = -grad(Phi)
-          e_tilde           = zero
-          e_tilded2         = zero
-          e_tildex          = zero
-          e_tildey          = zero
-          
-          e_lattice         = [ -real(ce             , kind = kind_physics), real(aimag(ce)                , kind = kind_physics) ]
-          e_tilde(1:2)      = [ -real(ce_tilde       , kind = kind_physics), real(aimag(ce_tilde)          , kind = kind_physics) ]
-          e_tilded2(1:2)    = [ -real(d2*ce_tilde    , kind = kind_physics), real(aimag(d2*ce_tilde)       , kind = kind_physics) ]
-          e_tildex(1:2)     = [ -real(x0(1)*ce_tilde , kind = kind_physics), real(aimag(x0(1)*ce_tilde)    , kind = kind_physics) ]
-          e_tildey(1:2)     = [ -real(x0(2)*ce_tilde , kind = kind_physics), real(aimag(x0(2)*ce_tilde)    , kind = kind_physics) ]
-          jvE_i             = [ -real(cA2(1)         , kind = kind_physics), real(aimag(cA2(1))            , kind = kind_physics) ]
-          jvE_j             = [ -real(cA2(2)         , kind = kind_physics), real(aimag(cA2(2))            , kind = kind_physics) ]
-          jvE_k             = [ -real(cA2(3)         , kind = kind_physics), real(aimag(cA2(3))            , kind = kind_physics) ]
-          
-          phi_lattice       = real(cphi  , kind = kind_physics)
-          A_lattice         = real(cA1   , kind = kind_physics)
-          
-          B_lattice         = (/ -jvE_k(2), jvE_k(1), jvE_i(2) - jvE_j(1) /)
-          
-          if (do_extrinsic_correction) then    ! extrinsic correction
-            do p=1,nfictcharge
-              do ibox=1,num_neighbour_boxes
-                delta = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
-                call log2d_kernel_darwin2D3V(fictcharge(p)%charge,fictcharge(p)%current(1:3), delta(1:2), phitmp, etmp(1:2), Atmp(1:3), dxAtmp(1:3),dyAtmp(1:3),Btmp(1:3))
-                e_lattice       = e_lattice   + etmp
-                phi_lattice     = phi_lattice + phitmp
-                A_lattice       = A_lattice   + Atmp
-                dxA_lattice     = dxA_lattice + dxAtmp
-                dyA_lattice     = dyA_lattice + dyAtmp
-                B_lattice       = B_lattice   + Btmp
-              end do
-            end do
-          end if
-
-          contains
-
-
-            subroutine log2d_kernel_darwin2D3V(q, j, d, phi, e, A, dxA, dyA, B)
-              use module_tool    , only: cross_product,double_cross_product_left
-              use module_shortcut, only: half,quarter,zero,two
-              implicit none
-
-              real(kind_physics), intent(in)     :: q, d(2),j(3)
-              real(kind_physics), intent(out)    :: phi, e(2), A(3), dxA(3), dyA(3), B(3)
-
-              real(kfp) :: d2, rd2,x(3),e_tilde(3),dxe_tilde(3),dye_tilde(3)
-
-              x(1:3)   = zero
-              x(1:2)   = d(1:2)
-              d2       = dot_product(d, d)
-              rd2      = one / d2
-
-              phi      = -half * q * log(d2)
-              e        = q * d * rd2
-              e_tilde  =     x * rd2
-              dxe_tilde = 0.0
-              A(1:3)   = -quarter* j *( log(d2) - two )
-              A(1:3)   =  A(1:3) + half*double_cross_product_left( d2*e_tilde, e_tilde, j )
-              A(3)     = -half* q * log(d2)*j(3)
-              B(1:3)   = -q*rd2 * cross_product(x,j)
-              dxA      =  q*double_cross_product_left( dxe_tilde, e_tilde  , j ) + &
-                          q*double_cross_product_left( e_tilde  , dxe_tilde, j ) + &
-                    two*q*x(1)*double_cross_product_left(    e_tilde  , e_tilde  , j )
-              dxA      =  half*( dxA - j*x(1)*rd2 ) 
-              
-              dyA      =  q*d2*double_cross_product_left( d2*dye_tilde, e_tilde  , j ) + &
-                          q*d2*double_cross_product_left( d2*e_tilde  , dye_tilde, j ) + &
-                    two*q*x(2)*double_cross_product_left(    e_tilde  , e_tilde  , j )
-              dyA      =  half*( dyA - j*x(2)*rd2 )
-
-            end subroutine log2d_kernel_darwin2D3V
-
-        end subroutine fmm_sum_lattice_force_darwin
+!        subroutine fmm_sum_lattice_force_darwin(pos,v, e_lattice, phi_lattice, B_lattice, A_lattice, dxA_lattice, dyA_lattice)
+!          use module_mirror_boxes, only: LatticeCenter, num_neighbour_boxes, lattice_vect, neighbour_boxes
+!          use module_multipole
+!          use module_debug
+!          implicit none
+!
+!          real(kind_physics), intent(in)  ::  pos(3),v(3)
+!          real(kind_physics), intent(out) ::  e_lattice(2), phi_lattice, B_lattice(3), A_lattice(3), dxA_lattice(3), dyA_lattice(3)
+!
+!          integer                         ::  k, ibox
+!          integer(kind_particle)          ::  p
+!          real(kfp)                       ::  x0(2),d2
+!          complex(kfp)                    ::  z0, cphi, ce, ce_tilde, cA1(1:3), cA2(1:3), mu_cent_j(1:3),cepr
+!          real(kind_physics)              ::  delta(3), phitmp, etmp(2), Atmp(1:3), dxAtmp(1:3), dyAtmp(1:3),e_tildex(1:3),&
+!                                              Btmp(1:3),e_tilde(1:3),jvE_i(1:2),jvE_j(1:2),jvE_k(1:2),e_tilded2(1:3),e_tildey(1:3)
+!
+!          x0 = real(pos(1:2) - LatticeCenter(1:2), kind = kfp)
+!          z0 = x0(1) + ic * x0(2)
+!          d2 = dot_product( x0, x0 )
+!
+!          cphi      = -mu_cent(0)    - mu_cent(1)   * OMultipole(1, z0)   ! OMultipole(0, z0) = 1
+!          cA1(1)    = -mu_cent_jx(0) - mu_cent_j    * OMultipole(1, z0) ! OMultipole(0, z0) = 1
+!          cA1(2)    = -mu_cent_jy(0)  ! OMultipole(0, z0) = 1
+!          cA1(3)    = -mu_cent_jz(0)  ! OMultipole(0, z0) = 1
+!          
+!          
+!          
+!          ce       =  - mu_cent(1)   * OMultipolePrime(1, z0) 
+!          ce_tilde =  - mu_cent_E(1) * OMultipolePrime(1, z0)
+!          cA2      =  - mu_cent_j    * OMultipolePrime(1, z0) 
+!          cepr     =    czero
+!
+!          do k = 2, qTaylorFMMP
+!            mu_cent_j= (/ mu_cent_jx(k), mu_cent_jy(k), mu_cent_jz(k) /)  
+!            cphi     = cphi     - mu_cent(k)   * OMultipole(k, z0)
+!            cA1      = cA1      - mu_cent_j    * OMultipole(k, z0)
+!            ce       = ce       - mu_cent(k)   * OMultipolePrime(k, z0)
+!            ce_tilde = ce_tilde - mu_cent_E(k) * OMultipolePrime(k, z0)
+!            cA2      = cA2      - mu_cent_j    * OMultipolePrime(k, z0)
+!            cepr     = cepr     - mu_cent(k)   * OMultipoleSecond(k, z0)
+!            
+!          end do
+!
+!          ! E = -grad(Phi)
+!          e_tilde           = zero
+!          e_tilded2         = zero
+!          e_tildex          = zero
+!          e_tildey          = zero
+!          
+!          e_lattice         = [ -real(ce             , kind = kind_physics), real(aimag(ce)                , kind = kind_physics) ]
+!          e_tilde(1:2)      = [ -real(ce_tilde       , kind = kind_physics), real(aimag(ce_tilde)          , kind = kind_physics) ]
+!          e_tilded2(1:2)    = [ -real(d2*ce_tilde    , kind = kind_physics), real(aimag(d2*ce_tilde)       , kind = kind_physics) ]
+!          e_tildex(1:2)     = [ -real(x0(1)*ce_tilde , kind = kind_physics), real(aimag(x0(1)*ce_tilde)    , kind = kind_physics) ]
+!          e_tildey(1:2)     = [ -real(x0(2)*ce_tilde , kind = kind_physics), real(aimag(x0(2)*ce_tilde)    , kind = kind_physics) ]
+!          jvE_i             = [ -real(cA2(1)         , kind = kind_physics), real(aimag(cA2(1))            , kind = kind_physics) ]
+!          jvE_j             = [ -real(cA2(2)         , kind = kind_physics), real(aimag(cA2(2))            , kind = kind_physics) ]
+!          jvE_k             = [ -real(cA2(3)         , kind = kind_physics), real(aimag(cA2(3))            , kind = kind_physics) ]
+!          
+!          phi_lattice       = real(cphi  , kind = kind_physics)
+!          A_lattice         = real(cA1   , kind = kind_physics)
+!          
+!          B_lattice         = (/ -jvE_k(2), jvE_k(1), jvE_i(2) - jvE_j(1) /)
+!          
+!          if (do_extrinsic_correction) then    ! extrinsic correction
+!            do p=1,nfictcharge
+!              do ibox=1,num_neighbour_boxes
+!                delta = pos - lattice_vect(neighbour_boxes(:,ibox)) - fictcharge(p)%coc
+!                call log2d_kernel_darwin2D3V(fictcharge(p)%charge,fictcharge(p)%current(1:3), delta(1:2), phitmp, etmp(1:2), Atmp(1:3), dxAtmp(1:3),dyAtmp(1:3),Btmp(1:3))
+!                e_lattice       = e_lattice   + etmp
+!                phi_lattice     = phi_lattice + phitmp
+!                A_lattice       = A_lattice   + Atmp
+!                dxA_lattice     = dxA_lattice + dxAtmp
+!                dyA_lattice     = dyA_lattice + dyAtmp
+!                B_lattice       = B_lattice   + Btmp
+!              end do
+!            end do
+!          end if
+!
+!          contains
+!
+!
+!            subroutine log2d_kernel_darwin2D3V(q, j, d, phi, e, A, dxA, dyA, B)
+!              use module_tool    , only: cross_product,double_cross_product_left
+!              use module_shortcut, only: half,quarter,zero,two
+!              implicit none
+!
+!              real(kind_physics), intent(in)     :: q, d(2),j(3)
+!              real(kind_physics), intent(out)    :: phi, e(2), A(3), dxA(3), dyA(3), B(3)
+!
+!              real(kfp) :: d2, rd2,x(3),e_tilde(3),dxe_tilde(3),dye_tilde(3)
+!
+!              x(1:3)   = zero
+!              x(1:2)   = d(1:2)
+!              d2       = dot_product(d, d)
+!              rd2      = one / d2
+!
+!              phi      = -half * q * log(d2)
+!              e        = q * d * rd2
+!              e_tilde  =     x * rd2
+!              dxe_tilde = 0.0
+!              A(1:3)   = -quarter* j *( log(d2) - two )
+!              A(1:3)   =  A(1:3) + half*double_cross_product_left( d2*e_tilde, e_tilde, j )
+!              A(3)     = -half* q * log(d2)*j(3)
+!              B(1:3)   = -q*rd2 * cross_product(x,j)
+!              dxA      =  q*double_cross_product_left( dxe_tilde, e_tilde  , j ) + &
+!                          q*double_cross_product_left( e_tilde  , dxe_tilde, j ) + &
+!                    two*q*x(1)*double_cross_product_left(    e_tilde  , e_tilde  , j )
+!              dxA      =  half*( dxA - j*x(1)*rd2 ) 
+!              
+!              dyA      =  q*d2*double_cross_product_left( d2*dye_tilde, e_tilde  , j ) + &
+!                          q*d2*double_cross_product_left( d2*e_tilde  , dye_tilde, j ) + &
+!                    two*q*x(2)*double_cross_product_left(    e_tilde  , e_tilde  , j )
+!              dyA      =  half*( dyA - j*x(2)*rd2 )
+!
+!            end subroutine log2d_kernel_darwin2D3V
+!
+!        end subroutine fmm_sum_lattice_force_darwin
 
 
 

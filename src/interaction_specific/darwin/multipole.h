@@ -20,7 +20,11 @@
 #define OMultipole(k, z) ((z)**(k))
 
 #define OMultipolePrime(k, z) ((k) * (z)**((k) - 1))
+        
+#define OMultipoleSecond(k, z) ( (k) *(k - 1) * (z)**((k) - 2))        
 
 #define MTaylor(k, z) ((z)**(-(k)))
 
 #define MTaylorPrime(k, z) (-(k) * (z)**(-(k) - 1))
+        
+#define MTaylorPrime(k, z) ( (k)*(k + 2) * (z)**(-(k) - 2))

@@ -41,7 +41,6 @@ program pepc
   real*8 :: timer(5)
   real*8 :: t1, t2,delta,t
   type(t_particle), allocatable   :: q(:),r(:)
-  type(physics_pars_t)            :: physics_pars
   type(field_grid_t)              :: field_grid
   type(pepc_pars_t)               :: pepc_pars
   integer(kind_particle)          :: ii

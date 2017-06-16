@@ -3,6 +3,7 @@ FILES_L   = pepc-time.f90 tool.f90 \
 			module_globals.f90 init.f90         \
 			module_integration.f90  \
 			module_zufall.f90 shortcut.f90 \
+			module_utilities.f90		\
 			diagnostic.f90 
 
 #pepc-time.f90 pepc_test.f90  

@@ -25,9 +25,9 @@ program pepc
   use module_pepc_types
   use module_timings
   use module_debug
-  use module_globals             ,only  : adv
+  use module_globals             , only : adv
   use module_interaction_specific, only : force_law
-  use module_tool                ,only  : copy_particle
+  use module_tool                , only : copy_particle
   use field_helper               , only : compute_field, setup_field_grid, pepc_setup,write_field_on_grid,write_field_on_grid3D
 
   use module_integration
@@ -124,7 +124,7 @@ program pepc
     call beam_rnv(tnp,particles,real(step, kind = kind_particle)*dt)
     call densities(np,particles,real(step, kind = kind_particle)*dt)
 
-    dorestart = (mod( step , restart_step) .eq. 0)!.and.(step.ne.0)
+    dorestart = (mod( step , restart_step) .eq. 0).and.(step.gt.0)
 
     if (dorestart)   call write_restart(particles)
     
@@ -142,7 +142,7 @@ program pepc
             
         end if
         
-!        call write_particles_ascii(step, particles)
+        call write_particles_ascii(step, particles)
 !        
         
         call write_particles_vtk(particles, step, dt*step)

@@ -226,26 +226,25 @@ module helper
         np    = size(particles, kind=kind_particle)
 !        if ( allocated(real8_buf) ) deallocate(real8_buf)
 !        allocate( real8_buf( np ) )
-        my_offset = np*my_rank 
+        my_offset = 0 
       
-        write(filename,'(a,"restart_label.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_label","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_int(filename,p(:)%label)
-        
-        write(filename,'(a,"restart_q.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_q","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_real(filename,p(:)%data%q)
-        write(filename,'(a,"restart_m.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_m","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_real(filename,p(:)%data%m)
-        write(filename,'(a,"restart_x.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_x","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_real(filename,p(:)%x(1))
-        write(filename,'(a,"restart_y.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_y","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_real(filename,p(:)%x(2))
-        write(filename,'(a,"restart_z.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_z","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_real(filename,p(:)%x(3))
-        write(filename,'(a,"restart_vx.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_vx","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_real(filename,p(:)%data%v(1))
-        write(filename,'(a,"restart_vy.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_vy","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_real(filename,p(:)%data%v(2))
-        write(filename,'(a,"restart_vz.dat")') trim(folder)//trim(part_dir)
+        write(filename,'(a,"restart_vz","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
         call write_mpi_real(filename,p(:)%data%v(3))
         
         contains
@@ -331,8 +330,11 @@ subroutine init_particles(p,field_grid)
     include 'mpif.h'
     type(t_particle), allocatable, intent(inout) :: p(:)
     type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ip,rc
+    integer(kind_particle)                       :: ip,rc,jp
     real(kind_particle)                          :: dummy,nd,lambda,rtnp,gl
+    
+    character(100)                               :: filename_i
+!    character(12), parameter                     :: part_dir = 'prova/'
 
     if(my_rank.eq.0) write(*,'(a)') " == [init] init particles "
 
@@ -514,9 +516,12 @@ subroutine init_particles(p,field_grid)
 
     dt = dt/wpe
     
+    
     if ( .not.load ) then
+        
+        call charge_mass_label(p)
 
-        select case (x_distribution)
+        select case (x_distribution) 
               case (1)  !  Rectangle/Square
                   call rect(p)
               case (2)  ! Disc
@@ -531,26 +536,26 @@ subroutine init_particles(p,field_grid)
                   call rect(p)
 
         end select
-
     
-
-        call charge_mass_label(p)
-        call scramble_particles(p)
-        call velocity_profile(p)
-        call perturbations(p)
         
-        do ip = 1,np
-
-            p(ip)%data%q      = p(ip)%data%q*qtilde
-            p(ip)%data%m      = p(ip)%data%m*mtilde
-            p(ip)%data%v(1:3) = p(ip)%data%v(1:3)*vtilde
-
-            gl           = dot_product( p(ip)%data%v/vtilde, p(ip)%data%v/vtilde )
-            gl           = one/sqrt( one - gl )
-            p(ip)%data%g = gl
-            p(ip)%data%v = p(ip)%data%v*gl
-
-        enddo
+        call velocity_profile(p)
+        call scramble_particles(p)
+!        call perturbations(p)
+        
+        
+!        do ip = 1,np
+!
+!            p(ip)%data%q      = p(ip)%data%q*qtilde
+!            p(ip)%data%m      = p(ip)%data%m*mtilde
+!            p(ip)%data%v(1:3) = p(ip)%data%v(1:3)*vtilde
+!
+!            gl           = dot_product( p(ip)%data%v/vtilde, p(ip)%data%v/vtilde )
+!            if (gl .gt. one ) write(*,*) "Warning -- Lorentz Factor Bigger than 1!!" 
+!            gl           = one/sqrt( one - gl )
+!            p(ip)%data%g = gl
+!            p(ip)%data%v = p(ip)%data%v*gl
+!
+!        enddo
         
     else 
         
@@ -567,14 +572,19 @@ subroutine init_particles(p,field_grid)
     call clean_fields(p)
 !    call clean_fields(poldold)
 !    
+    
+    
     do ip = 1,np
         
-        call icopy_particle(p,pold,np,ip)
+        call icopy_particle(p(ip),pold(ip))
         pold(ip)%x(1:2)         = p(ip)%x(1:2) - dt*p(ip)%data%v(1:2)
         pold(ip)%x(3)           = p(ip)%x(3)
 !        poldold(ip)%x(1:2)      = p(ip)%x(1:2) - two*dt*p(ip)%data%v(1:2)
                 
     enddo
+    
+!    call write_particles_vtk(p, 0, 0.0_8)
+!    call write_particles_vtk(pold, 10, 10.0_8)
     
     call pepc_particleresults_clear(pold)
     call pepc_grow_tree(pold)
@@ -582,6 +592,9 @@ subroutine init_particles(p,field_grid)
     call pepc_restore_particles(pold)
     call pepc_timber_tree()
     call normalize(np, pold)
+    
+    
+!    call exit(1)
 !    
 !    call pepc_particleresults_clear(poldold)
 !    call pepc_grow_tree(poldold)

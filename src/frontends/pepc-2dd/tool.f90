@@ -35,13 +35,14 @@ module module_tool
 
   contains
 
-  subroutine random(array)
+  subroutine random(array,iseed)
     implicit none
-    real*8 :: array(:)
+    real*8                        :: array(:)
+    integer, intent(in), optional :: iseed
     integer :: i
 
     do i = 1,size(array)
-       array(i) = par_rand()
+       array(i) = par_rand(iseed)
     end do
 
   end subroutine random
@@ -278,34 +279,29 @@ subroutine copy_particle(p,q,np)
 
 end subroutine copy_particle
 
-subroutine icopy_particle(p,q,np,ip)
+subroutine icopy_particle(p,q)
     implicit none
 
-    type(t_particle), allocatable, intent(in)    :: p(:)
-    type(t_particle), allocatable, intent(out)   :: q(:)
-    integer(kind_particle)       , intent(in)    :: np,ip
+    type(t_particle)             , intent(in)    :: p
+    type(t_particle)             , intent(out)   :: q
 
-    integer(kind_particle)                       :: rc
 
-    if (allocated(q)) deallocate(q)
-    allocate(q(np),stat=rc )
-
-        q(ip)%label             = p(ip)%label
-        q(ip)%x(1:3)            = p(ip)%x(1:3)
-        q(ip)%data%v(1:3)       = p(ip)%data%v(1:3)
-        q(ip)%data%g            = p(ip)%data%g
-        q(ip)%data%q            = p(ip)%data%q
-        q(ip)%data%m            = p(ip)%data%m
-        q(ip)%results%E(1:3)    = p(ip)%results%E(1:3)
-        q(ip)%results%B(1:3)    = p(ip)%results%B(1:3)
-        q(ip)%results%A(1:3)    = p(ip)%results%A(1:3)
-        q(ip)%results%dxA(1:3)  = p(ip)%results%dxA(1:3)
-        q(ip)%results%dyA(1:3)  = p(ip)%results%dyA(1:3)
-        q(ip)%results%dzA(1:3)  = p(ip)%results%dzA(1:3)
-        q(ip)%results%J(1:3)    = p(ip)%results%J(1:3)
-        q(ip)%results%Jirr(1:3) = p(ip)%results%Jirr(1:3)
-        q(ip)%results%pot       = p(ip)%results%pot
-        q(ip)%work              = p(ip)%work
+        q%label             = p%label
+        q%x(1:3)            = p%x(1:3)
+        q%data%v(1:3)       = p%data%v(1:3)
+        q%data%g            = p%data%g
+        q%data%q            = p%data%q
+        q%data%m            = p%data%m
+        q%results%E(1:3)    = p%results%E(1:3)
+        q%results%B(1:3)    = p%results%B(1:3)
+        q%results%A(1:3)    = p%results%A(1:3)
+        q%results%dxA(1:3)  = p%results%dxA(1:3)
+        q%results%dyA(1:3)  = p%results%dyA(1:3)
+        q%results%dzA(1:3)  = p%results%dzA(1:3)
+        q%results%J(1:3)    = p%results%J(1:3)
+        q%results%Jirr(1:3) = p%results%Jirr(1:3)
+        q%results%pot       = p%results%pot
+        q%work              = p%work
 
 
 end subroutine icopy_particle

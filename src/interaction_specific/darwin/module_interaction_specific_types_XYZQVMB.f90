@@ -120,7 +120,7 @@ module module_interaction_specific_types
 !        call vtkf%write_data_array("dzA"    , r(:)%dzA(1) , r(:)%dzA(2) , r(:)%dzA(3)   )
         call vtkf%write_data_array("B"      , r(:)%B(1)   , r(:)%B(2)   , r(:)%B(3)     )
         call vtkf%write_data_array("J"      , r(:)%J(1)   , r(:)%J(2)   , r(:)%J(3)     )
-        call vtkf%write_data_array("Jirr"   , r(:)%Jirr(1), r(:)%Jirr(2), r(:)%Jirr(3)  )
+!        call vtkf%write_data_array("Jirr"   , r(:)%Jirr(1), r(:)%Jirr(2), r(:)%Jirr(3)  )
 
 
       end subroutine vtk_write_particle_data_results
