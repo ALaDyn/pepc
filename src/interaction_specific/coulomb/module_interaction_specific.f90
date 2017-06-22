@@ -31,17 +31,14 @@ module module_interaction_specific
      save
      private
 
-      integer, public  :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
-      integer, private :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
-                                                !< to be changed via function call!
-      logical, public  :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
+      integer, public :: force_law    = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
+      integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
+      logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
       real(kind_physics), public  :: theta2       = 0.36  !< square of multipole opening angle
       real(kind_physics), public  :: eps2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
       real(kind_physics), public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
 
       namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
-
-      procedure(mac_bh), pointer:: mac => NULL()
 
       ! currently, all public functions in module_interaction_specific are obligatory
       public multipole_from_particle
@@ -52,7 +49,6 @@ module module_interaction_specific
       public calc_force_per_interaction_with_twig
       public calc_force_per_particle
       public mac
-      public select_mac
       public particleresults_clear
       public calc_force_read_parameters
       public calc_force_write_parameters
@@ -166,24 +162,8 @@ module module_interaction_specific
 
         call pepc_status("READ PARAMETERS, section calc_force_coulomb")
         read(filehandle, NML=calc_force_coulomb)
-
-        call select_mac(mac_select)
       end subroutine
 
-
-      subroutine select_mac(mac_type)
-         implicit none
-         integer, intent(in) :: mac_type
-
-         select case(mac_type)
-         case (0)
-            mac => mac_bh
-         case (1)
-            mac => mac_bmax
-         case default
-            mac => mac_n2
-         end select
-      end subroutine select_mac
 
       !>
       !> writes interaction-specific parameters to file
@@ -262,9 +242,9 @@ module module_interaction_specific
 
 
       !>
-      !> generic Multipole Acceptance Criterion for Barnes-Hut
+      !> generic Multipole Acceptance Criterion
       !>
-      pure function mac_bh(node, dist2, boxlength2) result(mac)
+      function mac(node, dist2, boxlength2)
         implicit none
 
         logical :: mac
@@ -272,43 +252,17 @@ module module_interaction_specific
         real(kind_physics), intent(in) :: dist2
         real(kind_physics), intent(in) :: boxlength2
 
-        ! Barnes-Hut-MAC
-        mac = (theta2 * dist2 > boxlength2)
-
-      end function
-
-
-      !>
-      !> generic Multipole Acceptance Criterion for Bmax
-      !>
-      pure function mac_bmax(node, dist2, boxlength2) result(mac)
-        implicit none
-
-        logical :: mac
-        type(t_tree_node_interaction_data), intent(in) :: node
-        real(kind_physics), intent(in) :: dist2
-        real(kind_physics), intent(in) :: boxlength2
-
-        ! Bmax-MAC
-        mac = (theta2 * dist2 > min(node%bmax**2, 3.0 * boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
-
-      end function
-
-
-      !>
-      !> generic Multipole Acceptance Criterion N^2
-      !>
-      pure function mac_n2(node, dist2, boxlength2) result(mac)
-        implicit none
-
-        logical :: mac
-        type(t_tree_node_interaction_data), intent(in) :: node
-        real(kind_physics), intent(in) :: dist2
-        real(kind_physics), intent(in) :: boxlength2
-
-        ! N^2 code
-        mac = .false.
-
+        select case (mac_select)
+            case (0)
+              ! Barnes-Hut-MAC
+              mac = (theta2 * dist2 > boxlength2)
+            case (1)
+               ! Bmax-MAC
+              mac = (theta2 * dist2 > min(node%bmax**2, 3.0 * boxlength2)) !TODO: Can we put the min into bmax itself? And **2?
+            case default
+              ! N^2 code
+              mac = .false.
+        end select
       end function
 
 
