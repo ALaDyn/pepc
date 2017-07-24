@@ -1436,7 +1436,7 @@ module module_integration
               
               
                     
-              p(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde *p(ip)%results%A + half*dt*e*( r(ip)%results%E + grad + vxb )
+              p(ip)%data%v      = m*p(ip)%data%v + e/lorentz_tilde *p(ip)%results%A + dt*e*( r(ip)%results%E + grad + vxb )
               p(ip)%data%v      = ( p(ip)%data%v - e/lorentz_tilde *r(ip)%results%A )/m 
               p(ip)%data%v      = two*p(ip)%data%v - p(ip)%data%g*v
               p(ip)%data%g      = sqrt( one + sum( ( p(ip)%data%v/vtilde )**2 ) )
