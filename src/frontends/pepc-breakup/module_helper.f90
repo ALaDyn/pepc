@@ -25,6 +25,7 @@ module helper
   use module_pepc_kinds
   use module_pepc_types
   use module_timings
+  use particles_resize
   implicit none
 
   ! timing variables
@@ -52,18 +53,23 @@ module helper
   logical :: reflecting_walls     ! reflect particles at walls
   integer :: diag_interval        ! number of timesteps between all diagnostics and IO
   real(kind_physics) :: plasma_dimensions(3) ! size of the simulation box
+  real(kind_physics) :: external_e(3)
 
   integer, parameter :: particle_direct = -1 ! number of particle for direct summation
 
   ! particle data (position, velocity, mass, charge)
   type(t_particle), allocatable   :: particles(:)
   real(kind_physics), allocatable :: direct_L2(:)
-  
+
+  ! buffer to record newly generated particles
+  type(linked_list_elem), pointer :: buffer, guide1
+  integer :: electron_num
+
 
   interface random
     module procedure random8, random16
   end interface
-  
+
   contains
 
   subroutine set_parameter()
@@ -76,7 +82,7 @@ module helper
     character(255)     :: para_file
     logical            :: read_para_file
 
-    namelist /pepcessential/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, particle_test, diag_interval, plasma_dimensions
+    namelist /pepcbreakup/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, particle_test, diag_interval, plasma_dimensions, external_e
 
     ! set default parameter values
     tnp               = 10000
@@ -88,6 +94,8 @@ module helper
     reflecting_walls  = .false.
     diag_interval     = 1
     plasma_dimensions = (/ 1.0_8, 1.0_8, 1.0_8 /)
+    external_e = (/ 0.0_8, 0.0_8, 0.0_8 /)
+    electron_num = 0
 
     ! read in namelist file
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
@@ -95,7 +103,7 @@ module helper
     if (read_para_file) then
       if(root) write(*,'(a)') " == reading parameter file, section pepcessential: ", para_file
       open(fid,file=para_file)
-      read(fid,NML=pepcessential)
+      read(fid,NML=pepcbreakup)
       close(fid)
     else
       if(root) write(*,*) " == no param file, using default parameter "
@@ -111,6 +119,7 @@ module helper
       write(*,'(a,l12)')       " == domain output             : ", domain_output
       write(*,'(a,l12)')       " == reflecting walls          : ", reflecting_walls
       write(*,'(a,3(es12.4))') " == plasma dimensions         : ", plasma_dimensions
+      write(*,'(a,3(es12.4))') " == external electric field   : ", external_e
     end if
 
     call pepc_prepare(3_kind_dim)
@@ -130,8 +139,9 @@ module helper
     ! set initially number of local particles
     np = tnp / n_ranks
     if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
+    !1_kind_particle means a value of 1, enforced into specified precision defined by kind_particle
 
-    allocate(particles(np), stat=rc)
+    allocate(p(np), stat=rc)
     if (rc.ne.0) write(*,*) " === particle allocation error!"
 
     allocate(direct_L2(np), stat=rc)
@@ -144,11 +154,13 @@ module helper
     ! setup random qubic particle cloud
     do ip=1, np
       p(ip)%label       = my_rank * (tnp / n_ranks) + ip - 1
-      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2_kind_particle)) * 2.0_8 * &
-                            plasma_dimensions(1) * plasma_dimensions(2) * &
-                            plasma_dimensions(3) / tnp
+      p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2_kind_particle))
       p(ip)%data%m      = 1.0_8
+      p(ip)%data%species = 0
       if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
+      ! particle with positive charge are 100 times greater mass than electrons
+
+      p(ip)%data%age = 0.0_8
 
       call random(p(ip)%x)
       p(ip)%x           = p(ip)%x * plasma_dimensions

@@ -1,4 +1,4 @@
-&pepcessential
+&pepcbreakup
 
 ! total number of particles
 tnp = 20000
@@ -16,7 +16,7 @@ diag_interval = 1
 particle_output = .true.
 domain_output = .false.
 
-! turn particle filtering (leaving simulation box) on/off 
+! turn particle filtering (leaving simulation box) on/off
 reflecting_walls = .false.
 
 ! turn direct summantion test on/off
@@ -48,7 +48,7 @@ eps2 = 1e-4
 
 ! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
  curve_type = 1
- 
+
  interaction_list_length_factor = 4
 /
 
@@ -60,4 +60,3 @@ eps2 = 1e-4
   max_clusters_per_thread = 100
   max_particles_per_cluster = 1
 /
-

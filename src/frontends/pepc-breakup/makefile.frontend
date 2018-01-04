@@ -1,4 +1,4 @@
-FILES_L   = pepc.f90 module_helper.f90
+FILES_L   = pepc.f90 module_helper.f90 module_integrator.f90 module_particles_resize.f90
 
 FILES_L_U = module_vtk_helpers.f90 \
             module_directsum.f90
@@ -11,8 +11,9 @@ SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
 CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF
 
-BACKENDTYPE = XYZQVM
+BACKENDTYPE = PEPCF
 
+#XYZQVM
 #WALK = pthreads_clustered
 #WALK = simple
 #WALK = openmp
