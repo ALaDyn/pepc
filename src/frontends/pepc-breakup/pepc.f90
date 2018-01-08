@@ -69,7 +69,10 @@ program pepc
       doDiag = MOD(step, diag_interval) .eq. 0
 
       call allocate_ll_buffer(electron_num, buffer)
+      call timer_start(t_boris)
       call boris_scheme(particles, dt, external_e, buffer, electron_num)
+      call timer_stop(t_boris)
+      if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
       call deallocate_ll_buffer(buffer)
 
       call pepc_particleresults_clear(particles)

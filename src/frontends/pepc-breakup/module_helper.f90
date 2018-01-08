@@ -34,6 +34,7 @@ module helper
    integer, parameter :: t_user_step = t_userdefined_first + 2
    integer, parameter :: t_user_directsum = t_userdefined_first + 3
    integer, parameter :: t_user_particleio = t_userdefined_first + 4
+   integer, parameter :: t_boris = t_userdefined_first + 5
 
    ! MPI variables
    integer(kind_pe) :: my_rank, n_ranks

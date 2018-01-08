@@ -82,7 +82,7 @@ contains
       implicit none
       type(t_particle), intent(inout) :: particle
       real(kind_physics) :: B_field(3), E_field(3)
-      integer :: i
+      ! integer :: i
 
       B_field = 0.0
 
