@@ -9,6 +9,6 @@
 
 srun --cpu_bind=sockets -l ./pepc-benchmark ./params > log
 
-touch the_eagle_has_landed
+touch ready
 
 wait
