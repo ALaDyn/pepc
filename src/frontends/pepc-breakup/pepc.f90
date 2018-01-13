@@ -52,7 +52,16 @@ program pepc
    call pepc_particleresults_clear(particles)
    call pepc_grow_tree(particles)
    call pepc_traverse_tree(particles)
-   call boris_scheme(particles, -dt/2.0_8, external_e, buffer, electron_num)
+   !  call boris_scheme(particles, -dt/2.0_8, external_e, buffer, electron_num)
+
+   electron_num = 0
+   do i = 1, size(particles)
+      if (particles(i)%data%q < 0.0_8) then
+         electron_num = electron_num + 1
+      end if
+      call particle_EB_field(particles(i), external_e)
+      call boris_velocity_update(particles(i), -dt*0.5_8)
+   end do
 
    ! free tree specific allocations
    call pepc_timber_tree()
@@ -69,8 +78,44 @@ program pepc
       doDiag = MOD(step, diag_interval) .eq. 0
 
       call allocate_ll_buffer(electron_num, buffer)
+      particle_guide => buffer
       call timer_start(t_boris)
-      call boris_scheme(particles, dt, external_e, buffer, electron_num)
+
+      electron_num = 0
+      new_particle_cnt = 0
+      do i = 1, size(particles)
+         if (particles(i)%data%q < 0.0_8) then
+            electron_num = electron_num + 1
+         end if
+         call particle_EB_field(particles(i), external_e)
+         call boris_velocity_update(particles(i), dt)
+         call particle_pusher(particles(i), dt)
+
+         ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
+         ! NOTE: the seeding can probably be done just once at the beginning. Subsequent ctr_s and key_s
+         ! can reuse generated rand_num as seed.
+         ctr_s(1) = (my_rank + 1)*(nt - step)
+         ctr_s(2:4) = CEILING(particles(i)%x*1e9)
+         key_s(1) = (my_rank + 1)*(step + 1)
+         key_s(2:4) = CEILING(particles(i)%data%v*1e9)
+
+         ! Generating Random Number between [0,1]
+         dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
+
+         ! TODO function to account for probabilities of reaction, probably 'age' based
+
+         ! TODO function to record generated particles. one of the new particle
+         !      will take the original place of current particle, other new particles
+         !      will be recorded in linked list vector. NOTE!!! add electron_count
+         !      if one of the generated particle is electron.
+         call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
+      end do
+
+      if (new_particle_cnt > 0) then
+         call extend_particles_list(particles, buffer, new_particle_cnt)
+         print *, "extending particle list successful! New size: ", my_rank, size(particles)
+      end if
+
       call timer_stop(t_boris)
       if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
       call deallocate_ll_buffer(buffer)

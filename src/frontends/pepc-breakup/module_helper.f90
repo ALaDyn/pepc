@@ -63,8 +63,9 @@ module helper
    real(kind_physics), allocatable :: direct_L2(:)
 
    ! buffer to record newly generated particles
-   type(linked_list_elem), pointer :: buffer
-   integer :: electron_num
+   type(linked_list_elem), pointer :: buffer, particle_guide
+   integer :: electron_num, i, new_particle_cnt, ctr_s(4), key_s(4), dummy
+   real*8 :: rand_num(4)
 
    interface random
       module procedure random8, random16

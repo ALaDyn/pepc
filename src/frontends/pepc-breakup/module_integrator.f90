@@ -19,7 +19,7 @@
 !
 
 !>
-!> integrator module
+!> interactions module
 !>
 
 module interactions_integrator
@@ -28,6 +28,7 @@ module interactions_integrator
    use module_timings
    use helper
    use particles_resize
+   use rng_wrapper
    implicit none
 
 contains
@@ -41,42 +42,60 @@ contains
       vector_ans(3) = vector1(1)*vector2(2) - vector1(2)*vector2(1)
    end function cross_product
 
-  !  subroutine rotation(vector, theta_x, theta_y, theta_z)
-  !    implicit none
-  !    real*8, intent(inout) :: vector
-  !    real*8, intent(in) :: theta_x, theta_y, theta_z
-  !    real*8, allocatable :: rotation_x(3,3), rotation_y(3,3), rotation_z(3,3), vec_prod(3)
-   !
-  !    rotation_x = 0.0_8
-  !    rotation_y = 0.0_8
-  !    rotation_z = 0.0_8
-   !
-  !    rotation_x(1,1) = 1.0_8
-  !    rotation_x(2,2) = cos(theta_x)
-  !    rotation_x(2,3) = -sin(theta_x)
-  !    rotation_x(3,2) = sin(theta_x)
-  !    rotation_x(3,3) = cos(theta_x)
-   !
-  !    rotation_y(1,1) = cos(theta_y)
-  !    rotation_y(1,3) = sin(theta_y)
-  !    rotation_y(2,2) = 1.0_8
-  !    rotation_y(3,1) = -sin(theta_y)
-  !    rotation_y(3,3) = cos(theta_y)
-   !
-  !    rotation_z(1,1) = cos(theta_z)
-  !    rotation_z(1,2) = -sin(theta_z)
-  !    rotation_z(2,1) = sin(theta_z)
-  !    rotation_z(2,2) = cos(theta_z)
-  !    rotation_z(3,3) = 1.0_8
-   !
-  !    ! NOTE: MATMUL doesn't work with matrix/vectors of different ranks
-  !    vec_prod = MATMUL(rotation_x(1:3,1:3), vector(1:3))
-  !    vector = 0.0_8
-  !    vector = MATMUL(rotation_y(1:3,1:3), vec_prod(1:3))
-  !    vec_prod = 0.0_8
-  !    vec_prod = MATMUL(rotation_z(1:3,1:3), vector(1:3))
-  !    vector = vec_prod
-  !  end subroutine rotation
+   function matrix_vector_multiplication(mat, vec) result(ans)
+      implicit none
+      real*8, allocatable, intent(in) :: mat(:, :), vec(:)
+      real*8 :: ans(size(mat, 1))
+      integer :: i, j
+
+      ans = 0.0_8
+      do i = 1, size(mat, 1)
+         do j = 1, size(mat, 2)
+            ans(i) = ans(i) + mat(i, j)*vec(j)
+         end do
+      end do
+   end function matrix_vector_multiplication
+
+   subroutine rotation(vector, theta_x, theta_y, theta_z)
+      implicit none
+      real*8, intent(inout) :: vector(:)
+      real*8, intent(in) :: theta_x, theta_y, theta_z
+      real*8, allocatable :: rotation_x(:, :), rotation_y(:, :), rotation_z(:, :), vec_prod(:)
+
+      allocate (rotation_x(3, 3))
+      allocate (rotation_y(3, 3))
+      allocate (rotation_z(3, 3))
+      allocate (vec_prod(3))
+
+      rotation_x = 0.0_8
+      rotation_y = 0.0_8
+      rotation_z = 0.0_8
+
+      rotation_x(1, 1) = 1.0_8
+      rotation_x(2, 2) = cos(theta_x)
+      rotation_x(2, 3) = -sin(theta_x)
+      rotation_x(3, 2) = sin(theta_x)
+      rotation_x(3, 3) = cos(theta_x)
+
+      rotation_y(1, 1) = cos(theta_y)
+      rotation_y(1, 3) = sin(theta_y)
+      rotation_y(2, 2) = 1.0_8
+      rotation_y(3, 1) = -sin(theta_y)
+      rotation_y(3, 3) = cos(theta_y)
+
+      rotation_z(1, 1) = cos(theta_z)
+      rotation_z(1, 2) = -sin(theta_z)
+      rotation_z(2, 1) = sin(theta_z)
+      rotation_z(2, 2) = cos(theta_z)
+      rotation_z(3, 3) = 1.0_8
+
+      vec_prod = vector
+      vector = matrix_vector_multiplication(rotation_x, vec_prod)
+      vec_prod = vector
+      vector = matrix_vector_multiplication(rotation_y, vec_prod)
+      vec_prod = vector
+      vector = matrix_vector_multiplication(rotation_z, vec_prod)
+   end subroutine rotation
 
    subroutine particle_EB_field(particle, E_field)
       implicit none
@@ -92,19 +111,19 @@ contains
 
    end subroutine particle_EB_field
 
-   subroutine test_ionization(particle, guide, new_particle_cnt)
+   subroutine test_ionization(particle, guide, new_particle, electron_count)
       implicit none
       type(t_particle), intent(inout) :: particle
       type(linked_list_elem), pointer, intent(inout) :: guide
-      integer, intent(inout) :: new_particle_cnt
+      integer, intent(inout) :: new_particle, electron_count
       integer :: buffer_pos, ll_elem_gen
 
-      ll_elem_gen = MOD(new_particle_cnt, size(guide%tmp_particles))
+      ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
       buffer_pos = ll_elem_gen + 1
       ! print *, "Buffer_pos: ", buffer_pos, size(guide%tmp_particles)
 
-      if (particle%data%age > 1.0_8) then
-         if (ll_elem_gen == 0 .and. new_particle_cnt > 0) then
+      if (particle%data%age > 0.3_8) then
+         if (ll_elem_gen == 0 .and. new_particle > 0) then
             ! print *, "Extending Temp_array!!!!!"
             call allocate_ll_buffer(size(guide%tmp_particles), guide%next)
             guide => guide%next
@@ -127,72 +146,42 @@ contains
          particle%data%v = particle%data%v*0.5
          particle%data%age = 0.0
 
-         new_particle_cnt = new_particle_cnt + 1
+         new_particle = new_particle + 1
       end if
    end subroutine test_ionization
 
-   subroutine boris_scheme(particles, dt, E_field, buffer, electron_count)
+   subroutine boris_velocity_update(particle, dt)
       implicit none
-      type(t_particle), allocatable, intent(inout) :: particles(:)
-      real(kind_physics) :: E_field(3)
+      type(t_particle), intent(inout) :: particle
       real*8, intent(in) :: dt
       real*8 :: Vm(3), Vd(3), Vp(3), tan_w(3), sin_w(3), V_cross(3)
-      real*8 :: half_dt, q_m_ratio, displace
-      integer :: i, new_particles_size
-      type(linked_list_elem), pointer, intent(inout) :: buffer
-      integer, intent(inout) :: electron_count
+      real*8 :: half_dt, q_m_ratio
 
-      type(linked_list_elem), pointer :: particle_guide
+      half_dt = dt*0.5_8
 
-      if (dt > 0.0_8) then
-         particle_guide => buffer
-      end if
+      q_m_ratio = particle%data%q*half_dt/particle%data%m
 
-      half_dt = dt/2.0_8
+      Vm = particle%data%v + particle%results%e*q_m_ratio
+      tan_w = particle%data%b*q_m_ratio
+      sin_w = 2.0_8*tan_w/(1 + dot_product(tan_w, tan_w))
 
-      electron_count = 0
-      new_particles_size = 0
-      do i = 1, size(particles)
-         call particle_EB_field(particles(i), E_field)
+      V_cross = cross_product(Vm, tan_w)
+      Vd = Vm + V_cross
+      V_cross = cross_product(Vd, sin_w)
+      Vp = Vm + V_cross
 
-         q_m_ratio = particles(i)%data%q*half_dt/particles(i)%data%m
-         if (q_m_ratio < 0.0_8) then
-            electron_count = electron_count + 1
-         end if
+      particle%data%v = Vp + particle%results%e*q_m_ratio
+   end subroutine boris_velocity_update
 
-         Vm = particles(i)%data%v + particles(i)%results%e*q_m_ratio
-         tan_w = particles(i)%data%b*q_m_ratio
-         sin_w = 2.0_8*tan_w/(1 + dot_product(tan_w, tan_w))
+   subroutine particle_pusher(particle, dt)
+      implicit none
+      type(t_particle), intent(inout) :: particle
+      real*8, intent(in) :: dt
+      real*8 :: dist_vec(3)
 
-         V_cross = cross_product(Vm, tan_w)
-         Vd = Vm + V_cross
-         V_cross = cross_product(Vd, sin_w)
-         Vp = Vm + V_cross
+      dist_vec = particle%data%v*dt
+      particle%x = particle%x + dist_vec
+      particle%data%age = particle%data%age + dot_product(dist_vec, dist_vec)
 
-         particles(i)%data%v = Vp + particles(i)%results%e*q_m_ratio
-
-         ! particle is pushed with the above calculated velocity
-         if (dt > 0.0_8) then
-            V_cross = particles(i)%data%v*dt
-            displace = dot_product(V_cross, V_cross)
-            particles(i)%x = particles(i)%x + V_cross
-            particles(i)%data%age = particles(i)%data%age + displace
-
-            ! TODO function to account for probabilities of reaction, probably 'age' based
-
-            ! TODO function to record generated particles. one of the new particle
-            !      will take the original place of current particle, other new particles
-            !      will be recorded in linked list vector. NOTE!!! add electron_count
-            !      if one of the generated particle is electron.
-            call test_ionization(particles(i), particle_guide, new_particles_size)
-
-         end if
-      end do
-
-      if (new_particles_size > 0) then
-         call extend_particles_list(particles, buffer, new_particles_size)
-         print *, "extending particle list successful! New size: ", my_rank, size(particles)
-      end if
-
-   end subroutine boris_scheme
+   end subroutine particle_pusher
 end module
