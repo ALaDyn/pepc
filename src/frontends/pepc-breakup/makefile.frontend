@@ -10,6 +10,7 @@ SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
+CFLAGS     += -I$(ROOTDIR)/src/frontends/pepc-breakup
 CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF
 
 BACKENDTYPE = PEPCF
