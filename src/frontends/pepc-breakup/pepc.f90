@@ -26,6 +26,7 @@ program pepc
    use module_timings
    use module_debug
    use interactions_integrator
+   use rng_wrapper
 
    ! frontend helper routines
    use helper
@@ -52,7 +53,6 @@ program pepc
    call pepc_particleresults_clear(particles)
    call pepc_grow_tree(particles)
    call pepc_traverse_tree(particles)
-   !  call boris_scheme(particles, -dt/2.0_8, external_e, buffer, electron_num)
 
    electron_num = 0
    do i = 1, size(particles)

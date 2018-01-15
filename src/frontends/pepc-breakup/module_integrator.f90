@@ -28,7 +28,6 @@ module interactions_integrator
    use module_timings
    use helper
    use particles_resize
-   use rng_wrapper
    implicit none
 
 contains
