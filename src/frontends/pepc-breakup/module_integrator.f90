@@ -55,47 +55,6 @@ contains
       end do
    end function matrix_vector_multiplication
 
-   subroutine rotation(vector, theta_x, theta_y, theta_z)
-      implicit none
-      real*8, intent(inout) :: vector(:)
-      real*8, intent(in) :: theta_x, theta_y, theta_z
-      real*8, allocatable :: rotation_x(:, :), rotation_y(:, :), rotation_z(:, :), vec_prod(:)
-
-      allocate (rotation_x(3, 3))
-      allocate (rotation_y(3, 3))
-      allocate (rotation_z(3, 3))
-      allocate (vec_prod(3))
-
-      rotation_x = 0.0_8
-      rotation_y = 0.0_8
-      rotation_z = 0.0_8
-
-      rotation_x(1, 1) = 1.0_8
-      rotation_x(2, 2) = cos(theta_x)
-      rotation_x(2, 3) = -sin(theta_x)
-      rotation_x(3, 2) = sin(theta_x)
-      rotation_x(3, 3) = cos(theta_x)
-
-      rotation_y(1, 1) = cos(theta_y)
-      rotation_y(1, 3) = sin(theta_y)
-      rotation_y(2, 2) = 1.0_8
-      rotation_y(3, 1) = -sin(theta_y)
-      rotation_y(3, 3) = cos(theta_y)
-
-      rotation_z(1, 1) = cos(theta_z)
-      rotation_z(1, 2) = -sin(theta_z)
-      rotation_z(2, 1) = sin(theta_z)
-      rotation_z(2, 2) = cos(theta_z)
-      rotation_z(3, 3) = 1.0_8
-
-      vec_prod = vector
-      vector = matrix_vector_multiplication(rotation_x, vec_prod)
-      vec_prod = vector
-      vector = matrix_vector_multiplication(rotation_y, vec_prod)
-      vec_prod = vector
-      vector = matrix_vector_multiplication(rotation_z, vec_prod)
-   end subroutine rotation
-
    subroutine particle_EB_field(particle, E_field)
       implicit none
       type(t_particle), intent(inout) :: particle
@@ -183,4 +142,27 @@ contains
       particle%data%age = particle%data%age + dot_product(dist_vec, dist_vec)
 
    end subroutine particle_pusher
+
+   subroutine set_cross_section_table(fname, table, file_id)
+     implicit none
+     real(kind_physics), dimension(:,:), allocatable, intent(inout) :: table
+     character(len = *), intent(in) :: fname
+     integer, intent(in) :: file_id
+     integer :: entries, i
+
+     open(file_id,file=fname,action='READ')
+     read(file_id,*) ! Skipping first line
+     read(file_id,*) entries ! Number of entries in data
+
+     allocate(table(entries,2))
+
+     do i = 1,entries
+       read(file_id,*) table(i,1), table(i,2)
+     end do
+
+     ! scale table(i,2) to become dimensionless, scaling is 1m = non_dim_l * (1e-12 * c)
+     table(:,2) = table(:,2)*10000.0/(c**2)
+
+     close(file_id)
+   end subroutine set_cross_section_table
 end module

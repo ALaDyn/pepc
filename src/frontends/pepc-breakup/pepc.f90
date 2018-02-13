@@ -44,6 +44,12 @@ program pepc
    call timer_start(t_user_init)
    call set_parameter()
    call init_particles(particles)
+   !========================read cross section data======================
+   call getcwd(file_path)
+   file_path = trim(file_path) // "/../src/frontends/pepc-breakup/cross_sections/"
+   call set_cross_section_table(trim(file_path) // "total_scattering.txt", CS_1, 11)
+   allocate(cross_sections_vector(1))
+   !=====================================================================
    call timer_stop(t_user_init)
 
    if (root) write (*, '(a,es12.4)') " === init time [s]: ", timer_read(t_user_init)

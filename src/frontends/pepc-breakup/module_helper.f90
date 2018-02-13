@@ -25,6 +25,7 @@ module helper
    use module_pepc_kinds
    use module_pepc_types
    use module_timings
+   use iso_fortran_env
    use particles_resize
    implicit none
 
@@ -64,8 +65,27 @@ module helper
 
    ! buffer to record newly generated particles
    type(linked_list_elem), pointer :: buffer, particle_guide
-   integer :: electron_num, i, new_particle_cnt, ctr_s(4), key_s(4), dummy
-   real*8 :: rand_num(4)
+   integer :: electron_num, i, new_particle_cnt
+
+   ! variables for random number generation
+   integer :: dummy
+   integer(kind=int32) :: ctr_s(4), key_s(4)
+   real(kind_physics):: rand_num(8)
+
+   ! variables related to cross sections and probabilistic collisions
+   real(kind_physics), dimension(:), allocatable :: cross_sections_vector
+   real(kind_physics) :: nu_prime_old, nu_prime
+
+   ! lookup tables for cross section data
+   character(255) :: file_path
+   real(kind_physics), dimension(:,:), allocatable :: CS_1!, CS_2, CS_3, CS_4, CS_5
+
+   ! constants & scaling factors
+   real(kind_physics) :: c = 299792458.0 ! m/s
+   real(kind_physics) :: e_mass = 510998.9461 ! eV/c^2
+   real(kind_physics) :: e = 1.6021766208e-19 ! Coulomb
+   real(kind_physics) :: eps_0 = 8.85418781762e-12 ! Coulomb/Vm
+   real(kind_physics) :: pi = 3.141592653589793238462643383279502884197
 
    interface random
       module procedure random8, random16
