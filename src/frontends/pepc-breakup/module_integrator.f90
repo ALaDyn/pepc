@@ -28,6 +28,7 @@ module interactions_integrator
    use module_timings
    use helper
    use particles_resize
+   use rng_wrapper
    implicit none
 
 contains
@@ -76,11 +77,10 @@ contains
       integer, intent(inout) :: new_particle, electron_count
       integer :: buffer_pos, ll_elem_gen
 
-      ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
-      buffer_pos = ll_elem_gen + 1
-      ! print *, "Buffer_pos: ", buffer_pos, size(guide%tmp_particles)
-
       if (particle%data%age > 0.3_8) then
+         ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
+         buffer_pos = ll_elem_gen + 1
+         ! print *, "Buffer_pos: ", buffer_pos, size(guide%tmp_particles)
          if (ll_elem_gen == 0 .and. new_particle > 0) then
             ! print *, "Extending Temp_array!!!!!"
             call allocate_ll_buffer(size(guide%tmp_particles), guide%next)
@@ -119,7 +119,7 @@ contains
 
       q_m_ratio = particle%data%q*half_dt/particle%data%m
 
-      Vm = particle%data%v + particle%results%e*q_m_ratio
+      Vm = particle%data%v + E_q_dt_m*particle%results%e*q_m_ratio
       tan_w = particle%data%b*q_m_ratio
       sin_w = 2.0_8*tan_w/(1 + dot_product(tan_w, tan_w))
 
@@ -128,7 +128,7 @@ contains
       V_cross = cross_product(Vd, sin_w)
       Vp = Vm + V_cross
 
-      particle%data%v = Vp + particle%results%e*q_m_ratio
+      particle%data%v = Vp + E_q_dt_m*particle%results%e*q_m_ratio
    end subroutine boris_velocity_update
 
    subroutine particle_pusher(particle, dt)
@@ -139,7 +139,7 @@ contains
 
       dist_vec = particle%data%v*dt
       particle%x = particle%x + dist_vec
-      particle%data%age = particle%data%age + dot_product(dist_vec, dist_vec)
+      particle%data%age = particle%data%age + dt
 
    end subroutine particle_pusher
 
@@ -165,4 +165,276 @@ contains
 
      close(file_id)
    end subroutine set_cross_section_table
+
+   subroutine determine_cross_section(particle, sigma_vec, CS_table, CS_table_no)
+     implicit none
+     type(t_particle), intent(in) :: particle
+     real(kind_physics), dimension(:,:), intent(in) :: CS_table
+     real(kind_physics), dimension(:), intent(inout) :: sigma_vec
+     integer, intent(in) :: CS_table_no
+     integer :: i, table_rows
+     real(kind_physics) :: energy
+
+     table_rows = size(CS_table,1)
+     energy = 0.5 * particle%data%m * e_mass * dot_product(particle%data%v,particle%data%v)
+    !  print *, "energy: ", energy, dot_product(particle%data%v,particle%data%v)
+
+     i = 1
+     ! if energy is less/more than range of CS_table, return 0.0
+     if (energy < CS_table(i,1) .or. energy > CS_table(table_rows,1)) then
+       if (CS_table_no .ne. 1) then
+         sigma_vec(CS_table_no) = sigma_vec(CS_table_no - 1)
+       else
+         sigma_vec(CS_table_no) = 0.0_kind_physics
+       end if
+     else
+       do while (energy > CS_table(i,1))
+         i = i + 1 ! this will return the 'i' that is immediately higher than 'energy'
+       end do
+
+       if (CS_table_no .ne. 1) then
+         sigma_vec(CS_table_no) = (CS_table(i,2) - CS_table(i-1,2))/(CS_table(i,1) - CS_table(i-1,1)) &
+                              * (energy-CS_table(i-1,1)) + CS_table(i-1,2) + sigma_vec(CS_table_no - 1)
+       else
+         sigma_vec(CS_table_no) = (CS_table(i,2) - CS_table(i-1,2))/(CS_table(i,1) - CS_table(i-1,1)) &
+                              * (energy-CS_table(i-1,1)) + CS_table(i-1,2)
+       end if
+       ! Subsequent values in Sigma vector is a cumulation of previous cross sections
+       ! multiplying each element in the sigma vector with local_density & velocity magnitude
+       ! will give collision frequency.
+     end if
+   end subroutine determine_cross_section
+
+   subroutine add_electron(guide, particle, new_particle, rand1, rand2)
+     implicit none
+     type(t_particle), intent(in) :: particle
+     type(linked_list_elem), pointer, intent(inout) :: guide
+     real(kind_physics), intent(in) :: rand1, rand2
+     integer, intent(inout) :: new_particle
+     real(kind_physics) :: vel_mag, theta, phi
+     integer :: ll_elem_gen, buffer_pos
+
+     ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
+     buffer_pos = ll_elem_gen + 1
+     if (ll_elem_gen == 0 .and. new_particle > 0) then
+        ! print *, "Extending Temp_array!!!!!"
+        call allocate_ll_buffer(size(guide%tmp_particles), guide%next)
+        guide => guide%next
+     end if
+     ! theta defines inclination, phi defines azimuth in spherical coord. system
+     theta = rand1*pi
+     phi = rand2*pi*2.0
+     vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))
+
+     guide%tmp_particles(buffer_pos)%x = particle%x
+     guide%tmp_particles(buffer_pos)%work = 1.0_8
+     guide%tmp_particles(buffer_pos)%data%q = -1.0
+     guide%tmp_particles(buffer_pos)%data%m = 1.0_8
+     guide%tmp_particles(buffer_pos)%data%species = 0
+     guide%tmp_particles(buffer_pos)%data%age = 0.0_8
+
+     guide%tmp_particles(buffer_pos)%data%v(1) = vel_mag*sin(theta)*cos(phi)
+     guide%tmp_particles(buffer_pos)%data%v(2) = vel_mag*sin(theta)*sin(phi)
+     guide%tmp_particles(buffer_pos)%data%v(3) = vel_mag*cos(theta)
+
+     new_particle = new_particle + 1
+   end subroutine add_electron
+
+   subroutine add_H(guide, particle, new_particle, rand1, rand2)
+     implicit none
+     type(t_particle), intent(in) :: particle
+     type(linked_list_elem), pointer, intent(inout) :: guide
+     real(kind_physics), intent(in) :: rand1, rand2
+     integer, intent(inout) :: new_particle
+     real(kind_physics) :: vel_mag, theta, phi
+     integer :: ll_elem_gen, buffer_pos
+
+     ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
+     buffer_pos = ll_elem_gen + 1
+     if (ll_elem_gen == 0 .and. new_particle > 0) then
+        ! print *, "Extending Temp_array!!!!!"
+        call allocate_ll_buffer(size(guide%tmp_particles), guide%next)
+        guide => guide%next
+     end if
+     ! theta defines inclination, phi defines azimuth in spherical coord. system
+     theta = rand1*pi
+     phi = rand2*pi*2.0
+     vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))/1837.21957489_8
+
+     guide%tmp_particles(buffer_pos)%x = particle%x
+     guide%tmp_particles(buffer_pos)%work = 1.0_8
+     guide%tmp_particles(buffer_pos)%data%q = 0.0
+     guide%tmp_particles(buffer_pos)%data%m = 1837.21957489_8 ! times greater than mass of electron
+     guide%tmp_particles(buffer_pos)%data%species = 3
+     guide%tmp_particles(buffer_pos)%data%age = 0.0_8
+
+     guide%tmp_particles(buffer_pos)%data%v(1) = vel_mag*sin(theta)*cos(phi)
+     guide%tmp_particles(buffer_pos)%data%v(2) = vel_mag*sin(theta)*sin(phi)
+     guide%tmp_particles(buffer_pos)%data%v(3) = vel_mag*cos(theta)
+
+     new_particle = new_particle + 1
+   end subroutine add_H
+
+   subroutine add_H_plus(guide, particle, new_particle, rand1, rand2)
+     implicit none
+     type(t_particle), intent(in) :: particle
+     type(linked_list_elem), pointer, intent(inout) :: guide
+     real(kind_physics), intent(in) :: rand1, rand2
+     integer, intent(inout) :: new_particle
+     real(kind_physics) :: vel_mag, theta, phi
+     integer :: ll_elem_gen, buffer_pos
+
+     ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
+     buffer_pos = ll_elem_gen + 1
+     if (ll_elem_gen == 0 .and. new_particle > 0) then
+        ! print *, "Extending Temp_array!!!!!"
+        call allocate_ll_buffer(size(guide%tmp_particles), guide%next)
+        guide => guide%next
+     end if
+     ! theta defines inclination, phi defines azimuth in spherical coord. system
+     theta = rand1*pi
+     phi = rand2*pi*2.0
+     vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))/1836.21957489_8
+
+     guide%tmp_particles(buffer_pos)%x = particle%x
+     guide%tmp_particles(buffer_pos)%work = 1.0_8
+     guide%tmp_particles(buffer_pos)%data%q = 1.0
+     guide%tmp_particles(buffer_pos)%data%m = 1836.21957489_8 ! times greater than mass of electron
+     guide%tmp_particles(buffer_pos)%data%species = 1
+     guide%tmp_particles(buffer_pos)%data%age = 0.0_8
+
+     guide%tmp_particles(buffer_pos)%data%v(1) = vel_mag*sin(theta)*cos(phi)
+     guide%tmp_particles(buffer_pos)%data%v(2) = vel_mag*sin(theta)*sin(phi)
+     guide%tmp_particles(buffer_pos)%data%v(3) = vel_mag*cos(theta)
+
+     new_particle = new_particle + 1
+   end subroutine add_H_plus
+
+   subroutine add_H2_plus(guide, particle, new_particle, rand1, rand2)
+     implicit none
+     type(t_particle), intent(in) :: particle
+     type(linked_list_elem), pointer, intent(inout) :: guide
+     real(kind_physics), intent(in) :: rand1, rand2
+     integer, intent(inout) :: new_particle
+     real(kind_physics) :: vel_mag, theta, phi
+     integer :: ll_elem_gen, buffer_pos
+
+     ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
+     buffer_pos = ll_elem_gen + 1
+     if (ll_elem_gen == 0 .and. new_particle > 0) then
+        ! print *, "Extending Temp_array!!!!!"
+        call allocate_ll_buffer(size(guide%tmp_particles), guide%next)
+        guide => guide%next
+     end if
+     ! theta defines inclination, phi defines azimuth in spherical coord. system
+     theta = rand1*pi
+     phi = rand2*pi*2.0
+     vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))/3673.43889456
+
+     guide%tmp_particles(buffer_pos)%x = particle%x
+     guide%tmp_particles(buffer_pos)%work = 1.0_8
+     guide%tmp_particles(buffer_pos)%data%q = 1.0
+     guide%tmp_particles(buffer_pos)%data%m = 3673.43889456_8 ! times greater than mass of electron
+     guide%tmp_particles(buffer_pos)%data%species = 2
+     guide%tmp_particles(buffer_pos)%data%age = 0.0_8
+
+     guide%tmp_particles(buffer_pos)%data%v(1) = vel_mag*sin(theta)*cos(phi)
+     guide%tmp_particles(buffer_pos)%data%v(2) = vel_mag*sin(theta)*sin(phi)
+     guide%tmp_particles(buffer_pos)%data%v(3) = vel_mag*cos(theta)
+
+     new_particle = new_particle + 1
+   end subroutine add_H2_plus
+
+   subroutine collision_update(particle, guide, new_particle, electron_count, CS_vector)
+     implicit none
+     type(t_particle), intent(inout) :: particle
+     type(linked_list_elem), pointer, intent(inout) :: guide
+     integer, intent(inout) :: new_particle, electron_count
+     real(kind_physics), dimension(:), intent(inout) :: CS_vector
+     real(kind_physics) :: vel_mag
+     integer :: buffer_pos, ll_elem_gen, i
+
+     ! Evaluate actual collision frequency
+     call determine_cross_section(particle, CS_vector, CS_1, 1)
+    !  call determine_cross_section(particle, CS_vector, CS_2, 2)
+    !  call determine_cross_section(particle, CS_vector, CS_3, 3)
+
+     ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
+     CS_vector = CS_vector * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
+     ! NOTE: Currently, actual collision frequency is calculated for every particle.
+     !       Future aim is to use optimization routine to obtain global maximum
+     !       of coll. freq. over range of energy (eV). Setting it to nu_prime.
+     !       For now, null-collision method is not implemented!
+
+     ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
+     ! TODO: the seeding can probably be done just once at the beginning. Subsequent ctr_s and key_s
+     ! can reuse generated rand_num as seed.
+     ctr_s(1) = (my_rank + 1)*(nt - step)
+     ctr_s(2:4) = CEILING(particle%x*1e5)
+     key_s(1) = (my_rank + 1)*(step + 1)
+     key_s(2:4) = CEILING(particle%data%v*1e17)
+
+     ! Generating Random Number between [0,1]
+     dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
+
+    !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*CS_vector(size(CS_vector))*dt))
+     if (rand_num(1) < (1 - exp(-1*CS_vector(size(CS_vector))*dt))) then ! type of collision determined if satisfied
+      !  call determine_cross_section(particle, CS_vector, CS_1, 1)
+      !  call determine_cross_section(particle, CS_vector, CS_2, 2)
+      !  call determine_cross_section(particle, CS_vector, CS_3, 3)
+
+      !  ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
+      !  CS_vector = CS_vector * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
+      !  if (CS_vector(size(CS_vector)) >= nu_prime) then
+      !    nu_prime = CS_vector(size(CS_vector))
+      !  end if
+
+       i = 1
+       do while (rand_num(2) > (CS_vector(i)/CS_vector(size(CS_vector))))
+         i = i + 1
+       end do
+
+       if (i > size(CS_vector)) then
+         i = 0
+       end if
+     else ! otherwise, no collision happened
+       i = 0
+     end if
+
+     select case(i)
+     case(0) ! null collision, no update performed
+
+     case(1) ! elastic scattering (no additional electron, no byproducts)
+       ! update velocity to indicate scattering into random angle
+       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))
+       particle%data%v(1) = vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
+       particle%data%v(2) = vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
+       particle%data%v(3) = vel_mag * cos(rand_num(3)*pi)
+       particle%data%age = 0.0_8
+
+     case(2) ! dissociative ionization (1 additional electron, 2 byproducts), but Hydrogen atom is ignored!
+       call add_electron(guide, particle, new_particle, rand_num(3), rand_num(4))
+       call add_H_plus(guide, particle, new_particle, rand_num(5), rand_num(6))
+
+       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))
+       particle%data%v(1) = vel_mag * sin(rand_num(7)*pi) * cos(rand_num(8)*pi*2.0)
+       particle%data%v(2) = vel_mag * sin(rand_num(7)*pi) * sin(rand_num(8)*pi*2.0)
+       particle%data%v(3) = vel_mag * cos(rand_num(7)*pi)
+       particle%data%age = 0.0_8
+      !  call add_H(guide, particle, buffer_pos, rand_num(7), rand_num(8))
+      !  new_particle = new_particle + 1
+
+
+     case(3) ! nondissociative ionization (1 additional electron, 1 byproduct)
+       call add_electron(guide, particle, new_particle, rand_num(3), rand_num(4))
+       call add_H2_plus(guide, particle, new_particle, rand_num(5), rand_num(6))
+
+       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))
+       particle%data%v(1) = vel_mag * sin(rand_num(7)*pi) * cos(rand_num(8)*pi*2.0)
+       particle%data%v(2) = vel_mag * sin(rand_num(7)*pi) * sin(rand_num(8)*pi*2.0)
+       particle%data%v(3) = vel_mag * cos(rand_num(7)*pi)
+       particle%data%age = 0.0_8
+
+     end select
+   end subroutine collision_update
 end module

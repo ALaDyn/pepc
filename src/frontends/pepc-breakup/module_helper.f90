@@ -38,7 +38,7 @@ module helper
    integer, parameter :: t_boris = t_userdefined_first + 5
 
    ! MPI variables
-   integer(kind_pe) :: my_rank, n_ranks
+   integer(kind_pe) :: my_rank, n_ranks, ierr
    logical :: root
 
    ! time variables
@@ -63,7 +63,7 @@ module helper
    type(t_particle), allocatable   :: particles(:)
    real(kind_physics), allocatable :: direct_L2(:)
 
-   ! buffer to record newly generated particles
+   ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
    integer :: electron_num, i, new_particle_cnt
 
@@ -86,6 +86,7 @@ module helper
    real(kind_physics) :: e = 1.6021766208e-19 ! Coulomb
    real(kind_physics) :: eps_0 = 8.85418781762e-12 ! Coulomb/Vm
    real(kind_physics) :: pi = 3.141592653589793238462643383279502884197
+   real(kind_physics) :: E_q_dt_m
 
    interface random
       module procedure random8, random16
@@ -144,6 +145,12 @@ contains
          write (*, '(a,3(es12.4))') " == external electric field   : ", external_e
       end if
 
+      ! NOTE: Scale the appropriate read-in variables!
+      !       1. multiply 4*pi*eps_0*(1e-12 sec*light speed)^2/(elementary charge) to external_e
+      !       2. divide plasma_dimensions by 1e-12*light speed
+      external_e = external_e*4.0*pi*eps_0*((c*1e-12)**2)/e
+      plasma_dimensions = plasma_dimensions/(c*1e-12)
+
       call pepc_prepare(3_kind_dim)
    end subroutine set_parameter
 
@@ -175,11 +182,9 @@ contains
       ! setup random qubic particle cloud
       do ip = 1, np
          p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1
-         p(ip)%data%q = (-1.0_8 + 2.0_8*MOD(p(ip)%label, 2_kind_particle))
+         p(ip)%data%q = -1.0_8
          p(ip)%data%m = 1.0_8
          p(ip)%data%species = 0
-         if (p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m*100.0_8
-         ! particle with positive charge are 100 times greater mass than electrons
 
          p(ip)%data%age = 0.0_8
 
@@ -187,7 +192,8 @@ contains
          p(ip)%x = p(ip)%x*plasma_dimensions
 
          call random_gauss(p(ip)%data%v)
-         p(ip)%data%v = p(ip)%data%v/sqrt(p(ip)%data%m)
+         ! NOTE: Check the dimension of random_gauss output
+         p(ip)%data%v = p(ip)%data%v/c * 1e6
 
          p(ip)%work = 1.0_8
       end do
