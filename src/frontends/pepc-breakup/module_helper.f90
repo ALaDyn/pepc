@@ -74,7 +74,7 @@ module helper
 
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
-   real(kind_physics) :: nu_prime_old, nu_prime
+   real(kind_physics) :: abs_max_CS
 
    ! lookup tables for cross section data
    character(255) :: file_path

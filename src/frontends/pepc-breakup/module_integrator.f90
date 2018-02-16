@@ -173,6 +173,20 @@ contains
      close(file_id)
    end subroutine set_cross_section_table
 
+   subroutine determine_absolute_max_CS(guide_CS, max_CS)
+     implicit none
+     type(linked_list_CS), pointer, intent(in) :: guide_CS
+     real(kind_physics), intent(inout) :: max_CS
+     type(linked_list_CS), pointer :: temp_guide
+
+     max_CS = 0.0
+     temp_guide => guide_CS
+     do while (associated(temp_guide))
+       max_CS = max_CS + maxval(temp_guide%CS(:,2))
+       temp_guide => temp_guide%next_CS
+     end do
+   end subroutine determine_absolute_max_CS
+
    subroutine determine_cross_sections(particle, sigma_vec, guide_CS)
      implicit none
      type(t_particle), intent(in) :: particle
@@ -287,22 +301,17 @@ contains
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, electron_count
      real(kind_physics), dimension(:), intent(inout) :: CS_vector
-     real(kind_physics) :: vel_mag
+     real(kind_physics) :: vel_mag, nu_prime
      integer :: buff_pos, ll_elem_gen, i
 
-     ! Evaluate actual collision frequency
-     call determine_cross_sections(particle, CS_vector, CS_tables)
-
-     ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
-     CS_vector = CS_vector * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
-     ! NOTE: Currently, actual collision frequency is calculated for every particle.
-     !       Future aim is to use optimization routine to obtain global maximum
-     !       of coll. freq. over range of energy (eV). Setting it to nu_prime.
-     !       For now, null-collision method is not implemented!
+     ! NOTE: Currently, calculation of nu_prime involves obtaining abs_max_CS,
+     !       which is the sum of all max value of cross section data of all considered
+     !       reactions, disregarding the associated eV. nu_prime is then obtained
+     !       by multiplying abs_max_CS with the particle's velocity magnitude and
+     !       constant local density. nu_prime will thus be always larger than actual nu!
+     nu_prime = abs_max_CS * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889
 
      ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
-     ! TODO: the seeding can probably be done just once at the beginning. Subsequent ctr_s and key_s
-     ! can reuse generated rand_num as seed.
      ctr_s(1) = (my_rank + 1)*(nt - step)
      ctr_s(2:4) = CEILING(particle%x*1e5)
      key_s(1) = (my_rank + 1)*(step + 1)
@@ -312,24 +321,21 @@ contains
      dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
 
     !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*CS_vector(size(CS_vector))*dt))
-     if (rand_num(1) < (1 - exp(-1*CS_vector(size(CS_vector))*dt))) then ! type of collision determined if satisfied
-      !  call determine_cross_sections(particle, CS_vector, CS_tables)
+     if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
+       call determine_cross_sections(particle, CS_vector, CS_tables)
 
-      !  ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
-      !  CS_vector = CS_vector * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
-      !  if (CS_vector(size(CS_vector)) >= nu_prime) then
-      !    nu_prime = CS_vector(size(CS_vector))
-      !  end if
+       ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
+       CS_vector = CS_vector * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
 
        i = 1
-       do while (rand_num(2) > (CS_vector(i)/CS_vector(size(CS_vector))))
+       do while (rand_num(2) > (CS_vector(i)/nu_prime))
          i = i + 1
+         if (i > size(CS_vector)) then
+           i = 0
+           EXIT
+         end if
        end do
-       print *, rand_num(2), CS_vector(i)/CS_vector(size(CS_vector))
 
-       if (i > size(CS_vector)) then
-         i = 0
-       end if
      else ! otherwise, no collision happened
        i = 0
      end if
@@ -368,8 +374,6 @@ contains
        particle%data%v(2) = vel_mag * sin(rand_num(7)*pi) * sin(rand_num(8)*pi*2.0) *0.25_8
        particle%data%v(3) = vel_mag * cos(rand_num(7)*pi) *0.25_8
        particle%data%age = 0.0_8
-      !  call add_H(guide, particle, buffer_pos, rand_num(7), rand_num(8))
-      !  new_particle = new_particle + 1
 
      end select
    end subroutine collision_update

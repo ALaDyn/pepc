@@ -55,10 +55,9 @@ program pepc
    call set_cross_section_table(trim(file_path) // "nondissociative_ionization_H+.txt", CS_guide, 13, 1)
    allocate(cross_sections_vector(3))
 
-   ! NOTE: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
+   ! NOTE: Future prospect: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
    !       look at some external function DDFSA or DFSA.
-   !       For now, just obtain the largest cross section from total_scattering, increase it by 20%
-  !  nu_prime = maxval(CS_1(:,2))
+   call determine_absolute_max_CS(CS_tables, abs_max_CS)
    !=====================================================================
    call timer_stop(t_user_init)
 
@@ -109,12 +108,6 @@ program pepc
          call boris_velocity_update(particles(i), dt)
          call particle_pusher(particles(i), dt)
 
-         ! TODO function to account for probabilities of reaction, probably 'age' based
-
-         ! TODO function to record generated particles. one of the new particle
-         !      will take the original place of current particle, other new particles
-         !      will be recorded in linked list vector. NOTE!!! add electron_count
-         !      if one of the generated particle is electron.
          call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, cross_sections_vector)
         !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
       end do
