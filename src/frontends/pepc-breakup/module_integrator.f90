@@ -143,67 +143,80 @@ contains
 
    end subroutine particle_pusher
 
-   subroutine set_cross_section_table(fname, table, file_id)
+   subroutine set_cross_section_table(fname, guide_CS, file_id, is_last)
      implicit none
-     real(kind_physics), dimension(:,:), allocatable, intent(inout) :: table
+     type(linked_list_CS), pointer, intent(inout) :: guide_CS
      character(len = *), intent(in) :: fname
-     integer, intent(in) :: file_id
+     integer, intent(in) :: file_id, is_last
      integer :: entries, i
+     type(linked_list_CS), pointer :: temp_guide
 
      open(file_id,file=fname,action='READ')
      read(file_id,*) ! Skipping first line
      read(file_id,*) entries ! Number of entries in data
 
-     allocate(table(entries,2))
+     allocate(guide_CS%CS(entries,2))
 
      do i = 1,entries
-       read(file_id,*) table(i,1), table(i,2)
+       read(file_id,*) guide_CS%CS(i,1), guide_CS%CS(i,2)
      end do
 
      ! scale table(i,2) to become dimensionless, scaling is 1m = non_dim_l * (1e-12 * c)
-     table(:,2) = table(:,2)*10000.0/(c**2)
+     guide_CS%CS(:,2) = guide_CS%CS(:,2)*10000.0/(c**2)
+
+     if (is_last == 0) then
+       allocate(guide_CS%next_CS)
+       guide_CS => guide_CS%next_CS
+       nullify(guide_CS%next_CS)
+     end if
 
      close(file_id)
    end subroutine set_cross_section_table
 
-   subroutine determine_cross_section(particle, sigma_vec, CS_table, CS_table_no)
+   subroutine determine_cross_sections(particle, sigma_vec, guide_CS)
      implicit none
      type(t_particle), intent(in) :: particle
-     real(kind_physics), dimension(:,:), intent(in) :: CS_table
+     type(linked_list_CS), pointer, intent(in) :: guide_CS
      real(kind_physics), dimension(:), intent(inout) :: sigma_vec
-     integer, intent(in) :: CS_table_no
-     integer :: i, table_rows
+     integer :: i, table_rows, CS_table_no
      real(kind_physics) :: energy
+     type(linked_list_CS), pointer :: temp_guide
 
-     table_rows = size(CS_table,1)
-     energy = 0.5 * particle%data%m * e_mass * dot_product(particle%data%v,particle%data%v)
-    !  print *, "energy: ", energy, dot_product(particle%data%v,particle%data%v)
+     CS_table_no = 1
+     temp_guide => guide_CS
+     do while (associated(temp_guide))
+       table_rows = size(temp_guide%CS,1)
+       energy = 0.5 * particle%data%m * e_mass * dot_product(particle%data%v,particle%data%v)
+      !  print *, "energy: ", energy, dot_product(particle%data%v,particle%data%v)
 
-     i = 1
-     ! if energy is less/more than range of CS_table, return 0.0
-     if (energy < CS_table(i,1) .or. energy > CS_table(table_rows,1)) then
-       if (CS_table_no .ne. 1) then
-         sigma_vec(CS_table_no) = sigma_vec(CS_table_no - 1)
+       i = 1
+       ! if energy is less/more than range of temp_guide%CS, return 0.0
+       if (energy < temp_guide%CS(i,1) .or. energy > temp_guide%CS(table_rows,1)) then
+         if (CS_table_no .ne. 1) then
+           sigma_vec(CS_table_no) = sigma_vec(CS_table_no - 1)
+         else
+           sigma_vec(CS_table_no) = 0.0_kind_physics
+         end if
        else
-         sigma_vec(CS_table_no) = 0.0_kind_physics
-       end if
-     else
-       do while (energy > CS_table(i,1))
-         i = i + 1 ! this will return the 'i' that is immediately higher than 'energy'
-       end do
+         do while (energy > temp_guide%CS(i,1))
+           i = i + 1 ! this will return the 'i' that is immediately higher than 'energy'
+         end do
 
-       if (CS_table_no .ne. 1) then
-         sigma_vec(CS_table_no) = (CS_table(i,2) - CS_table(i-1,2))/(CS_table(i,1) - CS_table(i-1,1)) &
-                              * (energy-CS_table(i-1,1)) + CS_table(i-1,2) + sigma_vec(CS_table_no - 1)
-       else
-         sigma_vec(CS_table_no) = (CS_table(i,2) - CS_table(i-1,2))/(CS_table(i,1) - CS_table(i-1,1)) &
-                              * (energy-CS_table(i-1,1)) + CS_table(i-1,2)
+         if (CS_table_no .ne. 1) then
+           sigma_vec(CS_table_no) = (temp_guide%CS(i,2) - temp_guide%CS(i-1,2))/(temp_guide%CS(i,1) - temp_guide%CS(i-1,1)) &
+                                * (energy-temp_guide%CS(i-1,1)) + temp_guide%CS(i-1,2) + sigma_vec(CS_table_no - 1)
+         else
+           sigma_vec(CS_table_no) = (temp_guide%CS(i,2) - temp_guide%CS(i-1,2))/(temp_guide%CS(i,1) - temp_guide%CS(i-1,1)) &
+                                * (energy-temp_guide%CS(i-1,1)) + temp_guide%CS(i-1,2)
+         end if
+         ! Subsequent values in Sigma vector is a cumulation of previous cross sections
+         ! multiplying each element in the sigma vector with local_density & velocity magnitude
+         ! will give collision frequency.
        end if
-       ! Subsequent values in Sigma vector is a cumulation of previous cross sections
-       ! multiplying each element in the sigma vector with local_density & velocity magnitude
-       ! will give collision frequency.
-     end if
-   end subroutine determine_cross_section
+       temp_guide => temp_guide%next_CS
+       CS_table_no = CS_table_no + 1
+     end do
+   end subroutine determine_cross_sections
 
    subroutine add_particle(guide, particle, new_particle, rand1, rand2, buffer_pos, type)
      implicit none
@@ -278,9 +291,7 @@ contains
      integer :: buff_pos, ll_elem_gen, i
 
      ! Evaluate actual collision frequency
-     call determine_cross_section(particle, CS_vector, CS_1, 1)
-     call determine_cross_section(particle, CS_vector, CS_2, 2)
-     call determine_cross_section(particle, CS_vector, CS_3, 3)
+     call determine_cross_sections(particle, CS_vector, CS_tables)
 
      ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
      CS_vector = CS_vector * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
@@ -302,9 +313,7 @@ contains
 
     !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*CS_vector(size(CS_vector))*dt))
      if (rand_num(1) < (1 - exp(-1*CS_vector(size(CS_vector))*dt))) then ! type of collision determined if satisfied
-      !  call determine_cross_section(particle, CS_vector, CS_1, 1)
-      !  call determine_cross_section(particle, CS_vector, CS_2, 2)
-      !  call determine_cross_section(particle, CS_vector, CS_3, 3)
+      !  call determine_cross_sections(particle, CS_vector, CS_tables)
 
       !  ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
       !  CS_vector = CS_vector * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)

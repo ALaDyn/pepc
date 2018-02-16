@@ -78,7 +78,7 @@ module helper
 
    ! lookup tables for cross section data
    character(255) :: file_path
-   real(kind_physics), dimension(:,:), allocatable :: CS_1, CS_2, CS_3!, CS_4, CS_5
+   type(linked_list_CS), pointer :: CS_tables, CS_guide
 
    ! constants & scaling factors
    real(kind_physics) :: c = 299792458.0 ! m/s

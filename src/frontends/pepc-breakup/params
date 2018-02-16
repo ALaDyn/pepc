@@ -1,10 +1,10 @@
 &pepcbreakup
 
 ! total number of particles
-tnp = 100
+tnp = 10000
 
 ! number of time steps
-nt = 40
+nt = 100
 
 ! time step (in picoseconds)
 dt = 1000

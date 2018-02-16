@@ -33,6 +33,11 @@ module particles_resize
       type(t_particle), allocatable :: tmp_particles(:)
    end type linked_list_elem
 
+   type, public :: linked_list_CS
+      type(linked_list_CS), pointer :: next_CS
+      real(kind_physics), allocatable :: CS(:,:)
+   end type linked_list_CS
+
 contains
    subroutine allocate_ll_buffer(electron_num, temp_array)
       implicit none
@@ -63,6 +68,22 @@ contains
       nullify (temp_guide)
       nullify (remover)
    end subroutine deallocate_ll_buffer
+
+   subroutine deallocate_CS_buffer(CS_array)
+      implicit none
+      type(linked_list_CS), pointer, intent(inout) :: CS_array
+      type(linked_list_CS), pointer :: temp_guide, remover
+
+      temp_guide => CS_array
+      do while (associated(temp_guide))
+         remover => temp_guide
+         deallocate (temp_guide%CS)
+         temp_guide => temp_guide%next_CS
+         deallocate (remover)
+      end do
+      nullify (temp_guide)
+      nullify (remover)
+   end subroutine deallocate_CS_buffer
 
    subroutine resize_array(array, new_size)
       implicit none
