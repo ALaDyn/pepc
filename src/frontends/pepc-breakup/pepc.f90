@@ -45,13 +45,17 @@ program pepc
    call set_parameter()
    call init_particles(particles)
    !========================read cross section data======================
+   ! IMPORTANT NOTE: the order of set_cross_section_table must correspond to the case orders in collision_update()
    call getcwd(file_path)
    file_path = trim(file_path) // "/../src/frontends/pepc-breakup/cross_sections/"
-   call set_cross_section_table(trim(file_path) // "total_scattering.txt", CS_1, 11)
-   allocate(cross_sections_vector(1))
+   call set_cross_section_table(trim(file_path) // "total_scattering_H2.txt", CS_1, 11)
+   call set_cross_section_table(trim(file_path) // "nondissociative_ionization_H2+.txt", CS_2, 12)
+   call set_cross_section_table(trim(file_path) // "nondissociative_ionization_H+.txt", CS_3, 13)
+   allocate(cross_sections_vector(3))
 
    ! NOTE: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
-   !       look at some external function DDFSA or DFSA
+   !       look at some external function DDFSA or DFSA.
+   !       For now, just obtain the largest cross section from total_scattering, increase it by 20%
   !  nu_prime = maxval(CS_1(:,2))
    !=====================================================================
    call timer_stop(t_user_init)
