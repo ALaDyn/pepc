@@ -232,14 +232,14 @@ contains
      end do
    end subroutine determine_cross_sections
 
-   subroutine add_particle(guide, particle, new_particle, rand1, rand2, buffer_pos, type)
+   subroutine add_particle(guide, particle, vel_mag, new_particle, rand1, rand2, buffer_pos, type)
      implicit none
      type(t_particle), intent(in) :: particle
      type(linked_list_elem), pointer, intent(inout) :: guide
-     real(kind_physics), intent(in) :: rand1, rand2
+     real(kind_physics), intent(in) :: vel_mag, rand1, rand2
      integer, intent(inout) :: new_particle, buffer_pos
      integer, intent(in) :: type
-     real(kind_physics) :: vel_mag, theta, phi
+     real(kind_physics) :: vel_update, theta, phi
      integer :: ll_elem_gen
 
      ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
@@ -255,28 +255,28 @@ contains
 
      select case(type)
      case(0) ! Electron
-       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))
+       vel_update = vel_mag
 
        guide%tmp_particles(buffer_pos)%data%q = -1.0
        guide%tmp_particles(buffer_pos)%data%m = 1.0_8
        guide%tmp_particles(buffer_pos)%data%species = 0
 
      case(1) ! H+
-       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))/1836.21957489_8
+       vel_update = vel_mag/1836.21957489_8
 
        guide%tmp_particles(buffer_pos)%data%q = 1.0
        guide%tmp_particles(buffer_pos)%data%m = 1836.21957489_8 ! times greater than mass of electron
        guide%tmp_particles(buffer_pos)%data%species = 1
 
      case(2) ! H2+
-       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))/3673.43889456
+       vel_update = vel_mag/3673.43889456
 
        guide%tmp_particles(buffer_pos)%data%q = 1.0
        guide%tmp_particles(buffer_pos)%data%m = 3673.43889456_8 ! times greater than mass of electron
        guide%tmp_particles(buffer_pos)%data%species = 2
 
      case(3) ! H atom
-       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))/1837.21957489_8
+       vel_update = vel_mag/1837.21957489_8
 
        guide%tmp_particles(buffer_pos)%data%q = 0.0
        guide%tmp_particles(buffer_pos)%data%m = 1837.21957489_8 ! times greater than mass of electron
@@ -288,9 +288,9 @@ contains
      guide%tmp_particles(buffer_pos)%work = 1.0_8
      guide%tmp_particles(buffer_pos)%data%age = 0.0_8
 
-     guide%tmp_particles(buffer_pos)%data%v(1) = vel_mag*sin(theta)*cos(phi)
-     guide%tmp_particles(buffer_pos)%data%v(2) = vel_mag*sin(theta)*sin(phi)
-     guide%tmp_particles(buffer_pos)%data%v(3) = vel_mag*cos(theta)
+     guide%tmp_particles(buffer_pos)%data%v(1) = vel_update*sin(theta)*cos(phi)
+     guide%tmp_particles(buffer_pos)%data%v(2) = vel_update*sin(theta)*sin(phi)
+     guide%tmp_particles(buffer_pos)%data%v(3) = vel_update*cos(theta)
 
      new_particle = new_particle + 1
    end subroutine add_particle
@@ -309,7 +309,8 @@ contains
      !       reactions, disregarding the associated eV. nu_prime is then obtained
      !       by multiplying abs_max_CS with the particle's velocity magnitude and
      !       constant local density. nu_prime will thus be always larger than actual nu!
-     nu_prime = abs_max_CS * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889
+     vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
+     nu_prime = abs_max_CS * vel_mag * 6545520.13889
 
      ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
      ctr_s(1) = (my_rank + 1)*(nt - step)
@@ -325,7 +326,7 @@ contains
        call determine_cross_sections(particle, CS_vector, CS_tables)
 
        ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
-       CS_vector = CS_vector * sqrt(dot_product(particle%data%v,particle%data%v)) * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
+       CS_vector = CS_vector * vel_mag * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
 
        i = 1
        do while (rand_num(2) > (CS_vector(i)/nu_prime))
@@ -345,31 +346,28 @@ contains
 
      case(1) ! elastic scattering (no additional electron, no byproducts)
        ! update velocity to indicate scattering into random angle
-       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))
        particle%data%v(1) = vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
        particle%data%v(2) = vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
        particle%data%v(3) = vel_mag * cos(rand_num(3)*pi)
        particle%data%age = 0.0_8
 
      case(2) ! nondissociative ionization (1 additional electron, 1 byproduct)
-       call add_particle(guide, particle, new_particle, rand_num(3), rand_num(4), buff_pos, 0)
+       call add_particle(guide, particle, vel_mag, new_particle, rand_num(3), rand_num(4), buff_pos, 0)
        guide%tmp_particles(buff_pos)%data%v = guide%tmp_particles(buff_pos)%data%v/3._8
-       call add_particle(guide, particle, new_particle, rand_num(5), rand_num(6), buff_pos, 2)
+       call add_particle(guide, particle, vel_mag, new_particle, rand_num(5), rand_num(6), buff_pos, 2)
        guide%tmp_particles(buff_pos)%data%v = guide%tmp_particles(buff_pos)%data%v/3._8
 
-       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))
        particle%data%v(1) = vel_mag * sin(rand_num(7)*pi) * cos(rand_num(8)*pi*2.0)/3._8
        particle%data%v(2) = vel_mag * sin(rand_num(7)*pi) * sin(rand_num(8)*pi*2.0)/3._8
        particle%data%v(3) = vel_mag * cos(rand_num(7)*pi)/3._8
        particle%data%age = 0.0_8
 
      case(3) ! dissociative ionization (1 additional electron, 2 byproducts), Hydrogen atom is ignored!
-       call add_particle(guide, particle, new_particle, rand_num(3), rand_num(4), buff_pos, 0)
+       call add_particle(guide, particle, vel_mag, new_particle, rand_num(3), rand_num(4), buff_pos, 0)
        guide%tmp_particles(buff_pos)%data%v = guide%tmp_particles(buff_pos)%data%v*0.25_8
-       call add_particle(guide, particle, new_particle, rand_num(5), rand_num(6), buff_pos, 1)
+       call add_particle(guide, particle, vel_mag, new_particle, rand_num(5), rand_num(6), buff_pos, 1)
        guide%tmp_particles(buff_pos)%data%v = guide%tmp_particles(buff_pos)%data%v*0.25_8
 
-       vel_mag = sqrt(dot_product(particle%data%v, particle%data%v))
        particle%data%v(1) = vel_mag * sin(rand_num(7)*pi) * cos(rand_num(8)*pi*2.0) *0.25_8
        particle%data%v(2) = vel_mag * sin(rand_num(7)*pi) * sin(rand_num(8)*pi*2.0) *0.25_8
        particle%data%v(3) = vel_mag * cos(rand_num(7)*pi) *0.25_8
