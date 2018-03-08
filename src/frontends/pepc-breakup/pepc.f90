@@ -36,7 +36,7 @@ program pepc
    logical :: doDiag
 
    ! initialize pepc library and MPI
-   call pepc_initialize("pepc-essential", my_rank, n_ranks, .true.)
+   call pepc_initialize("pepc-breakup", my_rank, n_ranks, .true.)
 
    root = my_rank .eq. 0
 
@@ -52,7 +52,7 @@ program pepc
    file_path = trim(file_path) // "/../src/frontends/pepc-breakup/cross_sections/"
    call set_cross_section_table(trim(file_path) // "total_scattering_H2.txt", CS_guide, 11, 0)
    call set_cross_section_table(trim(file_path) // "nondissociative_ionization_H2+.txt", CS_guide, 12, 0)
-   call set_cross_section_table(trim(file_path) // "nondissociative_ionization_H+.txt", CS_guide, 13, 1)
+   call set_cross_section_table(trim(file_path) // "dissociative_ionization_H+.txt", CS_guide, 13, 1)
    allocate(cross_sections_vector(3))
 
    ! NOTE: Future prospect: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
@@ -69,6 +69,7 @@ program pepc
    call pepc_grow_tree(particles)
    call pepc_traverse_tree(particles)
 
+   neutral_density = calculate_neutral_density(0.001_kind_physics, 298.15_kind_physics)
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
    electron_num = 0
    do i = 1, size(particles)
@@ -108,7 +109,9 @@ program pepc
          call boris_velocity_update(particles(i), dt)
          call particle_pusher(particles(i), dt)
 
-         call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, cross_sections_vector)
+         if (particles(i)%data%species == 0) then
+           call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, cross_sections_vector)
+         end if
         !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
       end do
 

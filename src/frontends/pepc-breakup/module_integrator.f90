@@ -42,6 +42,53 @@ contains
       vector_ans(3) = vector1(1)*vector2(2) - vector1(2)*vector2(1)
    end function cross_product
 
+   function Rodriguez_rotation(angle, rot_axis, vec_in) result(vec_out)
+     implicit none
+     real(kind_physics), intent(in), dimension(:) :: vec_in, rot_axis
+     real(kind_physics), intent(in) :: angle
+     real(kind_physics) :: vec_out(3), k_cross_v(3)
+     real(kind_physics) :: k_dot_v, cos_angle
+     ! rot_axis == k, vec_in  == v
+     cos_angle = cos(angle)
+     k_cross_v = cross_product(rot_axis, vec_in)
+     k_dot_v = dot_product(rot_axis, vec_in) * (1. - cos_angle)
+
+     vec_out = vec_in*cos_angle + k_cross_v * sin(angle) + rot_axis * k_dot_v
+   end function Rodriguez_rotation
+
+   subroutine angles_calc(vec_in, vel_mag, theta, phi)
+     implicit none
+     real(kind_physics), dimension(:), intent(in):: vec_in
+     real(kind_physics), intent(in) :: vel_mag
+     real(kind_physics), intent(out) :: theta, phi
+
+     if ((vec_in(1) /= 0.0) .and. (vec_in(2) /= 0.0)) then
+       if ((vec_in(2) > 0.0) .and. (vec_in(1) < 0.0)) then
+         phi = pi + atan(vec_in(2)/vec_in(1))
+       else if ((vec_in(2) < 0.0) .and. (vec_in(1)> 0.0)) then
+         phi = 2. * pi + atan(vec_in(2)/vec_in(1))
+       else if ((vec_in(2) > 0.0) .and. (vec_in(1) > 0.0)) then
+         phi = atan(vec_in(2)/vec_in(1))
+       else
+         phi = pi + atan(vec_in(2)/vec_in(1))
+       end if
+     else if (vec_in(1) == 0.0) then
+       if (vec_in(2) > 0.0) then
+         phi = 0.5*pi
+       else
+         phi = 1.5*pi
+       end if
+     else if (vec_in(2) == 0.0) then
+       if (vec_in(1) > 0.0) then
+         phi = 0.0
+       else
+         phi = pi
+       end if
+     end if
+
+     theta = acos(vec_in(3)/vel_mag)
+   end subroutine angles_calc
+
    function matrix_vector_multiplication(mat, vec) result(ans)
       implicit none
       real*8, allocatable, intent(in) :: mat(:, :), vec(:)
@@ -143,6 +190,18 @@ contains
 
    end subroutine particle_pusher
 
+   function calculate_neutral_density(pressure, temperature) result(density)
+     implicit none
+     real(kind_physics), intent(in) :: pressure, temperature
+     real(kind_physics) :: density
+
+     density = pressure/(temperature * kboltzmann)
+
+     ! Dimensionless scaling
+     density = density * (1e-12 * c)**3
+
+   end function calculate_neutral_density
+
    subroutine set_cross_section_table(fname, guide_CS, file_id, is_last)
      implicit none
      type(linked_list_CS), pointer, intent(inout) :: guide_CS
@@ -232,11 +291,15 @@ contains
      end do
    end subroutine determine_cross_sections
 
-   subroutine add_particle(guide, particle, vel_mag, new_particle, rand1, rand2, buffer_pos, type)
+   subroutine add_particle(guide, particle, new_particle, buffer_pos, type)
+     ! NOTE: A big assumption is made here: Without considering the rovibrational states
+     !       of the reaction products, generated particle doesn't store their own internal
+     !       energy value. Instead, the reaction energy is entirely converted into kinetic E.
+     !       More traditionally, this redistribution of energy is termed as Kinetic Energy Release
+     !       in mass spetroscopy
      implicit none
      type(t_particle), intent(in) :: particle
      type(linked_list_elem), pointer, intent(inout) :: guide
-     real(kind_physics), intent(in) :: vel_mag, rand1, rand2
      integer, intent(inout) :: new_particle, buffer_pos
      integer, intent(in) :: type
      real(kind_physics) :: vel_update, theta, phi
@@ -249,34 +312,27 @@ contains
         call allocate_ll_buffer(size(guide%tmp_particles), guide%next)
         guide => guide%next
      end if
-     ! theta defines inclination, phi defines azimuth in spherical coord. system
-     theta = rand1*pi
-     phi = rand2*pi*2.0
 
      select case(type)
      case(0) ! Electron
-       vel_update = vel_mag
 
        guide%tmp_particles(buffer_pos)%data%q = -1.0
        guide%tmp_particles(buffer_pos)%data%m = 1.0_8
        guide%tmp_particles(buffer_pos)%data%species = 0
 
      case(1) ! H+
-       vel_update = vel_mag/1836.21957489_8
 
        guide%tmp_particles(buffer_pos)%data%q = 1.0
        guide%tmp_particles(buffer_pos)%data%m = 1836.21957489_8 ! times greater than mass of electron
        guide%tmp_particles(buffer_pos)%data%species = 1
 
      case(2) ! H2+
-       vel_update = vel_mag/3673.43889456
 
        guide%tmp_particles(buffer_pos)%data%q = 1.0
        guide%tmp_particles(buffer_pos)%data%m = 3673.43889456_8 ! times greater than mass of electron
        guide%tmp_particles(buffer_pos)%data%species = 2
 
      case(3) ! H atom
-       vel_update = vel_mag/1837.21957489_8
 
        guide%tmp_particles(buffer_pos)%data%q = 0.0
        guide%tmp_particles(buffer_pos)%data%m = 1837.21957489_8 ! times greater than mass of electron
@@ -288,9 +344,7 @@ contains
      guide%tmp_particles(buffer_pos)%work = 1.0_8
      guide%tmp_particles(buffer_pos)%data%age = 0.0_8
 
-     guide%tmp_particles(buffer_pos)%data%v(1) = vel_update*sin(theta)*cos(phi)
-     guide%tmp_particles(buffer_pos)%data%v(2) = vel_update*sin(theta)*sin(phi)
-     guide%tmp_particles(buffer_pos)%data%v(3) = vel_update*cos(theta)
+     guide%tmp_particles(buffer_pos)%data%v = 0.0_8
 
      new_particle = new_particle + 1
    end subroutine add_particle
@@ -301,8 +355,13 @@ contains
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, electron_count
      real(kind_physics), dimension(:), intent(inout) :: CS_vector
-     real(kind_physics) :: vel_mag, nu_prime
+     real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, IE_H2_ion, AE_H_ion, theta, phi
+     real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      integer :: buff_pos, ll_elem_gen, i
+
+     IE_H2_ion = 15.283 ! eV, Ionization energy of H2+ [Source: T.E.Sharp Atomic Data 2, 119-169 (1971)]
+     AE_H_ion = 18.075 ! eV, Appearance energy of H+
+     ! [definition of Appearance energy vs Ionization energy from Mass Spectroscopy (2011) by Gross J.H.]
 
      ! NOTE: Currently, calculation of nu_prime involves obtaining abs_max_CS,
      !       which is the sum of all max value of cross section data of all considered
@@ -310,7 +369,7 @@ contains
      !       by multiplying abs_max_CS with the particle's velocity magnitude and
      !       constant local density. nu_prime will thus be always larger than actual nu!
      vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
-     nu_prime = abs_max_CS * vel_mag * 6545520.13889
+     nu_prime = abs_max_CS * vel_mag * neutral_density
 
      ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
      ctr_s(1) = (my_rank + 1)*(nt - step)
@@ -326,7 +385,7 @@ contains
        call determine_cross_sections(particle, CS_vector, CS_tables)
 
        ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
-       CS_vector = CS_vector * vel_mag * 6545520.13889 ! test value of constant local_number_density (at 0.001Pa)
+       CS_vector = CS_vector * vel_mag * neutral_density !6545520.13889 test value of constant local_number_density (at 0.001Pa)
 
        i = 1
        do while (rand_num(2) > (CS_vector(i)/nu_prime))
@@ -352,26 +411,79 @@ contains
        particle%data%age = 0.0_8
 
      case(2) ! nondissociative ionization (1 additional electron, 1 byproduct)
-       call add_particle(guide, particle, vel_mag, new_particle, rand_num(3), rand_num(4), buff_pos, 0)
-       guide%tmp_particles(buff_pos)%data%v = guide%tmp_particles(buff_pos)%data%v/3._8
-       call add_particle(guide, particle, vel_mag, new_particle, rand_num(5), rand_num(6), buff_pos, 2)
-       guide%tmp_particles(buff_pos)%data%v = guide%tmp_particles(buff_pos)%data%v/3._8
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*IE_H2_ion/e_mass)
+       reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
+       call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
+      !  print *, "incident momentum: ", particle%data%m * reduced_incident
 
-       particle%data%v(1) = vel_mag * sin(rand_num(7)*pi) * cos(rand_num(8)*pi*2.0)/3._8
-       particle%data%v(2) = vel_mag * sin(rand_num(7)*pi) * sin(rand_num(8)*pi*2.0)/3._8
-       particle%data%v(3) = vel_mag * cos(rand_num(7)*pi)/3._8
+       call add_particle(guide, particle, new_particle, buff_pos, 0)
+       temp_vel(1) = sin(rand_num(3)*pi*0.5) * cos(rand_num(4)*pi*2.0)
+       temp_vel(2) = sin(rand_num(3)*pi*0.5) * sin(rand_num(4)*pi*2.0)
+       temp_vel(3) = cos(rand_num(3)*pi*0.5)
+
+       rot_axis(1) = 0.0
+       rot_axis(2) = 1.0
+       rot_axis(3) = 0.0
+       temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
+       rot_axis(2) = 0.0
+       rot_axis(3) = 1.0
+       temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
+
+       cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
+       temp_vel_mag = (2.*particle%data%m/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)) &
+                      * reduced_vel_mag * cos_theta
+       temp_vel1_mag = reduced_vel_mag*sqrt(particle%data%m**2 + 2. * particle%data%m * guide%tmp_particles(buff_pos)%data%m &
+                       * (1. - 2. * (cos_theta**2)) + guide%tmp_particles(buff_pos)%data%m**2)/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)
+       guide%tmp_particles(buff_pos)%data%v = temp_vel * temp_vel_mag
+
+       temp_vel1 = reduced_incident - (guide%tmp_particles(buff_pos)%data%m/particle%data%m) * &
+                   guide%tmp_particles(buff_pos)%data%v
+
+       particle%data%v = temp_vel1
        particle%data%age = 0.0_8
+      !  print *, "outgoing momentum: ", particle%data%m*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
+      !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
+      !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
+
+       call add_particle(guide, particle, new_particle, buff_pos, 2)
 
      case(3) ! dissociative ionization (1 additional electron, 2 byproducts), Hydrogen atom is ignored!
-       call add_particle(guide, particle, vel_mag, new_particle, rand_num(3), rand_num(4), buff_pos, 0)
-       guide%tmp_particles(buff_pos)%data%v = guide%tmp_particles(buff_pos)%data%v*0.25_8
-       call add_particle(guide, particle, vel_mag, new_particle, rand_num(5), rand_num(6), buff_pos, 1)
-       guide%tmp_particles(buff_pos)%data%v = guide%tmp_particles(buff_pos)%data%v*0.25_8
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*AE_H_ion/e_mass)
+       reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
+       call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
+      !  print *, "incident momentum: ", particle%data%m * reduced_incident
 
-       particle%data%v(1) = vel_mag * sin(rand_num(7)*pi) * cos(rand_num(8)*pi*2.0) *0.25_8
-       particle%data%v(2) = vel_mag * sin(rand_num(7)*pi) * sin(rand_num(8)*pi*2.0) *0.25_8
-       particle%data%v(3) = vel_mag * cos(rand_num(7)*pi) *0.25_8
+       call add_particle(guide, particle, new_particle, buff_pos, 0)
+
+       temp_vel(1) = sin(rand_num(3)*pi*0.5) * cos(rand_num(4)*pi*2.0)
+       temp_vel(2) = sin(rand_num(3)*pi*0.5) * sin(rand_num(4)*pi*2.0)
+       temp_vel(3) = cos(rand_num(3)*pi*0.5)
+
+       rot_axis(1) = 0.0
+       rot_axis(2) = 1.0
+       rot_axis(3) = 0.0
+       temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
+       rot_axis(2) = 0.0
+       rot_axis(3) = 1.0
+       temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
+
+       cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
+       temp_vel_mag = (2.*particle%data%m/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)) &
+                      * reduced_vel_mag * cos_theta
+       temp_vel1_mag = reduced_vel_mag*sqrt(particle%data%m**2 + 2. * particle%data%m * guide%tmp_particles(buff_pos)%data%m &
+                       * (1. - 2. * (cos_theta**2)) + guide%tmp_particles(buff_pos)%data%m**2)/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)
+       guide%tmp_particles(buff_pos)%data%v = temp_vel * temp_vel_mag
+
+       temp_vel1 = reduced_incident - (guide%tmp_particles(buff_pos)%data%m/particle%data%m) * &
+                   guide%tmp_particles(buff_pos)%data%v
+
+       particle%data%v = temp_vel1
        particle%data%age = 0.0_8
+      !  print *, "outgoing momentum: ", particle%data%m*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
+      !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
+      !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
+
+       call add_particle(guide, particle, new_particle, buff_pos, 1)
 
      end select
    end subroutine collision_update

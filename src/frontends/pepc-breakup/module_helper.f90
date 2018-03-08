@@ -74,7 +74,7 @@ module helper
 
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
-   real(kind_physics) :: abs_max_CS
+   real(kind_physics) :: abs_max_CS, neutral_density
 
    ! lookup tables for cross section data
    character(255) :: file_path
@@ -86,6 +86,7 @@ module helper
    real(kind_physics) :: e = 1.6021766208e-19 ! Coulomb
    real(kind_physics) :: eps_0 = 8.85418781762e-12 ! Coulomb/Vm
    real(kind_physics) :: pi = 3.141592653589793238462643383279502884197
+   real(kind_physics) :: kboltzmann = 1.38064852e-23 ! J K^(-1)
    real(kind_physics) :: E_q_dt_m
 
    interface random
