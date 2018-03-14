@@ -103,18 +103,52 @@ contains
       end do
    end function matrix_vector_multiplication
 
+   function circular_poloidal_field(particle_pos, vector_parallel_maj_radius, distance_xy) result(Poloidal_field)
+     implicit none
+     real(kind_physics), intent(in) :: particle_pos(3), vector_parallel_maj_radius(3)
+     real(kind_physics), intent(in) :: distance_xy
+     real(kind_physics) :: major_r_vec(3), a, Poloidal_field(3)
+
+     ! first calculate the vector from center of cylinder (2D slice of torus)
+     ! to the particle (in plane), defined as major_r_vec
+     major_r_vec(1) = particle_pos(1)
+     major_r_vec(2) = particle_pos(2)
+     major_r_vec(3) = 0.0
+
+     major_r_vec = major_r_vec*major_radius/distance_xy
+     major_r_vec = particle_pos - major_r_vec
+     a = sqrt(particle_pos(3)**2 + (major_radius - distance_xy)**2)
+
+     Poloidal_field = cross_product(vector_parallel_maj_radius,major_r_vec)
+     Poloidal_field = Poloidal_field/sqrt(dot_product(Poloidal_field, Poloidal_field))
+     Poloidal_field = 0.0001*((1.e-12*c)**2)/e_mass + Poloidal_field*a*B_p/minor_radius
+   end function circular_poloidal_field
+
    subroutine particle_EB_field(particle, E_field)
       implicit none
       type(t_particle), intent(inout) :: particle
-      real(kind_physics) :: B_field(3), E_field(3)
-      ! integer :: i
+      real(kind_physics), intent(in) :: E_field(3)
+      real(kind_physics) :: B_field(3), ez(3), Pol_B_field(3), field_vector(3)
+      real(kind_physics) :: R
 
+      ez = 0.0
+      ez(3) = 1.0
       B_field = 0.0
+      field_vector = 0.0
+
+      field_vector = cross_product(particle%x,ez)
+      field_vector = field_vector/sqrt(dot_product(field_vector, field_vector))
+
+      R = sqrt(particle%x(1)**2 + particle%x(2)**2)
+      B_field = field_vector*B0*major_radius/R
+
+      ! Option 2: a circular poloidal magnetic field, centred around major_radius
+      Pol_B_field = circular_poloidal_field(particle%x, field_vector, R)
 
       !TODO add details to calculate the external E_field & B_field experienced by particles
-      particle%results%e = particle%results%e + E_field
-      particle%data%b = B_field
-
+      particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R)
+      ! print *, particle%results%e*0.0160217662080007054395368083795655167047391940703667
+      particle%data%b = B_field + Pol_B_field
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)

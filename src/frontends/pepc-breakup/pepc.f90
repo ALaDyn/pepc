@@ -78,7 +78,9 @@ program pepc
       end if
       call particle_EB_field(particles(i), external_e)
       call boris_velocity_update(particles(i), -dt*0.5_8)
+      V_loop = -1.*V_loop
       call particle_EB_field(particles(i), -external_e)
+      V_loop = -1.*V_loop
    end do
 
    ! free tree specific allocations

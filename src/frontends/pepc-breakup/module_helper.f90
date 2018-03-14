@@ -80,6 +80,9 @@ module helper
    character(255) :: file_path
    type(linked_list_CS), pointer :: CS_tables, CS_guide
 
+   ! variables describing external fields
+   real(kind_physics) :: major_radius, minor_radius, B0, B_p, V_loop
+
    ! constants & scaling factors
    real(kind_physics) :: c = 299792458.0 ! m/s
    real(kind_physics) :: e_mass = 510998.9461 ! eV/c^2
@@ -106,7 +109,8 @@ contains
       logical            :: read_para_file
 
       namelist /pepcbreakup/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, &
-         particle_test, diag_interval, plasma_dimensions, external_e
+         particle_test, diag_interval, plasma_dimensions, external_e, major_radius, minor_radius, &
+         B0, B_p, V_loop
 
       ! set default parameter values
       tnp = 10000
@@ -125,7 +129,7 @@ contains
       call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
       if (read_para_file) then
-         if (root) write (*, '(a)') " == reading parameter file, section pepcessential: ", para_file
+         if (root) write (*, '(a)') " == reading parameter file, section pepcbreakup: ", para_file
          open (fid, file=para_file)
          read (fid, NML=pepcbreakup)
          close (fid)
@@ -144,13 +148,24 @@ contains
          write (*, '(a,l12)') " == reflecting walls          : ", reflecting_walls
          write (*, '(a,3(es12.4))') " == plasma dimensions         : ", plasma_dimensions
          write (*, '(a,3(es12.4))') " == external electric field   : ", external_e
+         write (*, '(a,es12.4)') " == major radius(m)           : ", major_radius
+         write (*, '(a,es12.4)') " == minor radius(m)           : ", minor_radius
+         write (*, '(a,es12.4)') " == toroidal magnetic field strength: ", B0
+         write (*, '(a,es12.4)') " == poloidal magnetic field strength: ", B_p
+         write (*, '(a,es12.4)') " == toroidal electric field strength: ", V_loop
       end if
 
       ! NOTE: Scale the appropriate read-in variables!
-      !       1. multiply 4*pi*eps_0*(1e-12 sec*light speed)^2/(elementary charge) to external_e
-      !       2. divide plasma_dimensions by 1e-12*light speed
-      external_e = external_e*4.0*pi*eps_0*((c*1e-12)**2)/e
+      !       1. multiply 4*pi*eps_0*(1e-12 sec*light speed)^2/(elementary charge) to electric field (V/m)
+      !       2. multiply 4*pi*eps_0*(1e-12 sec*light speed)/(elementary charge) to voltage
+      !       3. multiply ((1.e-12*c)**2)/e_mass to B field (Tesla)
+      !       4. divide length variables with (1.e-12*c)
+      V_loop = V_loop*4.0*pi*eps_0*((c*1e-12))/e
+      B0 = B0 * ((1.e-12*c)**2)/e_mass
+      B_p = B_p * ((1.e-12*c)**2)/e_mass
       plasma_dimensions = plasma_dimensions/(c*1e-12)
+      major_radius = major_radius/(c*1e-12)
+      minor_radius = minor_radius/(c*1e-12)
 
       call pepc_prepare(3_kind_dim)
    end subroutine set_parameter
@@ -161,7 +176,8 @@ contains
       type(t_particle), allocatable, intent(inout) :: p(:)
       integer(kind_particle) :: ip
       integer :: rc
-      real*8 :: dummy
+      real*8 :: dummy, theta, phi, l, r
+      real*8 :: ran(3)
 
       if (root) write (*, '(a)') " == [init] init particles "
 
@@ -189,12 +205,19 @@ contains
 
          p(ip)%data%age = 0.0_8
 
-         call random(p(ip)%x)
-         p(ip)%x = p(ip)%x*plasma_dimensions
+        !  call random(p(ip)%x)
+        !  p(ip)%x = p(ip)%x*plasma_dimensions
+         call random_number(ran)
+         r = ran(1) * minor_radius
+         phi = ran(2) * 2. * pi
+         theta  = ran(3) * 2. * pi
+         l = major_radius + r*sin(phi)
+         p(ip)%x(1) = l * sin(theta)
+         p(ip)%x(2) = l * cos(theta)
+         p(ip)%x(3) = r * cos(phi)
 
          call random_gauss(p(ip)%data%v)
-         ! NOTE: Check the dimension of random_gauss output
-         p(ip)%data%v = p(ip)%data%v/c * 1e6
+         p(ip)%data%v = p(ip)%data%v/c
 
          p(ip)%work = 1.0_8
       end do

@@ -26,7 +26,20 @@ particle_test = .false.
 plasma_dimensions = 1.0 1.0 1.0
 
 ! external electric field (in V/m)
-external_e = 0.0 0.0 0.6
+external_e = 0.0 0.0 0.0
+
+! tokamak torus descriptions (in meters)
+major_radius = 2.9
+minor_radius = 0.5
+
+! toroidal magnetic field strength (Tesla)
+B0 = 2.5
+
+! poloidal magnetic field strength (Tesla)
+B_p = 0.024
+
+! loop voltage along tokamak torus(V/m)
+V_loop = 11.0
 /
 
 &calc_force_coulomb
