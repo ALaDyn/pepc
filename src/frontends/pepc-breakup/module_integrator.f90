@@ -145,8 +145,7 @@ contains
       ! Option 2: a circular poloidal magnetic field, centred around major_radius
       Pol_B_field = circular_poloidal_field(particle%x, field_vector, R)
 
-      !TODO add details to calculate the external E_field & B_field experienced by particles
-      particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R)
+      particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
       ! print *, particle%results%e*0.0160217662080007054395368083795655167047391940703667
       particle%data%b = B_field + Pol_B_field
    end subroutine particle_EB_field
@@ -414,7 +413,7 @@ contains
      ! Generating Random Number between [0,1]
      dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
 
-    !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*CS_vector(size(CS_vector))*dt))
+    !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
      if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
        call determine_cross_sections(particle, CS_vector, CS_tables)
 
@@ -436,7 +435,7 @@ contains
 
      select case(i)
      case(0) ! null collision, no update performed
-
+      !  print *, "null coll!"
      case(1) ! elastic scattering (no additional electron, no byproducts)
        ! update velocity to indicate scattering into random angle
        particle%data%v(1) = vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)

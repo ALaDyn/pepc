@@ -69,7 +69,8 @@ program pepc
    call pepc_grow_tree(particles)
    call pepc_traverse_tree(particles)
 
-   neutral_density = calculate_neutral_density(0.001_kind_physics, 298.15_kind_physics)
+   neutral_density = calculate_neutral_density(pressure, init_temperature)
+   if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
    electron_num = 0
    do i = 1, size(particles)

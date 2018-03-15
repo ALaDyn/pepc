@@ -25,6 +25,12 @@ particle_test = .false.
 ! size of the simulation box
 plasma_dimensions = 1.0 1.0 1.0
 
+! initial electron temperature (K)
+init_temperature = 298.15
+
+! pressure of vessel (Pa)
+pressure = 0.001
+
 ! external electric field (in V/m)
 external_e = 0.0 0.0 0.0
 

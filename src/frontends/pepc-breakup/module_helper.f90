@@ -74,7 +74,7 @@ module helper
 
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
-   real(kind_physics) :: abs_max_CS, neutral_density
+   real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure
 
    ! lookup tables for cross section data
    character(255) :: file_path
@@ -109,8 +109,8 @@ contains
       logical            :: read_para_file
 
       namelist /pepcbreakup/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, &
-         particle_test, diag_interval, plasma_dimensions, external_e, major_radius, minor_radius, &
-         B0, B_p, V_loop
+         particle_test, diag_interval, plasma_dimensions, init_temperature, pressure, external_e, &
+         major_radius, minor_radius, B0, B_p, V_loop
 
       ! set default parameter values
       tnp = 10000
@@ -138,21 +138,23 @@ contains
       end if
 
       if (root) then
-         write (*, '(a,i12)') " == total number of particles : ", tnp
-         write (*, '(a,i12)') " == number of time steps      : ", nt
-         write (*, '(a,es12.4)') " == time step                 : ", dt
-         write (*, '(a,i12)') " == diag & IO interval        : ", diag_interval
-         write (*, '(a,l12)') " == particle test             : ", particle_test
-         write (*, '(a,l12)') " == particle output           : ", particle_output
-         write (*, '(a,l12)') " == domain output             : ", domain_output
-         write (*, '(a,l12)') " == reflecting walls          : ", reflecting_walls
-         write (*, '(a,3(es12.4))') " == plasma dimensions         : ", plasma_dimensions
-         write (*, '(a,3(es12.4))') " == external electric field   : ", external_e
-         write (*, '(a,es12.4)') " == major radius(m)           : ", major_radius
-         write (*, '(a,es12.4)') " == minor radius(m)           : ", minor_radius
-         write (*, '(a,es12.4)') " == toroidal magnetic field strength: ", B0
-         write (*, '(a,es12.4)') " == poloidal magnetic field strength: ", B_p
-         write (*, '(a,es12.4)') " == toroidal electric field strength: ", V_loop
+         write (*, '(a,i12)') " == total number of particles           : ", tnp
+         write (*, '(a,i12)') " == number of time steps                : ", nt
+         write (*, '(a,es12.4)') " == time step                           : ", dt
+         write (*, '(a,i12)') " == diag & IO interval                  : ", diag_interval
+         write (*, '(a,l12)') " == particle test                       : ", particle_test
+         write (*, '(a,l12)') " == particle output                     : ", particle_output
+         write (*, '(a,l12)') " == domain output                       : ", domain_output
+         write (*, '(a,l12)') " == reflecting walls                    : ", reflecting_walls
+         write (*, '(a,3(es12.4))') " == plasma dimensions                   : ", plasma_dimensions
+         write (*, '(a,es12.4)') " == initial electron temperature(K)     : ", init_temperature
+         write (*, '(a,es12.4)') " == pressure(Pa)                        : ", pressure
+         write (*, '(a,3(es12.4))') " == external electric field(V/m)        : ", external_e
+         write (*, '(a,es12.4)') " == major radius(m)                     : ", major_radius
+         write (*, '(a,es12.4)') " == minor radius(m)                     : ", minor_radius
+         write (*, '(a,es12.4)') " == toroidal magnetic field strength (T): ", B0
+         write (*, '(a,es12.4)') " == poloidal magnetic field strength (T): ", B_p
+         write (*, '(a,es12.4)') " == toroidal loop voltage(V)            : ", V_loop
       end if
 
       ! NOTE: Scale the appropriate read-in variables!
@@ -160,6 +162,7 @@ contains
       !       2. multiply 4*pi*eps_0*(1e-12 sec*light speed)/(elementary charge) to voltage
       !       3. multiply ((1.e-12*c)**2)/e_mass to B field (Tesla)
       !       4. divide length variables with (1.e-12*c)
+      external_e = external_e*4.0*pi*eps_0*((c*1e-12)**2)/e
       V_loop = V_loop*4.0*pi*eps_0*((c*1e-12))/e
       B0 = B0 * ((1.e-12*c)**2)/e_mass
       B_p = B_p * ((1.e-12*c)**2)/e_mass
@@ -170,14 +173,39 @@ contains
       call pepc_prepare(3_kind_dim)
    end subroutine set_parameter
 
+   function torus_geometry() result(pos)
+     implicit none
+     real(kind_physics) :: pos(3), ran(3)
+     real*8 :: theta, phi, l, r
+
+     call random_number(ran)
+     r = ran(1) * minor_radius
+     phi = ran(2) * 2. * pi
+     theta  = ran(3) * 2. * pi
+     l = major_radius + r*sin(phi)
+     pos(1) = l * sin(theta)
+     pos(2) = l * cos(theta)
+     pos(3) = r * cos(phi)
+   end function torus_geometry
+
+   function thermal_velocity_mag(mass, temp) result(velocity)
+     implicit none
+     real(kind_physics), intent(in) :: mass, temp
+     real(kind_physics) :: velocity, kb_ev
+
+     kb_ev = 8.61733035e-5 !boltzmann constant in eV/K
+     velocity = sqrt(temp*kb_ev/(mass*e_mass)) !dimensionless velocity
+    !  print *, velocity
+   end function thermal_velocity_mag
+
    subroutine init_particles(p)
       implicit none
 
       type(t_particle), allocatable, intent(inout) :: p(:)
       integer(kind_particle) :: ip
       integer :: rc
-      real*8 :: dummy, theta, phi, l, r
-      real*8 :: ran(3)
+      real*8 :: dummy
+      real(kind_physics) :: magnitude
 
       if (root) write (*, '(a)') " == [init] init particles "
 
@@ -205,19 +233,16 @@ contains
 
          p(ip)%data%age = 0.0_8
 
-        !  call random(p(ip)%x)
-        !  p(ip)%x = p(ip)%x*plasma_dimensions
-         call random_number(ran)
-         r = ran(1) * minor_radius
-         phi = ran(2) * 2. * pi
-         theta  = ran(3) * 2. * pi
-         l = major_radius + r*sin(phi)
-         p(ip)%x(1) = l * sin(theta)
-         p(ip)%x(2) = l * cos(theta)
-         p(ip)%x(3) = r * cos(phi)
+         call random(p(ip)%x)
+         p(ip)%x = p(ip)%x*plasma_dimensions
+        !  p(ip)%x = torus_geometry()
 
-         call random_gauss(p(ip)%data%v)
-         p(ip)%data%v = p(ip)%data%v/c
+        !  call random_gauss(p(ip)%data%v)
+        !  p(ip)%data%v = p(ip)%data%v/c * 1e6
+
+         magnitude = thermal_velocity_mag(p(ip)%data%m, 873.15_kind_physics)
+         p(ip)%data%v = 0.0
+         p(ip)%data%v(3) = -1.0 * magnitude
 
          p(ip)%work = 1.0_8
       end do
