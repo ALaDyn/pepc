@@ -72,11 +72,16 @@ program pepc
    neutral_density = calculate_neutral_density(pressure, init_temperature)
    if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
-   electron_num = 0
+
+   ! Calculates number of electrons injected by local process
+   electron_num = 18
+   local_electron_num = electron_num/n_ranks
+   if (my_rank < MOD(electron_num, 1_kind_particle*n_ranks)) then
+     local_electron_num = local_electron_num + 1
+   end if
+
+
    do i = 1, size(particles)
-      if (particles(i)%data%q < 0.0_8) then
-         electron_num = electron_num + 1
-      end if
       call particle_EB_field(particles(i), external_e)
       call boris_velocity_update(particles(i), -dt*0.5_8)
       V_loop = -1.*V_loop
@@ -102,12 +107,8 @@ program pepc
       particle_guide => buffer
       call timer_start(t_boris)
 
-      electron_num = 0
       new_particle_cnt = 0
       do i = 1, size(particles)
-         if (particles(i)%data%q < 0.0_8) then
-            electron_num = electron_num + 1
-         end if
          call particle_EB_field(particles(i), external_e)
          call boris_velocity_update(particles(i), dt)
          call particle_pusher(particles(i), dt)
@@ -118,8 +119,8 @@ program pepc
         !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
       end do
 
-      if (new_particle_cnt > 0) then
-         call extend_particles_list(particles, buffer, new_particle_cnt)
+      if ((new_particle_cnt > 0) .or. (local_electron_num /= 0)) then
+         call extend_particles_list_add_e(particles, buffer, new_particle_cnt, local_electron_num)
          print *, "extending particle list successful! New size: ", my_rank, size(particles)
       end if
 

@@ -103,6 +103,7 @@ contains
       deallocate (temp_array)
    end subroutine resize_array
 
+   ! NOTE: OBSOLETE SUBROUTINE
    subroutine extend_particles_list(particles, buffer, new_particles_size)
       implicit none
       type(t_particle), allocatable, intent(inout) :: particles(:)
@@ -129,9 +130,9 @@ contains
          if (i /= ll_elem_cnt) then
             particles(head:tail) = temp_guide%tmp_particles
          else if ((i == ll_elem_cnt) .and. (remainder == 0)) then
-            particles(head:size(particles)) = temp_guide%tmp_particles
+            particles(head:new_size) = temp_guide%tmp_particles
          else
-            particles(head:size(particles)) = temp_guide%tmp_particles(1:(remainder))
+            particles(head:new_size) = temp_guide%tmp_particles(1:(remainder))
          end if
 
          head = tail + 1

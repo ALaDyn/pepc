@@ -65,7 +65,7 @@ module helper
 
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
-   integer :: electron_num, i, new_particle_cnt
+   integer :: electron_num, i, new_particle_cnt, local_electron_num
 
    ! variables for random number generation
    integer :: dummy
@@ -235,12 +235,13 @@ contains
 
          call random(p(ip)%x)
          p(ip)%x = p(ip)%x*plasma_dimensions
+         p(ip)%x(3) = 0.0
         !  p(ip)%x = torus_geometry()
 
         !  call random_gauss(p(ip)%data%v)
         !  p(ip)%data%v = p(ip)%data%v/c * 1e6
 
-         magnitude = thermal_velocity_mag(p(ip)%data%m, 873.15_kind_physics)
+         magnitude = thermal_velocity_mag(p(ip)%data%m, 873.15_kind_physics)! 0.0108359158316
          p(ip)%data%v = 0.0
          p(ip)%data%v(3) = -1.0 * magnitude
 

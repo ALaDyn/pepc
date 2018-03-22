@@ -180,7 +180,6 @@ contains
          guide%tmp_particles(buffer_pos)%results%e = 0.0
          guide%tmp_particles(buffer_pos)%results%pot = 0.0
 
-         ! call rotation(particle%data%v, 25.0, 25.0, 25.0)
          particle%data%v = particle%data%v*0.5
          particle%data%age = 0.0
 
@@ -520,4 +519,122 @@ contains
 
      end select
    end subroutine collision_update
+
+   subroutine extend_particles_list_add_e(particles, buffer, new_particles_size, electron_number)
+      implicit none
+      type(t_particle), allocatable, intent(inout) :: particles(:)
+      type(linked_list_elem), pointer, intent(inout) :: buffer
+      type(linked_list_elem), pointer :: temp_guide
+      integer, intent(in) :: new_particles_size, electron_number
+      integer :: new_size, head, tail, ll_buffer_size, i, remainder, ll_elem_cnt, &
+                 temp_size
+      real(kind_physics) :: center_pos(3), plane_orient(3)
+
+      ll_buffer_size = size(buffer%tmp_particles)
+      ll_elem_cnt = CEILING(real(new_particles_size)/real(ll_buffer_size))
+      remainder = MOD(new_particles_size, ll_buffer_size)
+
+      temp_size = size(particles) + new_particles_size
+      new_size = temp_size + electron_number
+      i = 1
+      head = size(particles) + 1
+      tail = size(particles) + ll_buffer_size
+
+      print *, "Linked List elements: ", ll_elem_cnt, size(particles), new_particles_size + electron_number, remainder
+
+      call resize_array(particles, new_size)
+
+      ! NOTE: if there is no new particle being generated, the following code section will cause fatal error!
+      if (new_particles_size /= 0) then
+        temp_guide => buffer
+        do while (associated(temp_guide))
+           if (i /= ll_elem_cnt) then
+              particles(head:tail) = temp_guide%tmp_particles
+           else if ((i == ll_elem_cnt) .and. (remainder == 0)) then
+              particles(head:temp_size) = temp_guide%tmp_particles
+           else
+              particles(head:temp_size) = temp_guide%tmp_particles(1:(remainder))
+           end if
+
+           head = tail + 1
+           tail = tail + ll_buffer_size
+           i = i + 1
+
+           temp_guide => temp_guide%next
+        end do
+        nullify (temp_guide)
+      end if
+
+      center_pos = 0.5/(c*1e-12)
+      center_pos(3) = 0.0
+      plane_orient = 0.0
+      plane_orient(3) = -1.0
+      call injected_electrons(electron_number, center_pos, plane_orient, 2, 0.15/(c*1e-12), &
+                                particles, temp_size + 1)
+   end subroutine extend_particles_list_add_e
+
+   subroutine injected_electrons(num, center_pos, plane, geometry, inlet_size, &
+                                   particles_list, starting_index)
+     ! NOTE: supports only planes in principal directions
+     implicit none
+     real(kind_physics), intent(in) :: plane(3), center_pos(3), inlet_size
+     integer, intent(in) :: num, geometry, starting_index
+     type(t_particle), allocatable, intent(inout) :: particles_list(:)
+     real(kind_physics) :: ran(3), magnitude, pi, theta
+     integer :: i, j, index
+
+     pi = 3.141592653589793238462643383279502884197
+     magnitude = thermal_velocity_mag(1.0_8, 873.15_kind_physics)
+
+     select case(geometry)
+     case(1) ! square plane
+       do index = starting_index, (starting_index + num -1)
+         call random_number(ran)
+         particles_list(index)%data%q = -1.0_8
+         particles_list(index)%data%m = 1.0_8
+         particles_list(index)%data%species = 0
+         particles_list(index)%data%age = 0.0_8
+         particles_list(index)%work = 1.0_8
+
+         particles_list(index)%x = 0.0
+         particles_list(index)%data%v = 0.0
+
+         do i = 1, 3
+           if (plane(i) == 0.0) then
+             particles_list(index)%x(i) = ran(i) * inlet_size + center_pos(i) - inlet_size*0.5
+           else
+             particles_list(index)%data%v(i) = plane(i) * magnitude
+           end if
+         end do
+       end do
+
+     case(2) ! circle plane
+       do index = starting_index, (starting_index + num - 1)
+         call random_number(ran)
+         particles_list(index)%data%q = -1.0_8
+         particles_list(index)%data%m = 1.0_8
+         particles_list(index)%data%species = 0
+         particles_list(index)%data%age = 0.0_8
+         particles_list(index)%work = 1.0_8
+
+         particles_list(index)%x = 0.0
+         particles_list(index)%data%v = 0.0
+
+         theta = ran(2)*2.*pi
+
+         j = 0
+         do i = 1, 3
+           if ((plane(i) == 0.0) .and. (j == 0)) then
+             particles_list(index)%x(i) = ran(1) * sin(theta) * inlet_size + center_pos(i)
+             j = 1
+           else if ((plane(i) == 0.0) .and. (j == 1)) then
+             particles_list(index)%x(i) = ran(1) * cos(theta) * inlet_size + center_pos(i)
+           else
+             particles_list(index)%data%v(i) = plane(i) * magnitude
+           end if
+         end do
+       end do
+     end select
+
+   end subroutine injected_electrons
 end module
