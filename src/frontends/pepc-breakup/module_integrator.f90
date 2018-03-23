@@ -573,6 +573,59 @@ contains
                                 particles, temp_size + 1)
    end subroutine extend_particles_list_add_e
 
+   subroutine extend_particles_list_v2(particles, buffer, new_particles_size, electron_number, swapped_cnt)
+      implicit none
+      type(t_particle), allocatable, intent(inout) :: particles(:)
+      type(linked_list_elem), pointer, intent(inout) :: buffer
+      type(linked_list_elem), pointer :: temp_guide
+      integer, intent(in) :: new_particles_size, electron_number, swapped_cnt
+      integer :: new_size, head, tail, ll_buffer_size, i, remainder, ll_elem_cnt, &
+                 temp_size
+      real(kind_physics) :: center_pos(3), plane_orient(3)
+
+      ll_buffer_size = size(buffer%tmp_particles)
+      ll_elem_cnt = CEILING(real(new_particles_size)/real(ll_buffer_size))
+      remainder = MOD(new_particles_size, ll_buffer_size)
+
+      temp_size = size(particles) + new_particles_size - swapped_cnt
+      new_size = temp_size + electron_number
+      i = 1
+      head = size(particles) - swapped_cnt + 1
+      tail = size(particles) - swapped_cnt + ll_buffer_size
+
+      print *, "Linked List elements: ", ll_elem_cnt, size(particles), new_particles_size + electron_number, remainder
+
+      call resize_array(particles, new_size)
+
+      ! NOTE: if there is no new particle being generated, the following code section will cause fatal error!
+      if (new_particles_size /= 0) then
+        temp_guide => buffer
+        do while (associated(temp_guide))
+           if (i /= ll_elem_cnt) then
+              particles(head:tail) = temp_guide%tmp_particles
+           else if ((i == ll_elem_cnt) .and. (remainder == 0)) then
+              particles(head:temp_size) = temp_guide%tmp_particles
+           else
+              particles(head:temp_size) = temp_guide%tmp_particles(1:(remainder))
+           end if
+
+           head = tail + 1
+           tail = tail + ll_buffer_size
+           i = i + 1
+
+           temp_guide => temp_guide%next
+        end do
+        nullify (temp_guide)
+      end if
+
+      center_pos = 0.5/(c*1e-12)
+      center_pos(3) = 0.0
+      plane_orient = 0.0
+      plane_orient(3) = -1.0
+      call injected_electrons(electron_number, center_pos, plane_orient, 1, 0.15/(c*1e-12), &
+                                particles, temp_size + 1)
+   end subroutine extend_particles_list_v2
+
    subroutine injected_electrons(num, center_pos, plane, geometry, inlet_size, &
                                    particles_list, starting_index)
      ! NOTE: supports only planes in principal directions
@@ -635,6 +688,77 @@ contains
          end do
        end do
      end select
-
    end subroutine injected_electrons
+
+   subroutine filter_and_swap(particles, geometry, current_index, swapped_cnt)
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     integer, intent(inout) :: swapped_cnt
+     integer, intent(in) :: geometry, current_index
+     integer :: buffer_size, target_swap, init_swap_cnt
+     type(t_particle) :: swap_particle
+     real(kind_physics) :: center_pos(3)
+     real(kind_physics) :: radius, cyl_radius, cyl_length, box_dim, x, y, box_l
+
+     buffer_size = size(particles)
+     target_swap = buffer_size - swapped_cnt
+
+     center_pos = 0.5/(c*1e-12)
+     center_pos(3) = 0.0
+
+     x = particles(current_index)%x(1) - center_pos(1)
+     y = particles(current_index)%x(2) - center_pos(2)
+
+     init_swap_cnt = swapped_cnt
+
+     select case(geometry)
+     case(1) ! box boundary
+       box_dim = 1.0/(c*1e-12)
+       box_l = 0.5/(c*1e-12)
+
+       if ((abs(x) > box_dim*0.5) .or. (abs(y) > box_dim*0.5)) then
+         particles(current_index) = particles(target_swap)
+         swapped_cnt = swapped_cnt + 1
+       else
+         if (particles(current_index)%x(3) > 0.0) then
+           cathode_count = cathode_count + particles(current_index)%data%q
+           particles(current_index) = particles(target_swap)
+           swapped_cnt = swapped_cnt + 1
+         else if (particles(current_index)%x(3) < -box_l) then
+           anode_count = anode_count + particles(current_index)%data%q
+           particles(current_index) = particles(target_swap)
+           swapped_cnt = swapped_cnt + 1
+         end if
+       end if
+
+       if (init_swap_cnt /= swapped_cnt) then
+         call filter_and_swap(particles, geometry, current_index, swapped_cnt)
+       end if
+
+     case(2) ! cylinder boundary
+       cyl_radius = 0.1/(c*1e-12)
+       cyl_length = 0.5/(c*1e-12)
+       radius = sqrt(x**2 + y**2)
+
+       if (radius < cyl_radius) then
+         if (particles(current_index)%x(3) < -cyl_length) then
+           anode_count = anode_count + particles(current_index)%data%q
+           particles(current_index) = particles(target_swap)
+           swapped_cnt = swapped_cnt + 1
+         else if (particles(current_index)%x(3) > 0.0) then
+           cathode_count = cathode_count + particles(current_index)%data%q
+           particles(current_index) = particles(target_swap)
+           swapped_cnt = swapped_cnt + 1
+         end if
+       else
+         particles(current_index) = particles(target_swap)
+         swapped_cnt = swapped_cnt + 1
+       end if
+
+       if (init_swap_cnt /= swapped_cnt) then
+         call filter_and_swap(particles, geometry, current_index, swapped_cnt)
+       end if
+
+     end select
+   end subroutine
 end module

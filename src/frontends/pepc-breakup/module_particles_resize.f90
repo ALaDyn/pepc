@@ -98,8 +98,13 @@ contains
       temp_array = array
       deallocate (array)
       allocate (array(new_size))
-      array(1:original_size) = temp_array
 
+      if (new_size < original_size) then
+        array(1:new_size) = temp_array(1:new_size)
+      else
+        array(1:original_size) = temp_array
+      end if
+      
       deallocate (temp_array)
    end subroutine resize_array
 

@@ -65,7 +65,7 @@ module helper
 
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
-   integer :: electron_num, i, new_particle_cnt, local_electron_num
+   integer :: electron_num, i, new_particle_cnt, local_electron_num, swapped_num
 
    ! variables for random number generation
    integer :: dummy
@@ -74,7 +74,8 @@ module helper
 
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
-   real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure
+   real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
+                         cathode_count, anode_count
 
    ! lookup tables for cross section data
    character(255) :: file_path
@@ -234,7 +235,7 @@ contains
          p(ip)%data%age = 0.0_8
 
          call random(p(ip)%x)
-         p(ip)%x = p(ip)%x*plasma_dimensions
+         p(ip)%x = p(ip)%x*plasma_dimensions + 0.5/(c*1e-12) - plasma_dimensions*0.5
          p(ip)%x(3) = 0.0
         !  p(ip)%x = torus_geometry()
 

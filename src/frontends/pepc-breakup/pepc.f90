@@ -74,7 +74,7 @@ program pepc
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
    ! Calculates number of electrons injected by local process
-   electron_num = 18
+   electron_num = 37
    local_electron_num = electron_num/n_ranks
    if (my_rank < MOD(electron_num, 1_kind_particle*n_ranks)) then
      local_electron_num = local_electron_num + 1
@@ -108,7 +108,15 @@ program pepc
       call timer_start(t_boris)
 
       new_particle_cnt = 0
+      swapped_num = 0
+      cathode_count = local_electron_num * -1.0
+      anode_count = 0
       do i = 1, size(particles)
+         if (i > (size(particles)-swapped_num)) then
+           EXIT
+         end if
+         call filter_and_swap(particles, 2, i, swapped_num)
+
          call particle_EB_field(particles(i), external_e)
          call boris_velocity_update(particles(i), dt)
          call particle_pusher(particles(i), dt)
@@ -119,8 +127,8 @@ program pepc
         !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
       end do
 
-      if ((new_particle_cnt > 0) .or. (local_electron_num /= 0)) then
-         call extend_particles_list_add_e(particles, buffer, new_particle_cnt, local_electron_num)
+      if ((new_particle_cnt > 0) .or. (swapped_num /= 0 .or. local_electron_num /= 0)) then
+         call extend_particles_list_v2(particles, buffer, new_particle_cnt, local_electron_num, swapped_num)
          print *, "extending particle list successful! New size: ", my_rank, size(particles)
       end if
 
