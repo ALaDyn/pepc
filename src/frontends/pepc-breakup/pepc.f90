@@ -31,7 +31,7 @@ program pepc
    ! frontend helper routines
    use helper
    implicit none
-
+   include 'mpif.h'
    ! control variable
    logical :: doDiag
 
@@ -48,11 +48,11 @@ program pepc
    allocate(CS_tables)
    CS_guide => CS_tables
    ! IMPORTANT NOTE: the order of set_cross_section_table must correspond to the case orders in collision_update()
-   call getcwd(file_path)
-   file_path = trim(file_path) // "/../src/frontends/pepc-breakup/cross_sections/"
-   call set_cross_section_table(trim(file_path) // "total_scattering_H2.txt", CS_guide, 11, 0)
-   call set_cross_section_table(trim(file_path) // "nondissociative_ionization_H2+.txt", CS_guide, 12, 0)
-   call set_cross_section_table(trim(file_path) // "dissociative_ionization_H+.txt", CS_guide, 13, 1)
+  !  call getcwd(file_path)
+   file_path = "../src/frontends/pepc-breakup/cross_sections/"
+   call set_cross_section_table(trim(file_path)//"total_scattering_H2.txt", CS_guide, 11, 0)
+   call set_cross_section_table(trim(file_path)//"nondissociative_ionization_H2+.txt", CS_guide, 12, 0)
+   call set_cross_section_table(trim(file_path)//"dissociative_ionization_H+.txt", CS_guide, 13, 1)
    allocate(cross_sections_vector(3))
 
    ! NOTE: Future prospect: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
@@ -74,12 +74,17 @@ program pepc
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
    ! Calculates number of electrons injected by local process
-   electron_num = 37
-   local_electron_num = electron_num/n_ranks
-   if (my_rank < MOD(electron_num, 1_kind_particle*n_ranks)) then
-     local_electron_num = local_electron_num + 1
+   electron_num = 10
+   if (electron_num < n_ranks) then
+     if (my_rank < electron_num) then
+       local_electron_num = 1
+     end if
+   else
+     local_electron_num = electron_num/n_ranks
+     if (my_rank < MOD(int(electron_num,kind_pe), n_ranks)) then
+       local_electron_num = local_electron_num + 1
+     end if
    end if
-
 
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e)
@@ -92,6 +97,9 @@ program pepc
    ! free tree specific allocations
    call pepc_timber_tree()
 
+   if (root) then
+     open(12, file = 'i_i0.txt', action='WRITE')
+   end if
    do step = 0, nt - 1
       if (root) then
          write (*, *) " "
@@ -109,8 +117,8 @@ program pepc
 
       new_particle_cnt = 0
       swapped_num = 0
-      cathode_count = local_electron_num * -1.0
-      anode_count = 0
+      charge_count = 0.0
+      total_charge_count = 0.0
       do i = 1, size(particles)
          if (i > (size(particles)-swapped_num)) then
            EXIT
@@ -127,9 +135,16 @@ program pepc
         !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
       end do
 
+      call MPI_REDUCE(charge_count, total_charge_count, 2, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      if (root) then
+        print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2)
+        total_charge_count(1) = -1.0*electron_num
+        call write_text_output(total_charge_count(1), total_charge_count(2), step)
+      end if
+
       if ((new_particle_cnt > 0) .or. (swapped_num /= 0 .or. local_electron_num /= 0)) then
          call extend_particles_list_v2(particles, buffer, new_particle_cnt, local_electron_num, swapped_num)
-         print *, "extending particle list successful! New size: ", my_rank, size(particles)
+        !  print *, "extending particle list successful! New size: ", my_rank, size(particles)
       end if
 
       call timer_stop(t_boris)
@@ -159,6 +174,7 @@ program pepc
       call timings_GatherAndOutput(step, 0, 0 == step)
 
    end do
+
    call deallocate_CS_buffer(CS_tables)
    deallocate (particles)
 
@@ -168,6 +184,7 @@ program pepc
       write (*, *) " "
       write (*, '(a)') " ===== finished pepc simulation"
       write (*, '(a,es12.4)') " ===== total run time [s]: ", timer_read(t_user_total)
+      close(12)
    end if
 
    ! cleanup pepc and MPI

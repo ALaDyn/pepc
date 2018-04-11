@@ -75,7 +75,7 @@ module helper
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
-                         cathode_count, anode_count
+                         charge_count(2), total_charge_count(2)
 
    ! lookup tables for cross section data
    character(255) :: file_path
@@ -235,7 +235,7 @@ contains
          p(ip)%data%age = 0.0_8
 
          call random(p(ip)%x)
-         p(ip)%x = p(ip)%x*plasma_dimensions + 0.5/(c*1e-12) - plasma_dimensions*0.5
+         p(ip)%x = p(ip)%x*plasma_dimensions - plasma_dimensions*0.5
          p(ip)%x(3) = 0.0
         !  p(ip)%x = torus_geometry()
 
@@ -270,7 +270,7 @@ contains
 
    subroutine filter_particles(p)
       implicit none
-      include'mpif.h'
+      include 'mpif.h'
 
       type(t_particle), allocatable, intent(inout) :: p(:)
       integer(kind_particle) :: ip
@@ -300,7 +300,7 @@ contains
       use module_pepc_types
       use module_directsum
       implicit none
-      include'mpif.h'
+      include 'mpif.h'
 
       integer(kind_particle), allocatable   :: tindx(:)
       real*8, allocatable                   :: trnd(:)
@@ -381,11 +381,24 @@ contains
       endif
    end function vtk_step_of_step
 
+   subroutine write_text_output(anode_charge_count, cathode_charge_count, step)
+     implicit none
+     real(kind_physics), intent(in) :: anode_charge_count, cathode_charge_count
+     integer, intent(in) :: step
+
+    !  open(12, file = fname, action='WRITE')
+     if (step == 0) then
+       write(12, *) 'step ', 'anode_count ', 'cathode_count'
+     end if
+     write(12, *) step, anode_charge_count, cathode_charge_count
+    !  close(12)
+   end subroutine write_text_output
+
    subroutine write_particles(p)
       use module_vtk_helpers
       implicit none
 
-      include'mpif.h'
+      include 'mpif.h'
 
       type(t_particle), intent(in) :: p(:)
 

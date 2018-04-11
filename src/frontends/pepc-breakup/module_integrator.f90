@@ -593,7 +593,7 @@ contains
       head = size(particles) - swapped_cnt + 1
       tail = size(particles) - swapped_cnt + ll_buffer_size
 
-      print *, "Linked List elements: ", ll_elem_cnt, size(particles), new_particles_size + electron_number, remainder
+      ! print *, "Linked List elements: ", ll_elem_cnt, size(particles), new_particles_size + electron_number, remainder
 
       call resize_array(particles, new_size)
 
@@ -618,11 +618,11 @@ contains
         nullify (temp_guide)
       end if
 
-      center_pos = 0.5/(c*1e-12)
-      center_pos(3) = 0.0
+      center_pos = 0.0
+      center_pos(3) = -0.01
       plane_orient = 0.0
       plane_orient(3) = -1.0
-      call injected_electrons(electron_number, center_pos, plane_orient, 1, 0.15/(c*1e-12), &
+      call injected_electrons(electron_number, center_pos, plane_orient, 2, 0.025/(c*1e-12), &
                                 particles, temp_size + 1)
    end subroutine extend_particles_list_v2
 
@@ -633,11 +633,11 @@ contains
      real(kind_physics), intent(in) :: plane(3), center_pos(3), inlet_size
      integer, intent(in) :: num, geometry, starting_index
      type(t_particle), allocatable, intent(inout) :: particles_list(:)
-     real(kind_physics) :: ran(3), magnitude, pi, theta
+     real(kind_physics) :: ran(3), magnitude, pi, theta, u
      integer :: i, j, index
 
      pi = 3.141592653589793238462643383279502884197
-     magnitude = thermal_velocity_mag(1.0_8, 873.15_kind_physics)
+     magnitude = thermal_velocity_mag(1.0_8, 1773.15_kind_physics)
 
      select case(geometry)
      case(1) ! square plane
@@ -649,7 +649,7 @@ contains
          particles_list(index)%data%age = 0.0_8
          particles_list(index)%work = 1.0_8
 
-         particles_list(index)%x = 0.0
+         particles_list(index)%x = center_pos
          particles_list(index)%data%v = 0.0
 
          do i = 1, 3
@@ -670,18 +670,22 @@ contains
          particles_list(index)%data%age = 0.0_8
          particles_list(index)%work = 1.0_8
 
-         particles_list(index)%x = 0.0
+         particles_list(index)%x = center_pos
          particles_list(index)%data%v = 0.0
 
          theta = ran(2)*2.*pi
+         u = ran(1) + ran(3)
+         if (u > 1.) then
+           u = 2. - u
+         end if
 
          j = 0
          do i = 1, 3
            if ((plane(i) == 0.0) .and. (j == 0)) then
-             particles_list(index)%x(i) = ran(1) * sin(theta) * inlet_size + center_pos(i)
+             particles_list(index)%x(i) = u * sin(theta) * inlet_size + center_pos(i)
              j = 1
            else if ((plane(i) == 0.0) .and. (j == 1)) then
-             particles_list(index)%x(i) = ran(1) * cos(theta) * inlet_size + center_pos(i)
+             particles_list(index)%x(i) = u * cos(theta) * inlet_size + center_pos(i)
            else
              particles_list(index)%data%v(i) = plane(i) * magnitude
            end if
@@ -690,7 +694,7 @@ contains
      end select
    end subroutine injected_electrons
 
-   subroutine filter_and_swap(particles, geometry, current_index, swapped_cnt)
+   recursive subroutine filter_and_swap(particles, geometry, current_index, swapped_cnt)
      implicit none
      type(t_particle), allocatable, intent(inout) :: particles(:)
      integer, intent(inout) :: swapped_cnt
@@ -698,12 +702,12 @@ contains
      integer :: buffer_size, target_swap, init_swap_cnt
      type(t_particle) :: swap_particle
      real(kind_physics) :: center_pos(3)
-     real(kind_physics) :: radius, cyl_radius, cyl_length, box_dim, x, y, box_l
+     real(kind_physics) :: radius, cyl_radius, plate_radius, cyl_length, box_dim, x, y, box_l
 
      buffer_size = size(particles)
      target_swap = buffer_size - swapped_cnt
 
-     center_pos = 0.5/(c*1e-12)
+     center_pos = 0.0
      center_pos(3) = 0.0
 
      x = particles(current_index)%x(1) - center_pos(1)
@@ -721,11 +725,11 @@ contains
          swapped_cnt = swapped_cnt + 1
        else
          if (particles(current_index)%x(3) > 0.0) then
-           cathode_count = cathode_count + particles(current_index)%data%q
+           charge_count(1) = charge_count(1) + particles(current_index)%data%q
            particles(current_index) = particles(target_swap)
            swapped_cnt = swapped_cnt + 1
          else if (particles(current_index)%x(3) < -box_l) then
-           anode_count = anode_count + particles(current_index)%data%q
+           charge_count(2) = charge_count(2) + particles(current_index)%data%q
            particles(current_index) = particles(target_swap)
            swapped_cnt = swapped_cnt + 1
          end if
@@ -736,19 +740,30 @@ contains
        end if
 
      case(2) ! cylinder boundary
-       cyl_radius = 0.1/(c*1e-12)
-       cyl_length = 0.5/(c*1e-12)
+       cyl_radius = 0.05/(c*1e-12)
+       plate_radius = 0.025/(c*1e-12)
+       cyl_length = 0.005/(c*1e-12)
        radius = sqrt(x**2 + y**2)
 
        if (radius < cyl_radius) then
-         if (particles(current_index)%x(3) < -cyl_length) then
-           anode_count = anode_count + particles(current_index)%data%q
-           particles(current_index) = particles(target_swap)
-           swapped_cnt = swapped_cnt + 1
+         if (particles(current_index)%x(3) < -cyl_length)then
+           if (radius < plate_radius) then
+             charge_count(2) = charge_count(2) + particles(current_index)%data%q
+             particles(current_index) = particles(target_swap)
+             swapped_cnt = swapped_cnt + 1
+           else
+             particles(current_index) = particles(target_swap)
+             swapped_cnt = swapped_cnt + 1
+           end if
          else if (particles(current_index)%x(3) > 0.0) then
-           cathode_count = cathode_count + particles(current_index)%data%q
-           particles(current_index) = particles(target_swap)
-           swapped_cnt = swapped_cnt + 1
+           if (radius < plate_radius) then
+             charge_count(1) = charge_count(1) + particles(current_index)%data%q
+             particles(current_index) = particles(target_swap)
+             swapped_cnt = swapped_cnt + 1
+           else
+             particles(current_index) = particles(target_swap)
+             swapped_cnt = swapped_cnt + 1
+           end if
          end if
        else
          particles(current_index) = particles(target_swap)
