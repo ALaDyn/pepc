@@ -1,0 +1,118 @@
+HELP = "\
+\# Makefile for gcc 4.9.3\n\
+"
+
+MACH      = gcc-4.9.3
+
+GPROF     = 0
+DEBUG     = 0
+OMP       = 1
+VAMPIR    = 0
+# for HPCTOOLKIT usage see end of this file
+# do not name the following variable to HPCTOOLKIT since this is already used externally
+HPCTOOLKT = 0
+SCOREP    = 0
+SCALASCA  = 0
+
+OPENPA_CONFIGFLAGS = --host=bluegene
+
+MAKE      = make
+RANLIB    = gcc-ranlib
+AR        = ar
+ARFLAGS   = -rs
+RM        = rm -rf
+
+FCPRE     =
+CCPRE     =
+LDPRE     =
+
+FC        = mpigfortran
+CC        = mpigcc
+LD        = mpigfortran
+LDLIBS    =
+
+# GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
+CPP      = cpp -Uvector
+CPPFLAGS = -P -C -DLITTLEENDIAN -ffreestanding -D__TOS_BGQ__
+                               # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+
+INLINING = -flto -fuse-linker-plugin  \
+	   -fipa-matrix-reorg
+
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+INLINING += -u run_communication_loop -u walk_worker_thread
+
+FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+else
+  FFLAGS   = -Ofast \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Ofast -pthread -Wall
+  LDFLAGS  = -Ofast -pthread $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+
+# ensure that the BG-Personality features are used correctly
+CFLAGS += -D__TOS_BGQ__
+
+ifeq ($(OMP), 1)
+  FFLAGS   += -fopenmp
+  LDFLAGS  += -fopenmp
+endif
+
+ifeq ($(VAMPIR), 1)
+  FCPRE    = bgvtf90 -vt:f90
+  CCPRE    = bgvtcc  -vt:cc
+  LDPRE    = bgvtf90 -vt:f90
+endif
+
+ifeq ($(HPCTOOLKT), 1)
+  LDPRE    = hpclink
+  FFLAGS  += -g -gdwarf-3 -gstrict-dwarf
+  CFLAGS  += -g -gdwarf-3 -gstrict-dwarf
+  LDFLAGS += -g -gdwarf-3 -gstrict-dwarf -Wl,-lc -Wl,-lnss_files -Wl,-lnss_dns -Wl,-lresolv
+endif
+
+ifeq ($(GPROF), 1)
+  FFLAGS  += -pg -g
+  CFLAGS  += -pg -g
+  LDFLAGS += -pg -g
+endif
+
+ifeq ($(SCOREP), 1)
+  FCPRE += scorep
+  CCPRE += scorep
+  LDPRE += scorep
+endif
+
+ifeq ($(SCALASCA), 1)
+  FCPRE += scalasca -instrument
+  CCPRE += scalasca -instrument
+  LDPRE += scalasca -instrument
+endif
+
+COMPILER = $(shell $(FC) --version | head -n 1)
+
+# HPCTOOLKIT USAGE
+# Call
+# $>  module load UNITE hpctoolkit papi
+# Before compiling and execution. You should include those modules into your ~/.bashrc to also have them on the compute nodes.
+# After (re)compiling the application (e.g. pepc-mini) start it with
+# $>  runjob --envs  HPCRUN_EVENT_LIST="WALLCLOCK@10000" HPCRUN_TRACE=1 --label : ./pepc-mini ./params
+# Then generate the structure info (on the frontend node) using
+# $>  hpcstruct  ./pepc-mini
+# Build the measurement database from the measurements:
+# $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
