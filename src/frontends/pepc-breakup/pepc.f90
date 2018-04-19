@@ -75,16 +75,6 @@ program pepc
 
    ! Calculates number of electrons injected by local process
    electron_num = 10
-   if (electron_num < n_ranks) then
-     if (my_rank < electron_num) then
-       local_electron_num = 1
-     end if
-   else
-     local_electron_num = electron_num/n_ranks
-     if (my_rank < MOD(int(electron_num,kind_pe), n_ranks)) then
-       local_electron_num = local_electron_num + 1
-     end if
-   end if
 
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e)
@@ -142,9 +132,15 @@ program pepc
         call write_text_output(total_charge_count(1), total_charge_count(2), step)
       end if
 
-      if ((new_particle_cnt > 0) .or. (swapped_num /= 0 .or. local_electron_num /= 0)) then
-         call extend_particles_list_v2(particles, buffer, new_particle_cnt, local_electron_num, swapped_num)
-        !  print *, "extending particle list successful! New size: ", my_rank, size(particles)
+      if (root) then
+        if ((new_particle_cnt > 0) .or. (swapped_num /= 0 .or. electron_num /= 0)) then
+           call extend_particles_list_swap_inject(particles, buffer, new_particle_cnt, electron_num, swapped_num)
+          !  print *, "extending particle list successful! New size: ", my_rank, size(particles)
+        end if
+      else
+        if ((new_particle_cnt > 0) .or. (swapped_num /= 0)) then
+          call extend_particles_list_swap(particles, buffer, new_particle_cnt, swapped_num)
+        end if
       end if
 
       call timer_stop(t_boris)

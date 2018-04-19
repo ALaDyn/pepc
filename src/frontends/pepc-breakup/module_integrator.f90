@@ -124,6 +124,41 @@ contains
      Poloidal_field = 0.0001*((1.e-12*c)**2)/e_mass + Poloidal_field*a*B_p/minor_radius
    end function circular_poloidal_field
 
+   function Amperes_law(particle_pos, vector_parallel_maj_radius, distance_xy, coil_ver, coil_hor, I_pf) &
+     result(Poloidal_field)
+     implicit none
+     real(kind_physics), intent(in) :: particle_pos(3), vector_parallel_maj_radius(3)
+     real(kind_physics), intent(in) :: distance_xy, coil_ver, coil_hor, I_pf
+     real(kind_physics) :: major_r_vec(3), a, Poloidal_field(3), mu_0, B_mag
+
+     mu_0 = ((1./c)**2)/eps_0
+     ! first calculate vector point from PF coil to particle position in 2D plane
+     ! defined as major_r_vec
+     major_r_vec(1) = particle_pos(1)
+     major_r_vec(2) = particle_pos(2)
+     major_r_vec(3) = 0.0
+
+     ! coil position is calculated, remember to scale coil_hor & coil_ver
+     major_r_vec = major_r_vec*coil_hor/(distance_xy * (c*1e-12))
+     major_r_vec(3) = coil_ver/(c*1e-12)
+
+     ! vector pointing from coil to particle position and distance between them is calculated
+     major_r_vec = particle_pos - major_r_vec
+     a = sqrt(dot_product(major_r_vec,major_r_vec)) ! NOTE: 'a' is dimensionless
+
+     ! unit vector direction of resulting poloidal field is calculated
+     Poloidal_field = cross_product(vector_parallel_maj_radius,major_r_vec)
+     Poloidal_field = Poloidal_field/sqrt(dot_product(Poloidal_field, Poloidal_field))
+
+     ! Calculate strength of magnetic field by PF coil
+     a = a * (c*1e-12)
+     B_mag = mu_0*I_pf/(2.*pi*a) ! NOTE: Calculation done with Tesla unit
+     B_mag = B_mag * ((1.e-12)*(c**2))/e_mass ! NOTE: scale to dimensionless
+
+     ! final vector of PF B field
+     Poloidal_field = Poloidal_field * B_mag
+   end function Amperes_law
+
    subroutine particle_EB_field(particle, E_field)
       implicit none
       type(t_particle), intent(inout) :: particle
@@ -573,7 +608,7 @@ contains
                                 particles, temp_size + 1)
    end subroutine extend_particles_list_add_e
 
-   subroutine extend_particles_list_v2(particles, buffer, new_particles_size, electron_number, swapped_cnt)
+   subroutine extend_particles_list_swap_inject(particles, buffer, new_particles_size, electron_number, swapped_cnt)
       implicit none
       type(t_particle), allocatable, intent(inout) :: particles(:)
       type(linked_list_elem), pointer, intent(inout) :: buffer
@@ -618,13 +653,15 @@ contains
         nullify (temp_guide)
       end if
 
-      center_pos = 0.0
-      center_pos(3) = -0.01
-      plane_orient = 0.0
-      plane_orient(3) = -1.0
-      call injected_electrons(electron_number, center_pos, plane_orient, 2, 0.025/(c*1e-12), &
-                                particles, temp_size + 1)
-   end subroutine extend_particles_list_v2
+      if (electron_number /= 0) then
+        center_pos = 0.0
+        center_pos(3) = -0.01
+        plane_orient = 0.0
+        plane_orient(3) = -1.0
+        call injected_electrons(electron_number, center_pos, plane_orient, 2, 0.025/(c*1e-12), &
+                                  particles, temp_size + 1)
+      end if
+   end subroutine extend_particles_list_swap_inject
 
    subroutine injected_electrons(num, center_pos, plane, geometry, inlet_size, &
                                    particles_list, starting_index)
@@ -633,15 +670,14 @@ contains
      real(kind_physics), intent(in) :: plane(3), center_pos(3), inlet_size
      integer, intent(in) :: num, geometry, starting_index
      type(t_particle), allocatable, intent(inout) :: particles_list(:)
-     real(kind_physics) :: ran(3), magnitude, pi, theta, u
+     real(kind_physics) :: ran(3), magnitude, theta, u
      integer :: i, j, index
 
-     pi = 3.141592653589793238462643383279502884197
      magnitude = thermal_velocity_mag(1.0_8, 1773.15_kind_physics)
 
      select case(geometry)
      case(1) ! square plane
-       do index = starting_index, (starting_index + num -1)
+       do index = starting_index, size(particles_list)
          call random_number(ran)
          particles_list(index)%data%q = -1.0_8
          particles_list(index)%data%m = 1.0_8
@@ -662,7 +698,7 @@ contains
        end do
 
      case(2) ! circle plane
-       do index = starting_index, (starting_index + num - 1)
+       do index = starting_index, size(particles_list)
          call random_number(ran)
          particles_list(index)%data%q = -1.0_8
          particles_list(index)%data%m = 1.0_8
@@ -671,7 +707,7 @@ contains
          particles_list(index)%work = 1.0_8
 
          particles_list(index)%x = center_pos
-         particles_list(index)%data%v = 0.0
+         particles_list(index)%data%v = plane * magnitude
 
          theta = ran(2)*2.*pi
          u = ran(1) + ran(3)
@@ -686,8 +722,6 @@ contains
              j = 1
            else if ((plane(i) == 0.0) .and. (j == 1)) then
              particles_list(index)%x(i) = u * cos(theta) * inlet_size + center_pos(i)
-           else
-             particles_list(index)%data%v(i) = plane(i) * magnitude
            end if
          end do
        end do
@@ -742,7 +776,7 @@ contains
      case(2) ! cylinder boundary
        cyl_radius = 0.05/(c*1e-12)
        plate_radius = 0.025/(c*1e-12)
-       cyl_length = 0.005/(c*1e-12)
+       cyl_length = 0.0011870845/(c*1e-12)
        radius = sqrt(x**2 + y**2)
 
        if (radius < cyl_radius) then

@@ -104,7 +104,7 @@ contains
       else
         array(1:original_size) = temp_array
       end if
-      
+
       deallocate (temp_array)
    end subroutine resize_array
 
@@ -149,4 +149,46 @@ contains
       nullify (temp_guide)
 
    end subroutine extend_particles_list
+
+   subroutine extend_particles_list_swap(particles, buffer, new_particles_size, swapped_cnt)
+      implicit none
+      type(t_particle), allocatable, intent(inout) :: particles(:)
+      type(linked_list_elem), pointer, intent(inout) :: buffer
+      type(linked_list_elem), pointer :: temp_guide
+      integer, intent(in) :: new_particles_size, swapped_cnt
+      integer :: new_size, head, tail, ll_buffer_size, i, remainder, ll_elem_cnt
+
+      ll_buffer_size = size(buffer%tmp_particles)
+      ll_elem_cnt = CEILING(real(new_particles_size)/real(ll_buffer_size))
+      remainder = MOD(new_particles_size, ll_buffer_size)
+
+      new_size = size(particles) + new_particles_size - swapped_cnt
+      i = 1
+      head = size(particles) - swapped_cnt + 1
+      tail = size(particles) - swapped_cnt + ll_buffer_size
+
+      ! print *, "Linked List elements: ", ll_elem_cnt, size(particles), new_particles_size, remainder
+
+      call resize_array(particles, new_size)
+
+      if (new_particles_size /= 0) then
+        temp_guide => buffer
+        do while (associated(temp_guide))
+           if (i /= ll_elem_cnt) then
+              particles(head:tail) = temp_guide%tmp_particles
+           else if ((i == ll_elem_cnt) .and. (remainder == 0)) then
+              particles(head:new_size) = temp_guide%tmp_particles
+           else
+              particles(head:new_size) = temp_guide%tmp_particles(1:(remainder))
+           end if
+
+           head = tail + 1
+           tail = tail + ll_buffer_size
+           i = i + 1
+
+           temp_guide => temp_guide%next
+        end do
+        nullify (temp_guide)
+      end if
+   end subroutine extend_particles_list_swap
 end module

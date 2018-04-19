@@ -85,12 +85,12 @@ module helper
    real(kind_physics) :: major_radius, minor_radius, B0, B_p, V_loop
 
    ! constants & scaling factors
-   real(kind_physics) :: c = 299792458.0 ! m/s
-   real(kind_physics) :: e_mass = 510998.9461 ! eV/c^2
-   real(kind_physics) :: e = 1.6021766208e-19 ! Coulomb
-   real(kind_physics) :: eps_0 = 8.85418781762e-12 ! Coulomb/Vm
-   real(kind_physics) :: pi = 3.141592653589793238462643383279502884197
-   real(kind_physics) :: kboltzmann = 1.38064852e-23 ! J K^(-1)
+   real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
+   real(kind_physics), parameter :: e_mass = 510998.9461_kind_physics ! eV/c^2
+   real(kind_physics), parameter :: e = 1.6021766208e-19_kind_physics ! Coulomb
+   real(kind_physics), parameter :: eps_0 = 8.85418781762e-12_kind_physics ! Coulomb/Vm
+   real(kind_physics), parameter :: pi = 3.141592653589793238462643383279502884197_kind_physics
+   real(kind_physics), parameter :: kboltzmann = 1.38064852e-23_kind_physics ! J K^(-1)
    real(kind_physics) :: E_q_dt_m
 
    interface random
@@ -161,12 +161,12 @@ contains
       ! NOTE: Scale the appropriate read-in variables!
       !       1. multiply 4*pi*eps_0*(1e-12 sec*light speed)^2/(elementary charge) to electric field (V/m)
       !       2. multiply 4*pi*eps_0*(1e-12 sec*light speed)/(elementary charge) to voltage
-      !       3. multiply ((1.e-12*c)**2)/e_mass to B field (Tesla)
+      !       3. multiply ((1.e-12)*(c**2))/e_mass to B field (Tesla)
       !       4. divide length variables with (1.e-12*c)
       external_e = external_e*4.0*pi*eps_0*((c*1e-12)**2)/e
       V_loop = V_loop*4.0*pi*eps_0*((c*1e-12))/e
-      B0 = B0 * ((1.e-12*c)**2)/e_mass
-      B_p = B_p * ((1.e-12*c)**2)/e_mass
+      B0 = B0 * ((1.e-12)*(c**2))/e_mass
+      B_p = B_p * ((1.e-12)*(c**2))/e_mass
       plasma_dimensions = plasma_dimensions/(c*1e-12)
       major_radius = major_radius/(c*1e-12)
       minor_radius = minor_radius/(c*1e-12)

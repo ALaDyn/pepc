@@ -1,13 +1,13 @@
 &pepcbreakup
 
 ! total number of particles
-tnp = 10000
+tnp = 20
 
 ! number of time steps
-nt = 100
+nt = 1000
 
 ! time step (in picoseconds)
-dt = 1000
+dt = 100
 
 ! diagnostics and output interval
 diag_interval = 1
@@ -23,29 +23,29 @@ reflecting_walls = .false.
 particle_test = .false.
 
 ! size of the simulation box
-plasma_dimensions = 1.0 1.0 1.0
+plasma_dimensions = 0.05 0.05 0.05!1.0 1.0 1.0
 
 ! initial electron temperature (K)
-init_temperature = 298.15
+init_temperature = 273.15
 
 ! pressure of vessel (Pa)
-pressure = 0.001
+pressure = 359.9704!10.1325
 
 ! external electric field (in V/m)
-external_e = 0.0 0.0 0.0
+external_e = 0.0 0.0 42120.0
 
 ! tokamak torus descriptions (in meters)
 major_radius = 2.9
 minor_radius = 0.5
 
 ! toroidal magnetic field strength (Tesla)
-B0 = 2.5
+B0 = 0.0 !2.5
 
 ! poloidal magnetic field strength (Tesla)
-B_p = 0.024
+B_p = 0.0 !0.024
 
 ! loop voltage along tokamak torus(V/m)
-V_loop = 11.0
+V_loop = 0.0 !11.0
 /
 
 &calc_force_coulomb
@@ -60,7 +60,7 @@ eps2 = 1e-4
 /
 
 &libpepc
- num_threads = 11
+ num_threads = 1
  debug_level = 0
  np_mult = 1.0
 
