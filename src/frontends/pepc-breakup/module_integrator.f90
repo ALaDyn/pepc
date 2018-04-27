@@ -121,7 +121,7 @@ contains
 
      Poloidal_field = cross_product(vector_parallel_maj_radius,major_r_vec)
      Poloidal_field = Poloidal_field/sqrt(dot_product(Poloidal_field, Poloidal_field))
-     Poloidal_field = 0.0001*((1.e-12*c)**2)/e_mass + Poloidal_field*a*B_p/minor_radius
+     Poloidal_field = Poloidal_field*(0.0001*((1.e-12)*(c**2))/e_mass + a*B_p/minor_radius)
    end function circular_poloidal_field
 
    function Amperes_law(particle_pos, vector_parallel_maj_radius, distance_xy, coil_ver, coil_hor, I_pf) &
@@ -131,6 +131,7 @@ contains
      real(kind_physics), intent(in) :: distance_xy, coil_ver, coil_hor, I_pf
      real(kind_physics) :: major_r_vec(3), a, Poloidal_field(3), mu_0, B_mag
 
+     Poloidal_field = 0.0
      mu_0 = ((1./c)**2)/eps_0
      ! first calculate vector point from PF coil to particle position in 2D plane
      ! defined as major_r_vec
@@ -164,7 +165,7 @@ contains
       type(t_particle), intent(inout) :: particle
       real(kind_physics), intent(in) :: E_field(3)
       real(kind_physics) :: B_field(3), ez(3), Pol_B_field(3), field_vector(3)
-      real(kind_physics) :: R
+      real(kind_physics) :: R, PF_final(3), PF_temp(3)
 
       ez = 0.0
       ez(3) = 1.0
@@ -179,6 +180,17 @@ contains
 
       ! Option 2: a circular poloidal magnetic field, centred around major_radius
       Pol_B_field = circular_poloidal_field(particle%x, field_vector, R)
+
+      PF_final = 0.0
+      ! Option 3: 4 correction coils surrounding breakdown region, centred around major_radius
+      ! PF_temp = Amperes_law(particle%x, field_vector, R, 0.6_8, 2.9_8, 34000.0_8)
+      ! PF_final = PF_final + PF_temp
+      ! PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 2.3_8, 34000.0_8)
+      ! PF_final = PF_final + PF_temp
+      ! PF_temp = Amperes_law(particle%x, field_vector, R, -0.6_8, 2.9_8, 34000.0_8)
+      ! PF_final = PF_final + PF_temp
+      ! PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 3.5_8, 34000.0_8)
+      ! PF_final = PF_final + PF_temp
 
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
       ! print *, particle%results%e*0.0160217662080007054395368083795655167047391940703667
@@ -437,6 +449,9 @@ contains
      !       constant local density. nu_prime will thus be always larger than actual nu!
      vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
      nu_prime = abs_max_CS * vel_mag * neutral_density
+    !  call determine_cross_sections(particle, CS_vector, CS_tables)
+    !  CS_vector = CS_vector * vel_mag * neutral_density
+    !  print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime
 
      ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
      ctr_s(1) = (my_rank + 1)*(nt - step)
@@ -604,7 +619,7 @@ contains
       center_pos(3) = 0.0
       plane_orient = 0.0
       plane_orient(3) = -1.0
-      call injected_electrons(electron_number, center_pos, plane_orient, 2, 0.15/(c*1e-12), &
+      call injected_electrons(center_pos, plane_orient, 2, 0.15/(c*1e-12), &
                                 particles, temp_size + 1)
    end subroutine extend_particles_list_add_e
 
@@ -658,17 +673,17 @@ contains
         center_pos(3) = -0.01
         plane_orient = 0.0
         plane_orient(3) = -1.0
-        call injected_electrons(electron_number, center_pos, plane_orient, 2, 0.025/(c*1e-12), &
+        call injected_electrons(center_pos, plane_orient, 2, 0.025/(c*1e-12), &
                                   particles, temp_size + 1)
       end if
    end subroutine extend_particles_list_swap_inject
 
-   subroutine injected_electrons(num, center_pos, plane, geometry, inlet_size, &
+   subroutine injected_electrons(center_pos, plane, geometry, inlet_size, &
                                    particles_list, starting_index)
      ! NOTE: supports only planes in principal directions
      implicit none
      real(kind_physics), intent(in) :: plane(3), center_pos(3), inlet_size
-     integer, intent(in) :: num, geometry, starting_index
+     integer, intent(in) :: geometry, starting_index
      type(t_particle), allocatable, intent(inout) :: particles_list(:)
      real(kind_physics) :: ran(3), magnitude, theta, u
      integer :: i, j, index
@@ -715,15 +730,17 @@ contains
            u = 2. - u
          end if
 
-         j = 0
-         do i = 1, 3
-           if ((plane(i) == 0.0) .and. (j == 0)) then
-             particles_list(index)%x(i) = u * sin(theta) * inlet_size + center_pos(i)
-             j = 1
-           else if ((plane(i) == 0.0) .and. (j == 1)) then
-             particles_list(index)%x(i) = u * cos(theta) * inlet_size + center_pos(i)
-           end if
-         end do
+         particles_list(index)%x(1) = u * sin(theta) * inlet_size + center_pos(1)
+         particles_list(index)%x(2) = u * cos(theta) * inlet_size + center_pos(2)
+        !  j = 0
+        !  do i = 1, 3
+        !    if ((plane(i) <= 0.00001) .and. (j == 0)) then
+        !      particles_list(index)%x(i) = u * sin(theta) * inlet_size + center_pos(i)
+        !      j = 1
+        !    else if ((plane(i) <= 0.00001) .and. (j == 1)) then
+        !      particles_list(index)%x(i) = u * cos(theta) * inlet_size + center_pos(i)
+        !    end if
+        !  end do
        end do
      end select
    end subroutine injected_electrons

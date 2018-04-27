@@ -84,6 +84,10 @@ module helper
    ! variables describing external fields
    real(kind_physics) :: major_radius, minor_radius, B0, B_p, V_loop
 
+   ! checkpoint related variables
+   character(255) :: checkpoint_file
+   integer :: checkin_step, resume, itime_in
+
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
    real(kind_physics), parameter :: e_mass = 510998.9461_kind_physics ! eV/c^2
@@ -109,11 +113,13 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, &
+      namelist /pepcbreakup/ resume, itime_in, tnp, nt, dt, particle_output, domain_output, reflecting_walls, &
          particle_test, diag_interval, plasma_dimensions, init_temperature, pressure, external_e, &
          major_radius, minor_radius, B0, B_p, V_loop
 
       ! set default parameter values
+      resume = 0
+      itime_in = 0
       tnp = 10000
       nt = 25
       dt = 1e-2
@@ -139,6 +145,8 @@ contains
       end if
 
       if (root) then
+         write (*, '(a,i12)') " == resume from previous runs?          : ", resume
+         write (*, '(a,i12)') " == resume from time step               : ", itime_in
          write (*, '(a,i12)') " == total number of particles           : ", tnp
          write (*, '(a,i12)') " == number of time steps                : ", nt
          write (*, '(a,es12.4)') " == time step                           : ", dt
@@ -188,6 +196,50 @@ contains
      pos(2) = l * cos(theta)
      pos(3) = r * cos(phi)
    end function torus_geometry
+
+   subroutine torus_diagnostic_grid(major_radius, minor_radius, subdivisions, points)
+     ! Diagnostic_grid populates domain with points at regular distance, in xz plane
+     implicit none
+     real(kind_physics), intent(in) :: major_radius, minor_radius
+     integer, intent(in) :: subdivisions ! denotes number of subdivisions in 1 dimension
+     type(t_particle), allocatable, intent(inout) :: points(:)
+     real(kind_physics) :: pos(3), ran(3), diameter, increments, temp_dist(2), &
+                           dist_sum_x, dist_sum_z
+     integer :: total_points, total_points_1d
+
+     diameter = 2.0*minor_radius
+     total_points_1d = (2**subdivisions + 1)
+     total_points = total_points_1d**2
+     increments = diameter/(total_points_1d - 1)
+
+     allocate(points(total_points))
+
+     temp_dist(1) = major_radius - minor_radius
+     temp_dist(2) = -minor_radius
+
+     dist_sum_x = 0.0_kind_physics
+     dist_sum_z = 0.0_kind_physics
+     do i = 1, size(points)
+       points(i)%x = 0.0
+       points(i)%x(1) = temp_dist(1) + dist_sum_x
+       points(i)%x(3) = temp_dist(2) + dist_sum_z
+
+       dist_sum_x = dist_sum_x + increments
+
+       if (MOD(i,total_points_1d) == 0) then
+         dist_sum_x = 0.0
+         dist_sum_z = dist_sum_z + increments
+       end if
+
+       points(i)%label = 0
+       points(i)%data%q = 0.0_8
+       points(i)%data%m = 1.0_8
+       points(i)%data%species = 0
+       points(i)%data%age = 0.0_8
+       points(i)%work = 1.0_8
+       points(i)%data%v = 0.0
+     end do
+   end subroutine torus_diagnostic_grid
 
    function thermal_velocity_mag(mass, temp) result(velocity)
      implicit none
@@ -243,6 +295,7 @@ contains
         !  p(ip)%data%v = p(ip)%data%v/c * 1e6
 
          magnitude = thermal_velocity_mag(p(ip)%data%m, 873.15_kind_physics)! 0.0108359158316
+        !  magnitude = sqrt((2*100.0)/e_mass)
          p(ip)%data%v = 0.0
          p(ip)%data%v(3) = -1.0 * magnitude
 

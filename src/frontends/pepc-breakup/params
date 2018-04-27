@@ -1,5 +1,11 @@
 &pepcbreakup
 
+! resuming run?
+resume = 0
+
+! resuming from which time step?
+itime_in = 1499
+
 ! total number of particles
 tnp = 20
 
@@ -29,7 +35,7 @@ plasma_dimensions = 0.05 0.05 0.05!1.0 1.0 1.0
 init_temperature = 273.15
 
 ! pressure of vessel (Pa)
-pressure = 359.9704!10.1325
+pressure = 359.9704 !10.1325
 
 ! external electric field (in V/m)
 external_e = 0.0 0.0 42120.0

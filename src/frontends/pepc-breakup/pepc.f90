@@ -25,6 +25,7 @@ program pepc
    use module_pepc_types
    use module_timings
    use module_debug
+   use module_checkpoint
    use interactions_integrator
    use rng_wrapper
 
@@ -43,7 +44,18 @@ program pepc
    call timer_start(t_user_total)
    call timer_start(t_user_init)
    call set_parameter()
-   call init_particles(particles)
+
+   if (resume == 1) then
+     np = tnp/n_ranks
+     if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
+     call read_particles_mpiio(itime_in, MPI_COMM_WORLD, checkin_step, tnp, particles, checkpoint_file, &
+                               int(np))
+     call write_particles(particles)
+   else
+     itime_in = 0
+     call init_particles(particles)
+   end if
+  !  call torus_diagnostic_grid(major_radius, minor_radius, 4, particles)
    !========================read cross section data======================
    allocate(CS_tables)
    CS_guide => CS_tables
@@ -74,7 +86,7 @@ program pepc
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
    ! Calculates number of electrons injected by local process
-   electron_num = 10
+   electron_num = 20
 
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e)
@@ -99,7 +111,7 @@ program pepc
 
       call timer_start(t_user_step)
 
-      doDiag = MOD(step, diag_interval) .eq. 0
+      doDiag = MOD(step+1, diag_interval) .eq. 0
 
       call allocate_ll_buffer(electron_num, buffer)
       particle_guide => buffer
@@ -143,9 +155,16 @@ program pepc
         end if
       end if
 
+      np = size(particles)
+      tnp = 0
+      call MPI_REDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      if (root) print *, "Total particles: ", tnp
+
       call timer_stop(t_boris)
       if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
       call deallocate_ll_buffer(buffer)
+
+      ! if (doDiag .and. particle_output) call write_particles(particles)
 
       call pepc_particleresults_clear(particles)
       call pepc_grow_tree(particles)
@@ -161,6 +180,11 @@ program pepc
 
       if (doDiag .and. particle_test) call test_particles()
       if (doDiag .and. particle_output) call write_particles(particles)
+
+      if (step == nt-1) then
+        call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
+        call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
+      end if
 
       if (reflecting_walls) call filter_particles(particles)
 

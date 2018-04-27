@@ -2,7 +2,8 @@ FILES_L   = pepc.f90 module_helper.f90 module_integrator.f90 module_particles_re
 	    random123_func.c rng_wrapper.f90
 
 FILES_L_U = module_vtk_helpers.f90 \
-            module_directsum.f90
+            module_directsum.f90 \
+            module_checkpoint.f90
 
 SRC        += $(FILES_L)
 SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
