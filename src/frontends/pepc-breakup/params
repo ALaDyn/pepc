@@ -21,6 +21,7 @@ diag_interval = 1
 ! turn data and domain output on/off
 particle_output = .true.
 domain_output = .false.
+particle_mpi_output = .false.
 
 ! turn particle filtering (leaving simulation box) on/off
 reflecting_walls = .false.

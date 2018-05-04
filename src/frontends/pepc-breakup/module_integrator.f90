@@ -179,18 +179,19 @@ contains
       B_field = field_vector*B0*major_radius/R
 
       ! Option 2: a circular poloidal magnetic field, centred around major_radius
-      Pol_B_field = circular_poloidal_field(particle%x, field_vector, R)
+      ! Pol_B_field = circular_poloidal_field(particle%x, field_vector, R)
 
       PF_final = 0.0
       ! Option 3: 4 correction coils surrounding breakdown region, centred around major_radius
-      ! PF_temp = Amperes_law(particle%x, field_vector, R, 0.6_8, 2.9_8, 34000.0_8)
-      ! PF_final = PF_final + PF_temp
-      ! PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 2.3_8, 34000.0_8)
-      ! PF_final = PF_final + PF_temp
-      ! PF_temp = Amperes_law(particle%x, field_vector, R, -0.6_8, 2.9_8, 34000.0_8)
-      ! PF_final = PF_final + PF_temp
-      ! PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 3.5_8, 34000.0_8)
-      ! PF_final = PF_final + PF_temp
+      PF_temp = Amperes_law(particle%x, field_vector, R, 0.6_8, 2.9_8, 6800.0_8)
+      PF_final = PF_final + PF_temp
+      PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 2.3_8, 6800.0_8)
+      PF_final = PF_final + PF_temp
+      PF_temp = Amperes_law(particle%x, field_vector, R, -0.6_8, 2.9_8, 6800.0_8)
+      PF_final = PF_final + PF_temp
+      PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 3.5_8, 6800.0_8)
+      PF_final = PF_final + PF_temp
+      Pol_B_field = PF_final
 
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
       ! print *, particle%results%e*0.0160217662080007054395368083795655167047391940703667
@@ -287,7 +288,6 @@ contains
      character(len = *), intent(in) :: fname
      integer, intent(in) :: file_id, is_last
      integer :: entries, i
-     type(linked_list_CS), pointer :: temp_guide
 
      open(file_id,file=fname,action='READ')
      read(file_id,*) ! Skipping first line
@@ -305,9 +305,10 @@ contains
      if (is_last == 0) then
        allocate(guide_CS%next_CS)
        guide_CS => guide_CS%next_CS
-       nullify(guide_CS%next_CS)
+      !  nullify(guide_CS%next_CS)
      end if
 
+     nullify(guide_CS%next_CS)
      close(file_id)
    end subroutine set_cross_section_table
 
@@ -317,12 +318,14 @@ contains
      real(kind_physics), intent(inout) :: max_CS
      type(linked_list_CS), pointer :: temp_guide
 
-     max_CS = 0.0
      temp_guide => guide_CS
-     do while (associated(temp_guide))
-       max_CS = max_CS + maxval(temp_guide%CS(:,2))
-       temp_guide => temp_guide%next_CS
-     end do
+     max_CS = maxval(temp_guide%CS(:,2))
+    !  max_CS = 0.0
+    !  temp_guide => guide_CS
+    !  do while (associated(temp_guide))
+    !    max_CS = max_CS + maxval(temp_guide%CS(:,2))
+    !    temp_guide => temp_guide%next_CS
+    !  end do
    end subroutine determine_absolute_max_CS
 
    subroutine determine_cross_sections(particle, sigma_vec, guide_CS)
@@ -381,7 +384,6 @@ contains
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, buffer_pos
      integer, intent(in) :: type
-     real(kind_physics) :: vel_update, theta, phi
      integer :: ll_elem_gen
 
      ll_elem_gen = MOD(new_particle, size(guide%tmp_particles))
@@ -434,12 +436,14 @@ contains
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, electron_count
      real(kind_physics), dimension(:), intent(inout) :: CS_vector
-     real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, IE_H2_ion, AE_H_ion, theta, phi
+     real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
-     integer :: buff_pos, ll_elem_gen, i
+     integer :: buff_pos, i
 
-     IE_H2_ion = 15.283 ! eV, Ionization energy of H2+ [Source: T.E.Sharp Atomic Data 2, 119-169 (1971)]
-     AE_H_ion = 18.075 ! eV, Appearance energy of H+
+     R_J02 = 0.0441 ! eV, transition energy associated with rotational excitation from J = 0 -> 2
+     V_V01 = 0.516 ! eV, transition energy associated with vibrational excitation from V = 0 -> 1
+     IE_H2_ion = 15.426 ! 15.283 eV, Ionization energy of H2+ [Source: T.E.Sharp Atomic Data 2, 119-169 (1971)]. 15.426 by Yoon 2008
+     AE_H_ion = 18.075 ! eV, Appearance energy of H+, 18.1 by Yoon 2008
      ! [definition of Appearance energy vs Ionization energy from Mass Spectroscopy (2011) by Gross J.H.]
 
      ! NOTE: Currently, calculation of nu_prime involves obtaining abs_max_CS,
@@ -491,8 +495,27 @@ contains
        particle%data%v(2) = vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
        particle%data%v(3) = vel_mag * cos(rand_num(3)*pi)
        particle%data%age = 0.0_8
+      !  print *, "elastic coll.!"
 
-     case(2) ! nondissociative ionization (1 additional electron, 1 byproduct)
+     case(2) ! rotational excitation of H2 molecule, electron will lose the transition energy
+       ! update velocity to indicate scattering into random angle
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*R_J02/e_mass)
+       particle%data%v(1) = reduced_vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
+       particle%data%v(2) = reduced_vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
+       particle%data%v(3) = reduced_vel_mag * cos(rand_num(3)*pi)
+       particle%data%age = 0.0_8
+      !  print *, "rotational exci.!"
+
+     case(3) ! vibrational excitation of H2 molecule, electron will lose the transition energy
+       ! update velocity to indicate scattering into random angle
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*V_V01/e_mass)
+       particle%data%v(1) = reduced_vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
+       particle%data%v(2) = reduced_vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
+       particle%data%v(3) = reduced_vel_mag * cos(rand_num(3)*pi)
+       particle%data%age = 0.0_8
+      !  print *, "vibrational exci.!"
+
+     case(4) ! nondissociative ionization (1 additional electron, 1 byproduct)
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*IE_H2_ion/e_mass)
        reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
@@ -528,8 +551,9 @@ contains
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
 
        call add_particle(guide, particle, new_particle, buff_pos, 2)
+      !  print *, "nondissoc.!"
 
-     case(3) ! dissociative ionization (1 additional electron, 2 byproducts), Hydrogen atom is ignored!
+     case(5) ! dissociative ionization (1 additional electron, 2 byproducts), Hydrogen atom is ignored!
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*AE_H_ion/e_mass)
        reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
@@ -566,6 +590,7 @@ contains
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
 
        call add_particle(guide, particle, new_particle, buff_pos, 1)
+      !  print *, "dissoc.!"
 
      end select
    end subroutine collision_update
@@ -685,15 +710,22 @@ contains
      real(kind_physics), intent(in) :: plane(3), center_pos(3), inlet_size
      integer, intent(in) :: geometry, starting_index
      type(t_particle), allocatable, intent(inout) :: particles_list(:)
-     real(kind_physics) :: ran(3), magnitude, theta, u
+     real(kind_physics) :: ran(3), magnitude, theta, u, mu, sigma2, res_mag, a
      integer :: i, j, index
 
      magnitude = thermal_velocity_mag(1.0_8, 1773.15_kind_physics)
 
+     ! NOTE: below are the expressions for mean and variance of Maxwellian distribution.
+     mu = magnitude
+     a = sqrt(1773.15_kind_physics*8.61733035e-5_kind_physics/e_mass)
+     sigma2 = a**2 * (3.*pi - 8.)/pi
+
+    !  print *, "mean & variance: ", mu, sigma2
      select case(geometry)
      case(1) ! square plane
        do index = starting_index, size(particles_list)
          call random_number(ran)
+         call frand123NormDouble( state, mu, sigma2, res_mag )
          particles_list(index)%data%q = -1.0_8
          particles_list(index)%data%m = 1.0_8
          particles_list(index)%data%species = 0
@@ -707,7 +739,7 @@ contains
            if (plane(i) == 0.0) then
              particles_list(index)%x(i) = ran(i) * inlet_size + center_pos(i) - inlet_size*0.5
            else
-             particles_list(index)%data%v(i) = plane(i) * magnitude
+             particles_list(index)%data%v(i) = plane(i) * res_mag !magnitude
            end if
          end do
        end do
@@ -715,6 +747,7 @@ contains
      case(2) ! circle plane
        do index = starting_index, size(particles_list)
          call random_number(ran)
+         call frand123NormDouble( state, mu, sigma2, res_mag )
          particles_list(index)%data%q = -1.0_8
          particles_list(index)%data%m = 1.0_8
          particles_list(index)%data%species = 0
@@ -722,7 +755,7 @@ contains
          particles_list(index)%work = 1.0_8
 
          particles_list(index)%x = center_pos
-         particles_list(index)%data%v = plane * magnitude
+         particles_list(index)%data%v = plane * res_mag !magnitude
 
          theta = ran(2)*2.*pi
          u = ran(1) + ran(3)
@@ -732,6 +765,7 @@ contains
 
          particles_list(index)%x(1) = u * sin(theta) * inlet_size + center_pos(1)
          particles_list(index)%x(2) = u * cos(theta) * inlet_size + center_pos(2)
+        !  print *, "res_mag = ", res_mag
         !  j = 0
         !  do i = 1, 3
         !    if ((plane(i) <= 0.00001) .and. (j == 0)) then
@@ -751,7 +785,6 @@ contains
      integer, intent(inout) :: swapped_cnt
      integer, intent(in) :: geometry, current_index
      integer :: buffer_size, target_swap, init_swap_cnt
-     type(t_particle) :: swap_particle
      real(kind_physics) :: center_pos(3)
      real(kind_physics) :: radius, cyl_radius, plate_radius, cyl_length, box_dim, x, y, box_l
 

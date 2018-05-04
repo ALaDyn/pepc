@@ -27,6 +27,9 @@ module helper
    use module_timings
    use iso_fortran_env
    use particles_resize
+   use, intrinsic :: iso_c_binding, only: c_double
+   use frand123, only: frand123_state_kind, frand123_state_size, &
+                       frand123Init, frand123NormDouble
    implicit none
 
    ! timing variables
@@ -51,6 +54,7 @@ module helper
    integer(kind_particle) :: np ! local number of particles
    logical :: particle_output ! turn vtk output on/off
    logical :: domain_output ! turn vtk output on/off
+   logical :: particle_mpi_output !turn mpi IO on/off
    logical :: particle_test ! check tree code results against direct summation
    logical :: reflecting_walls ! reflect particles at walls
    integer :: diag_interval ! number of timesteps between all diagnostics and IO
@@ -76,6 +80,8 @@ module helper
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
                          charge_count(2), total_charge_count(2)
+   integer(kind=frand123_state_kind), dimension(frand123_state_size) :: state
+   integer( kind = frand123_state_kind ), dimension( 2 ) :: seed
 
    ! lookup tables for cross section data
    character(255) :: file_path
@@ -113,9 +119,9 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ resume, itime_in, tnp, nt, dt, particle_output, domain_output, reflecting_walls, &
-         particle_test, diag_interval, plasma_dimensions, init_temperature, pressure, external_e, &
-         major_radius, minor_radius, B0, B_p, V_loop
+      namelist /pepcbreakup/ resume, itime_in, tnp, nt, dt, particle_output, domain_output, &
+         particle_mpi_output, reflecting_walls, particle_test, diag_interval, plasma_dimensions, &
+         init_temperature, pressure, external_e, major_radius, minor_radius, B0, B_p, V_loop
 
       ! set default parameter values
       resume = 0
@@ -126,6 +132,7 @@ contains
       particle_test = .false.
       particle_output = .false.
       domain_output = .false.
+      particle_mpi_output = .true.
       reflecting_walls = .false.
       diag_interval = 1
       plasma_dimensions = (/1.0_8, 1.0_8, 1.0_8/)
@@ -154,6 +161,7 @@ contains
          write (*, '(a,l12)') " == particle test                       : ", particle_test
          write (*, '(a,l12)') " == particle output                     : ", particle_output
          write (*, '(a,l12)') " == domain output                       : ", domain_output
+         write (*, '(a,l12)') " == particle mpi output                 : ", particle_mpi_output
          write (*, '(a,l12)') " == reflecting walls                    : ", reflecting_walls
          write (*, '(a,3(es12.4))') " == plasma dimensions                   : ", plasma_dimensions
          write (*, '(a,es12.4)') " == initial electron temperature(K)     : ", init_temperature
@@ -203,7 +211,7 @@ contains
      real(kind_physics), intent(in) :: major_radius, minor_radius
      integer, intent(in) :: subdivisions ! denotes number of subdivisions in 1 dimension
      type(t_particle), allocatable, intent(inout) :: points(:)
-     real(kind_physics) :: pos(3), ran(3), diameter, increments, temp_dist(2), &
+     real(kind_physics) :: diameter, increments, temp_dist(2), &
                            dist_sum_x, dist_sum_z
      integer :: total_points, total_points_1d
 
@@ -246,8 +254,8 @@ contains
      real(kind_physics), intent(in) :: mass, temp
      real(kind_physics) :: velocity, kb_ev
 
-     kb_ev = 8.61733035e-5 !boltzmann constant in eV/K
-     velocity = sqrt(temp*kb_ev/(mass*e_mass)) !dimensionless velocity
+     kb_ev = 8.61733035e-5_kind_physics !boltzmann constant in eV/K
+     velocity = sqrt(8.*temp*kb_ev/(mass*e_mass*pi)) !dimensionless velocity
     !  print *, velocity
    end function thermal_velocity_mag
 
@@ -295,7 +303,7 @@ contains
         !  p(ip)%data%v = p(ip)%data%v/c * 1e6
 
          magnitude = thermal_velocity_mag(p(ip)%data%m, 873.15_kind_physics)! 0.0108359158316
-        !  magnitude = sqrt((2*100.0)/e_mass)
+        !  magnitude = sqrt((2*99.9)/e_mass)
          p(ip)%data%v = 0.0
          p(ip)%data%v(3) = -1.0 * magnitude
 

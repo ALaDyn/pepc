@@ -39,6 +39,9 @@ program pepc
    ! initialize pepc library and MPI
    call pepc_initialize("pepc-breakup", my_rank, n_ranks, .true.)
 
+   seed = (/ 0, 0 /)
+   call frand123Init( state, my_rank, 0, seed )
+
    root = my_rank .eq. 0
 
    call timer_start(t_user_total)
@@ -54,22 +57,30 @@ program pepc
    else
      itime_in = 0
      call init_particles(particles)
+    !  call torus_diagnostic_grid(major_radius, minor_radius, 7, particles)
    end if
-  !  call torus_diagnostic_grid(major_radius, minor_radius, 4, particles)
+
    !========================read cross section data======================
    allocate(CS_tables)
    CS_guide => CS_tables
    ! IMPORTANT NOTE: the order of set_cross_section_table must correspond to the case orders in collision_update()
   !  call getcwd(file_path)
    file_path = "../src/frontends/pepc-breakup/cross_sections/"
-   call set_cross_section_table(trim(file_path)//"total_scattering_H2.txt", CS_guide, 11, 0)
-   call set_cross_section_table(trim(file_path)//"nondissociative_ionization_H2+.txt", CS_guide, 12, 0)
-   call set_cross_section_table(trim(file_path)//"dissociative_ionization_H+.txt", CS_guide, 13, 1)
-   allocate(cross_sections_vector(3))
+   call set_cross_section_table(trim(file_path)//"total_scattering_H2.txt", CS_guide, 11, 1)
 
    ! NOTE: Future prospect: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
    !       look at some external function DDFSA or DFSA.
    call determine_absolute_max_CS(CS_tables, abs_max_CS)
+   call deallocate_CS_buffer(CS_tables)
+
+   allocate(CS_tables)
+   CS_guide => CS_tables
+   call set_cross_section_table(trim(file_path)//"elastic_scattering_H2.txt", CS_guide, 11, 0)
+   call set_cross_section_table(trim(file_path)//"rotational_excitation_J_0_2.txt", CS_guide, 12, 0)
+   call set_cross_section_table(trim(file_path)//"vibrational_excitation_v_0_1.txt", CS_guide, 13, 0)
+   call set_cross_section_table(trim(file_path)//"nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
+   call set_cross_section_table(trim(file_path)//"dissociative_ionization_H+.txt", CS_guide, 15, 1)
+   allocate(cross_sections_vector(5))
    !=====================================================================
    call timer_stop(t_user_init)
 
@@ -85,7 +96,7 @@ program pepc
    if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
-   ! Calculates number of electrons injected by local process
+   ! number of injected electrons per time step
    electron_num = 20
 
    do i = 1, size(particles)
@@ -99,9 +110,6 @@ program pepc
    ! free tree specific allocations
    call pepc_timber_tree()
 
-   if (root) then
-     open(12, file = 'i_i0.txt', action='WRITE')
-   end if
    do step = 0, nt - 1
       if (root) then
          write (*, *) " "
@@ -164,7 +172,7 @@ program pepc
       if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
       call deallocate_ll_buffer(buffer)
 
-      ! if (doDiag .and. particle_output) call write_particles(particles)
+      if (doDiag .and. particle_output) call write_particles(particles)
 
       call pepc_particleresults_clear(particles)
       call pepc_grow_tree(particles)
@@ -173,7 +181,7 @@ program pepc
       call pepc_traverse_tree(particles)
       if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
 
-      if (doDiag .and. domain_output) call write_domain(particles)
+      ! if (doDiag .and. domain_output) call write_domain(particles)
 
       if (dbg(DBG_STATS)) call pepc_statistics(step)
       call pepc_timber_tree()
@@ -181,7 +189,7 @@ program pepc
       if (doDiag .and. particle_test) call test_particles()
       if (doDiag .and. particle_output) call write_particles(particles)
 
-      if (step == nt-1) then
+      if (doDiag .and. particle_mpi_output) then
         call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
         call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
       end if
@@ -204,7 +212,6 @@ program pepc
       write (*, *) " "
       write (*, '(a)') " ===== finished pepc simulation"
       write (*, '(a,es12.4)') " ===== total run time [s]: ", timer_read(t_user_total)
-      close(12)
    end if
 
    ! cleanup pepc and MPI
