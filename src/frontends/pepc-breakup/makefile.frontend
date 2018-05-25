@@ -1,6 +1,5 @@
 FILES_L   = pepc.f90 module_helper.f90 module_integrator.f90 module_particles_resize.f90 \
-	    random123_func.c rng_wrapper.f90 rand123wrapper.c rand123wrapper.h \
-			frand123enlarger.h frand123CInterfaces.f90 frand123.c frand123.f90 frand123.h
+	    random123_func.c rng_wrapper.f90
 
 FILES_L_U = module_vtk_helpers.f90 \
             module_directsum.f90 \
@@ -15,7 +14,7 @@ SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 CFLAGS     += -DR123_USE_U01_DOUBLE=1 -I$(ROOTDIR)/src/frontends/pepc-breakup
 CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF
 
-LDLIBS     += libfrand123.a
+LDLIBS     += 
 
 BACKENDTYPE = PEPCF
 

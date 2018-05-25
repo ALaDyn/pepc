@@ -165,7 +165,7 @@ contains
       type(t_particle), intent(inout) :: particle
       real(kind_physics), intent(in) :: E_field(3)
       real(kind_physics) :: B_field(3), ez(3), Pol_B_field(3), field_vector(3)
-      real(kind_physics) :: R, PF_final(3), PF_temp(3)
+      real(kind_physics) :: R, PF_final(3), PF_temp(3), disp, Ipf, PF_unit_vector(3)
 
       ez = 0.0
       ez(3) = 1.0
@@ -182,20 +182,24 @@ contains
       ! Pol_B_field = circular_poloidal_field(particle%x, field_vector, R)
 
       PF_final = 0.0
+      disp = 10.0_8
+      Ipf = 3.4e8_8
       ! Option 3: 4 correction coils surrounding breakdown region, centred around major_radius
-      PF_temp = Amperes_law(particle%x, field_vector, R, 0.6_8, 2.9_8, 6800.0_8)
+      PF_temp = Amperes_law(particle%x, field_vector, R, disp, 2.9_8, Ipf)
       PF_final = PF_final + PF_temp
-      PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 2.3_8, 6800.0_8)
+      PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 2.9_8 - disp, Ipf)
       PF_final = PF_final + PF_temp
-      PF_temp = Amperes_law(particle%x, field_vector, R, -0.6_8, 2.9_8, 6800.0_8)
+      PF_temp = Amperes_law(particle%x, field_vector, R, -disp, 2.9_8, Ipf)
       PF_final = PF_final + PF_temp
-      PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 3.5_8, 6800.0_8)
+      PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 2.9_8 + disp, Ipf)
       PF_final = PF_final + PF_temp
-      Pol_B_field = PF_final
+      PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
+      PF_temp = 0.0005 * ((1.e-12)*(c**2))/e_mass * PF_unit_vector
+      Pol_B_field = PF_final + PF_temp
 
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
       ! print *, particle%results%e*0.0160217662080007054395368083795655167047391940703667
-      particle%data%b = B_field + Pol_B_field
+      particle%data%b = Pol_B_field !B_field +
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
@@ -710,22 +714,22 @@ contains
      real(kind_physics), intent(in) :: plane(3), center_pos(3), inlet_size
      integer, intent(in) :: geometry, starting_index
      type(t_particle), allocatable, intent(inout) :: particles_list(:)
-     real(kind_physics) :: ran(3), magnitude, theta, u, mu, sigma2, res_mag, a
+     real(kind_physics) :: ran(3), magnitude, theta, u !, mu, sigma2, res_mag, a
      integer :: i, j, index
 
-     magnitude = thermal_velocity_mag(1.0_8, 1773.15_kind_physics)
-
+    !  magnitude = thermal_velocity_mag(1.0_8, 1773.15_kind_physics)
+     magnitude = sqrt((2*1.0)/e_mass)
      ! NOTE: below are the expressions for mean and variance of Maxwellian distribution.
-     mu = magnitude
-     a = sqrt(1773.15_kind_physics*8.61733035e-5_kind_physics/e_mass)
-     sigma2 = a**2 * (3.*pi - 8.)/pi
+    !  mu = magnitude
+    !  a = sqrt(1773.15_kind_physics*8.61733035e-5_kind_physics/e_mass)
+    !  sigma2 = a**2 * (3.*pi - 8.)/pi
 
     !  print *, "mean & variance: ", mu, sigma2
      select case(geometry)
      case(1) ! square plane
        do index = starting_index, size(particles_list)
          call random_number(ran)
-         call frand123NormDouble( state, mu, sigma2, res_mag )
+        !  call frand123NormDouble( state, mu, sigma2, res_mag )
          particles_list(index)%data%q = -1.0_8
          particles_list(index)%data%m = 1.0_8
          particles_list(index)%data%species = 0
@@ -739,7 +743,7 @@ contains
            if (plane(i) == 0.0) then
              particles_list(index)%x(i) = ran(i) * inlet_size + center_pos(i) - inlet_size*0.5
            else
-             particles_list(index)%data%v(i) = plane(i) * res_mag !magnitude
+             particles_list(index)%data%v(i) = plane(i) * magnitude
            end if
          end do
        end do
@@ -747,7 +751,7 @@ contains
      case(2) ! circle plane
        do index = starting_index, size(particles_list)
          call random_number(ran)
-         call frand123NormDouble( state, mu, sigma2, res_mag )
+        !  call frand123NormDouble( state, mu, sigma2, res_mag )
          particles_list(index)%data%q = -1.0_8
          particles_list(index)%data%m = 1.0_8
          particles_list(index)%data%species = 0
@@ -755,7 +759,7 @@ contains
          particles_list(index)%work = 1.0_8
 
          particles_list(index)%x = center_pos
-         particles_list(index)%data%v = plane * res_mag !magnitude
+         particles_list(index)%data%v = plane * magnitude
 
          theta = ran(2)*2.*pi
          u = ran(1) + ran(3)

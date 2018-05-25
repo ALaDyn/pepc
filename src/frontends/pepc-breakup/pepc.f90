@@ -39,8 +39,8 @@ program pepc
    ! initialize pepc library and MPI
    call pepc_initialize("pepc-breakup", my_rank, n_ranks, .true.)
 
-   seed = (/ 0, 0 /)
-   call frand123Init( state, my_rank, 0, seed )
+  !  seed = (/ 0, 0 /)
+  !  call frand123Init( state, my_rank, 0, seed )
 
    root = my_rank .eq. 0
 
@@ -148,8 +148,8 @@ program pepc
       call MPI_REDUCE(charge_count, total_charge_count, 2, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       if (root) then
         print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2)
-        total_charge_count(1) = -1.0*electron_num
-        call write_text_output(total_charge_count(1), total_charge_count(2), step)
+        ! total_charge_count(1) = -1.0*electron_num
+        ! call write_text_output(total_charge_count(1), total_charge_count(2), step)
       end if
 
       if (root) then
@@ -172,7 +172,7 @@ program pepc
       if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
       call deallocate_ll_buffer(buffer)
 
-      if (doDiag .and. particle_output) call write_particles(particles)
+      ! if (doDiag .and. particle_output) call write_particles(particles)
 
       call pepc_particleresults_clear(particles)
       call pepc_grow_tree(particles)
@@ -181,7 +181,7 @@ program pepc
       call pepc_traverse_tree(particles)
       if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
 
-      ! if (doDiag .and. domain_output) call write_domain(particles)
+      if (doDiag .and. domain_output) call write_domain(particles)
 
       if (dbg(DBG_STATS)) call pepc_statistics(step)
       call pepc_timber_tree()

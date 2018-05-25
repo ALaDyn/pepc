@@ -62,7 +62,7 @@ force_law  = 3
 mac_select = 0
 ! theta = 0.0
 theta2     = 0.09
-! eps squared
+! eps squared (scale it like distance scaling)
 eps2 = 1e-4
 /
 

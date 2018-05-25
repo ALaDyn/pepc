@@ -28,8 +28,7 @@ module helper
    use iso_fortran_env
    use particles_resize
    use, intrinsic :: iso_c_binding, only: c_double
-   use frand123, only: frand123_state_kind, frand123_state_size, &
-                       frand123Init, frand123NormDouble
+
    implicit none
 
    ! timing variables
@@ -80,8 +79,6 @@ module helper
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
                          charge_count(2), total_charge_count(2)
-   integer(kind=frand123_state_kind), dimension(frand123_state_size) :: state
-   integer( kind = frand123_state_kind ), dimension( 2 ) :: seed
 
    ! lookup tables for cross section data
    character(255) :: file_path
