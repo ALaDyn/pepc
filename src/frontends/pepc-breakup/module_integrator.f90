@@ -444,6 +444,7 @@ contains
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      integer :: buff_pos, i
 
+     ! TODO: not a huge fan of the next 4 lines. Rather make those parameters which might help optimisation
      R_J02 = 0.0441 ! eV, transition energy associated with rotational excitation from J = 0 -> 2
      V_V01 = 0.516 ! eV, transition energy associated with vibrational excitation from V = 0 -> 1
      IE_H2_ion = 15.426 ! 15.283 eV, Ionization energy of H2+ [Source: T.E.Sharp Atomic Data 2, 119-169 (1971)]. 15.426 by Yoon 2008
@@ -455,6 +456,9 @@ contains
      !       reactions, disregarding the associated eV. nu_prime is then obtained
      !       by multiplying abs_max_CS with the particle's velocity magnitude and
      !       constant local density. nu_prime will thus be always larger than actual nu!
+     ! TODO: not at all critical, but there are many ways of doing the next line, would be interesting to see if there is a fastest
+     ! way of computing the length and weigh that against readability, perhaps a separate inlinable function if there is a faster
+     ! way?
      vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
      nu_prime = abs_max_CS * vel_mag * neutral_density
     !  call determine_cross_sections(particle, CS_vector, CS_tables)
@@ -477,7 +481,11 @@ contains
        ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
        CS_vector = CS_vector * vel_mag * neutral_density !6545520.13889 test value of constant local_number_density (at 0.001Pa)
 
+       ! TODO: this to me looks like it could be a simple do-loop
+       ! TODO: also looks like it can be combined with the select case below via a rather long/convoluted if-elseif construct that
+       ! may read more easily
        i = 1
+       ! TODO: CHECK: why is this rand_num(2) and not (1) again?
        do while (rand_num(2) > (CS_vector(i)/nu_prime))
          i = i + 1
          if (i > size(CS_vector)) then
@@ -495,6 +503,9 @@ contains
       !  print *, "null coll!"
      case(1) ! elastic scattering (no additional electron, no byproducts)
        ! update velocity to indicate scattering into random angle
+       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back scattering
+       ! TODO: c.f. http://mathworld.wolfram.com/SpherePointPicking.html
+       ! TODO: c.f. https://corysimon.github.io/articles/uniformdistn-on-sphere/
        particle%data%v(1) = vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
        particle%data%v(2) = vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
        particle%data%v(3) = vel_mag * cos(rand_num(3)*pi)
@@ -503,7 +514,10 @@ contains
 
      case(2) ! rotational excitation of H2 molecule, electron will lose the transition energy
        ! update velocity to indicate scattering into random angle
+       ! TODO: will be less costly to keep 2/e_mass as parameter and multiplying with it - not sure the compile will pick up on this
+       ! and do the short-cut for you. Better still: add it to the energies straight away.
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*R_J02/e_mass)
+       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back scattering
        particle%data%v(1) = reduced_vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
        particle%data%v(2) = reduced_vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
        particle%data%v(3) = reduced_vel_mag * cos(rand_num(3)*pi)
@@ -513,6 +527,7 @@ contains
      case(3) ! vibrational excitation of H2 molecule, electron will lose the transition energy
        ! update velocity to indicate scattering into random angle
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*V_V01/e_mass)
+       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back
        particle%data%v(1) = reduced_vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
        particle%data%v(2) = reduced_vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
        particle%data%v(3) = reduced_vel_mag * cos(rand_num(3)*pi)
@@ -526,6 +541,7 @@ contains
       !  print *, "incident momentum: ", particle%data%m * reduced_incident
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
+       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back
        temp_vel(1) = sin(rand_num(3)*pi*0.5) * cos(rand_num(4)*pi*2.0)
        temp_vel(2) = sin(rand_num(3)*pi*0.5) * sin(rand_num(4)*pi*2.0)
        temp_vel(3) = cos(rand_num(3)*pi*0.5)
@@ -565,6 +581,7 @@ contains
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
 
+       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back
        temp_vel(1) = sin(rand_num(3)*pi*0.5) * cos(rand_num(4)*pi*2.0)
        temp_vel(2) = sin(rand_num(3)*pi*0.5) * sin(rand_num(4)*pi*2.0)
        temp_vel(3) = cos(rand_num(3)*pi*0.5)
