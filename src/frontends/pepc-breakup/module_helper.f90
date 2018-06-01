@@ -78,7 +78,7 @@ module helper
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
-                         charge_count(2), total_charge_count(2)
+                         charge_count(3), total_charge_count(3)
 
    ! lookup tables for cross section data
    character(255) :: file_path

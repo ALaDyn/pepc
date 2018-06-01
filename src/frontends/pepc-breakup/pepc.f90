@@ -145,9 +145,9 @@ program pepc
         !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
       end do
 
-      call MPI_REDUCE(charge_count, total_charge_count, 2, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      call MPI_REDUCE(charge_count, total_charge_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       if (root) then
-        print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2)
+        print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2), total_charge_count(3)
         ! total_charge_count(1) = -1.0*electron_num
         ! call write_text_output(total_charge_count(1), total_charge_count(2), step)
       end if

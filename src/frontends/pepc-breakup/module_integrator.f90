@@ -864,6 +864,9 @@ contains
              charge_count(1) = charge_count(1) + particles(current_index)%data%q
              particles(current_index) = particles(target_swap)
              swapped_cnt = swapped_cnt + 1
+             if (particles(current_index)%data%q < 0.0) then
+               charge_count(3) = charge_count(3) + 1
+             end if
            else
              particles(current_index) = particles(target_swap)
              swapped_cnt = swapped_cnt + 1
