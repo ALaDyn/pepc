@@ -440,7 +440,7 @@ contains
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, electron_count
      real(kind_physics), dimension(:), intent(inout) :: CS_vector
-     real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi
+     real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      integer :: buff_pos, i
 
@@ -498,6 +498,9 @@ contains
        i = 0
      end if
 
+     polar_theta = 2.0*pi*rand_num(4)
+     polar_phi = acos(2.0*rand_num(3) - 1.)
+
      select case(i)
      case(0) ! null collision, no update performed
       !  print *, "null coll!"
@@ -506,9 +509,9 @@ contains
        ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back scattering
        ! TODO: c.f. http://mathworld.wolfram.com/SpherePointPicking.html
        ! TODO: c.f. https://corysimon.github.io/articles/uniformdistn-on-sphere/
-       particle%data%v(1) = vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
-       particle%data%v(2) = vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
-       particle%data%v(3) = vel_mag * cos(rand_num(3)*pi)
+       particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
+       particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
+       particle%data%v(3) = vel_mag * cos(polar_phi)
        particle%data%age = 0.0_8
       !  print *, "elastic coll.!"
 
@@ -517,20 +520,18 @@ contains
        ! TODO: will be less costly to keep 2/e_mass as parameter and multiplying with it - not sure the compile will pick up on this
        ! and do the short-cut for you. Better still: add it to the energies straight away.
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*R_J02/e_mass)
-       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back scattering
-       particle%data%v(1) = reduced_vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
-       particle%data%v(2) = reduced_vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
-       particle%data%v(3) = reduced_vel_mag * cos(rand_num(3)*pi)
+       particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
+       particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
+       particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
        particle%data%age = 0.0_8
       !  print *, "rotational exci.!"
 
      case(3) ! vibrational excitation of H2 molecule, electron will lose the transition energy
        ! update velocity to indicate scattering into random angle
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*V_V01/e_mass)
-       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back
-       particle%data%v(1) = reduced_vel_mag * sin(rand_num(3)*pi) * cos(rand_num(4)*pi*2.0)
-       particle%data%v(2) = reduced_vel_mag * sin(rand_num(3)*pi) * sin(rand_num(4)*pi*2.0)
-       particle%data%v(3) = reduced_vel_mag * cos(rand_num(3)*pi)
+       particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
+       particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
+       particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
        particle%data%age = 0.0_8
       !  print *, "vibrational exci.!"
 
@@ -541,10 +542,9 @@ contains
       !  print *, "incident momentum: ", particle%data%m * reduced_incident
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
-       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back
-       temp_vel(1) = sin(rand_num(3)*pi*0.5) * cos(rand_num(4)*pi*2.0)
-       temp_vel(2) = sin(rand_num(3)*pi*0.5) * sin(rand_num(4)*pi*2.0)
-       temp_vel(3) = cos(rand_num(3)*pi*0.5)
+       temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
+       temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
+       temp_vel(3) = cos(polar_phi*0.5)
 
        rot_axis(1) = 0.0
        rot_axis(2) = 1.0
@@ -581,10 +581,9 @@ contains
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
 
-       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back
-       temp_vel(1) = sin(rand_num(3)*pi*0.5) * cos(rand_num(4)*pi*2.0)
-       temp_vel(2) = sin(rand_num(3)*pi*0.5) * sin(rand_num(4)*pi*2.0)
-       temp_vel(3) = cos(rand_num(3)*pi*0.5)
+       temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
+       temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
+       temp_vel(3) = cos(polar_phi*0.5)
 
        rot_axis(1) = 0.0
        rot_axis(2) = 1.0
