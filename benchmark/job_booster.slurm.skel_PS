@@ -1,0 +1,41 @@
+#!/bin/bash -x
+#SBATCH --partition=booster
+#SBATCH --nodes=##NODES##
+#SBATCH --ntasks-per-node=##TASKSPNODE##
+#SBATCH --cpus-per-task=##THREADS##
+#SBATCH --output=%j.stdout
+#SBATCH --error=%j.stderr
+#SBATCH --time=01:30:00
+
+export OMP_NUM_THREADS=##THREADS##
+
+module use /usr/local/software/jurecabooster/OtherStages
+module use Stages/2018a
+module load Architecture/KNL
+module load GCC
+module load ParaStationMPI
+
+# add my binding
+source /homeb/zam/broemmel/psfuckupsmtpin_function.sh
+export HWT=##SMT_THREADS##
+export PIN=`/homeb/zam/broemmel/psfuckupsmtpin.sh | grep cpu_bind`
+
+srun -l $PIN numactl -p 1 ./pepc-benchmark ./params > log
+
+
+
+#module load Architecture/KNL
+#module load GCC/7.2.0 ParaStationMPI/5.2.0-1 Score-P Scalasca PAPI
+
+#### EXTRAE
+#export LD_PRELOAD=/homeb/zam/broemmel/jurecabooster/EXTRAE/lib/libmpitracef.so
+#export EXTRAE_CONFIG_FILE=./extrae.xml
+#
+#srun -l numactl -p 1 ./pepc-benchmark ./params > log_extrae
+
+#### SCORE-P
+#scalasca -analyze srun ./pepc-benchmark ./params > log_scalasca
+
+touch ready
+
+wait
