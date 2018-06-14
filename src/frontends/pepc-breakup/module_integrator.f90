@@ -56,6 +56,9 @@ contains
      vec_out = vec_in*cos_angle + k_cross_v * sin(angle) + rot_axis * k_dot_v
    end function Rodriguez_rotation
 
+   ! Given the velocity vector of particle, it's azimuthal and inclination angle is calculated.
+   ! can be 'adapted' to calculate azimuthal position of particle in torus.
+   ! Phi angle is aligned 0 deg from north. North coincides with +y-axis
    subroutine angles_calc(vec_in, vel_mag, theta, phi)
      implicit none
      real(kind_physics), dimension(:), intent(in):: vec_in
@@ -199,7 +202,7 @@ contains
 
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
       ! print *, particle%results%e*0.0160217662080007054395368083795655167047391940703667
-      particle%data%b = Pol_B_field !B_field +
+      particle%data%b = B_field + Pol_B_field
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
@@ -262,14 +265,65 @@ contains
       particle%data%v = Vp + E_q_dt_m*particle%results%e*q_m_ratio
    end subroutine boris_velocity_update
 
+   subroutine current_profile(particle, init_phi, final_phi, measure_phi, flow_count)
+     implicit none
+     type(t_particle), intent(in) :: particle
+     real(kind_physics), intent(in) :: init_phi, final_phi, measure_phi
+     real(kind_physics), dimension(:) , intent(inout) :: flow_count
+     real(kind_physics) :: init, final, constant
+     integer :: i
+
+     ! NOTE: this subroutine doesn't work properly if the measuring plane is placed
+     !       in the vicinity of measure_phi = 0.0!
+     init = init_phi - measure_phi
+     final = final_phi - measure_phi
+
+     ! precompute particle travel direction, expressed in phi angle
+     if (final < init) then
+       constant = 1
+     else
+       constant = -1
+     end if
+
+     i = particle%data%species + 1
+     ! NOTE: latest thoughts, just need to count the net flow of electrons and ions
+     !       through/at the plane. Meaning, if particle moves in -\phi direction,
+     !       it gets subtracted. If it moves in +\phi direction, it will be added.
+     !       Keep the counts for species separate!
+     !       for at the plane cases, only count at final_phi.
+     if (final /= 0.0) then
+       if (init/final < 0.0) then
+         flow_count(i) = flow_count(i) + constant
+       end if
+     else if (final == 0.0 ) then
+       flow_count(i) = flow_count(i) + constant
+     end if
+   end subroutine current_profile
+
    subroutine particle_pusher(particle, dt)
       implicit none
       type(t_particle), intent(inout) :: particle
       real*8, intent(in) :: dt
       real*8 :: dist_vec(3)
+      real(kind_physics) :: init_phi, final_phi, measure, dummy, dummy_pos_vec(3)
+
+      init_phi = 0.0
+      final_phi = 0.0
+      dummy_pos_vec = 0.0
+      dummy_pos_vec(1) = particle%x(2)
+      dummy_pos_vec(2) = particle%x(1)
+      call angles_calc(dummy_pos_vec, 1._8, dummy, init_phi)
+      ! Because angles_calc() calculates vel_vector angle, which is perpendicular to position angle
 
       dist_vec = particle%data%v*dt
       particle%x = particle%x + dist_vec
+
+      dummy_pos_vec(1) = particle%x(2)
+      dummy_pos_vec(2) = particle%x(1)
+      call angles_calc(dummy_pos_vec, 1._8, dummy, final_phi)
+
+      measure = 0.5*pi
+      call current_profile(particle, init_phi, final_phi, measure, flow_count)
       particle%data%age = particle%data%age + dt
 
    end subroutine particle_pusher
@@ -806,7 +860,8 @@ contains
      integer, intent(in) :: geometry, current_index
      integer :: buffer_size, target_swap, init_swap_cnt
      real(kind_physics) :: center_pos(3)
-     real(kind_physics) :: radius, cyl_radius, plate_radius, cyl_length, box_dim, x, y, box_l
+     real(kind_physics) :: radius, cyl_radius, plate_radius, cyl_length, box_dim, &
+                           x, y, z, box_l, m_radius, buffer_zone
 
      buffer_size = size(particles)
      target_swap = buffer_size - swapped_cnt
@@ -873,6 +928,24 @@ contains
            end if
          end if
        else
+         particles(current_index) = particles(target_swap)
+         swapped_cnt = swapped_cnt + 1
+       end if
+
+       if (init_swap_cnt /= swapped_cnt) then
+         call filter_and_swap(particles, geometry, current_index, swapped_cnt)
+       end if
+
+     case (3) ! torus shape
+       x = particles(current_index)%x(1)
+       y = particles(current_index)%x(2)
+       z = particles(current_index)%x(3)
+       radius = major_radius - sqrt(x**2 + y**2)
+       m_radius = sqrt(radius**2 + z**2)
+
+       buffer_zone = 0.75/(c*1e-12)
+
+       if (m_radius > (minor_radius+buffer_zone)) then
          particles(current_index) = particles(target_swap)
          swapped_cnt = swapped_cnt + 1
        end if

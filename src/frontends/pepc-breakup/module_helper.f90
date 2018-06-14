@@ -76,7 +76,8 @@ module helper
    real(kind_physics):: rand_num(8)
 
    ! variables related to cross sections and probabilistic collisions
-   real(kind_physics), dimension(:), allocatable :: cross_sections_vector
+   real(kind_physics), dimension(:), allocatable :: cross_sections_vector, flow_count, &
+                                                    total_flow_count
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
                          charge_count(3), total_charge_count(3)
 
@@ -196,10 +197,10 @@ contains
      r = ran(1) * minor_radius
      phi = ran(2) * 2. * pi
      theta  = ran(3) * 2. * pi
-     l = major_radius + r*sin(phi)
-     pos(1) = l * sin(theta)
-     pos(2) = l * cos(theta)
-     pos(3) = r * cos(phi)
+     l = major_radius + r*sin(theta)
+     pos(1) = l * sin(phi)
+     pos(2) = l * cos(phi)
+     pos(3) = r * cos(theta)
    end function torus_geometry
 
    subroutine torus_diagnostic_grid(major_radius, minor_radius, subdivisions, points)
@@ -291,18 +292,22 @@ contains
 
          p(ip)%data%age = 0.0_8
 
-         call random(p(ip)%x)
-         p(ip)%x = p(ip)%x*plasma_dimensions - plasma_dimensions*0.5
-         p(ip)%x(3) = 0.0
-        !  p(ip)%x = torus_geometry()
+        ! NOTE: square plane distribution
+        !  call random(p(ip)%x)
+        !  p(ip)%x = p(ip)%x*plasma_dimensions - plasma_dimensions*0.5
+        !  p(ip)%x(3) = 0.0
+
+        ! NOTE: torus distribution
+         p(ip)%x = torus_geometry()
 
         !  call random_gauss(p(ip)%data%v)
         !  p(ip)%data%v = p(ip)%data%v/c * 1e6
 
-         magnitude = thermal_velocity_mag(p(ip)%data%m, 873.15_kind_physics)! 0.0108359158316
-        !  magnitude = sqrt((2*99.9)/e_mass)
+        !  magnitude = thermal_velocity_mag(p(ip)%data%m, 873.15_kind_physics)! 0.0108359158316
+         magnitude = sqrt((2*1.0)/e_mass)
          p(ip)%data%v = 0.0
-         p(ip)%data%v(3) = -1.0 * magnitude
+         p(ip)%data%v(2) = 1.0 * magnitude
+        !  p(ip)%data%v(3) = -1.0 * magnitude
 
          p(ip)%work = 1.0_8
       end do

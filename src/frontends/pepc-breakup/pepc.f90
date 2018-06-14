@@ -81,6 +81,8 @@ program pepc
    call set_cross_section_table(trim(file_path)//"nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
    call set_cross_section_table(trim(file_path)//"dissociative_ionization_H+.txt", CS_guide, 15, 1)
    allocate(cross_sections_vector(5))
+   allocate(flow_count(3))
+   allocate(total_flow_count(3))
    !=====================================================================
    call timer_stop(t_user_init)
 
@@ -97,7 +99,7 @@ program pepc
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
    ! number of injected electrons per time step
-   electron_num = 20
+   electron_num = 0
 
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e)
@@ -129,11 +131,13 @@ program pepc
       swapped_num = 0
       charge_count = 0.0
       total_charge_count = 0.0
+      flow_count = 0.0
+      total_flow_count = 0.0
       do i = 1, size(particles)
          if (i > (size(particles)-swapped_num)) then
            EXIT
          end if
-         call filter_and_swap(particles, 2, i, swapped_num)
+         call filter_and_swap(particles, 3, i, swapped_num)
 
          call particle_EB_field(particles(i), external_e)
          call boris_velocity_update(particles(i), dt)
@@ -145,11 +149,11 @@ program pepc
         !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
       end do
 
-      call MPI_REDUCE(charge_count, total_charge_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      ! call MPI_REDUCE(charge_count, total_charge_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      call MPI_REDUCE(flow_count, total_flow_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       if (root) then
-        print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2), total_charge_count(3)
-        ! total_charge_count(1) = -1.0*electron_num
-        ! call write_text_output(total_charge_count(1), total_charge_count(2), step)
+        ! print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2), total_charge_count(3)
+        print *, "SUMMED CHARGE COUNT: ", total_flow_count(1), total_flow_count(2), total_flow_count(3)
       end if
 
       if (root) then
