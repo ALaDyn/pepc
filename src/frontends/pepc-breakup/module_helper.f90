@@ -86,11 +86,11 @@ module helper
    type(linked_list_CS), pointer :: CS_tables, CS_guide
 
    ! variables describing external fields
-   real(kind_physics) :: major_radius, minor_radius, B0, B_p, V_loop
+   real(kind_physics) :: d, major_radius, minor_radius, B0, B_p, V_loop
 
    ! checkpoint related variables
    character(255) :: checkpoint_file
-   integer :: checkin_step, resume, itime_in
+   integer :: checkin_step, resume, itime_in, sim_type, mode, flt_geom
 
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
@@ -117,13 +117,19 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ resume, itime_in, tnp, nt, dt, particle_output, domain_output, &
-         particle_mpi_output, reflecting_walls, particle_test, diag_interval, plasma_dimensions, &
-         init_temperature, pressure, external_e, major_radius, minor_radius, B0, B_p, V_loop
+      namelist /pepcbreakup/ resume, itime_in, sim_type, mode, d, electron_num, &
+         tnp, nt, dt, particle_output, domain_output, particle_mpi_output, &
+         reflecting_walls, particle_test, diag_interval, plasma_dimensions, &
+         init_temperature, pressure, external_e, major_radius, minor_radius, &
+         B0, B_p, V_loop
 
       ! set default parameter values
       resume = 0
       itime_in = 0
+      sim_type = 0
+      mode = 0
+      d = 0.0015
+      electron_num = 0
       tnp = 10000
       nt = 25
       dt = 1e-2
@@ -185,22 +191,45 @@ contains
       major_radius = major_radius/(c*1e-12)
       minor_radius = minor_radius/(c*1e-12)
 
+      if (sim_type == 0) then
+        V_loop = 0.0
+        B0 = 0.0
+        B_p = 0.0
+        flt_geom = 2
+      else if (sim_type == 1) then
+        external_e = 0.0
+        electron_num = 0
+        flt_geom = 3
+      end if
+
       call pepc_prepare(3_kind_dim)
    end subroutine set_parameter
 
-   function torus_geometry() result(pos)
+   function torus_geometry(mode) result(pos)
      implicit none
      real(kind_physics) :: pos(3), ran(3)
+     integer, intent(in) :: mode
      real*8 :: theta, phi, l, r
 
      call random_number(ran)
      r = ran(1) * minor_radius
-     phi = ran(2) * 2. * pi
      theta  = ran(3) * 2. * pi
      l = major_radius + r*sin(theta)
-     pos(1) = l * sin(phi)
-     pos(2) = l * cos(phi)
      pos(3) = r * cos(theta)
+
+     select case(mode)
+     case(0) ! random torus distribution
+       phi = ran(2) * 2. * pi
+       pos(1) = l * sin(phi)
+       pos(2) = l * cos(phi)
+
+     case(1) ! plane distribution at phi = pi/2
+       phi = ran(2) * pi
+       pos(1) = l
+       pos(2) = 0.0
+
+     end select
+
    end function torus_geometry
 
    subroutine torus_diagnostic_grid(major_radius, minor_radius, subdivisions, points)
@@ -257,12 +286,12 @@ contains
     !  print *, velocity
    end function thermal_velocity_mag
 
-   subroutine init_particles(p)
+   subroutine init_particles(p, geom)
       implicit none
 
       type(t_particle), allocatable, intent(inout) :: p(:)
       integer(kind_particle) :: ip
-      integer :: rc
+      integer :: rc, geom
       real*8 :: dummy
       real(kind_physics) :: magnitude
 
@@ -283,34 +312,43 @@ contains
       ! set random seed
       dummy = par_rand(1*my_rank)
 
-      ! setup random qubic particle cloud
-      do ip = 1, np
-         p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1
-         p(ip)%data%q = -1.0_8
-         p(ip)%data%m = 1.0_8
-         p(ip)%data%species = 0
+      select case(geom)
+      case(0)
+        do ip = 1, np
+           p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1
+           p(ip)%data%q = -1.0_8
+           p(ip)%data%m = 1.0_8
+           p(ip)%data%species = 0
 
-         p(ip)%data%age = 0.0_8
+           p(ip)%data%age = 0.0_8
 
-        ! NOTE: square plane distribution
-        !  call random(p(ip)%x)
-        !  p(ip)%x = p(ip)%x*plasma_dimensions - plasma_dimensions*0.5
-        !  p(ip)%x(3) = 0.0
+          ! NOTE: square plane distribution
+           call random(p(ip)%x)
+           p(ip)%x = p(ip)%x*0.8*plasma_dimensions - plasma_dimensions*0.4
+           p(ip)%x(3) = 0.0
 
-        ! NOTE: torus distribution
-         p(ip)%x = torus_geometry()
+           p(ip)%data%v = 0.0
 
-        !  call random_gauss(p(ip)%data%v)
-        !  p(ip)%data%v = p(ip)%data%v/c * 1e6
+           p(ip)%work = 1.0_8
+        end do
 
-        !  magnitude = thermal_velocity_mag(p(ip)%data%m, 873.15_kind_physics)! 0.0108359158316
-         magnitude = sqrt((2*1.0)/e_mass)
-         p(ip)%data%v = 0.0
-         p(ip)%data%v(2) = 1.0 * magnitude
-        !  p(ip)%data%v(3) = -1.0 * magnitude
+      case(1)
+        do ip = 1, np
+           p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1
+           p(ip)%data%q = -1.0_8
+           p(ip)%data%m = 1.0_8
+           p(ip)%data%species = 0
 
-         p(ip)%work = 1.0_8
-      end do
+           p(ip)%data%age = 0.0_8
+
+          ! NOTE: torus distribution
+           p(ip)%x = torus_geometry(mode)
+
+           p(ip)%data%v = 0.0
+
+           p(ip)%work = 1.0_8
+        end do
+      end select
    end subroutine init_particles
 
    subroutine push_particles(p)

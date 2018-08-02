@@ -201,7 +201,6 @@ contains
       Pol_B_field = PF_final + PF_temp
 
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      ! print *, particle%results%e*0.0160217662080007054395368083795655167047391940703667
       particle%data%b = B_field + Pol_B_field
    end subroutine particle_EB_field
 
@@ -293,10 +292,12 @@ contains
      !       for at the plane cases, only count at final_phi.
      if (final /= 0.0) then
        if (init/final < 0.0) then
-         flow_count(i) = flow_count(i) + constant
+         charge_count(i) = charge_count(i) + constant
+        !  flow_count(i) = flow_count(i) + constant
        end if
      else if (final == 0.0 ) then
-       flow_count(i) = flow_count(i) + constant
+       charge_count(i) = charge_count(i) + constant
+      !  flow_count(i) = flow_count(i) + constant
      end if
    end subroutine current_profile
 
@@ -322,10 +323,11 @@ contains
       dummy_pos_vec(2) = particle%x(1)
       call angles_calc(dummy_pos_vec, 1._8, dummy, final_phi)
 
-      measure = 0.5*pi
-      call current_profile(particle, init_phi, final_phi, measure, flow_count)
+      if (sim_type == 1) then
+        measure = 0.5*pi
+        call current_profile(particle, init_phi, final_phi, measure, charge_count)
+      end if
       particle%data%age = particle%data%age + dt
-
    end subroutine particle_pusher
 
    function calculate_neutral_density(pressure, temperature) result(density)
@@ -506,8 +508,7 @@ contains
      ! [definition of Appearance energy vs Ionization energy from Mass Spectroscopy (2011) by Gross J.H.]
 
      ! NOTE: Currently, calculation of nu_prime involves obtaining abs_max_CS,
-     !       which is the sum of all max value of cross section data of all considered
-     !       reactions, disregarding the associated eV. nu_prime is then obtained
+     !       which is the max of total cross section. nu_prime is then obtained
      !       by multiplying abs_max_CS with the particle's velocity magnitude and
      !       constant local density. nu_prime will thus be always larger than actual nu!
      ! TODO: not at all critical, but there are many ways of doing the next line, would be interesting to see if there is a fastest
@@ -539,7 +540,6 @@ contains
        ! TODO: also looks like it can be combined with the select case below via a rather long/convoluted if-elseif construct that
        ! may read more easily
        i = 1
-       ! TODO: CHECK: why is this rand_num(2) and not (1) again?
        do while (rand_num(2) > (CS_vector(i)/nu_prime))
          i = i + 1
          if (i > size(CS_vector)) then
@@ -552,6 +552,8 @@ contains
        i = 0
      end if
 
+     ! TODO: c.f. http://mathworld.wolfram.com/SpherePointPicking.html
+     ! TODO: c.f. https://corysimon.github.io/articles/uniformdistn-on-sphere/
      polar_theta = 2.0*pi*rand_num(4)
      polar_phi = acos(2.0*rand_num(3) - 1.)
 
@@ -560,9 +562,6 @@ contains
       !  print *, "null coll!"
      case(1) ! elastic scattering (no additional electron, no byproducts)
        ! update velocity to indicate scattering into random angle
-       ! TODO: ERROR: this distribution will not be uniform on the unit sphere, instead it will cause a bias towards front/back scattering
-       ! TODO: c.f. http://mathworld.wolfram.com/SpherePointPicking.html
-       ! TODO: c.f. https://corysimon.github.io/articles/uniformdistn-on-sphere/
        particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
        particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
        particle%data%v(3) = vel_mag * cos(polar_phi)
@@ -789,12 +788,7 @@ contains
 
     !  magnitude = thermal_velocity_mag(1.0_8, 1773.15_kind_physics)
      magnitude = sqrt((2*1.0)/e_mass)
-     ! NOTE: below are the expressions for mean and variance of Maxwellian distribution.
-    !  mu = magnitude
-    !  a = sqrt(1773.15_kind_physics*8.61733035e-5_kind_physics/e_mass)
-    !  sigma2 = a**2 * (3.*pi - 8.)/pi
 
-    !  print *, "mean & variance: ", mu, sigma2
      select case(geometry)
      case(1) ! square plane
        do index = starting_index, size(particles_list)
@@ -901,7 +895,7 @@ contains
      case(2) ! cylinder boundary
        cyl_radius = 0.05/(c*1e-12)
        plate_radius = 0.025/(c*1e-12)
-       cyl_length = 0.0011870845/(c*1e-12)
+       cyl_length = d/(c*1e-12)
        radius = sqrt(x**2 + y**2)
 
        if (radius < cyl_radius) then
