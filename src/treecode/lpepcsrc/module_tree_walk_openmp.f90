@@ -564,7 +564,7 @@ module module_tree_walk
     type(t_particle), intent(inout) :: particle
     integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
-    integer(kind_node), dimension(:), pointer, intent(out) :: defer_list_new
+    integer(kind_node), dimension(:), pointer, intent(inout) :: defer_list_new
     integer, intent(out) :: defer_list_entries_new
     integer(kind_node), intent(inout) :: todo_list(0:todo_list_length-1)
     integer(kind_node), intent(inout) :: partner_leaves
