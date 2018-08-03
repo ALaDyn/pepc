@@ -43,7 +43,11 @@ module module_tree_walk
 
   integer :: num_walk_threads
 
-  real*8, public :: interactions_local, mac_evaluations_local
+  integer, parameter :: NUM_THREAD_COUNTERS = 3
+  integer, parameter :: THREAD_COUNTER_INTERACTIONS        = 1
+  integer, parameter :: THREAD_COUNTER_MAC_EVALUATIONS     = 2
+  integer, parameter :: THREAD_COUNTER_POST_REQUEST        = 3
+  real*8, public :: interactions_local, mac_evaluations_local, post_requests_local
 
   public :: tree_walk_run
   public :: tree_walk_init
@@ -57,12 +61,58 @@ module module_tree_walk
   contains
 
   subroutine tree_walk_statistics(u)
-    use treevars, only: me
+    use treevars, only: me, num_pe, MPI_COMM_lpepc
     implicit none
+    include 'mpif.h'
 
     integer, intent(in) :: u
 
-    if (0 == me) then; write (u, *) "module_tree_walk_simple: no statistics for now."; end if
+    integer :: i
+    integer(kind_default) :: ierr
+    real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, &
+      max_mac_evaluations
+    real*8 :: work_imbal = 0.
+    real*8 :: work_imbal_max, work_imbal_min  ! load stats
+    integer(kind_node) :: local_counters(NUM_THREAD_COUNTERS)
+    integer(kind_node), allocatable :: global_counters(:,:)
+    integer :: c
+
+    allocate(global_counters(NUM_THREAD_COUNTERS, num_pe))
+
+    local_counters(THREAD_COUNTER_INTERACTIONS   ) = interactions_local
+    local_counters(THREAD_COUNTER_MAC_EVALUATIONS) = mac_evaluations_local
+    local_counters(THREAD_COUNTER_POST_REQUEST   ) = post_requests_local
+
+    call MPI_GATHER(local_counters, NUM_THREAD_COUNTERS, MPI_KIND_NODE, &
+                   global_counters, NUM_THREAD_COUNTERS, MPI_KIND_NODE, 0, MPI_COMM_lpepc, ierr)
+
+    total_interactions       = SUM(global_counters(THREAD_COUNTER_INTERACTIONS,:))
+    total_mac_evaluations    = SUM(global_counters(THREAD_COUNTER_MAC_EVALUATIONS,:))
+    max_interactions         = MAXVAL(global_counters(THREAD_COUNTER_INTERACTIONS,:))
+    max_mac_evaluations      = MAXVAL(global_counters(THREAD_COUNTER_MAC_EVALUATIONS,:))
+    average_interactions     = total_interactions    / num_pe
+    average_mac_evaluations  = total_mac_evaluations / num_pe
+    work_imbal_max = max_interactions / average_interactions
+    work_imbal_min = MINVAL(global_counters(THREAD_COUNTER_INTERACTIONS,:)) / average_interactions
+    work_imbal = 0.
+    do i = 1, num_pe
+      work_imbal = work_imbal + abs(global_counters(THREAD_COUNTER_INTERACTIONS,i) - average_interactions) / average_interactions / num_pe
+    end do
+
+    if (0 == me) then
+      write (u,*) '######## WORKLOAD AND WALK ################################################################'
+      write (u,'(a50,3e12.4)')       'total/ave/max_local # interactions(work): ', total_interactions, average_interactions, max_interactions
+      write (u,'(a50,3e12.4)')       'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations
+      write (u,'(a50,3f12.3)')       'Load imbalance percent,min,max: ',work_imbal,work_imbal_min,work_imbal_max
+      write (u,*) '######## TREE TRAVERSAL MODULE ############################################################'
+      write (u,'(a50,2i12)') 'walk_threads: ', num_walk_threads
+      write (u,*) '######## DETAILED DATA ####################################################################'
+      write (u,'(a)') '        PE  #interactions     #mac_evals    #posted_req  rel.work'
+      do i = 1, num_pe
+        write (u,'(i10,3i15,F10.4)') i-1, global_counters(THREAD_COUNTER_INTERACTIONS,i), global_counters(THREAD_COUNTER_MAC_EVALUATIONS,i), &
+          global_counters(THREAD_COUNTER_POST_REQUEST,i), 1._8*global_counters(THREAD_COUNTER_INTERACTIONS,i) / average_interactions
+      end do
+    end if
   end subroutine tree_walk_statistics
 
 
@@ -195,6 +245,7 @@ module module_tree_walk
 
     interactions_local = 0.0_8
     mac_evaluations_local = 0.0_8
+    post_requests_local = 0.0_8
 
     !$omp parallel default(shared) num_threads(num_walk_threads)
     call place_thread(THREAD_TYPE_WORKER, omp_get_thread_num() + 1)
@@ -224,10 +275,11 @@ module module_tree_walk
     integer(kind_particle) :: ip, np
     integer(kind_level) :: i
     real(kind_physics) :: b2(0:maxlevel)
-    real*8 :: num_int, num_mac
+    real*8 :: num_int, num_mac, num_post
 
     num_int = 0.0_8
     num_mac = 0.0_8
+    num_post = 0.0_8
 
     b2(0) = maxval(walk_tree%bounding_box%boxsize)**2
     do i = 1, maxlevel
@@ -246,6 +298,7 @@ module module_tree_walk
     !$omp critical
     interactions_local = interactions_local + num_int
     mac_evaluations_local = mac_evaluations_local + num_mac
+    post_requests_local = post_requests_local + num_post
     !$omp end critical
 
     do ip = 1, np
@@ -303,6 +356,7 @@ module module_tree_walk
           if (.not. mac(IF_MAC_NEEDS_PARTICLE(p(ip)) node%interaction_data, d2(ip), b2(node%level))) then ! MAC fails: resolve
             if (.not. tree_node_children_available(node)) then
               call tree_node_fetch_children(walk_tree, node, n, p(1), p(1)%x - vbox)
+              num_post = num_post + 1
               do ! loop and yield until children have been fetched
                 ERROR_ON_FAIL(pthreads_sched_yield())
                 if (tree_node_children_available(node)) exit
