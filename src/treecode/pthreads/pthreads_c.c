@@ -168,8 +168,13 @@ void place_thread(int thread_type, int counter)
 }
 #else
 void place_thread(int thread_type, int counter)
-{ 
-    // Hardware thread and CPU core are used synonumous in this function. We _do not_ try to tell those apart!
+{
+    // This seems not to work at all for the simple walk. The first iteration for some threads sees only 1 CPU,
+    // all consecutive iterations have only CPU 1 for all threads.
+    // SO DISABLE FOR NOW. 
+    return;
+
+    // Hardware thread and CPU core are used synonymous in this function. We _do not_ try to tell those apart!
     // Also, we assume the affinity mask passed to the MPI process takes care that MPI processes do not overlap
     // on 'shared' cores.
     const int reserved = 1; // we only reserve one CPU/hardware thread for MAIN and COMMUNICATION threads
@@ -190,6 +195,7 @@ void place_thread(int thread_type, int counter)
              }
           }
           selected = first;
+          count = CPU_COUNT(&available_mask);
        } else if (thread_type == THREAD_TYPE_COMMUNICATOR) {
 	  // communication threads also go on first available CPU (there should only be one?)
           // identify first accessible hardware thread
@@ -200,6 +206,7 @@ void place_thread(int thread_type, int counter)
              }
           }
 	  selected = first;
+          count = CPU_COUNT(&available_mask);
        } else if (thread_type == THREAD_TYPE_WORKER) {
 	  // worker threads share remaining CPUs in a round-robin fashion
 	  // identify list of available CPUs
@@ -220,7 +227,7 @@ void place_thread(int thread_type, int counter)
           } else {
              // only one core is available, put all workers on this one,
              // away from main and communicator threads
-             selected = available_cpus[0 + reserved];
+             selected = available_cpus[0];
           }
        }
 
@@ -229,7 +236,9 @@ void place_thread(int thread_type, int counter)
           CPU_ZERO(&cpumask);
           CPU_SET(selected, &cpumask);
           pthread_setaffinity_np(tid, sizeof(cpumask), &cpumask);
-	  //printf("Using CPU %d for thread type %d\n", selected, thread_type);
+	  //printf("Using CPU %d of %d for thread type %d\n", selected, count, thread_type);
+       } else {
+	  //printf("Using CPU ? of %d for thread type %d\n", count, thread_type);
        }
     }
 }
