@@ -1,0 +1,20 @@
+FILES_L   = pepc.f90 module_helper.f90
+
+FILES_L_U = module_vtk_helpers.f90 \
+            module_directsum.f90 \
+            module_random.f90
+
+SRC        += $(FILES_L)
+SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
+
+SRC        += $(FILES_L_U)
+SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF
+
+BACKENDTYPE = XYZQVM
+
+#WALK = pthreads_clustered
+#WALK = simple
+#WALK = openmp
+WALK = pthreads
