@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE jube SYSTEM "<jube.dtd path>">
+<jube>
+   <benchmark name="PEPC Benchmark" outpath="../run/benchmark">
+
+      <!-- ############################################################################################# -->
+      <!-- the benchmark will copy all sources, compile PEPC and initiate a number of runs               -->
+      <!--    after runs are finished, a table of results may be printed                                 -->
+      <!--    also performs a correctness check of PEPC                                                  -->
+      <!-- throughout this file, several different tags will be used to switch the benchmark's behaviour -->
+      <!--    tag nocompile : copy binary of pepc-benchmark from source files                            -->
+      <!--    tag check     : run pepc-benchmark with a correctness check                                -->
+      <!--    tag weak      : run pepc-benchmark in a weak scaling setup (strong scaling is default)     -->
+      <!--    tag miter     : run each benchmark with 10 iterations each to gather variations            -->
+      <!--    no tag        : by default, all sources will be copied, pepc-benchmark compiled, and the   -->
+      <!--                    benchmark configuration will be launched. the compiled binary will be      -->
+      <!--                    copied back onto the source tree for later reference.                      -->
+      <!-- ############################################################################################# -->
+
+
+
+      <!-- PARAMETER SETS ############################################################################## -->
+      <!-- define all parameter sets we possibly use to benchmark -->
+      <!-- loop over different stages to test those -->
+      <parameterset name="stageset">
+	 <parameter name="modules" type="string">module purge; module load Stages/2017b; module load GCC/7.2.0 ParaStationMPI/5.2.0-1, module purge; module load Stages/2017a; module load GCC/5.4.0 ParaStationMPI/5.1.9-1, module purge; module load Stages/Devel-2017a; module load GCC/7.2.0 ParaStationMPI/5.1.9-1</parameter>
+      </parameterset>
+      <!-- node configuration: #nodes, #ranks per node, #threads per rank, #particles -->
+      <parameterset name="nodeset">
+	 <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
+	 <!--parameter             name="nodes" type="int">4, 8, 16, 32, 64</parameter-->
+	 <parameter tag="booster"  name="nodes" type="int">2,4,6,8,16</parameter>
+	 <parameter tag="!booster" name="nodes" type="int">8</parameter>
+	 <parameter tag="check" name="nodes" type="int">12</parameter>
+	 <!-- set the number of task per node, with dual socket ccNUMA, 2 could be a good option -->
+	 <parameter             name="taskspnode" type="int">4</parameter>
+	 <!-- change HWT to the number of hardware threads you want PEPC to use -->
+	 <parameter tag="booster"  name="threads" mode="python" type="int">",".join(str(int(HWT/${taskspnode})) for HWT in [136])</parameter>
+	 <parameter tag="!booster" name="threads" mode="python" type="int">",".join(str(int(HWT/${taskspnode})) for HWT in [48])</parameter>
+	 <!--parameter             name="thread_places" mode="python" type="int">int($threads*$taskspnode)/68</parameter-->
+         <parameter tag="booster"  name="thread_places" mode="python" type="int">4 if ($threads*$taskspnode)>136 else ( 2 if ($threads*$taskspnode)>68 else 1 )</parameter>
+         <parameter tag="!booster" name="thread_places" mode="python" type="int">2 if ($threads*$taskspnode)>24 else 1</parameter>
+	 <parameter             name="workerthreads" mode="python" type="int">$threads-1</parameter>
+	 <!-- weak scaling with constant number of particles per thread -->
+	 <parameter tag="weak"  name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
+	 <!-- strong scaling with constant number of particles -->
+	 <parameter tag="!weak" name="particles"               type="int">5000000,50000000</parameter>
+      </parameterset>
+      <!-- pepc-benchmark mode: either 'check' or 'benchmark' -->
+      <parameterset name="modeset">
+	 <parameter             name="mode" type="string">benchmark</parameter>
+	 <parameter tag="check" name="mode" type="string">test</parameter>
+      </parameterset>
+
+      <!-- FILE SETS ################################################################################### -->
+      <!-- copy all source files -->
+      <fileset name="sources">
+	 <copy directory="../.">makefile, makefile.defs, src, tools</copy>
+      </fileset>
+      <!-- link or copy executable to JUBE steps -->
+      <fileset name="executable">
+	 <link tag="!nocompile" rel_path_ref="internal">compile/bin/pepc-benchmark</link>
+	 <copy tag="nocompile" directory="../bin">pepc-benchmark</copy>
+      </fileset>
+      <!-- copy all files to run later -->
+      <fileset name="runfiles">
+	 <copy tag="booster"  directory=".">params.skel, job_booster.slurm.skel, extrae.xml</copy>
+	 <copy tag="!booster" directory=".">params.skel, job_jureca.slurm.skel, extrae.xml</copy>
+      </fileset>
+
+      <!-- SUBSTITUIONS ################################################################################ -->
+      <!-- define the substitute sets for parameters above, to be enabled individually -->
+      <!-- benchmarking case -->
+      <substituteset             name="inputsub">
+	 <iofile in="params.skel" out="params" />
+	 <sub source="##SETUP##" dest="'$mode'" />
+	 <sub source="##BOX##" dest=".true." />
+	 <sub source="##IO##" dest=".false." />
+	 <sub source="##THREADS##" dest="$workerthreads" />
+	 <sub source="##DIAG##" dest=".false." />
+	 <sub source="##DT##" dest="0.1e-1" />
+	 <sub source="##NT##" dest="10" /> <!-- was 25 -->
+	 <sub source="##NPARTICLES##" dest="$particles" />
+      </substituteset>
+      <!-- correctness test -->
+      <substituteset tag="check" name="inputsub">
+	 <iofile in="params.skel" out="params" />
+	 <sub source="##SETUP##" dest="'test'" />
+	 <sub source="##BOX##" dest=".false." />
+	 <sub source="##IO##" dest=".false." />
+	 <sub source="##THREADS##" dest="$workerthreads" />
+	 <sub source="##DIAG##" dest=".true." />
+	 <sub source="##DT##" dest="0.2e-1" />
+	 <sub source="##NT##" dest="10000" />
+	 <sub source="##NPARTICLES##" dest="1000000" />
+      </substituteset>
+      <substituteset name="runsub">
+	 <iofile tag="booster"  in="job_booster.slurm.skel" out="job.slurm" />
+	 <iofile tag="!booster" in="job_jureca.slurm.skel" out="job.slurm" />
+	 <sub source="##NODES##" dest="$nodes" />
+	 <sub source="##TASKSPNODE##" dest="$taskspnode" />
+	 <sub source="##THREADS##" dest="$threads" />
+	 <sub source="##SMT_THREADS##" dest="$thread_places" />
+      </substituteset>
+
+      <!-- JOB STEPS ################################################################################### -->
+      <!-- compile the code, apply substitutions as necessary -->
+      <step name="compile">
+	 <use tag="!nocompile">sources</use>
+	 <!-- compile sources -->
+	 <!--use tag="stages">stageset</use>
+	 <do tag="stages">${modules}</do-->
+	 <do tag="!nocompile" done_file="bin/pepc-benchmark">make allclean pepc-benchmark</do>
+	 <!-- copy binary back onto original source tree -->
+	 <!--do tag="!nocompile" >"test -d ${jube_benchmark_home}/../bin || mkdir ${jube_benchmark_home}/../bin"</do>
+	 <do tag="!nocompile" >"cp ${jube_wp_abspath}/bin/pepc-benchmark ${jube_benchmark_home}/../bin/."</do-->
+	 <!-- copy binary from original source tree -->
+	 <!--do tag="nocompile" >"mkdir bin; cp ${jube_benchmark_home}/../bin/pepc-benchmark ${jube_wp_abspath}/bin/."</do-->
+      </step>
+      <!-- run the binary, apply substitutions as necessary -->
+      <step tag="!miter" name="run" depend="compile" iterations="1">
+	 <use>nodeset</use>
+	 <use>modeset</use>
+	 <use>executable</use>
+	 <use>runfiles</use>
+	 <use>inputsub</use>
+	 <use>runsub</use>
+	 <!--use tag="stages">stageset</use>
+	 <do tag="stages">${modules}</do-->
+	 <do done_file="ready">sbatch job.slurm</do>
+      </step>
+      <step tag="miter"  name="run" depend="compile" iterations="10">
+	 <use>nodeset</use>
+	 <use>modeset</use>
+	 <use>executable</use>
+	 <use>runfiles</use>
+	 <use>inputsub</use>
+	 <use>runsub</use>
+	 <!--use tag="stages">stageset</use>
+	 <do tag="stages">${modules}</do-->
+	 <do done_file="ready">sbatch job.slurm</do>
+      </step>
+
+      <!-- OUTPUT ANALYSIS ############################################################################# -->
+      <!-- define timing patternset -->
+      <!-- Regex pattern -->
+      <patternset tag="!check" name="timing_pattern">
+	 <pattern unit="secs" name="wallclock"     type="float"              >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="tree_walk"     type="float"              >====== tree walk time  :\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="tree_grow"     type="float"              >====== tree grow time  :\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="comm_recv"     type="float"              >====== tree comm recv  :\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="comm_reqs"     type="float"              >====== tree comm reqs  :\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="step_time"     type="float"              >== time in step.*:\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="sum_steps"     type="float" mode="python">${step_time_sum}-${step_time}</pattern>
+	 <pattern unit=""     name="total_threads" type="int"   mode="python">${nodes}*${taskspnode}*${threads}</pattern>
+	 <pattern unit=""     name="part_per_thrd" type="float" mode="python">${particles}/(${nodes}*${taskspnode}*${workerthreads})</pattern>
+      </patternset>
+      <!-- sample output from PEPC will include:
+           ====== computing step  :           0  // many of those
+           ====== simulation time :  0.0000E+00
+           ====== tree grow time  :  3.7220E-01
+           ====== tree walk time  :  7.2144E+00
+           == [pusher] push particles 
+           == time in step [s]                              :   1.2952E+01
+                      t_all =    12.9479424953 s
+                      t_tot =     0.0000000000 s
+	   [...]
+	   ===== total run time [s]:   2.8961E+03
+	   [...]
+
+       -->
+      <patternset tag="check" name="timing_pattern">
+	 <pattern unit="secs" name="wallclock" type="float" >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="tree_walk" type="float" >====== tree walk time  :\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="tree_grow" type="float" >====== tree grow time  :\s+${jube_pat_fp}</pattern>
+	 <pattern unit="secs" name="step_time" type="float" >== time in step.*:\s+${jube_pat_fp}</pattern>
+	 <pattern             name="l2_test"   type="float" >== \[direct test\] L2 error in probed particles\s+:\s+${jube_pat_fp}</pattern>
+	 <pattern unit="a.u." name="egy_tot"   type="float" >== \[energies\]\s+energy:\s+${jube_pat_fp}</pattern>
+	 <pattern             name="n_peak"    type="int"   >== \[histogram\] number of peaks found:\s+${jube_pat_int}</pattern>
+	 <pattern             name="check"     type="string">== \[histogram\] check\s+:\s+${jube_pat_wrd}</pattern>
+	 <pattern unit="%"    name="egy_drop"  type="float" mode="python">(${egy_tot_max}-${egy_tot_min})/${egy_tot_max} * 100</pattern>
+      </patternset>
+      <!-- sample output from PEPC will include:
+           ====== computing step  :           0  // many of those
+           ====== simulation time :  0.0000E+00
+           ====== tree grow time  :  2.9118E-01
+           ====== tree walk time  :  3.5322E-01
+           ====== tree comm reqs  :  3.5733E-02
+           ====== tree comm recv  :  1.0981E-01
+	   == [write particles] time in vtk output [s]      :   1.0478E+00
+           [...]
+           == [direct test] L2 error in probed particles    :   1.8615E-07
+           == [direct test] time in test [s]                :   1.1188E+02
+           [...]
+           == [energies]          kinetic energy:   1.4306E-07
+           == [energies]        potential energy:   1.6119E+00
+           == [energies]                  energy:   1.61185576E+00
+           == [energies]        maximum velocity:   4.3941E-05
+           == [energies] maximum radial distance:   3.8901E+01
+           == [histogram] compute local histogram 
+           == [histogram] number of peaks found: 1
+           [...]
+           == time in step [s]                              :   1.2952E+01
+                      t_all =    12.9479424953 s
+                      t_tot =     0.0000000000 s
+	   [...]
+	   ===== total run time [s]:   2.8961E+03
+	   [...]
+       -->
+
+      <!-- TABLE OUTPUT ################################################################################ -->
+      <!-- Analyse timings -->
+      <analyser name="analysis">
+	 <use>timing_pattern</use> <!-- use existing patternset -->
+	 <analyse step="run">
+	    <file>log</file> <!-- file which should be scanned -->
+	 </analyse>
+      </analyser>
+
+      <!-- Create result table -->
+      <result tag="longresult">
+	 <use>analysis</use> <!-- use existing analyser -->
+	 <table name="result" style="pretty" sort="threads">
+	    <column                                                >nodes</column>
+	    <column                           title="tpn"          >taskspnode</column>
+	    <column                           title="tpt"          >threads</column>
+	    <column                           title="threads"      >total_threads</column>
+	    <column                           title="xSMT"         >thread_places</column>
+	    <column                                                >particles</column>
+	    <column              format=".0f" title="parts/thread" >part_per_thrd</column>
+	    <column              format=".2f"                      >tree_grow_max</column>
+	    <column              format=".2f"                      >tree_grow_avg</column>
+	    <column              format=".2f"                      >tree_grow_min</column>
+	    <column              format=".2f"                      >tree_walk_max</column>
+	    <column              format=".2f"                      >tree_walk_avg</column>
+	    <column              format=".2f"                      >tree_walk_min</column>
+	    <column                                                >tree_walk_cnt</column>
+	    <column              format=".2f"                      >step_time_max</column>
+	    <column              format=".2f"                      >step_time_avg</column>
+	    <column              format=".2f"                      >step_time_min</column>
+	    <column tag="miter"  format=".2f"                      >wallclock_avg</column>
+	    <column tag="miter"  format=".2f"                      >wallclock_min</column>
+	    <column tag="miter"                                    >wallclock_cnt</column>
+	    <column tag="!miter" format=".2f"                      >wallclock</column>
+	 </table>
+      </result>
+      <result tag="longresult">
+	 <use>analysis</use> <!-- use existing analyser -->
+	 <table name="result_csv" style="csv" sort="threads">
+	    <column                                                >nodes</column>
+	    <column                           title="tpn"          >taskspnode</column>
+	    <column                           title="tpt"          >threads</column>
+	    <column                           title="threads"      >total_threads</column>
+	    <column                           title="xSMT"         >thread_places</column>
+	    <column                                                >particles</column>
+	    <column              format=".0f" title="parts/thread" >part_per_thrd</column>
+	    <column              format=".2f"                      >tree_grow_avg</column>
+	    <column              format=".2f"                      >tree_walk_avg</column>
+	    <column                                                >tree_walk_cnt</column>
+	    <column              format=".2f"                      >step_time_max</column>
+	    <column              format=".2f"                      >step_time_avg</column>
+	    <column              format=".2f"                      >step_time_min</column>
+	    <column              format=".2f"                      >comm_recv_avg</column>
+	    <column              format=".2f"                      >comm_reqs_avg</column>
+	    <column tag="miter"  format=".2f"                      >wallclock_avg</column>
+	    <column tag="miter"  format=".2f"                      >wallclock_min</column>
+	    <column tag="miter"                                    >wallclock_cnt</column>
+	    <column tag="!miter" format=".2f"                      >wallclock</column>
+	    <column tag="miter"                                    >tree_grow_min</column>
+	    <column tag="miter"                                    >tree_walk_min</column>
+	    <column tag="miter"                                    >comm_recv_min</column>
+	    <column tag="miter"                                    >comm_reqs_min</column>
+	 </table>
+      </result>
+      <result tag="!longresult,!check">
+	 <use>analysis</use> <!-- use existing analyser -->
+	 <table name="short_result" style="pretty" sort="nodes, taskspnode, threads">
+	    <column                                     >nodes</column>
+	    <column              title="tpn"            >taskspnode</column>
+	    <column              title="tpt"            >threads</column>
+	    <column              title="threads"        >total_threads</column>
+	    <column                                     >particles</column>
+	    <column format=".0f" title="parts/thread"   >part_per_thrd</column>
+	    <column format=".2f" title="wallclock[secs]">wallclock</column>
+	    <column format=".2f" title="step_sum[secs]" >sum_steps</column>
+	 </table>
+      </result>
+      <result tag="!longresult,!check">
+	 <use>analysis</use> <!-- use existing analyser -->
+	 <table name="short_result_csv" style="csv" sort="threads">
+	    <column                                     >nodes</column>
+	    <column              title="tpn"            >taskspnode</column>
+	    <column              title="tpt"            >threads</column>
+	    <column              title="threads"        >total_threads</column>
+	    <column                                     >particles</column>
+	    <column format=".0f" title="parts/thread"   >part_per_thrd</column>
+	    <column format=".2f" title="wallclock[secs]">wallclock</column>
+	    <column format=".2f" title="step_sum[secs]" >sum_steps</column>
+	 </table>
+      </result>
+      <result tag="!longresult,check">
+	 <use>analysis</use> <!-- use existing analyser -->
+	 <table name="result" style="pretty" sort="threads">
+	    <!--column tag="stages"                      >modules</column-->
+	    <column format=".5f" title="egy max"      >egy_tot_max</column>
+	    <column format=".5f" title="egy min"      >egy_tot_min</column>
+	    <column format=".3f" title="egy change[%]">egy_drop</column>
+	    <column              title="L2 max"       >l2_test_max</column>
+	    <column              title="L2 min"       >l2_test_min</column>
+	    <column              title="peaks max"    >n_peak_max</column>
+	    <column              title="peaks min"    >n_peak_min</column>
+	    <column                                   >check</column>
+	    <column              title="steps"        >tree_walk_cnt</column>
+	    <column format=".2f"                      >step_time_avg</column>
+	    <column format=".2f"                      >wallclock</column>
+	 </table>
+      </result>
+
+   </benchmark>
+</jube>

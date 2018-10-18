@@ -1,0 +1,63 @@
+#!/bin/bash -x
+#SBATCH --partition=batch
+#SBATCH --nodes=##NODES##
+#SBATCH --ntasks-per-node=##TASKSPNODE##
+#SBATCH --cpus-per-task=##THREADS##
+#SBATCH --output=%j.stdout
+#SBATCH --error=%j.stderr
+#SBATCH --time=01:30:00
+
+export OMP_NUM_THREADS=##THREADS##
+
+module use ~/MODULES
+module load GCC/8.1.0 OpenMPI/3.1.0
+
+# orted or mpirun do not find themselves properly, so help them
+OMPIP=`dirname $(which mpirun)`
+
+### THIS IS WITH BINDING/PINNING !!!!
+# pretty please SLURM to tell us the amount of cores (SMT) to compute cores per NODE and CPU
+PHYS_CORES_NODE=24
+PHYS_CORES_CPU=12
+
+# figure our the number of threads per node and decide whether we need SMT
+TOTAL_THREADS=$(($SLURM_CPUS_PER_TASK * $SLURM_NTASKS_PER_NODE))
+if [ "$TOTAL_THREADS" -gt "$PHYS_CORES_NODE" ]; then
+   SMT_FLAG='--use-hwthread-cpus'
+   MAP='node'
+   if [ "$TOTAL_THREADS" -eq "$(($PHYS_CORES_NODE * 2))" ]; then
+      # we have a total of 136 threads
+      # construct list of hostnames for OpenMPI
+      scontrol show hostnames | awk '{print $0":"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]*2}' > hosts_pin
+      PE=$((${SLURM_CPUS_PER_TASK}*2))
+   fi
+   if [ "$TOTAL_THREADS" -eq "$(($PHYS_CORES_NODE * 4))" ]; then
+      # we have a total of 272 threads
+      # construct list of hostnames for OpenMPI
+      scontrol show hostnames | awk '{print $0":"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > hosts_pin
+      PE=${SLURM_CPUS_PER_TASK}
+   fi
+else
+   SMT_FLAG=' '
+   MAP='node'
+   # construct list of hostnames for OpenMPI
+   scontrol show hostnames | awk '{print $0":"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > hosts_pin
+   PE=${SLURM_CPUS_PER_TASK}
+fi
+
+# perform actual PEPC run
+env -u SLURM_HOSTLIST -u SLURM_JOBID \
+   time \
+   ${OMPIP}/mpirun -np ${SLURM_NTASKS} \
+   -x OMP_NUM_THREADS \
+   -x PATH \
+   -x LD_LIBRARY_PATH \
+   -tag-output \
+   --report-bindings \
+   -map-by ${MAP}:pe=${PE} \
+   $SMT_FLAG \
+   -H $(cat hosts_pin | tr '\n' ',' | sed 's/,$//') \
+   ./pepc-benchmark ./params > log
+touch ready
+
+wait
