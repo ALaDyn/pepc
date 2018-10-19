@@ -276,13 +276,16 @@ module module_coulomb_kernels
 
       integer(kind_particle) :: i
       real(kind_physics), dimension(np) :: rd,r,rd3charge
+      real(kind_physics) :: charge
+
+      charge = t%charge
 
       do i = 1, np
          r(i)         = sqrt(dist2(i)) ! eps2 is added in calling routine to have plummer intead of coulomb here
          rd(i)        = one/r(i)
-         rd3charge(i) = t%charge*rd(i)*rd(i)*rd(i)
+         rd3charge(i) = charge*rd(i)*rd(i)*rd(i)
 
-         phi(i)       = t%charge*rd(i)
+         phi(i)       = charge*rd(i)
          exyz(:,i)    = rd3charge(i)*d(:,i)
       end do
     end subroutine calc_force_coulomb_3D_direct_v

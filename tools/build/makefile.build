@@ -40,6 +40,8 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
 	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
 	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
+	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) -S -fverbose-asm pp_$< -o $@.s
+	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) -S pp_$< -o $@.S
 
 %.o: %.c $(SUBFILES)
 	@echo "== compiling C file   :" $<

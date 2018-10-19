@@ -5,8 +5,9 @@
 
 MACH     = linux_gcc-5.1
 
-DEBUG    = 1
+DEBUG    = 0
 OMP      = 1
+NOINLINE = 1
 
 MAKE     = make
 
@@ -24,9 +25,9 @@ LDPRE    =
 LD       = mpif90
 LDLIBS   =
 
-RANLIB   = gcc-ranlib-5.1.0
+RANLIB   = ranlib
 
-AR       = gcc-ar-5.1.0
+AR       = ar
 ARFLAGS  = -rs
 
 RM       = rm -rf
@@ -41,8 +42,11 @@ INLINING = -flto -fuse-linker-plugin  \
 INLINING += -u run_communication_loop -u walk_worker_thread
 
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
-FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero -mavx512f -march=skylake
 
+ifeq ($(NOINLINE), 1)
+   INLINING =
+endif
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
     -fcheck=all -frange-check -fbacktrace -fvar-tracking \
