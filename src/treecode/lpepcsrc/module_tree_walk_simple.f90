@@ -331,21 +331,27 @@ module module_tree_walk
       if (tree_node_is_leaf(node)) then
         ni = ni + 1
 
+        ! preparation loop
         do ip = 1, np
           ! TODO: tabulate x - vbox
           d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
-          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
-          #endif
+          
           d2(ip) = dot_product(d(:, ip), d(:, ip))
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) d2(ip) = 0.0_8
+          #endif
 
           num_int = num_int + 1.0_8
           p(ip)%work = p(ip)%work + 1._8
+        end do
+        ! calc loop
+        do ip = 1, np
           if (d2(ip) > 0.0_8) then ! not self
             call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
-          else ! self
-            call calc_force_per_interaction_with_self(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
-          end if
+          !else ! self
+          ! the call would return, not doing anything, so leave it
+          !  call calc_force_per_interaction_with_self(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
+          !end if
         end do
       else ! not a leaf, evaluate MAC
         do ip = 1, np
