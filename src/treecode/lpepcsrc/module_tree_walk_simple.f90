@@ -344,15 +344,8 @@ module module_tree_walk
           num_int = num_int + 1.0_8
           p(ip)%work = p(ip)%work + 1._8
         end do
-        ! calc loop
-        do ip = 1, np
-          if (d2(ip) > 0.0_8) then ! not self
-            call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
-          !else ! self
-          ! the call would return, not doing anything, so leave it
-          !  call calc_force_per_interaction_with_self(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
-          !end if
-        end do
+        ! calc 'loop'
+        call calc_force_per_interaction_with_leaf(np, p, node%interaction_data, n, d, d2, vbox)
       else ! not a leaf, evaluate MAC
         do ip = 1, np
           num_mac = num_mac + 1.0_8

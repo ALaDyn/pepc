@@ -40,6 +40,9 @@ module module_coulomb_kernels
     real(kind_physics), parameter :: nine    =  9._kind_physics
     real(kind_physics), parameter :: half    =  0.5_kind_physics
 
+    interface calc_force_coulomb_3D_direct
+      module procedure calc_force_coulomb_3D_direct_s, calc_force_coulomb_3D_direct_v
+    end interface
     public calc_force_coulomb_3D
     public calc_force_coulomb_3D_direct
     public calc_force_coulomb_2D
@@ -242,7 +245,7 @@ module module_coulomb_kernels
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    subroutine calc_force_coulomb_3D_direct(t, d, dist2, exyz, phi)
+    subroutine calc_force_coulomb_3D_direct_s(t, d, dist2, exyz, phi)
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
@@ -257,7 +260,32 @@ module module_coulomb_kernels
 
       phi  = t%charge*rd
       exyz = rd3charge*d
-    end subroutine calc_force_coulomb_3D_direct
+    end subroutine calc_force_coulomb_3D_direct_s
+    !>
+    !> Calculates 3D Coulomb interaction of particle p with particle inode
+    !> that is shifted by the lattice vector vbox
+    !> results are returned in exyz, phi
+    !>
+    subroutine calc_force_coulomb_3D_direct_v(np, t, d, dist2, exyz, phi)
+      implicit none
+
+      integer(kind_particle), intent(in) :: np !< number of particles to process
+      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      real(kind_physics), intent(in) :: d(3,np), dist2(np) !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3,np), phi(np)
+
+      integer(kind_particle) :: i
+      real(kind_physics), dimension(np) :: rd,r,rd3charge
+
+      do i = 1, np
+         r(i)         = sqrt(dist2(i)) ! eps2 is added in calling routine to have plummer intead of coulomb here
+         rd(i)        = one/r(i)
+         rd3charge(i) = t%charge*rd(i)*rd(i)*rd(i)
+
+         phi(i)       = t%charge*rd(i)
+         exyz(:,i)    = rd3charge(i)*d(:,i)
+      end do
+    end subroutine calc_force_coulomb_3D_direct_v
 
 
     !>
