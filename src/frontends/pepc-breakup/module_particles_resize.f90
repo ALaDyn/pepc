@@ -38,6 +38,14 @@ module particles_resize
       real(kind_physics), allocatable :: CS(:,:)
    end type linked_list_CS
 
+   type, public :: diag_vertex
+      real(kind_physics) :: x(1:3)
+      real(kind_physics) :: q_density(1:2)
+      real(kind_physics) :: J_density(1:3)
+   end type diag_vertex
+
+   integer, public :: MPI_TYPE_density
+
 contains
    subroutine allocate_ll_buffer(electron_num, temp_array)
       implicit none
@@ -191,4 +199,34 @@ contains
         nullify (temp_guide)
       end if
    end subroutine extend_particles_list_swap
+
+   subroutine register_density_diag_type()
+     implicit none
+     include 'mpif.h'
+
+     integer, parameter :: fields = 4
+     integer :: mpi_err
+     integer, dimension(1:fields) :: blocklengths, disp, types
+     integer(KIND=MPI_ADDRESS_KIND), dimension(0:fields) :: address
+
+     type(diag_vertex) :: dummy_vertex
+
+     blocklengths(1:3)  = [3, 2, 3]
+     types(1:3) = [MPI_REAL8, MPI_REAL8, MPI_REAL8]
+     call MPI_GET_ADDRESS( dummy_vertex,           address(0), mpi_err)
+     call MPI_GET_ADDRESS( dummy_vertex%x,         address(1), mpi_err)
+     call MPI_GET_ADDRESS( dummy_vertex%q_density, address(2), mpi_err)
+     call MPI_GET_ADDRESS( dummy_vertex%J_density, address(3), mpi_err)
+     disp(1:3) = int(address(1:3) - address(0))
+     call MPI_TYPE_STRUCT( 3, blocklengths, disp, types, MPI_TYPE_density, mpi_err)
+     call MPI_TYPE_COMMIT( MPI_TYPE_density, mpi_err)
+   end subroutine register_density_diag_type
+
+   subroutine free_density_diag_type()
+     implicit none
+     include 'mpif.h'
+
+     integer :: mpi_err
+     call MPI_TYPE_FREE(MPI_TYPE_density, mpi_err)
+   end subroutine free_density_diag_type
 end module

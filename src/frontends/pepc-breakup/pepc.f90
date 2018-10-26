@@ -38,6 +38,7 @@ program pepc
 
    ! initialize pepc library and MPI
    call pepc_initialize("pepc-breakup", my_rank, n_ranks, .true.)
+   call register_density_diag_type()
 
   !  seed = (/ 0, 0 /)
   !  call frand123Init( state, my_rank, 0, seed )
@@ -59,6 +60,14 @@ program pepc
      call init_particles(particles, sim_type)
      ! call torus_diagnostic_grid(major_radius, minor_radius, 7, particles)
    end if
+
+   !=====================prepare array for density diagnostics=============
+   x_cell = 22
+   y_cell = 22
+   z_cell = 12
+   call init_diagnostic_verts(density_verts, -0.025_8, -0.025_8, -d, &
+                                    0.05_8, 0.05_8, d)
+   if (root) allocate(final_density(size(density_verts)*n_ranks))
 
    !========================read cross section data======================
    allocate(CS_tables)
@@ -109,6 +118,10 @@ program pepc
    ! free tree specific allocations
    call pepc_timber_tree()
 
+   ! NOTE: Possible error in reported charge values! due to positive charges generated
+   !       below the anode, which is then counted! Causes underestimation of
+   !       reported electron values at anode, notable at high E/p ranges.
+
    do step = 0, nt - 1
       if (root) then
          write (*, *) " "
@@ -147,10 +160,8 @@ program pepc
       end do
 
       call MPI_REDUCE(charge_count, total_charge_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-      ! call MPI_REDUCE(flow_count, total_flow_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       if (root) then
         print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2), total_charge_count(3)
-        ! print *, "SUMMED CHARGE COUNT: ", total_flow_count(1), total_flow_count(2), total_flow_count(3)
       end if
 
       if (root) then
@@ -174,6 +185,36 @@ program pepc
       call deallocate_ll_buffer(buffer)
 
       if (doDiag .and. particle_output) call write_particles(particles)
+
+      ! NOTE: if density diagnostic is on, do these
+      if (doDiag .and. particle_output) then
+         call timer_start(t_interpolate)
+         do i = 1, size(particles)
+           call density_interpolation(particles(i), density_verts)
+         end do
+
+         call MPI_GATHER(density_verts, size(density_verts), MPI_TYPE_density, &
+                         final_density, size(density_verts), MPI_TYPE_density, 0, &
+                         MPI_COMM_WORLD, ierr)
+         if (root) then
+           call clear_density_results(density_verts)
+
+           do ir = 0, n_ranks-1
+             do iv = 1, size(density_verts)
+               cnt = ir*size(density_verts) + iv
+               density_verts(iv)%q_density = final_density(cnt)%q_density + density_verts(iv)%q_density
+               density_verts(iv)%J_density = final_density(cnt)%J_density + density_verts(iv)%J_density
+               final_density(cnt)%q_density = 0.0
+               final_density(cnt)%J_density = 0.0
+             end do
+           end do
+
+           call write_densities(density_verts)
+         end if
+         call clear_density_results(density_verts)
+         call timer_stop(t_interpolate)
+         if (root) write (*, '(a,es12.4)') " ====== density interpolation [s]:", timer_read(t_interpolate)
+      end if
 
       call pepc_particleresults_clear(particles)
       call pepc_grow_tree(particles)
@@ -205,6 +246,8 @@ program pepc
    end do
 
    call deallocate_CS_buffer(CS_tables)
+   if (root) deallocate(final_density)
+   deallocate(density_verts)
    deallocate (particles)
 
    call timer_stop(t_user_total)
@@ -216,6 +259,7 @@ program pepc
    end if
 
    ! cleanup pepc and MPI
+   call free_density_diag_type()
    call pepc_finalize()
 
 end program pepc

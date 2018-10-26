@@ -38,6 +38,7 @@ module helper
    integer, parameter :: t_user_directsum = t_userdefined_first + 3
    integer, parameter :: t_user_particleio = t_userdefined_first + 4
    integer, parameter :: t_boris = t_userdefined_first + 5
+   integer, parameter :: t_interpolate = t_userdefined_first + 6
 
    ! MPI variables
    integer(kind_pe) :: my_rank, n_ranks, ierr
@@ -66,6 +67,12 @@ module helper
    type(t_particle), allocatable   :: particles(:)
    real(kind_physics), allocatable :: direct_L2(:)
 
+   ! density diagnostics related variables
+   type(diag_vertex), allocatable  :: density_verts(:), final_density(:)
+   real(kind_physics) :: dx, dy ,dz, s_min_x, s_min_y, s_min_z
+   integer :: x_cell, y_cell, z_cell, iv, ir, cnt
+   integer, allocatable :: connectivity_array(:)
+
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
    integer :: electron_num, i, new_particle_cnt, local_electron_num, swapped_num
@@ -76,8 +83,7 @@ module helper
    real(kind_physics):: rand_num(8)
 
    ! variables related to cross sections and probabilistic collisions
-   real(kind_physics), dimension(:), allocatable :: cross_sections_vector, flow_count, &
-                                                    total_flow_count
+   real(kind_physics), dimension(:), allocatable :: cross_sections_vector
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
                          charge_count(3), total_charge_count(3)
 
@@ -324,8 +330,10 @@ contains
 
           ! NOTE: square plane distribution
            call random(p(ip)%x)
-           p(ip)%x = p(ip)%x*0.8*plasma_dimensions - plasma_dimensions*0.4
-           p(ip)%x(3) = 0.0
+           p(ip)%x(1) = p(ip)%x(1)*0.8*plasma_dimensions(1) - plasma_dimensions(1)*0.4
+           p(ip)%x(2) = p(ip)%x(2)*0.8*plasma_dimensions(2) - plasma_dimensions(2)*0.4
+           p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
+          !  p(ip)%x(3) = 0.0
 
            p(ip)%data%v = 0.0
 
@@ -494,6 +502,76 @@ contains
      write(12, *) step, anode_charge_count, cathode_charge_count
     !  close(12)
    end subroutine write_text_output
+
+   subroutine vtk_write_densities(fname, step, time, vtk_step, vertices, helper_func, coord_scale)
+     use module_vtk
+     use module_pepc_types
+     use module_interaction_specific_types
+     implicit none
+
+     include 'mpif.h'
+
+     character(*), intent(in) :: fname
+     integer, intent(in) :: step
+     real*8, intent(in) :: time
+     integer, intent(in) :: vtk_step
+     type(diag_vertex), intent(in) :: vertices(:)
+
+     interface
+       subroutine helper_func(d, r, vtkf)
+         use module_interaction_specific_types, only: t_particle_data, t_particle_results
+         use module_vtk, only: vtkfile_unstructured_grid
+         implicit none
+         type(t_particle_data), intent(in) :: d(:)
+         type(t_particle_results), intent(in) :: r(:)
+         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
+       end subroutine helper_func
+     end interface
+
+     optional :: helper_func
+     real(kind_physics), intent(in), optional :: coord_scale
+
+     integer(kind_particle) :: i, ncell, npart
+     integer(kind_pe) :: mpi_rank, mpi_size
+     integer(kind_default) :: ierr
+     type(vtkfile_unstructured_grid) :: vtk
+
+     ncell = x_cell*y_cell*z_cell
+     npart = (x_cell + 1)*(y_cell + 1)*(z_cell + 1)
+
+     call vtk%create(fname, step, time, vtk_step)
+       call vtk%write_headers(npart, ncell)
+       call vtk%startpoints()
+         call vtk%write_data_array("xyz", vertices(:)%x(1), vertices(:)%x(2), vertices(:)%x(3), coord_scale)
+       call vtk%finishpoints()
+       call vtk%startpointdata()
+         call vtk%write_data_array("electron density", vertices(:)%q_density(1))
+         call vtk%write_data_array("ion density", vertices(:)%q_density(2))
+         call vtk%write_data_array("current density", vertices(:)%J_density(1),&
+                                    vertices(:)%J_density(2), vertices(:)%J_density(3))
+       call vtk%finishpointdata()
+       call vtk%startcells()
+         call vtk%write_data_array("connectivity", connectivity_array)
+         call vtk%write_data_array("offsets", [((i*8),i=1,ncell)])
+         call vtk%write_data_array("types", [(VTK_VOXEL,i=1,ncell)])
+       call vtk%finishcells()
+       call vtk%startcelldata()
+        ! no cell data here as cells correspond to points anyway, in case of problems use PointDataToCellData Filter in Paraview
+       call vtk%finishcelldata()
+       call vtk%write_final()
+     call vtk%close()
+   end subroutine vtk_write_densities
+
+   subroutine write_densities(vertices)
+     implicit none
+     include 'mpif.h'
+
+     type(diag_vertex), intent(in) :: vertices(:)
+     integer :: vtk_step
+
+     vtk_step = vtk_step_of_step(step)
+     call vtk_write_densities("densities", step, dt*step, vtk_step, vertices)
+   end subroutine write_densities
 
    subroutine write_particles(p)
       use module_vtk_helpers
