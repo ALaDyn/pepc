@@ -95,8 +95,11 @@ module helper
    real(kind_physics) :: d, major_radius, minor_radius, B0, B_p, V_loop
 
    ! checkpoint related variables
-   character(255) :: checkpoint_file
+   character(255) :: checkpoint_file, i_wall_time
    integer :: checkin_step, resume, itime_in, sim_type, mode, flt_geom
+   real(kind_physics) :: allowed_wall_time
+   real(kind_physics) :: current_wall_time, prev_t_user_step = 0.0
+   logical :: break_loop
 
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
@@ -123,7 +126,7 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ resume, itime_in, sim_type, mode, d, electron_num, &
+      namelist /pepcbreakup/ resume, itime_in, i_wall_time, sim_type, mode, d, electron_num, &
          tnp, nt, dt, particle_output, domain_output, particle_mpi_output, &
          reflecting_walls, particle_test, diag_interval, plasma_dimensions, &
          init_temperature, pressure, external_e, major_radius, minor_radius, &
@@ -132,6 +135,7 @@ contains
       ! set default parameter values
       resume = 0
       itime_in = 0
+      i_wall_time = '00:00:00'
       sim_type = 0
       mode = 0
       d = 0.0015
@@ -164,6 +168,7 @@ contains
       if (root) then
          write (*, '(a,i12)') " == resume from previous runs?          : ", resume
          write (*, '(a,i12)') " == resume from time step               : ", itime_in
+         write (*, '(a,a8)')   " == allowed wall time                   : ", i_wall_time
          write (*, '(a,i12)') " == total number of particles           : ", tnp
          write (*, '(a,i12)') " == number of time steps                : ", nt
          write (*, '(a,es12.4)') " == time step                           : ", dt
@@ -196,6 +201,13 @@ contains
       plasma_dimensions = plasma_dimensions/(c*1e-12)
       major_radius = major_radius/(c*1e-12)
       minor_radius = minor_radius/(c*1e-12)
+
+      read(i_wall_time(1:2),*)  i
+      allowed_wall_time = i*3600.0_8
+      read(i_wall_time(4:5),*)  i
+      allowed_wall_time = allowed_wall_time + i*60.0_8
+      read(i_wall_time(7:8),*)  i
+      allowed_wall_time = allowed_wall_time + i*1.0_8
 
       if (sim_type == 0) then
         V_loop = 0.0
@@ -572,6 +584,49 @@ contains
      vtk_step = vtk_step_of_step(step)
      call vtk_write_densities("densities", step, dt*step, vtk_step, vertices)
    end subroutine write_densities
+
+   subroutine write_updated_resume_variables(resume_step)
+     implicit none
+     integer, intent(in) :: resume_step
+
+     open(23, file = 'update_variable.txt', action='WRITE')
+     write(23, '(i1)') 1
+     write(23, '(i10)') resume_step
+     write(23, '(i10)') tnp
+     close(23)
+   end subroutine write_updated_resume_variables
+
+   subroutine preempt_checkpointing(current_wall_time, previous_step_duration, doDiag, particles, step, break)
+     use module_checkpoint
+     implicit none
+     include 'mpif.h'
+
+     real(kind_physics), intent(in) :: current_wall_time, previous_step_duration
+     logical, intent(in) :: doDiag
+     type(t_particle), allocatable, intent(in) :: particles(:)
+     integer, intent(in) ::step
+     real(kind_physics) :: difference_to_wall_time, buffer_multiplier, time_check
+     logical, intent(out) :: break
+
+     break = .false.
+     buffer_multiplier = 5.0
+
+     difference_to_wall_time = allowed_wall_time - current_wall_time
+     time_check = buffer_multiplier*previous_step_duration
+
+     if (difference_to_wall_time < time_check) then
+       if (my_rank == 0) then
+         print *, "Pre-empted Checkpointing triggered!"
+       end if
+       if(.not. doDiag) then
+         call write_particles(particles)
+         if (my_rank == 0) call write_updated_resume_variables(step+itime_in+1)
+         call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
+         call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
+       end if
+       break = .true.
+     end if
+   end subroutine preempt_checkpointing
 
    subroutine write_particles(p)
       use module_vtk_helpers

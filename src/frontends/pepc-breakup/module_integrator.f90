@@ -645,13 +645,13 @@ contains
      integer, allocatable, intent(inout) :: array(:)
      integer :: ic, start_index, end_index
 
-     print *, size(array)/8
+    !  print *, size(array)/8
 
      do ic = 1, size(array)/8
        start_index = (ic - 1)*8 + 1
        end_index = start_index + 7
        call cell_vertices(ic, array(start_index:end_index))
-       print *, ic, array(start_index:end_index)
+      !  print *, ic, array(start_index:end_index)
      end do
    end subroutine construct_connectivity
 

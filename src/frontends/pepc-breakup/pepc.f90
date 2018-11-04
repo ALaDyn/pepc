@@ -65,8 +65,8 @@ program pepc
    x_cell = 22
    y_cell = 22
    z_cell = 12
-   call init_diagnostic_verts(density_verts, -0.025_8, -0.025_8, -d, &
-                                    0.05_8, 0.05_8, d)
+   call init_diagnostic_verts(density_verts, -0.03_8, -0.03_8, -d - 0.01_8, &
+                                    0.06_8, 0.06_8, d + 0.01_8)
    if (root) allocate(final_density(size(density_verts)*n_ranks))
 
    !========================read cross section data======================
@@ -131,7 +131,7 @@ program pepc
 
       call timer_start(t_user_step)
 
-      doDiag = MOD(step+1, diag_interval) .eq. 0
+      doDiag = MOD(step+itime_in+1, diag_interval) .eq. 0
 
       call allocate_ll_buffer(electron_num, buffer)
       particle_guide => buffer
@@ -184,6 +184,21 @@ program pepc
       if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
       call deallocate_ll_buffer(buffer)
 
+      ! if (doDiag .and. particle_output) call write_particles(particles)
+
+      call pepc_particleresults_clear(particles)
+      call pepc_grow_tree(particles)
+      np = size(particles, kind=kind(np))
+      if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
+      call pepc_traverse_tree(particles)
+      if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
+
+      if (doDiag .and. domain_output) call write_domain(particles)
+
+      if (dbg(DBG_STATS)) call pepc_statistics(step)
+      call pepc_timber_tree()
+
+!=============================Writing output files==============================
       if (doDiag .and. particle_output) call write_particles(particles)
 
       ! NOTE: if density diagnostic is on, do these
@@ -212,36 +227,29 @@ program pepc
            call write_densities(density_verts)
          end if
          call clear_density_results(density_verts)
+         call write_updated_resume_variables(step+itime_in+1)
          call timer_stop(t_interpolate)
          if (root) write (*, '(a,es12.4)') " ====== density interpolation [s]:", timer_read(t_interpolate)
       end if
-
-      call pepc_particleresults_clear(particles)
-      call pepc_grow_tree(particles)
-      np = size(particles, kind=kind(np))
-      if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
-      call pepc_traverse_tree(particles)
-      if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
-
-      if (doDiag .and. domain_output) call write_domain(particles)
-
-      if (dbg(DBG_STATS)) call pepc_statistics(step)
-      call pepc_timber_tree()
-
-      if (doDiag .and. particle_test) call test_particles()
-      ! if (doDiag .and. particle_output) call write_particles(particles)
 
       if (doDiag .and. particle_mpi_output) then
         call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
         call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
       end if
 
-      if (reflecting_walls) call filter_particles(particles)
-
       call timer_stop(t_user_step)
       if (root) write (*, '(a,es12.4)') " == time in step [s]                              : ", timer_read(t_user_step)
+      prev_t_user_step = timer_read(t_user_step)
 
       call timings_GatherAndOutput(step, 0, 0 == step)
+
+      call timer_stop(t_user_total)
+      current_wall_time = timer_read(t_user_total)
+      ! if (root) print *, timer_read(t_user_total)
+      call timer_resume(t_user_total)
+!============================preempt_checkpointing here=========================
+      call preempt_checkpointing(current_wall_time, prev_t_user_step, doDiag, particles, step, break_loop)
+      if (break_loop) EXIT
 
    end do
 
