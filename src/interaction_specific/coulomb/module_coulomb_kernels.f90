@@ -43,6 +43,9 @@ module module_coulomb_kernels
     interface calc_force_coulomb_3D_direct
       module procedure calc_force_coulomb_3D_direct_s, calc_force_coulomb_3D_direct_v
     end interface
+    interface calc_force_coulomb_3D
+      module procedure calc_force_coulomb_3D_s, calc_force_coulomb_3D_v
+    end interface
     public calc_force_coulomb_3D
     public calc_force_coulomb_3D_direct
     public calc_force_coulomb_2D
@@ -57,7 +60,7 @@ module module_coulomb_kernels
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    subroutine calc_force_coulomb_3D(t, d, dist2, exyz, phi)
+    subroutine calc_force_coulomb_3D_s(t, d, dist2, exyz, phi)
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
@@ -145,7 +148,112 @@ module module_coulomb_kernels
                    + dy*pre2z*t%yzquad                              &
                    + pre1*t%xyquad                                  &
                   )
-    end subroutine calc_force_coulomb_3D
+    end subroutine calc_force_coulomb_3D_s
+    !>
+    !> Calculates 3D Coulomb interaction of particle p with tree node inode
+    !> that is shifted by the lattice vector vbox
+    !> results are returned in exyz, phi
+    !>
+    subroutine calc_force_coulomb_3D_v(np, t, d, dist2, exyz, phi)
+      implicit none
+
+      integer(kind_particle), intent(in) :: np !< number of particles to process
+      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      real(kind_physics), intent(in) :: d(3, np), dist2(np) !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3, np), phi(np)
+
+      integer(kind_particle) :: i
+      integer :: mask(np)
+      real(kind_physics) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6, m2rd5, m5rd7, &
+        pre1, pre2x, pre2y, pre2z, preQ1, preQ2, preQ3
+
+      mask = 1
+      where(dist2 == 0)
+         mask = 0
+      end where
+
+      do i = 1, np
+        dx = d(1, np)
+        dy = d(2, np)
+        dz = d(3, np)
+
+        r  = sqrt(dist2(np)) ! eps2 is added in calling routine to have plummer intead of coulomb here
+        rd = one/r
+        rd2 = rd *rd
+        rd3 = rd *rd2
+        rd5 = rd3*rd2
+        rd7 = rd5*rd2
+
+        dx2 = dx*dx
+        dy2 = dy*dy
+        dz2 = dz*dz
+        dx3 = dx*dx2
+        dy3 = dy*dy2
+        dz3 = dz*dz2
+
+        fd1 = three*dx2*rd5 - rd3
+        fd2 = three*dy2*rd5 - rd3
+        fd3 = three*dz2*rd5 - rd3
+        fd4 = three*dx*dy*rd5
+        fd5 = three*dy*dz*rd5
+        fd6 = three*dx*dz*rd5
+
+        m2rd5 = two*rd5
+        m5rd7 = five*rd7
+        pre1 = m5rd7*dx*dy*dz
+        pre2x = m5rd7*dx2 - rd5
+        pre2y = m5rd7*dy2 - rd5
+        pre2z = m5rd7*dz2 - rd5
+        preQ1 = pre2x*t%quad(1)
+        preQ2 = pre2y*t%quad(2)
+        preQ3 = pre2z*t%quad(3)
+
+        phi(i) = mask(i) * t%charge*rd                                &  !  monopole term
+              - (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !  dipole
+              + fd1*t%quad(1) + fd2*t%quad(2) + fd3*t%quad(3)         &  !  quadrupole
+              + fd4*t%xyquad  + fd5*t%yzquad  + fd6*t%zxquad
+
+        exyz(1, i) = mask(i) * t%charge*dx*rd3                        &  ! monopole term
+                  - (fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3))      &  ! dipole term
+                  + three * (                                         &  ! quadrupole term
+                     dx * (                                           &
+                         ( pre2x - m2rd5 )*t%quad(1)                  &
+                       + preQ2                                        &
+                       + preQ3                                        &
+                     )                                                &
+                     + dy*pre2x*t%xyquad                              &
+                     + dz*pre2x*t%zxquad                              &
+                     + pre1*t%yzquad                                  &
+                    )
+
+        exyz(2, i) = mask(i) * t%charge*dy*rd3                        &
+                  - (fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3))      &
+                  + three * (                                         &
+                     dy * (                                           &
+                         ( pre2y - m2rd5 )*t%quad(2)                  &
+                       + preQ1                                        &
+                       + preQ3                                        &
+                     )                                                &
+                     + dx*pre2y*t%xyquad                              &
+                     + dz*pre2y*t%yzquad                              &
+                     + pre1*t%zxquad                                  &
+                    )
+
+        exyz(3, i) = mask(i) * t%charge*dz*rd3                        &
+                  - (fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1))      &
+                  + three * (                                         &
+                     dz * (                                           &
+                       + ( pre2z - m2rd5 )*t%quad(3)                  &
+                       + preQ2                                        &
+                       + preQ1                                        &
+                     )                                                &
+                     + dx*pre2z*t%zxquad                              &
+                     + dy*pre2z*t%yzquad                              &
+                     + pre1*t%xyquad                                  &
+                    )
+
+      end do
+    end subroutine calc_force_coulomb_3D_v
 
 
     !>
@@ -271,12 +379,12 @@ module module_coulomb_kernels
 
       integer(kind_particle), intent(in) :: np !< number of particles to process
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-      real(kind_physics), intent(in) :: d(3,np), dist2(np) !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kind_physics), intent(out) ::  exyz(3,np), phi(np)
+      real(kind_physics), intent(in) :: d(3, np), dist2(np) !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3, np), phi(np)
 
       integer(kind_particle) :: i
       integer :: mask(np)
-      real(kind_physics), dimension(np) :: rd,r,rd3charge
+      real(kind_physics) :: rd,r,rd3charge
       real(kind_physics) :: charge
 
       charge = t%charge
@@ -286,12 +394,12 @@ module module_coulomb_kernels
       end where
 
       do i = 1, np
-         r(i)         = sqrt(dist2(i)) ! eps2 is added in calling routine to have plummer intead of coulomb here
-         rd(i)        = one/r(i)
-         rd3charge(i) = charge*rd(i)*rd(i)*rd(i)
+         r         = sqrt(dist2(i)) ! eps2 is added in calling routine to have plummer intead of coulomb here
+         rd        = one/r
+         rd3charge = charge*rd*rd*rd
 
-         phi(i)       = mask(i)*charge*rd(i)
-         exyz(:,i)    = mask(i)*rd3charge(i)*d(:,i)
+         phi(i)       = mask(i)*charge*rd
+         exyz(:,i)    = mask(i)*rd3charge*d(:,i)
       end do
     end subroutine calc_force_coulomb_3D_direct_v
 
