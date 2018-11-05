@@ -344,8 +344,8 @@ contains
            call random(p(ip)%x)
            p(ip)%x(1) = p(ip)%x(1)*0.8*plasma_dimensions(1) - plasma_dimensions(1)*0.4
            p(ip)%x(2) = p(ip)%x(2)*0.8*plasma_dimensions(2) - plasma_dimensions(2)*0.4
-           p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
-          !  p(ip)%x(3) = 0.0
+          !  p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
+           p(ip)%x(3) = 0.0
 
            p(ip)%data%v = 0.0
 
@@ -609,12 +609,13 @@ contains
      logical, intent(out) :: break
 
      break = .false.
-     buffer_multiplier = 5.0
+     buffer_multiplier = 20.0
 
      difference_to_wall_time = allowed_wall_time - current_wall_time
      time_check = buffer_multiplier*previous_step_duration
 
      if (difference_to_wall_time < time_check) then
+       !print *, difference_to_wall_time, time_check
        if (my_rank == 0) then
          print *, "Pre-empted Checkpointing triggered!"
        end if

@@ -1,0 +1,63 @@
+#!/bin/bash -x
+#SBATCH --nodes=N_NODES
+#SBATCH --ntasks-per-node=N_TASKS
+#SBATCH --cpus-per-task=N_CPU
+#SBATCH --output=pepc-breakup_out.%j
+#SBATCH --error=pepc-breakup_err.%j
+#SBATCH --time=00:10:00
+#SBATCH --partition=devel
+#SBATCH --gres=mem128
+
+
+# NOTE: THIS IS THE JOB_TEMPLATE, REMEMBER TO COPY AND ALTER THE FILE FOR
+#       ACTUAL 1ST JOBSCRIPT SUBMISSION. NAMELY, FILL IN ALL INSTANCES OF 
+#	N_*
+
+#	THEN, RENAME TO JOB_SUBMIT.
+srun --cpu_bind=sockets -l ./pepc-breakup ./params > log 
+
+#=======================Define in job_template====================
+N_Nodes=1
+N_Tasks=4
+N_Cpu=12
+#========================================================================
+
+JOB_ITER=N_ITER
+TOTAL_STEP_ITER=24000
+
+if [ -f ./update_variable.txt ]; then
+    input_file="update_variable.txt"
+    I=0
+    while read -r line; do
+        U_variable[I]="$line"
+        ((I++))
+    done < "$input_file"
+
+    CURRENT_STEP=${U_variable[1]}
+
+    if [ ${CURRENT_STEP} -lt ${TOTAL_STEP_ITER} ]; then
+	scp params params_${JOB_ITER}
+        python ./prepare_files.py ${TOTAL_STEP_ITER}
+        mv log log_${JOB_ITER}
+	mv vtk vtk_${JOB_ITER}
+        JOB_ITER=$((${JOB_ITER}+1))
+
+        N_Nodes=$(( ${U_variable[2]}/(4000*${N_Tasks}*${N_Cpu}) ))
+        if [ ${N_Nodes} -lt 1 ]; then
+	    N_Nodes=1
+        fi
+
+        sed -e "0,/N_NODES/s/N_NODES/${N_Nodes}/" ./job_template > job_submit_${JOB_ITER}
+        sed -i "0,/N_TASKS/s/N_TASKS/${N_Tasks}/" ./job_submit_${JOB_ITER}
+        sed -i "0,/N_CPU/s/N_CPU/${N_Cpu}/" ./job_submit_${JOB_ITER}
+        sed -i "0,/N_ITER/s/N_ITER/${JOB_ITER}/" ./job_submit_${JOB_ITER}
+
+        sbatch job_submit_${JOB_ITER}
+    fi
+fi
+
+# PARADIGM SHIFT: Instead of limiting the number of submitted jobs, the jobs should be
+#                 continuously submitted until target final TOTAL_STEP_ITER is reached.
+
+#                 At the same time, take note of the limitation in PEPC, capable of running
+#                 up to 1,000,000 steps MAX. This is done within the python script.
