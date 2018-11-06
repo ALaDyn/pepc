@@ -43,6 +43,9 @@ module module_interaction_specific
       interface calc_force_per_interaction_with_leaf
          module procedure calc_force_per_interaction_with_leaf_s, calc_force_per_interaction_with_leaf_v
       end interface
+      interface calc_force_per_interaction_with_twig
+         module procedure calc_force_per_interaction_with_twig_s, calc_force_per_interaction_with_twig_v
+      end interface
       ! currently, all public functions in module_interaction_specific are obligatory
       public multipole_from_particle
       public shift_multipoles_up
@@ -358,17 +361,17 @@ module module_interaction_specific
         type(t_tree_node_interaction_data), intent(in) :: node
         integer(kind_node), intent(in) :: node_idx
         type(t_particle), intent(inout) :: particles(np)
-        real(kind_physics), intent(in) :: vbox(3), deltas(3,np), dist2s(np)
+        real(kind_physics), intent(in) :: vbox(3), deltas(3, np), dist2s(np)
 
-        real(kind_physics) :: exyz(3,np), phic(np)
+        real(kind_physics) :: exyz(3, np), phic(np)
 
         select case (force_law)
         !!  case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-        !!      call calc_force_coulomb_2D_direct(np, node, deltas(1:2,:), dot_product(delta(1:2,:), delta(1:2,:)) + eps2, exyz(1:2,:), phic(:))
-        !!      exyz(3,:) = 0.
+        !!      call calc_force_coulomb_2D_direct(np, node, deltas(1:2, :), dot_product(delta(1:2, :), delta(1:2, :)) + eps2, exyz(1:2, :), phic(:))
+        !!      exyz(3, :) = 0.
 
           case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-              call calc_force_coulomb_3D_direct(np, node, deltas(:,:), dist2s(:) + eps2, exyz(:,:), phic(:))
+              call calc_force_coulomb_3D_direct(np, node, deltas(:, :), dist2s(:) + eps2, exyz(:, :), phic(:))
         !!  case (4)  ! LJ potential for quiet start
         !!      call calc_force_LJ(np, node, deltas(:,:), dist2s(:), eps2, exyz(:,:), phic(:))
         !!  case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
@@ -393,7 +396,7 @@ module module_interaction_specific
       !> calculated fields, and for being able to call several
       !> (different) force calculation routines
       !>
-      subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
+      subroutine calc_force_per_interaction_with_twig_s(particle, node, node_idx, delta, dist2, vbox)
         use module_pepc_types
         use treevars
         use module_coulomb_kernels
@@ -408,10 +411,10 @@ module module_interaction_specific
 
         select case (force_law)
           case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
-              call calc_force_coulomb_2D(       node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
+              call calc_force_coulomb_2D(node, delta(1:2), dot_product(delta(1:2), delta(1:2)) + eps2, exyz(1:2), phic)
               exyz(3) = 0.
           case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-              call calc_force_coulomb_3D(       node, delta, dist2 + eps2, exyz, phic)
+              call calc_force_coulomb_3D(node, delta, dist2 + eps2, exyz, phic)
           case (4)  ! LJ potential for quiet start
               call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
           case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
@@ -426,6 +429,48 @@ module module_interaction_specific
 
         particle%results%e         = particle%results%e    + exyz
         particle%results%pot       = particle%results%pot  + phic
+      end subroutine
+      !>
+      !> Force calculation wrapper.
+      !> This function is thought for pre- and postprocessing of
+      !> calculated fields, and for being able to call several
+      !> (different) force calculation routines
+      !>
+      subroutine calc_force_per_interaction_with_twig_v(np, particles, node, node_idx, deltas, dist2s, vbox)
+        use module_pepc_types
+        use treevars
+        use module_coulomb_kernels
+        implicit none
+
+        integer(kind_particle), intent(in) :: np
+        type(t_tree_node_interaction_data), intent(in) :: node
+        integer(kind_node), intent(in) :: node_idx
+        type(t_particle), intent(inout) :: particles(np)
+        real(kind_physics), intent(in) :: vbox(3), deltas(3, np), dist2s(np)
+
+        real(kind_physics) :: exyz(3, np), phic(np)
+
+        select case (force_law)
+        !!  case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
+        !!      call calc_force_coulomb_2D(np, node, deltas(1:2, :), dot_product(deltas(1:2, :), deltas(1:2, :)) + eps2, exyz(1:2, :), phic(:))
+        !!      exyz(3, :) = 0.
+          case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
+              call calc_force_coulomb_3D(np, node, deltas(:, :), dist2s(:) + eps2, exyz(:, :), phic(:))
+        !!  case (4)  ! LJ potential for quiet start
+        !!      call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
+        !!  case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
+        !!            !  and Kelbg for particle-particle interaction
+        !!      ! It's a twig, do ME with coulomb
+        !!      call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
+          case default
+            exyz = 0.
+            phic = 0.
+        end select
+
+        particles(:)%results%e(1)      = particles(:)%results%e(1) + exyz(1,:)
+        particles(:)%results%e(2)      = particles(:)%results%e(2) + exyz(2,:)
+        particles(:)%results%e(3)      = particles(:)%results%e(3) + exyz(3,:)
+        particles(:)%results%pot       = particles(:)%results%pot  + phic(:)
       end subroutine
 
 

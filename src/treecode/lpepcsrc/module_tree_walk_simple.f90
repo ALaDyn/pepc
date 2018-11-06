@@ -381,12 +381,12 @@ module module_tree_walk
         ni = ni + node%leaves
         do ip = 1, np
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
+          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) d2(ip) = 0.0_8
           #endif
           num_int = num_int + 1.0_8
           p(ip)%work = p(ip)%work + 1._8
-          call calc_force_per_interaction_with_twig(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
         end do
+        call calc_force_per_interaction_with_twig(np, p, node%interaction_data, n, d, d2, vbox)
       end if
     end subroutine tree_walk_single_aux
   end subroutine tree_walk_single
