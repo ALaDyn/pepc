@@ -44,7 +44,7 @@
 	 <!-- weak scaling with constant number of particles per thread -->
 	 <parameter tag="weak"  name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
 	 <!-- strong scaling with constant number of particles -->
-	 <parameter tag="!weak" name="particles"               type="int">50000000</parameter>
+	 <parameter tag="!weak" name="particles"               type="int">5000000</parameter>
       </parameterset>
       <!-- pepc-benchmark mode: either 'check' or 'benchmark' -->
       <parameterset name="modeset">

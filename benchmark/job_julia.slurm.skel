@@ -15,7 +15,12 @@ module use intel-ics/2018.1.163 openmpi/2.1.2-icc_2018.1.163-psm
 export KMP_AFFINITY=SCATTER
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-srun ./pepc-benchmark ./params > log
+export HWT=##SMT_THREADS##
+export PIN=`/gpfs/homeb/zam/broemmel/psfuckupsmtpin.sh | grep cpu_bind`
+
+srun -l $PIN numactl -p 1 ./pepc-benchmark ./params > log
+
+srun ./pepc-benchmark ./params > log2
 
 touch ready
 
