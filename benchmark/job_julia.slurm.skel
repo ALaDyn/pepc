@@ -1,0 +1,22 @@
+#!/bin/bash -x
+#SBATCH --partition=knl
+#SBATCH --nodes=##NODES##
+#SBATCH --ntasks-per-node=##TASKSPNODE##
+#SBATCH --cpus-per-task=##THREADS##
+#SBATCH --output=%j.stdout
+#SBATCH --error=%j.stderr
+#SBATCH --time=01:15:00
+#SBATCH --mail-user=d.broemmel@fz-juelich.de
+#SBATCH --mail-type=FAIL
+
+#module load intel-ics intel-impi
+module use intel-ics/2018.1.163 openmpi/2.1.2-icc_2018.1.163-psm
+
+export KMP_AFFINITY=SCATTER
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+
+srun ./pepc-benchmark ./params > log
+
+touch ready
+
+wait

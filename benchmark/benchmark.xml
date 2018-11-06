@@ -29,17 +29,17 @@
       <parameterset name="nodeset">
 	 <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <!--parameter             name="nodes" type="int">4, 8, 16, 32, 64</parameter-->
-	 <parameter tag="booster"  name="nodes" type="int">2,4,6,8,16</parameter>
-	 <parameter tag="!booster" name="nodes" type="int">8</parameter>
+	 <parameter tag="booster,julia"  name="nodes" type="int">2,4,6,8,16</parameter>
+	 <parameter tag="!booster,!julia" name="nodes" type="int">8</parameter>
 	 <parameter tag="check" name="nodes" type="int">12</parameter>
 	 <!-- set the number of task per node, with dual socket ccNUMA, 2 could be a good option -->
 	 <parameter             name="taskspnode" type="int">4</parameter>
 	 <!-- change HWT to the number of hardware threads you want PEPC to use -->
-	 <parameter tag="booster"  name="threads" mode="python" type="int">",".join(str(int(HWT/${taskspnode})) for HWT in [136])</parameter>
-	 <parameter tag="!booster" name="threads" mode="python" type="int">",".join(str(int(HWT/${taskspnode})) for HWT in [48])</parameter>
+	 <parameter tag="booster,julia"  name="threads" mode="python" type="int">",".join(str(int(HWT/${taskspnode})) for HWT in [136])</parameter>
+	 <parameter tag="!booster,!julia" name="threads" mode="python" type="int">",".join(str(int(HWT/${taskspnode})) for HWT in [48])</parameter>
 	 <!--parameter             name="thread_places" mode="python" type="int">int($threads*$taskspnode)/68</parameter-->
-         <parameter tag="booster"  name="thread_places" mode="python" type="int">4 if ($threads*$taskspnode)>136 else ( 2 if ($threads*$taskspnode)>68 else 1 )</parameter>
-         <parameter tag="!booster" name="thread_places" mode="python" type="int">2 if ($threads*$taskspnode)>24 else 1</parameter>
+         <parameter tag="booster,julia"  name="thread_places" mode="python" type="int">4 if ($threads*$taskspnode)>136 else ( 2 if ($threads*$taskspnode)>68 else 1 )</parameter>
+         <parameter tag="!booster,!julia" name="thread_places" mode="python" type="int">2 if ($threads*$taskspnode)>24 else 1</parameter>
 	 <parameter             name="workerthreads" mode="python" type="int">$threads-1</parameter>
 	 <!-- weak scaling with constant number of particles per thread -->
 	 <parameter tag="weak"  name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
@@ -65,7 +65,8 @@
       <!-- copy all files to run later -->
       <fileset name="runfiles">
 	 <copy tag="booster"  directory=".">params.skel, job_booster.slurm.skel, extrae.xml</copy>
-	 <copy tag="!booster" directory=".">params.skel, job_jureca.slurm.skel, extrae.xml</copy>
+	 <copy tag="julia"  directory=".">params.skel, job_julia.slurm.skel</copy>
+	 <copy tag="!booster,!julia" directory=".">params.skel, job_jureca.slurm.skel, extrae.xml</copy>
       </fileset>
 
       <!-- SUBSTITUIONS ################################################################################ -->
@@ -96,7 +97,8 @@
       </substituteset>
       <substituteset name="runsub">
 	 <iofile tag="booster"  in="job_booster.slurm.skel" out="job.slurm" />
-	 <iofile tag="!booster" in="job_jureca.slurm.skel" out="job.slurm" />
+	 <iofile tag="julia"  in="job_julia.slurm.skel" out="job.slurm" />
+	 <iofile tag="!booster,!julia" in="job_jureca.slurm.skel" out="job.slurm" />
 	 <sub source="##NODES##" dest="$nodes" />
 	 <sub source="##TASKSPNODE##" dest="$taskspnode" />
 	 <sub source="##THREADS##" dest="$threads" />
