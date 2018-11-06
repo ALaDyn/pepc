@@ -1,0 +1,50 @@
+MOD_LOAD  = intel-ics intel-impi
+
+HELP = "\
+\# Makefile for  using ifort/icc\n\
+\# recommended module commands\n\
+module load $(MOD_LOAD)\
+"
+
+MACH     = JULIA_intel
+
+DEBUG    = 0
+
+RANLIB   = ranlib
+
+AR       = xiar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C -D__INTEL_COMPILER -ffreestanding
+
+# in case we need a cross-compile flag to keep `configure` happy...
+CONFIGUREFLAG= --host=x86_64-k1om-linux
+
+OPTIMIZATION = -Ofast -xMIC-AVX512 -finline -finline-functions -ipo-separate
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -g -O0 -warn all -reentrancy threaded -qopenmp -CA -CU
+  CFLAGS   = -g -O0
+  LDFLAGS  = -g -O0 -warn all -reentrancy threaded -qopenmp
+else
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -qopenmp
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -qopenmp
+  CPPFLAGS += -DNDEBUG
+endif
+
+FCPRE    =
+FC       = mpiifort
+
+CCPRE    =
+CC       = mpiicc
+
+LDPRE    =
+LD       = mpiifort
+
+LDLIBS   =
+
+RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)

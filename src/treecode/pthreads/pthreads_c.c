@@ -181,14 +181,14 @@ void place_thread(int thread_type, int counter)
     pthread_t tid = pthread_self();
     cpu_set_t cpumask, available_mask;
     unsigned int first;
-    int count, selected = -1;
+    int count, cpu, selected = -1;
 
     // get current mask and continue if the succeed
     if(sched_getaffinity(getpid(), sizeof(available_mask), &available_mask)==0) {
        if (thread_type == THREAD_TYPE_MAIN) {
 	  // main thread goes on first available CPU
           // identify first accessible hardware thread
-          for (int cpu = 0; cpu < sizeof(available_mask); cpu++) {
+          for (cpu = 0; cpu < sizeof(available_mask); cpu++) {
              if CPU_ISSET(cpu, &available_mask) {
                 first = cpu;
                 break;
@@ -199,7 +199,7 @@ void place_thread(int thread_type, int counter)
        } else if (thread_type == THREAD_TYPE_COMMUNICATOR) {
 	  // communication threads also go on first available CPU (there should only be one?)
           // identify first accessible hardware thread
-          for (int cpu = 0; cpu < sizeof(available_mask); cpu++) {
+          for (cpu = 0; cpu < sizeof(available_mask); cpu++) {
              if CPU_ISSET(cpu, &available_mask) {
                 first = cpu;
                 break;
@@ -213,7 +213,7 @@ void place_thread(int thread_type, int counter)
 	  int cpu_count = 0;
 	  int available_cpus[CPU_COUNT(&available_mask)];
 
-	  for (int cpu = 0; cpu < sizeof(available_mask); cpu++) {
+	  for (cpu = 0; cpu < sizeof(available_mask); cpu++) {
 	     if CPU_ISSET(cpu, &available_mask) {
 		available_cpus[cpu_count] = cpu;
 		cpu_count++;

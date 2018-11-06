@@ -24,4 +24,4 @@ clean: $(OPA_MAKEFILE)
 
 $(OPA_MAKEFILE):
 	@echo "     calling ./configure for openpa"
-	@cd $(OPA_DIR) && ./configure -q --disable-shared --enable-static $(OPENPA_CONFIGFLAGS) AR=$(AR) RANLIB=$(RANLIB) CC=$(CC) CFLAGS="$(CFLAGS)"
+	@cd $(OPA_DIR) && ./configure -q --disable-shared --enable-static $(OPENPA_CONFIGFLAGS) AR=$(AR) RANLIB=$(RANLIB) CC=$(CC) CFLAGS="$(CFLAGS)" $(CONFIGUREFLAG)
