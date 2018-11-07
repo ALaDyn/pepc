@@ -1,4 +1,4 @@
-# this makefile is for cross-compiling from the JURECA cluster side
+# this makefile is for compiling from the JURECA cluster
 
 MOD_LOAD  = GCC ParaStationMPI
 # you really want to use the ParaStationMPI/*-mt version of the module
@@ -74,6 +74,5 @@ ifeq ($(OMP), 1)
   LDFLAGS  += -fopenmp
 else
 endif
-
 
 COMPILER = $(shell $(FC) --version | head -n 1)

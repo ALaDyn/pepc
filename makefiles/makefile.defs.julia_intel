@@ -1,10 +1,6 @@
 MOD_LOAD  = intel-ics intel-impi
 
-HELP = "\
-\# Makefile for  using ifort/icc\n\
-\# recommended module commands\n\
-module load $(MOD_LOAD)\
-"
+HELP = "========  Makefile for Intel Compiler/MPIGCC\\n== recommended module commands\\nmodule load $(MOD_LOAD)\\n=="
 
 MACH     = JULIA_intel
 

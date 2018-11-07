@@ -3,9 +3,7 @@
 MOD_LOAD  = Intel ParaStationMPI
 # you really want to use the ParaStationMPI/*-mt version of the module
 
-HELP = "\
-\# Makefile for using ifort/icc\n\
-"
+HELP = "========  Makefile for Intel compiler\\n== recommended module commands\\nmodule load $(MOD_LOAD)\\n=="
 
 MACH     = JURECA_booster_intel
 
@@ -16,6 +14,7 @@ MAKE     = make
 
 CPP      = cpp
 CPPFLAGS = -P -C -D__INTEL_COMPILER -ffreestanding
+                                    # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
 CCPRE    =
 CC       = mpicc
@@ -36,7 +35,7 @@ ARFLAGS  = -rs
 RM       = rm -rf
 
 #OPTIMIZATION = -Ofast -xHost -finline -finline-functions -ipo-separate UBBEARABLY SLOW TO COMPILE
-OPTIMIZATION = -O3 -axMIC-AVX512 -finline -finline-functions -ipo-separate
+OPTIMIZATION = -O3 -axMIC-AVX512 -finline -finline-functions -ipo
 
 ifeq ($(DEBUG), 1)
   FFLAGS   = -g -O0 -warn all -reentrancy threaded -CA -CB -CU -fsource-asm

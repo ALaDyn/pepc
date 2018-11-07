@@ -1,47 +1,57 @@
-MOD_LOAD  = intel/2015.07
+# this makefile is for compiling from the JURECA cluster
 
-HELP = "\
-\# Makefile for  using ifort/icc\n\
-\# recommended module commands\n\
-module load $(MOD_LOAD)\
-"
+MOD_LOAD  = intel-para
+# you really want to use the ParaStationMPI/*-mt version of the module
+
+HELP = "========  Makefile for Intel compiler\\n== recommended module commands\\nmodule load $(MOD_LOAD)\\n=="
 
 MACH     = JURECA_intel
 
 DEBUG    = 0
+OMP      = 1
 
-RANLIB   = ranlib
-
-AR       = xiar
-ARFLAGS  = -rs
+MAKE     = make
 
 CPP      = cpp
 CPPFLAGS = -P -C -D__INTEL_COMPILER -ffreestanding
-
-OPTIMIZATION = -Ofast -xHost -finline -finline-functions -ipo-separate
-
-ifeq ($(DEBUG), 1)
-  FFLAGS   = -g -O0 -warn all -reentrancy threaded -openmp
-  CFLAGS   = -g -O0
-  LDFLAGS  = -g -O0 -warn all -reentrancy threaded -openmp
-else
-  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
-  CFLAGS   =           $(OPTIMIZATION)
-  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
-  CPPFLAGS += -DNDEBUG
-endif
-
-FCPRE    =
-FC       = mpif90
+                                    # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 
 CCPRE    =
 CC       = mpicc
+
+FCPRE    =
+FC       = mpif90
 
 LDPRE    =
 LD       = mpif90
 
 LDLIBS   =
 
+RANLIB   = ranlib
+
+AR       = xiar
+ARFLAGS  = -rs
+
 RM       = rm -rf
+
+
+OPTIMIZATION = -Ofast -xHost -finline -finline-functions -ipo
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -g -O0 -warn all -reentrancy threaded
+  CFLAGS   = -g -O0
+  LDFLAGS  = -g -O0 -warn all -reentrancy threaded
+else
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded
+  CPPFLAGS += -DNDEBUG
+endif
+
+ifeq ($(OMP), 1)
+  FFLAGS   += -qopenmp
+  LDFLAGS  += -qopenmp
+else
+endif
 
 COMPILER = $(shell $(FC) --version | head -n 1)
