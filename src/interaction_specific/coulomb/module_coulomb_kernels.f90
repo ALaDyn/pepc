@@ -208,12 +208,12 @@ module module_coulomb_kernels
         preQ2 = pre2y*t%quad(2)
         preQ3 = pre2z*t%quad(3)
 
-        phi(i) = mask(i) * t%charge*rd                                &  !  monopole term
+        phi(i) = t%charge*rd                                          &  !  monopole term
               - (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !  dipole
               + fd1*t%quad(1) + fd2*t%quad(2) + fd3*t%quad(3)         &  !  quadrupole
               + fd4*t%xyquad  + fd5*t%yzquad  + fd6*t%zxquad
 
-        exyz(1, i) = mask(i) * t%charge*dx*rd3                        &  ! monopole term
+        exyz(1, i) = t%charge*dx*rd3                                  &  ! monopole term
                   - (fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3))      &  ! dipole term
                   + three * (                                         &  ! quadrupole term
                      dx * (                                           &
@@ -226,7 +226,7 @@ module module_coulomb_kernels
                      + pre1*t%yzquad                                  &
                     )
 
-        exyz(2, i) = mask(i) * t%charge*dy*rd3                        &
+        exyz(2, i) = t%charge*dy*rd3                                  &
                   - (fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3))      &
                   + three * (                                         &
                      dy * (                                           &
@@ -239,7 +239,7 @@ module module_coulomb_kernels
                      + pre1*t%zxquad                                  &
                     )
 
-        exyz(3, i) = mask(i) * t%charge*dz*rd3                        &
+        exyz(3, i) = t%charge*dz*rd3                                  &
                   - (fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1))      &
                   + three * (                                         &
                      dz * (                                           &
@@ -252,6 +252,9 @@ module module_coulomb_kernels
                      + pre1*t%xyquad                                  &
                     )
 
+        ! add mask to correct for cutoff or self-interaction
+        phi(i) = mask(i) * phi(i)
+        exyz(:, i) = mask(i) * exyz(:, i)
       end do
     end subroutine calc_force_coulomb_3D_v
 
