@@ -1,9 +1,13 @@
+# this makefile is for cross-compiling from the JURECA cluster side
+
+MOD_LOAD  = GCC ParaStationMPI
+# you really want to use the ParaStationMPI/*-mt version of the module
+
  HELP = "\
-\# Makefile for gcc 5.1\n\
+\# Makefile for GCC\n\
 "
 
-
-MACH     = linux_gcc-5.1
+MACH     = JURECA_gcc
 
 DEBUG    = 0
 OMP      = 1
@@ -23,6 +27,7 @@ FC       = mpif90
 
 LDPRE    =
 LD       = mpif90
+
 LDLIBS   =
 
 RANLIB   = gcc-ranlib
@@ -32,8 +37,7 @@ ARFLAGS  = -rs
 
 RM       = rm -rf
 
-INLINING = -flto -fuse-linker-plugin  \
-	   -fipa-matrix-reorg
+INLINING = -flto -fuse-linker-plugin -fipa-matrix-reorg
 
 # solve the following issue with lto:
 #`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
@@ -42,7 +46,8 @@ INLINING = -flto -fuse-linker-plugin  \
 INLINING += -u run_communication_loop -u walk_worker_thread
 
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
-FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero -march=native
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero -malign-data=cacheline
+FARCH = -mfma -mavx2 -march=native -mtune=native
 
 ifeq ($(NOINLINE), 1)
    INLINING =
@@ -51,15 +56,17 @@ ifeq ($(DEBUG), 1)
   FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
     -fcheck=all -frange-check -fbacktrace -fvar-tracking \
     $(FFEATURES) \
-    $(FWARNINGS)
-  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+    $(FWARNINGS) \
+    $(FARCH)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall $(FARCH)
   LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
   FFLAGS   = -Ofast \
     $(INLINING) \
     $(FFEATURES) \
-    $(FWARNINGS)
-  CFLAGS   = -Ofast -pthread -Wall $(INLINING)
+    $(FWARNINGS) \
+    $(FARCH)
+  CFLAGS   = -Ofast -pthread -Wall $(INLINING) $(FARCH)
   LDFLAGS  = -Ofast -pthread $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
