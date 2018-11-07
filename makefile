@@ -16,8 +16,8 @@ BC=\e[1m# bold
 UL=\e[4m# underline
 NC=\e[0m# No Color, default font
 
-help: info
-	@printf "$(HELP)\n"
+help: info buildenv
+	@echo -e "$(HELP)"
 	@echo ""
 
 info:

@@ -3,14 +3,13 @@
 MOD_LOAD  = GCC ParaStationMPI
 # you really want to use the ParaStationMPI/*-mt version of the module
 
- HELP = "\
-\# Makefile for GCC\n\
-"
+HELP = "========  Makefile for GCC\\n== recommended module commands\\nmodule load Architecture/KNL\\nmodule load $(MOD_LOAD)\\n=="
 
 MACH     = JURECA_booster_gcc
 
 DEBUG    = 0
 OMP      = 1
+NOINLINE = 0
 
 MAKE     = make
 
@@ -36,8 +35,7 @@ ARFLAGS  = -rs
 
 RM       = rm -rf
 
-INLINING = -flto -fuse-linker-plugin  \
-	   -fipa-matrix-reorg
+INLINING = -flto -fuse-linker-plugin -fipa-matrix-reorg
 
 # solve the following issue with lto:
 #`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
@@ -49,6 +47,9 @@ FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconve
 FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
 FARCH = -mfma -mavx512f -mavx512cd -mavx512er -mavx512pf -mtune=knl -march=knl -malign-data=cacheline
 
+ifeq ($(NOINLINE), 1)
+   INLINING =
+endif
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
     -fcheck=all -frange-check -fbacktrace -fvar-tracking \

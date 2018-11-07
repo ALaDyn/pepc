@@ -3,9 +3,7 @@
 MOD_LOAD  = GCC ParaStationMPI
 # you really want to use the ParaStationMPI/*-mt version of the module
 
- HELP = "\
-\# Makefile for GCC\n\
-"
+HELP = "========  Makefile for GCC\\n== recommended module commands\\nmodule load $(MOD_LOAD)\\n=="
 
 MACH     = JURECA_gcc
 
