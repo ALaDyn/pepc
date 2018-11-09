@@ -62,12 +62,16 @@ program pepc
    end if
 
    !=====================prepare array for density diagnostics=============
-   x_cell = 22
-   y_cell = 22
-   z_cell = 12
-   call init_diagnostic_verts(density_verts, -0.03_8, -0.03_8, -d - 0.01_8, &
+   x_cell = 100
+   y_cell = 100
+   z_cell = 50
+   call init_diagnostic_verts(density_verts, -0.03_8, -0.03_8, -d - 0.005_8, &
                                     0.06_8, 0.06_8, d + 0.01_8)
-   if (root) allocate(final_density(size(density_verts)*n_ranks))
+   if (root) then
+     allocate(final_density(size(density_verts)*n_ranks))
+   else
+     allocate(final_density(1))
+   end if
 
    !========================read cross section data======================
    allocate(CS_tables)
@@ -254,7 +258,7 @@ program pepc
    end do
 
    call deallocate_CS_buffer(CS_tables)
-   if (root) deallocate(final_density)
+   deallocate(final_density)
    deallocate(density_verts)
    deallocate (particles)
 
