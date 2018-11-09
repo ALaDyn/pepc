@@ -52,6 +52,7 @@ module module_coulomb_kernels
     public calc_force_coulomb_2D_direct
     public calc_force_LJ
     public calc_force_kelbg_3D_direct
+    integer, parameter :: TILE_SIZE = 16
 
   contains
 
@@ -167,7 +168,7 @@ module module_coulomb_kernels
       real(kind_physics) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6, m2rd5, m5rd7, &
         pre1, pre2x, pre2y, pre2z, preQ1, preQ2, preQ3
 
-      do i = 1, np
+      do i = 1, TILE_SIZE
         dx = d(1, i)
         dy = d(2, i)
         dz = d(3, i)
@@ -387,7 +388,7 @@ module module_coulomb_kernels
 
       charge = t%charge
 
-      do i = 1, np
+      do i = 1, TILE_SIZE
          r         = sqrt(dist2(i)) ! eps2 is added in calling routine to have plummer intead of coulomb here
          rd        = one/r
          rd3charge = charge*rd*rd*rd

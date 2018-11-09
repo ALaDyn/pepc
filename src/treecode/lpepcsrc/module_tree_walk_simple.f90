@@ -333,27 +333,43 @@ module module_tree_walk
       if (tree_node_is_leaf(node)) then
         ni = ni + 1
 
-        ! preparation ''loop''
-        d2 = 0.0_8
-        do ip = 1, np
-          ! TODO: tabulate x - vbox
-          d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
-          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) then
-             mask(ip) = 0
-             cycle
-          end if
-          #endif
-          d2(ip) = dot_product(d(:, ip), d(:, ip))
-        end do
-        where (.not. (d2 > 0.0_8) )
-           mask = 0
-        end where
-        num_int = num_int + np
-        p(ip)%work = p(ip)%work + np
+        if(np == TILE_SIZE) then
+          ! preparation ''loop''
+          d2 = 0.0_8
+          do ip = 1, np
+            ! TODO: tabulate x - vbox
+            d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
+            #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+            if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) then
+               mask(ip) = 0
+               cycle
+            end if
+            #endif
+            d2(ip) = dot_product(d(:, ip), d(:, ip))
+          end do
+          where (.not. (d2 > 0.0_8) )
+             mask = 0
+          end where
+          num_int = num_int + np
+          p(:)%work = p(:)%work + 1
 
-        ! calc 'loop'
-        call calc_force_per_interaction_with_leaf(np, p, node%interaction_data, n, d, d2, vbox, mask)
+          ! calc 'loop'
+          call calc_force_per_interaction_with_leaf(np, p, node%interaction_data, n, d, d2, vbox, mask)
+        else
+          ! preparation and calc loop
+          d2 = 0.0_8
+          do ip = 1, np
+            ! TODO: tabulate x - vbox
+            d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
+            #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+            if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
+            #endif
+            d2(ip) = dot_product(d(:, ip), d(:, ip))
+            num_int = num_int + 1
+            p(ip)%work = p(ip)%work + 1
+            call calc_force_per_interaction_with_leaf(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
+          end do
+        end if
       else ! not a leaf, evaluate MAC
         do ip = 1, np
           num_mac = num_mac + 1.0_8
@@ -387,14 +403,25 @@ module module_tree_walk
 
         ! MAC OK: interact
         ni = ni + node%leaves
-        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-        do ip = 1, np
-          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) mask(ip) = 0
-        end do
-        #endif
-        num_int = num_int + np
-        p(ip)%work = p(ip)%work + np
-        call calc_force_per_interaction_with_twig(np, p, node%interaction_data, n, d, d2, vbox, mask)
+        if (np == TILE_SIZE) then
+          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+          do ip = 1, np
+            if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) mask(ip) = 0
+          end do
+          #endif
+          num_int = num_int + np
+          p(:)%work = p(:)%work + 1
+          call calc_force_per_interaction_with_twig(np, p, node%interaction_data, n, d, d2, vbox, mask)
+        else
+          do ip = 1, np
+            #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+            if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) cycle
+            #endif
+            num_int = num_int + 1
+            p(ip)%work = p(ip)%work + 1
+            call calc_force_per_interaction_with_twig(p(ip), node%interaction_data, n, d(:, ip), d2(ip), vbox)
+          end do
+        end if
       end if
     end subroutine tree_walk_single_aux
   end subroutine tree_walk_single
