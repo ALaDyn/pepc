@@ -351,7 +351,7 @@ module module_interaction_specific
       !> calculated fields, and for being able to call several
       !> (different) force calculation routines
       !>
-      subroutine calc_force_per_interaction_with_leaf_v(np, particles, node, node_idx, deltas, dist2s, vbox)
+      subroutine calc_force_per_interaction_with_leaf_v(np, particles, node, node_idx, deltas, dist2s, vbox, mask)
         use module_pepc_types
         use treevars
         use module_coulomb_kernels
@@ -362,6 +362,7 @@ module module_interaction_specific
         integer(kind_node), intent(in) :: node_idx
         type(t_particle), intent(inout) :: particles(np)
         real(kind_physics), intent(in) :: vbox(3), deltas(3, np), dist2s(np)
+        integer, intent(in) :: mask(np) !< vector mask to skip entries which should not be computed
 
         real(kind_physics) :: exyz(3, np), phic(np)
 
@@ -371,7 +372,7 @@ module module_interaction_specific
         !!      exyz(3, :) = 0.
 
           case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-              call calc_force_coulomb_3D_direct(np, node, deltas(:, :), dist2s(:) + eps2, exyz(:, :), phic(:))
+              call calc_force_coulomb_3D_direct(np, node, deltas(:, :), dist2s(:) + eps2, exyz(:, :), phic(:), mask(:))
         !!  case (4)  ! LJ potential for quiet start
         !!      call calc_force_LJ(np, node, deltas(:,:), dist2s(:), eps2, exyz(:,:), phic(:))
         !!  case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
@@ -436,7 +437,7 @@ module module_interaction_specific
       !> calculated fields, and for being able to call several
       !> (different) force calculation routines
       !>
-      subroutine calc_force_per_interaction_with_twig_v(np, particles, node, node_idx, deltas, dist2s, vbox)
+      subroutine calc_force_per_interaction_with_twig_v(np, particles, node, node_idx, deltas, dist2s, vbox, mask)
         use module_pepc_types
         use treevars
         use module_coulomb_kernels
@@ -447,6 +448,7 @@ module module_interaction_specific
         integer(kind_node), intent(in) :: node_idx
         type(t_particle), intent(inout) :: particles(np)
         real(kind_physics), intent(in) :: vbox(3), deltas(3, np), dist2s(np)
+        integer, intent(in) :: mask(np) !< vector mask to skip entries which should not be computed
 
         real(kind_physics) :: exyz(3, np), phic(np)
 
@@ -455,7 +457,7 @@ module module_interaction_specific
         !!      call calc_force_coulomb_2D(np, node, deltas(1:2, :), dot_product(deltas(1:2, :), deltas(1:2, :)) + eps2, exyz(1:2, :), phic(:))
         !!      exyz(3, :) = 0.
           case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
-              call calc_force_coulomb_3D(np, node, deltas(:, :), dist2s(:) + eps2, exyz(:, :), phic(:))
+              call calc_force_coulomb_3D(np, node, deltas(:, :), dist2s(:) + eps2, exyz(:, :), phic(:), mask(:))
         !!  case (4)  ! LJ potential for quiet start
         !!      call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
         !!  case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction

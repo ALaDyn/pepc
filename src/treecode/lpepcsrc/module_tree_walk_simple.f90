@@ -325,8 +325,10 @@ module module_tree_walk
       type(t_tree_node), pointer :: node
       integer(kind_node) :: ns
       real(kind_physics) :: d2(TILE_SIZE), d(3, TILE_SIZE)
+      integer :: mask(np) !< vector mask to skip entries which should not be computed
 
       node => walk_tree%nodes(n)
+      mask = 1
 
       if (tree_node_is_leaf(node)) then
         ni = ni + 1
@@ -335,17 +337,19 @@ module module_tree_walk
         do ip = 1, np
           ! TODO: tabulate x - vbox
           d(:, ip) = (p(ip)%x - vbox) - node%interaction_data%coc
-          
-          d2(ip) = dot_product(d(:, ip), d(:, ip))
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) d2(ip) = 0.0_8
+          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) mask(ip) = 0
           #endif
+          d2(ip) = dot_product(d(:, ip), d(:, ip))
+          if (.not. (d2(ip) > 0.0_8) ) then
+             mask(ip) = 0
+          end if
 
           num_int = num_int + 1.0_8
           p(ip)%work = p(ip)%work + 1._8
         end do
         ! calc 'loop'
-        call calc_force_per_interaction_with_leaf(np, p, node%interaction_data, n, d, d2, vbox)
+        call calc_force_per_interaction_with_leaf(np, p, node%interaction_data, n, d, d2, vbox, mask)
       else ! not a leaf, evaluate MAC
         do ip = 1, np
           num_mac = num_mac + 1.0_8
@@ -381,12 +385,12 @@ module module_tree_walk
         ni = ni + node%leaves
         do ip = 1, np
           #ifndef NO_SPATIAL_INTERACTION_CUTOFF
-          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) d2(ip) = 0.0_8
+          if (any(abs(d(:, ip)) >= spatial_interaction_cutoff)) mask(ip) = 0
           #endif
           num_int = num_int + 1.0_8
           p(ip)%work = p(ip)%work + 1._8
         end do
-        call calc_force_per_interaction_with_twig(np, p, node%interaction_data, n, d, d2, vbox)
+        call calc_force_per_interaction_with_twig(np, p, node%interaction_data, n, d, d2, vbox, mask)
       end if
     end subroutine tree_walk_single_aux
   end subroutine tree_walk_single

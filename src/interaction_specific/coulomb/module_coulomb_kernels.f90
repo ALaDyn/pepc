@@ -154,30 +154,25 @@ module module_coulomb_kernels
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    subroutine calc_force_coulomb_3D_v(np, t, d, dist2, exyz, phi)
+    subroutine calc_force_coulomb_3D_v(np, t, d, dist2, exyz, phi, mask)
       implicit none
 
       integer(kind_particle), intent(in) :: np !< number of particles to process
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3, np), dist2(np) !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exyz(3, np), phi(np)
+      integer, intent(in) :: mask(np) !< vector mask to skip entries which should not be computed
 
       integer(kind_particle) :: i
-      integer :: mask(np)
       real(kind_physics) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6, m2rd5, m5rd7, &
         pre1, pre2x, pre2y, pre2z, preQ1, preQ2, preQ3
 
-      mask = 1
-      where(dist2 == 0)
-         mask = 0
-      end where
-
       do i = 1, np
-        dx = d(1, np)
-        dy = d(2, np)
-        dz = d(3, np)
+        dx = d(1, i)
+        dy = d(2, i)
+        dz = d(3, i)
 
-        r  = sqrt(dist2(np)) ! eps2 is added in calling routine to have plummer intead of coulomb here
+        r  = sqrt(dist2(i)) ! eps2 is added in calling routine to have plummer intead of coulomb here
         rd = one/r
         rd2 = rd *rd
         rd3 = rd *rd2
@@ -377,24 +372,20 @@ module module_coulomb_kernels
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    subroutine calc_force_coulomb_3D_direct_v(np, t, d, dist2, exyz, phi)
+    subroutine calc_force_coulomb_3D_direct_v(np, t, d, dist2, exyz, phi, mask)
       implicit none
 
       integer(kind_particle), intent(in) :: np !< number of particles to process
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3, np), dist2(np) !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exyz(3, np), phi(np)
+      integer, intent(in) :: mask(np) !< vector mask to skip entries which should not be computed
 
       integer(kind_particle) :: i
-      integer :: mask(np)
       real(kind_physics) :: rd,r,rd3charge
       real(kind_physics) :: charge
 
       charge = t%charge
-      mask = 1
-      where(dist2 == 0)
-         mask = 0
-      end where
 
       do i = 1, np
          r         = sqrt(dist2(i)) ! eps2 is added in calling routine to have plummer intead of coulomb here
