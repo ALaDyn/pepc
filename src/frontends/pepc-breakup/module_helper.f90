@@ -59,7 +59,7 @@ module helper
    logical :: reflecting_walls ! reflect particles at walls
    integer :: diag_interval ! number of timesteps between all diagnostics and IO
    real(kind_physics) :: plasma_dimensions(3) ! size of the simulation box
-   real(kind_physics) :: external_e(3)
+   real(kind_physics) :: external_e(3), traversed_e(3)
 
    integer, parameter :: particle_direct = -1 ! number of particle for direct summation
 
@@ -79,6 +79,7 @@ module helper
 
    ! variables for random number generation
    integer :: dummy
+   integer, allocatable :: r_seeds(:)
    integer(kind=int32) :: ctr_s(4), key_s(4)
    real(kind_physics):: rand_num(8)
 
@@ -227,21 +228,45 @@ contains
      implicit none
      real(kind_physics) :: pos(3), ran(3)
      integer, intent(in) :: mode
-     real*8 :: theta, phi, l, r
-
-     call random_number(ran)
-     r = ran(1) * minor_radius
-     theta  = ran(3) * 2. * pi
-     l = major_radius + r*sin(theta)
-     pos(3) = r * cos(theta)
+     real*8 :: theta, phi, l, r, dist, inplane_dist, x, y, z, ran_dist, dist_outer, dist_inner
+     integer :: repeat
 
      select case(mode)
      case(0) ! random torus distribution
-       phi = ran(2) * 2. * pi
-       pos(1) = l * sin(phi)
-       pos(2) = l * cos(phi)
+       repeat = 1
+
+       do while (repeat .eq. 1)
+         dist_outer = major_radius + minor_radius
+         dist_inner = major_radius - minor_radius
+         call random_number(ran)
+         x = (2.*ran(1) - 1.) * dist_outer
+         y = (2.*ran(2) - 1.) * dist_outer
+         ran_dist = sqrt(x**2 + y**2)
+
+         if ((ran_dist .LE. dist_outer) .and. (ran_dist .GE. dist_inner)) then
+           z = (2.*ran(3) - 1.) * minor_radius
+           inplane_dist = sqrt((ran_dist - major_radius)**2 + z**2)
+
+           if (inplane_dist .LE. minor_radius) then
+             pos(1) = x
+             pos(2) = y
+             pos(3) = z
+             repeat = 0
+           else
+             repeat = 1
+           end if
+         else
+           repeat = 1
+         end if
+       end do
 
      case(1) ! plane distribution at phi = pi/2
+       call random_number(ran)
+       r = ran(1) * minor_radius
+       theta  = ran(3) * 2. * pi
+       l = major_radius + r*sin(theta)
+       pos(3) = r * cos(theta)
+
        phi = ran(2) * pi
        pos(1) = l
        pos(2) = 0.0
@@ -311,7 +336,7 @@ contains
       integer(kind_particle) :: ip
       integer :: rc, geom
       real*8 :: dummy
-      real(kind_physics) :: magnitude
+      real(kind_physics) :: rand_scale, magnitude, ez(3), toroidal_vec(3)
 
       if (root) write (*, '(a)') " == [init] init particles "
 
@@ -355,16 +380,31 @@ contains
       case(1)
         do ip = 1, np
            p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1
-           p(ip)%data%q = -1.0_8
-           p(ip)%data%m = 1.0_8
-           p(ip)%data%species = 0
-
+           if (MOD(ip,2) .eq. 0) then
+               p(ip)%data%q = 1.0_8
+               p(ip)%data%m = 3673.43889456_8
+               p(ip)%data%species = 2
+           else
+               p(ip)%data%q = -1.0_8
+               p(ip)%data%m = 1.0_8
+               p(ip)%data%species = 0
+           end if
            p(ip)%data%age = 0.0_8
 
           ! NOTE: torus distribution
            p(ip)%x = torus_geometry(mode)
 
-           p(ip)%data%v = 0.0
+          !  ez = 0.0
+          !  ez(3) = 1.0
+          !  toroidal_vec(1) = p(ip)%x(2)*ez(3) - p(ip)%x(3)*ez(2)
+          !  toroidal_vec(2) = p(ip)%x(3)*ez(1) - p(ip)%x(1)*ez(3)
+          !  toroidal_vec(3) = p(ip)%x(1)*ez(2) - p(ip)%x(2)*ez(1)
+          !  toroidal_vec = toroidal_vec/sqrt(dot_product(toroidal_vec, toroidal_vec))
+
+          !  magnitude = sqrt((2*15.0/e_mass))
+          !  call random_number(rand_scale)
+          !  p(ip)%data%v = -1.0*magnitude*rand_scale*toroidal_vec
+           p(ip)%data%v = 0.0_8
 
            p(ip)%work = 1.0_8
         end do

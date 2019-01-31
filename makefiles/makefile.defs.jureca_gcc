@@ -1,0 +1,71 @@
+ HELP = "\
+\# Makefile for gcc 5.1\n\
+"
+
+
+MACH     = linux_gcc-5.1
+
+DEBUG    = 0
+OMP      = 1
+
+MAKE     = make
+
+CPP      = mpicc
+CPPFLAGS = -E -x c -P -C -ffreestanding
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+
+CCPRE    =
+CC       = mpicc
+
+FCPRE    =
+FC       = mpif90
+
+LDPRE    =
+LD       = mpif90
+LDLIBS   =
+
+RANLIB   = gcc-ranlib
+
+AR       = gcc-ar
+ARFLAGS  = -rs
+
+RM       = rm -rf
+
+INLINING = -flto -fuse-linker-plugin  \
+	   -fipa-matrix-reorg
+
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+#'-O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros' can be replaced with '-Ofast' when compiled with GCC/7.3.0 or older, otherwise 'nan' error occurs with velocity/position update.
+INLINING += -u run_communication_loop -u walk_worker_thread
+
+FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
+
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+else
+  FFLAGS   = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros -pthread -Wall $(INLINING)
+  LDFLAGS  = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros -pthread $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+
+ifeq ($(OMP), 1)
+  FFLAGS   += -fopenmp
+  LDFLAGS  += -fopenmp
+else
+endif
+
+
+COMPILER = $(shell $(FC) --version | head -n 1)

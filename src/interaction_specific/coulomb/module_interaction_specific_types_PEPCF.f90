@@ -1,19 +1,19 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
-! 
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
+!
+! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
-! 
+!
 ! PEPC is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
-! 
+!
 ! PEPC is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU Lesser General Public License for more details.
-! 
+!
 ! You should have received a copy of the GNU Lesser General Public License
 ! along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -32,11 +32,13 @@ module module_interaction_specific_types
          real(kind_physics) :: v(3)          !< velocity
          real(kind_physics) :: m             !< mass
          real(kind_physics) :: b(3)          !< magnetic filed at particle position (due to external fields applied in frontend)
+         real(kind_physics) :: f_e(3)        !< force experienced by particle due to electric field
+         real(kind_physics) :: f_b(3)        !< force experienced by particle due to magnetic field
          integer :: species                  !< int to identify particle species
          integer :: mp_int1                  !< multi purpose integer
          real(kind_physics) :: age           !< elapsed time since particle creation
       end type t_particle_data
-      integer, private, parameter :: nprops_particle_data = 7
+      integer, private, parameter :: nprops_particle_data = 9
 
       !> Data structure for shipping results
       type t_particle_results
@@ -78,6 +80,8 @@ module module_interaction_specific_types
         call vtkf%write_data_array("v", d(:)%v(1), d(:)%v(2), d(:)%v(3))
         call vtkf%write_data_array("m", d(:)%m)
         call vtkf%write_data_array("B", d(:)%b(1), d(:)%b(2), d(:)%b(3))
+        call vtkf%write_data_array("f_e (eV/m)", d(:)%f_e(1), d(:)%f_e(2), d(:)%f_e(3))
+        call vtkf%write_data_array("f_b (eV/m)", d(:)%f_b(1), d(:)%f_b(2), d(:)%f_b(3))
         call vtkf%write_data_array("species", d(:)%species)
         call vtkf%write_data_array("mp_int1", d(:)%mp_int1)
         call vtkf%write_data_array("age", d(:)%age)
@@ -123,16 +127,18 @@ module module_interaction_specific_types
         type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
         ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [1, 3, 1, 3, 1, 1, 1]
-        types(1:nprops_particle_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_INTEGER, MPI_INTEGER, MPI_KIND_PHYSICS]
+        blocklengths(1:nprops_particle_data)  = [1, 3, 1, 3, 3, 3, 1, 1, 1]
+        types(1:nprops_particle_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_INTEGER, MPI_INTEGER, MPI_KIND_PHYSICS]
         call MPI_GET_ADDRESS( dummy_particle_data,   address(0), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%q, address(1), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%v, address(2), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%m, address(3), ierr )
         call MPI_GET_ADDRESS( dummy_particle_data%b, address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%species, address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%mp_int1, address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%age, address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%f_e,  address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%f_b,  address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%species, address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%mp_int1, address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%age, address(9), ierr )
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)

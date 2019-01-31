@@ -40,6 +40,13 @@ program pepc
    call pepc_initialize("pepc-breakup", my_rank, n_ranks, .true.)
    call register_density_diag_type()
 
+! =========================Initiate seed for reproducibility===================
+   dummy = 1
+   call random_seed(size = dummy)
+   allocate(r_seeds(dummy))
+   r_seeds(1) = my_rank
+   call random_seed(put = r_seeds)
+
   !  seed = (/ 0, 0 /)
   !  call frand123Init( state, my_rank, 0, seed )
 
@@ -65,8 +72,8 @@ program pepc
    x_cell = 100
    y_cell = 100
    z_cell = 50
-   call init_diagnostic_verts(density_verts, -0.03_8, -0.03_8, -d - 0.005_8, &
-                                    0.06_8, 0.06_8, d + 0.01_8)
+   call init_diagnostic_verts(density_verts, -4.25_8, -4.25_8, -1.35_8, &
+                                    8.5_8, 8.5_8, 2.7_8)
    if (root) then
      allocate(final_density(size(density_verts)*n_ranks))
    else
@@ -153,6 +160,9 @@ program pepc
          end if
          call filter_and_swap(particles, flt_geom, i, swapped_num)
 
+!====================== save the resolved 'e' from tree traverse================
+         traversed_e = particles(i)%results%e
+
          call particle_EB_field(particles(i), external_e)
          call boris_velocity_update(particles(i), dt)
          call particle_pusher(particles(i), dt)
@@ -161,6 +171,9 @@ program pepc
            call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, cross_sections_vector)
          end if
         !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
+
+!=============== revert 'e' to state before addition of external field==========
+         particles(i)%results%e = traversed_e
       end do
 
       call MPI_REDUCE(charge_count, total_charge_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
@@ -190,17 +203,18 @@ program pepc
 
       ! if (doDiag .and. particle_output) call write_particles(particles)
 
-      call pepc_particleresults_clear(particles)
-      call pepc_grow_tree(particles)
-      np = size(particles, kind=kind(np))
-      if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
-      call pepc_traverse_tree(particles)
-      if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
+      ! if (mod(step,5) .eq. 0) then
+        call pepc_particleresults_clear(particles)
+        call pepc_grow_tree(particles)
+        np = size(particles, kind=kind(np))
+        if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
+        call pepc_traverse_tree(particles)
+        if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
 
-      if (doDiag .and. domain_output) call write_domain(particles)
-
-      if (dbg(DBG_STATS)) call pepc_statistics(step)
-      call pepc_timber_tree()
+        if (doDiag .and. domain_output) call write_domain(particles)
+        if (dbg(DBG_STATS)) call pepc_statistics(step)
+        call pepc_timber_tree()
+      ! end if
 
 !=============================Writing output files==============================
       if (doDiag .and. particle_output) call write_particles(particles)

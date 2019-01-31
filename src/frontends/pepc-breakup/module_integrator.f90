@@ -58,7 +58,7 @@ contains
 
    ! Given the velocity vector of particle, it's azimuthal and inclination angle is calculated.
    ! can be 'adapted' to calculate azimuthal position of particle in torus.
-   ! Phi angle is aligned 0 deg from north. North coincides with +y-axis
+   ! Phi angle is aligned 0 deg from east, counterclock-wise. east coincides with +x-axis
    subroutine angles_calc(vec_in, vel_mag, theta, phi)
      implicit none
      real(kind_physics), dimension(:), intent(in):: vec_in
@@ -245,9 +245,9 @@ contains
       implicit none
       type(t_particle), intent(inout) :: particle
       real*8, intent(in) :: dt
-      real*8 :: Vm(3), Vd(3), Vp(3), tan_w(3), sin_w(3), V_cross(3)
+      real*8 :: Vm(3), Vd(3), Vp(3), tan_w(3), sin_w(3), V_cross(3), V_init(3)
       real*8 :: half_dt, q_m_ratio
-
+      V_init = particle%data%v
       half_dt = dt*0.5_8
 
       q_m_ratio = particle%data%q*half_dt/particle%data%m
@@ -262,6 +262,15 @@ contains
       Vp = Vm + V_cross
 
       particle%data%v = Vp + E_q_dt_m*particle%results%e*q_m_ratio
+
+      particle%data%f_e = 2.0*E_q_dt_m*particle%results%e*q_m_ratio*particle%data%m*e_mass/(c*dt*1e-12)
+      !particle%data%q*particle%results%e/particle%data%m
+      particle%data%f_b = particle%data%m*e_mass*(particle%data%v - V_init)/(c*dt*1e-12) - particle%data%f_e
+
+      ! To isolate the Delta V due to E field and B field, propose to compute
+      ! D_V = V_final - V_init
+      ! D_Ve = 2.0*E_q_dt_m*particle%results%e*q_m_ratio
+      ! D_Vb = D_V - D_Ve
    end subroutine boris_velocity_update
 
    subroutine particle_pusher(particle, dt)
