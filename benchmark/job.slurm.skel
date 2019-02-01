@@ -1,0 +1,38 @@
+#!/bin/bash -x
+#SBATCH --partition=batch
+#SBATCH --nodes=##NODES##
+#SBATCH --ntasks-per-node=##TASKSPNODE##
+#SBATCH --cpus-per-task=##THREADS##
+#SBATCH --output=%j.stdout
+#SBATCH --error=%j.stderr
+#SBATCH --time=00:10:00
+
+# TBH, I'm not sure ATM whether THREADS or WORKERTHREADS is correct
+export OMP_NUM_THREADS=##WORKERTHREADS##
+
+# we do not explicitly load modules here, this should be done from the shell/JUBE_ERR_CODE
+# WE DO, however, list the loaded modules to help plotting results per MPI later
+module list
+
+# override pinning with my preference
+export HWT=##SMT_THREADS##
+export PIN=`./correct_pinning.sh | grep cpu_bind`
+# or set a default to sockets
+PIN="${PIN:-"--cpu_bind=sockets"}"
+
+srun -l $PIN ./pepc-benchmark ./params > log
+
+# now filter first time step from results
+awk '
+ BEGIN { prtln = 1; fl = 1;}
+ /.*computing step\s*:\s*0\s*/ { print "FOUND STEP 0, SKIPPING"; prtln = 0; }
+ /.*computing step\s*:\s*1\s*/ { print "FOUND STEP 1, ECHOING"; prtln = 1; }
+ {if ( prtln == 1 ) { print $0; }}
+' log > log.filtered
+
+JUBE_ERR_CODE=$?
+if [ $JUBE_ERR_CODE -ne 0 ]; then
+    exit $JUBE_ERR_CODE
+fi
+
+touch ready
