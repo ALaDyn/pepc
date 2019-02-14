@@ -5,11 +5,19 @@ FILES_L_U = module_vtk_helpers.f90 \
             module_directsum.f90 \
             module_checkpoint.f90
 
+# define files that should be instrumented (name all separately)
+# in addition they have to show up in the usual $(SRC) list one way or another!
+#   (files can be from anywhere in the source tree, thus need to appear in $(SRC)
+#    either from makefile.frontend or globally)
+FILES_I   = module_integrator.f90 random123_func.c
+
 SRC        += $(FILES_L)
 SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
 
 SRC        += $(FILES_L_U)
 SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
+
+ISRC       += $(FILES_I)
 
 CFLAGS     += -DR123_USE_U01_DOUBLE=1 -I$(ROOTDIR)/src/frontends/pepc-breakup
 CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF
