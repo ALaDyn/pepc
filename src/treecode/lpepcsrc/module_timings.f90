@@ -84,10 +84,10 @@
 !  |   |
 !  |   +-> t_global
 !  |
-!  +-> t_fields_passes
+!  +-> t_walk
 !      +
 !      |
-!      +-> t_walk
+!      +-> t_fields_passes
 !      |   +
 !      |   |
 !      |   +-> t_comm_total
