@@ -1,7 +1,7 @@
 /*
 * This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 *
-* Copyright (C) 2002-2016 Juelich Supercomputing Centre,
+* Copyright (C) 2002-2018 Juelich Supercomputing Centre,
 *                         Forschungszentrum Juelich GmbH,
 *                         Germany
 *
@@ -167,7 +167,82 @@ void place_thread(int thread_type, int counter)
     }
 }
 #else
-void place_thread(int thread_type, int counter) { }
+void place_thread(int thread_type, int counter)
+{
+    // This seems not to work at all for the simple walk. The first iteration for some threads sees only 1 CPU,
+    // all consecutive iterations have only CPU 1 for all threads.
+    // SO DISABLE FOR NOW. 
+    return;
+
+    // Hardware thread and CPU core are used synonymous in this function. We _do not_ try to tell those apart!
+    // Also, we assume the affinity mask passed to the MPI process takes care that MPI processes do not overlap
+    // on 'shared' cores.
+    const int reserved = 1; // we only reserve one CPU/hardware thread for MAIN and COMMUNICATION threads
+    pthread_t tid = pthread_self();
+    cpu_set_t cpumask, available_mask;
+    unsigned int first;
+    int count, selected = -1;
+
+    // get current mask and continue if the succeed
+    if(sched_getaffinity(getpid(), sizeof(available_mask), &available_mask)==0) {
+       if (thread_type == THREAD_TYPE_MAIN) {
+	  // main thread goes on first available CPU
+          // identify first accessible hardware thread
+          for (int cpu = 0; cpu < sizeof(available_mask); cpu++) {
+             if CPU_ISSET(cpu, &available_mask) {
+                first = cpu;
+                break;
+             }
+          }
+          selected = first;
+          count = CPU_COUNT(&available_mask);
+       } else if (thread_type == THREAD_TYPE_COMMUNICATOR) {
+	  // communication threads also go on first available CPU (there should only be one?)
+          // identify first accessible hardware thread
+          for (int cpu = 0; cpu < sizeof(available_mask); cpu++) {
+             if CPU_ISSET(cpu, &available_mask) {
+                first = cpu;
+                break;
+             }
+          }
+	  selected = first;
+          count = CPU_COUNT(&available_mask);
+       } else if (thread_type == THREAD_TYPE_WORKER) {
+	  // worker threads share remaining CPUs in a round-robin fashion
+	  // identify list of available CPUs
+	  int cpu_count = 0;
+	  int available_cpus[CPU_COUNT(&available_mask)];
+
+	  for (int cpu = 0; cpu < sizeof(available_mask); cpu++) {
+	     if CPU_ISSET(cpu, &available_mask) {
+		available_cpus[cpu_count] = cpu;
+		cpu_count++;
+	     }
+	  }
+          count = CPU_COUNT(&available_mask) - reserved; // number of accessible threads minus reserved first CPU
+
+          if (count > 0) {
+             selected = available_cpus[0 + reserved                  // skip first CPU
+                                         + ((counter - 1) % count)]; // and fill remaining CPUs
+          } else {
+             // only one core is available, put all workers on this one,
+             // away from main and communicator threads
+             selected = available_cpus[0];
+          }
+       }
+
+       if (selected > -1) {
+          // settle down on a hardware thread according to policy
+          CPU_ZERO(&cpumask);
+          CPU_SET(selected, &cpumask);
+          pthread_setaffinity_np(tid, sizeof(cpumask), &cpumask);
+	  //printf("Using CPU %d of %d for thread type %d\n", selected, count, thread_type);
+       } else {
+	  //printf("Using CPU ? of %d for thread type %d\n", count, thread_type);
+       }
+    }
+}
+
 #endif
 
 void rename_thread(pthread_with_type_t* thread)

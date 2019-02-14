@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2016 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -109,66 +109,46 @@ module module_interaction_specific_types
         ! address calculation
         integer, dimension(1:max_props) :: blocklengths, displacements, types
         integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
-        integer(KIND=MPI_ADDRESS_KIND) :: extent !< to store the extent to the next type in arrays
-        integer :: MPI_TYPE_tmp !< temporary MPI_TYPE
         ! dummies for address calculation
-        type(t_particle_data)    :: dummy_particle_data(2)
-        type(t_particle_results) :: dummy_particle_results(2)
-        type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data(2)
+        type(t_particle_data)    :: dummy_particle_data
+        type(t_particle_results) :: dummy_particle_results
+        type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
         ! register particle data type
         blocklengths(1:nprops_particle_data)  = [1, 3, 1]
         types(1:nprops_particle_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
-        call MPI_GET_ADDRESS( dummy_particle_data(2),   extent, ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data(1),   address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data(1)%q, address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data(1)%v, address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data(1)%m, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data,   address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%q, address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%v, address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_data%m, address(3), ierr )
         displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
-        extent = int(extent - address(0))
-        !call MPI_TYPE_CREATE_STRUCT( nprops_particle_data, blocklengths, displacements, types, MPI_TYPE_tmp, ierr )
-        !call MPI_TYPE_CREATE_RESIZED( MPI_TYPE_tmp, 0_MPI_ADDRESS_KIND, extent, mpi_type_particle_data, ierr )
-        !call MPI_TYPE_FREE(MPI_TYPE_tmp, ierr)
-        !call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
         call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
 
         ! register results data type
         blocklengths(1:nprops_particle_results)  = [3, 1]
         types(1:nprops_particle_results)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
-        call MPI_GET_ADDRESS( dummy_particle_results(2),      extent, ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results(1),      address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results(1)%e,    address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results(1)%pot,  address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results,      address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%e,    address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_particle_results%pot,  address(2), ierr )
         displacements(1:nprops_particle_results) = int(address(1:nprops_particle_results) - address(0))
-        extent = int(extent - address(0))
-        !call MPI_TYPE_CREATE_STRUCT( nprops_particle_results, blocklengths, displacements, types, MPI_TYPE_tmp, ierr )
-        !call MPI_TYPE_CREATE_RESIZED( MPI_TYPE_tmp, 0_MPI_ADDRESS_KIND, extent, mpi_type_particle_results, ierr )
-        !call MPI_TYPE_FREE(MPI_TYPE_tmp, ierr)
-        !call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
         call MPI_TYPE_STRUCT( nprops_particle_results, blocklengths, displacements, types, mpi_type_particle_results, ierr )
         call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
 
         ! register multipole data type
         blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 3, 3, 1, 1, 1, 1]
         types(1:nprops_tree_node_interaction_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(2),            extent, ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1),            address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%coc,        address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%charge,     address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%abs_charge, address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%dip,        address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%quad,       address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%xyquad,     address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%yzquad,     address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%zxquad,     address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data(1)%bmax,       address(9), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%abs_charge, address(3), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%dip,        address(4), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quad,       address(5), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad,     address(6), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad,     address(7), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zxquad,     address(8), ierr )
+        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(9), ierr )
         displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
-        extent = int(extent - address(0))
-        !call MPI_TYPE_CREATE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tmp, ierr )
-        !call MPI_TYPE_CREATE_RESIZED( MPI_TYPE_tmp, 0_MPI_ADDRESS_KIND, extent, MPI_TYPE_tree_node_interaction_data, ierr )
-        !call MPI_TYPE_FREE(MPI_TYPE_tmp, ierr)
-        !call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)
         call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
         call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)
       end subroutine register_interaction_specific_mpi_types
