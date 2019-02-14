@@ -719,7 +719,8 @@ module module_tree_grow
     type(t_particle), intent(in) :: p
     integer(kind_key), intent(in) :: k
 
-    n%flags_global = 0
+    n%flags_global = 0_kind_byte
+    n%flags_local  = 0_kind_byte
     n%flags_local  = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)
     n%request_posted = .false.
     n%owner        = t%comm_env%rank
