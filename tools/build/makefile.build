@@ -21,6 +21,12 @@ FOBJ = $(FSRC:%.f90=%.o)
 CSRC = $(filter %.c, $(SRC))
 COBJ = $(CSRC:%.c=%.o)
 
+# prepare list of objects that should be instrumented, splitting list by programming language
+FISRC = $(filter %.f90, $(ISRC))
+FIOBJ = $(FISRC:%.f90=%.o)
+CISRC = $(filter %.c, $(ISRC))
+CIOBJ = $(CISRC:%.c=%.o)
+
 LDLIBS += libsl.a libopa.a
 
 RED=\e[0;31m
@@ -35,16 +41,27 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 	@$(LDPRE) $(LD) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
 #	@echo "==== lines in compile.log:" `wc -l compile.log | cut -f 1 -d ' '`
 
-%.o: %.f90 $(SUBFILES)
+# compile w/  instrumentation
+$(FIOBJ): %.o: %.f90 $(SUBFILES)
 	@echo "== compiling F90 file :" $<
 	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
 	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
 	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
-	@$(FCPRE) $(FC) -S $(FFLAGS) $(DBFLAGS) pp_$<
+
+$(CIOBJ): %.o: %.c $(SUBFILES)
+	@echo "== compiling C file   :" $<
+	@$(CCPRE) $(CC) -c $(CFLAGS) $(DBFLAGS) $< -o $@
+
+# compile w/o instrumentation
+%.o: %.f90 $(SUBFILES)
+	@echo "== compiling F90 file :" $<
+	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
+	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
+	@$(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
 
 %.o: %.c $(SUBFILES)
 	@echo "== compiling C file   :" $<
-	@$(CCPRE) $(CC) -c $(CFLAGS) $(DBFLAGS) $< -o $@
+	@$(CC) -c $(CFLAGS) $(DBFLAGS) $< -o $@
 
 makefile.deps: $(SUBFILES)
 	@echo "==== creating dependencies"
