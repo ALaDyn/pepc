@@ -62,7 +62,6 @@ do
       for HW in `seq 1 $HWT`
       do
 	 MAP="$MAP,$CPUid_"
-	 tex_line
 	 ((CPUid_+=$PHYS_CORES_NODE))
       done
       ((CPUid++))
@@ -104,7 +103,6 @@ do
       for HW in `seq 1 $HWT`
       do
 	 MAP="$MAP,$CPUid_"
-	 tex_line
 	 ((CPUid_+=$PHYS_CORES_CPU))
       done
       ((CPUid++))
