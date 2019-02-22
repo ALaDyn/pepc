@@ -76,8 +76,9 @@
 	 <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <parameter tag="!booster" name="nodes" type="int" mode="python">{
 	    "juwels": "8, 16, 24, 32, 48, 64",
-	    "jureca": "16, 24, 32, 48, 64, 96, 128, 160"}["${systemname}"]
+	    "jureca": "16, 64, 128"}["${systemname}"]
 	 </parameter>
+	 <!--"jureca": "16, 24, 32, 48, 64, 96, 128, 160"}["${systemname}"]-->
 	 <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16</parameter>
 	 <!-- the check has be 'designed' for Jureca and 12 nodes, stick to the number of nodes at least -->
@@ -129,7 +130,6 @@
 	 <copy directory=".">params.skel</copy>
 	 <copy directory=".">${job_script}</copy>
 	 <copy directory=".">correct_pinning.sh</copy>
-	 <copy directory=".">extrae.xml</copy>
       </fileset>
 
       <!-- SUBSTITUIONS ################################################################################ -->
