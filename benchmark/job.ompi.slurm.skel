@@ -36,12 +36,20 @@ OMPIP=`dirname $(which mpirun)`
 #  Must be IPs instead of hostnames as OpenMPI tends to removes the ".ib" from the hostnames.
 #  This would end up in trying to use the admin network, which does not route over cell boundaries.
 HOSTS_TMP=$(mktemp)
-scontrol show hostnames | awk '{print $1".ib"}' | xargs -I {} getent ahosts {} | \
-       grep STREAM | awk '{print $1" slots:"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > ${HOSTS_TMP}
+
+# switch hostname list based on system
+SYS=`cat /etc/FZJ/systemname`
+if [ "$SYS" = "jureca" ]; then 
+   scontrol show hostnames | awk '{print $1"i"}'   | xargs -I {} getent ahosts {} | grep STREAM | awk '{print $1" slots:"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > ${HOSTS_TMP}
+   scontrol show hostnames | awk '{print $1}'                                                   | awk '{print $1" slots:"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > ${HOSTS_TMP}
+fi
+if [ "$SYS" = "juwels" ]; then 
+   scontrol show hostnames | awk '{print $1".ib"}' | xargs -I {} getent ahosts {} | grep STREAM | awk '{print $1" slots:"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > ${HOSTS_TMP}
+fi
 
 # pretty please SLURM to tell us the amount of cores (SMT) to compute cores per NODE and CPU
-PHYS_CORES_NODE=$(($SLURM_CPUS_ON_NODE/2)) # JUWELS has 2xSMT, SLURM counts those as CPUs
-PHYS_CORES_CPU=$(($SLURM_CPUS_ON_NODE/4))  # JUWELS is dual socket, so divide be 2 again to get a single socket
+PHYS_CORES_NODE=$(($SLURM_CPUS_ON_NODE/2)) # JUWELS and JURECA have 2xSMT, SLURM counts those as CPUs
+PHYS_CORES_CPU=$(($SLURM_CPUS_ON_NODE/4))  # JUWELS and JURECA are dual socket, so divide be 2 again to get a single socket
 
 # figure our the number of threads per node and decide whether we need SMT
 # it's best to check w/ --report-bindings if you get the binding you want!
@@ -54,7 +62,8 @@ else
    SMT_FLAG=' '
 fi
 
-mpirun -np ${SLURM_NTASKS} --hostfile ${HOSTS_TMP} \
+env -u SLURM_HOSTLIST -u SLURM_JOBID \
+${OMPIP}/mpirun -np ${SLURM_NTASKS} --hostfile ${HOSTS_TMP} \
    --mca plm_rsh_agent "ssh -q -o StrictHostKeyChecking=no " \
    -x OMP_NUM_THREADS -x PATH -x LD_LIBRARY_PATH \
    --report-bindings \

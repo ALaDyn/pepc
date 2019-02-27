@@ -76,7 +76,7 @@
 	 <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <parameter tag="!booster" name="nodes" type="int" mode="python">{
 	    "juwels": "8, 16, 24, 32, 48, 64",
-	    "jureca": "16, 64, 128"}["${systemname}"]
+	    "jureca": "16, 32, 64, 96, 128"}["${systemname}"]
 	 </parameter>
 	 <!--"jureca": "16, 24, 32, 48, 64, 96, 128, 160"}["${systemname}"]-->
 	 <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
