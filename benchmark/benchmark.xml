@@ -75,12 +75,12 @@
 	 <!-- Juwels has 2 x 24 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <parameter tag="!booster" name="nodes" type="int" mode="python">{
-	    "juwels": "8, 16, 24, 32, 48, 64",
+	    "juwels": "32, 48, 64, 96, 128",
 	    "jureca": "16, 32, 64, 96, 128"}["${systemname}"]
 	 </parameter>
 	 <!--"jureca": "16, 24, 32, 48, 64, 96, 128, 160"}["${systemname}"]-->
 	 <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
-	 <parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16</parameter>
+	 <parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter>
 	 <!-- the check has be 'designed' for Jureca and 12 nodes, stick to the number of nodes at least -->
 	 <parameter tag="check"    name="nodes" type="int">12</parameter>
 	 <!-- set the number of task per node, with dual socket ccNUMA, 2 could be a good option -->
@@ -109,10 +109,14 @@
 	 <parameter               name="mode" type="string">benchmark</parameter>
 	 <parameter tag="check"   name="mode" type="string">test</parameter>
 	 <!-- strong scaling with constant number of particles -->
-	 <parameter               name="particles" type="int">20000000</parameter>
+	 <parameter               name="particles" type="int">50000000</parameter>
 	 <!-- weak scaling with constant number of particles per thread -->
 	 <parameter tag="weak"    name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
 	 <!-- the check run has a set number of particles, don't touch settings below -->
+      </parameterset>
+      <parameterset name="walkset">
+	 <!-- select a walk to test, or loop over a number of them -->
+	 <parameter name="walk">simple</parameter>
       </parameterset>
 
       <!-- FILE SETS ################################################################################### -->
@@ -166,6 +170,10 @@
 	 <sub source="##WORKERTHREADS##" dest="$workerthreads" />
 	 <sub source="##SMT_THREADS##" dest="$thread_places" />
       </substituteset>
+      <substituteset name="walksub">
+	 <iofile in="src/frontends/pepc-benchmark/makefile.frontend" out="src/frontends/pepc-benchmark/makefile.frontend" />
+	 <sub source="WALK = pthreads" dest="WALK = $walk" />
+      </substituteset>
 
       <!-- JOB STEPS ################################################################################### -->
       <!-- compile the code, apply substitutions as necessary -->
@@ -174,6 +182,8 @@
 	 <!-- load modules -->
 	 <use>stageset</use>
 	 <do>${load_modules}</do>
+	 <use>walkset</use>
+	 <use>walksub</use>
 	 <use tag="!nocompile">sources</use>
 	 <!-- compile sources -->
 	 <do tag="!nocompile" done_file="bin/pepc-benchmark">module list; make allclean pepc-benchmark</do>
@@ -276,7 +286,7 @@
 
       <!-- TABLE OUTPUT ################################################################################ -->
       <!-- Analyse timings -->
-      <!-- It get confusing here, bear with me: the first time step is 'special', so we want to ignore it. -->
+      <!-- It gets confusing here, bear with me: the first time step is 'special', so we want to ignore it.-->
       <!-- For single iterations of JUBE, we cut data from the first timestep via JUBE, c.f. $sum_steps.   -->
       <!-- For multiple iterations, so proper statistics, we can't do that, so we use a different log file -->
       <!-- that has the first time step removed alltogether. For plotting time series and alike we still   -->
@@ -295,6 +305,7 @@
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="result" style="pretty" sort="threads">
 	    <column                           title="mpi"          >list_of_mpis</column>
+	    <column                                                >walk</column>
 	    <column                                                >nodes</column>
 	    <column                           title="tpn"          >taskspnode</column>
 	    <column                           title="tpt"          >threads</column>
@@ -322,6 +333,7 @@
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="result_csv" style="csv" sort="threads">
 	    <column                           title="mpi"          >list_of_mpis</column>
+	    <column                                                >walk</column>
 	    <column                                                >nodes</column>
 	    <column                           title="tpn"          >taskspnode</column>
 	    <column                           title="tpt"          >threads</column>
@@ -351,6 +363,7 @@
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="short_result" style="pretty" sort="nodes, taskspnode, threads">
 	    <column                           title="mpi"            >list_of_mpis</column>
+	    <column                                                  >walk</column>
 	    <column                                                  >nodes</column>
 	    <column                           title="tpn"            >taskspnode</column>
 	    <column                           title="tpt"            >threads</column>
@@ -366,6 +379,7 @@
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="short_result_csv" style="csv" sort="threads">
 	    <column                           title="mpi"            >list_of_mpis</column>
+	    <column                                                  >walk</column>
 	    <column                                                  >nodes</column>
 	    <column                           title="tpn"            >taskspnode</column>
 	    <column                           title="tpt"            >threads</column>
@@ -373,14 +387,15 @@
 	    <column                                                  >particles</column>
 	    <column              format=".0f" title="parts/thread"   >part_per_thrd</column>
 	    <column              format=".2f" title="wallclock[secs]">wallclock</column>
-	    <column tag="!miter" format=".2f" title="step_sum[secs]" >step_time_sum</column>
-	    <column tag="miter"  format=".2f" title="step_sum[secs]" >sum_steps</column>
+	    <column tag="miter"  format=".2f" title="step_sum[secs]" >step_time_sum</column>
+	    <column tag="!miter" format=".2f" title="step_sum[secs]" >sum_steps</column>
 	 </table>
       </result>
       <result tag="!longresult,check">
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="result" style="pretty" sort="threads">
 	    <column              title="mpi"          >list_of_mpis</column>
+	    <column                                   >walk</column>
 	    <column format=".5f" title="egy max"      >egy_tot_max</column>
 	    <column format=".5f" title="egy min"      >egy_tot_min</column>
 	    <column format=".3f" title="egy change[%]">egy_drop</column>

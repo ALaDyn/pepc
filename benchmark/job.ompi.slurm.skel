@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=##THREADS##
 #SBATCH --output=%j.stdout
 #SBATCH --error=%j.stderr
-#SBATCH --time=00:10:00
+#SBATCH --time=00:07:00
 
 # TBH, I'm not sure ATM whether THREADS or WORKERTHREADS is correct
 export OMP_NUM_THREADS=##WORKERTHREADS##
