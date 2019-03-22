@@ -112,7 +112,7 @@ module module_domains
   !>  - weighting according to load incurred on previous timestep
   !>
   subroutine domain_decompose(d, b, n, particles, bp, c)
-    use module_pepc_types, only: t_particle, mpi_type_particle
+    use module_pepc_types, only: t_particle, MPI_TYPE_particle_sca, MPI_TYPE_particle_vec
     use module_box, only: t_box
     use module_timings
     use module_spacefilling, only: key_to_coord, level_from_key
@@ -219,8 +219,8 @@ module module_domains
     do i = 1, d%npold
        DEBUG_ASSERT(level_from_key(ship_parts(i)%key) == maxlevel)
     end do
-    call MPI_ALLTOALLV(ship_parts, d%islen, d%fposts, mpi_type_particle, &
-      get_parts, d%irlen, d%gposts, MPI_TYPE_particle, d%comm_env%comm, ierr)
+    call MPI_ALLTOALLV(ship_parts, d%islen, d%fposts, MPI_TYPE_particle_vec, &
+      get_parts, d%irlen, d%gposts, MPI_TYPE_particle_vec, d%comm_env%comm, ierr)
     do i = 1, d%npnew
        DEBUG_ASSERT(level_from_key(get_parts(i)%key) == maxlevel)
     end do
@@ -357,13 +357,13 @@ module module_domains
       !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf
 
       ! Ship 1st particle data to LH neighbour PE
-      call MPI_SENDRECV(particles(1), 1, mpi_type_particle, prev, 1990, &
-        bp(2), 1, mpi_type_particle, next, 1990, &
+      call MPI_SENDRECV(particles(1), 1, MPI_TYPE_particle_sca, prev, 1990, &
+        bp(2), 1, MPI_TYPE_particle_sca, next, 1990, &
         d%comm_env%comm, state, ierr)
 
       ! Ship end particle data to RH neighbour PE
-      call MPI_SENDRECV(particles(npp), 1, mpi_type_particle, next, 2990, &
-        bp(1), 1, mpi_type_particle, prev, 2990, &
+      call MPI_SENDRECV(particles(npp), 1, MPI_TYPE_particle_sca, next, 2990, &
+        bp(1), 1, MPI_TYPE_particle_sca, prev, 2990, &
         d%comm_env%comm, state, ierr)
 
     end subroutine exchange_boundary_particles
@@ -374,7 +374,7 @@ module module_domains
   !>  Restore initial particle order
   !>
   subroutine domain_restore(d, p)
-      use module_pepc_types, only: t_particle, mpi_type_particle
+      use module_pepc_types, only: t_particle, MPI_TYPE_particle_vec
       use module_debug, only : pepc_status
       implicit none
       include 'mpif.h'
@@ -397,8 +397,8 @@ module module_domains
       allocate(get_parts(d%npold))
 
       ! perform permute
-      call MPI_ALLTOALLV(ship_parts, d%irlen, d%gposts, MPI_TYPE_particle, &
-            get_parts, d%islen, d%fposts, MPI_TYPE_particle, &
+      call MPI_ALLTOALLV(ship_parts, d%irlen, d%gposts, MPI_TYPE_particle_vec, &
+            get_parts, d%islen, d%fposts, MPI_TYPE_particle_vec, &
             d%comm_env%comm, ierr)
 
       deallocate(ship_parts)

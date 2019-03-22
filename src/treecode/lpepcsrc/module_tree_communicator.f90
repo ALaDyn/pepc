@@ -93,7 +93,7 @@ module module_tree_communicator
   !>
   subroutine tree_communicator_prepare()
     use treevars, only: mpi_comm_lpepc
-    use module_pepc_types, only: mpi_type_tree_node_package
+    use module_pepc_types, only: MPI_TYPE_tree_node_package_vec
     implicit none
     include 'mpif.h'
 
@@ -104,7 +104,7 @@ module module_tree_communicator
       call MPI_PACK_SIZE(1, MPI_KIND_KEY, mpi_comm_lpepc, msg_size_request, ierr)
       msg_size_request = msg_size_request + MPI_BSEND_OVERHEAD
 
-      call MPI_PACK_SIZE(8, MPI_TYPE_tree_node_package, mpi_comm_lpepc, msg_size_data, ierr)
+      call MPI_PACK_SIZE(8, MPI_TYPE_tree_node_package_vec, mpi_comm_lpepc, msg_size_data, ierr)
       msg_size_data = msg_size_data + MPI_BSEND_OVERHEAD
 
       buffsize = (TREE_COMM_REQUEST_QUEUE_LENGTH * msg_size_request + TREE_COMM_ANSWER_BUFF_LENGTH * msg_size_data)
@@ -375,7 +375,7 @@ module module_tree_communicator
   !>
   subroutine send_data(t, nodes, numnodes, adressee)
     use module_tree, only: t_tree
-    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package, t_request_eager
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package_vec, t_request_eager
     use module_debug
     implicit none
     include 'mpif.h'
@@ -389,7 +389,7 @@ module module_tree_communicator
     !write(*,'(a,i0,a,i0)') 'snd:', numnodes, '->', adressee
     DEBUG_ASSERT(nodes(1)%parent .ne. 0)
     ! Ship child data back to PE that requested it
-    call MPI_BSEND(nodes, numnodes, MPI_TYPE_tree_node_package, &
+    call MPI_BSEND(nodes, numnodes, MPI_TYPE_tree_node_package_vec, &
       adressee, TREE_COMM_TAG_REQUESTED_DATA, t%comm_env%comm, ierr)
 
     ! statistics on number of sent children-packages
@@ -693,7 +693,7 @@ module module_tree_communicator
 
     function send_request(req, comm_env)
       use module_tree_node
-      use module_pepc_types, only : MPI_TYPE_request_eager
+      use module_pepc_types, only : MPI_TYPE_request_eager_sca
       implicit none
       include 'mpif.h'
 
@@ -709,7 +709,7 @@ module module_tree_communicator
         ! telling, that we need child data for particle request_key(req_queue_top)
 
         if (req%eager_request) then
-          call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager, req%node%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
+          call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager_sca, req%node%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
             comm_env%comm, ierr)
         else
           req_simple(1) = req%request%node
@@ -830,7 +830,7 @@ module module_tree_communicator
   !>
   subroutine run_communication_loop_inner(t, comm_finished, nummessages)
     use module_tree, only: t_tree
-    use module_pepc_types, only: t_tree_node_package, MPI_TYPE_tree_node_package, t_request_eager, MPI_TYPE_request_eager
+    use module_pepc_types, only: t_tree_node_package, MPI_TYPE_tree_node_package_vec, t_request_eager, MPI_TYPE_request_eager_sca
     use module_atomic_ops, only: atomic_store_int
     use module_debug
     implicit none
@@ -887,7 +887,7 @@ module module_tree_communicator
           case (TREE_COMM_TAG_REQUEST_KEY_EAGER)
             ! actually receive this request...
             ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-            call MPI_RECV(request, 1, MPI_TYPE_request_eager, ipe_sender, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
+            call MPI_RECV(request, 1, MPI_TYPE_request_eager_sca, ipe_sender, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
             ! ... and answer it
             call answer_request_eager(t, request, ipe_sender)
@@ -896,7 +896,7 @@ module module_tree_communicator
           case (TREE_COMM_TAG_REQUESTED_DATA)
             ! actually receive the data...
             ! TODO: use MPI_RECV_INIT(), MPI_START() and colleagues for faster communication
-            call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_package, num_children, ierr)
+            call MPI_GET_COUNT(stat, MPI_TYPE_tree_node_package_vec, num_children, ierr)
             allocate(child_data(num_children), stat=ierr)
             !write(*,'(a,i0,a,i0)') 'recv:', num_children, '     <-', ipe_sender
             DEBUG_ASSERT(ierr.eq.0)
@@ -904,7 +904,7 @@ module module_tree_communicator
             child_data(:)%parent = -666 ! if a quick glance at the code is
                                         ! correct, the first value will be meaningful after the RECV, all
                                         ! others should be -1?
-            call MPI_RECV(child_data, num_children, MPI_TYPE_tree_node_package, ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, &
+            call MPI_RECV(child_data, num_children, MPI_TYPE_tree_node_package_vec, ipe_sender, TREE_COMM_TAG_REQUESTED_DATA, &
                     t%comm_env%comm, MPI_STATUS_IGNORE, ierr)
             ! ... and put it into the tree and all other data structures
             !if (any(child_data(:)%parent.eq.0)) write(*,*) child_data(:)%parent
