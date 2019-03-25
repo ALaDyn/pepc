@@ -107,6 +107,7 @@ contains
    !>
    subroutine register_lpepc_mpi_types()
       use module_interaction_specific_types
+      use treevars, only : me
       implicit none
 
       integer, parameter :: max_props = nprops_particle + nprops_tree_node_package + nprops_request_eager
@@ -184,6 +185,52 @@ contains
       call MPI_TYPE_CREATE_RESIZED( MPI_TYPE_request_eager_sca, 0_MPI_ADDRESS_KIND, extent, MPI_TYPE_request_eager_vec, ierr )
       call MPI_TYPE_COMMIT( MPI_TYPE_request_eager_vec, ierr )
 
+      block
+         integer :: sze
+         integer(kind=MPI_ADDRESS_KIND) :: lb, ex
+
+         if (me == 0) then
+            write(*,*) 'MPI_TYPE_request_eager'
+            call MPI_TYPE_SIZE(MPI_TYPE_request_eager_sca, sze, ierr)
+            write(*,*) 'MPI_TYPE_SIZE            sca', sze
+            call MPI_TYPE_SIZE(MPI_TYPE_request_eager_vec, sze, ierr)
+            write(*,*) '                         vec', sze
+            call MPI_TYPE_GET_EXTENT(MPI_TYPE_request_eager_sca, lb, ex, ierr)
+            write(*,*) 'MPI_TYPE_GET_EXTENT      sca', lb, ex
+            call MPI_TYPE_GET_EXTENT(MPI_TYPE_request_eager_vec, lb, ex, ierr)
+            write(*,*) '                         vec', lb, ex
+            call MPI_TYPE_GET_TRUE_EXTENT(MPI_TYPE_request_eager_sca, lb, ex, ierr)
+            write(*,*) 'MPI_TYPE_GET_TRUE_EXTENT sca', lb, ex
+            call MPI_TYPE_GET_TRUE_EXTENT(MPI_TYPE_request_eager_vec, lb, ex, ierr)
+            write(*,*) '                         vec', lb, ex
+            write(*,*) 'MPI_TYPE_particle'
+            call MPI_TYPE_SIZE(MPI_TYPE_particle_sca, sze, ierr)
+            write(*,*) 'MPI_TYPE_SIZE            sca', sze
+            call MPI_TYPE_SIZE(MPI_TYPE_particle_vec, sze, ierr)
+            write(*,*) '                         vec', sze
+            call MPI_TYPE_GET_EXTENT(MPI_TYPE_particle_sca, lb, ex, ierr)
+            write(*,*) 'MPI_TYPE_GET_EXTENT      sca', lb, ex
+            call MPI_TYPE_GET_EXTENT(MPI_TYPE_particle_vec, lb, ex, ierr)
+            write(*,*) '                         vec', lb, ex
+            call MPI_TYPE_GET_TRUE_EXTENT(MPI_TYPE_particle_sca, lb, ex, ierr)
+            write(*,*) 'MPI_TYPE_GET_TRUE_EXTENT sca', lb, ex
+            call MPI_TYPE_GET_TRUE_EXTENT(MPI_TYPE_particle_vec, lb, ex, ierr)
+            write(*,*) '                         vec', lb, ex
+            write(*,*) 'MPI_TYPE_tree_node_package'
+            call MPI_TYPE_SIZE(MPI_TYPE_tree_node_package_sca, sze, ierr)
+            write(*,*) 'MPI_TYPE_SIZE            sca', sze
+            call MPI_TYPE_SIZE(MPI_TYPE_tree_node_package_vec, sze, ierr)
+            write(*,*) '                         vec', sze
+            call MPI_TYPE_GET_EXTENT(MPI_TYPE_tree_node_package_sca, lb, ex, ierr)
+            write(*,*) 'MPI_TYPE_GET_EXTENT      sca', lb, ex
+            call MPI_TYPE_GET_EXTENT(MPI_TYPE_tree_node_package_vec, lb, ex, ierr)
+            write(*,*) '                         vec', lb, ex
+            call MPI_TYPE_GET_TRUE_EXTENT(MPI_TYPE_tree_node_package_sca, lb, ex, ierr)
+            write(*,*) 'MPI_TYPE_GET_TRUE_EXTENT sca', lb, ex
+            call MPI_TYPE_GET_TRUE_EXTENT(MPI_TYPE_tree_node_package_vec, lb, ex, ierr)
+            write(*,*) '                         vec', lb, ex
+         end if
+      end block
 
 
    end subroutine register_lpepc_mpi_types
