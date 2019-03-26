@@ -170,13 +170,11 @@ module module_tree_grow
     call timer_start(t_exchange_branches_pack)
 
     nbranch = int(num_local_branch_nodes, kind=kind(nbranch)) ! we need this cast since MPI-strides have to be of kind_default
-    if (num_local_branch_nodes /= nbranch) write(*,*) num_local_branch_nodes, nbranch
 
     ! Pack local branches for shipping
     allocate(pack_mult(nbranch))
     do i = 1, nbranch
       call tree_node_pack(t%nodes(local_branch_nodes(i)), pack_mult(i))
-      if (pack_mult(i)%descendants == 0) write(*,*) 'packed leaf'
     end do
 
     call timer_stop(t_exchange_branches_pack)
@@ -216,7 +214,6 @@ module module_tree_grow
         branch_nodes(i) = tree_provision_node(t)
         call tree_node_unpack(get_mult(i), t%nodes(branch_nodes(i)))
         call tree_count_node(t, t%nodes(branch_nodes(i)))
-        if (get_mult(i)%descendants == 0) write(*,*) 'received leaf'
       else
         j = j + 1
         branch_nodes(i) = local_branch_nodes(j)
