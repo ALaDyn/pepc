@@ -12,6 +12,7 @@ export OMP_NUM_THREADS=##WORKERTHREADS##
 
 # we do not explicitly load modules here, this should be done from the shell/JUBE_ERR_CODE
 # WE DO, however, list the loaded modules to help plotting results per MPI later
+##MODULES##
 module list
 
 # override pinning with my preference

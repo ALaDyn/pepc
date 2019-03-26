@@ -75,10 +75,9 @@
 	 <!-- Juwels has 2 x 24 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <parameter tag="!booster" name="nodes" type="int" mode="python">{
-	    "juwels": "32, 48, 64, 96, 128",
-	    "jureca": "16, 32, 64, 96, 128"}["${systemname}"]
+	    "juwels": "64",
+	    "jureca": "64"}["${systemname}"]
 	 </parameter>
-	 <!--"jureca": "16, 24, 32, 48, 64, 96, 128, 160"}["${systemname}"]-->
 	 <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter>
 	 <!-- the check has be 'designed' for Jureca and 12 nodes, stick to the number of nodes at least -->
@@ -115,8 +114,16 @@
 	 <!-- the check run has a set number of particles, don't touch settings below -->
       </parameterset>
       <parameterset name="walkset">
-	 <!-- select a walk to test, or loop over a number of them -->
-	 <parameter name="walk">simple</parameter>
+	 <!-- select a walk to test, or loop over a number of them (pthreads, simple, openmp) -->
+	 <parameter name="walk">pthreads</parameter>
+      </parameterset>
+      <parameterset name="compileset">
+	 <parameter name="opt1">,-fgcse-after-reload</parameter>
+	 <parameter name="opt2">,-finline-functions</parameter>
+	 <parameter name="opt3">,-fpredictive-commoning</parameter>
+	 <parameter name="opt4">,-ftree-loop-vectorize -ftree-slp-vectorize</parameter>
+	 <parameter name="opt5">,-ftree-partial-pre -ftree-slp-vectorize -funswitch-loops -ftree-loop-distribution -ftree-loop-distribute-patterns</parameter>
+	 <parameter name="compileopts">${opt1} ${opt2} ${opt3} ${opt4} ${opt5}</parameter>
       </parameterset>
 
       <!-- FILE SETS ################################################################################### -->
@@ -169,10 +176,15 @@
 	 <sub source="##THREADS##" dest="$threads" />
 	 <sub source="##WORKERTHREADS##" dest="$workerthreads" />
 	 <sub source="##SMT_THREADS##" dest="$thread_places" />
+	 <sub source="##MODULES##" dest="$load_modules" />
       </substituteset>
       <substituteset name="walksub">
 	 <iofile in="src/frontends/pepc-benchmark/makefile.frontend" out="src/frontends/pepc-benchmark/makefile.frontend" />
 	 <sub source="WALK = pthreads" dest="WALK = $walk" />
+      </substituteset>
+      <substituteset name="makesub">
+	 <iofile in="makefile.defs" out="makefile.defs" />
+	 <sub source="FJUBE =" dest="FJUBE = $compileopts" />
       </substituteset>
 
       <!-- JOB STEPS ################################################################################### -->
@@ -184,9 +196,11 @@
 	 <do>${load_modules}</do>
 	 <use>walkset</use>
 	 <use>walksub</use>
+	 <use>compileset</use>
+	 <use>makesub</use>
 	 <use tag="!nocompile">sources</use>
 	 <!-- compile sources -->
-	 <do tag="!nocompile" done_file="bin/pepc-benchmark">module list; make allclean pepc-benchmark</do>
+	 <do tag="!nocompile" done_file="bin/pepc-benchmark">module list; make allclean show_gcc_config_pepc-benchmark</do>
 	 <!-- copy binary back onto original source tree -->
 	 <do tag="!nocompile" >test -d ${jube_benchmark_home}/../bin || mkdir ${jube_benchmark_home}/../bin</do>
 	 <do tag="!nocompile" >cp ${jube_wp_abspath}/bin/pepc-benchmark ${jube_benchmark_home}/../bin/.</do>
@@ -304,6 +318,9 @@
       <result tag="longresult">
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="result" style="pretty" sort="threads">
+	    <column                           title="job"          >jube_benchmark_padid</column>
+	    <column                           title="run"          >jube_wp_padid</column>
+	    <column                           title="arch"         >systemname</column>
 	    <column                           title="mpi"          >list_of_mpis</column>
 	    <column                                                >walk</column>
 	    <column                                                >nodes</column>
@@ -332,6 +349,7 @@
       <result tag="longresult">
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="result_csv" style="csv" sort="threads">
+	    <column                           title="arch"         >systemname</column>
 	    <column                           title="mpi"          >list_of_mpis</column>
 	    <column                                                >walk</column>
 	    <column                                                >nodes</column>
@@ -362,6 +380,7 @@
       <result tag="!longresult,!check">
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="short_result" style="pretty" sort="nodes, taskspnode, threads">
+	    <column                           title="arch"           >systemname</column>
 	    <column                           title="mpi"            >list_of_mpis</column>
 	    <column                                                  >walk</column>
 	    <column                                                  >nodes</column>
@@ -378,6 +397,7 @@
       <result tag="!longresult,!check">
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="short_result_csv" style="csv" sort="threads">
+	    <column                           title="arch"           >systemname</column>
 	    <column                           title="mpi"            >list_of_mpis</column>
 	    <column                                                  >walk</column>
 	    <column                                                  >nodes</column>
@@ -394,6 +414,8 @@
       <result tag="!longresult,check">
 	 <use>analysis</use> <!-- use existing analyser -->
 	 <table name="result" style="pretty" sort="threads">
+	    <column              title="run"          >jube_wp_id</column>
+	    <column              title="arch"         >systemname</column>
 	    <column              title="mpi"          >list_of_mpis</column>
 	    <column                                   >walk</column>
 	    <column format=".5f" title="egy max"      >egy_tot_max</column>

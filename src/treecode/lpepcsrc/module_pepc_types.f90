@@ -80,7 +80,7 @@ module module_pepc_types
       integer(kind_key) :: key
       integer(kind_byte) :: flags_global
       integer(kind_level) :: level ! an integer*1 is sufficient. we place it here, to avoid excessive padding
-      integer(kind_byte) :: dummy ! manual padding - so we know what exactly is happening here
+      integer(kind_byte) :: dummy(2) ! manual padding - so we know what exactly is happening here
       integer(kind_pe) :: owner
       integer(kind_node) :: leaves !< total number of leaf nodes below this node
       integer(kind_node) :: descendants  !< total number of descendants (tree nodes and leaves) below this node
@@ -148,7 +148,7 @@ contains
       call MPI_TYPE_COMMIT( MPI_TYPE_particle_vec, ierr)
 
       ! register tree_node type
-      blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+      blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 2, 1, 1, 1, 1, 1, 1]
       types(1:nprops_tree_node_package)         = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
          MPI_KIND_PE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_tree_node_interaction_data_sca]
       call MPI_GET_ADDRESS( dummy_tree_node_package(2),                  extent, ierr )
