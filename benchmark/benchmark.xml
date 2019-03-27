@@ -121,13 +121,7 @@
       </parameterset>
       <parameterset name="walkset">
 	 <!-- select a walk to test, or loop over a number of them (pthreads, simple, openmp) -->
-	 <parameter name="walk">pthreads</parameter>
-      </parameterset>
-      <parameterset name="compileset">
-	 <parameter name="opt1">-mprefer-vector-width=none,-mprefer-vector-width=256</parameter>
-	 <parameter name="opt2">,-fno-tree-loop-vectorize</parameter>
-	 <parameter name="opt3">,-fno-tree-slp-vectorize</parameter>
-	 <parameter name="compileopts">${opt1} ${opt2} ${opt3}</parameter>
+	 <parameter name="walk">pthreads, simple</parameter>
       </parameterset>
 
       <!-- FILE SETS ################################################################################### -->
@@ -187,10 +181,6 @@
 	 <iofile in="src/frontends/pepc-benchmark/makefile.frontend" out="src/frontends/pepc-benchmark/makefile.frontend" />
 	 <sub source="WALK = pthreads" dest="WALK = $walk" />
       </substituteset>
-      <substituteset name="makesub">
-	 <iofile in="makefile.defs" out="makefile.defs" />
-	 <sub source="FJUBE =" dest="FJUBE = $compileopts" />
-      </substituteset>
 
       <!-- JOB STEPS ################################################################################### -->
       <!-- compile the code, apply substitutions as necessary -->
@@ -201,8 +191,6 @@
 	 <do>${load_modules}</do>
 	 <use>walkset</use>
 	 <use>walksub</use>
-	 <use>compileset</use>
-	 <use>makesub</use>
 	 <use tag="!nocompile">sources</use>
 	 <!-- compile sources -->
 	 <do tag="!nocompile" done_file="bin/pepc-benchmark">module list; make allclean pepc-benchmark</do>

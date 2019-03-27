@@ -1,26 +1,28 @@
- HELP = "\
-\# Makefile for gcc 5.1\n\
+# this is an example makefile for GCC
+HELP = "\
+\# Makefile for PEPC\n\
+\# (GCC)\n\
 "
 
+# among other things, pathname within build directory
+MACH     = linux_gcc
 
-MACH     = linux_gcc-5.1
-
+# enable (1)/disable (0) debugging
 DEBUG    = 0
+
+# enable (1)/disable (0) OpenMP
 OMP      = 1
 
+# define commands, compilers, and flags
 MAKE     = make
 
 CPP      = mpicc
 CPPFLAGS = -E -x c -P -C -ffreestanding
                        # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
-
 CCPRE    =
 CC       = mpicc
-
 FCPRE    =
 FC       = mpif90
-
-LDPRE    = scorep --nocompiler --thread=pthread
 LDPRE    =
 LD       = mpif90
 LDLIBS   =
@@ -32,18 +34,26 @@ ARFLAGS  = -rs
 
 RM       = rm -rf
 
-INLINING = -flto -fuse-linker-plugin  \
-	   -fipa-matrix-reorg
-
+# define inlining flags, inlining is key
+INLINING = -flto -fuse-linker-plugin  -fipa-matrix-reorg
 # solve the following issue with lto:
 #`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
 #`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
 #`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
 INLINING += -u run_communication_loop -u walk_worker_thread
 
+# enable warnings
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+# disable warnings
+FWARNINGS =
+
+# enable GCC features pthreads and alike might rely on
 FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
 
+# have extra flags to fix compiler problems
+FFIX = -fno-tree-vectorize
+
+# switch further compiler flags depending on DEBUG setting
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
     -fcheck=all -frange-check -fbacktrace -fvar-tracking \
@@ -52,20 +62,30 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
   LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
-  FFLAGS   = -Ofast \
+  FFLAGS   = -Ofast -mtune=native -march=native $(FFIX) \
     $(INLINING) \
     $(FFEATURES) \
     $(FWARNINGS)
-  CFLAGS   = -Ofast -pthread -Wall $(INLINING)
-  LDFLAGS  = -Ofast -pthread $(INLINING)
+  CFLAGS   = -Ofast -pthread -Wall $(FFIX) $(INLINING)
+  LDFLAGS  = -Ofast -pthread $(FFIX) $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
 
+# switch further compiler flags depending on OMP setting
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
   LDFLAGS  += -fopenmp
 else
 endif
 
-
+# save compiler (version) string for PEPC's stdout message
 COMPILER = $(shell $(FC) --version | head -n 1)
+
+# print compiler setting (GCC only) to stdout to verify set flags
+#show_gcc_config:
+#	$(FC) -Q --help=common   $(FFLAGS) -c test.f90
+#	$(FC) -Q --help=target   $(FFLAGS) -c test.f90
+#	$(FC) -Q --help=params   $(FFLAGS) -c test.f90
+#	$(FC) -Q --help=target   $(FFLAGS) -c test.f90
+#	$(FC) -Q --help=warnings $(FFLAGS) -c test.f90
+#	$(FC) -fverbose-asm -S $(FFLAGS) test.f90
