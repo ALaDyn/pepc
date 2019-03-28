@@ -92,6 +92,9 @@ module module_tree_grow
     ! build local part of tree
     call timer_start(t_local)
     call tree_build_from_particles(t, p, bp)
+    !db_remove! sets those two:
+    !db_remove! t%nleaf_me = t%nleaf
+    !db_remove! t%ntwig_me = t%ntwig
 
     root => t%nodes(t%node_root)
 
@@ -108,6 +111,8 @@ module module_tree_grow
     call timer_stop(t_local)
 
     if (.not. tree_check(t, "tree_grow: before exchange")) then
+      !db_remove! checks tree vars against actual count, scanning the tree
+      !db_remove! t%nleaf_me, t%nleaf, t%ntwig_me, t%ntwig
       call tree_dump(t, p)
     end if
 
@@ -170,6 +175,7 @@ module module_tree_grow
     call timer_start(t_exchange_branches_pack)
 
     nbranch = int(num_local_branch_nodes, kind=kind(nbranch)) ! we need this cast since MPI-strides have to be of kind_default
+    !db_remove! why does it have to be kind_default for this?
 
     ! Pack local branches for shipping
     allocate(pack_mult(nbranch))

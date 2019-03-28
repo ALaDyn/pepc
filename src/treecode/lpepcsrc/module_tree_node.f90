@@ -23,6 +23,7 @@
 !>
 module module_tree_node
     use module_pepc_kinds
+    use iso_fortran_env
     implicit none
     private
 
@@ -43,6 +44,10 @@ module module_tree_node
     public tree_node_children_available
     public tree_node_pack
     public tree_node_unpack
+
+    !! CRC stuff for debugging
+    logical :: crc_tabled = .false.
+    integer(int32) :: crc_table(0:255)
 
     contains
 
@@ -137,6 +142,11 @@ module module_tree_node
 
       type(t_tree_node), intent(in) :: n
       type(t_tree_node_package), intent(out) :: p
+      character(len=10) :: fst
+      character(len=20) :: scnd
+      character(len=168) :: cmplt
+      integer(int32) :: crc1, crc2
+      integer(int8) :: dummy(1:4)
 
       p%key              = n%key
       p%flags_global     = n%flags_global
@@ -147,6 +157,17 @@ module module_tree_node
       p%parent           = NODE_INVALID ! this is to be filled by answer_request()
       p%first_child      = n%first_child
       p%interaction_data = n%interaction_data
+
+      cmplt = transfer(p, cmplt)
+      fst = transfer(cmplt(1:10), fst)
+      scnd = transfer(cmplt(13:32), scnd)
+      call update_crc(fst, crc1)
+      call update_crc(scnd, crc2)
+      dummy = transfer(crc1, dummy)
+      p%dummy(1) = dummy(1)
+      dummy = transfer(crc2, dummy)
+      p%dummy(2) = dummy(2)
+
     end subroutine tree_node_pack
 
 
@@ -156,6 +177,11 @@ module module_tree_node
 
       type(t_tree_node_package), intent(in) :: p
       type(t_tree_node), intent(out) :: n
+      character(len=10) :: fst
+      character(len=20) :: scnd
+      character(len=168) :: cmplt
+      integer(int32) :: crc1, crc2
+      integer(int8) :: dummy(1:4)
 
       n%key              = p%key
       n%flags_global     = p%flags_global
@@ -169,5 +195,62 @@ module module_tree_node
       n%next_sibling     = NODE_INVALID
       n%request_posted   = .false.
       n%interaction_data = p%interaction_data
+
+      cmplt = transfer(p, cmplt)
+      fst = transfer(cmplt(1:10), fst)
+      scnd = transfer(cmplt(13:32), scnd)
+      call update_crc(fst, crc1)
+      call update_crc(scnd, crc2)
+      dummy = transfer(crc1, dummy)
+      if (dummy(1) /= p%dummy(1)) then
+         write(*,*) 'CRC error1'
+         write(*,*) dummy(1), p%dummy(1)
+         write(*,*) p
+      end if
+      dummy = transfer(crc2, dummy)
+      if (dummy(2) /= p%dummy(2)) then
+         write(*,*) 'CRC error2'
+         write(*,*) dummy(2), p%dummy(2)
+         write(*,*) p
+      end if
+
     end subroutine tree_node_unpack
+
+    !!! adding CRC routine for debugging purposes
+    subroutine update_crc(a, crc)
+       integer :: n, i
+       character(*) :: a
+       integer(int32) :: crc
+
+       if (.not. crc_tabled) then
+          crc_tabled = .true.
+          call init_table
+       end if
+
+       crc = 0
+       crc = not(crc)
+       n = len(a)
+       do i = 1, n
+          crc = ieor(shiftr(crc, 8), crc_table(iand(ieor(crc, iachar(a(i:i))), 255)))
+       end do
+       crc = not(crc)
+    end subroutine
+
+    subroutine init_table
+       integer :: i, j
+       integer(int32) :: k
+
+       do i = 0, 255
+          k = i
+          do j = 1, 8
+             if (btest(k, 0)) then
+                k = ieor(shiftr(k, 1), -306674912)
+             else
+                k = shiftr(k, 1)
+             end if
+          end do
+          crc_table(i) = k
+       end do
+    end subroutine
+
 end module module_tree_node
