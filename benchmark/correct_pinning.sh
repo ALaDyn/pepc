@@ -13,11 +13,11 @@
 # echo settings? This will break srun integration...
 ECHO=true
 # to fix the integration, try
-#    export PIN=`psfuckupsmtpin.sh | grep cpu_bind`
+#    export PIN=`correct_pinning.sh | grep cpu_bind`
 #
 
 # run for JURECA cluster or booster?
-# JUWELS should be coverd anyway.
+# JUWELS should be covered anyway.
 MCA="CLS"
 echo "$SLURM_JOB_PARTITION" | grep -q booster && MCA="BOO"
 

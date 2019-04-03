@@ -12,7 +12,7 @@
       <!--                    this will of course only work for the same MPI!                            -->
       <!--    tag check     : run pepc-benchmark with a correctness check                                -->
       <!--    tag weak      : run pepc-benchmark in a weak scaling setup (strong scaling is default)     -->
-      <!--    tag miter     : run each benchmark with 10 iterations each to gather variations            -->
+      <!--    tag stats     : run each benchmark with 5 iterations each to gather variations             -->
       <!--    tag allmpi    : run all 3 MPI libraries (default)                                          -->
       <!--    tag ps        : pick ParaStationMPI to run with                                            -->
       <!--    tag ompi      : pick OpenMPI to run with                                                   -->
@@ -190,7 +190,7 @@
 	 <use>stageset</use>
 	 <do>${load_modules}</do>
 	 <use>walkset</use>
-	 <use>walksub</use>
+	 <use tag="!nocompile">walksub</use>
 	 <use tag="!nocompile">sources</use>
 	 <!-- compile sources -->
 	 <do tag="!nocompile" done_file="bin/pepc-benchmark">module list; make allclean pepc-benchmark</do>
@@ -199,7 +199,7 @@
 	 <do tag="!nocompile" >cp ${jube_wp_abspath}/bin/pepc-benchmark ${jube_benchmark_home}/../bin/.</do>
       </step>
       <!-- run the binary, apply substitutions as necessary -->
-      <step tag="!miter" name="run" depend="compile" iterations="1">
+      <step tag="!stats" name="run" depend="compile" iterations="1">
 	 <use>system</use>
 	 <use>nodeset</use>
 	 <use>modeset</use>
@@ -211,7 +211,7 @@
 	 <do>${load_modules}</do>
 	 <do done_file="ready">sbatch -A ${BUDGET_ACCOUNTS} job.slurm</do>
       </step>
-      <step tag="miter"  name="run" depend="compile" iterations="5">
+      <step tag="stats"  name="run" depend="compile" iterations="5">
 	 <use>system</use>
 	 <use>nodeset</use>
 	 <use>modeset</use>
@@ -302,8 +302,8 @@
 	 <use>timing_pattern</use> <!-- use existing patternset -->
 	 <analyse step="run">
             <!-- file which should be scanned -->
-	    <file tag="!miter">log</file>
-	    <file tag="miter">log.filtered</file>
+	    <file tag="!stats">log</file>
+	    <file tag="stats">log.filtered</file>
 	 </analyse>
       </analyser>
 
@@ -334,10 +334,10 @@
 	    <column              format=".2f"                      >step_time_max</column>
 	    <column              format=".3f"                      >step_time_avg</column>
 	    <column              format=".2f"                      >step_time_min</column>
-	    <column tag="miter"  format=".2f"                      >wallclock_avg</column>
-	    <column tag="miter"  format=".2f"                      >wallclock_min</column>
-	    <column tag="miter"                                    >wallclock_cnt</column>
-	    <column tag="!miter" format=".2f"                      >wallclock</column>
+	    <column tag="stats"  format=".2f"                      >wallclock_avg</column>
+	    <column tag="stats"  format=".2f"                      >wallclock_min</column>
+	    <column tag="stats"                                    >wallclock_cnt</column>
+	    <column tag="!stats" format=".2f"                      >wallclock</column>
 	 </table>
       </result>
       <result tag="longresult">
@@ -361,14 +361,14 @@
 	    <column              format=".2f"                      >step_time_min</column>
 	    <column              format=".2f"                      >comm_recv_avg</column>
 	    <column              format=".2f"                      >comm_reqs_avg</column>
-	    <column tag="miter"  format=".2f"                      >wallclock_avg</column>
-	    <column tag="miter"  format=".2f"                      >wallclock_min</column>
-	    <column tag="miter"                                    >wallclock_cnt</column>
-	    <column tag="!miter" format=".2f"                      >wallclock</column>
-	    <column tag="miter"                                    >tree_grow_min</column>
-	    <column tag="miter"                                    >tree_walk_min</column>
-	    <column tag="miter"                                    >comm_recv_min</column>
-	    <column tag="miter"                                    >comm_reqs_min</column>
+	    <column tag="stats"  format=".2f"                      >wallclock_avg</column>
+	    <column tag="stats"  format=".2f"                      >wallclock_min</column>
+	    <column tag="stats"                                    >wallclock_cnt</column>
+	    <column tag="!stats" format=".2f"                      >wallclock</column>
+	    <column tag="stats"                                    >tree_grow_min</column>
+	    <column tag="stats"                                    >tree_walk_min</column>
+	    <column tag="stats"                                    >comm_recv_min</column>
+	    <column tag="stats"                                    >comm_reqs_min</column>
 	 </table>
       </result>
       <result tag="!longresult,!check">
@@ -384,8 +384,8 @@
 	    <column                                                  >particles</column>
 	    <column              format=".0f" title="parts/thread"   >part_per_thrd</column>
 	    <column              format=".2f" title="wallclock[secs]">wallclock</column>
-	    <column tag="miter"  format=".2f" title="step_sum[secs]" >step_time_sum</column>
-	    <column tag="!miter" format=".2f" title="step_sum[secs]" >sum_steps</column>
+	    <column tag="stats"  format=".2f" title="step_sum[secs]" >step_time_sum</column>
+	    <column tag="!stats" format=".2f" title="step_sum[secs]" >sum_steps</column>
 	 </table>
       </result>
       <result tag="!longresult,!check">
@@ -401,8 +401,8 @@
 	    <column                                                  >particles</column>
 	    <column              format=".0f" title="parts/thread"   >part_per_thrd</column>
 	    <column              format=".2f" title="wallclock[secs]">wallclock</column>
-	    <column tag="miter"  format=".2f" title="step_sum[secs]" >step_time_sum</column>
-	    <column tag="!miter" format=".2f" title="step_sum[secs]" >sum_steps</column>
+	    <column tag="stats"  format=".2f" title="step_sum[secs]" >step_time_sum</column>
+	    <column tag="!stats" format=".2f" title="step_sum[secs]" >sum_steps</column>
 	 </table>
       </result>
       <result tag="!longresult,check">
