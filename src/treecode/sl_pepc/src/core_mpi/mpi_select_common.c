@@ -255,9 +255,10 @@ slint_t mpi_gather_partconds_grouped(partcond_t *pcond_in, MPI_Comm pcond_in_com
   partcond_t _pcond_in;
 #endif
 
-  if (npconds_out) _npconds_out = *npconds_out;
+  // this line would write a 'long long' variable into an 'int' variable
+  //if (npconds_out) _npconds_out = *npconds_out;
  
-  if (_npconds_out < 0)
+  if (npconds_out && *npconds_out < 0)
   {
     if (pcond_in_comm != MPI_COMM_NULL) MPI_Comm_size(pcond_in_comm, &_npconds_out);
     if (pconds_out_comm != MPI_COMM_NULL) MPI_Bcast(&_npconds_out, 1, MPI_INT, 0, pconds_out_comm);
@@ -281,9 +282,16 @@ slint_t mpi_gather_partconds_grouped(partcond_t *pcond_in, MPI_Comm pcond_in_com
 
   }
 
-  if (pconds_out_comm != MPI_COMM_NULL && pconds_out) MPI_Bcast(pconds_out, _npconds_out * sizeof(partcond_t), MPI_BYTE, 0, pconds_out_comm);
+  if (npconds_out && *npconds_out >= 0)
+  {
+     if (pconds_out_comm != MPI_COMM_NULL && pconds_out) MPI_Bcast(pconds_out, (int)(*npconds_out * sizeof(partcond_t)), MPI_BYTE, 0, pconds_out_comm);
+  }
+  else
+  {
+     if (pconds_out_comm != MPI_COMM_NULL && pconds_out) MPI_Bcast(pconds_out, _npconds_out * sizeof(partcond_t), MPI_BYTE, 0, pconds_out_comm);
+  }
 
-  if (npconds_out) *npconds_out = _npconds_out;
+  if (npconds_out && *npconds_out < 0) *npconds_out = _npconds_out;
 
   return 0;
 }
