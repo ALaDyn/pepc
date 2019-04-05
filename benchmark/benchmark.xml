@@ -33,6 +33,8 @@
       <!-- loop over different stages to test those -->
       <parameterset name="stageset">
 	 <!-- a list of possible MPI libraries we can try -->
+	 <parameter                      name="impi"></parameter>
+	 <parameter tag="allmpi,intel"   name="impi">impi</parameter>
 	 <parameter                      name="ipsmpi"></parameter>
 	 <parameter tag="allmpi,ips"     name="ipsmpi">ipsmpi</parameter>
 	 <parameter                      name="psmpi"></parameter>
@@ -42,11 +44,11 @@
 	 <parameter                      name="ompi"></parameter>
 	 <parameter tag="allmpi,ompi"    name="ompi">ompi</parameter>
 	 <!-- combine all MPIs to single parameter to loop over if tags present, otherwise use all three -->
-	 <parameter tag="!booster,ips,ps,mvapich,ompi,allmpi" name="list_of_mpis" mode="python">
-	    ",".join([i for i in "${ipsmpi} ${psmpi} ${ompi} ${mvapich}".split(" ") if len(i) > 0])
+	 <parameter tag="!booster,intel,ips,ps,mvapich,ompi,allmpi" name="list_of_mpis" mode="python">
+	    ",".join([i for i in "${impi} ${ipsmpi} ${psmpi} ${ompi} ${mvapich}".split(" ") if len(i) > 0])
 	 </parameter>
-	 <parameter tag="!booster,!ips,!ps,!mvapich,!ompi" name="list_of_mpis" mode="python">
-	    ",".join([i for i in "ipsmpi psmpi ompi mvapich".split(" ") if len(i) > 0])
+	 <parameter tag="!booster,!intel,!ips,!ps,!mvapich,!ompi" name="list_of_mpis" mode="python">
+	    ",".join([i for i in "impi ipsmpi psmpi ompi mvapich".split(" ") if len(i) > 0])
 	 </parameter>
 	 <parameter tag="booster" name="list_of_mpis" mode="python">
 	    ",".join([i for i in "${psmpi}".split(" ") if len(i) > 0])
@@ -54,16 +56,18 @@
 	 <!-- prepare module load commands -->
 	 <parameter tag="!booster" name="load_modules" mode="python">{
 	    "juwels": {
+                           "impi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2019a; module load Intel/2019.3.199-GCC-8.3.0 IntelMPI/2019.3.199", 
                            "ipsmpi": "module purge; module load intel-para", 
                            "psmpi": "module purge; module load GCC ParaStationMPI", 
                            "ompi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/Devel-2018b; module load GCC/7.3.0 OpenMPI/4.0.0", 
                            "mvapich": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR; export LD_LIBRARY_PATH=/gpfs/software/juwels/stages/2018b/software/CUDA/9.2.88/lib64/stubs/:${LD_LIBRARY_PATH}"
 		      }["${list_of_mpis}"],
             "jureca": {
-                           "ipsmpi": "module purge; module load intel-para", 
+                           "impi": "module purge; module load Intel IntelMPI", 
+                           "ipsmpi": "module purge; module load Intel/2019.0.117-GCC-7.3.0 ParaStationMPI/5.2.1-1-mt", 
                            "psmpi": "module purge; module load GCC ParaStationMPI", 
-			   "ompi": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/Devel-2018b; module load GCC/7.3.0 OpenMPI/4.0.0", 
-			   "mvapich": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR"
+                           "ompi": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/Devel-2018b; module load GCC/7.3.0 OpenMPI/4.0.0", 
+                           "mvapich": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR"
 		      }["${list_of_mpis}"],
 	    }["${systemname}"]
 	 </parameter>
@@ -73,7 +77,7 @@
 	 <!-- get name for job script based on MPI library used -->
 	 <parameter name="job_script" mode="python">{"ompi": "job.ompi.slurm.skel"}.get("${list_of_mpis}","job.slurm.skel")</parameter>
 	 <!-- get name for makefile on MPI (compiler, really) library used -->
-	 <parameter name="makefile" mode="python">{"ipsmpi": "makefile.defs_intel"}.get("${list_of_mpis}","makefile.defs_gcc")</parameter>
+	 <parameter name="makefile" mode="python">{"ipsmpi": "makefile.defs_intel", "impi": "makefile.defs_intel"}.get("${list_of_mpis}","makefile.defs_gcc")</parameter>
       </parameterset>
       <!-- node configuration: #nodes, #ranks per node, #threads per rank -->
       <parameterset name="nodeset">
@@ -81,8 +85,8 @@
 	 <!-- Juwels has 2 x 24 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <parameter tag="!booster" name="nodes" type="int" mode="python">{
-	    "juwels": "64",
-	    "jureca": "64"}["${systemname}"]
+	    "juwels": "8, 16, 32, 48, 64, 96, 128",
+	    "jureca": "32, 48, 64, 96, 128, 192, 256"}["${systemname}"]
 	 </parameter>
 	 <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
 	 <parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter>
@@ -114,14 +118,14 @@
 	 <parameter               name="mode" type="string">benchmark</parameter>
 	 <parameter tag="check"   name="mode" type="string">test</parameter>
 	 <!-- strong scaling with constant number of particles -->
-	 <parameter               name="particles" type="int">50000000</parameter>
+	 <parameter               name="particles" type="int">100000000</parameter>
 	 <!-- weak scaling with constant number of particles per thread -->
 	 <parameter tag="weak"    name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
 	 <!-- the check run has a set number of particles, don't touch settings below -->
       </parameterset>
       <parameterset name="walkset">
 	 <!-- select a walk to test, or loop over a number of them (pthreads, simple, openmp) -->
-	 <parameter name="walk">pthreads, simple</parameter>
+	 <parameter name="walk">pthreads</parameter>
       </parameterset>
 
       <!-- FILE SETS ################################################################################### -->
@@ -315,7 +319,6 @@
 	    <column                           title="run"          >jube_wp_padid</column>
 	    <column                           title="arch"         >systemname</column>
 	    <column                           title="mpi"          >list_of_mpis</column>
-	    <column                           title="GCC"          >compileopts</column>
 	    <column                                                >walk</column>
 	    <column                                                >nodes</column>
 	    <column                           title="tpn"          >taskspnode</column>

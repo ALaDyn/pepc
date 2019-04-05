@@ -51,7 +51,7 @@ FWARNINGS =
 FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
 
 # have extra flags to fix compiler problems
-FFIX = -fno-tree-vectorize
+FFIX =
 
 # switch further compiler flags depending on DEBUG setting
 ifeq ($(DEBUG), 1)
@@ -62,12 +62,12 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
   LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
-  FFLAGS   = -Ofast -mtune=native -march=native $(FFIX) \
+  FFLAGS   = -O2 -mtune=native -march=native $(FFIX) \
     $(INLINING) \
     $(FFEATURES) \
     $(FWARNINGS)
-  CFLAGS   = -Ofast -pthread -Wall $(FFIX) $(INLINING)
-  LDFLAGS  = -Ofast -pthread $(FFIX) $(INLINING)
+  CFLAGS   = -O2 -pthread -Wall $(FFIX) $(INLINING)
+  LDFLAGS  = -O2 -pthread $(FFIX) $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
 
