@@ -78,6 +78,7 @@ module module_tree_grow
 
     ! determine total number of particles
     call MPI_ALLREDUCE(nl, n, 1, MPI_KIND_PARTICLE, MPI_SUM, tree_comm_env%comm, ierr)
+    DEBUG_ASSERT(n .ge. nl)
 
     ! Domain decomposition: allocate particle keys to PEs
     call domain_decompose(t%decomposition, t%bounding_box, n, p, bp, tree_comm_env)
@@ -147,7 +148,7 @@ module module_tree_grow
   subroutine tree_exchange(t, num_local_branch_nodes, local_branch_nodes, branch_nodes)
     use module_tree, only: t_tree, tree_provision_node, tree_count_node
     use module_tree_node, only: tree_node_pack, tree_node_unpack, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE
-    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package
+    use module_pepc_types, only: t_tree_node, t_tree_node_package, MPI_TYPE_tree_node_package_vec
     use module_debug, only : pepc_status
     use module_timings
     use module_debug
@@ -196,7 +197,7 @@ module module_tree_grow
     call timer_start(t_exchange_branches_allgatherv)
 
     ! actually exchange the branch nodes
-    call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node_package, get_mult, nbranches, igap, MPI_TYPE_tree_node_package, &
+    call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node_package_vec, get_mult, nbranches, igap, MPI_TYPE_tree_node_package_vec, &
       t%comm_env%comm, ierr)
 
     deallocate(pack_mult)

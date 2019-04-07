@@ -7,21 +7,41 @@ resume = REPLACE_RESUME
 itime_in = REPLACE_TIMEIN
 
 ! allocated wall time. Change this to reflect the wall time in job_script.
+! Note that depending on the number of MPI ranks involved, overhead due to MPI
+! will offset the code's internal clock versus wall clock of JURECA accounting.
+! Recommended to use a  lower 'i_wall_time' than requested wall clock in job_script.
 i_wall_time = 00:10:00
+
+! Density grid for interpolation on?
+density_output = .true.
+
+! Density grid definitions, only required with 'density_output' == .true.
+! Number of cells in x,y,z direction.
+x_cell = 100
+y_cell = 100
+z_cell = 50
+
+! Define the extent of the density grid (meters)
+minimum_x = -4.25
+minimum_y = -4.25
+minimum_z = -1.35
+x_length = 8.5
+y_length = 8.5
+z_length = 2.7
 
 ! simulation type: 0 = Electrode Plates, 1 = Tokamak Setting
 sim_type = 0
 
-! Only for tokamak case, electron seeding method: 
+! Only for tokamak case, electron seeding method:
 ! 0 = randomly distributed in torus
 ! 1 = seeded on a plane
 mode = 1
 
 ! Only for Electrode Plates, plate distance (in meters)
-d = 0.025 !0.0011870845
+d = 0.0011870845
 
 ! Only for Electrode Plates, injected electrons per step
-electron_num = 10
+electron_num = 20
 
 ! total number of particles
 tnp = REPLACE_TNP
@@ -30,10 +50,10 @@ tnp = REPLACE_TNP
 nt = REPLACE_NSTEP
 
 ! time step (in picoseconds)
-dt = 100
+dt = 1
 
 ! diagnostics and output interval
-diag_interval = 500
+diag_interval = 1000
 
 ! turn data and domain output on/off
 particle_output = .true.
@@ -50,13 +70,13 @@ particle_test = .false.
 plasma_dimensions = 0.05 0.05 0.025 !1.0 1.0 1.0
 
 ! initial electron temperature (K)
-init_temperature = 298.15
+init_temperature = 273.15
 
 ! pressure of vessel (Pa)
-pressure = 293.304 !0.001 !293.304 !359.964 
+pressure = 333.31
 
 ! external electric field (in V/m)
-external_e = 0.0 0.0 42120.0
+external_e = 0.0 0.0 100000.0
 
 ! tokamak torus descriptions (in meters)
 major_radius = 2.9

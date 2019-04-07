@@ -176,9 +176,9 @@ module module_checkpoint
             end if
 
             ! Redefine file view, now with our custom type
-            call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
+            call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle_vec, MPI_TYPE_particle_vec, 'native', MPI_INFO_NULL, ierr)
             ! Write particle data
-            call MPI_FILE_WRITE_ORDERED(fh, dp(:), size(dp,kind=kind_default), MPI_TYPE_particle, status, ierr)
+            call MPI_FILE_WRITE_ORDERED(fh, dp(:), size(dp,kind=kind_default), MPI_TYPE_particle_vec, status, ierr)
             ! Take care before closing
             call MPI_FILE_SYNC(fh,ierr)
             call MPI_FILE_CLOSE(fh,ierr)
@@ -283,9 +283,9 @@ module module_checkpoint
               allocate(dp(1:np_local))
 
               ! Redefine file view, now with our custom type
-              call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle, MPI_TYPE_particle, 'native', MPI_INFO_NULL, ierr)
+              call MPI_FILE_SET_VIEW(fh, max_header_size, MPI_TYPE_particle_vec, MPI_TYPE_particle_vec, 'native', MPI_INFO_NULL, ierr)
               ! Read particle data
-              call MPI_FILE_READ_ORDERED(fh, dp, np_local, MPI_TYPE_particle, status, ierr)
+              call MPI_FILE_READ_ORDERED(fh, dp, np_local, MPI_TYPE_particle_vec, status, ierr)
               ! Close file
               call MPI_FILE_CLOSE(fh,ierr)
 

@@ -201,12 +201,13 @@ contains
    end subroutine extend_particles_list_swap
 
    subroutine register_density_diag_type()
+     use mpi
      implicit none
-     include 'mpif.h'
 
      integer, parameter :: fields = 4
      integer :: mpi_err
-     integer, dimension(1:fields) :: blocklengths, disp, types
+     integer, dimension(1:fields) :: blocklengths, types
+     integer(KIND=MPI_ADDRESS_KIND), dimension(1:fields) :: disp
      integer(KIND=MPI_ADDRESS_KIND), dimension(0:fields) :: address
 
      type(diag_vertex) :: dummy_vertex
@@ -217,14 +218,14 @@ contains
      call MPI_GET_ADDRESS( dummy_vertex%x,         address(1), mpi_err)
      call MPI_GET_ADDRESS( dummy_vertex%q_density, address(2), mpi_err)
      call MPI_GET_ADDRESS( dummy_vertex%J_density, address(3), mpi_err)
-     disp(1:3) = int(address(1:3) - address(0))
-     call MPI_TYPE_STRUCT( 3, blocklengths, disp, types, MPI_TYPE_density, mpi_err)
+     disp(1:3) = address(1:3) - address(0)
+     call MPI_TYPE_CREATE_STRUCT( 3, blocklengths, disp, types, MPI_TYPE_density, mpi_err)
      call MPI_TYPE_COMMIT( MPI_TYPE_density, mpi_err)
    end subroutine register_density_diag_type
 
    subroutine free_density_diag_type()
+     use mpi
      implicit none
-     include 'mpif.h'
 
      integer :: mpi_err
      call MPI_TYPE_FREE(MPI_TYPE_density, mpi_err)

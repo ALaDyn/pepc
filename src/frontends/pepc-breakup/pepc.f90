@@ -56,6 +56,17 @@ program pepc
    call timer_start(t_user_init)
    call set_parameter()
 
+   !=====================prepare array for density diagnostics==================
+   if (density_output) then
+     call init_diagnostic_verts(density_verts, minimum_x, minimum_y, minimum_z, &
+                                x_length, y_length, z_length)
+     if (root) then
+       allocate(final_density(size(density_verts)*n_ranks))
+     else
+       allocate(final_density(1))
+     end if
+   end if
+
    if (resume == 1) then
      np = tnp/n_ranks
      if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
@@ -66,18 +77,6 @@ program pepc
      itime_in = 0
      call init_particles(particles, sim_type)
      ! call torus_diagnostic_grid(major_radius, minor_radius, 7, particles)
-   end if
-
-   !=====================prepare array for density diagnostics=============
-   x_cell = 100
-   y_cell = 100
-   z_cell = 50
-   call init_diagnostic_verts(density_verts, -4.25_8, -4.25_8, -1.35_8, &
-                                    8.5_8, 8.5_8, 2.7_8)
-   if (root) then
-     allocate(final_density(size(density_verts)*n_ranks))
-   else
-     allocate(final_density(1))
    end if
 
    !========================read cross section data======================
@@ -220,7 +219,7 @@ program pepc
       if (doDiag .and. particle_output) call write_particles(particles)
 
       ! NOTE: if density diagnostic is on, do these
-      if (doDiag .and. particle_output) then
+      if (doDiag .and. density_output) then
          call timer_start(t_interpolate)
          do i = 1, size(particles)
            call density_interpolation(particles(i), density_verts)
@@ -245,12 +244,12 @@ program pepc
            call write_densities(density_verts)
          end if
          call clear_density_results(density_verts)
-         call write_updated_resume_variables(step+itime_in+1)
          call timer_stop(t_interpolate)
          if (root) write (*, '(a,es12.4)') " ====== density interpolation [s]:", timer_read(t_interpolate)
       end if
 
       if (doDiag .and. particle_mpi_output) then
+        call write_updated_resume_variables(step+itime_in+1)
         call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
         call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
       end if
@@ -272,8 +271,11 @@ program pepc
    end do
 
    call deallocate_CS_buffer(CS_tables)
-   deallocate(final_density)
-   deallocate(density_verts)
+
+   if (density_output) then
+     deallocate(final_density)
+     deallocate(density_verts)
+   end if
    deallocate (particles)
 
    call timer_stop(t_user_total)

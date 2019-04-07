@@ -68,7 +68,9 @@ module helper
    real(kind_physics), allocatable :: direct_L2(:)
 
    ! density diagnostics related variables
+   logical :: density_output
    type(diag_vertex), allocatable  :: density_verts(:), final_density(:)
+   real(kind_physics) :: minimum_x, minimum_y, minimum_z, x_length, y_length, z_length
    real(kind_physics) :: dx, dy ,dz, s_min_x, s_min_y, s_min_z
    integer :: x_cell, y_cell, z_cell, iv, ir, cnt
    integer, allocatable :: connectivity_array(:)
@@ -127,16 +129,27 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ resume, itime_in, i_wall_time, sim_type, mode, d, electron_num, &
-         tnp, nt, dt, particle_output, domain_output, particle_mpi_output, &
-         reflecting_walls, particle_test, diag_interval, plasma_dimensions, &
-         init_temperature, pressure, external_e, major_radius, minor_radius, &
-         B0, B_p, V_loop
+      namelist /pepcbreakup/ resume, itime_in, i_wall_time, density_output, &
+         x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
+         y_length, z_length, sim_type, mode, d, electron_num, tnp, nt, dt, &
+         particle_output, domain_output, particle_mpi_output, reflecting_walls, &
+         particle_test, diag_interval, plasma_dimensions, init_temperature, &
+         pressure, external_e, major_radius, minor_radius, B0, B_p, V_loop
 
       ! set default parameter values
       resume = 0
       itime_in = 0
       i_wall_time = '00:00:00'
+      density_output = .false.
+      x_cell = 0
+      y_cell = 0
+      z_cell = 0
+      minimum_x = 0
+      minimum_y = 0
+      minimum_z = 0
+      x_length = 0
+      y_length = 0
+      z_length = 0
       sim_type = 0
       mode = 0
       d = 0.0015
@@ -176,6 +189,7 @@ contains
          write (*, '(a,i12)') " == diag & IO interval                  : ", diag_interval
          write (*, '(a,l12)') " == particle test                       : ", particle_test
          write (*, '(a,l12)') " == particle output                     : ", particle_output
+         write (*, '(a,l12)') " == density interpolation               : ", density_output
          write (*, '(a,l12)') " == domain output                       : ", domain_output
          write (*, '(a,l12)') " == particle mpi output                 : ", particle_mpi_output
          write (*, '(a,l12)') " == reflecting walls                    : ", reflecting_walls
@@ -653,9 +667,9 @@ contains
 
      difference_to_wall_time = allowed_wall_time - current_wall_time
      time_check = buffer_multiplier*previous_step_duration
+     if (my_rank == 0) print *, 'Time left till wall time (seconds): ', difference_to_wall_time
 
      if (difference_to_wall_time < time_check) then
-       !print *, difference_to_wall_time, time_check
        if (my_rank == 0) then
          print *, "Pre-empted Checkpointing triggered!"
        end if

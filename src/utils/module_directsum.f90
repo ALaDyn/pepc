@@ -145,8 +145,8 @@ module module_directsum
               nreceived, 1, MPI_INTEGER, prevrank, MPI_TAG_DIRECT_DATA_PACKAGE_SIZE, &
               comm, stat, ierr)
             ! send current data package to right neighbour, receive new data package from left neighbour
-            call MPI_SENDRECV(sending, nsending, MPI_TYPE_PARTICLE, nextrank, MPI_TAG_DIRECT_DATA_PACKAGE, &
-              received, nreceived, MPI_TYPE_PARTICLE, prevrank, MPI_TAG_DIRECT_DATA_PACKAGE, &
+            call MPI_SENDRECV(sending, nsending, MPI_TYPE_particle_vec, nextrank, MPI_TAG_DIRECT_DATA_PACKAGE, &
+              received, nreceived, MPI_TYPE_particle_vec, prevrank, MPI_TAG_DIRECT_DATA_PACKAGE, &
               comm, stat, ierr)
 
             call timer_add(t_direct_comm,MPI_WTIME()-t1)
