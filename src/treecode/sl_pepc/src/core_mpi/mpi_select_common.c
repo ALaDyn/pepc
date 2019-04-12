@@ -1,8 +1,8 @@
 /*
  *  SL - Sorting Library, v0.1, (michael.hofmann@informatik.tu-chemnitz.de)
- *  
+ *
  *  file: src/core_mpi/mpi_select_common.c
- *  
+ *
  */
 
 
@@ -101,7 +101,7 @@ slint_t init_partconds_intern(slint_t npconds, partcond_intern_t *pci, partcond_
     {
       pci[i].count_low  = z_round((pc[i].count_low  < 0.0)?(-pc[i].count_low  * total_count):pc[i].count_low);
       pci[i].count_high = z_round((pc[i].count_high < 0.0)?(-pc[i].count_high * total_count):pc[i].count_high);
-      
+
       /* FIXME: low/high consistency not checked */
 
     } else { pci[i].count_low = 0; pci[i].count_high = total_count; }
@@ -124,7 +124,7 @@ slint_t init_partconds_intern(slint_t npconds, partcond_intern_t *pci, partcond_
         pci[i].weight_min = (pc[i].weight_min < 0.0)?(-pc[i].weight_min * avg_weight):pc[i].weight_min;
         pci[i].weight_max = (pc[i].weight_max < 0.0)?(-pc[i].weight_max * avg_weight):pc[i].weight_max;
       }
-      
+
       /* check min/max consistency */
       if (pci[i].weight_min > pci[i].weight_max) pci[i].weight_min = pci[i].weight_max = (pci[i].weight_min + pci[i].weight_max) / 2.0;
 
@@ -232,7 +232,7 @@ slint_t merge_partconds(partcond_t *pconds_in, slint_t npconds_in, partcond_t *p
     pcond_out->count_max += pconds_in[i].count_max;
   }
 
-#ifdef elem_weight  
+#ifdef elem_weight
   pcond_out->weight_min = 0;
   pcond_out->weight_max = 0;
   pcond_out->weight_low = pconds_in[0].weight_low;
@@ -255,14 +255,15 @@ slint_t mpi_gather_partconds_grouped(partcond_t *pcond_in, MPI_Comm pcond_in_com
   partcond_t _pcond_in;
 #endif
 
-  if (npconds_out) _npconds_out = *npconds_out;
+  // this line would write a 'long long' variable into an 'int' variable
+  //if (npconds_out) _npconds_out = *npconds_out;
 
-  if (_npconds_out < 0)
+  if (npconds_out && *npconds_out < 0)
   {
     if (pcond_in_comm != MPI_COMM_NULL) MPI_Comm_size(pcond_in_comm, &_npconds_out);
     if (pconds_out_comm != MPI_COMM_NULL) MPI_Bcast(&_npconds_out, 1, MPI_INT, 0, pconds_out_comm);
   }
-  
+
   if (pcond_in_comm != MPI_COMM_NULL)
   {
     if (pconds_out)
@@ -281,9 +282,16 @@ slint_t mpi_gather_partconds_grouped(partcond_t *pcond_in, MPI_Comm pcond_in_com
 
   }
 
-  if (pconds_out_comm != MPI_COMM_NULL && pconds_out) MPI_Bcast(pconds_out, _npconds_out * sizeof(partcond_t), MPI_BYTE, 0, pconds_out_comm);
+  if (npconds_out && *npconds_out >= 0)
+  {
+     if (pconds_out_comm != MPI_COMM_NULL && pconds_out) MPI_Bcast(pconds_out, (int)(*npconds_out * sizeof(partcond_t)), MPI_BYTE, 0, pconds_out_comm);
+  }
+  else
+  {
+     if (pconds_out_comm != MPI_COMM_NULL && pconds_out) MPI_Bcast(pconds_out, _npconds_out * sizeof(partcond_t), MPI_BYTE, 0, pconds_out_comm);
+  }
 
-  if (npconds_out) *npconds_out = _npconds_out;
+  if (npconds_out && *npconds_out < 0) *npconds_out = _npconds_out;
 
   return 0;
 }
@@ -338,12 +346,12 @@ slint_t mpi_post_check_partconds(elements_t *s, slint_t nelements, slint_t npart
   for (i = 0; i < nparts; ++i)
   {
     Z_TRACE_IF(MSC_TRACE_IF, "%" slint_fmt " verifying %d against [%f  %f]", i, rrcounts[i], pconds[i].count_min, pconds[i].count_max);
-  
+
     if (rrcounts[i] < pconds[i].count_min || rrcounts[i] > pconds[i].count_max) j = i;
   }
 
   MPI_Bcast(&j, 1, int_mpi_datatype, 0, comm);
-  
+
   return j;
 }
 
@@ -370,12 +378,12 @@ slint_t mpi_post_check_partconds_intern(elements_t *s, slint_t nelements, slint_
   for (i = 0; i < nparts; ++i)
   {
     Z_TRACE_IF(MSC_TRACE_IF, "%" slint_fmt " verifying %d against [%" slint_fmt "  %" slint_fmt "]", i, rrcounts[i], pci[i].count_min, pci[i].count_max);
-  
+
     if (rrcounts[i] < pci[i].count_min || rrcounts[i] > pci[i].count_max) j = i;
   }
 
   MPI_Bcast(&j, 1, int_mpi_datatype, 0, comm);
-  
+
   return j;
 }
 
@@ -466,7 +474,7 @@ slint_t mpi_select_stats(elements_t *s, slint_t nparts, int *sdispls, int size, 
     printf("%d: weight average: %f - %f / %f\n", rank, (double) partial_weights[nparts] / nparts, v / nparts, v / partial_weights[nparts]);
 #endif
   }
-  
+
   return 0;
 
 #undef partial_counts

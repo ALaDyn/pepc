@@ -202,8 +202,9 @@ program pepc
 
       ! if (doDiag .and. particle_output) call write_particles(particles)
 
+      call pepc_particleresults_clear(particles)
+
       ! if (mod(step,5) .eq. 0) then
-        call pepc_particleresults_clear(particles)
         call pepc_grow_tree(particles)
         np = size(particles, kind=kind(np))
         if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
@@ -249,9 +250,9 @@ program pepc
       end if
 
       if (doDiag .and. particle_mpi_output) then
-        call write_updated_resume_variables(step+itime_in+1)
         call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
         call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
+        call write_updated_resume_variables(step+itime_in+1)
       end if
 
       call timer_stop(t_user_step)
