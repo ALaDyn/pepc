@@ -24,7 +24,7 @@
 !> i.e. shifting along the tree, computing forces between particles and cluster, etc.
 !>
 module module_interaction_specific
-     use module_pepc_kinds, only: kind_physics
+     use module_pepc_kinds, only: kind_physics, kind_particle, kind_node
      use module_pepc_types
      use module_interaction_specific_types
      implicit none
@@ -164,7 +164,6 @@ module module_interaction_specific
         read(filehandle, NML=calc_force_coulomb)
       end subroutine
 
-
       !>
       !> writes interaction-specific parameters to file
       !>
@@ -218,7 +217,6 @@ module module_interaction_specific
       !> for the current mac and/or parameters and the supplied total number of particles
       !>
       subroutine get_number_of_interactions_per_particle(npart_total, nintmax)
-        use module_pepc_types
         implicit none
         integer(kind_particle), intent(in) :: npart_total !< total number of particles
         integer(kind_node), intent(out) :: nintmax !< maximum number of interactions per particle
@@ -390,7 +388,6 @@ module module_interaction_specific
         subroutine calc_force_per_particle(particles)
           use treevars, only: num_threads
           use module_debug, only : pepc_status
-          use module_pepc_types
           use treevars, only : me
           use module_fmm_framework
           use module_mirror_boxes

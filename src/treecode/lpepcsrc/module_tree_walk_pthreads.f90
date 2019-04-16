@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -251,7 +251,9 @@ module module_tree_walk
   subroutine tree_walk_run(vbox_)
     use, intrinsic :: iso_c_binding
     use pthreads_stuff, only: pthreads_createthread, pthreads_jointhread, THREAD_TYPE_WORKER
-    use module_atomic_ops, only: atomic_store_int
+    use module_atomic_ops, only: atomic_store_int, atomic_load_int
+    use module_interaction_specific_types
+    use module_interaction_specific, only : notify_and_wait_for_completion
     use module_pepc_types
     use module_timings
     use module_debug
@@ -287,6 +289,9 @@ module module_tree_walk
         DEBUG_INFO(*, "Hybrid walk finished for thread", ith, ". Returned data = ", threaddata(ith))
       end if
     end do
+
+    ! include 'barrier' to flush all accelerator caches and make sure they are finished
+    call notify_and_wait_for_completion()
 
     ! check wether all particles really have been processed
     num_processed_particles = sum(threaddata(:)%counters(THREAD_COUNTER_PROCESSED_PARTICLES))
@@ -366,7 +371,7 @@ module module_tree_walk
     type(c_ptr), value :: arg
 
     integer, dimension(:), allocatable :: thread_particle_indices
-    type(t_particle), dimension(:), allocatable :: thread_particle_data
+    type(t_particle_thread), dimension(:), allocatable :: thread_particle_data
     integer(kind_node), dimension(:), allocatable :: partner_leaves ! list for storing number of interaction partner leaves
     integer(kind_node), dimension(:), pointer :: defer_list_old, defer_list_new, ptr_defer_list_old, ptr_defer_list_new
     integer, dimension(:), allocatable :: defer_list_start_pos
@@ -457,7 +462,8 @@ module module_tree_walk
               end if
 
               ! copy forces and potentials back to thread-global array
-              particle_data(thread_particle_indices(i)) = thread_particle_data(i)
+              particle_data(thread_particle_indices(i))%data = thread_particle_data(i)%data
+              particle_data(thread_particle_indices(i))%results = thread_particle_data(i)%results
               ! mark particle entry i as free
               thread_particle_indices(i)                = -1
               ! count total processed particles for this thread
@@ -538,7 +544,16 @@ module module_tree_walk
 
         if (contains_particle(idx)) then
           ! we make a copy of all particle data to avoid thread-concurrent access to particle_data array
-          thread_particle_data(idx) = particle_data(thread_particle_indices(idx))
+          thread_particle_data(idx)%x         = particle_data(thread_particle_indices(idx))%x
+          thread_particle_data(idx)%work     => particle_data(thread_particle_indices(idx))%work
+          thread_particle_data(idx)%key       = particle_data(thread_particle_indices(idx))%key
+          thread_particle_data(idx)%node_leaf = particle_data(thread_particle_indices(idx))%node_leaf
+          thread_particle_data(idx)%label     = particle_data(thread_particle_indices(idx))%label
+          thread_particle_data(idx)%pid       = particle_data(thread_particle_indices(idx))%pid
+          thread_particle_data(idx)%data      = particle_data(thread_particle_indices(idx))%data
+          thread_particle_data(idx)%results  => particle_data(thread_particle_indices(idx))%results
+          thread_particle_data(idx)%queued    =  -1
+          thread_particle_data(idx)%my_idx    = thread_particle_indices(idx)
           ! for particles that we just inserted into our list, we start with only one defer_list_entry: the root node
           ptr_defer_list_old      => defer_list_root_only
           defer_list_entries_old  =  1
@@ -575,7 +590,7 @@ module module_tree_walk
     implicit none
     include 'mpif.h'
 
-    type(t_particle), intent(inout) :: particle
+    type(t_particle_thread), intent(inout) :: particle
     integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old
     integer, intent(in) :: defer_list_entries_old
     integer(kind_node), dimension(:), pointer, intent(inout) :: defer_list_new
@@ -602,7 +617,7 @@ module module_tree_walk
     ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
     ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
     ! that the node has to be resolved
-    ! if the defer_list is empty, the call reutrns without doing anything
+    ! if the defer_list is empty, the call returns without doing anything
     call defer_list_parse_and_compact()
 
     ! read all todo_list-entries and start further traversals there

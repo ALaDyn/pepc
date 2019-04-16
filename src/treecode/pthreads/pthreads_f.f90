@@ -26,6 +26,7 @@ module pthreads_stuff
   integer, parameter :: THREAD_TYPE_MAIN = 1
   integer, parameter :: THREAD_TYPE_COMMUNICATOR = 2
   integer, parameter :: THREAD_TYPE_WORKER = 3
+  integer, parameter :: THREAD_TYPE_ACCELERATOR = 4
 
   type, bind(C) :: t_pthread_with_type
     private

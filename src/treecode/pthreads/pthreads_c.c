@@ -58,8 +58,9 @@ const int THREAD_TYPE_DEFAULT = 0;
 const int THREAD_TYPE_MAIN = 1;
 const int THREAD_TYPE_COMMUNICATOR = 2;
 const int THREAD_TYPE_WORKER = 3;
+const int THREAD_TYPE_WORKER = 4;
 
-const char threadnames[4][20] = {"Tdefault", "Tmain", "Tcomm", "Twork"};
+const char threadnames[5][20] = {"Tdefault", "Tmain", "Tcomm", "Twork", "Taccel"};
 
 typedef struct {
   pthread_t* thread;

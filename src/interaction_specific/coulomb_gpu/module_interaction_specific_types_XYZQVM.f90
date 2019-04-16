@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2019 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -23,6 +23,8 @@
 !> all subroutines and types within this module are obligatory
 !>
 module module_interaction_specific_types
+   use pthreads_stuff
+   use module_atomic_ops, only: t_atomic_int
    use module_pepc_kinds
    implicit none
 
@@ -56,6 +58,55 @@ module module_interaction_specific_types
       real(kind_physics) :: bmax
    end type t_tree_node_interaction_data
    integer, private, parameter :: nprops_tree_node_interaction_data = 9
+
+   !> Data structure for storing interaction partners
+   type t_iact_partner
+      real(kind_physics) :: delta(3)
+      type(t_tree_node_interaction_data) :: node
+      logical :: leaf
+   end type t_iact_partner
+   integer, private, parameter :: nprops_partner_data = 3
+
+   !> Data structure for thread local storage of single particles
+   !> This includes lists of the interaction partners
+   integer, public, parameter :: MAX_IACT_PARTNERS = 8 * 256 * 4 * 2 ! length of vectors for GPU, multiples of 256 because of gang size?
+   integer, public, parameter :: ACC_QUEUE_LENGTH  = 10              ! how may lists we accept from the workers at one time
+   integer, public, parameter :: GPU_STREAMS = 8                     ! number of GPU lists to prepare, multiple streams may require than one
+
+   !> Thread local data structure to store extra interaction information
+   !> thread local, since we do not want to ship this via MPI
+   type t_particle_thread
+      real(kind_physics) :: x(1:3)                 !< coordinates
+      real*8, pointer :: work                      !< work load from force sum
+      integer(kind_key) :: key                     !< particle key, i.e. key on highgest tree level
+      integer(kind_node) :: node_leaf              !< key of corresponding leaf (tree node)
+      integer(kind_particle) :: label              !< particle label (only for diagnostic purposes, can be used freely by the frontend
+      integer :: pid                               !< particle owner
+      type(t_particle_data) :: data                !< real physics (charge, etc.)
+      type(t_particle_results), pointer :: results !< results of calc_force_etc and companions
+      integer :: queued = -1
+      type(t_iact_partner), pointer :: partner(:)
+      integer*8 :: my_idx = -1
+   end type t_particle_thread
+   integer, private, parameter :: nprops_particle_thread = 10
+
+   type, public :: t_acc_queue_entry
+      type(t_particle_thread) :: particle
+      type(t_particle_results), pointer :: results
+      real(kind_physics) :: eps, pen
+      logical :: entry_valid
+      integer :: queued
+      type(t_iact_partner), pointer :: partner(:)
+   end type
+
+   type :: t_acc
+      type(t_atomic_int), pointer :: thread_status
+      integer :: processor_id
+      type(t_pthread_with_type) :: acc_thread
+      type(t_acc_queue_entry) :: acc_queue(ACC_QUEUE_LENGTH)
+      type(t_atomic_int), pointer :: q_top, q_bottom, q_len
+   end type
+   type(t_acc) :: acc
 
 contains
 
@@ -120,10 +171,10 @@ contains
       ! register particle data type
       blocklengths(1:nprops_particle_data)  = [1, 3, 1]
       types(1:nprops_particle_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
-      call MPI_GET_ADDRESS( dummy_particle_data,   address(0), ierr )
-      call MPI_GET_ADDRESS( dummy_particle_data%q, address(1), ierr )
-      call MPI_GET_ADDRESS( dummy_particle_data%v, address(2), ierr )
-      call MPI_GET_ADDRESS( dummy_particle_data%m, address(3), ierr )
+      call MPI_GET_ADDRESS( dummy_particle_data,         address(0), ierr )
+      call MPI_GET_ADDRESS( dummy_particle_data%q,       address(1), ierr )
+      call MPI_GET_ADDRESS( dummy_particle_data%v,       address(2), ierr )
+      call MPI_GET_ADDRESS( dummy_particle_data%m,       address(3), ierr )
       displacements(1:nprops_particle_data) = address(1:nprops_particle_data) - address(0)
       call MPI_TYPE_CREATE_STRUCT( nprops_particle_data, blocklengths, displacements, types, MPI_TYPE_particle_data, ierr )
       call MPI_TYPE_COMMIT( MPI_TYPE_particle_data, ierr)

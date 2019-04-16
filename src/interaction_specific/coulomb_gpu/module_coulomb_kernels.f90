@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2019 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -24,6 +24,7 @@
 module module_coulomb_kernels
   use module_pepc_kinds, only: kind_physics
   use module_pepc_types
+  use module_interaction_specific_types
   implicit none
   save
   private
@@ -42,9 +43,13 @@ module module_coulomb_kernels
 
     public calc_force_coulomb_3D
     public calc_force_coulomb_3D_direct
+    public calc_force_coulomb_3D_leaf
     public calc_force_coulomb_2D
     public calc_force_coulomb_2D_direct
     public calc_force_LJ
+    interface calc_force_kelbg_3D_direct
+       module procedure calc_force_kelbg_3D_direct_global, calc_force_kelbg_3D_direct_thread
+    end interface calc_force_kelbg_3D_direct
     public calc_force_kelbg_3D_direct
 
   contains
@@ -258,8 +263,25 @@ module module_coulomb_kernels
       phi  = t%charge*rd
       exyz = rd3charge*d
     end subroutine calc_force_coulomb_3D_direct
+    subroutine calc_force_coulomb_3D_leaf(charge, d, dist2, exyz, phi)
+      implicit none
 
+      real(kfp), intent(in) :: charge
+      real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kfp), intent(out) ::  exyz(3), phi
 
+      real(kfp) :: rd,r,rd3charge
+
+      r         = sqrt(dist2) ! eps2 is added in calling routine to have plummer instead of coulomb here
+      rd        = one/r
+      rd3charge = charge*rd*rd*rd
+
+      phi  = charge*rd
+      exyz = rd3charge*d
+
+    end subroutine calc_force_coulomb_3D_leaf
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
     !> Calculates 2D Coulomb interaction of particle p with tree node inode
     !> that is shifted by the lattice vector vbox
@@ -267,7 +289,6 @@ module module_coulomb_kernels
     !> Unregularized force law is:
     !>   Phi = -2q log R
     !>   Ex = -dPhi/dx = 2 q x/R^2 etc
-    !>
     subroutine calc_force_coulomb_2D_direct(t, d, d2, exy, phi)
       implicit none
 
@@ -288,7 +309,7 @@ module module_coulomb_kernels
     !> that is shifted by the lattice vector vbox
     !> results are returned in exyz, phi
     !>
-    subroutine calc_force_kelbg_3D_direct(particle, t, d, dist2, kelbg_invsqrttemp, exyz, phi)
+    subroutine calc_force_kelbg_3D_direct_global(particle, t, d, dist2, kelbg_invsqrttemp, exyz, phi)
       implicit none
 
       type(t_particle), intent(inout) :: particle
@@ -327,5 +348,46 @@ module module_coulomb_kernels
       !  forces
       fprefac = q * rd3 * ome
       exyz    = fprefac * d
-    end subroutine calc_force_kelbg_3D_direct
+    end subroutine calc_force_kelbg_3D_direct_global
+    subroutine calc_force_kelbg_3D_direct_thread(particle, t, d, dist2, kelbg_invsqrttemp, exyz, phi)
+      implicit none
+
+      type(t_particle_thread), intent(inout) :: particle
+      type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
+      real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3), phi
+      real(kind_physics), intent(in) :: kelbg_invsqrttemp
+      real(kind_physics) :: rd,r,rd3
+      real(kind_physics), parameter :: sqrtpi = sqrt(acos(-1.0_8))
+      real(kind_physics) :: ome, rol, lambda, q, fprefac
+
+      q = t%charge
+
+      ! TODO: lambda must be adjusted depending on mass and temperature of interacting partners - currently it is fixed for electron-proton interactions
+      if (particle%data%q * q < 0.) then
+        ! e-i or i-e interaction
+        lambda = 1.00027227_8 * kelbg_invsqrttemp
+      else
+        if ( q > 0. ) then
+          ! i-i interaction
+          lambda = 0.03300355_8 * kelbg_invsqrttemp
+        else
+          ! e-e interaction
+          lambda = 1.41421356_8 * kelbg_invsqrttemp
+        endif
+      endif
+
+      r   = sqrt(dist2)
+      rd  = one / r
+      rd3 = rd*rd*rd
+      rol = r  / lambda        !< "r over lambda"
+      ome = 1  - exp(-rol*rol) !< "one minus exp(stuff)"
+
+      ! potential
+      phi = q * rd  * (ome + sqrtpi*rol*(1-erf(rol)))
+      !  forces
+      fprefac = q * rd3 * ome
+      exyz    = fprefac * d
+
+    end subroutine calc_force_kelbg_3D_direct_thread
 end module
