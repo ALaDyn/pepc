@@ -32,7 +32,7 @@ module module_libpepc_main
     implicit none
     private
 
-    integer :: curve_type = 1
+    integer, save :: curve_type = 1
 
     public libpepc_restore_particles
     public libpepc_traverse_tree

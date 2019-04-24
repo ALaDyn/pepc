@@ -71,8 +71,7 @@ module module_tree_walk
     integer(kind_default) :: ierr
     real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, &
       max_mac_evaluations
-    real*8 :: work_imbal = 0.
-    real*8 :: work_imbal_max, work_imbal_min  ! load stats
+    real*8 :: work_imbal, work_imbal_max, work_imbal_min  ! load stats
     integer(kind_node) :: local_counters(NUM_THREAD_COUNTERS)
     integer(kind_node), allocatable :: global_counters(:,:)
     integer :: c

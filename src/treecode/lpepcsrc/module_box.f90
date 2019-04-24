@@ -26,7 +26,7 @@ module module_box
   implicit none
   private
 
-  logical, public :: force_cubic_domain = .false. !< if set to .true., pepc uses an overall cubic enclosure of the particle cloud instead of the cuboid (closer) one
+  logical, save, public :: force_cubic_domain = .false. !< if set to .true., pepc uses an overall cubic enclosure of the particle cloud instead of the cuboid (closer) one
 
   !>
   !> Derived type that represents a rectangular cuboid.

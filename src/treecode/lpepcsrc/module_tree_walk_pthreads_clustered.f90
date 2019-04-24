@@ -117,10 +117,10 @@ module module_tree_walk
 
   type(t_pthread_with_type), target, allocatable :: thread_handles(:)
   type(t_threaddata), allocatable, target :: threaddata(:)
-  integer :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
-  real :: work_on_communicator_cluster_number_factor = 0.1 !< factor for reducing clusters_per_thread for thread which share their processor with the communicator
+  integer, save :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
+  real, parameter :: work_on_communicator_cluster_number_factor = 0.1 !< factor for reducing clusters_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
-  integer, public :: max_clusters_per_thread = 30 !< maximum number of particles that will in parallel be processed by one workthread
+  integer, save, public :: max_clusters_per_thread = 30 !< maximum number of particles that will in parallel be processed by one workthread
   integer :: clusters_per_thread
 
   real(kind_physics) :: vbox(3)
@@ -139,7 +139,7 @@ module module_tree_walk
   end type
 
   type(t_cluster_data), allocatable, dimension(:) :: particle_clusters
-  integer(kind_particle) :: max_particles_per_cluster = 32
+  integer(kind_particle), save :: max_particles_per_cluster = 32
   type(t_atomic_int), pointer :: next_unassigned_cluster
 
   namelist /walk_para_pthreads_clustered/ max_clusters_per_thread, max_particles_per_cluster
@@ -169,8 +169,7 @@ module module_tree_walk
     integer(kind_default) :: ierr
     real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, &
       max_mac_evaluations
-    real*8 :: work_imbal = 0.
-    real*8 :: work_imbal_max, work_imbal_min  ! load stats
+    real*8 :: work_imbal, work_imbal_max, work_imbal_min  ! load stats
     integer(kind_node) :: local_counters(NUM_THREAD_COUNTERS)
     integer(kind_node), allocatable :: global_counters(:,:)
     integer :: c

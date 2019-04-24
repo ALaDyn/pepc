@@ -50,7 +50,7 @@ module module_checkpoint
             integer(kind_default), intent(in) :: itime
             type(t_particle), intent(in), dimension(:) :: dp
             character(*), optional, intent(out) :: filename_out
-            logical :: firstcall  = .true.
+            logical, save :: firstcall  = .true.
             character(50) :: dir
             integer(kind_particle) :: i
             character(100) :: filename
@@ -94,7 +94,7 @@ module module_checkpoint
             integer(kind_default), intent(in) :: itime
             type(t_particle), intent(in), dimension(:) :: dp
             character(*), intent(out) :: filename
-            logical :: firstcall  = .true.
+            logical, save :: firstcall  = .true.
 
             character(50) :: dir
 
@@ -135,7 +135,7 @@ module module_checkpoint
             character(*), intent(out) :: filename
             integer :: fh, ierr, status(MPI_STATUS_SIZE)
             integer(KIND=MPI_OFFSET_KIND) :: disp
-            logical :: firstcall  = .true.
+            logical, save :: firstcall  = .true.
             character(50) :: dir
             integer(kind_particle) :: n_totsum
 

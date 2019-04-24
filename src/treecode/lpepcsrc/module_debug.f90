@@ -27,11 +27,11 @@ module module_debug
      save
      private
 
-      integer, public :: debug_ipefile = 21
-      integer, public :: debug_my_rank = -1
-      integer, public :: debug_stdout  =  6
+      integer, parameter, public :: debug_ipefile = 21
+      integer, save, public :: debug_my_rank = -1
+      integer, parameter, public :: debug_stdout  =  6
 
-      integer, public :: debug_level = 0 !< or-combination of the bitmasks below
+      integer, save, public :: debug_level = 0 !< or-combination of the bitmasks below
       ! set to the following values to get the old behaviour:
       !             db_level = 0      --> debug_level = 0
       !             db_level = 1      --> debug_level = 1 + 2 + 32 = 35

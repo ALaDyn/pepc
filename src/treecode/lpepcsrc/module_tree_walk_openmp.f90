@@ -117,10 +117,10 @@ module module_tree_walk
   end type t_threaddata
 
   type(t_threaddata), allocatable, target :: threaddata(:)
-  integer :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
-  real :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
+  integer, save :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
+  real, parameter :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
   ! variables for adjusting the thread's workload
-  integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
+  integer, save, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
 
   real(kind_physics) :: vbox(3)
   integer :: todo_list_length, defer_list_length, num_particles
@@ -156,8 +156,7 @@ module module_tree_walk
     integer(kind_default) :: ierr
     real*8 :: average_interactions, average_mac_evaluations, total_interactions, total_mac_evaluations, max_interactions, &
       max_mac_evaluations
-    real*8 :: work_imbal = 0.
-    real*8 :: work_imbal_max, work_imbal_min  ! load stats
+    real*8 :: work_imbal, work_imbal_max, work_imbal_min  ! load stats
     integer(kind_node) :: local_counters(NUM_THREAD_COUNTERS)
     integer(kind_node), allocatable :: global_counters(:,:)
     integer :: c

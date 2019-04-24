@@ -123,7 +123,7 @@ module module_velocity_setup
 
 		  integer(kind_particle) :: i
 		  real*8 :: theta, u0
-		  integer :: dum1=-319
+		  integer, save :: dum1=-319
 
 		  if (n.eq.0) return
 
