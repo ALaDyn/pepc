@@ -118,12 +118,12 @@ module module_directsum
                       #endif
                         if (currank == 0) then
                           if ((ibox == num_neighbour_boxes) .and. (testidx(j) == i)) then
-                            call calc_force_per_interaction_with_self(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
+                            call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)), .false.)
                             cycle
                           end if
                         end if
 
-                        call calc_force_per_interaction_with_leaf(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)))
+                        call calc_force_per_interaction(received(j), local_nodes(i), particles(i)%key, delta, dot_product(delta, delta), lattice_vect(neighbour_boxes(:,ibox)), .true.)
                       #ifndef NO_SPATIAL_INTERACTION_CUTOFF
                       endif
                       #endif

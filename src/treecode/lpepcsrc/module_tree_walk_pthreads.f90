@@ -581,9 +581,9 @@ module module_tree_walk
     use module_tree_communicator, only: tree_node_fetch_children
     use module_interaction_specific
     use module_debug
-    #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+#ifndef NO_SPATIAL_INTERACTION_CUTOFF
     use module_mirror_boxes, only : spatial_interaction_cutoff
-    #endif
+#endif
     use module_atomic_ops
     use module_pepc_types
     implicit none
@@ -636,14 +636,14 @@ module module_tree_walk
       if (is_leaf) then
         partner_leaves = partner_leaves + 1
 
-        #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+#ifndef NO_SPATIAL_INTERACTION_CUTOFF
         if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
-        #endif
+#endif
 
         if (dist2 > 0.0_8) then ! not self, interact
-          call calc_force_per_interaction_with_leaf(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+           call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox, is_leaf)
         else ! self, count as interaction partner, otherwise ignore
-          call calc_force_per_interaction_with_self(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+           call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox, is_leaf)
         end if
 
         num_interactions = num_interactions + 1
@@ -654,11 +654,11 @@ module module_tree_walk
         if (mac(IF_MAC_NEEDS_PARTICLE(particle) walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC positive, interact
           partner_leaves = partner_leaves + walk_node%leaves
 
-          #ifndef NO_SPATIAL_INTERACTION_CUTOFF
+#ifndef NO_SPATIAL_INTERACTION_CUTOFF
           if (any(abs(delta) >= spatial_interaction_cutoff)) cycle
-          #endif
+#endif
 
-          call calc_force_per_interaction_with_twig(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox)
+          call calc_force_per_interaction(particle, walk_node%interaction_data, walk_node_idx, delta, dist2, vbox, is_leaf)
           num_interactions = num_interactions + 1
           particle%work = particle%work + 1._8
         else ! MAC negative, resolve
