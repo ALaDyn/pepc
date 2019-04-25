@@ -30,6 +30,7 @@ module module_atomic_ops
   public atomic_store_int
   public atomic_load_int
   public atomic_fetch_and_increment_int
+  public atomic_fetch_and_decrement_int
   public atomic_mod_increment_and_fetch_int
   ! memory barriers
   public atomic_write_barrier
@@ -80,6 +81,12 @@ module module_atomic_ops
       implicit none
       type(c_ptr), intent(in), value :: storage
     end function c_atomic_fetch_and_increment_int
+
+    integer(kind=c_int) function c_atomic_fetch_and_decrement_int(storage) bind(C, name='_atomic_fetch_and_decrement_int')
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), intent(in), value :: storage
+    end function c_atomic_fetch_and_decrement_int
 
     integer(kind=c_int) function c_atomic_mod_increment_and_fetch_int(storage, mod) bind(C, name='_atomic_mod_increment_and_fetch_int')
       use, intrinsic :: iso_c_binding
@@ -181,6 +188,15 @@ module module_atomic_ops
 
     atomic_fetch_and_increment_int = c_atomic_fetch_and_increment_int(storage%p)
   end function atomic_fetch_and_increment_int
+
+
+  integer function atomic_fetch_and_decrement_int(storage)
+    implicit none
+
+    type(t_atomic_int), intent(in) :: storage
+
+    atomic_fetch_and_decrement_int = c_atomic_fetch_and_decrement_int(storage%p)
+  end function atomic_fetch_and_decrement_int
 
 
   integer function atomic_mod_increment_and_fetch_int(storage, mod)

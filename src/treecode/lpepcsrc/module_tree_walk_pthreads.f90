@@ -549,7 +549,6 @@ module module_tree_walk
           thread_particle_data(idx)%key       = particle_data(thread_particle_indices(idx))%key
           thread_particle_data(idx)%node_leaf = particle_data(thread_particle_indices(idx))%node_leaf
           thread_particle_data(idx)%label     = particle_data(thread_particle_indices(idx))%label
-          thread_particle_data(idx)%pid       = particle_data(thread_particle_indices(idx))%pid
           thread_particle_data(idx)%data      = particle_data(thread_particle_indices(idx))%data
           thread_particle_data(idx)%results  => particle_data(thread_particle_indices(idx))%results
           thread_particle_data(idx)%queued    =  -1
@@ -695,7 +694,7 @@ module module_tree_walk
         ! children for twig are _absent_
         ! --> put node on REQUEST list and put walk_key on bottom of todo_list
         ! eager requests
-        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle, shifted_particle_position) ! fetch children from remote
+        call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx, particle_data(particle%my_idx), shifted_particle_position) ! fetch children from remote
         ! simple requests
         ! call tree_node_fetch_children(walk_tree, walk_node, walk_node_idx)
         num_post_request = num_post_request + 1

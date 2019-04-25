@@ -58,7 +58,7 @@ const int THREAD_TYPE_DEFAULT = 0;
 const int THREAD_TYPE_MAIN = 1;
 const int THREAD_TYPE_COMMUNICATOR = 2;
 const int THREAD_TYPE_WORKER = 3;
-const int THREAD_TYPE_WORKER = 4;
+const int THREAD_TYPE_ACCELERATOR = 4;
 
 const char threadnames[5][20] = {"Tdefault", "Tmain", "Tcomm", "Twork", "Taccel"};
 

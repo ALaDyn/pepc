@@ -78,10 +78,9 @@ module module_interaction_specific_types
    type t_particle_thread
       real(kind_physics) :: x(1:3)                 !< coordinates
       real*8, pointer :: work                      !< work load from force sum
-      integer(kind_key) :: key                     !< particle key, i.e. key on highgest tree level
+      integer(kind_key) :: key                     !< particle key, i.e. key on highest tree level
       integer(kind_node) :: node_leaf              !< key of corresponding leaf (tree node)
       integer(kind_particle) :: label              !< particle label (only for diagnostic purposes, can be used freely by the frontend
-      integer :: pid                               !< particle owner
       type(t_particle_data) :: data                !< real physics (charge, etc.)
       type(t_particle_results), pointer :: results !< results of calc_force_etc and companions
       integer :: queued = -1

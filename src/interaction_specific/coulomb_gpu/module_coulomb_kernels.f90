@@ -163,7 +163,7 @@ module module_coulomb_kernels
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(2), d2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kind_physics), intent(out) ::  exy(1:2),phi
+      real(kind_physics), intent(out) :: exy(1:2),phi
 
       real(kind_physics) :: dx,dy,rd2,rd4,rd6,dx2,dy2,dx3,dy3
 
@@ -266,11 +266,11 @@ module module_coulomb_kernels
     subroutine calc_force_coulomb_3D_leaf(charge, d, dist2, exyz, phi)
       implicit none
 
-      real(kfp), intent(in) :: charge
-      real(kfp), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kfp), intent(out) ::  exyz(3), phi
+      real(kind_physics), intent(in) :: charge
+      real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+      real(kind_physics), intent(out) ::  exyz(3), phi
 
-      real(kfp) :: rd,r,rd3charge
+      real(kind_physics) :: rd,r,rd3charge
 
       r         = sqrt(dist2) ! eps2 is added in calling routine to have plummer instead of coulomb here
       rd        = one/r
@@ -294,7 +294,7 @@ module module_coulomb_kernels
 
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(2), d2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kind_physics), intent(out) ::  exy(2), phi
+      real(kind_physics), intent(out) :: exy(2), phi
 
       real(kind_physics) :: rd2charge
 
@@ -315,10 +315,10 @@ module module_coulomb_kernels
       type(t_particle), intent(inout) :: particle
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kind_physics), intent(out) ::  exyz(3), phi
+      real(kind_physics), intent(out) :: exyz(3), phi
       real(kind_physics), intent(in) :: kelbg_invsqrttemp
       real(kind_physics) :: rd,r,rd3
-      real(kind_physics), parameter :: sqrtpi = sqrt(acos(-1.0_8))
+      real(kind_physics), parameter :: sqrtpi = sqrt(acos(-1.0_kind_physics))
       real(kind_physics) :: ome, rol, lambda, q, fprefac
 
       q = t%charge
@@ -326,22 +326,22 @@ module module_coulomb_kernels
       ! TODO: lambda must be adjusted depending on mass and temperature of interacting partners - currently it is fixed for electron-proton interactions
       if (particle%data%q * q < 0.) then
         ! e-i or i-e interaction
-        lambda = 1.00027227_8 * kelbg_invsqrttemp
+        lambda = 1.00027227_kind_physics * kelbg_invsqrttemp
       else
         if ( q > 0. ) then
           ! i-i interaction
-          lambda = 0.03300355_8 * kelbg_invsqrttemp
+          lambda = 0.03300355_kind_physics * kelbg_invsqrttemp
         else
           ! e-e interaction
-          lambda = 1.41421356_8 * kelbg_invsqrttemp
+          lambda = 1.41421356_kind_physics * kelbg_invsqrttemp
         endif
       endif
 
       r   = sqrt(dist2)
       rd  = one / r
       rd3 = rd*rd*rd
-      rol = r  / lambda        !< "r over lambda"
-      ome = 1  - exp(-rol*rol) !< "one minus exp(stuff)"
+      rol = r / lambda        !< "r over lambda"
+      ome = 1 - exp(-rol*rol) !< "one minus exp(stuff)"
 
       ! potential
       phi = q * rd  * (ome + sqrtpi*rol*(1-erf(rol)))
@@ -355,10 +355,10 @@ module module_coulomb_kernels
       type(t_particle_thread), intent(inout) :: particle
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kind_physics), intent(out) ::  exyz(3), phi
+      real(kind_physics), intent(out) :: exyz(3), phi
       real(kind_physics), intent(in) :: kelbg_invsqrttemp
       real(kind_physics) :: rd,r,rd3
-      real(kind_physics), parameter :: sqrtpi = sqrt(acos(-1.0_8))
+      real(kind_physics), parameter :: sqrtpi = sqrt(acos(-1.0_kind_physics))
       real(kind_physics) :: ome, rol, lambda, q, fprefac
 
       q = t%charge
@@ -366,14 +366,14 @@ module module_coulomb_kernels
       ! TODO: lambda must be adjusted depending on mass and temperature of interacting partners - currently it is fixed for electron-proton interactions
       if (particle%data%q * q < 0.) then
         ! e-i or i-e interaction
-        lambda = 1.00027227_8 * kelbg_invsqrttemp
+        lambda = 1.00027227_kind_physics * kelbg_invsqrttemp
       else
         if ( q > 0. ) then
           ! i-i interaction
-          lambda = 0.03300355_8 * kelbg_invsqrttemp
+          lambda = 0.03300355_kind_physics * kelbg_invsqrttemp
         else
           ! e-e interaction
-          lambda = 1.41421356_8 * kelbg_invsqrttemp
+          lambda = 1.41421356_kind_physics * kelbg_invsqrttemp
         endif
       endif
 

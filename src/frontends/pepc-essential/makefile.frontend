@@ -11,6 +11,8 @@ SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 
 CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF
 
+# uncomment the following line to get 'GPU' support
+BACKEND = coulomb_gpu
 BACKENDTYPE = XYZQVM
 
 #WALK = pthreads_clustered

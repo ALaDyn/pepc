@@ -4,6 +4,7 @@
 module module_accelerator
    use module_interaction_specific_types
    use module_atomic_ops
+   use module_pepc_kinds, only: kind_physics
 
    implicit none
 
@@ -44,37 +45,37 @@ module module_accelerator
 
       !> Data structures to be fed to the GPU
       type :: mpdelta
-         real*8 :: delta1(1:MAX_IACT_PARTNERS)
-         real*8 :: delta2(1:MAX_IACT_PARTNERS)
-         real*8 :: delta3(1:MAX_IACT_PARTNERS)
-         real*8 :: charge(1:MAX_IACT_PARTNERS)
-         real*8 :: dip1(1:MAX_IACT_PARTNERS)
-         real*8 :: dip2(1:MAX_IACT_PARTNERS)
-         real*8 :: dip3(1:MAX_IACT_PARTNERS)
-         real*8 :: quad1(1:MAX_IACT_PARTNERS)
-         real*8 :: quad2(1:MAX_IACT_PARTNERS)
-         real*8 :: quad3(1:MAX_IACT_PARTNERS)
-         real*8 :: xyquad(1:MAX_IACT_PARTNERS)
-         real*8 :: yzquad(1:MAX_IACT_PARTNERS)
-         real*8 :: zxquad(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: delta1(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: delta2(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: delta3(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: charge(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: dip1(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: dip2(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: dip3(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: quad1(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: quad2(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: quad3(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: xyquad(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: yzquad(1:MAX_IACT_PARTNERS)
+         real(kind_physics) :: zxquad(1:MAX_IACT_PARTNERS)
       end type mpdelta
       type(mpdelta), dimension(:), allocatable :: gpu
       integer :: gpu_id          ! to keep track of streams
 
       ! kernel data
-      real*8, dimension(:,:), allocatable :: e_1, e_2, e_3, pot
+      real(kind_physics), dimension(:,:), allocatable :: e_1, e_2, e_3, pot
       type point
          type(t_particle_results), pointer :: results
          real*8, pointer :: work
       end type point
       type(point), dimension(GPU_STREAMS) :: ptr
-      real*8 :: e_1_, e_2_, e_3_, pot_
+      real(kind_physics) :: e_1_, e_2_, e_3_, pot_
 
       ! GPU kernel stuff... move to a function again?
       integer :: idx, idx_, queued(GPU_STREAMS)
-      real*8 :: dist2, eps2, WORKLOAD_PENALTY_INTERACTION
+      real(kind_physics) :: dist2, eps2, WORKLOAD_PENALTY_INTERACTION
 
-      real*8 :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
+      real(kind_physics) :: rd,dx,dy,dz,r,dx2,dy2,dz2,dx3,dy3,dz3,rd2,rd3,rd5,rd7,fd1,fd2,fd3,fd4,fd5,fd6
 
       integer :: flushy
       logical :: eps_update
@@ -361,10 +362,11 @@ module module_accelerator
    end function acc_loop
 
    subroutine dispatch_list(particle, eps2, penalty)
+      use module_debug
       implicit none
 
       type(t_particle_thread), target, intent(in) :: particle
-      real*8, intent(in) :: eps2, penalty
+      real(kind_physics), intent(in) :: eps2, penalty
       integer :: local_queue_bottom, gpu_status, q_tmp
 
       ! when this is called, the accelerator thread is up and running

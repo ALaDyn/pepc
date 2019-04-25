@@ -49,10 +49,10 @@ module module_pepc_types
    !> Data structure for shipping single particles
    integer, private, parameter :: nprops_particle = 7 ! # particle properties to ship
    type, public :: t_particle
-      real(kind_physics) :: x(1:3)      !< coordinates
-      real*8 :: work        !< work load from force sum, ATTENTION: the sorting library relies on this being a real*8
-      integer(kind_key) :: key      !< particle key, i.e. key on highest tree level
-      integer(kind_node) :: node_leaf !< node index of corresponding leaf (tree node)
+      real(kind_physics) :: x(1:3)        !< coordinates
+      real*8 :: work                      !< work load from force sum, ATTENTION: the sorting library relies on this being a real*8
+      integer(kind_key) :: key            !< particle key, i.e. key on highest tree level
+      integer(kind_node) :: node_leaf     !< node index of corresponding leaf (tree node)
       integer(kind_particle) :: label     !< particle label (only for diagnostic purposes, can be used freely by the frontend
       type(t_particle_data) :: data       !< real physics (charge, etc.)
       type(t_particle_results) :: results !< results of calc_force_etc and companions
