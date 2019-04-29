@@ -117,9 +117,9 @@ contains
        end if
 
        ! Redefine file view, now with our custom type
-       call MPI_FILE_SET_VIEW(fh, header_disp, MPI_TYPE_PARTICLE, MPI_TYPE_PARTICLE, 'native', MPI_INFO_NULL, ierr)
+       call MPI_FILE_SET_VIEW(fh, header_disp, MPI_TYPE_PARTICLE_sca, MPI_TYPE_PARTICLE_sca, 'native', MPI_INFO_NULL, ierr)
        ! Write particle data
-       call MPI_FILE_WRITE_ORDERED(fh, particles(1:np_local), np_local, MPI_TYPE_PARTICLE, status, ierr)
+       call MPI_FILE_WRITE_ORDERED(fh, particles(1:np_local), np_local, MPI_TYPE_PARTICLE_sca, status, ierr)
        ! Take care before closing
        call MPI_FILE_SYNC(fh,ierr)
        call MPI_FILE_CLOSE(fh,ierr)
@@ -157,9 +157,9 @@ contains
     ! Open new file for i-th timestep
     call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
     ! Redefine file view, now with our custom type 
-    call MPI_FILE_SET_VIEW(fh, header_disp, MPI_TYPE_PARTICLE, MPI_TYPE_PARTICLE, 'native', MPI_INFO_NULL, ierr)
+    call MPI_FILE_SET_VIEW(fh, header_disp, MPI_TYPE_PARTICLE_sca, MPI_TYPE_PARTICLE_sca, 'native', MPI_INFO_NULL, ierr)
     ! Read particle data
-    call MPI_FILE_READ_ORDERED(fh, particles(1:np_local), np_local, MPI_TYPE_PARTICLE, status, ierr)
+    call MPI_FILE_READ_ORDERED(fh, particles(1:np_local), np_local, MPI_TYPE_PARTICLE_sca, status, ierr)
     call MPI_FILE_CLOSE(fh,ierr)
 
   end subroutine read_in_checkpoint

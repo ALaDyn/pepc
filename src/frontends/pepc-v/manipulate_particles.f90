@@ -926,8 +926,8 @@ contains
         ! Permute particles according to arrays from slsort
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
-        call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle, &
-        get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
+        call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle_sca, &
+        get_parts, irlen, gposts, mpi_type_particle_sca, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
 
@@ -961,8 +961,8 @@ contains
 
         bound_parts_loc(1) = particles(1)
         bound_parts_loc(2) = particles(k)
-        call MPI_ALLGATHER(bound_parts_loc, 2, MPI_TYPE_PARTICLE, &
-        bound_parts, 2, MPI_TYPE_PARTICLE, MPI_COMM_WORLD, ierr)
+        call MPI_ALLGATHER(bound_parts_loc, 2, MPI_TYPE_PARTICLE_sca, &
+        bound_parts, 2, MPI_TYPE_PARTICLE_sca, MPI_COMM_WORLD, ierr)
 
         ! Eliminate right boundary, if doublet with at least on neighbor
         if (bound_parts(2*my_rank+1)%key .eq. bound_parts(2*next)%key) then
@@ -1007,8 +1007,8 @@ contains
         ! Permute particles according to arrays from slsort
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
-        call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle, &
-        get_parts, irlen, gposts, mpi_type_particle, MPI_COMM_WORLD,ierr)
+        call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle_sca, &
+        get_parts, irlen, gposts, mpi_type_particle_sca, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
         particles(1:m_np)%work = 1. !TODO: is this elegant? 

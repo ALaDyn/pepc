@@ -239,7 +239,7 @@ MODULE output
 
         call get_probe_particles(probes,ispecies)
 
-        call MPI_GATHERV(probes, npps(ispecies), MPI_TYPE_PARTICLE, tprobes, nprobes, displs, MPI_TYPE_PARTICLE, 0, MPI_COMM_WORLD, rc)
+        call MPI_GATHERV(probes, npps(ispecies), MPI_TYPE_PARTICLE_sca, tprobes, nprobes, displs, MPI_TYPE_PARTICLE_sca, 0, MPI_COMM_WORLD, rc)
 
 
         IF (root) THEN
