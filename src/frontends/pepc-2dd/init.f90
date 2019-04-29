@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -46,7 +46,7 @@ module module_init
 !    type(field_grid_t)           , intent(in)    :: field_grid
     integer(kind_particle)                       :: ipl,np,nx,ix,iy,ipg,jp,species!,ny
 !    integer                                      :: iseed!,jp
-    real(kind_particle)                          :: mrank,nrank,l,nxtmp,rtnp,tmp_extent(1:3),tmp_offset(1:3)!,r,theta
+    real(kind_particle)                          :: mrank,nrank,l,nxtmp,rtnp!,r,theta,tmp_extent(1:3),tmp_offset(1:3)
     
     if (root)     write(*,*)            "== ...Loading Particle's Position  "
     np      = size(p, kind=kind_particle)
@@ -55,8 +55,8 @@ module module_init
     rtnp    = real(tnp    ,kind=kind_particle)
     
 !    ipl                 = 1
-    tmp_extent(1:3)     = extent(1:3)
-    tmp_offset(1:3)     = offset(1:3)
+!    tmp_extent(1:3)     = extent(1:3)
+!    tmp_offset(1:3)     = offset(1:3)
     
 !    tmp_extent(1)       = extent(1)/nrank - mrank*tentominusseven
 !    tmp_offset(1)       = tmp_offset(1) + mrank*tmp_extent(1)
@@ -85,15 +85,15 @@ module module_init
         
         species                           = p(ipl)%label
 !        iseed = -99 - my_rank*np - ipl
-        call random(p(ipl)%x)!call random(p(ipl)%x,-iseed)
+!        call random(p(ipl)%x,-iseed)
 !        p(ipl)%x(1)   =  rano(2*iseed-1)
 !        p(ipl)%x(2)   =  rano(2*iseed)
         
-        p(ipl)%x      =  two*p(ipl)%x - one  !(mrank + one )*p(ipl)%x - mrank
-        p(ipl)%x(1:2) = ( tmp_extent(1:2) - tmp_offset(1:2) )*p(ipl)%x(1:2) + tmp_offset(1:2)
-!        ipg           = ipl  +  my_rank*np
-!        ix            = mod(ipg - 1, nx ) + 1
-!        iy            = (ipg - 1)/ nx + 1
+!        p(ipl)%x      =  two*p(ipl)%x - one  !(mrank + one )*p(ipl)%x - mrank
+!        p(ipl)%x(1:2) = ( tmp_extent(1:2) - tmp_offset(1:2) )*p(ipl)%x(1:2) + tmp_offset(1:2)
+        ipg           = ipl  +  my_rank*np
+        ix            = mod(ipg - 1, nx ) + 1
+        iy            = (ipg - 1)/ nx + 1
         
 !        write(*,*) ipl,ipg,ix,iy
         
@@ -101,8 +101,8 @@ module module_init
 !        r             = sqrt(-two*log( one - 0.9999_8*p(ipl)%x(1) ) )
 !        theta         = two*pi*p(ipl)%x(2)
         
-!        p(ipl)%x(1)   = offset(1) + (ix - half)*l
-!        p(ipl)%x(2)   = offset(2) + (iy - half)*l
+        p(ipl)%x(1)   = offset(1) + (ix - half)*l
+        p(ipl)%x(2)   = offset(2) + (iy - half)*l
         
         
         p(ipl)%x(1)   = p(ipl)%x(1) + x_pert(species)*cos( two*pi/extent(1)*p(ipl)%x(1)  )

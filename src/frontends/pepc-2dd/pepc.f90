@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -23,87 +23,70 @@ program pepc
   ! pepc modules
   use module_pepc
   use module_pepc_types
-  use module_pepc_kinds
   use module_timings
   use module_debug
+  use module_globals             , only : adv
+  use module_interaction_specific, only : force_law
+  use module_tool                , only : copy_particle
+  use field_helper               , only : compute_field, setup_field_grid, pepc_setup,write_field_on_grid,write_field_on_grid3D
+
+  use module_integration
+  use zufall
+  use encap
+  use module_diagnostic
 
   ! frontend helper routines
-  use module_globals
-  use module_math
   use helper
-  use encap
-  use field_helper, only: compute_field,setup_field_grid,pepc_setup
-  !use module_diagnostic
-
+!  use module_mpi_io
+  use module_shortcut
   implicit none
 
   ! timing variables
-  real*8 :: timer(5)
-  real*8 :: t1, t2!,t
-  type(t_particle), allocatable   :: q(:),r(:)
-  type(physics_pars_t)            :: physics_pars
-  type(field_grid_t)              :: field_grid
-  type(pepc_pars_t)               :: pepc_pars
-  integer(kind_particle)          :: ii,flag
-  real(kind_particle),allocatable:: divergence(:,:),prova
+  real(kind_particle)                        :: timer(5)
+  real(kind_particle)                        :: t1, t2,t!,tau,I
+!  type(t_particle), allocatable              :: q(:),r(:)
+!  type(physics_pars_t)                       :: physics_pars
+  type(field_grid_t)                         :: field_grid
+  type(pepc_pars_t)                          :: pepc_pars
+!  type(pepc_comm_t)                          :: pepc_comm
+  integer(kind_particle)                     :: rc = 101
+!  integer(kind_particle)                     :: step
+
   ! control variable
-  logical :: doDiag!
+  logical :: dorestart,dointerp, explicit =.false. !dogrid,
 
   !!! initialize pepc library and MPI
+
   call pepc_initialize("pepc-2dd", my_rank, n_ranks, .true., comm=communicator)
-  !call pepc_initialize('pepc-2dd', init_mpi=.false., db_level_in=DBG_STATUS, comm=communicator)
+!  call pepc_initialize("pepc-2dd", my_rank, n_ranks, .true.)
 
   root = my_rank.eq.0
-
   timer(1) = get_time()
-
   call set_parameter()
-
-  select case (initial_setup)
-          case (2)  !  Default initial setup - 2D random particles with thermal velocity
-              call init_particles(particles)
-          case (3)  !  2D random particles in a square
-              call init_particles_square(particles)
-          case (4)  ! 2D random particles in a ring
-              call init_particles_ring_2D(particles)
-          case (5)  ! wire random distribution
-              call init_particles_wire(particles)
-          case (6)  ! stripe random distribution
-              call init_particles_stripe(particles)
-          case (7)  ! disc random distribution
-              call init_particles_disc(particles)
-          case (8)  ! 2D Two wires distribution
-              call init_particles_two_wires(particles)
-          case (9)  ! Default initial setup - 3D random particles with thermal velocity
-              call init_particles3D(particles)
-          case (10)  ! 3D Solenoid
-              call init_particles_solenoid(particles)
-          case (11)  ! two bodies problem - grav
-              call two_bodies_grav(particles
-
-          case default
-
-              call init_particles(particles)
-
-  end select
+  np    = size(particles, kind=kind_particle)
 
   call pepc_setup(pepc_pars)
   call setup_field_grid(field_grid, pepc_pars%pepc_comm)
+  call init_particles(particles,field_grid)
 
   timer(2) = get_time()
+  t        = 0
+  
 
-  if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
-
+  if(root) then
+      write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
+      write(*,'(a,es12.4)') " ====== Plasma frequency :", wpe
+    end if
+ 
+    
   do step=0, nt
     if(root) then
       write(*,*) " "
-      write(*,'(a,i12)')    " ====== computing step  :", step
-      write(*,'(a,es12.4)') " ====== simulation time :", step * dt
+      write(*,'(a,i12)')    " ====== computing step   :", step
+      write(*,'(a,es12.4)') " ====== simulation time  :", step * dt
     end if
 
     timer(3) = get_time()
-
-!    doDiag = MOD(step, diag_interval) .eq. 0
 
     call pepc_particleresults_clear(particles)
     timer(1) = get_time()
@@ -111,70 +94,82 @@ program pepc
 
     call pepc_grow_tree(particles)
 
-    !print *, global_tree%nodes(global_tree%node_root)%interaction_data
-
-    np = size(particles, kind=kind(np))
     t2 = get_time()
     if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", t2-t1
     t1 = get_time()
-
     call pepc_traverse_tree(particles)
     t2 = get_time()
     if(root) write(*,'(a,es12.4)') " ====== tree walk time  :", t2-t1
-
-    call compute_field(pepc_pars, field_grid, particles)
-!    write(*,*) "====== Debug on B   "
-!    call test_fields(particles,field_grid,pepc_pars,initial_setup)
-
-
-!    call write_field_rectilinear_grid(particles)
-
-    !if(doDiag .and. domain_output) call write_domain(particles)
-
-!    if (dbg(DBG_STATS)) call pepc_statistics(step)
+    call pepc_restore_particles(particles)
     call pepc_timber_tree()
 
-    !call pepc_restore_particles(np, particles)
 
-    !if(doDiag .and. particle_test) call test_particles()
+    timer(5) = get_time()
+    t        = t + timer(5) - timer(1)
+    
+!    np = size(particles, kind=kind_particle)
+!    if (root) write(*,*) "====== time  integration"
 
-!    if(root .and. (step == 0 ) ) call reordering(particles,q)
-!    if(root) call write_particles(q)
-!    if(root .and. (step == 0 ) ) then
-!        call write_field(particles)
-!    endif
-    write(*,*) "====== writing field on grid   "
-    call write_field_on_grid_ascii(field_grid)
-    !call write_field_on_grid(field_grid)
-    write(*,*) "====== particles   "
-!    call write_particles(particles)
-    call write_particle_ascii(particles)
-    flag = 2
-!    call div( field_grid, divergence, flag )
-!    call curl( field_grid, divergence,divergence,divergence, flag )
+    np = size(particles, kind=kind_particle)
+!    if (periodicity_particles) call periodic_particles(np,particles)
+    dointerp = mod( step , diag_interval) .eq. 0 .and. step .ne. 0
+    
+    call normalize(np, particles)
+    
+    call hamiltonian(np,particles,pold,real(step, kind = kind_particle)*dt)
 
-    !prova  = real(doDiag,8)!*10.0 - (1- doDiag )*20
-!    write(*,*) "prova value=======", prova
-!    call test_particles()
-!    call push_particles(particles)
-!
-!    !if(particle_filter) call filter_particles(particles)
-    call energy(particles)
+   
+!    call write_particles_ascii(step, particles)
+    
+    call beam_rnv(tnp,particles,real(step, kind = kind_particle)*dt)
+    call densities(np,particles,real(step, kind = kind_particle)*dt)
+
+    dorestart = (mod( step , restart_step) .eq. 0).and.(step.gt.0)
+
+    if (dorestart)   call write_restart(particles)
+    
+    if ( (mod( step , diag_interval) .eq. 0) )   then 
+!!    if ( ( step .eq.0 ) .or.( ( step .gt. 250).and.(mod( step , 10) .eq. 0) ) ) then
+        call compute_field(pepc_pars, field_grid, particles)
+        
+        if (force_law .eq. 3) then
+            
+            if (root)  call write_field_on_grid3D(field_grid, step, step*dt)
+            
+        else if (force_law .eq. 2) then
+            
+            call write_field_on_grid(pepc_pars%pepc_comm, step, field_grid)
+            
+        end if
+        
+        call write_particles_ascii(step, particles)
+!        
+        
+        call write_particles_vtk(particles, step, dt*step)
+    end if
+
+    !    call copy_particle(pold,poldold,np)
+    call copy_particle(particles,pold,np)
+    call march(np,dt,particles,ischeme,adv)
+
+    
+
     timer(4) = get_time()
-    if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer(4) - timer(3)
-
-    call timings_GatherAndOutput(step, 0)
+    if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer(4) - timer(1)
 
   end do
 
+
   deallocate(particles)
+  if (allocated(pold)) deallocate(pold)
+  if (allocated(poldold)) deallocate(poldold)
 
   timer(5) = get_time()
 
   if(root) then
     write(*,*)            " "
     write(*,'(a)')        " ===== finished pepc simulation"
-    write(*,'(a,es12.4)') " ===== total run time [s]: ",timer(5) - timer(1)
+    write(*,'(a,es12.4)') " ===== total run time [s]: ",timer(5) - timer(2)
   end if
 
   !!! cleanup pepc and MPI

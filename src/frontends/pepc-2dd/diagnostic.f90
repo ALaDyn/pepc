@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -43,7 +43,7 @@ module module_diagnostic
       integer(kind_particle)       , intent(in) :: np
       integer(kind_particle)                    :: ip,jp,species,rc=201,rd=202
       real(kind_particle)                       :: upot(1:nsp),ukin(1:nsp),udar(1:nsp),gam,v2,ploc(1:3),&
-                                                   uk_mean(1:nsp),uk_std(1:nsp),count_species(1:nsp),rtnp,etot,pmax(1:3),divA,dAdt,dAnorm,dA_tmp(1:3)!,vthermal(1:3),g 
+                                                   uk_mean(1:nsp),uk_std(1:nsp),count_species(1:nsp),rtnp,etot,pmax(1:3),divA!,vthermal(1:3),g 
 
       upot     = zero
       ukin     = zero
@@ -55,8 +55,6 @@ module module_diagnostic
       uk_std   = zero  
       etot     = zero
       divA     = zero
-      dAdt     = zero
-      dAnorm   = zero
       count_species = zero
       
       rtnp   = real(tnp, kind=kind_particle)
@@ -89,14 +87,6 @@ module module_diagnostic
           p(ip)%data%q/lorentz_tilde*( p(ip)%results%A(3) - pold(ip)%results%A(3) ) ) , pmax(3) )
           
           divA   = max( divA, abs( p(ip)%results%dxA(1) + p(ip)%results%dyA(2) + p(ip)%results%dzA(3) ) )
-          
-          dA_tmp(1) = p(ip)%data%v(1)*p(ip)%results%dxA(1) + p(ip)%data%v(2)*p(ip)%results%dyA(1)
-          dA_tmp(2) = p(ip)%data%v(1)*p(ip)%results%dxA(2) + p(ip)%data%v(2)*p(ip)%results%dyA(2)
-          dA_tmp(3) = p(ip)%data%v(1)*p(ip)%results%dxA(3) + p(ip)%data%v(2)*p(ip)%results%dyA(3)
-          
-          dA_tmp = dA_tmp - ( p(ip)%results%A - pold(ip)%results%A )/dt 
-          dAdt   = max( dAdt, dot_product(dA_tmp,dA_tmp) )
-          dAnorm = dAnorm + dot_product(dA_tmp,dA_tmp)
     
 !          g            = one/sqrt( one - ( uth(1)**2 + vth(1)**2 )**2 )           
 !          vthermal(1)  = vthermal(1)   + p(ip)%data%m*g*uth(1)
@@ -119,8 +109,6 @@ module module_diagnostic
       call MPI_ALLREDUCE(MPI_IN_PLACE , pmax(2)       , 1  , MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
       call MPI_ALLREDUCE(MPI_IN_PLACE , pmax(3)       , 1  , MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
       call MPI_ALLREDUCE(MPI_IN_PLACE , divA          , 1  , MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-      call MPI_ALLREDUCE(MPI_IN_PLACE , dAdt          , 1  , MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, rc)
-      call MPI_ALLREDUCE(MPI_IN_PLACE , dAnorm        , 1  , MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 
       
 !      if ( vthermal(1) .gt. zero )  ploc(1)  = ploc(1)/vthermal(1)
@@ -143,7 +131,7 @@ module module_diagnostic
         etot    = etot  + sum(ukin(1:nsp))
         open(unit=rc,file=trim(folder)//trim("energy_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
         open(unit=rd,file=trim(folder)//trim("momentum_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
-        write(rc,*) t,ukin(1:nsp),uk_mean(1:nsp),uk_std(1:nsp),upot(1:nsp),udar(1:nsp),etot,divA,dAdt,sqrt(dAnorm)
+        write(rc,*) t,ukin(1:nsp),uk_mean(1:nsp),uk_std(1:nsp),upot(1:nsp),udar(1:nsp),etot,divA
         write(rd,*) t,ploc,pmax
         close (rc )
         close (rd )
