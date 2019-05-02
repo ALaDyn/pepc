@@ -29,7 +29,7 @@ module module_init
   use module_shortcut  ! , only:two,one,zero,pi
   use module_tool       , only: random,random_boltzmann,random_gauss,par_rand
   use module_globals    , only: me,mi,n_ranks,my_rank
-  use module_utilities
+  !use module_utilities   ! <--- DB: is this required?
   implicit none
 
 
