@@ -414,6 +414,8 @@
 	    <column              title="run"          >jube_wp_id</column>
 	    <column              title="arch"         >systemname</column>
 	    <column              title="mpi"          >list_of_mpis</column>
+	    <column                                   >nodes</column>
+	    <column              title="tpn"          >taskspnode</column>
 	    <column                                   >walk</column>
 	    <column format=".5f" title="egy max"      >egy_tot_max</column>
 	    <column format=".5f" title="egy min"      >egy_tot_min</column>
