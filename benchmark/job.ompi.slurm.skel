@@ -1,0 +1,91 @@
+#!/bin/bash -x
+#SBATCH --partition=batch
+#SBATCH --nodes=##NODES##
+#SBATCH --ntasks-per-node=##TASKSPNODE##
+#SBATCH --cpus-per-task=##THREADS##
+#SBATCH --output=%j.stdout
+#SBATCH --error=%j.stderr
+#SBATCH --time=00:15:00
+
+# TBH, I'm not sure ATM whether THREADS or WORKERTHREADS is correct
+export OMP_NUM_THREADS=##WORKERTHREADS##
+
+#### run an srun +prolog in background #####
+# Ensure all compute nodes are fully functional
+############################################
+module purge > /dev/null 2>&1
+module load Intel ParaStationMPI
+srun sleep 168h > /dev/null &
+SRUN_BACKGROUND=$!
+
+#### OpenMPI ########################
+#
+##############################################
+module purge > /dev/null 2>&1
+module load Stages/Devel-2018b
+OMPI_VER=4.0.0
+module load GCC/7.3.0 OpenMPI/${OMPI_VER}
+
+# WE DO, however, list the loaded modules to help plotting results per MPI later
+module list
+
+# no PATH set when 'mpirun' is called on compute nodes - use abs. path
+OMPIP=`dirname $(which mpirun)`
+
+# construct list of IPs for OpenMPI job
+#  Must be IPs instead of hostnames as OpenMPI tends to removes the ".ib" from the hostnames.
+#  This would end up in trying to use the admin network, which does not route over cell boundaries.
+HOSTS_TMP=$(mktemp)
+
+# switch hostname list based on system
+SYS=`cat /etc/FZJ/systemname`
+if [ "$SYS" = "jureca" ]; then 
+   scontrol show hostnames | awk '{print $1"i"}'   | xargs -I {} getent ahosts {} | grep STREAM | awk '{print $1" slots:"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > ${HOSTS_TMP}
+   scontrol show hostnames | awk '{print $1}'                                                   | awk '{print $1" slots:"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > ${HOSTS_TMP}
+fi
+if [ "$SYS" = "juwels" ]; then 
+   scontrol show hostnames | awk '{print $1".ib"}' | xargs -I {} getent ahosts {} | grep STREAM | awk '{print $1" slots:"ENVIRON["SLURM_NTASKS_PER_NODE"]*ENVIRON["SLURM_CPUS_PER_TASK"]}' > ${HOSTS_TMP}
+fi
+
+# pretty please SLURM to tell us the amount of cores (SMT) to compute cores per NODE and CPU
+PHYS_CORES_NODE=$(($SLURM_CPUS_ON_NODE/2)) # JUWELS and JURECA have 2xSMT, SLURM counts those as CPUs
+PHYS_CORES_CPU=$(($SLURM_CPUS_ON_NODE/4))  # JUWELS and JURECA are dual socket, so divide be 2 again to get a single socket
+
+# figure our the number of threads per node and decide whether we need SMT
+# it's best to check w/ --report-bindings if you get the binding you want!
+TOTAL_THREADS=$(($SLURM_CPUS_PER_TASK * $SLURM_NTASKS_PER_NODE))
+if [ "$TOTAL_THREADS" -gt "$PHYS_CORES_NODE" ]; then
+   BIND="hwthread"
+   SMT_FLAG='--use-hwthread-cpus'
+else
+   BIND="core"
+   SMT_FLAG=' '
+fi
+
+env -u SLURM_HOSTLIST -u SLURM_JOBID \
+${OMPIP}/mpirun -np ${SLURM_NTASKS} --hostfile ${HOSTS_TMP} \
+   --mca plm_rsh_agent "ssh -q -o StrictHostKeyChecking=no " \
+   -x OMP_NUM_THREADS -x PATH -x LD_LIBRARY_PATH \
+   --report-bindings \
+   --map-by node:PE=##THREADS## \
+   --bind-to ${BIND} \
+   ./pepc-benchmark ./params > log
+
+# now filter first time step from results
+awk '
+ BEGIN { prtln = 1; fl = 1;}
+ /.*computing step\s*:\s*0\s*/ { print "FOUND STEP 0, SKIPPING"; prtln = 0; }
+ /.*computing step\s*:\s*1\s*/ { print "FOUND STEP 1, ECHOING"; prtln = 1; }
+ {if ( prtln == 1 ) { print $0; }}
+' log > log.filtered
+
+rm ${HOSTS_TMP}
+kill -9 ${SRUN_BACKGROUND} # kill background "srun"
+wait
+
+JUBE_ERR_CODE=$?
+if [ $JUBE_ERR_CODE -ne 0 ]; then
+    exit $JUBE_ERR_CODE
+fi
+
+touch ready

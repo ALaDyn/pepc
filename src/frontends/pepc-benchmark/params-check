@@ -1,0 +1,72 @@
+&pepcbenchmark
+
+! setup case, either benchmark or test
+setup = 'test'
+
+! total number of particles
+tnp = 1000000
+
+! number of time steps
+nt = 10000
+
+! time step
+dt = 0.2e-1
+
+! turn particle reflections (leaving simulation box) on/off 
+reflecting_walls = .false.
+
+! diagnostics and output interval
+diag_interval = 100
+io_interval = 500
+
+! turn data and domain output on/off
+particle_output = .false.
+domain_output = .false.
+
+! run diagnostics
+diag_test = .true.
+
+! turn direct summation test on/off
+particle_test = .true.
+particle_direct = 1000
+
+! size of the simulation box
+plasma_dimensions = 1.0 1.0 1.0
+/
+
+&calc_force_coulomb
+! 3D coulomb
+force_law  = 3
+! BH-mac
+mac_select = 0
+! theta = 0.0
+theta2 = 0.25
+!0.09
+! eps squared
+eps2 = 1e-4
+/
+
+&libpepc
+ num_threads = ##THREADS##
+ debug_level = 0
+ np_mult = 1.0
+
+! Choose sorting routine and load balancing
+! 0: no load balancing, 1: load balancing
+ weighted = 1
+
+! type of space-filling curve, 0=Z-curve, 1=Hilbert-curve
+ curve_type = 1
+ 
+ interaction_list_length_factor = 4
+/
+
+&walk_para_pthreads
+ max_particles_per_thread = 50
+/
+
+&walk_para_pthreads_clustered
+  max_clusters_per_thread = 100
+  max_particles_per_cluster = 1
+/
+

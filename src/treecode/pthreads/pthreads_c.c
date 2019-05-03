@@ -59,7 +59,7 @@ const int THREAD_TYPE_MAIN = 1;
 const int THREAD_TYPE_COMMUNICATOR = 2;
 const int THREAD_TYPE_WORKER = 3;
 
-const char threadnames[4][20] = {"Tdefault", "Tmain", "Tcomm", "Twork"};
+const char threadnames[4][10] = {"Tdefault", "Tmain", "Tcomm", "Twork"};
 
 typedef struct {
   pthread_t* thread;
@@ -249,13 +249,14 @@ void rename_thread(pthread_with_type_t* thread)
 {
     char threadname[16];
 
-    sprintf(threadname, "%s [%d]", threadnames[thread->thread_type], thread->counter);
+    sprintf(threadname, "%.10s[%3d]", threadnames[thread->thread_type], thread->counter%1000);
     // see http://stackoverflow.com/questions/2369738/can-i-set-the-name-of-a-thread-in-pthreads-linux for details
     #ifdef __APPLE__
     pthread_setname_np(threadname);
     #else
       #if ((__GLIBC__ == 2) && (__GLIBC_MINOR__ >= 12)) || (__GLIBC__ > 2)
         // try the recommended way first
+        //   note: the string can be a max of 16 characters, including \0
         if (0!=pthread_setname_np(*thread->thread, threadname))
       #endif // __GLIBC >=2.12
       // then with some more brute force

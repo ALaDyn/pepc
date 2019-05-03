@@ -74,7 +74,7 @@ module module_utils
     call MPI_ALLREDUCE(MPI_IN_PLACE, data, 1, MPI_INTEGER, MPI_SUM, comm, ierr)
 
     if (initval*n_cpu .ne. data) then
-      print '(3(a,/))', 'Serious Issue: MPI_IN_PLACE is not working in your configuration of MPI distribution, compiler(flags) and compiler-optimization.', &
+      write(*,'(3(a,/))') 'Serious Issue: MPI_IN_PLACE is not working in your configuration of MPI distribution, compiler(flags) and compiler-optimization.', &
                       'If you are using GCC, you might want to deactivate link time optimization (flags -flto, -fwhole-program, etc.).', &
                       'If running on OSX, please update to at least OpenMPI 1.5.5 or MPICH2 (see also https://svn.open-mpi.org/trac/ompi/ticket/1982).'
       call MPI_ABORT(comm, 1, ierr)
