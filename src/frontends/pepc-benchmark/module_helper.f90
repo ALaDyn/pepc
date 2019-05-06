@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -29,11 +29,11 @@ module helper
    implicit none
 
    ! timing variables
-   integer, parameter :: t_user_total       = t_userdefined_first
-   integer, parameter :: t_user_init        = t_userdefined_first + 1
-   integer, parameter :: t_user_step        = t_userdefined_first + 2
-   integer, parameter :: t_user_directsum   = t_userdefined_first + 3
-   integer, parameter :: t_user_particleio  = t_userdefined_first + 4
+   integer, parameter :: t_user_total       = t_userdefined_first     !&
+   integer, parameter :: t_user_init        = t_userdefined_first + 1 !&
+   integer, parameter :: t_user_step        = t_userdefined_first + 2 !&
+   integer, parameter :: t_user_directsum   = t_userdefined_first + 3 !&
+   integer, parameter :: t_user_particleio  = t_userdefined_first + 4 !&
 
    ! MPI variables
    integer(kind_pe) :: my_rank, n_ranks
@@ -65,8 +65,8 @@ module helper
    real(kind_physics), allocatable :: direct_L2(:)
    ! summaries of some particle data
    real(kind_physics)              :: e_kin, e_pot, v_max, r_max
-   integer, parameter              :: n_bins =  50,   & ! number of bins for the histogram
-                                      histo_r = 10      ! radial distance bin we want to monitor speeds in 
+   integer, parameter              :: n_bins = 50, & ! number of bins for the histogram
+                                      histo_r = 10   ! radial distance bin we want to monitor speeds in
    integer, dimension(0:n_bins)    :: velocity_histo, global_velocity_histo
 
    ! PRNG state, PER MPI RANK, NOT THREAD!
@@ -77,7 +77,7 @@ contains
    subroutine set_parameter()
 
       use module_pepc
-      use module_interaction_specific, only : theta2, eps2, force_law, include_far_field_if_periodic
+      use module_interaction_specific, only: theta2, eps2, force_law, include_far_field_if_periodic
       implicit none
 
       integer, parameter :: fid = 12
@@ -87,50 +87,49 @@ contains
       namelist /pepcbenchmark/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, diag_test, check_step, particle_test, particle_direct, diag_interval, io_interval, plasma_dimensions, setup
 
       ! set default parameter values
-      tnp               = 10000
-      nt                = 25
-      dt                = 1e-2
-      setup             = 'benchmark'
-      check_step        = 7000
-      diag_test         = .false.
-      particle_test     = .false.
-      particle_output   = .false.
-      domain_output     = .false.
-      reflecting_walls  = .false.
-      diag_interval     = 1
-      io_interval       = 1
-      plasma_dimensions = (/ 1.0_8, 1.0_8, 1.0_8 /)
+      tnp               = 10000                   !&
+      nt                = 25                      !&
+      dt                = 1e-2                    !&
+      setup             = 'benchmark'             !&
+      check_step        = 7000                    !&
+      diag_test         = .false.                 !&
+      particle_test     = .false.                 !&
+      particle_output   = .false.                 !&
+      domain_output     = .false.                 !&
+      reflecting_walls  = .false.                 !&
+      diag_interval     = 1                       !&
+      io_interval       = 1                       !&
+      plasma_dimensions = (/1.0_8, 1.0_8, 1.0_8/) !&
 
       ! read in namelist file
       call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
       if (read_para_file) then
-         if(root) write(*,'(a)') " == reading parameter file, section pepcbenchmark: ", para_file
-         open(fid,file=para_file)
-         read(fid,NML=pepcbenchmark)
-         close(fid)
+         if (root) write (*, '(a)') " == reading parameter file, section pepcbenchmark: ", para_file
+         open (fid, file=para_file)
+         read (fid, NML=pepcbenchmark)
+         close (fid)
       else
-         if(root) write(*,*) " == no param file, using default parameter "
+         if (root) write (*, *) " == no param file, using default parameter "
       end if
 
-      if(root) then
-         write(*,'(a,i12)')       " == total number of particles : ", tnp
-         write(*,'(a,i12)')       " == number of time steps      : ", nt
-         write(*,'(a,es12.4)')    " == time step                 : ", dt
-         write(*,'(a,a12)')       " == setup                     : ", trim(setup)
-         write(*,'(a,i12)')       " == diag interval             : ", diag_interval
-         write(*,'(a,i12)')       " == IO interval               : ", io_interval
-         write(*,'(a,l12)')       " == diag test                 : ", diag_test
-         write(*,'(a,l12)')       " == particle test             : ", particle_test
-         write(*,'(a,l12)')       " == particle output           : ", particle_output
-         write(*,'(a,l12)')       " == domain output             : ", domain_output
-         write(*,'(a,l12)')       " == reflecting walls          : ", reflecting_walls
-         write(*,'(a,3(es12.4))') " == plasma dimensions         : ", plasma_dimensions
+      if (root) then
+         write (*, '(a,i12)')       " == total number of particles : ", tnp               !&
+         write (*, '(a,i12)')       " == number of time steps      : ", nt                !&
+         write (*, '(a,es12.4)')    " == time step                 : ", dt                !&
+         write (*, '(a,a12)')       " == setup                     : ", trim(setup)       !&
+         write (*, '(a,i12)')       " == diag interval             : ", diag_interval     !&
+         write (*, '(a,i12)')       " == IO interval               : ", io_interval       !&
+         write (*, '(a,l12)')       " == diag test                 : ", diag_test         !&
+         write (*, '(a,l12)')       " == particle test             : ", particle_test     !&
+         write (*, '(a,l12)')       " == particle output           : ", particle_output   !&
+         write (*, '(a,l12)')       " == domain output             : ", domain_output     !&
+         write (*, '(a,l12)')       " == reflecting walls          : ", reflecting_walls  !&
+         write (*, '(a,3(es12.4))') " == plasma dimensions         : ", plasma_dimensions !&
       end if
 
       call pepc_prepare(3_kind_dim)
    end subroutine set_parameter
-
 
    subroutine init_particles(p)
       implicit none
@@ -141,76 +140,75 @@ contains
       real*8 :: dummy
       real(kind_physics) :: pi, phi, theta, rnd(1:2), s
 
-      if(root) write(*,'(a)') " == [init] init particles "
+      if (root) write (*, '(a)') " == [init] init particles "
 
       ! set initially number of local particles
       np = tnp / n_ranks
-      if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
+      if (my_rank .lt. MOD(tnp, 1_kind_particle * n_ranks)) np = np + 1
 
-      allocate(particles(np), stat=rc)
-      if (rc.ne.0) write(*,*) " === particle allocation error!"
+      allocate (particles(np), stat=rc)
+      if (rc .ne. 0) write (*, *) " === particle allocation error!"
 
-      allocate(direct_L2(np), stat=rc)
-      if (rc.ne.0) write(*,*) " === direct_L2 allocation error!"
+      allocate (direct_L2(np), stat=rc)
+      if (rc .ne. 0) write (*, *) " === direct_L2 allocation error!"
       direct_L2 = -1.0_8
 
       ! set random seed to MPI rank
       rng_state%idum = -(my_rank + 1)
       call random(dummy, rng_state)
 
-      pi = 2.0_kind_physics*acos(0.0_kind_physics)
+      pi = 2.0_kind_physics * acos(0.0_kind_physics)
 
-      select case(trim(setup))
-      case('test')
+      select case (trim(setup))
+      case ('test')
          ! setup for Coulomb explosion, physics test case
-         do ip=1, np
-            p(ip)%label       = my_rank * (tnp / n_ranks) + ip - 1
-            p(ip)%data%q      = -1.0_8 * 2.0_8 * &
-                                plasma_dimensions(1) * plasma_dimensions(2) * &
-                                plasma_dimensions(3) / tnp
-            p(ip)%data%m      = 1.d-3
-            if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
+         do ip = 1, np
+            p(ip)%label = my_rank * (tnp / n_ranks) + ip - 1
+            p(ip)%data%q = -1.0_8 * 2.0_8 * &
+                           plasma_dimensions(1) * plasma_dimensions(2) * &
+                           plasma_dimensions(3) / tnp
+            p(ip)%data%m = 1.d-3
+            if (p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
 
             ! obtain 2 random numbers
             call random(rnd, rng_state)
 
             ! get angles to point into sphere
-            phi               = rnd(1) * 2*pi
-            theta             = acos(rnd(2) * 2 - 1)
+            phi = rnd(1) * 2 * pi
+            theta = acos(rnd(2) * 2 - 1)
 
             ! compute a radial coordinate from distribution Eq.(9) in Kaplan's paper, \mu = 1
-            s                 = ( 1./(1-real(p(ip)%label)/tnp) - 1 )**(1./3.)
+            s = (1./(1 - real(p(ip)%label) / tnp) - 1)**(1./3.)
 
             ! fill cartesian coordinates
-            p(ip)%x           = s * [cos(phi)*sin(theta), sin(phi)*sin(theta), cos(theta)] * plasma_dimensions
+            p(ip)%x = s*[cos(phi) * sin(theta), sin(phi) * sin(theta), cos(theta)] * plasma_dimensions
 
-            p(ip)%data%v      = 0.0_8
+            p(ip)%data%v = 0.0_8
 
-            p(ip)%work        = 1.0_8
+            p(ip)%work = 1.0_8
          end do
-      case('benchmark')
+      case ('benchmark')
          ! setup for random qubic particle cloud, benchmarking case
-         do ip=1, np
-            p(ip)%label       = my_rank * (tnp / n_ranks) + ip - 1
-            p(ip)%data%q      = (-1.0_8 + 2.0_8*MOD(p(ip)%label,2_kind_particle)) * 2.0_8 * &
-                                plasma_dimensions(1) * plasma_dimensions(2) * &
-                                plasma_dimensions(3) / tnp
-            p(ip)%data%m      = 1.0_8
-            if(p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
+         do ip = 1, np
+            p(ip)%label = my_rank * (tnp / n_ranks) + ip - 1
+            p(ip)%data%q = (-1.0_8 + 2.0_8 * MOD(p(ip)%label, 2_kind_particle)) * 2.0_8 * &
+                           plasma_dimensions(1) * plasma_dimensions(2) * &
+                           plasma_dimensions(3) / tnp
+            p(ip)%data%m = 1.0_8
+            if (p(ip)%data%q .gt. 0.0) p(ip)%data%m = p(ip)%data%m * 100.0_8
 
             call random(p(ip)%x, rng_state)
-            p(ip)%x           = p(ip)%x * plasma_dimensions
+            p(ip)%x = p(ip)%x * plasma_dimensions
 
             call random_gauss(p(ip)%data%v, rng_state)
-            p(ip)%data%v      = p(ip)%data%v / sqrt(p(ip)%data%m)
+            p(ip)%data%v = p(ip)%data%v / sqrt(p(ip)%data%m)
 
-            p(ip)%work        = 1.0_8
+            p(ip)%work = 1.0_8
          end do
       case default
          stop 'wrong/no setup chosen'
       end select
    end subroutine init_particles
-
 
    subroutine push_particles(p)
       use module_mirror_boxes
@@ -219,14 +217,13 @@ contains
       type(t_particle), allocatable, intent(inout) :: p(:)
       integer(kind_particle) :: ip
 
-      if(root) write(*,'(a)') " == [pusher] push particles "
+      if (root) write (*, '(a)') " == [pusher] push particles "
 
-      do ip=1, np
+      do ip = 1, np
          p(ip)%data%v = p(ip)%data%v + dt * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e
-         p(ip)%x      = p(ip)%x      + dt * p(ip)%data%v
+         p(ip)%x = p(ip)%x + dt * p(ip)%data%v
       end do
    end subroutine push_particles
-
 
    subroutine check_energies_local(p)
       use module_mirror_boxes
@@ -237,14 +234,14 @@ contains
       integer(kind_particle) :: ip
       real(kind_physics)     :: v_(size(p(1)%data%v)), v, r, rel_gamma
 
-      if(root) write(*,'(a)') " == [energies] compute local net energies "
+      if (root) write (*, '(a)') " == [energies] compute local net energies "
 
       e_kin = 0._kind_physics
       e_pot = 0._kind_physics
       v_max = -1._kind_physics
       r_max = -1._kind_physics
 
-      do ip=1, np
+      do ip = 1, np
          ! velocity at -1/2*dt to sync w/ potential
          v_ = p(ip)%data%v - dt * p(ip)%data%q / p(ip)%data%m * p(ip)%results%e * 0.5_kind_physics
          rel_gamma = sqrt(1 + dot_product(v_, v_))
@@ -261,7 +258,6 @@ contains
       end do
    end subroutine check_energies_local
 
-
    subroutine check_energies()
       implicit none
       include 'mpif.h'
@@ -269,29 +265,28 @@ contains
       integer            :: info
       real(kind_physics) :: local(2), global(2)
 
-      if(root) write(*,'(a)') " == [energies] gather global energies "
+      if (root) write (*, '(a)') " == [energies] gather global energies "
 
       local = [e_kin, e_pot]
       global = 0._kind_physics
       call MPI_ALLREDUCE(local, global, size(local), MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, info)
-      e_kin = global(1) 
-      e_pot = global(2) 
+      e_kin = global(1)
+      e_pot = global(2)
       local = [v_max, r_max]
       global = 0._kind_physics
       call MPI_ALLREDUCE(local, global, size(local), MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, info)
-      v_max = global(1) 
-      r_max = global(2) 
+      v_max = global(1)
+      r_max = global(2)
 
-      if(root) then
-         write(*,'(a, es12.4)') " == [energies]          kinetic energy: ", e_kin
-         write(*,'(a, es12.4)') " == [energies]        potential energy: ", e_pot
-         write(*,'(a, es16.8)') " == [energies]                  energy: ", e_pot + e_kin
-         write(*,'(a, es12.4)') " == [energies]        maximum velocity: ", v_max
-         write(*,'(a, es12.4)') " == [energies] maximum radial distance: ", r_max
+      if (root) then
+         write (*, '(a, es12.4)') " == [energies]          kinetic energy: ", e_kin
+         write (*, '(a, es12.4)') " == [energies]        potential energy: ", e_pot
+         write (*, '(a, es16.8)') " == [energies]                  energy: ", e_pot + e_kin
+         write (*, '(a, es12.4)') " == [energies]        maximum velocity: ", v_max
+         write (*, '(a, es12.4)') " == [energies] maximum radial distance: ", r_max
       end if
 
    end subroutine check_energies
-
 
    subroutine histogram_local(p)
       implicit none
@@ -302,26 +297,25 @@ contains
       integer(kind_particle) :: ip
       real(kind_physics)     :: r_bin, v_bin, r_bin_min, r_bin_max
 
-      if(root) write(*,'(a)') " == [histogram] compute local histogram "
+      if (root) write (*, '(a)') " == [histogram] compute local histogram "
 
       ! init histogram bin sizes
-      r_bin     = r_max/n_bins
-      v_bin     = v_max/n_bins
+      r_bin = r_max / n_bins
+      v_bin = v_max / n_bins
       r_bin_min = r_bin * histo_r
       r_bin_max = r_bin_min + r_bin
 
       ! clear histogram
       velocity_histo = 0
 
-      do ip=1, np
+      do ip = 1, np
          ! check radial position
-         if ( norm2(p(ip)%x) .ge. r_bin_min .and. norm2(p(ip)%x) .le. r_bin_max ) then
+         if (norm2(p(ip)%x) .ge. r_bin_min .and. norm2(p(ip)%x) .le. r_bin_max) then
             v_pos = int(norm2(p(ip)%data%v) / v_bin)
             velocity_histo(v_pos) = velocity_histo(v_pos) + 1
          end if
       end do
    end subroutine histogram_local
-
 
    subroutine test_histogram(check)
       implicit none
@@ -331,7 +325,7 @@ contains
       logical                       :: peak
       integer                       :: v_pos, c_peaks, info
 
-      peak    = .false.
+      peak = .false.
       c_peaks = 0
 
       ! gather histogram data from other ranks
@@ -340,8 +334,8 @@ contains
       ! estimate number of peaks in histogram
       if (root) then
          ! loop over all bins
-         do v_pos=0, n_bins
-            if ( global_velocity_histo(v_pos) .gt. 0) then
+         do v_pos = 0, n_bins
+            if (global_velocity_histo(v_pos) .gt. 0) then
                ! we have particles in this bin
                if (.not. peak) then
                   ! we did not have particles in bin before
@@ -357,17 +351,16 @@ contains
             end if
          end do
 
-         write(*,'(a, i0)') " == [histogram] number of peaks found: ", c_peaks
-         if(check) then
-            if(c_peaks .eq. 2) then
-               write(*,'(a)') " == [histogram] check                : passed"
+         write (*, '(a, i0)') " == [histogram] number of peaks found: ", c_peaks
+         if (check) then
+            if (c_peaks .eq. 2) then
+               write (*, '(a)') " == [histogram] check                : passed"
             else
-               write(*,'(a)') " == [histogram] check                : failed"
+               write (*, '(a)') " == [histogram] check                : failed"
             end if
          end if
       end if
    end subroutine test_histogram
-
 
    subroutine filter_particles(p)
       implicit none
@@ -379,24 +372,23 @@ contains
 
       ncoll = 0
 
-      do ip=1, np
-         do id=1, 3
-            if(p(ip)%x(id) < 0.0_8) then
-               p(ip)%x(id) = - p(ip)%x(id)
-               p(ip)%data%v(id) = - p(ip)%data%v(id)
+      do ip = 1, np
+         do id = 1, 3
+            if (p(ip)%x(id) .lt. 0.0_8) then
+               p(ip)%x(id) = -p(ip)%x(id)
+               p(ip)%data%v(id) = -p(ip)%data%v(id)
                ncoll = ncoll + 1
-            else if(p(ip)%x(id) > plasma_dimensions(id)) then
+            else if (p(ip)%x(id) .gt. plasma_dimensions(id)) then
                p(ip)%x(id) = 2 * plasma_dimensions(id) - p(ip)%x(id)
-               p(ip)%data%v(id) = - p(ip)%data%v(id)
+               p(ip)%data%v(id) = -p(ip)%data%v(id)
                ncoll = ncoll + 1
             end if
          end do
       end do
 
       call mpi_reduce(ncoll, ncoll_total, 1, MPI_INTEGER, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-      if(root) write(*,'(a,i12)')    " == [filter] total number of wall collisions      : ", ncoll_total
+      if (root) write (*, '(a,i12)') " == [filter] total number of wall collisions      : ", ncoll_total
    end subroutine filter_particles
-
 
    subroutine test_particles()
       use module_pepc_types
@@ -413,20 +405,20 @@ contains
 
       call timer_start(t_user_directsum)
 
-      if(allocated(direct_L2)) then
-         deallocate(direct_L2)
+      if (allocated(direct_L2)) then
+         deallocate (direct_L2)
       end if
-      allocate(direct_L2(np))
+      allocate (direct_L2(np))
       direct_L2 = -1.0_8
 
       if (particle_direct .eq. -1) then
          tn = np
       else
          tn = particle_direct / n_ranks
-         if(my_rank.eq.(n_ranks-1)) tn = tn + MOD(particle_direct, n_ranks)
+         if (my_rank .eq. (n_ranks - 1)) tn = tn + MOD(particle_direct, n_ranks)
       endif
 
-      allocate(tindx(tn), trnd(tn), trslt(tn))
+      allocate (tindx(tn), trnd(tn), trslt(tn))
 
       if (particle_direct .eq. -1) then
          do ti = 1, tn
@@ -434,18 +426,18 @@ contains
          enddo
       else
          call random(trnd(1:tn), rng_state)
-         tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
+         tindx(1:tn) = int(trnd(1:tn) * (np - 1)) + 1
       endif
 
       call directforce(particles, tindx, tn, trslt, MPI_COMM_WORLD)
 
-      L2sum_local  = 0.0
+      L2sum_local = 0.0
       L2sum_global = 0.0
       do ti = 1, tn
-         L2          = &
-                       (particles(tindx(ti))%results%e(1) - trslt(ti)%e(1))**2+ &
-                       (particles(tindx(ti))%results%e(2) - trslt(ti)%e(2))**2+ &
-                       (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3))**2
+         L2 = &
+            (particles(tindx(ti))%results%e(1) - trslt(ti)%e(1))**2 + &
+            (particles(tindx(ti))%results%e(2) - trslt(ti)%e(2))**2 + &
+            (particles(tindx(ti))%results%e(3) - trslt(ti)%e(3))**2
          L2sum_local = L2sum_local + L2
          direct_L2(tindx(ti)) = L2
       end do
@@ -456,17 +448,16 @@ contains
       L2sum_global = sqrt(L2sum_global) / tn_global
 
       call timer_stop(t_user_directsum)
-      if(root) then
-         write(*,'(a,i12)')    " == [direct test] number tested particles         : ", tn_global
-         write(*,'(a,es12.4)') " == [direct test] L2 error in probed particles    : ", L2sum_global
-         write(*,'(a,es12.4)') " == [direct test] time in test [s]                : ", timer_read(t_user_directsum)
+      if (root) then
+         write (*, '(a,i12)') " == [direct test] number tested particles         : ", tn_global
+         write (*, '(a,es12.4)') " == [direct test] L2 error in probed particles    : ", L2sum_global
+         write (*, '(a,es12.4)') " == [direct test] time in test [s]                : ", timer_read(t_user_directsum)
       end if
 
-      deallocate(tindx)
-      deallocate(trnd)
-      deallocate(trslt)
+      deallocate (tindx)
+      deallocate (trnd)
+      deallocate (trslt)
    end subroutine test_particles
-
 
    integer function vtk_step_of_step(step) result(vtk_step)
       use module_vtk
@@ -476,13 +467,12 @@ contains
 
       if (step .eq. 0) then
          vtk_step = VTK_STEP_FIRST
-      else if (nt - 1 - step < io_interval ) then
+      else if (nt - 1 - step .lt. io_interval) then
          vtk_step = VTK_STEP_LAST
       else
          vtk_step = VTK_STEP_NORMAL
       endif
    end function vtk_step_of_step
-
 
    subroutine write_particles(p)
       use module_vtk_helpers
@@ -498,7 +488,7 @@ contains
       vtk_step = vtk_step_of_step(step)
       call vtk_write_particles("particles", MPI_COMM_WORLD, step, dt * step, vtk_step, p, coulomb_and_l2)
       call timer_stop(t_user_particleio)
-      if(root) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", timer_read(t_user_particleio)
+      if (root) write (*, '(a,es12.4)') " == [write particles] time in vtk output [s]      : ", timer_read(t_user_particleio)
 
    contains
 
@@ -512,15 +502,14 @@ contains
          type(vtkfile_unstructured_grid), intent(inout) :: vtkf
 
          call vtk_write_particle_data_results(d, r, vtkf)
-         if(particle_test) call vtkf%write_data_array("L2 error", direct_L2(:))
+         if (particle_test) call vtkf%write_data_array("L2 error", direct_L2(:))
       end subroutine
    end subroutine write_particles
-
 
    subroutine write_domain(p)
       use module_vtk
       use module_vtk_helpers
-      use module_pepc, only : global_tree
+      use module_pepc, only: global_tree
       implicit none
 
       type(t_particle), allocatable, intent(in) :: p(:)
@@ -529,11 +518,10 @@ contains
 
       ! output of tree diagnostics
       vtk_step = vtk_step_of_step(step)
-      call vtk_write_branches(step,  dt * step, vtk_step, global_tree)
+      call vtk_write_branches(step, dt * step, vtk_step, global_tree)
       call vtk_write_leaves(step, dt * step, vtk_step, global_tree)
       call vtk_write_spacecurve(step, dt * step, vtk_step, p)
    end subroutine write_domain
-
 
    subroutine random_gauss(list, state)
       implicit none
@@ -544,18 +532,18 @@ contains
       real(kind_physics) :: v(2), pi, r, p
       integer :: n, i
 
-      pi = 2.0_kind_physics*acos(0.0_kind_physics)
-      n  = size(list)
+      pi = 2.0_kind_physics * acos(0.0_kind_physics)
+      n = size(list)
 
-      do i=1, n, 2
+      do i = 1, n, 2
 
          call random(v, state)
 
          r = sqrt(-2.0_8 * log(v(1)))
-         p = 2.0_8*pi*v(2)
+         p = 2.0_8 * pi * v(2)
 
-         list(i)                = r * sin(p)
-         if((i+1)<=n) list(i+1) = r * cos(p)
+         list(i) = r * sin(p)
+         if ((i + 1) .le. n) list(i + 1) = r * cos(p)
 
       end do
    end subroutine
