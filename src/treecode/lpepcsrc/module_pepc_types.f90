@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -29,21 +29,20 @@ module module_pepc_types
 
    private
 
-
    public :: t_particle_data
    public :: t_particle_results
    public :: t_tree_node_interaction_data
 
-   integer :: MPI_TYPE_particle_data_sca,              & ! we have these private for now to better control where they are used
+   integer :: MPI_TYPE_particle_data_sca, & ! we have these private for now to better control where they are used
               MPI_TYPE_tree_node_interaction_data_sca, &
               MPI_TYPE_particle_results_sca
-   integer, public :: MPI_TYPE_particle_sca,          & ! we introduce those in a scalar and vector variant
-                      MPI_TYPE_particle_vec,          & ! make sure to use the correct ones
-                      MPI_TYPE_tree_node_sca,         &
-                      MPI_TYPE_tree_node_vec,         &
+   integer, public :: MPI_TYPE_particle_sca, & ! we introduce those in a scalar and vector variant
+                      MPI_TYPE_particle_vec, & ! make sure to use the correct ones
+                      MPI_TYPE_tree_node_sca, &
+                      MPI_TYPE_tree_node_vec, &
                       MPI_TYPE_tree_node_package_sca, &
                       MPI_TYPE_tree_node_package_vec, &
-                      MPI_TYPE_request_eager_sca,     &
+                      MPI_TYPE_request_eager_sca, &
                       MPI_TYPE_request_eager_vec
 
    !> Data structure for shipping single particles
@@ -107,7 +106,7 @@ contains
    !>
    subroutine register_lpepc_mpi_types()
       use module_interaction_specific_types
-      use treevars, only : me
+      use treevars, only: me
       implicit none
 
       integer, parameter :: max_props = nprops_particle + nprops_tree_node_package + nprops_request_eager
@@ -128,66 +127,64 @@ contains
       call register_interaction_specific_mpi_types(MPI_TYPE_particle_data_sca, MPI_TYPE_tree_node_interaction_data_sca, MPI_TYPE_particle_results_sca)
 
       ! register particle type
-      blocklengths(1:nprops_particle)  = [3, 1, 1, 1, 1, 1, 1]
-      types(1:nprops_particle)         = [MPI_KIND_PHYSICS, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PARTICLE, &
-         MPI_TYPE_particle_data_sca, MPI_TYPE_particle_results_sca]
-      call MPI_GET_ADDRESS( dummy_particle(2),           extent, ierr )
-      call MPI_GET_ADDRESS( dummy_particle(1),           address(0), ierr )
-      call MPI_GET_ADDRESS( dummy_particle(1)%x,         address(1), ierr )
-      call MPI_GET_ADDRESS( dummy_particle(1)%work,      address(2), ierr )
-      call MPI_GET_ADDRESS( dummy_particle(1)%key,       address(3), ierr )
-      call MPI_GET_ADDRESS( dummy_particle(1)%node_leaf, address(4), ierr )
-      call MPI_GET_ADDRESS( dummy_particle(1)%label,     address(5), ierr )
-      call MPI_GET_ADDRESS( dummy_particle(1)%data,      address(6), ierr )
-      call MPI_GET_ADDRESS( dummy_particle(1)%results,   address(7), ierr )
+      blocklengths(1:nprops_particle) = [3, 1, 1, 1, 1, 1, 1]
+      types(1:nprops_particle) = [MPI_KIND_PHYSICS, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PARTICLE, &
+                                  MPI_TYPE_particle_data_sca, MPI_TYPE_particle_results_sca]
+      call MPI_GET_ADDRESS(dummy_particle(2),           extent, ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle(1),           address(0), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle(1)%x,         address(1), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle(1)%work,      address(2), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle(1)%key,       address(3), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle(1)%node_leaf, address(4), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle(1)%label,     address(5), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle(1)%data,      address(6), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle(1)%results,   address(7), ierr)  !&
       displacements(1:nprops_particle) = address(1:nprops_particle) - address(0)
       extent = extent - address(0)
-      call MPI_TYPE_CREATE_STRUCT( nprops_particle, blocklengths, displacements, types, MPI_TYPE_particle_sca, ierr )
-      call MPI_TYPE_COMMIT( MPI_TYPE_particle_sca, ierr)
-      call MPI_TYPE_CREATE_RESIZED( MPI_TYPE_particle_sca, 0_MPI_ADDRESS_KIND, extent, MPI_TYPE_particle_vec, ierr )
-      call MPI_TYPE_COMMIT( MPI_TYPE_particle_vec, ierr)
+      call MPI_TYPE_CREATE_STRUCT(nprops_particle, blocklengths, displacements, types, MPI_TYPE_particle_sca, ierr)
+      call MPI_TYPE_COMMIT(MPI_TYPE_particle_sca, ierr)
+      call MPI_TYPE_CREATE_RESIZED(MPI_TYPE_particle_sca, 0_MPI_ADDRESS_KIND, extent, MPI_TYPE_particle_vec, ierr)
+      call MPI_TYPE_COMMIT(MPI_TYPE_particle_vec, ierr)
 
       ! register tree_node type
-      blocklengths(1:nprops_tree_node_package)  = [1, 1, 1, 2, 1, 1, 1, 1, 1, 1]
-      types(1:nprops_tree_node_package)         = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
-         MPI_KIND_PE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_tree_node_interaction_data_sca]
-      call MPI_GET_ADDRESS( dummy_tree_node_package(2),                  extent, ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1),                  address(0), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%key,              address(1), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%flags_global,     address(2), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%level,            address(3), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%dummy,            address(4), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%owner,            address(5), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%leaves,           address(6), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%descendants,      address(7), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%parent,           address(8), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%first_child,      address(9), ierr )
-      call MPI_GET_ADDRESS( dummy_tree_node_package(1)%interaction_data, address(10), ierr )
+      blocklengths(1:nprops_tree_node_package) = [1, 1, 1, 2, 1, 1, 1, 1, 1, 1]
+      types(1:nprops_tree_node_package) = [MPI_KIND_KEY, MPI_KIND_BYTE, MPI_KIND_LEVEL, MPI_KIND_BYTE, &
+                                           MPI_KIND_PE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_tree_node_interaction_data_sca]
+      call MPI_GET_ADDRESS(dummy_tree_node_package(2),                  extent, ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1),                  address(0), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%key,              address(1), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%flags_global,     address(2), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%level,            address(3), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%dummy,            address(4), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%owner,            address(5), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%leaves,           address(6), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%descendants,      address(7), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%parent,           address(8), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%first_child,      address(9), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_tree_node_package(1)%interaction_data, address(10), ierr)  !&
       displacements(1:nprops_tree_node_package) = address(1:nprops_tree_node_package) - address(0)
       extent = extent - address(0)
-      call MPI_TYPE_CREATE_STRUCT( nprops_tree_node_package, blocklengths, displacements, types, MPI_TYPE_tree_node_package_sca, ierr )
-      call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package_sca, ierr)
-      call MPI_TYPE_CREATE_RESIZED( MPI_TYPE_tree_node_package_sca, 0_MPI_ADDRESS_KIND, extent, MPI_TYPE_tree_node_package_vec, ierr )
-      call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_package_vec, ierr )
+      call MPI_TYPE_CREATE_STRUCT(nprops_tree_node_package, blocklengths, displacements, types, MPI_TYPE_tree_node_package_sca, ierr)
+      call MPI_TYPE_COMMIT(MPI_TYPE_tree_node_package_sca, ierr)
+      call MPI_TYPE_CREATE_RESIZED(MPI_TYPE_tree_node_package_sca, 0_MPI_ADDRESS_KIND, extent, MPI_TYPE_tree_node_package_vec, ierr)
+      call MPI_TYPE_COMMIT(MPI_TYPE_tree_node_package_vec, ierr)
 
       ! register request type
-      blocklengths(1:nprops_request_eager)  = [1, 1, 1]
-      types(1:nprops_request_eager)         = [MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_particle_sca]
-      call MPI_GET_ADDRESS( dummy_request(2),                  extent, ierr )
-      call MPI_GET_ADDRESS( dummy_request(1),                  address(0), ierr )
-      call MPI_GET_ADDRESS( dummy_request(1)%node,             address(1), ierr )
-      call MPI_GET_ADDRESS( dummy_request(1)%parent,           address(2), ierr )
-      call MPI_GET_ADDRESS( dummy_request(1)%particle,         address(3), ierr )
+      blocklengths(1:nprops_request_eager) = [1, 1, 1]
+      types(1:nprops_request_eager) = [MPI_KIND_NODE, MPI_KIND_NODE, MPI_TYPE_particle_sca]
+      call MPI_GET_ADDRESS(dummy_request(2),          extent, ierr)  !&
+      call MPI_GET_ADDRESS(dummy_request(1),          address(0), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_request(1)%node,     address(1), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_request(1)%parent,   address(2), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_request(1)%particle, address(3), ierr)  !&
       displacements(1:nprops_request_eager) = address(1:nprops_request_eager) - address(0)
       extent = extent - address(0)
-      call MPI_TYPE_CREATE_STRUCT( nprops_request_eager, blocklengths, displacements, types, MPI_TYPE_request_eager_sca, ierr )
-      call MPI_TYPE_COMMIT( MPI_TYPE_request_eager_sca, ierr)
-      call MPI_TYPE_CREATE_RESIZED( MPI_TYPE_request_eager_sca, 0_MPI_ADDRESS_KIND, extent, MPI_TYPE_request_eager_vec, ierr )
-      call MPI_TYPE_COMMIT( MPI_TYPE_request_eager_vec, ierr )
-
+      call MPI_TYPE_CREATE_STRUCT(nprops_request_eager, blocklengths, displacements, types, MPI_TYPE_request_eager_sca, ierr)
+      call MPI_TYPE_COMMIT(MPI_TYPE_request_eager_sca, ierr)
+      call MPI_TYPE_CREATE_RESIZED(MPI_TYPE_request_eager_sca, 0_MPI_ADDRESS_KIND, extent, MPI_TYPE_request_eager_vec, ierr)
+      call MPI_TYPE_COMMIT(MPI_TYPE_request_eager_vec, ierr)
 
    end subroutine register_lpepc_mpi_types
-
 
    !>
    !> Deregisters lpepc- and interaction-specific MPI types
@@ -196,15 +193,15 @@ contains
       implicit none
       integer(kind_default) :: ierr
 
-      call MPI_TYPE_FREE( MPI_TYPE_tree_node_package_sca,            ierr)
-      call MPI_TYPE_FREE( MPI_TYPE_tree_node_package_vec,            ierr)
-      call MPI_TYPE_FREE( MPI_TYPE_particle_sca,                     ierr)
-      call MPI_TYPE_FREE( MPI_TYPE_particle_vec,                     ierr)
-      call MPI_TYPE_FREE( MPI_TYPE_particle_results_sca,             ierr)
-      call MPI_TYPE_FREE( MPI_TYPE_request_eager_sca,                ierr)
-      call MPI_TYPE_FREE( MPI_TYPE_request_eager_vec,                ierr)
-      call MPI_TYPE_FREE( MPI_TYPE_tree_node_interaction_data_sca,   ierr)
-      call MPI_TYPE_FREE( MPI_TYPE_particle_data_sca,                ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_tree_node_package_sca, ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_tree_node_package_vec, ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_particle_sca, ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_particle_vec, ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_particle_results_sca, ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_request_eager_sca, ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_request_eager_vec, ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_tree_node_interaction_data_sca, ierr)
+      call MPI_TYPE_FREE(MPI_TYPE_particle_data_sca, ierr)
 
    end subroutine free_lpepc_mpi_types
 

@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -101,188 +101,184 @@
 !
 
 module module_timings
-  implicit none
+   implicit none
 
-    ! global timings
-    integer, parameter :: t_domains            =  1
-    integer, parameter :: t_allocate           =  2
-    integer, parameter :: t_unused_3            =  3
-    integer, parameter :: t_exchange_branches_pack        =  4
-    integer, parameter :: t_exchange_branches_allgatherv  =  5
-    integer, parameter :: t_exchange_branches_integrate   =  6
-    integer, parameter :: t_restore            =  7
-    integer, parameter :: t_walk               =  8
-    integer, parameter :: t_unused9            =  9
-    integer, parameter :: t_unused10           = 10
-    integer, parameter :: t_deallocate         = 11
-    integer, parameter :: t_all                = 12
-    integer, parameter :: t_local              = 13
-    integer, parameter :: t_exchange_branches  = 14
-    integer, parameter :: t_global             = 15
-    integer, parameter :: t_lattice            = 16
-    ! fields internal
-    integer, parameter :: t_unused_17          = 17
-    integer, parameter :: t_fields_tree        = 18
-    integer, parameter :: t_unused19           = 19
-    integer, parameter :: t_fields_passes      = 20
-    integer, parameter :: t_fields_stats       = 21
-    integer, parameter :: t_unused22           = 22
-    ! tree_domains
-    integer, parameter :: t_domains_keys       = 23
-    integer, parameter :: t_domains_sort       = 24
-    integer, parameter :: t_domains_sort_pure  = 25
-    integer, parameter :: t_domains_ship       = 26
-    integer, parameter :: t_domains_bound      = 27
-    ! tree_allocate
-    integer, parameter :: t_unused28           = 28
-    ! tree_build
-    integer, parameter :: t_unused_29          = 29
-    integer, parameter :: t_unused_30          = 30
-    integer, parameter :: t_unused_31          = 31
-    ! tree_branches
-    integer, parameter :: t_branches_find      = 32
-    integer, parameter :: t_exchange_branches_admininstrative = 33
-    integer, parameter :: t_build_pure         = 34
-    ! pepc_grid_fields
-    integer, parameter :: t_walk_grid          = 35
-    integer, parameter :: t_lattice_grid       = 36
-    ! tree_props
-    integer, parameter :: t_props_leaves       = 37
-    integer, parameter :: t_unused_38          = 38
-    integer, parameter :: t_unused_39          = 39
-    integer, parameter :: t_unused_40          = 40
-    ! timings for outside fields()
-    integer, parameter :: t_tot                = 41
-    ! timings for tree_walk_communicator
-    integer, parameter :: t_comm_total         = 42
-    integer, parameter :: t_comm_recv          = 43
-    integer, parameter :: t_comm_sendreqs      = 44
-    ! tree_domains, additional timings
-    integer, parameter :: t_domains_add_sort   = 45
-    integer, parameter :: t_domains_add_pack   = 46
-    integer, parameter :: t_domains_add_unpack = 47
-    integer, parameter :: t_domains_add_alltoallv = 48
+   ! global timings
+   integer, parameter :: t_domains = 1
+   integer, parameter :: t_allocate = 2
+   integer, parameter :: t_unused_3 = 3
+   integer, parameter :: t_exchange_branches_pack = 4
+   integer, parameter :: t_exchange_branches_allgatherv = 5
+   integer, parameter :: t_exchange_branches_integrate = 6
+   integer, parameter :: t_restore = 7
+   integer, parameter :: t_walk = 8
+   integer, parameter :: t_unused9 = 9
+   integer, parameter :: t_unused10 = 10
+   integer, parameter :: t_deallocate = 11
+   integer, parameter :: t_all = 12
+   integer, parameter :: t_local = 13
+   integer, parameter :: t_exchange_branches = 14
+   integer, parameter :: t_global = 15
+   integer, parameter :: t_lattice = 16
+   ! fields internal
+   integer, parameter :: t_unused_17 = 17
+   integer, parameter :: t_fields_tree = 18
+   integer, parameter :: t_unused19 = 19
+   integer, parameter :: t_fields_passes = 20
+   integer, parameter :: t_fields_stats = 21
+   integer, parameter :: t_unused22 = 22
+   ! tree_domains
+   integer, parameter :: t_domains_keys = 23
+   integer, parameter :: t_domains_sort = 24
+   integer, parameter :: t_domains_sort_pure = 25
+   integer, parameter :: t_domains_ship = 26
+   integer, parameter :: t_domains_bound = 27
+   ! tree_allocate
+   integer, parameter :: t_unused28 = 28
+   ! tree_build
+   integer, parameter :: t_unused_29 = 29
+   integer, parameter :: t_unused_30 = 30
+   integer, parameter :: t_unused_31 = 31
+   ! tree_branches
+   integer, parameter :: t_branches_find = 32
+   integer, parameter :: t_exchange_branches_admininstrative = 33
+   integer, parameter :: t_build_pure = 34
+   ! pepc_grid_fields
+   integer, parameter :: t_walk_grid = 35
+   integer, parameter :: t_lattice_grid = 36
+   ! tree_props
+   integer, parameter :: t_props_leaves = 37
+   integer, parameter :: t_unused_38 = 38
+   integer, parameter :: t_unused_39 = 39
+   integer, parameter :: t_unused_40 = 40
+   ! timings for outside fields()
+   integer, parameter :: t_tot = 41
+   ! timings for tree_walk_communicator
+   integer, parameter :: t_comm_total = 42
+   integer, parameter :: t_comm_recv = 43
+   integer, parameter :: t_comm_sendreqs = 44
+   ! tree_domains, additional timings
+   integer, parameter :: t_domains_add_sort = 45
+   integer, parameter :: t_domains_add_pack = 46
+   integer, parameter :: t_domains_add_unpack = 47
+   integer, parameter :: t_domains_add_alltoallv = 48
 
-    integer, parameter :: t_direct_force       = 49
-    integer, parameter :: t_direct_comm        = 50
-    integer, parameter :: t_unused_51          = 51
-    integer, parameter :: t_unused_52          = 52
-    integer, parameter :: t_unused_53          = 53
+   integer, parameter :: t_direct_force = 49
+   integer, parameter :: t_direct_comm = 50
+   integer, parameter :: t_unused_51 = 51
+   integer, parameter :: t_unused_52 = 52
+   integer, parameter :: t_unused_53 = 53
 
-    integer, parameter :: t_userdefined_first  = 60
-    integer, parameter :: t_userdefined_last   = 90
+   integer, parameter :: t_userdefined_first = 60
+   integer, parameter :: t_userdefined_last = 90
 
-    !> number of timing entries - dont forget to adjust if you add some timing variables
-    integer, private, parameter :: numtimings = t_userdefined_last
+   !> number of timing entries - dont forget to adjust if you add some timing variables
+   integer, private, parameter :: numtimings = t_userdefined_last
 
-    !> array for local timings
-    real*8, save, private, dimension(1:numtimings) :: tim = 0.
+   !> array for local timings
+   real*8, save, private, dimension(1:numtimings) :: tim = 0.
 
-  contains
+contains
 
-    !>
-    !> Give me a specified timer value
-    !>
-    function timer_read(id)
+   !>
+   !> Give me a specified timer value
+   !>
+   function timer_read(id)
       implicit none
       integer, intent(in) :: id !< the affected timer address
       real*8 :: timer_read
 
       timer_read = tim(id)
-    end function timer_read
+   end function timer_read
 
-    !>
-    !> Resets a certain timer to zero
-    !>
-    subroutine timer_reset(id)
+   !>
+   !> Resets a certain timer to zero
+   !>
+   subroutine timer_reset(id)
       implicit none
       integer, intent(in) :: id !< the affected timer address
 
       tim(id) = 0.
-    end subroutine timer_reset
+   end subroutine timer_reset
 
-    !>
-    !> Resets all timers to zero
-    !>
-    subroutine timer_reset_all()
+   !>
+   !> Resets all timers to zero
+   !>
+   subroutine timer_reset_all()
       implicit none
 
       tim(1:numtimings) = 0.
-    end subroutine timer_reset_all
+   end subroutine timer_reset_all
 
-    !>
-    !> Starts a timer, i.e. sets
-    !>
-    !>      tim(id) = - MPI_WTIME()
-    !>
-    subroutine timer_start(id)
+   !>
+   !> Starts a timer, i.e. sets
+   !>
+   !>      tim(id) = - MPI_WTIME()
+   !>
+   subroutine timer_start(id)
       implicit none
       include 'mpif.h'
       integer, intent(in) :: id !< the affected timer address
 
-      tim(id) = - MPI_WTIME()
-    end subroutine timer_start
+      tim(id) = -MPI_WTIME()
+   end subroutine timer_start
 
-
-    !>
-    !> Stops a timer, i.e. sets
-    !>
-    !>      tim(id) = tim(id) + MPI_WTIME()
-    !>
-    subroutine timer_stop(id)
+   !>
+   !> Stops a timer, i.e. sets
+   !>
+   !>      tim(id) = tim(id) + MPI_WTIME()
+   !>
+   subroutine timer_stop(id)
       implicit none
       include 'mpif.h'
       integer, intent(in) :: id !< the affected timer address
 
       tim(id) = tim(id) + MPI_WTIME()
-    end subroutine timer_stop
+   end subroutine timer_stop
 
-
-    !>
-    !> Resumes a timer, i.e. sets
-    !>
-    !>      tim(id) = tim(id) - MPI_WTIME()
-    !>
-    !> This can be used to accumulate the durations of a task that is
-    !> performed repeatedly between accesses to the timer, e.g.
-    !> multiple particles are treated per timestep. Before use, the
-    !> timer has to be reset.
-    !>
-    !>      call timer_reset(t_example)
-    !>      do i=1,n
-    !>        ...
-    !>        call timer_resume(t_example)
-    !>        call subroutine_to_be_timed()
-    !>        call timer_stop(t_example)
-    !>        ...
-    !>      end do
-    !>      accumulated_time = timer_read(t_example)
-    !>
-    subroutine timer_resume(id)
+   !>
+   !> Resumes a timer, i.e. sets
+   !>
+   !>      tim(id) = tim(id) - MPI_WTIME()
+   !>
+   !> This can be used to accumulate the durations of a task that is
+   !> performed repeatedly between accesses to the timer, e.g.
+   !> multiple particles are treated per timestep. Before use, the
+   !> timer has to be reset.
+   !>
+   !>      call timer_reset(t_example)
+   !>      do i=1,n
+   !>        ...
+   !>        call timer_resume(t_example)
+   !>        call subroutine_to_be_timed()
+   !>        call timer_stop(t_example)
+   !>        ...
+   !>      end do
+   !>      accumulated_time = timer_read(t_example)
+   !>
+   subroutine timer_resume(id)
       implicit none
       include 'mpif.h'
       integer, intent(in) :: id !< the affected timer address
 
       tim(id) = tim(id) - MPI_WTIME()
-    end subroutine timer_resume
+   end subroutine timer_resume
 
-
-    !>
-    !> Adds the given value to a timer for cumulative measurements
-    !>
-    subroutine timer_add(id, val)
+   !>
+   !> Adds the given value to a timer for cumulative measurements
+   !>
+   subroutine timer_add(id, val)
       implicit none
       integer, intent(in) :: id !< the affected timer address
       real*8, intent(in) :: val !< value to be added
 
       tim(id) = tim(id) + val
-    end subroutine timer_add
+   end subroutine timer_add
 
-
-    !>
-    !> Outputs the given timing array to a file with the given filename
-    !>
-    subroutine timings_ToFile(itime, iuserflag, tdata, filename, printheader)
+   !>
+   !> Outputs the given timing array to a file with the given filename
+   !>
+   subroutine timings_ToFile(itime, iuserflag, tdata, filename, printheader)
       implicit none
       integer, intent(in) :: itime !< current timestep
       integer, intent(in) :: iuserflag !< frontend-defined flag that is passed through and output to the second column
@@ -294,25 +290,23 @@ module module_timings
       integer :: i
       character(30) :: formatstring
 
-      open  (ifile, file=filename,STATUS='UNKNOWN', POSITION = 'APPEND')
-
+      open (ifile, file=filename, STATUS='UNKNOWN', POSITION='APPEND')
 
       if (printheader) then
-        write(formatstring,'(a,i5,a)' ) '(a1,2(1x,a20),', numtimings, '(1x,i20))'
-        write (ifile,formatstring) "#", "timestep", "userflag", [ (i,i=1,numtimings) ]
+         write (formatstring, '(a,i5,a)') '(a1,2(1x,a20),', numtimings, '(1x,i20))'
+         write (ifile, formatstring) "#", "timestep", "userflag", [(i, i=1, numtimings)]
       endif
 
-      write(formatstring,'(a,i5,a)' ) '(x,2(1x,i20),', numtimings, '(1x,e20.5))'
-      write (ifile,formatstring) itime, iuserflag, tdata
+      write (formatstring, '(a,i5,a)') '(x,2(1x,i20),', numtimings, '(1x,e20.5))'
+      write (ifile, formatstring) itime, iuserflag, tdata
       close (ifile)
-    end subroutine timings_ToFile
+   end subroutine timings_ToFile
 
-
-    !>
-    !> Outputs all local timing data to timing_XXXX.dat
-    !> if `itime <=1`, an additional header is printed
-    !>
-    subroutine timings_LocalOutput(itime, iuserflag)
+   !>
+   !> Outputs all local timing data to timing_XXXX.dat
+   !> if `itime <=1`, an additional header is printed
+   !>
+   subroutine timings_LocalOutput(itime, iuserflag)
       use module_debug
       use treevars
       use module_utils, only: create_directory
@@ -325,30 +319,29 @@ module module_timings
       integer :: flag
 
       if (present(iuserflag)) then
-        flag = iuserflag
+         flag = iuserflag
       else
-        flag = 0
+         flag = 0
       endif
 
-      if ( dbg(DBG_TIMINGFILE) ) then
+      if (dbg(DBG_TIMINGFILE)) then
          if (firstcall) then
-           call create_directory("timing")
-           firstcall = .false.
+            call create_directory("timing")
+            firstcall = .false.
          end if
-         write(cfile,'("timing/timing_",i6.6,".dat")') me
-         call timings_ToFile(itime, flag, tim, cfile, itime<=1)
+         write (cfile, '("timing/timing_",i6.6,".dat")') me
+         call timings_ToFile(itime, flag, tim, cfile, itime .le. 1)
       end if
-    end subroutine timings_LocalOutput
+   end subroutine timings_LocalOutput
 
-
-    !>
-    !> Gathers global timing data and outputs to
-    !> timing_avg.dat, timing_min.dat, timing_max.dat.
-    !> If `printheader` is present, its value controls the output of
-    !> descriptive column headers, otherwise, if `itime <=1`, headers
-    !> are printed.
-    !>
-    subroutine timings_GatherAndOutput(itime, iuserflag, printheader)
+   !>
+   !> Gathers global timing data and outputs to
+   !> timing_avg.dat, timing_min.dat, timing_max.dat.
+   !> If `printheader` is present, its value controls the output of
+   !> descriptive column headers, otherwise, if `itime <=1`, headers
+   !> are printed.
+   !>
+   subroutine timings_GatherAndOutput(itime, iuserflag, printheader)
       use treevars
       use module_utils, only: create_directory
       use module_pepc_types
@@ -369,38 +362,37 @@ module module_timings
       real*8, dimension(1:numtimings) :: tim_dev
 
       if (present(iuserflag)) then
-        flag = iuserflag
+         flag = iuserflag
       else
-        flag = 0
+         flag = 0
       endif
 
       if (present(printheader)) then
-        do_printheader = printheader
+         do_printheader = printheader
       else
-        do_printheader = itime <= 1
+         do_printheader = itime .le. 1
       end if
 
-      call MPI_REDUCE(tim, tim_max, numtimings, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc,ierr);
-      call MPI_REDUCE(tim, tim_min, numtimings, MPI_REAL8, MPI_MIN, 0, MPI_COMM_lpepc,ierr);
-      call MPI_REDUCE(tim, tim_avg, numtimings, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc,ierr);
+      call MPI_REDUCE(tim, tim_max, numtimings, MPI_REAL8, MPI_MAX, 0, MPI_COMM_lpepc, ierr); 
+      call MPI_REDUCE(tim, tim_min, numtimings, MPI_REAL8, MPI_MIN, 0, MPI_COMM_lpepc, ierr); 
+      call MPI_REDUCE(tim, tim_avg, numtimings, MPI_REAL8, MPI_SUM, 0, MPI_COMM_lpepc, ierr); 
+      if (me .eq. 0) then
+         if (firstcall) then
+            call create_directory("timing")
+            firstcall = .false.
+         end if
+         tim_avg = tim_avg / num_pe
+         tim_dev = tim_max - tim_min
+         call timings_ToFile(itime, flag, tim_max, 'timing/timing_max.dat', do_printheader)
+         call timings_ToFile(itime, flag, tim_avg, 'timing/timing_avg.dat', do_printheader)
+         call timings_ToFile(itime, flag, tim_min, 'timing/timing_min.dat', do_printheader)
+         call timings_ToFile(itime, flag, tim_dev, 'timing/timing_dev_abs.dat', do_printheader)
+         tim_dev = tim_dev / tim_min
+         call timings_ToFile(itime, flag, tim_dev, 'timing/timing_dev_rel.dat', do_printheader)
 
-     if (me==0) then
-        if (firstcall) then
-          call create_directory("timing")
-          firstcall = .false.
-        end if
-        tim_avg = tim_avg / num_pe
-        tim_dev = tim_max - tim_min
-        call timings_ToFile(itime, flag, tim_max, 'timing/timing_max.dat', do_printheader)
-        call timings_ToFile(itime, flag, tim_avg, 'timing/timing_avg.dat', do_printheader)
-        call timings_ToFile(itime, flag, tim_min, 'timing/timing_min.dat', do_printheader)
-        call timings_ToFile(itime, flag, tim_dev, 'timing/timing_dev_abs.dat', do_printheader)
-        tim_dev = tim_dev / tim_min
-        call timings_ToFile(itime, flag, tim_dev, 'timing/timing_dev_rel.dat', do_printheader)
-
-        write(*,'(a20,f16.10," s")') "t_all = ",       tim(t_all)
-        write(*,'(a20,f16.10," s")') "t_tot = ",       tim(t_tot)
-     endif
-    end subroutine timings_GatherAndOutput
+         write (*, '(a20,f16.10," s")') "t_all = ", tim(t_all)
+         write (*, '(a20,f16.10," s")') "t_tot = ", tim(t_tot)
+      endif
+   end subroutine timings_GatherAndOutput
 
 end module module_timings
