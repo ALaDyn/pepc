@@ -28,7 +28,13 @@ BC=\e[1m# bold
 UL=\e[4m# underline
 NC=\e[0m# No Color, default font
 
-tags: $(FOBJ) $(COBJ)
+both_tags: $(ROOTDIR)/src/frontends/$(FRONTEND)/tags tags
+
+$(ROOTDIR)/src/frontends/$(FRONTEND)/tags: $(FOBJ) $(COBJ)
 	@printf "==== tagging source files for frontend : $(BC)$(FRONTEND)$(NC)\n"
+	@cd $(ROOTDIR)/src/frontends/$(FRONTEND); ctags -R ../../frontends/$(FRONTEND)/* ../../interaction_specific/$(BACKEND)/* ../../treecode/* ../../utils/*
+
+tags: $(FOBJ) $(COBJ)
+	@printf "==== tagging source files in build directory\n"
 	@ctags -R $(FPRC) $(CSRC)
 

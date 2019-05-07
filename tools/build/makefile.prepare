@@ -28,6 +28,7 @@ prepare: $(SRC)
 	@printf "==== working directory : $(BC)$(WORKDIR)$(NC)\n"
 	@$(RM) $(MAKEENVS)
 	@echo "FRONTEND=$(FRONTEND)"       >> $(MAKEENVS)
+	@echo "BACKEND=$(BACKEND)"         >> $(MAKEENVS)
 	@echo "ROOTDIR=$(ROOTDIR)"         >> $(MAKEENVS)
 	@echo "SVNREVISION=$(SVNREVISION)" >> $(MAKEENVS)
 	@echo "WORKDIR=$(WORKDIR)"         >> $(MAKEENVS)
