@@ -613,7 +613,7 @@ contains
          end do
       end if
 
-      flush(debug_ipefile)
+      flush (debug_ipefile)
    end subroutine
 
    !>

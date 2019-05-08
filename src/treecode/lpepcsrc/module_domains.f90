@@ -423,6 +423,6 @@ contains
          write (debug_ipefile, *) particles(j)
       end do
       write (debug_ipefile, '(/)')
-      flush(debug_ipefile)
+      flush (debug_ipefile)
    end subroutine
 end module module_domains

@@ -78,7 +78,7 @@ contains
       if (dbg(DBG_STATUS)) then
          call debug_print_timestamp(debug_ipefile)
          write (debug_ipefile, '(" LPEPC | ", a)') stat
-         flush(debug_ipefile)
+         flush (debug_ipefile)
 
          if (me .eq. 0) then
             call debug_print_timestamp(output_unit)
@@ -108,7 +108,7 @@ contains
       open (debug_ipefile, file=trim(debug_ipefile_name), STATUS='UNKNOWN', POSITION='REWIND')
       call debug_print_timestamp(debug_ipefile)
       write (debug_ipefile, '(a)') " PEPC on ["//procname(1:resultlen)//"]"
-      flush(debug_ipefile)
+      flush (debug_ipefile)
    end subroutine debug_initialize
 
    !>
