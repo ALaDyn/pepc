@@ -19,7 +19,7 @@
 !
 
 !>
-!> integrator module
+!> particles module
 !>
 
 module particles_resize

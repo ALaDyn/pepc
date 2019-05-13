@@ -29,6 +29,7 @@ module interactions_integrator
    use helper
    use particles_resize
    use rng_wrapper
+   use elliptic_integrals
    implicit none
 
 contains
@@ -106,99 +107,82 @@ contains
       end do
    end function matrix_vector_multiplication
 
-   function circular_poloidal_field(particle_pos, vector_parallel_maj_radius, distance_xy) result(Poloidal_field)
+   function current_loop_B(particle_pos, r_pos, coil_z_origin, coil_radius, I) &
+     result(B_out)
      implicit none
-     real(kind_physics), intent(in) :: particle_pos(3), vector_parallel_maj_radius(3)
-     real(kind_physics), intent(in) :: distance_xy
-     real(kind_physics) :: major_r_vec(3), a, Poloidal_field(3)
+     real(kind_physics), intent(in) :: particle_pos(3), r_pos, coil_z_origin
+     real(kind_physics), intent(in) :: coil_radius, I
+     real(kind_physics) :: r_vec(2), Br, Bz, Bphi, B_out(3), z
+     real(kind_physics) :: k, Kk, Ek, r_pos2, R2, z2, denom1, denom2, prefac
 
-     ! first calculate the vector from center of cylinder (2D slice of torus)
-     ! to the particle (in plane), defined as major_r_vec
-     major_r_vec(1) = particle_pos(1)
-     major_r_vec(2) = particle_pos(2)
-     major_r_vec(3) = 0.0
+     z = particle_pos(3) - coil_z_origin
+     z2 = z*z
+     r_pos2 = r_pos*r_pos
+     R2 = coil_radius*coil_radius
 
-     major_r_vec = major_r_vec*major_radius/distance_xy
-     major_r_vec = particle_pos - major_r_vec
-     a = sqrt(particle_pos(3)**2 + (major_radius - distance_xy)**2)
+     denom1 = sqrt(z2 + (coil_radius + r_pos)**2)
+     denom2 = z2 + (r_pos - coil_radius)**2
+     prefac = mu_0*I/(2*pi*denom1)
 
-     Poloidal_field = cross_product(vector_parallel_maj_radius,major_r_vec)
-     Poloidal_field = Poloidal_field/sqrt(dot_product(Poloidal_field, Poloidal_field))
-     Poloidal_field = Poloidal_field*(0.0001*((1.e-12)*(c**2))/e_mass + a*B_p/minor_radius)
-   end function circular_poloidal_field
+     k = sqrt(4*r_pos*coil_radius/(denom1*denom1))
 
-   function Amperes_law(particle_pos, vector_parallel_maj_radius, distance_xy, coil_ver, coil_hor, I_pf) &
-     result(Poloidal_field)
-     implicit none
-     real(kind_physics), intent(in) :: particle_pos(3), vector_parallel_maj_radius(3)
-     real(kind_physics), intent(in) :: distance_xy, coil_ver, coil_hor, I_pf
-     real(kind_physics) :: major_r_vec(3), a, Poloidal_field(3), mu_0, B_mag
+     Kk = elliptic_fk(k)
+     Ek = elliptic_ek(k)
 
-     Poloidal_field = 0.0
-     mu_0 = ((1./c)**2)/eps_0
-     ! first calculate vector point from PF coil to particle position in 2D plane
-     ! defined as major_r_vec
-     major_r_vec(1) = particle_pos(1)
-     major_r_vec(2) = particle_pos(2)
-     major_r_vec(3) = 0.0
+     Br = ((z2 + r_pos2 + R2)*Ek/denom2 - Kk)*prefac*z/r_pos
+     Bz = prefac*((R2 - z2 - r_pos2)*Ek/denom2 + Kk)
 
-     ! coil position is calculated, remember to scale coil_hor & coil_ver
-     major_r_vec = major_r_vec*coil_hor/(distance_xy * (c*1e-12))
-     major_r_vec(3) = coil_ver/(c*1e-12)
+     r_vec = particle_pos(1:2)
+     r_vec = r_vec/r_pos
 
-     ! vector pointing from coil to particle position and distance between them is calculated
-     major_r_vec = particle_pos - major_r_vec
-     a = sqrt(dot_product(major_r_vec,major_r_vec)) ! NOTE: 'a' is dimensionless
+     B_out(1:2) = Br*r_vec
+     B_out(3) = Bz
 
-     ! unit vector direction of resulting poloidal field is calculated
-     Poloidal_field = cross_product(vector_parallel_maj_radius,major_r_vec)
-     Poloidal_field = Poloidal_field/sqrt(dot_product(Poloidal_field, Poloidal_field))
-
-     ! Calculate strength of magnetic field by PF coil
-     a = a * (c*1e-12)
-     B_mag = mu_0*I_pf/(2.*pi*a) ! NOTE: Calculation done with Tesla unit
-     B_mag = B_mag * ((1.e-12)*(c**2))/e_mass ! NOTE: scale to dimensionless
-
-     ! final vector of PF B field
-     Poloidal_field = Poloidal_field * B_mag
-   end function Amperes_law
+     B_out = B_out*((1.e-12)*(c**2))/e_mass ! non-dimensionalise
+   end function current_loop_B
 
    subroutine particle_EB_field(particle, E_field)
       implicit none
       type(t_particle), intent(inout) :: particle
       real(kind_physics), intent(in) :: E_field(3)
-      real(kind_physics) :: B_field(3), ez(3), Pol_B_field(3), field_vector(3)
-      real(kind_physics) :: R, PF_final(3), PF_temp(3), disp, Ipf, PF_unit_vector(3)
+      real(kind_physics) :: Coord(3), B_field(3), ez(3), Pol_B_field(3), field_vector(3)
+      real(kind_physics) :: R, PF_final(3), PF_temp(3), Itf, Ipf, PF_unit_vector(3)
 
       ez = 0.0
       ez(3) = 1.0
       B_field = 0.0
       field_vector = 0.0
+      Coord = particle%x*(c*1e-12)
 
       field_vector = cross_product(particle%x,ez)
       field_vector = field_vector/sqrt(dot_product(field_vector, field_vector))
 
-      R = sqrt(particle%x(1)**2 + particle%x(2)**2)
-      B_field = field_vector*B0*major_radius/R
-
-      ! Option 2: a circular poloidal magnetic field, centred around major_radius
-      ! Pol_B_field = circular_poloidal_field(particle%x, field_vector, R)
+      Itf = 3.62e7_8
+      R = sqrt(Coord(1)**2 + Coord(2)**2)
+      B_field = field_vector * mu_0 * Itf/(2.0_8 * pi *R) ! field_vector*B0*major_radius/R
+      B_field = B_field*((1.e-12)*(c**2))/e_mass ! non-dimensionalise
 
       PF_final = 0.0
-      disp = 10.0_8
-      Ipf = 3.4e8_8
-      ! Option 3: 4 correction coils surrounding breakdown region, centred around major_radius
-      PF_temp = Amperes_law(particle%x, field_vector, R, disp, 2.9_8, Ipf)
+      Ipf = 3.0e6_8
+
+      ! 4 correction coils surrounding breakdown region, centred around major_radius
+      ! Coils are directly solving Biot-Savart Law
+      PF_temp = current_loop_B(Coord, R, 2.2_8, 2.9_8, 3.0e6_8) ! 4.2e6_8)
       PF_final = PF_final + PF_temp
-      PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 2.9_8 - disp, Ipf)
+
+      PF_temp = current_loop_B(Coord, R, -2.2_8, 2.9_8, 3.0e6_8) ! 4.2e6_8)
       PF_final = PF_final + PF_temp
-      PF_temp = Amperes_law(particle%x, field_vector, R, -disp, 2.9_8, Ipf)
+
+      PF_temp = current_loop_B(Coord, R, 0.0_8, 1.5_8, 7.0e6_8) ! 3.7e7_8)
+      ! PF_temp = current_loop_B(Coord, R, 0.0_8, 1.5_8, 3.6e6_8)
       PF_final = PF_final + PF_temp
-      PF_temp = Amperes_law(particle%x, field_vector, R, 0.0_8, 2.9_8 + disp, Ipf)
+
+      PF_temp = current_loop_B(Coord, R, 0.0_8, 4.3_8, 115453.38348883369_8) !  4927046.7300396506_8)
       PF_final = PF_final + PF_temp
-      PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
-      PF_temp = 0.0005 * ((1.e-12)*(c**2))/e_mass * PF_unit_vector
-      Pol_B_field = PF_final + PF_temp
+
+      ! PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
+      ! PF_temp = 0.0005 * ((1.e-12)*(c**2))/e_mass * PF_unit_vector
+      Pol_B_field = PF_final! + PF_temp
 
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
       particle%data%b = B_field + Pol_B_field
@@ -622,255 +606,6 @@ contains
 
      end select
    end subroutine collision_update
-
-   subroutine cell_vertices(cell_n, vertices)!loll, lorl, upll, uprl, lolu, loru, uplu, upru)
-     implicit none
-     integer, intent(in) :: cell_n
-     integer, intent(out) :: vertices(8) !loll, lorl, upll, uprl, lolu, loru, uplu, upru
-     integer :: ny, nz, offset
-     real*8 :: temp_val
-
-     ! NOTE: cell number is taken as starting from '0', to compensate the nature of
-     !       division coupled with FLOOR function. Cell numbers technically starts at '1'
-     temp_val = (cell_n - 1)/(x_cell*y_cell*1.0)
-     nz = FLOOR(temp_val)
-
-     temp_val = MOD((cell_n - 1),(x_cell*y_cell))/(1.0*x_cell)
-     ny = FLOOR(temp_val)
-     offset = (x_cell + 1)*(y_cell + 1)
-
-     vertices(1) = cell_n + ny + (y_cell + 1 + x_cell)*nz - 1          ! loll
-     vertices(2) = vertices(1) + 1                                    ! lorl
-     vertices(3) = vertices(1) + x_cell + 1                           ! upll
-     vertices(4) = vertices(3) + 1                                    ! uprl
-     vertices(5) = vertices(1) + offset                               ! lolu
-     vertices(6) = vertices(2) + offset                               ! loru
-     vertices(7) = vertices(3) + offset                               ! uplu
-     vertices(8) = vertices(4) + offset                               ! upru
-   end subroutine cell_vertices
-
-   subroutine construct_connectivity(array)
-     implicit none
-     integer, allocatable, intent(inout) :: array(:)
-     integer :: ic, start_index, end_index
-
-    !  print *, size(array)/8
-
-     do ic = 1, size(array)/8
-       start_index = (ic - 1)*8 + 1
-       end_index = start_index + 7
-       call cell_vertices(ic, array(start_index:end_index))
-      !  print *, ic, array(start_index:end_index)
-     end do
-   end subroutine construct_connectivity
-
-   subroutine init_diagnostic_verts(vertices, min_x, min_y, min_z, &
-                                    x_width, y_width, z_width)
-      implicit none
-      type(diag_vertex), allocatable, intent(inout) :: vertices(:)
-      real(kind_physics), intent(in) :: min_x, min_y, min_z, x_width, y_width, z_width
-      integer :: total_vertices, ix, iy, iz, ip
-      real(kind_physics) :: s_x_width, s_y_width, s_z_width
-
-      s_min_x = min_x/(c*1e-12)
-      s_min_y = min_y/(c*1e-12)
-      s_min_z = min_z/(c*1e-12)
-      s_x_width = x_width/(c*1e-12)
-      s_y_width = y_width/(c*1e-12)
-      s_z_width = z_width/(c*1e-12)
-
-      total_vertices = (x_cell+1) * (y_cell+1) * (z_cell+1)
-
-      if (my_rank == 0) then
-        allocate(connectivity_array(x_cell*y_cell*z_cell*8))
-        call construct_connectivity(connectivity_array)
-        ! print *, connectivity_array
-      end if
-
-      allocate (vertices(total_vertices))
-      dx = s_x_width/(x_cell - 1)
-      dy = s_y_width/(y_cell - 1)
-      dz = s_z_width/(z_cell - 1)
-
-      ix = 1
-      iy = 1
-      iz = 1
-      do ip = 1, total_vertices
-        vertices(ip)%x(1) = s_min_x + (ix - 1.5)*dx
-        vertices(ip)%x(2) = s_min_y + (iy - 1.5)*dy
-        vertices(ip)%x(3) = s_min_z + (iz - 1.5)*dz
-        vertices(ip)%q_density = 0.0
-        vertices(ip)%J_density = 0.0
-
-        ix = ix + 1
-        if (ix == x_cell + 2) then
-          ix = 1
-          iy = iy + 1
-          if (iy == y_cell + 2) then
-            ix = 1
-            iy = 1
-            iz = iz + 1
-          end if
-        end if
-      end do
-
-   end subroutine init_diagnostic_verts
-
-   subroutine density_interpolation(particle, vertices)
-     implicit none
-     type(t_particle), intent(in) :: particle
-     type(diag_vertex), allocatable, intent(inout) :: vertices(:)
-     real(kind_physics) :: min_x, min_y, min_z, inv_vol, xp, yp, zp, coeff
-     integer :: total_particles, total_vertices, nx, ny, nz, N_cell
-     integer :: loll, lorl, upll, uprl, lolu, loru, uplu, upru, offset
-     ! NOTE: loll = lower left corner, lower plane
-     !       lorl = lower right corner, lower plane
-     !       uplu = upper left corner, upper plane
-     !       upru = upper right corner, upper plane
-     !       The rest can be inferred.
-
-     total_vertices = size(vertices)
-
-     !  NOTE: dx, dy & dz are global variables, 'min' denotes the minimum position
-     !        where particles are allowed to populate.
-     min_x = vertices(1)%x(1) + 0.5*dx
-     min_y = vertices(1)%x(2) + 0.5*dy
-     min_z = vertices(1)%x(3) + 0.5*dz
-     inv_vol = 1./(dx*dy*dz)
-
-     offset = (x_cell + 1)*(y_cell + 1)
-
-     xp = particle%x(1)
-     yp = particle%x(2)
-     zp = particle%x(3)
-     coeff = particle%data%q * inv_vol**2
-     ! - min_x to centre the coordinates to 0.0, easier to compute cell num.
-     nx = FLOOR((xp - min_x)/dx + 0.5)
-     ny = FLOOR((yp - min_y)/dy + 0.5)
-     nz = FLOOR((zp - min_z)/dz + 0.5)
-     N_cell = (x_cell*y_cell)*nz + (x_cell*ny + nx) + 1
-
-     ! with cell number known, calculate the 8 vertices that bounds the cell.
-     loll = N_cell + ny + (y_cell + 1 + x_cell)*nz
-     lorl = loll + 1
-     upll = loll + x_cell + 1
-     uprl = upll + 1
-     lolu = loll + offset
-     loru = lorl + offset
-     uplu = upll + offset
-     upru = uprl + offset
-
-     ! interpolate the particle's charge to the vertices. Also computes J.
-     if (particle%data%q < 0.0) then
-       vertices(loll)%q_density(1) = (vertices(lorl)%x(1) - xp) &
-                                     *(vertices(upll)%x(2) - yp) &
-                                     *(vertices(lolu)%x(3) - zp) &
-                                     *coeff + vertices(loll)%q_density(1)
-       vertices(loll)%J_density = vertices(loll)%q_density(1) * particle%data%v &
-                                  + vertices(loll)%J_density
-
-       vertices(lorl)%q_density(1) = (xp - vertices(loll)%x(1)) &
-                                     *(vertices(uprl)%x(2) - yp) &
-                                     *(vertices(loru)%x(3) - zp) &
-                                     *coeff + vertices(lorl)%q_density(1)
-       vertices(lorl)%J_density = vertices(lorl)%q_density(1) * particle%data%v &
-                                  + vertices(lorl)%J_density
-
-       vertices(upll)%q_density(1) = (vertices(uprl)%x(1) - xp) &
-                                     *(yp - vertices(loll)%x(2)) &
-                                     *(vertices(uplu)%x(3) - zp) &
-                                     *coeff + vertices(upll)%q_density(1)
-       vertices(upll)%J_density = vertices(upll)%q_density(1) * particle%data%v &
-                                  + vertices(upll)%J_density
-
-       vertices(uprl)%q_density(1) = (xp - vertices(upll)%x(1)) &
-                                     *(yp - vertices(lorl)%x(2)) &
-                                     *(vertices(upru)%x(3) - zp) &
-                                     *coeff + vertices(uprl)%q_density(1)
-       vertices(uprl)%J_density = vertices(uprl)%q_density(1) * particle%data%v &
-                                  + vertices(uprl)%J_density
-
-       vertices(lolu)%q_density(1) = (vertices(loru)%x(1) - xp) &
-                                     *(vertices(uplu)%x(2) - yp) &
-                                     *(zp - vertices(loll)%x(3)) &
-                                     *coeff + vertices(lolu)%q_density(1)
-       vertices(lolu)%J_density = vertices(lolu)%q_density(1) * particle%data%v &
-                                  + vertices(lolu)%J_density
-
-       vertices(loru)%q_density(1) = (xp - vertices(lolu)%x(1)) &
-                                     *(vertices(upru)%x(2) - yp) &
-                                     *(zp - vertices(lorl)%x(3)) &
-                                     *coeff + vertices(loru)%q_density(1)
-       vertices(loru)%J_density = vertices(loru)%q_density(1) * particle%data%v &
-                                  + vertices(loru)%J_density
-
-       vertices(uplu)%q_density(1) = (vertices(upru)%x(1) - xp) &
-                                     *(yp - vertices(lolu)%x(2)) &
-                                     *(zp - vertices(upll)%x(3)) &
-                                     *coeff + vertices(uplu)%q_density(1)
-       vertices(uplu)%J_density = vertices(uplu)%q_density(1) * particle%data%v &
-                                  + vertices(uplu)%J_density
-
-       vertices(upru)%q_density(1) = (xp - vertices(uplu)%x(1)) &
-                                     *(yp - vertices(loru)%x(2)) &
-                                     *(zp - vertices(uprl)%x(3)) &
-                                     *coeff + vertices(upru)%q_density(1)
-       vertices(upru)%J_density = vertices(upru)%q_density(1) * particle%data%v &
-                                  + vertices(upru)%J_density
-
-      !  test = vertices(loll)%q_density(1) + vertices(lorl)%q_density(1) &
-      !         + vertices(upll)%q_density(1) + vertices(uprl)%q_density(1) &
-      !         + vertices(lolu)%q_density(1) + vertices(loru)%q_density(1) &
-      !         + vertices(uplu)%q_density(1) + vertices(upru)%q_density(1)
-      !  print *, test
-    else if (particle%data%q > 0.0) then
-      vertices(loll)%q_density(2) = (vertices(lorl)%x(1) - xp) &
-                                    *(vertices(upll)%x(2) - yp) &
-                                    *(vertices(lolu)%x(3) - zp) &
-                                    *coeff + vertices(loll)%q_density(2)
-      vertices(lorl)%q_density(2) = (xp - vertices(loll)%x(1)) &
-                                    *(vertices(uprl)%x(2) - yp) &
-                                    *(vertices(loru)%x(3) - zp) &
-                                    *coeff + vertices(lorl)%q_density(2)
-      vertices(upll)%q_density(2) = (vertices(uprl)%x(1) - xp) &
-                                    *(yp - vertices(loll)%x(2)) &
-                                    *(vertices(uplu)%x(3) - zp) &
-                                    *coeff + vertices(upll)%q_density(2)
-      vertices(uprl)%q_density(2) = (xp - vertices(upll)%x(1)) &
-                                    *(yp - vertices(lorl)%x(2)) &
-                                    *(vertices(upru)%x(3) - zp) &
-                                    *coeff + vertices(uprl)%q_density(2)
-      vertices(lolu)%q_density(2) = (vertices(loru)%x(1) - xp) &
-                                    *(vertices(uplu)%x(2) - yp) &
-                                    *(zp - vertices(loll)%x(3)) &
-                                    *coeff + vertices(lolu)%q_density(2)
-      vertices(loru)%q_density(2) = (xp - vertices(lolu)%x(1)) &
-                                    *(vertices(upru)%x(2) - yp) &
-                                    *(zp - vertices(lorl)%x(3)) &
-                                    *coeff + vertices(loru)%q_density(2)
-      vertices(uplu)%q_density(2) = (vertices(upru)%x(1) - xp) &
-                                    *(yp - vertices(lolu)%x(2)) &
-                                    *(zp - vertices(upll)%x(3)) &
-                                    *coeff + vertices(uplu)%q_density(2)
-      vertices(upru)%q_density(2) = (xp - vertices(uplu)%x(1)) &
-                                    *(yp - vertices(loru)%x(2)) &
-                                    *(zp - vertices(uprl)%x(3)) &
-                                    *coeff + vertices(upru)%q_density(2)
-     end if
-   end subroutine density_interpolation
-
-   subroutine clear_density_results(vertices)
-     implicit none
-     type(diag_vertex), allocatable, intent(inout) :: vertices(:)
-     integer :: total_vertices, iv
-
-     total_vertices = size(vertices)
-
-     do iv = 1, total_vertices
-       vertices(iv)%q_density = 0.0
-       vertices(iv)%J_density = 0.0
-     end do
-   end subroutine clear_density_results
 
    subroutine extend_particles_list_add_e(particles, buffer, new_particles_size, electron_number)
       implicit none

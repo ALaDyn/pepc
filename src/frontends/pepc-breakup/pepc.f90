@@ -26,6 +26,7 @@ program pepc
    use module_timings
    use module_debug
    use module_checkpoint
+   use diagnostics
    use interactions_integrator
    use rng_wrapper
 
@@ -75,8 +76,10 @@ program pepc
      call write_particles(particles)
    else
      itime_in = 0
-     call init_particles(particles, sim_type)
-     ! call torus_diagnostic_grid(major_radius, minor_radius, 7, particles)
+     ! call init_particles(particles, sim_type)
+     ! call torus_diagnostic_xz_grid(major_radius, minor_radius, 8, particles)
+     call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 7, particles)
+     ! call torus_diagnostic_xy_grid(major_radius, minor_radius, 10, particles, 1.0_8)
    end if
 
    !========================read cross section data======================

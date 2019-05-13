@@ -109,6 +109,7 @@ module helper
    real(kind_physics), parameter :: e_mass = 510998.9461_kind_physics ! eV/c^2
    real(kind_physics), parameter :: e = 1.6021766208e-19_kind_physics ! Coulomb
    real(kind_physics), parameter :: eps_0 = 8.85418781762e-12_kind_physics ! Coulomb/Vm
+   real(kind_physics), parameter :: mu_0 = 12.566370614e-7_kind_physics ! Newton/Ampere^2
    real(kind_physics), parameter :: pi = 3.141592653589793238462643383279502884197_kind_physics
    real(kind_physics), parameter :: kboltzmann = 1.38064852e-23_kind_physics ! J K^(-1)
    real(kind_physics) :: E_q_dt_m
@@ -288,50 +289,6 @@ contains
      end select
 
    end function torus_geometry
-
-   subroutine torus_diagnostic_grid(major_radius, minor_radius, subdivisions, points)
-     ! Diagnostic_grid populates domain with points at regular distance, in xz plane
-     implicit none
-     real(kind_physics), intent(in) :: major_radius, minor_radius
-     integer, intent(in) :: subdivisions ! denotes number of subdivisions in 1 dimension
-     type(t_particle), allocatable, intent(inout) :: points(:)
-     real(kind_physics) :: diameter, increments, temp_dist(2), &
-                           dist_sum_x, dist_sum_z
-     integer :: total_points, total_points_1d
-
-     diameter = 2.0*minor_radius
-     total_points_1d = (2**subdivisions + 1)
-     total_points = total_points_1d**2
-     increments = diameter/(total_points_1d - 1)
-
-     allocate(points(total_points))
-
-     temp_dist(1) = major_radius - minor_radius
-     temp_dist(2) = -minor_radius
-
-     dist_sum_x = 0.0_kind_physics
-     dist_sum_z = 0.0_kind_physics
-     do i = 1, size(points)
-       points(i)%x = 0.0
-       points(i)%x(1) = temp_dist(1) + dist_sum_x
-       points(i)%x(3) = temp_dist(2) + dist_sum_z
-
-       dist_sum_x = dist_sum_x + increments
-
-       if (MOD(i,total_points_1d) == 0) then
-         dist_sum_x = 0.0
-         dist_sum_z = dist_sum_z + increments
-       end if
-
-       points(i)%label = 0
-       points(i)%data%q = 0.0_8
-       points(i)%data%m = 1.0_8
-       points(i)%data%species = 0
-       points(i)%data%age = 0.0_8
-       points(i)%work = 1.0_8
-       points(i)%data%v = 0.0
-     end do
-   end subroutine torus_diagnostic_grid
 
    function thermal_velocity_mag(mass, temp) result(velocity)
      implicit none
