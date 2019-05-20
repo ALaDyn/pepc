@@ -209,7 +209,7 @@ contains
             write (vtk%filehandle_visit, '("!NBLOCKS ", I0)') vtk%num_pe
 
             open (vtk%filehandle_paraview, file=trim(subfolder_collections)//trim(filename_)//"."//paraviewfilename, STATUS='UNKNOWN', POSITION='REWIND')
-            write (vtk%filehandle_paraview, '(".lt.VTKFile type=""Collection"".gt.", /, ".lt.Collection.gt.")')
+            write (vtk%filehandle_paraview, '("<VTKFile type=""Collection"">", /, "<Collection>")')
          else
             open (vtk%filehandle_visit, file=trim(subfolder_collections)//trim(filename_)//"."//visitfilename, STATUS='UNKNOWN', POSITION='APPEND')
             open (vtk%filehandle_paraview, file=trim(subfolder_collections)//trim(filename_)//"."//paraviewfilename, STATUS='UNKNOWN', POSITION='APPEND')
@@ -224,7 +224,7 @@ contains
 
       if (vtk%my_rank .eq. 0) then
          if (vtk%vtk_step .eq. VTK_STEP_LAST) then
-            write (vtk%filehandle_paraview, '(".lt./Collection.gt.", / , ".lt./VTKFile.gt.")')
+            write (vtk%filehandle_paraview, '("</Collection>", / , "</VTKFile>")')
          endif
 
          close (vtk%filehandle_par)
@@ -254,8 +254,8 @@ contains
          format = "ascii"
       end if
 
-      write (vtk%filehandle, '(".lt.DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,""".gt &
-             .")') name, number_of_components, type, trim(format)
+      write (vtk%filehandle, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,""">")') &
+         name, number_of_components, type, trim(format)
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,"""/.gt &
                                      .")') name, number_of_components, type, trim(format)
    end subroutine
@@ -287,7 +287,7 @@ contains
             write (vtk%filehandle, '(G14.6)') data(i)
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real4_1
 
    subroutine vtkfile_write_data_array_Real4_3(vtk, name, data1, data2, data3)
@@ -319,7 +319,7 @@ contains
             write (vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real4_3
 
    subroutine vtkfile_write_data_array_Real8_1(vtk, name, data, scale)
@@ -362,7 +362,7 @@ contains
             end do
          endif
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_1
 
    subroutine vtkfile_write_data_array_Real8_2(vtk, name, data1, data2)
@@ -393,7 +393,7 @@ contains
             write (vtk%filehandle, '(3G14.6)') data1(i), data2(i)
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_2
 
    subroutine vtkfile_write_data_array_Real8_3(vtk, name, data1, data2, data3, scale)
@@ -440,7 +440,7 @@ contains
             end do
          endif
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_3
 
    subroutine vtkfile_write_data_array_Real16_1(vtk, name, data, scale)
@@ -483,7 +483,7 @@ contains
             end do
          endif
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real16_1
 
    subroutine vtkfile_write_data_array_Real16_2(vtk, name, data1, data2)
@@ -514,7 +514,7 @@ contains
             write (vtk%filehandle, '(3G14.6)') data1(i), data2(i)
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real16_2
 
    subroutine vtkfile_write_data_array_Real16_3(vtk, name, data1, data2, data3, scale)
@@ -561,7 +561,7 @@ contains
             end do
          endif
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real16_3
 
    subroutine vtkfile_write_data_array_Real8_1_field3(vtk, name, data)
@@ -599,7 +599,7 @@ contains
             end do
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_1_field3
 
    subroutine vtkfile_write_data_array_Real8_3_field3(vtk, name, data1, data2, data3)
@@ -639,7 +639,7 @@ contains
             end do
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_3_field3
 
    subroutine vtkfile_write_data_array_Int4_1(vtk, name, data)
@@ -669,7 +669,7 @@ contains
             write (vtk%filehandle, '(I20)') data(i)
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Int4_1
 
    subroutine vtkfile_write_data_Int4_1(vtk, name, data)
@@ -719,7 +719,7 @@ contains
             write (vtk%filehandle, '(3I20)') data1(i), data2(i), data3(i)
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Int4_3
 
    subroutine vtkfile_write_data_array_Int8_1(vtk, name, data)
@@ -749,7 +749,7 @@ contains
             write (vtk%filehandle, '(I20)') data(i)
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Int8_1
 
    subroutine vtkfile_write_data_array_Int8_3(vtk, name, data1, data2, data3)
@@ -781,7 +781,7 @@ contains
             write (vtk%filehandle, '(3I20)') data1(i), data2(i), data3(i)
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Int8_3
 
    subroutine vtkfile_write_data_repeat_Int4_1(vtk, name, n, v)
@@ -809,7 +809,7 @@ contains
             write (vtk%filehandle, '(I20)') v
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_repeat_Int4_1
 
    subroutine vtkfile_write_data_repeat_Int8_1(vtk, name, n, v)
@@ -837,14 +837,14 @@ contains
             write (vtk%filehandle, '(I20)') v
          end do
       endif
-      write (vtk%filehandle, '(".lt./DataArray.gt.")')
+      write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_repeat_Int8_1
 
    subroutine vtkfile_startpointdata(vtk)
       implicit none
       class(vtkfile) :: vtk
 
-      write (vtk%filehandle, '(".lt.PointData.gt.")')
+      write (vtk%filehandle, '("<PointData>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PPointData.gt.")')
    end subroutine vtkfile_startpointdata
 
@@ -852,7 +852,7 @@ contains
       implicit none
       class(vtkfile) :: vtk
 
-      write (vtk%filehandle, '(".lt./PointData.gt.")')
+      write (vtk%filehandle, '("</PointData>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PPointData.gt.")')
    end subroutine vtkfile_finishpointdata
 
@@ -860,7 +860,7 @@ contains
       implicit none
       class(vtkfile) :: vtk
 
-      write (vtk%filehandle, '(".lt.CellData.gt.")')
+      write (vtk%filehandle, '("<CellData>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PCellData.gt.")')
    end subroutine vtkfile_startcelldata
 
@@ -868,7 +868,7 @@ contains
       implicit none
       class(vtkfile) :: vtk
 
-      write (vtk%filehandle, '(".lt./CellData.gt.")')
+      write (vtk%filehandle, '("</CellData>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PCellData.gt.")')
    end subroutine vtkfile_finishcelldata
 
@@ -903,13 +903,13 @@ contains
       class(vtkfile_unstructured_grid) :: vtk
       integer :: npart, ncell
 
-      write (vtk%filehandle, '(".lt.VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """.gt.")') vtk%version, trim(vtk%byte_order)
-      write (vtk%filehandle, '(".lt.UnstructuredGrid GhostLevel=""0"".gt.")')
-      write (vtk%filehandle, '(".lt.Piece NumberOfPoints=""", I0, """ NumberOfCells=""", I0, """.gt.")') npart, ncell
+      write (vtk%filehandle, '("<VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+      write (vtk%filehandle, '("<UnstructuredGrid GhostLevel=""0"">")')
+      write (vtk%filehandle, '("<Piece NumberOfPoints=""", I0, """ NumberOfCells=""", I0, """>")') npart, ncell
 
       if (vtk%my_rank .eq. 0) then
-         write (vtk%filehandle_par, '(".lt.VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """.gt.")') vtk%version, trim(vtk%byte_order)
-         write (vtk%filehandle_par, '(".lt.PUnstructuredGrid GhostLevel=""0"".gt.")')
+         write (vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+         write (vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
       endif
    end subroutine vtkfile_unstructured_grid_write_headers
 
@@ -918,13 +918,13 @@ contains
       class(vtkfile_unstructured_grid) :: vtk
       integer*8 :: npart, ncell
 
-      write (vtk%filehandle, '(".lt.VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """.gt.")') vtk%version, trim(vtk%byte_order)
-      write (vtk%filehandle, '(".lt.UnstructuredGrid GhostLevel=""0"".gt.")')
-      write (vtk%filehandle, '(".lt.Piece NumberOfPoints=""", I0, """ NumberOfCells=""", I0, """.gt.")') npart, ncell
+      write (vtk%filehandle, '("<VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+      write (vtk%filehandle, '("<UnstructuredGrid GhostLevel=""0"">")')
+      write (vtk%filehandle, '("<Piece NumberOfPoints=""", I0, """ NumberOfCells=""", I0, """>")') npart, ncell
 
       if (vtk%my_rank .eq. 0) then
-         write (vtk%filehandle_par, '(".lt.VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """.gt.")') vtk%version, trim(vtk%byte_order)
-         write (vtk%filehandle_par, '(".lt.PUnstructuredGrid GhostLevel=""0"".gt.")')
+         write (vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+         write (vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
       endif
    end subroutine vtkfile_unstructured_grid_write_headers8
 
@@ -933,9 +933,9 @@ contains
       class(vtkfile_unstructured_grid) :: vtk
 
       call vtk%startcells()
-      write (vtk%filehandle, '(".lt.DataArray type=""Int32"" Name=""connectivity"" /.gt.")')
-      write (vtk%filehandle, '(".lt.DataArray type=""Int32"" Name=""offsets"" /.gt.")')
-      write (vtk%filehandle, '(".lt.DataArray type=""UInt8"" Name=""types"" /.gt.")')
+      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""connectivity"" />")')
+      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""offsets"" />")')
+      write (vtk%filehandle, '("<DataArray type=""UInt8"" Name=""types"" />")')
       call vtk%finishcells()
       call vtk%startcelldata()
       call vtk%finishcelldata()
@@ -949,9 +949,9 @@ contains
       character(6) :: tmp
       character(50) :: fn
 
-      write (vtk%filehandle, '(".lt./Piece.gt.")')
-      write (vtk%filehandle, '(".lt./UnstructuredGrid.gt.")')
-      write (vtk%filehandle, '(".lt./VTKFile.gt.")')
+      write (vtk%filehandle, '("</Piece>")')
+      write (vtk%filehandle, '("</UnstructuredGrid>")')
+      write (vtk%filehandle, '("</VTKFile>")')
 
       if (vtk%my_rank .eq. 0) then
          write (vtk%filehandle_visit, '(/)')
@@ -959,14 +959,14 @@ contains
          do i = 0, vtk%num_pe - 1
             write (tmp, '(I6.6)') i
             fn = trim(vtk%filename)//"."//tmp//"."//vtk%filesuffix
-            write (vtk%filehandle_par, '(".lt.Piece Source=""", a, """/.gt.")') trim(fn)
+            write (vtk%filehandle_par, '("<Piece Source=""", a, """/>")') trim(fn)
             write (vtk%filehandle_visit, '(a)') trim(subfolder)//trim(fn)
          end do
 
-         write (vtk%filehandle_par, '(".lt./PUnstructuredGrid.gt.")')
-         write (vtk%filehandle_par, '(".lt./VTKFile.gt.")')
+         write (vtk%filehandle_par, '("</PUnstructuredGrid>")')
+         write (vtk%filehandle_par, '("</VTKFile>")')
 
-         write (vtk%filehandle_paraview, '(".lt.DataSet timestep=""", f0.5,""" file=""", a, """/.gt.")') vtk%simtime, trim(subfolder)//trim(trim(vtk%filename)//".p"//vtk%filesuffix)
+         write (vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(subfolder)//trim(trim(vtk%filename)//".p"//vtk%filesuffix)
       endif
    end subroutine vtkfile_unstructured_grid_write_final
 
@@ -974,7 +974,7 @@ contains
       implicit none
       class(vtkfile_unstructured_grid) :: vtk
 
-      write (vtk%filehandle, '(".lt.Points.gt.")')
+      write (vtk%filehandle, '("<Points>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PPoints.gt.")')
    end subroutine vtkfile_unstructured_grid_startpoints
 
@@ -982,7 +982,7 @@ contains
       implicit none
       class(vtkfile_unstructured_grid) :: vtk
 
-      write (vtk%filehandle, '(".lt./Points.gt.")')
+      write (vtk%filehandle, '("</Points>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PPoints.gt.")')
    end subroutine vtkfile_unstructured_grid_finishpoints
 
@@ -990,7 +990,7 @@ contains
       implicit none
       class(vtkfile_unstructured_grid) :: vtk
 
-      write (vtk%filehandle, '(".lt.Cells.gt.")')
+      write (vtk%filehandle, '("<Cells>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PCells.gt.")')
    end subroutine vtkfile_unstructured_grid_startcells
 
@@ -998,7 +998,7 @@ contains
       implicit none
       class(vtkfile_unstructured_grid) :: vtk
 
-      write (vtk%filehandle, '(".lt./Cells.gt.")')
+      write (vtk%filehandle, '("</Cells>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PCells.gt.")')
    end subroutine vtkfile_unstructured_grid_finishcells
 
@@ -1036,13 +1036,13 @@ contains
       vtk%globaldims = globaldims_
       vtk%mydims = mydims_
 
-      write (vtk%filehandle, '(".lt.VTKFile type=""RectilinearGrid"" version=""", a, """ byte_order=""", a, """.gt.")') vtk%version, trim(vtk%byte_order)
-      write (vtk%filehandle, '(".lt.RectilinearGrid WholeExtent=""", 6(" ",I0), """.gt.")') vtk%mydims
-      write (vtk%filehandle, '(".lt.Piece Extent=""", 6(" ",I0), """.gt.")') vtk%mydims
+      write (vtk%filehandle, '("<VTKFile type=""RectilinearGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+      write (vtk%filehandle, '("<RectilinearGrid WholeExtent=""", 6(" ",I0), """>")') vtk%mydims
+      write (vtk%filehandle, '("<Piece Extent=""", 6(" ",I0), """>")') vtk%mydims
 
       if (vtk%my_rank .eq. 0) then
-         write (vtk%filehandle_par, '(".lt.VTKFile type=""PRectilinearGrid"" version=""", a, """ byte_order=""", a, """.gt.")') vtk%version, trim(vtk%byte_order)
-         write (vtk%filehandle_par, '(".lt.PRectilinearGrid WholeExtent=""", 6(" ",I0), """ GhostLevel=""1"".gt.")') vtk%globaldims
+         write (vtk%filehandle_par, '("<VTKFile type=""PRectilinearGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
+         write (vtk%filehandle_par, '("<PRectilinearGrid WholeExtent=""", 6(" ",I0), """ GhostLevel=""1"">")') vtk%globaldims
       endif
    end subroutine vtkfile_rectilinear_grid_write_headers
 
@@ -1057,9 +1057,9 @@ contains
       integer, allocatable :: localdims(:, :, :)
       integer :: ierr
 
-      write (vtk%filehandle, '(".lt./Piece.gt.")')
-      write (vtk%filehandle, '(".lt./RectilinearGrid.gt.")')
-      write (vtk%filehandle, '(".lt./VTKFile.gt.")')
+      write (vtk%filehandle, '("</Piece>")')
+      write (vtk%filehandle, '("</RectilinearGrid>")')
+      write (vtk%filehandle, '("</VTKFile>")')
 
       allocate (localdims(2, 3, vtk%num_pe))
 
@@ -1071,14 +1071,14 @@ contains
          do i = 0, vtk%num_pe - 1
             write (tmp, '(I6.6)') i
             fn = trim(vtk%filename)//"."//tmp//"."//vtk%filesuffix
-            write (vtk%filehandle_par, '(".lt.Piece Extent=""", 6(" ",I0), """ Source=""", a, """/.gt.")') localdims(:, :, i + 1), trim(fn)
+            write (vtk%filehandle_par, '("<Piece Extent=""", 6(" ",I0), """ Source=""", a, """/>")') localdims(:, :, i + 1), trim(fn)
             write (vtk%filehandle_visit, '(a)') trim(subfolder)//trim(fn)
          end do
 
-         write (vtk%filehandle_par, '(".lt./PRectilinearGrid.gt.")')
-         write (vtk%filehandle_par, '(".lt./VTKFile.gt.")')
+         write (vtk%filehandle_par, '("</PRectilinearGrid>")')
+         write (vtk%filehandle_par, '("</VTKFile>")')
 
-         write (vtk%filehandle_paraview, '(".lt.DataSet timestep=""", f0.5,""" file=""", a, """/.gt.")') vtk%simtime, trim(subfolder)//trim(vtk%filename)//".p"//trim(vtk%filesuffix)
+         write (vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(subfolder)//trim(vtk%filename)//".p"//trim(vtk%filesuffix)
       endif
 
       deallocate (localdims)
@@ -1089,7 +1089,7 @@ contains
       implicit none
       class(vtkfile_rectilinear_grid) :: vtk
 
-      write (vtk%filehandle, '(".lt.Coordinates.gt.")')
+      write (vtk%filehandle, '("<Coordinates>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PCoordinates.gt.")')
    end subroutine vtkfile_rectilinear_grid_startcoordinates
 
@@ -1097,7 +1097,7 @@ contains
       implicit none
       class(vtkfile_rectilinear_grid) :: vtk
 
-      write (vtk%filehandle, '(".lt./Coordinates.gt.")')
+      write (vtk%filehandle, '("</Coordinates>")')
       if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PCoordinates.gt.")')
    end subroutine vtkfile_rectilinear_grid_finishcoordinates
 end module module_vtk
