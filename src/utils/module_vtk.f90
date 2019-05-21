@@ -256,8 +256,8 @@ contains
 
       write (vtk%filehandle, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,""">")') &
          name, number_of_components, type, trim(format)
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,"""/.gt &
-                                     .")') name, number_of_components, type, trim(format)
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("<DataArray Name=""",a,""" NumberOfComponents=""", I0, """ type=""", a ,""" format=""", a ,"""/>")') &
+         name, number_of_components, type, trim(format)
    end subroutine
 
    subroutine vtkfile_write_data_array_Real4_1(vtk, name, data)
