@@ -845,7 +845,7 @@ contains
       class(vtkfile) :: vtk
 
       write (vtk%filehandle, '("<PointData>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PPointData.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("<PPointData>")')
    end subroutine vtkfile_startpointdata
 
    subroutine vtkfile_finishpointdata(vtk)
@@ -853,7 +853,7 @@ contains
       class(vtkfile) :: vtk
 
       write (vtk%filehandle, '("</PointData>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PPointData.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("</PPointData>")')
    end subroutine vtkfile_finishpointdata
 
    subroutine vtkfile_startcelldata(vtk)
@@ -861,7 +861,7 @@ contains
       class(vtkfile) :: vtk
 
       write (vtk%filehandle, '("<CellData>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PCellData.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("<PCellData>")')
    end subroutine vtkfile_startcelldata
 
    subroutine vtkfile_finishcelldata(vtk)
@@ -869,7 +869,7 @@ contains
       class(vtkfile) :: vtk
 
       write (vtk%filehandle, '("</CellData>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PCellData.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("</PCellData>")')
    end subroutine vtkfile_finishcelldata
 
    ! ########################### Unstructured Grid ################################################
@@ -975,7 +975,7 @@ contains
       class(vtkfile_unstructured_grid) :: vtk
 
       write (vtk%filehandle, '("<Points>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PPoints.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("<PPoints>")')
    end subroutine vtkfile_unstructured_grid_startpoints
 
    subroutine vtkfile_unstructured_grid_finishpoints(vtk)
@@ -983,7 +983,7 @@ contains
       class(vtkfile_unstructured_grid) :: vtk
 
       write (vtk%filehandle, '("</Points>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PPoints.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("</PPoints>")')
    end subroutine vtkfile_unstructured_grid_finishpoints
 
    subroutine vtkfile_unstructured_grid_startcells(vtk)
@@ -991,7 +991,7 @@ contains
       class(vtkfile_unstructured_grid) :: vtk
 
       write (vtk%filehandle, '("<Cells>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PCells.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("<PCells>")')
    end subroutine vtkfile_unstructured_grid_startcells
 
    subroutine vtkfile_unstructured_grid_finishcells(vtk)
@@ -999,7 +999,7 @@ contains
       class(vtkfile_unstructured_grid) :: vtk
 
       write (vtk%filehandle, '("</Cells>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PCells.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("</PCells>")')
    end subroutine vtkfile_unstructured_grid_finishcells
 
    ! ########################### Rectilinear Grid ################################################
@@ -1090,7 +1090,7 @@ contains
       class(vtkfile_rectilinear_grid) :: vtk
 
       write (vtk%filehandle, '("<Coordinates>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt.PCoordinates.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("<PCoordinates>")')
    end subroutine vtkfile_rectilinear_grid_startcoordinates
 
    subroutine vtkfile_rectilinear_grid_finishcoordinates(vtk)
@@ -1098,6 +1098,6 @@ contains
       class(vtkfile_rectilinear_grid) :: vtk
 
       write (vtk%filehandle, '("</Coordinates>")')
-      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '(".lt./PCoordinates.gt.")')
+      if (vtk%my_rank .eq. 0) write (vtk%filehandle_par, '("</PCoordinates>")')
    end subroutine vtkfile_rectilinear_grid_finishcoordinates
 end module module_vtk
