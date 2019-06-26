@@ -167,17 +167,17 @@ contains
 
       ! 4 correction coils surrounding breakdown region, centred around major_radius
       ! Coils are directly solving Biot-Savart Law
-      PF_temp = current_loop_B(Coord, R, 2.2_8, 2.9_8, 3.0e6_8) ! 4.2e6_8)
+      PF_temp = current_loop_B(Coord, R, 2.2_8, 2.9_8, 35943.1422902196_8) ! 4.0e4_8) !3.0e6_8) !
       PF_final = PF_final + PF_temp
 
-      PF_temp = current_loop_B(Coord, R, -2.2_8, 2.9_8, 3.0e6_8) ! 4.2e6_8)
+      PF_temp = current_loop_B(Coord, R, -2.2_8, 2.9_8, 35943.1422902196_8) !4.0e4_8) ! 3.0e6_8) !
       PF_final = PF_final + PF_temp
 
-      PF_temp = current_loop_B(Coord, R, 0.0_8, 1.5_8, 7.0e6_8) ! 3.7e7_8)
+      PF_temp = current_loop_B(Coord, R, 0.0_8, 1.5_8, 1.77e5_8) !1.5e5_8) ! 7.0e6_8) !
       ! PF_temp = current_loop_B(Coord, R, 0.0_8, 1.5_8, 3.6e6_8)
       PF_final = PF_final + PF_temp
 
-      PF_temp = current_loop_B(Coord, R, 0.0_8, 4.3_8, 115453.38348883369_8) !  4927046.7300396506_8)
+      PF_temp = current_loop_B(Coord, R, 0.0_8, 4.3_8, 1.77e4_8)!11467.320098924624_8) ! 115453.38348883369_8) !
       PF_final = PF_final + PF_temp
 
       ! PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
@@ -185,7 +185,7 @@ contains
       Pol_B_field = PF_final! + PF_temp
 
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      particle%data%b = B_field + Pol_B_field
+      particle%data%b = B_field + Pol_B_field 
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)

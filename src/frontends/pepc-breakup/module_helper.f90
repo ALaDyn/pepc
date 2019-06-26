@@ -26,6 +26,7 @@ module helper
    use module_pepc_types
    use module_timings
    use iso_fortran_env
+   use rng_wrapper
    use particles_resize
    use, intrinsic :: iso_c_binding, only: c_double
 
@@ -253,13 +254,26 @@ contains
        do while (repeat .eq. 1)
          dist_outer = major_radius + minor_radius
          dist_inner = major_radius - minor_radius
-         call random_number(ran)
-         x = (2.*ran(1) - 1.) * dist_outer
-         y = (2.*ran(2) - 1.) * dist_outer
+
+         ! Generating Random Number between [0,1]
+         dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
+
+         ! Seed the next iteration of random numbers
+         ctr_s(1) = CEILING(rand_num(1)*1e15,kind=16)
+         ctr_s(2) = CEILING(rand_num(5)*1e15,kind=16)
+         ctr_s(3) = CEILING(rand_num(2)*1e15,kind=16)
+         ctr_s(4) = CEILING(rand_num(7)*1e15,kind=16)
+         key_s(1) = CEILING(rand_num(4)*1e15,kind=16)
+         key_s(2) = CEILING(rand_num(3)*1e15,kind=16)
+         key_s(3) = CEILING(rand_num(6)*1e15,kind=16)
+         key_s(4) = CEILING(rand_num(8)*1e15,kind=16)
+
+         x = (2.*rand_num(1) - 1.) * dist_outer
+         y = (2.*rand_num(2) - 1.) * dist_outer
          ran_dist = sqrt(x**2 + y**2)
 
          if ((ran_dist .LE. dist_outer) .and. (ran_dist .GE. dist_inner)) then
-           z = (2.*ran(3) - 1.) * minor_radius
+           z = (2.*rand_num(3) - 1.) * minor_radius
            inplane_dist = sqrt((ran_dist - major_radius)**2 + z**2)
 
            if (inplane_dist .LE. minor_radius) then
@@ -276,15 +290,50 @@ contains
        end do
 
      case(1) ! plane distribution at phi = pi/2
-       call random_number(ran)
-       r = ran(1) * minor_radius
-       theta  = ran(3) * 2. * pi
+
+       ! Generating Random Number between [0,1]
+       dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
+       ! Seed the next iteration of random numbers
+       ctr_s(1) = CEILING(rand_num(1)*1e15,kind=16)
+       ctr_s(2) = CEILING(rand_num(5)*1e15,kind=16)
+       ctr_s(3) = CEILING(rand_num(2)*1e15,kind=16)
+       ctr_s(4) = CEILING(rand_num(7)*1e15,kind=16)
+       key_s(1) = CEILING(rand_num(4)*1e15,kind=16)
+       key_s(2) = CEILING(rand_num(3)*1e15,kind=16)
+       key_s(3) = CEILING(rand_num(6)*1e15,kind=16)
+       key_s(4) = CEILING(rand_num(8)*1e15,kind=16)
+
+       r = rand_num(1) * minor_radius
+       theta  = rand_num(3) * 2. * pi
        l = major_radius + r*sin(theta)
        pos(3) = r * cos(theta)
 
-       phi = ran(2) * pi
+       phi = rand_num(2) * pi
        pos(1) = l
        pos(2) = 0.0
+
+     case(2) ! at the major axis of torus
+       l = 1.0
+
+       ! Generating Random Number between [0,1]
+       dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
+       ! Seed the next iteration of random numbers
+       ctr_s(1) = CEILING(rand_num(1)*1e15,kind=16)
+       ctr_s(2) = CEILING(rand_num(5)*1e15,kind=16)
+       ctr_s(3) = CEILING(rand_num(2)*1e15,kind=16)
+       ctr_s(4) = CEILING(rand_num(7)*1e15,kind=16)
+       key_s(1) = CEILING(rand_num(4)*1e15,kind=16)
+       key_s(2) = CEILING(rand_num(3)*1e15,kind=16)
+       key_s(3) = CEILING(rand_num(6)*1e15,kind=16)
+       key_s(4) = CEILING(rand_num(8)*1e15,kind=16)
+
+       if (rand_num(2) > 0.5) then
+          l = -1.0
+       end if
+
+       pos(1) = (2*rand_num(1) - 1.0) * major_radius
+       pos(2) = l * sqrt(major_radius*major_radius - pos(1)*pos(1))
+       pos(3) = 0.0
 
      end select
 
@@ -349,6 +398,16 @@ contains
         end do
 
       case(1)
+        ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
+        ctr_s(1) = (my_rank + 1)*np
+        ctr_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+11), kind=16),100**(my_rank+1))
+        ctr_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+11), kind=16),100**(my_rank+1))
+        ctr_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+11), kind=16),100**(my_rank+1))
+        key_s(1) = (my_rank + 1)*(step + 1)
+        key_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+7), kind=16),100**(my_rank+1))
+        key_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+7), kind=16),100**(my_rank+1))
+        key_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+7), kind=16),100**(my_rank+1))
+
         do ip = 1, np
            p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1
            if (MOD(ip,2) .eq. 0) then
