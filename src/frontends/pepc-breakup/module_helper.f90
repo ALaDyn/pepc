@@ -424,17 +424,18 @@ contains
           ! NOTE: torus distribution
            p(ip)%x = torus_geometry(mode)
 
-          !  ez = 0.0
-          !  ez(3) = 1.0
-          !  toroidal_vec(1) = p(ip)%x(2)*ez(3) - p(ip)%x(3)*ez(2)
-          !  toroidal_vec(2) = p(ip)%x(3)*ez(1) - p(ip)%x(1)*ez(3)
-          !  toroidal_vec(3) = p(ip)%x(1)*ez(2) - p(ip)%x(2)*ez(1)
-          !  toroidal_vec = toroidal_vec/sqrt(dot_product(toroidal_vec, toroidal_vec))
+           ez = 0.0
+           ez(3) = 1.0
+           toroidal_vec(1) = p(ip)%x(2)*ez(3) - p(ip)%x(3)*ez(2)
+           toroidal_vec(2) = p(ip)%x(3)*ez(1) - p(ip)%x(1)*ez(3)
+           toroidal_vec(3) = p(ip)%x(1)*ez(2) - p(ip)%x(2)*ez(1)
+           toroidal_vec = toroidal_vec/sqrt(dot_product(toroidal_vec, toroidal_vec))
 
-          !  magnitude = sqrt((2*15.0/e_mass))
-          !  call random_number(rand_scale)
-          !  p(ip)%data%v = -1.0*magnitude*rand_scale*toroidal_vec
-           p(ip)%data%v = 0.0_8
+           magnitude = sqrt((2*15.0/e_mass))
+           ! call random_number(rand_scale)
+           rand_scale = 1.0_8
+           p(ip)%data%v = -1.0*magnitude*toroidal_vec*rand_scale
+           ! p(ip)%data%v = 0.0_8
 
            p(ip)%work = 1.0_8
         end do

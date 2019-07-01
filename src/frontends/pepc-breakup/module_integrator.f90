@@ -184,8 +184,9 @@ contains
       ! PF_temp = 0.0005 * ((1.e-12)*(c**2))/e_mass * PF_unit_vector
       Pol_B_field = PF_final! + PF_temp
 
+      R = R/(c*1e-12)
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      particle%data%b = B_field + Pol_B_field 
+      particle%data%b = B_field + Pol_B_field
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
