@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -543,19 +543,6 @@ subroutine init_particles(p,field_grid)
 !        call perturbations(p)
         
         
-!        do ip = 1,np
-!
-!            p(ip)%data%q      = p(ip)%data%q*qtilde
-!            p(ip)%data%m      = p(ip)%data%m*mtilde
-!            p(ip)%data%v(1:3) = p(ip)%data%v(1:3)*vtilde
-!
-!            gl           = dot_product( p(ip)%data%v/vtilde, p(ip)%data%v/vtilde )
-!            if (gl .gt. one ) write(*,*) "Warning -- Lorentz Factor Bigger than 1!!" 
-!            gl           = one/sqrt( one - gl )
-!            p(ip)%data%g = gl
-!            p(ip)%data%v = p(ip)%data%v*gl
-!
-!        enddo
         
     else 
         
@@ -582,10 +569,10 @@ subroutine init_particles(p,field_grid)
 !        poldold(ip)%x(1:2)      = p(ip)%x(1:2) - two*dt*p(ip)%data%v(1:2)
                 
     enddo
-    
-!    call write_particles_vtk(p, 0, 0.0_8)
-!    call write_particles_vtk(pold, 10, 10.0_8)
-    
+!     
+! !    call write_particles_vtk(p, 0, 0.0_8)
+! !    call write_particles_vtk(pold, 10, 10.0_8)
+!     
     call pepc_particleresults_clear(pold)
     call pepc_grow_tree(pold)
     call pepc_traverse_tree(pold)
@@ -771,7 +758,7 @@ subroutine init_particles(p,field_grid)
         integer(kind_particle), allocatable   :: tindx(:)
         real(kind_particle), allocatable      :: trnd(:)
         type(t_particle_results), allocatable :: trslt(:)
-        integer(kind_particle)                :: tn, tn_global, ti
+        integer(kind_particle)                :: tn, tn_global, ti,ii
         integer                               :: rc
         
         real(kind_particle)                   :: phipp      ,phitree      ,phi_err ,phi_norm
@@ -839,9 +826,30 @@ subroutine init_particles(p,field_grid)
 
         do ti = 1, tn
 
-          v(1)        = particles(tindx(ti))%data%v(1)
-          v(2)        = particles(tindx(ti))%data%v(2)
-          v(3)        = particles(tindx(ti))%data%v(3)
+            do ii = 1,3
+                v(ii)        = particles(tindx(ti))%data%v(ii)
+                Epp(ii)      = trslt(ti)%e(ii)
+                Etree(ii)    = particles(tindx(ti))%results%e(ii)
+                App(ii)      = trslt(ti)%A(ii)
+                Atree(ii)    = particles(tindx(ti))%results%A(ii)
+                Axpp(ii)     = trslt(ti)%dxA(ii)
+                Axtree(ii)   = particles(tindx(ti))%results%dxA(ii)
+                Aypp(ii)     = trslt(ti)%dyA(ii)
+                Aytree(ii)   = particles(tindx(ti))%results%dyA(ii)
+                Azpp(ii)     = trslt(ti)%dzA(ii)
+                Aztree(ii)   = particles(tindx(ti))%results%dzA(ii)
+                !          Axytree(ii)   = particles(tindx(ti))%results%dxyA(ii)
+                !          Ayypp(ii)     = trslt(ti)%dyyA(ii)
+                !
+                !          Ayytree(ii)   = particles(tindx(ti))%results%dyyA(ii)
+                Jirpp(ii)    = trslt(ti)%Jirr(ii)
+                Jirtree(ii)  = particles(tindx(ti))%results%Jirr(ii)
+                Jpp(ii)       = trslt(ti)%J(ii)
+                Jtree(ii)     = particles(tindx(ti))%results%J(ii)
+                Bpp(ii)       = trslt(ti)%B(ii)
+                Btree(ii)     = particles(tindx(ti))%results%B(ii)
+            enddo
+          
 
           m           = particles(tindx(ti))%data%m
           q           = particles(tindx(ti))%data%q
@@ -849,125 +857,9 @@ subroutine init_particles(p,field_grid)
           phipp       = trslt(ti)%pot
           phitree     = particles(tindx(ti))%results%pot
 
-          Epp(1)      = trslt(ti)%e(1)
-          Epp(2)      = trslt(ti)%e(2)
-          Epp(3)      = trslt(ti)%e(3)
-
-          Etree(1)    = particles(tindx(ti))%results%e(1)
-          Etree(2)    = particles(tindx(ti))%results%e(2)
-          Etree(3)    = particles(tindx(ti))%results%e(3)
-          
-!          Expp(1)     = trslt(ti)%dxE(1)
-!          Expp(2)     = trslt(ti)%dxE(2)
-!          Expp(3)     = trslt(ti)%dxE(3)
-!
-!          Extree(1)   = particles(tindx(ti))%results%dxE(1)
-!          Extree(2)   = particles(tindx(ti))%results%dxE(2)
-!          Extree(3)   = particles(tindx(ti))%results%dxE(3)
-!          
-!          
-!          Eypp(1)     = trslt(ti)%dyE(1)
-!          Eypp(2)     = trslt(ti)%dyE(2)
-!          Eypp(3)     = trslt(ti)%dyE(3)
-!
-!          Eytree(1)   = particles(tindx(ti))%results%dyE(1)
-!          Eytree(2)   = particles(tindx(ti))%results%dyE(2)
-!          Eytree(3)   = particles(tindx(ti))%results%dyE(3)
-
-          App(1)      = trslt(ti)%A(1)
-          App(2)      = trslt(ti)%A(2)
-          App(3)      = trslt(ti)%A(3)
-
-          Atree(1)    = particles(tindx(ti))%results%A(1)
-          Atree(2)    = particles(tindx(ti))%results%A(2)
-          Atree(3)    = particles(tindx(ti))%results%A(3)
-          
-          Axpp(1)     = trslt(ti)%dxA(1)
-          Axpp(2)     = trslt(ti)%dxA(2)
-          Axpp(3)     = trslt(ti)%dxA(3)
-
-          Axtree(1)   = particles(tindx(ti))%results%dxA(1)
-          Axtree(2)   = particles(tindx(ti))%results%dxA(2)
-          Axtree(3)   = particles(tindx(ti))%results%dxA(3)
-          
-          
-          Aypp(1)     = trslt(ti)%dyA(1)
-          Aypp(2)     = trslt(ti)%dyA(2)
-          Aypp(3)     = trslt(ti)%dyA(3)
-
-          Aytree(1)   = particles(tindx(ti))%results%dyA(1)
-          Aytree(2)   = particles(tindx(ti))%results%dyA(2)
-          Aytree(3)   = particles(tindx(ti))%results%dyA(3)
-          
-          Azpp(1)     = trslt(ti)%dzA(1)
-          Azpp(2)     = trslt(ti)%dzA(2)
-          Azpp(3)     = trslt(ti)%dzA(3)
-
-          Aztree(1)   = particles(tindx(ti))%results%dzA(1)
-          Aztree(2)   = particles(tindx(ti))%results%dzA(2)
-          Aztree(3)   = particles(tindx(ti))%results%dzA(3)
-          
-!          Axxpp(1)     = trslt(ti)%dxxA(1)
-!          Axxpp(2)     = trslt(ti)%dxxA(2)
-!          Axxpp(3)     = trslt(ti)%dxxA(3)
-!
-!          Axxtree(1)   = particles(tindx(ti))%results%dxxA(1)
-!          Axxtree(2)   = particles(tindx(ti))%results%dxxA(2)
-!          Axxtree(3)   = particles(tindx(ti))%results%dxxA(3)
-!          
-!          
-!          Axypp(1)     = trslt(ti)%dxyA(1)
-!          Axypp(2)     = trslt(ti)%dxyA(2)
-!          Axypp(3)     = trslt(ti)%dxyA(3)
-!
-!          Axytree(1)   = particles(tindx(ti))%results%dxyA(1)
-!          Axytree(2)   = particles(tindx(ti))%results%dxyA(2)
-!          Axytree(3)   = particles(tindx(ti))%results%dxyA(3)
-!          
-!          
-!          Ayypp(1)     = trslt(ti)%dyyA(1)
-!          Ayypp(2)     = trslt(ti)%dyyA(2)
-!          Ayypp(3)     = trslt(ti)%dyyA(3)
-!
-!          Ayytree(1)   = particles(tindx(ti))%results%dyyA(1)
-!          Ayytree(2)   = particles(tindx(ti))%results%dyyA(2)
-!          Ayytree(3)   = particles(tindx(ti))%results%dyyA(3)
-
-          Jirpp(1)    = trslt(ti)%Jirr(1)
-          Jirpp(2)    = trslt(ti)%Jirr(2)
-          Jirpp(3)    = trslt(ti)%Jirr(3)
-
-
-          Jirtree(1)  = particles(tindx(ti))%results%Jirr(1)
-          Jirtree(2)  = particles(tindx(ti))%results%Jirr(2)
-          Jirtree(3)  = particles(tindx(ti))%results%Jirr(3)
-
-          Jpp(1)       = trslt(ti)%J(1)
-          Jpp(2)       = trslt(ti)%J(2)
-          Jpp(3)       = trslt(ti)%J(3)
-
-          Jtree(1)     = particles(tindx(ti))%results%J(1)
-          Jtree(2)     = particles(tindx(ti))%results%J(2)
-          Jtree(3)     = particles(tindx(ti))%results%J(3)
-
-          Bpp(1)       = trslt(ti)%B(1)
-          Bpp(2)       = trslt(ti)%B(2)
-          Bpp(3)       = trslt(ti)%B(3)
-
-          Btree(1)     = particles(tindx(ti))%results%B(1)
-          Btree(2)     = particles(tindx(ti))%results%B(2)
-          Btree(3)     = particles(tindx(ti))%results%B(3)
-
-
           E_err     = E_err  + dot_product( Epp - Etree  , Epp - Etree )
           E_norm    = E_norm + dot_product( Epp          , Epp )
           
-!          Ex_err    = Ex_err  + dot_product( Expp - Extree , Expp - Extree ) !( Expp(1) - Extree(1) )**2!
-!          Ex_norm   = Ex_norm + dot_product( Expp , Expp ) !( Expp(1)             )**2!
-!          
-!          Ey_err    = Ey_err  + dot_product( Eypp - Eytree , Eypp - Eytree ) !( Eypp(1) - Eytree(1) )**2!
-!          Ey_norm   = Ey_norm + dot_product( Eypp , Eypp ) !( Eypp(1)             )**2!
-
           phi_err   =  phi_err    +  ( phipp - phitree )**2
           phi_norm  =  phi_norm   +    phipp**2
 
@@ -1224,73 +1116,52 @@ subroutine init_particles(p,field_grid)
 !            integer(kind_pe), intent(in) :: my_rank
             integer(kind_default), intent(in)               :: itime
             type(t_particle)     , intent(in), dimension(:) :: p
-            character(100)                                  :: filename_i,filename_e,filename_b
-            integer(kind_particle)                          :: ip
+            character(100)                                  :: filename_i
+            integer(kind_particle)                          :: ip,i
             
             character(12), parameter                        :: part_dir = 'particles/'
+            Character (len=1)                               :: Xlabel(1:3)
+            Character (len=2)                               :: Vlabel(1:3),Elabel(1:3),Alabel(1:3),Blabel(1:3),Jlabel(1:3)
+            Character (len=3)                               :: Plabel
+            Character (len=4)                               :: DxAlabel(1:3),DyAlabel(1:3)
+            Character (len=5)                               :: Glabel,Llabel
+
             integer, parameter :: filehandle_i = 40
-            integer, parameter :: filehandle_e = 41
-            integer, parameter :: filehandle_b = 42
+            
 
-                        
-            if ( tracks .eq. 0 ) then
-                
-                write(filename_i,'(a,"particle_",i6.6,".dat")') trim(folder)//trim(part_dir), itime
+            write(filename_i,'(a,"particle_",i6.6,".dat")') trim(folder)//trim(part_dir), itime
+            open(filehandle_i, file=trim(filename_i), STATUS='REPLACE') 
 
-                open(filehandle_i, file=trim(filename_i), STATUS='REPLACE')
+            Xlabel = (/"x","y","z"/)
+            Vlabel = (/"vx","vy","vz"/)
+            Elabel = (/"Ex","Ey","Ez"/)
+            Alabel = (/"Ax","Ay","Az"/)
+            Blabel = (/"Bx","By","Bz"/)
+            Jlabel = (/"Jx","Jy","Jz"/)
+            Plabel = "Pot"
+            Glabel = "Gamma"
+            Llabel = "Label"
+            DxAlabel= (/"DxAx","DxAy","DxAz"/)
+            DyAlabel= (/"DyAx","DyAy","DyAz"/)
 
-                do ip=1, size(p,kind=kind(ip))
-                  
-                    write(filehandle_i,'(27(f8.3,x),i12)') p(ip)%x(1:3), p(ip)%data%v(1:3), p(ip)%results%E(1:3),&
-                    p(ip)%results%A(1:3), p(ip)%results%B(1:3), p(ip)%results%J(1:3),p(ip)%results%pot, p(ip)%data%g,&
-                    p(ip)%results%dxA(1:3),p(ip)%results%dyA(1:3),real(p(ip)%label, kind=kind_particle)
-                  
-                end do
-                close(filehandle_i)
+            write(filehandle_i,'(27(a,a))') (Xlabel(i),",",i=1,3),(Vlabel(i),",",i=1,3),&
+             (Elabel(i),",",i=1,3),(Alabel(i),",",i=1,3),(Blabel(i),",",i=1,3),&
+             (Jlabel(i),",",i=1,3),Plabel,",",Glabel,",",Llabel,",",&
+             (DxAlabel(i),",",i=1,3),(DyAlabel(i),",",i=1,2),DyAlabel(3)
 
-            else if ( tracks .eq. 1 ) then
-                
-                write(filename_i,'(a,"particle_ions_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
-                write(filename_e,'(a,"particle_elec_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
-                write(filename_b,'(a,"particle_beam_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
-
-
-
-                open(filehandle_i, file=trim(filename_i), STATUS='REPLACE')
-                open(filehandle_e, file=trim(filename_e), STATUS='REPLACE')
-                open(filehandle_b, file=trim(filename_b), STATUS='REPLACE')
-
-                do ip=1, size(p,kind=kind(ip))
-                  if (p(ip)%label .eq. 1)  then
-
-                    write(filehandle_e,'(26(f8.3,x),i12)') p(ip)%x(1:3), p(ip)%data%v(1:3), p(ip)%results%E(1:3),&
-                    p(ip)%results%A(1:3), p(ip)%results%B(1:3), p(ip)%results%J(1:3),p(ip)%results%pot,  p(ip)%data%g,&
-                    p(ip)%results%dxA(1:3),p(ip)%results%dyA(1:3)
-
-                  else if (p(ip)%label .eq. 2) then
-
-                    write(filehandle_b,'(26(f8.3,x),i12)') p(ip)%x(1:3), p(ip)%data%v(1:3), p(ip)%results%E(1:3),&
-                    p(ip)%results%A(1:3), p(ip)%results%B(1:3), p(ip)%results%J(1:3),p(ip)%results%pot,  p(ip)%data%g,&
-                    p(ip)%results%dxA(1:3),p(ip)%results%dyA(1:3)
-
-                  else if (p(ip)%label .eq. 3) then
-
-                    write(filehandle_i,'(26(f8.3,x),i12)') p(ip)%x(1:3), p(ip)%data%v(1:3), p(ip)%results%E(1:3),&
-                    p(ip)%results%A(1:3), p(ip)%results%B(1:3), p(ip)%results%J(1:3),p(ip)%results%pot, p(ip)%data%g,&
-                    p(ip)%results%dxA(1:3),p(ip)%results%dyA(1:3)
-                  endif
-                end do
-                close(filehandle_i)
-                close(filehandle_e)
-                close(filehandle_b)
-                
-            endif
+            do ip=1, size(p,kind=kind(ip))
+              
+                write(filehandle_i,'(27(f8.3,a))') (p(ip)%x(i),",",i=1,3),(p(ip)%data%v(i),",",i=1,3),&
+             (p(ip)%results%E(i),",",i=1,3),(p(ip)%results%A(i),",",i=1,3),(p(ip)%results%B(i),",",i=1,3),&
+             (p(ip)%results%J(i),",",i=1,3),p(ip)%results%pot,",",p(ip)%data%g,",",real(p(ip)%label, kind=kind_particle),",",&
+             (p(ip)%results%dxA(i),",",i=1,3),(p(ip)%results%dyA(i),",",i=1,2),p(ip)%results%dyA(3)
+              
+            end do
+            close(filehandle_i)
 
         end subroutine write_particles_ascii
-        
-        
-  
-!
+
+
       subroutine write_domain(p)
 
         use module_vtk

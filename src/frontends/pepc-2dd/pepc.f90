@@ -87,13 +87,14 @@ program pepc
     end if
 
     timer(3) = get_time()
-
+    
     call pepc_particleresults_clear(particles)
     timer(1) = get_time()
     t1 = get_time()
-
+    
+    call write_particles_ascii(step, particles)
     call pepc_grow_tree(particles)
-
+    
     t2 = get_time()
     if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", t2-t1
     t1 = get_time()
@@ -115,8 +116,8 @@ program pepc
     dointerp = mod( step , diag_interval) .eq. 0 .and. step .ne. 0
     
     call normalize(np, particles)
-    
-    call hamiltonian(np,particles,pold,real(step, kind = kind_particle)*dt)
+
+    if (step>0)  call hamiltonian(np,particles,pold,real(step, kind = kind_particle)*dt)
 
    
 !    call write_particles_ascii(step, particles)

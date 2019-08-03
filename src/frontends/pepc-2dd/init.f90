@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2014 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -29,7 +29,7 @@ module module_init
   use module_shortcut  ! , only:two,one,zero,pi
   use module_tool       , only: random,random_boltzmann,random_gauss,par_rand
   use module_globals    , only: me,mi,n_ranks,my_rank
-  !use module_utilities   ! <--- DB: is this required?
+  !use module_utilities
   implicit none
 
 
@@ -255,12 +255,12 @@ module module_init
     tmp_extent(1:3)     = extent(1:3)
     tmp_offset(1:3)     = offset(1:3)
     
-    
-    tmp_extent(1)       = mod( extent(1), nrank ) - mrank*tentominusseven
+
+    tmp_extent(1)       = real( extent(1)/ nrank , kind=kind_particle ) - mrank*tentominusseven
     tmp_offset(1)       = tmp_offset(1) + mrank*tmp_extent(1)
     
     dummy               = par_rand(my_rank)
-    
+
     do while (ipl .le. np)
         
         call random(p(ipl)%x)
@@ -601,3 +601,5 @@ module module_init
   
 
 end module module_init
+
+
