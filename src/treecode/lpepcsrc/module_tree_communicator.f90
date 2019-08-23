@@ -233,7 +233,8 @@ contains
       use module_tree, only: t_tree
       use module_pepc_types, only: t_tree_node, t_particle
       use module_atomic_ops, only: atomic_mod_increment_and_fetch_int, &
-                                   atomic_write_barrier, atomic_load_int
+                                   atomic_write_barrier, atomic_read_barrier, &
+                                   atomic_load_int
       use module_tree_node
       use module_debug
       implicit none
@@ -248,8 +249,9 @@ contains
       integer :: local_queue_bottom
 
       ! check wether the node has already been requested
-      ! this if-construct has to be secured against synchronous invocation (together with the modification while receiving data)
+      ! this if-construct should be secured against synchronous invocation (together with the modification while receiving data)
       ! otherwise it will be possible that two walk threads can synchronously post a particle to the request queue
+      ! (this _may_ be fixed upon receiving data, ignoring already present data)
       if (n%request_posted) then
          return
       end if
@@ -262,10 +264,12 @@ contains
       local_queue_bottom = atomic_mod_increment_and_fetch_int(t%communicator%req_queue_bottom, TREE_COMM_REQUEST_QUEUE_LENGTH)
 
       if (local_queue_bottom .eq. atomic_load_int(t%communicator%req_queue_top)) then
+      call atomic_read_barrier() ! ensure all information is compared correctly (queue_top and entry_valid)
          DEBUG_ERROR(*, "Issue with request sending queue: TREE_COMM_REQUEST_QUEUE_LENGTH is too small: ", TREE_COMM_REQUEST_QUEUE_LENGTH)
       end if
 
-      ! the communicator will check validity of the request and will only proceed as soon as the entry is valid -- this actually serializes the requests
+      ! the communicator will check validity of the request and will only proceed as soon as the entry is valid
+      !     -- this actually only work in debugging more, serialisation may be safer
       DEBUG_ASSERT(.not. t%communicator%req_queue(local_queue_bottom)%entry_valid)
 
       t%communicator%req_queue(local_queue_bottom)%request%node = n%first_child
@@ -635,7 +639,7 @@ contains
    subroutine send_requests(q, b, t, rb, tsend, comm_env)
       use module_tree, only: t_request_queue_entry
       use module_comm_env, only: t_comm_env
-      use module_atomic_ops, only: t_atomic_int, atomic_load_int, atomic_store_int, atomic_read_barrier
+      use module_atomic_ops, only: t_atomic_int, atomic_load_int, atomic_store_int, atomic_read_barrier, atomic_write_barrier
       use module_debug
       implicit none
       include 'mpif.h'
@@ -668,6 +672,7 @@ contains
 
             ! we have to invalidate this request queue entry. this shows that we actually processed it and prevents it from accidentially being resent after the req_queue wrapped around
             q(tmp_top)%entry_valid = .false.
+            call atomic_write_barrier() ! try to ensure entry_valid is stored along with 't' and known to all threads
             call atomic_store_int(t, tmp_top)
          else
             ! the next entry is not valid (obviously it has not been stored completely until now -> we abort here and try again later
