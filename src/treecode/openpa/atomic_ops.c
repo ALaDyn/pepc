@@ -30,6 +30,16 @@
 
 #include "opa_primitives.h"
 
+// The following lines are only necessary when pthread locks are used for testing
+// instead of intrincics for atomics. Each MPI process (and 1 thread per process)
+// has to call the init function once, with the 2nd argument 'true'.
+pthread_mutex_t OPA_lock;
+void _opa_init()
+{
+   int ret;
+   ret = OPA_Interprocess_lock_init(&OPA_lock, 1);
+}
+
 OPA_int_t* _atomic_alloc_int()
 {
   void* ret;

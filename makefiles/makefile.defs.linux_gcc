@@ -8,7 +8,7 @@ HELP = "\
 MACH     = linux_gcc
 
 # enable (1)/disable (0) debugging
-DEBUG    = 0
+DEBUG    = 1
 
 # enable (1)/disable (0) OpenMP
 OMP      = 1

@@ -24,6 +24,8 @@ module module_atomic_ops
 
    private
 
+   ! libOPA init in case of pthreads non-atomic usage
+   public opa_init
    ! atomic ints
    public atomic_allocate_int
    public atomic_deallocate_int
@@ -50,6 +52,12 @@ module module_atomic_ops
    end type t_critical_section
 
    interface
+      ! libOPA init
+      subroutine c_opa_init() bind (C, name='_opa_init')
+         use iso_c_binding
+         implicit none
+      end subroutine c_opa_init
+
       ! atomic ints
       type(c_ptr) function c_atomic_alloc_int() bind(C, name='_atomic_alloc_int')
          use, intrinsic :: iso_c_binding
@@ -120,6 +128,12 @@ module module_atomic_ops
    end interface
 
 contains
+
+   ! libOPA init call
+   subroutine opa_init()
+      implicit none
+      call c_opa_init()
+   end subroutine opa_init
 
    ! atomic ints
    subroutine atomic_allocate_int(storage)

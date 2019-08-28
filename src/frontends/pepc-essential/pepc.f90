@@ -25,6 +25,7 @@ program pepc
   use module_pepc_types
   use module_timings
   use module_debug
+  use module_atomic_ops, only: opa_init
   
   ! frontend helper routines
   use helper
@@ -35,6 +36,10 @@ program pepc
       
   ! initialize pepc library and MPI
   call pepc_initialize("pepc-essential", my_rank, n_ranks, .true.)
+
+  ! init call to libOPA, only strictly necessary when using pthread locking
+  !   pthread locking is a configure switch for libOPA to test w/o atomics, but locks instead
+  call opa_init()
 
   root = my_rank.eq.0
 
