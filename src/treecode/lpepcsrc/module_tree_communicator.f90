@@ -247,19 +247,65 @@ contains
       real(kind_physics), intent(in), optional :: pos(3)
 
       integer :: local_queue_bottom
+!!!#define MPI_MULTIPLE   <-- use CPP flag instead of hard-coded choice
+#ifdef MPI_MULTIPLE
+      logical :: flag
+      type(t_request_queue_entry) :: req
+#endif
 
       ! check wether the node has already been requested
       ! this if-construct should be secured against synchronous invocation (together with the modification while receiving data)
       ! otherwise it will be possible that two walk threads can synchronously post a particle to the request queue
       ! (this _may_ be fixed upon receiving data, ignoring already present data)
+#ifdef MPI_MULTIPLE
+!$OMP atomic seq_cst read
+      flag = n%request_posted
+!$OMP end atomic
+!$OMP flush
+      if (flag) then
+         return
+      end if
+#else
       if (n%request_posted) then
          return
       end if
+#endif
 
       ! we first flag the particle as having been already requested to prevent other threads from doing it while
       ! we are inside this function
+!$OMP atomic seq_cst write
       n%request_posted = .true. ! Set requested flag
+!$OMP end atomic
+!$OMP flush
 
+#ifdef MPI_MULTIPLE
+      ! we issue the request right here right now from the worker thread instead of using the message queue_top
+      req%request%node = n%first_child
+      req%request%parent = nidx
+      req%node => n
+
+      if (present(particle)) then
+         ! eager request
+         req%eager_request = .true.
+         req%request%particle = particle
+
+         if (present(pos)) then
+            req%request%particle%x = pos
+         end if
+      else
+         ! simple request
+         req%eager_request = .false.
+      end if
+
+      ! we do not have to do this here, keep it anyway...
+      req%entry_valid = .true.
+
+      if (send_request(req, t%comm_env)) then
+         req%entry_valid = .false.
+      else
+         DEBUG_ERROR(*, "Issue with sending request, send_request returned error")
+      end if
+#else
       ! thread-safe way of reserving storage for our request
       local_queue_bottom = atomic_mod_increment_and_fetch_int(t%communicator%req_queue_bottom, TREE_COMM_REQUEST_QUEUE_LENGTH)
 
@@ -291,7 +337,47 @@ contains
 
       call atomic_write_barrier() ! make sure the above information is actually written before flagging the entry valid by writing the owner
       t%communicator%req_queue(local_queue_bottom)%entry_valid = .true.
+#endif
 
+#ifdef MPI_MULTIPLE
+   ! we double the function for the moment being, simpler than changing the module structure
+   contains
+
+      function send_request(req, comm_env)
+         use module_tree_node
+         use module_pepc_types, only: MPI_TYPE_request_eager_sca
+         use module_comm_env, only: t_comm_env
+         implicit none
+         include 'mpif.h'
+
+         logical :: send_request
+         type(t_request_queue_entry), volatile, intent(inout) :: req
+         type(t_comm_env), intent(inout) :: comm_env
+         integer(kind_node) :: req_simple(2)
+
+         integer(kind_default) :: ierr
+
+         if (.not. btest(req%node%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)) then
+            ! send a request to PE req_queue_owners(req_queue_top)
+            ! telling, that we need child data for particle request_key(req_queue_top)
+
+            if (req%eager_request) then
+               call MPI_BSEND(req%request, 1, MPI_TYPE_request_eager_sca, req%node%owner, TREE_COMM_TAG_REQUEST_KEY_EAGER, &
+                              comm_env%comm, ierr)
+            else
+               req_simple(1) = req%request%node
+               req_simple(2) = req%request%parent
+               call MPI_BSEND(req_simple, 2, MPI_KIND_NODE, req%node%owner, TREE_COMM_TAG_REQUEST_KEY, &
+                              comm_env%comm, ierr)
+            endif
+
+            req%node%flags_local = ibset(req%node%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
+            send_request = .true.
+         else
+            send_request = .false.
+         end if
+      end function
+#endif
    end subroutine tree_node_fetch_children
 
    !>

@@ -8,7 +8,7 @@ HELP = "\
 MACH     = linux_gcc
 
 # enable (1)/disable (0) debugging
-DEBUG    = 1
+DEBUG    = 0
 
 # enable (1)/disable (0) OpenMP
 OMP      = 1
@@ -19,6 +19,8 @@ MAKE     = make
 CPP      = mpicc
 CPPFLAGS = -E -x c -P -C -ffreestanding
                        # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+# switch to send_request issued by worker threads
+CPPFLAGS += -DMPI_MULTIPLE
 CCPRE    =
 CC       = mpicc
 FCPRE    =
