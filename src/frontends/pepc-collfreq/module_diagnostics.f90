@@ -111,8 +111,8 @@ contains
         use physvars
         use module_checkpoint
         use module_namelist
+        use mpi
         implicit none
-        include 'mpif.h'
         type(t_particle), intent(in) :: particles(:)
         logical, intent(in) :: binary, ascii, mpiio, final
         character(255) :: filename
@@ -190,9 +190,8 @@ contains
       use module_vtk_helpers
       use physvars
       use module_units
+      use mpi
       implicit none
-
-      include 'mpif.h'
 
       type(t_particle), intent(in) :: p(:)
 
@@ -228,8 +227,8 @@ contains
         use module_namelist
         use module_prepare
         use module_pepc_types
+        use mpi
         implicit none
-        include 'mpif.h'
         type(t_particle), allocatable, intent(out) :: particles(:)
         logical, intent(in) :: binary, ascii, mpiio
         integer, intent(in) :: itime_in_

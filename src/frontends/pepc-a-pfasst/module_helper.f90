@@ -271,8 +271,8 @@ module pepca_helper
 
   subroutine generate_particles_homogeneous(p, nel, vte, nion, vti, comm)
     use pepca_units
+    use mpi
     implicit none
-    include 'mpif.h'
 
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle), intent(in) :: nel, nion

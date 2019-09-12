@@ -169,8 +169,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine init_pfasst_comm(rank, nprocs, comm)
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer, intent(in) :: rank, nprocs, comm
 
@@ -345,8 +345,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine receive(y, nvar, dest, tag)
+    use mpi
     implicit none
-    include 'mpif.h'
 
     real(kind=8), intent(out) :: y(nvar)
     integer,      intent(in)  :: nvar, dest, tag
@@ -360,8 +360,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine send(y, nvar, dest, tag)
+    use mpi
     implicit none
-    include 'mpif.h'
 
     real(kind=8), intent(in) :: y(nvar)
     integer,      intent(in) :: nvar, dest, tag
@@ -375,8 +375,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine broadcast(y, nvar, root)
+    use mpi
     implicit none
-    include 'mpif.h'
 
     real(kind=8), intent(in) :: y(nvar)
     integer,      intent(in) :: nvar, root
@@ -389,8 +389,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine barrier()
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer :: ierror
 
@@ -401,8 +401,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine start_timer(timer)
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer, intent(in) :: timer
 
@@ -413,8 +413,8 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine end_timer(timer, iteration_in, echo_timings)
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer, intent(in) :: timer, echo_timings
     integer, intent(in), optional :: iteration_in

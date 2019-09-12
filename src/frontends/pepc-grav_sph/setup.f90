@@ -67,8 +67,8 @@ subroutine pepc_setup()
        parameter_file_name, &
        parameter_file_available
 
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: ierr, npart_tmp
 

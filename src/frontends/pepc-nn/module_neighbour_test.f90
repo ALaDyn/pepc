@@ -100,8 +100,8 @@ contains
     use module_mirror_boxes, only: &
          lattice_vect
 
+    use mpi
     implicit none
-    include 'mpif.h'
 
 
     
@@ -504,8 +504,8 @@ contains
          neighbour_boxes, &
          lattice_vect
 
+    use mpi
     implicit none
-    include 'mpif.h'
     
     
     integer, intent(in) :: np_local    !< # particles on this CPU

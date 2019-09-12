@@ -33,8 +33,8 @@ subroutine vis_fields_nbody(timestamp)
   use physvars
   use treevars
   use module_utils
+  use mpi
   implicit none   
-  include 'mpif.h'
 
   real*4, dimension(ngx*ngy*ngz) :: field1, field2, field3, field4
   real*4, dimension(ngx,ngy,ngz) :: bzg, rhoeg, rhoig, Telec, Tion, ggelec,ggion

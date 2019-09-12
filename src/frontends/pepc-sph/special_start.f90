@@ -109,8 +109,8 @@ subroutine special_start(iconf)
 
   use physvars
   use module_mirror_boxes
+  use mpi
   implicit none
-  include 'mpif.h'
 
   interface
     subroutine par_rand(res, iseed)

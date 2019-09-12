@@ -378,6 +378,7 @@ module module_integration
                               newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0,poldold,B0
     use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
     use module_pepc
+    use mpi
     implicit none
     
 !------------------------------------------------------------------------------------------------------------------------------
@@ -401,8 +402,6 @@ module module_integration
 !    
 !            
 !------------------------------------------------------------------------------------------------------------------------------ 
-    include 'mpif.h'
-
     integer(kind_particle)          , intent(in)     :: np
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)
@@ -668,6 +667,7 @@ module module_integration
                               newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0,poldold,B0
     use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
     use module_pepc
+    use mpi
     implicit none
     
 !------------------------------------------------------------------------------------------------------------------------------
@@ -691,8 +691,6 @@ module module_integration
 !    
 !            
 !------------------------------------------------------------------------------------------------------------------------------ 
-    include 'mpif.h'
-
     integer(kind_particle)          , intent(in)     :: np
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)
@@ -996,6 +994,7 @@ module module_integration
     use module_globals, only: periodicity_particles,ischeme,root,my_rank,folder,step,B0
     use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
     use module_pepc
+    use mpi
     implicit none
     
 !------------------------------------------------------------------------------------------------------------------------------
@@ -1019,8 +1018,6 @@ module module_integration
 !    
 !            
 !------------------------------------------------------------------------------------------------------------------------------ 
-    include 'mpif.h'
-
     integer(kind_particle)          , intent(in)     :: np
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)
@@ -1151,6 +1148,7 @@ module module_integration
     use module_globals, only: periodicity_particles,B0
     use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
     use module_pepc
+    use mpi
     implicit none
     
 !------------------------------------------------------------------------------------------------------------------------------
@@ -1174,8 +1172,6 @@ module module_integration
 !    
 !            
 !------------------------------------------------------------------------------------------------------------------------------ 
-    include 'mpif.h'
-
     integer(kind_particle)          , intent(in)     :: np
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)
@@ -1303,6 +1299,7 @@ module module_integration
     use module_globals, only: periodicity_particles,ischeme,root,my_rank,folder,step,B0
     use helper        , only: iperiodic_particles,inormalize,write_particles_ascii,write_particles_vtk
     use module_pepc
+    use mpi
     implicit none
     
 !------------------------------------------------------------------------------------------------------------------------------
@@ -1326,8 +1323,6 @@ module module_integration
 !    
 !            
 !------------------------------------------------------------------------------------------------------------------------------ 
-    include 'mpif.h'
-
     integer(kind_particle)          , intent(in)     :: np
     real(kind_particle)             , intent(in)     :: dt
     type(t_particle), allocatable   , intent(inout)  :: p(:)

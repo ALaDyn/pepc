@@ -37,8 +37,8 @@ module module_species
         use helper, only: norm
         use module_geometry
         use module_species_types
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, allocatable :: nfp(:)
         integer, allocatable :: nip(:)

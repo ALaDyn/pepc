@@ -26,11 +26,10 @@ module module_pepc_kinds
    ! standard. However, as of 2014, support for this feature is still considered bleeding edge by some vendors. Therefore,
    ! the constants are redefined below for integer types to the best of our knowledge.
    !use, intrinsic :: iso_fortran_env
+   use mpi
    implicit none
 
    private
-
-   include 'mpif.h'
 
    !> an 8-bit integer
    integer, parameter :: int8 = selected_int_kind(0)

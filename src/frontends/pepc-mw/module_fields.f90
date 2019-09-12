@@ -59,8 +59,8 @@ module module_fields
     contains
 
       subroutine field_dump(itime)
+        use mpi
         implicit none
-        include 'mpif.h'
         integer :: ierr
 
         integer, intent(in) :: itime
@@ -212,8 +212,8 @@ module module_fields
 
 
       subroutine field_reduce_global(renorm)
+        use mpi
         implicit none
-        include 'mpif.h'
         logical, intent(in) :: renorm
         integer:: fdim
         integer :: numdata, ierr, i
@@ -296,8 +296,8 @@ module module_fields
         use module_vtk_helpers
         use module_vtk
         use physvars, only : itime, nt, trun, my_rank, n_cpu, MPI_COMM_PEPC
+        use mpi
         implicit none
-        include 'mpif.h'
         real*8, dimension(:,:,:,:), allocatable :: efield
         real*8, dimension(:,:,:), allocatable :: pot
         real*8, allocatable, dimension(:) :: xcoords, ycoords, zcoords

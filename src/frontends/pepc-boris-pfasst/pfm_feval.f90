@@ -29,8 +29,8 @@ module pfm_feval
     subroutine dump_nfeval(rank, comm)
       use module_pepc_types
       use pepcboris_helper, only : IFILE_SUMMAND_NFEVAL, pepcboris_nml
+      use mpi
       implicit none
-      include 'mpif.h'
       integer(kind_pe), intent(in) :: rank
       integer(kind_default), intent(in) :: comm
       integer :: istream

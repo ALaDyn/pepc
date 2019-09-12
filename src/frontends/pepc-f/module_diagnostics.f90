@@ -19,8 +19,8 @@ MODULE diagnostics
 !===============================================================================
 
     subroutine store_initial_velocities(p)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
 
@@ -51,8 +51,8 @@ MODULE diagnostics
                             avg_26, avg_27, avg_28, avg_29, avg_30, avg_31, avg_32, avg_33, avg_34, &
                             avg_35, avg_36, avg_37, avg_38, avg_39, avg_40, avg_41, avg_42, &
                             avg_fields)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
         real(KIND=8), intent(inout) :: avg_1(:), avg_2(:), avg_3(:), avg_4(:), avg_5(:), avg_6(:), avg_7(:)
@@ -395,8 +395,8 @@ MODULE diagnostics
 
 
     function get_epot(p,ispecies)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
         integer, intent(in) :: ispecies
@@ -736,8 +736,8 @@ MODULE diagnostics
 !===============================================================================
 
     subroutine get_probe_particles(probes,ispecies)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in)        :: ispecies
         integer                    :: rc,ip,n,i
@@ -764,8 +764,8 @@ MODULE diagnostics
 
     function get_avg_wallpotential(p,ib)
         use module_geometry
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
         integer, intent(in) :: ib
@@ -798,8 +798,8 @@ MODULE diagnostics
 !===============================================================================
 
     function get_v2_mean(p,ispecies)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
         integer, intent(in) :: ispecies
@@ -828,8 +828,8 @@ MODULE diagnostics
 !===============================================================================
 
     function get_v_mean(p,ispecies)
+       use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle),  intent(in) :: p(:)
         integer, intent(in) :: ispecies

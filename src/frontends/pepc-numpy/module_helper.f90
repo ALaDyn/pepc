@@ -37,9 +37,9 @@ module helper
     use module_interaction_specific
     use module_checkpoint
     use module_pepc_types
+    use mpi
 
     implicit none
-    include 'mpif.h'
       
     vtk=.false.
     cmd_args = COMMAND_ARGUMENT_COUNT()
@@ -110,8 +110,8 @@ module helper
 
 !======================================================================================
   real*8 function get_time()
+    use mpi
     implicit none
-    include 'mpif.h'
     
     get_time = MPI_WTIME()
     

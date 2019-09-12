@@ -31,9 +31,9 @@ subroutine density_helmholtz
   use module_laser
   use module_pepc_kinds
   use module_pepc_types
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   real :: rdx, rdy, rdz, dy, dz, cweight
   real :: fx1, fx2, fy1, fy2, fz1, fz2

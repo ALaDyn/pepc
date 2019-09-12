@@ -126,8 +126,8 @@ module module_particle_setup
           use module_velocity_setup
           use module_diagnostics
           use module_pepc_types
+          use mpi
           implicit none
-          include 'mpif.h'
           type(t_particle), intent(inout), allocatable :: particles(:)
           integer, intent(in) :: iconf
           integer(kind_particle) :: fences(-1:n_cpu-1)

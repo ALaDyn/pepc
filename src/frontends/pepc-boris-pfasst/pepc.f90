@@ -44,9 +44,8 @@ program pepc
   use pf_mod_hooks
   use pf_mod_options
 
+  use mpi
   implicit none
-
-  include 'mpif.h'
 
   ! variables for pfasst
   integer(kind_default):: MPI_COMM_SPACE, MPI_COMM_TIME, mpi_err

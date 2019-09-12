@@ -281,8 +281,8 @@ contains
     subroutine force_laser(particles)
       use module_pepc_types
       use physvars
+      use mpi
       implicit none
-      include 'mpif.h'
       type(t_particle), intent(inout) :: particles(:)
       real*8 :: E_pon(3), B_em(3), Phipon
 

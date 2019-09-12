@@ -122,8 +122,8 @@ contains
     subroutine energy_pot(epot_total)
         use physvars
         use module_fmm_framework
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer :: ierr
 
@@ -154,9 +154,9 @@ contains
         use module_units
         use module_pusher
         use module_pepc_types
+        use mpi
 
         implicit none
-        include 'mpif.h'
 
         integer(kind_particle) :: p
         integer(kind_default) :: ierr

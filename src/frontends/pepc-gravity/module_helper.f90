@@ -292,8 +292,8 @@ module helper
 
     use module_pepc_types
     use module_directsum
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer(kind_particle), allocatable   :: tindx(:)
     real*8, allocatable                   :: trnd(:)
@@ -353,9 +353,8 @@ module helper
 
   subroutine compute_field()
     use module_pepc
+    use mpi
     implicit none
-
-    include 'mpif.h'
 
     real*8             :: ta, tb
     integer, parameter :: fid = 12
@@ -490,8 +489,8 @@ module helper
   end subroutine write_domain
 
   real*8 function get_time()
+    use mpi
     implicit none
-    include 'mpif.h'
 
     get_time = MPI_WTIME()
 

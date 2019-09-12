@@ -50,9 +50,8 @@ contains
       use module_vtk
       use module_pepc_types
       use module_interaction_specific_types
+      use mpi
       implicit none
-
-      include 'mpif.h'
 
       character(*), intent(in) :: fname
       integer(kind_default), intent(in) :: mpi_comm
@@ -124,9 +123,8 @@ contains
       use module_interaction_specific_types
       use module_tree, only: t_tree
       use module_tree_node
+      use mpi
       implicit none
-
-      include 'mpif.h'
 
       character(*), intent(in) :: fname
       integer(kind_default) :: mpi_comm
@@ -241,9 +239,8 @@ contains
       use module_interaction_specific_types
       use module_tree, only: t_tree
       use module_tree_node
+      use mpi
       implicit none
-
-      include 'mpif.h'
 
       character(*), intent(in) :: fname
       integer(kind_default) :: mpi_comm
@@ -390,9 +387,8 @@ contains
       use module_box, only: t_box
       use module_tree_node
       use module_debug
+      use mpi
       implicit none
-
-      include 'mpif.h'
 
       character(*), intent(in) :: fname
       integer(kind_default) :: mpi_comm
@@ -730,9 +726,8 @@ contains
       use module_vtk
       use module_pepc_kinds, only: kind_particle, kind_physics
       use module_pepc_types
+      use mpi
       implicit none
-
-      include 'mpif.h'
 
       integer, intent(in) :: step
       integer, intent(in) :: vtk_step
@@ -774,8 +769,8 @@ contains
    subroutine vtk_write_field_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
                                       scalarvalues, scalarname, vectorvalues, vectorname, mpi_comm)
       use module_vtk
+      use mpi
       implicit none
-      include 'mpif.h'
       character(*), intent(in) :: filename, scalarname, vectorname
       integer, intent(in) :: step
       integer, intent(in) :: vtk_step
@@ -820,8 +815,8 @@ contains
    subroutine vtk_write_densities_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
                                           dens1, name1, dens2, name2, mpi_comm, coord_scale)
       use module_vtk
+      use mpi
       implicit none
-      include 'mpif.h'
       character(*), intent(in) :: filename, name1, name2
       integer, intent(in) :: step
       integer, intent(in) :: vtk_step

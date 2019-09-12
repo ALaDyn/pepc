@@ -50,8 +50,8 @@ contains
       use module_pepc_kinds, only: kind_default
       use module_pepc_types, only: t_particle
       use module_debug
+      use mpi
       implicit none
-      include 'mpif.h'
 
       type(t_box), intent(out) :: b !< the bounding box that contains all `p`
       type(t_particle), intent(in) :: p(:) !< particles to embed in the bounding box

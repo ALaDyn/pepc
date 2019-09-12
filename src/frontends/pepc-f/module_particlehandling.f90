@@ -13,8 +13,8 @@ module particlehandling
 
 !======================================================================================
     SUBROUTINE count_hits_and_remove_particles(p,hits,reflux)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         logical :: hit
         integer :: rp,ib
@@ -433,8 +433,8 @@ module particlehandling
 
     SUBROUTINE recycling(p,treflux)
 
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle), allocatable, intent(inout) :: p(:)
         integer, intent(in) :: treflux(0:,:)
@@ -593,8 +593,8 @@ module particlehandling
 
 !======================================================================================
     subroutine hits_on_boundaries(p)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle), allocatable, intent(inout) :: p(:)
 
@@ -667,8 +667,8 @@ module particlehandling
 
 !======================================================================================
     subroutine check_for_leakage(p)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle), allocatable, intent(inout) :: p(:)
         type(t_particle), allocatable :: p1(:)
@@ -862,8 +862,8 @@ module particlehandling
 !======================================================================================
 
     SUBROUTINE remove_all_probes(ispecies,p)
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle), intent(inout), allocatable :: p(:)
         integer, intent(in) :: ispecies

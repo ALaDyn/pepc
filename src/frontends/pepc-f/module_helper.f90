@@ -149,8 +149,8 @@ module helper
 
 !======================================================================================
   real*8 function get_time()
+    use mpi
     implicit none
-    include 'mpif.h'
 
     get_time = MPI_WTIME()
 
@@ -305,9 +305,9 @@ module helper
       use module_directsum
       use module_debug, only : pepc_status
       use module_interaction_specific_types, only: t_particle_results
+      use mpi
 
       implicit none
-      include 'mpif.h'
       integer(kind_particle), intent(in) :: nforceparticles    !< number of particles to compute the force for, i.e. force is computed for particles(1:nforceparticles)
       type(t_particle), intent(inout), allocatable :: particles(:) !< input particle data, initialize %x, %data appropriately (and optionally set %label) before calling this function
 

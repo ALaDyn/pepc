@@ -27,8 +27,8 @@
 module module_fmm_periodicity
       use module_pepc_kinds
       use module_interaction_specific_types, only : t_tree_node_interaction_data
+      use mpi
       implicit none
-      include 'mpif.h'
       private
 
       ! public variable declarations

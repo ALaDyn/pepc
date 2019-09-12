@@ -39,8 +39,8 @@ subroutine sum_radial(timestamp)
   use module_utils
   use module_pepc_kinds
   use module_pepc_types
+  use mpi
   implicit none
-  include 'mpif.h'
 
 
   integer, intent(in) :: timestamp

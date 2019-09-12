@@ -20,8 +20,8 @@
 
 subroutine setup_arrays(init_mb)
   use module_physvars
+  use mpi
   implicit none
-  include 'mpif.h'
   integer :: mem_fields, npmax, ntm
   integer, intent(out) :: init_mb
 

@@ -32,8 +32,8 @@ subroutine rezone
   use module_particle_props
   use module_velocity_setup
   use module_utilities
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: i, ierr
   real :: yt, zt, yb, zb, xt

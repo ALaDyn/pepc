@@ -28,8 +28,8 @@ module module_fmm_framework
       use module_pepc_kinds
       use module_interaction_specific_types, only : t_tree_node_interaction_data
       use module_shortcut
+      use mpi
       implicit none
-      include 'mpif.h'
       private
 
       ! public variable declarations

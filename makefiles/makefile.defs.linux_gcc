@@ -20,7 +20,7 @@ CPP      = mpicc
 CPPFLAGS = -E -x c -P -C -ffreestanding
                        # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
 # switch to send_request issued by worker threads
-CPPFLAGS += -DMPI_MULTIPLE
+#CPPFLAGS += -DMPI_MULTIPLE
 CCPRE    =
 CC       = mpicc
 FCPRE    =

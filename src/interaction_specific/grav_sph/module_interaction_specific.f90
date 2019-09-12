@@ -457,8 +457,8 @@ contains
 
     use module_pepc_types
     use treevars
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer*8, intent(in) :: node_idx !< node index of particle to interact with
     type(t_tree_node_interaction_data), intent(in) :: node
@@ -514,9 +514,8 @@ contains
         subroutine calc_force_coulomb_3D(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
@@ -611,9 +610,8 @@ contains
         subroutine calc_force_coulomb_2D(t, d, dist2, sumfx, sumfy, sumphi)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
@@ -673,9 +671,8 @@ contains
         subroutine calc_force_LJ(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
@@ -728,9 +725,8 @@ contains
       subroutine calc_force_coulomb_3D_direct(t, d, dist2, sumfx, sumfy, sumfz, sumphi)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
@@ -773,9 +769,8 @@ contains
       subroutine calc_force_coulomb_2D_direct(t, d, dist2, sumfx, sumfy, sumphi)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
           real*8, intent(in) :: d(2), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle

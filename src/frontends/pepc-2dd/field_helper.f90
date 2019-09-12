@@ -154,7 +154,6 @@ contains
 
   subroutine compute_field(pepc_pars, field_grid, p)
   !subroutine compute_field(field_grid, p)
-    !include 'mpif.h'
     use module_pepc     , only: pepc_particleresults_clear, pepc_traverse_tree
     use mpi
     use module_pepc
@@ -618,8 +617,8 @@ contains
         subroutine vtk_write_scalar_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
                           dens1, name1, mpi_comm, coord_scale)
           use module_vtk
+          use mpi
           implicit none
-          include 'mpif.h'
           character(*), intent(in) :: filename, name1!, name2
           integer, intent(in) :: step
           integer, intent(in) :: vtk_step

@@ -36,10 +36,9 @@ subroutine diagnostics
   use module_laser
   use module_diagnostics
   use module_io
+  use mpi
 
   implicit none
-  include 'mpif.h'
-
 
  if ( mod(itime,ivis_fields)==0 ) then
   if (idim.eq.2) then

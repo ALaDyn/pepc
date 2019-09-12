@@ -363,8 +363,8 @@ subroutine special_start(iconf)
   use module_physvars
   use module_utilities
   use module_velocity_setup
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer, intent(in) :: iconf
   integer :: i,iseed,j,p, grid_ind, ierr

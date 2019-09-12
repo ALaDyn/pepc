@@ -104,8 +104,8 @@ module pepcboris_helper
 
   subroutine get_mpi_rank(comm, rank, size)
     use module_pepc_types
+    use mpi
     implicit none
-    include 'mpif.h'
     integer(kind_default), intent(in) :: comm
     integer(kind_pe), intent(out) :: rank, size
     integer(kind_default) :: mpi_err

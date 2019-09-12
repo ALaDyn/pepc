@@ -255,9 +255,8 @@ program pepc
 
   use writers
   use bem
+  use mpi
   implicit none
-
-  include 'mpif.h'
 
   integer(kind_particle), parameter :: NX = 128, NY = NX, NSIDE = 128, NPART = 128
 

@@ -33,8 +33,8 @@
 subroutine pepc_setup()
   use physvars
   use module_mirror_boxes
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: npart_tmp
 

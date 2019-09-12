@@ -54,8 +54,8 @@ program pepc
   use module_particle_setup
   use module_debug
   use module_interaction_specific, only : kelbg_invsqrttemp
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: vtk_step
   integer(kind_particle) :: num_force_particles

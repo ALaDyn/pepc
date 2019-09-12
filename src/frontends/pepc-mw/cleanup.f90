@@ -25,7 +25,6 @@ subroutine cleanup(my_rank_l,n_cpu_l)
   
   use physvars
   implicit none
-  include 'mpif.h'
 
   integer, intent(in) :: my_rank_l ! MPI cpu rank
   integer, intent(in) :: n_cpu_l  ! MPI # CPUs

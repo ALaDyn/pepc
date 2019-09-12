@@ -307,8 +307,8 @@ subroutine icopy_particle(p,q)
 end subroutine icopy_particle
 
 function gyrofrequency(p)
+    use mpi
     implicit none
-    include 'mpif.h'
     type(t_particle), allocatable, intent(in)    :: p(:)
     real(kind_particle)                          :: gyrofrequency,Bnorm,Bnormg
     integer(kind_particle)                       :: ip,rc

@@ -33,8 +33,8 @@ subroutine vis_parts_nbody(vcount)
   use physvars
   use treevars
   use module_spacefilling
+  use mpi
   implicit none
-  include 'mpif.h'
 
 ! Buffer arrays vbuffer, vbuf_local allocated in setup_arrays 
 

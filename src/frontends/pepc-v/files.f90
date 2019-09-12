@@ -78,8 +78,8 @@ module files
     subroutine dump(i,simtime)
 
         use physvars
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: i
         real, intent(in) :: simtime
@@ -164,8 +164,8 @@ module files
     subroutine read_in_checkpoint
 
         use physvars
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer :: ierr, fh
         integer(KIND=MPI_OFFSET_KIND) :: header_disp=1024

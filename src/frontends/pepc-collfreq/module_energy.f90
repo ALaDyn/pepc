@@ -121,8 +121,8 @@ contains
         use physvars
         use module_fmm_framework
         use module_pepc_types
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer :: ierr
 
@@ -159,9 +159,9 @@ contains
         use module_units
         use module_pusher
         use module_pepc_types
+        use mpi
 
         implicit none
-        include 'mpif.h'
 
         type(t_particle), intent(in) :: particles(:)
         integer(kind_particle) :: p

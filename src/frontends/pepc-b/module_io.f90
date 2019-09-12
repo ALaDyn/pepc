@@ -212,9 +212,9 @@ subroutine dump(timestamp)
 
   use module_physvars
   use module_particle_props
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   character(30) :: cfile, cinfofile, cfile_new
   character(6) :: cdump
@@ -383,9 +383,9 @@ subroutine predef_parts
 
   use module_physvars
   use module_particle_props
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   integer :: i, j, idummy=0, ierr
   character(30) :: cinfile, cdump, cfile, cinfofile, cfile_new
@@ -664,9 +664,9 @@ subroutine dump(timestamp)
   use module_physvars
   use module_particle_props
   use module_utils
+  use mpi
 
   implicit none   
-  include 'mpif.h'
 
   character(30) :: cfile
   character(6) :: cdump
@@ -772,8 +772,8 @@ subroutine predef_parts
 
   use module_physvars
   use module_particle_props
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: i, idummy, ierr
 
@@ -1074,9 +1074,9 @@ subroutine dump_fields(timestamp)
 
   use module_physvars
   use module_laser
+  use mpi
 
   implicit none 
-  include 'mpif.h'
 
   real, dimension(0:max(nxh+1,ngx+1)) :: phi_pond, ex_pond, ey_pond, ez_pond, azr, epond
   real, dimension(0:ngx+1) :: rhoe_slice, ex_slice, jxe_slice, rhoi_slice
@@ -1328,9 +1328,9 @@ subroutine dump_fields_2d(timestamp)
 
 
   use module_physvars
+  use mpi
 
   implicit none 
-  include 'mpif.h'
 
   real :: dx, dy, simtime, qbox, qtot
   real, dimension(0:ngx+1,0:ngy+1) :: rhoe_2d, rhoi_2d

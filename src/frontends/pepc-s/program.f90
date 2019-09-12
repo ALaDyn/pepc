@@ -22,8 +22,8 @@ program pepcs
 
   use module_pepcs
   use module_pepc
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: nparts, nparts_total
   real*8, allocatable :: xyz(:,:), field(:,:), pot(:), q(:)

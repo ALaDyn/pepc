@@ -29,8 +29,8 @@ module pfm_feval
     !> dump number of rhs evaluations
     subroutine dump_nfeval(rank, comm, istream)
       use module_pepc_types
+      use mpi
       implicit none
-      include 'mpif.h'
       integer(kind_pe), intent(in) :: rank
       integer(kind_default), intent(in) :: comm
       integer, intent(in) :: istream

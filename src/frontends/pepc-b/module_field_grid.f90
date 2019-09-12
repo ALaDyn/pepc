@@ -71,9 +71,9 @@ subroutine densities
 
   use module_physvars
   use module_particle_props
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   real :: rdx, rdy, rdz, dx, dy, dz, cweight
   real :: fx1, fx2, fy1, fy2, fz1, fz2, xa, ya, za
@@ -158,9 +158,9 @@ subroutine densities_2d
 
   use module_physvars
   use module_particle_props
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   real :: rdx, rdy,  dx, dy, cweight
   real :: fx1, fx2, fy1, fy2, xa, ya
@@ -236,8 +236,8 @@ subroutine fields_2d
   use module_pepc_wrappers
   use module_interaction_specific, only : eps2
   use module_pepc_types
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: ng_total ! total # grid points
   integer :: ngp ! local # gp
@@ -322,8 +322,8 @@ subroutine sum_fieldave
 
   use module_physvars
   use module_particle_props
+  use mpi
   implicit none
-  include 'mpif.h'
 
   real*8, dimension(0:ngav+1) :: ex_g
   real :: dx,dy
@@ -648,8 +648,8 @@ subroutine field_lineout(timestamp)
   use module_physvars
   use module_particle_props
   use module_utils
+  use mpi
   implicit none
-  include 'mpif.h'
 
 
   integer, intent(in) :: timestamp
@@ -744,8 +744,8 @@ subroutine sum_radial(timestamp)
   use module_physvars
   use module_particle_props
   use module_utils
+  use mpi
   implicit none
-  include 'mpif.h'
 
 
   integer, intent(in) :: timestamp

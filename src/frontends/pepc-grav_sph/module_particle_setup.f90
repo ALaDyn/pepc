@@ -77,8 +77,8 @@ contains
     use files, only: &
          read_particles
 
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer, intent(in) :: iconf
     integer :: fences(-1:n_cpu-1)
@@ -313,8 +313,8 @@ contains
          num_neighbour_particles
 
     
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer, intent(in) :: fences(-1:n_cpu-1)
 
@@ -457,8 +457,8 @@ contains
          PARTICLE_TYPE_FIXED
     
     
+    use mpi
     implicit none
-    include 'mpif.h'
     
     integer, intent(in) :: fences(-1:n_cpu-1)
 
@@ -600,8 +600,8 @@ contains
          num_neighbour_particles
     
     
+    use mpi
     implicit none
-    include 'mpif.h'
     
     integer, intent(in) :: fences(-1:n_cpu-1)
 
@@ -697,8 +697,8 @@ contains
          PARTICLE_TYPE_FIXED
     
     
+    use mpi
     implicit none
-    include 'mpif.h'
     
     integer, intent(in) :: fences(-1:n_cpu-1)
 
@@ -788,8 +788,8 @@ contains
          PARTICLE_TYPE_FIXED
     
     
+    use mpi
     implicit none
-    include 'mpif.h'
     
     integer, intent(in) :: fences(-1:n_cpu-1)
 

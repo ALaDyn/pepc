@@ -34,8 +34,8 @@
 module pepcboris_paralleldump
   use module_pepc_kinds
   use module_pepc_types
+  use mpi
   implicit none
-  include 'mpif.h'
   private
 
   public paralleldump_init

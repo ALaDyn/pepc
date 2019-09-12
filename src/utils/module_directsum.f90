@@ -41,8 +41,8 @@ contains
       use module_timings
       use module_mirror_boxes
       use module_debug
+      use mpi
       implicit none
-      include 'mpif.h'
 
       type(t_particle), intent(in) :: particles(:)
       integer(kind_particle), dimension(:), intent(in) :: testidx !< field with particle indices that direct force has to be computed for

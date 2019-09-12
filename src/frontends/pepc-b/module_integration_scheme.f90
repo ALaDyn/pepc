@@ -406,8 +406,8 @@ subroutine velocities(p_start,p_finish,delta_t)
 
   use module_physvars
   use module_particle_props
+  use mpi
   implicit none
-  include 'mpif.h'
 
   real, intent(in) :: delta_t
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.

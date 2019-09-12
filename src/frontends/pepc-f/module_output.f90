@@ -67,8 +67,8 @@ MODULE output
 
     SUBROUTINE velocity_output(ispecies,filehandle)
         use diagnostics
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer,intent(in)      :: filehandle,ispecies
         real(KIND=8) :: v_mean(3)
@@ -88,8 +88,8 @@ MODULE output
     SUBROUTINE plasma_props_output(ispecies,filehandle,nbs,dbs,write_data)
         use diagnostics
         use module_pepc_types
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer                    :: rc,ix,iy,iz
 
@@ -164,8 +164,8 @@ MODULE output
     SUBROUTINE write_velocity_bins(ispecies,filehandle,nbs,dbs,write_data)
         use diagnostics, only: fill_velocity_bins
         use module_pepc_types
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer                    :: rc,ivpar
 
@@ -218,8 +218,8 @@ MODULE output
     SUBROUTINE probe_output(ispecies,filehandle)
         use diagnostics
         use module_pepc_types
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer,intent(in)      :: filehandle,ispecies
         integer :: nprobes(0:n_ranks-1),rc, displs(0:n_ranks-1),i
@@ -255,8 +255,8 @@ MODULE output
 
     SUBROUTINE energy_output(ispecies,filehandle)
         use diagnostics
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer,intent(in)      :: filehandle,ispecies
         real(KIND=8) :: v2_mean(3),ekin(3),epot
@@ -275,8 +275,8 @@ MODULE output
 
     SUBROUTINE avg_wallpotential_output(ib,filehandle)
         use diagnostics
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: filehandle,ib
         real(KIND=8) :: avg_potential
@@ -315,8 +315,8 @@ MODULE output
 
     SUBROUTINE energy_resolved_hits_output(ispecies)
         use module_utils
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: ispecies
         integer :: rc,ibins,tmp_filehandle=2345
@@ -359,8 +359,8 @@ MODULE output
 
     SUBROUTINE age_resolved_hits_output(ispecies)
         use module_utils
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: ispecies
         integer :: rc,ibins,tmp_filehandle=2345
@@ -402,8 +402,8 @@ MODULE output
 !===============================================================================
     SUBROUTINE angle_resolved_hits_output(ispecies)
         use module_utils
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: ispecies
         integer :: rc,ibins,tmp_filehandle=2345
@@ -444,8 +444,8 @@ MODULE output
 
     SUBROUTINE space_resolved_hits_output(ispecies)
         use module_utils
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: ispecies
         integer :: rc,ibins,ibnd,tmp_filehandle=2345
@@ -896,8 +896,8 @@ MODULE output
     subroutine set_checkpoint()
         use module_checkpoint
 
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer :: ispecies,ns
         integer*8 :: npart

@@ -35,9 +35,9 @@ subroutine setup
   use module_mirror_boxes
   use module_fmm_framework
   use module_physvars
+  use mpi
 
   implicit none
-  include 'mpif.h'
   integer :: ne_rest, ni_rest, ierr
 
   character(len=255) :: parameterfile

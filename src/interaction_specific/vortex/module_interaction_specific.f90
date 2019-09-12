@@ -304,8 +304,8 @@ module module_interaction_specific
         subroutine calc_force_per_interaction_with_self(particle, node, node_idx, delta, dist2, vbox)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_node), intent(in) :: node_idx
@@ -323,8 +323,8 @@ module module_interaction_specific
         subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_node), intent(in) :: node_idx
@@ -367,8 +367,8 @@ module module_interaction_specific
         subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-          include 'mpif.h'
 
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_node), intent(in) :: node_idx

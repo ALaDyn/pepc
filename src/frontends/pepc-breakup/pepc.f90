@@ -32,8 +32,8 @@ program pepc
 
    ! frontend helper routines
    use helper
+   use mpi
    implicit none
-   include 'mpif.h'
    ! control variable
    logical :: doDiag
 

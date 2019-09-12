@@ -65,9 +65,9 @@ program program_pepcb
   use module_diagnostics
   use module_particle_boundaries
   use module_interaction_specific, only : theta2, mac_select, eps2, cf_force_law => force_law, include_far_field_if_periodic
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   ! timing stuff
   real*8 :: t0, t_domain, t_build(4), t_walk, t_walkc, t_force

@@ -160,8 +160,8 @@ contains
    !>
    subroutine tree_walk_statistics(u)
       use treevars, only: me, num_pe, MPI_COMM_lpepc
+      use mpi
       implicit none
-      include 'mpif.h'
 
       integer, intent(in) :: u
 
@@ -261,8 +261,8 @@ contains
       use module_pepc_types
       use module_timings
       use module_debug
+      use mpi
       implicit none
-      include 'mpif.h'
 
       real(kind_physics), intent(in) :: vbox_(3) !< real space shift vector of box to be processed
 
@@ -362,8 +362,8 @@ contains
       use module_vtk
       use module_vtk_helpers
       use module_math_tools, only: bpi
+      use mpi
       implicit none
-      include 'mpif.h'
 
       integer(kind_particle) :: i, k, np
       integer(kind_key) :: cut_key
@@ -403,8 +403,8 @@ contains
       use module_atomic_ops
       use module_pepc_types
       use treevars, only: main_thread_processor_id
+      use mpi
       implicit none
-      include 'mpif.h'
 
       type(c_ptr) :: walk_worker_thread
       type(c_ptr), value :: arg
@@ -605,8 +605,8 @@ contains
 #endif
       use module_atomic_ops
       use module_pepc_types
+      use mpi
       implicit none
-      include 'mpif.h'
 
       type(t_cluster_data), intent(in) :: cluster
       integer(kind_node), dimension(:), pointer, intent(in) :: defer_list_old

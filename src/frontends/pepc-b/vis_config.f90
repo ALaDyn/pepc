@@ -31,8 +31,8 @@ subroutine vis_config
   use physvars
   use treevars
   use utils
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: i, p, ierr
   integer :: lvisit_active

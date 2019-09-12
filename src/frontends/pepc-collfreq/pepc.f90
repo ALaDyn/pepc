@@ -51,8 +51,8 @@ program pepc
   use module_particle_setup
   use module_debug
   use module_interaction_specific, only : kelbg_invsqrttemp
+  use mpi
   implicit none
-  include 'mpif.h'
 
   logical :: para_file_available
   character(255) :: para_file_name

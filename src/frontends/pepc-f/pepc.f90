@@ -43,8 +43,9 @@ program pepc
     use module_geometry
     use module_species
 
+    use mpi
+
     implicit none
-    include 'mpif.h'
 
     ! timing variables
     real*8 :: timer(20)

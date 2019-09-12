@@ -23,8 +23,8 @@
 module module_mpi_io
   use module_pepc_kinds
   use module_pepc_types
+  use mpi
   implicit none
-  include 'mpif.h'
   save
 
   public read_ascii

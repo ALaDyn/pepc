@@ -335,8 +335,8 @@ contains
     subroutine force_laser(p_start, p_finish)
         use module_pepc_types
         use physvars
+        use mpi
         implicit none
-		  include 'mpif.h'
         real*8 :: E_pon(3), B_em(3), Phipon
 
         integer(kind_particle), intent(in) :: p_start,p_finish  ! min, max particle nos.

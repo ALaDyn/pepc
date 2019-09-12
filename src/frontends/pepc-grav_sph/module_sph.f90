@@ -88,8 +88,8 @@ contains
 
   subroutine sph_initialize(idim_tmp, thermal_constant_tmp, kappa_tmp, art_vis_alpha_tmp, art_vis_beta_tmp)
     
+    use mpi
     implicit none
-    include 'mpif.h'
     
     integer, intent(in) :: idim_tmp
     real*8, intent(in) :: thermal_constant_tmp
@@ -183,8 +183,8 @@ contains
 
   subroutine sph_kernel(r, h, kernel)
     
+    use mpi
     implicit none
-    include 'mpif.h'
     
     real*8, intent(in) :: r                                 !< scalar distance between two particles, should allways be >= 0
     real*8, intent(in) :: h                                 !< sph smoothing length h
@@ -248,8 +248,8 @@ contains
          t_particle, &
          t_tree_node
 
+    use mpi
     implicit none
-    include 'mpif.h'
 
     
     integer, intent(in) :: np_local    !< # particles on this CPU
@@ -333,8 +333,8 @@ contains
 
   subroutine sph_grad_kernel(r, h, grad_kernel)
 
+    use mpi
     implicit none
-    include 'mpif.h'
     
     ! \bug ab: using idim for dimensions, be carefull with idim .ne. 3 because of pepc
     real*8, intent(in) :: r                                 !< scalar distance between two particles, should be >= 0
@@ -399,8 +399,8 @@ contains
     use physvars, only: &
          my_rank
 
+    use mpi
     implicit none
-    include 'mpif.h'
 
     
     integer, intent(in) :: np_local    !< # particles on this CPU
@@ -596,8 +596,8 @@ contains
     use physvars, only: &
          thermal_constant
 
+    use mpi
     implicit none
-    include 'mpif.h'
 
     
     integer, intent(in) :: np_local    !< # particles on this CPU
@@ -660,8 +660,8 @@ contains
          
     use module_debug
 
+    use mpi
     implicit none
-    include 'mpif.h'
 
     ! Data structure for shipping updated sph properties
     type t_property_update

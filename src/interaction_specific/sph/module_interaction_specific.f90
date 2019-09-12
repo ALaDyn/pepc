@@ -323,8 +323,8 @@ module module_interaction_specific
         subroutine update_nn_list(particle, node_idx, d, dist2)
           use module_pepc_types
           use treevars
+          use mpi
           implicit none
-          include 'mpif.h'
 
           integer(kind_node), intent(in) :: node_idx !< node index of particle to interact with
           real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle

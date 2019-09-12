@@ -68,8 +68,8 @@ subroutine pepc_setup()
        num_neighbour_particles
 
 
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: ierr, npart_tmp
 

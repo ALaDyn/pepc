@@ -74,9 +74,9 @@ contains
 
         use module_pepc
         use pfasst_helper_module
+        use mpi
 
         implicit none
-        include 'mpif.h'
 
         integer :: ierr, provided, color
         character(255) :: parameterfile
@@ -134,8 +134,8 @@ contains
 
         use module_pepc
         use module_interaction_specific, only : sig2
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(out) :: itime
         real, intent(out) :: trun
@@ -279,8 +279,8 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine setup_MPI_IO_readin(itime)
 
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(out) :: itime
 

@@ -32,8 +32,8 @@ module newton_krylov
   use module_shortcut
   use module_globals, only:vtilde
   !use module_interaction_Specific_types
+  use mpi
   implicit none
-  include 'mpif.h'
   save
   private
 
@@ -324,8 +324,8 @@ module newton_krylov
     !
     use module_tool   , only: cross_product
     use module_globals, only: root,my_rank,ixdim,ivdim
+    use mpi
     implicit none
-!    include 'mpif.h'
 
     integer(kind_particle)          , intent(in)     :: np
     integer(kind_particle)                           :: n

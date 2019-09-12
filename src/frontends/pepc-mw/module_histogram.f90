@@ -89,8 +89,8 @@ module module_histogram
   
   
   subroutine get_limits(rawdata, ncols, nvals, maxvals, minvals, mean, nvals_tot, comm)
+    use mpi
     implicit none
-    include 'mpif.h'
     real*8, intent(in)   :: rawdata(1:nvals,1:ncols)
     real*8, intent(out)  :: maxvals(1:ncols), minvals(1:ncols), mean(1:ncols)
     integer, intent(out) :: nvals_tot
@@ -134,8 +134,8 @@ module module_histogram
   
   
   subroutine write_histogram(rawdata, sigmavals, sigmabins, ncols, nvals, correctmean, filename, my_rank, comm, state)
+    use mpi
     implicit none
-    include 'mpif.h'
     real*8, intent(in)  :: rawdata(1:nvals,1:ncols)
     real*8, intent(in)  :: sigmavals, sigmabins
     integer, intent(in) :: ncols, nvals

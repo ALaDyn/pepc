@@ -461,8 +461,8 @@ contains
    end subroutine push_particles
 
    subroutine filter_particles(p)
+      use mpi
       implicit none
-      include 'mpif.h'
 
       type(t_particle), allocatable, intent(inout) :: p(:)
       integer(kind_particle) :: ip
@@ -491,8 +491,8 @@ contains
    subroutine test_particles()
       use module_pepc_types
       use module_directsum
+      use mpi
       implicit none
-      include 'mpif.h'
 
       integer(kind_particle), allocatable   :: tindx(:)
       real*8, allocatable                   :: trnd(:)
@@ -590,9 +590,8 @@ contains
      use module_vtk
      use module_pepc_types
      use module_interaction_specific_types
+     use mpi
      implicit none
-
-     include 'mpif.h'
 
      character(*), intent(in) :: fname
      integer, intent(in) :: step
@@ -646,8 +645,8 @@ contains
    end subroutine vtk_write_densities
 
    subroutine write_densities(vertices)
+     use mpi
      implicit none
-     include 'mpif.h'
 
      type(diag_vertex), intent(in) :: vertices(:)
      integer :: vtk_step
@@ -669,8 +668,8 @@ contains
 
    subroutine preempt_checkpointing(current_wall_time, previous_step_duration, doDiag, particles, step, break)
      use module_checkpoint
+     use mpi
      implicit none
-     include 'mpif.h'
 
      real(kind_physics), intent(in) :: current_wall_time, previous_step_duration
      logical, intent(in) :: doDiag
@@ -702,9 +701,8 @@ contains
 
    subroutine write_particles(p)
       use module_vtk_helpers
+      use mpi
       implicit none
-
-      include 'mpif.h'
 
       type(t_particle), intent(in) :: p(:)
 

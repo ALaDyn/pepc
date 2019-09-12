@@ -181,8 +181,8 @@ module helper
 
 
   subroutine filter_particles(p)
+    use mpi
     implicit none
-    include 'mpif.h'
 
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle) :: ip
@@ -212,8 +212,8 @@ module helper
   subroutine test_particles()
     use module_pepc_types
     use module_directsum
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer(kind_particle), allocatable   :: tindx(:)
     real*8, allocatable                   :: trnd(:)
@@ -298,9 +298,8 @@ module helper
 
   subroutine write_particles(p)
     use module_vtk_helpers
+    use mpi
     implicit none
-
-    include 'mpif.h'
 
     type(t_particle), intent(in) :: p(:)
 

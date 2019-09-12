@@ -32,8 +32,8 @@ subroutine vis_vecfields_nbody(timestamp)
 
   use physvars
   use treevars
+  use mpi
   implicit none   
-  include 'mpif.h'
 
   integer, intent(in) :: timestamp
   real*4, dimension(3*ngx*ngy*ngz) :: field1

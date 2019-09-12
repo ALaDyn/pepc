@@ -39,8 +39,8 @@ subroutine special_start(iconf)
   use module_diagnostics
   use module_units
   use module_velocity_setup
+  use mpi
   implicit none
-  include 'mpif.h'
 
   interface
     subroutine par_rand(res, iseed)

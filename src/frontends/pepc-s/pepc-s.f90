@@ -50,8 +50,8 @@ module module_pepcs
         use module_interaction_specific, only : theta2, eps2, mac_select, force_law
         use module_debug, only : debug_level
         use, intrinsic :: iso_c_binding
+        use mpi
         implicit none
-        include 'mpif.h'
 
         fcs_integer, intent(inout) :: local_particles, local_max_particles
         fcs_real, intent(in) :: positions(3,local_max_particles), charges(local_max_particles)

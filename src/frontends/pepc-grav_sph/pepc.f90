@@ -117,8 +117,8 @@ program pepce
   use module_particle_setup, only: &
        particle_setup
 
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: omp_thread_num
   integer :: ierr, ifile, i

@@ -30,9 +30,9 @@ program pepc
     use helper
     use variables
     use fnpy
+    use mpi
 
     implicit none
-    include 'mpif.h'
 
     real(KIND=8) :: v2sum(3),vsum(3)
 

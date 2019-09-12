@@ -156,8 +156,8 @@ contains
     subroutine cluster_diagnostics(itime, time_fs)
         use module_pepc_types
         use physvars, only : MPI_COMM_PEPC, particles, energy, np_local, my_rank, restart, spherical_grid_Nr, spherical_grid_Ntheta, spherical_grid_Nphi, rioncluster, relectroncluster
+        use mpi
         implicit none
-        include 'mpif.h'
         integer, intent(in) :: itime
         real*8, intent(in) :: time_fs
         real*8 :: rsq, rclustersq
@@ -238,8 +238,8 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine periodic_system_diagnostics(itime, time_fs)
         use physvars, only : particles, np_local
+        use mpi
         implicit none
-             include 'mpif.h'
         integer, intent(in) :: itime
         real*8, intent(in) :: time_fs
         logical, dimension(1:np_local) :: criterion
@@ -297,8 +297,8 @@ contains
         use physvars
         use module_checkpoint
         use module_namelist
+        use mpi
         implicit none
-        include 'mpif.h'
         logical, intent(in) :: binary, ascii, mpiio, vtk, final
         integer*8 :: npart
         character(255) :: filename
@@ -359,8 +359,8 @@ contains
         use module_namelist
         use module_prepare
         use module_pepc_types
+        use mpi
         implicit none
-        include 'mpif.h'
         logical, intent(in) :: binary, ascii, mpiio
         integer, intent(in) :: itime_in_
         character(255) :: filename
@@ -451,8 +451,8 @@ contains
     subroutine write_total_momentum(filename, itime_, time_fs, selection, mom, ncontributions)
         use physvars
         use module_units
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: itime_
         character(*), intent(in) :: filename
@@ -501,8 +501,8 @@ contains
     subroutine write_spatially_resolved_data(itime_, time_fs, selection, NR, NTheta, NPhi)
         use physvars
         use module_units
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: itime_
         real*8, intent(in) :: time_fs
@@ -626,8 +626,8 @@ contains
     subroutine verifydirect(particles, np_local, testidx, verbosity, my_rank, n_cpu, comm)
         use module_directsum
         use module_pepc_types
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer(kind_particle), intent(in) :: np_local !< number of local particles
         type(t_particle), intent(inout) :: particles(1:np_local)

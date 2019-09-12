@@ -325,9 +325,9 @@ subroutine init_particles(p,field_grid)
     use module_utils       , only: create_directory
     use module_globals     , only: extent,pold,poldold
     use encap
+    use mpi
     
     implicit none
-    include 'mpif.h'
     type(t_particle), allocatable, intent(inout) :: p(:)
     type(field_grid_t)           , intent(in)    :: field_grid
     integer(kind_particle)                       :: ip,rc,jp
@@ -597,8 +597,8 @@ subroutine init_particles(p,field_grid)
 
   subroutine time_step(p)
   use module_shortcut, only: zero,one
+  use mpi
   implicit none
-  include 'mpif.h'
     type(t_particle), allocatable, intent(in)    :: p(:)
     integer(kind_particle)                       :: ip,np,rc
     real(kind_particle)                          :: wpe,wgf,alpha
@@ -692,8 +692,8 @@ subroutine init_particles(p,field_grid)
 
 
   real*8 function get_time()
+      use mpi
       implicit none
-      include 'mpif.h'
 
       get_time = MPI_WTIME()
 
@@ -752,8 +752,8 @@ subroutine init_particles(p,field_grid)
         use module_globals             , only : folder
         use module_interaction_specific, only : theta2
         use module_tool                , only : random,cross_product
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer(kind_particle), allocatable   :: tindx(:)
         real(kind_particle), allocatable      :: trnd(:)
@@ -1078,9 +1078,8 @@ subroutine init_particles(p,field_grid)
         use module_vtk_helpers
         use module_pepc_types
 !        use pepca_units
+        use mpi
         implicit none
-
-        include 'mpif.h'
 
         type(t_particle), intent(in) :: p(:)
         real*8, intent(in) :: realtime

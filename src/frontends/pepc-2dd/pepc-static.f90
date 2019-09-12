@@ -38,8 +38,8 @@ program pepc
   use helper
 !  use module_mpi_io
   use module_shortcut
+  use mpi
   implicit none
-  include 'mpif.h'
   ! timing variables
   real(kind_particle)                        :: timer(5)
   real(kind_particle)                        :: t1, t2,t,tau,I

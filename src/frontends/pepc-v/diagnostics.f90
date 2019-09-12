@@ -25,8 +25,8 @@ contains
 subroutine error_norms(itime)
 
    use physvars
+   use mpi
    implicit none
-   include 'mpif.h'
 
    real,intent(in) :: itime
 
@@ -165,8 +165,8 @@ end subroutine error_norms
 subroutine linear_diagnostics(itime,trun)
 
    use physvars
+   use mpi
    implicit none
-   include 'mpif.h'
 
    integer, intent(in) :: itime
    real, intent(in) :: trun
@@ -230,8 +230,8 @@ end subroutine linear_diagnostics
 subroutine divergence_diag(itime,trun)
 
    use physvars
+   use mpi
    implicit none
-   include 'mpif.h'
 
    integer, intent(in) :: itime
    real, intent(in) :: trun
@@ -260,8 +260,8 @@ subroutine verify_direct()
     use physvars
     use module_interaction_specific_types, only: t_particle_results
     use manipulate_particles
+    use mpi
     implicit none
-    include 'mpif.h'
 
     real*8, dimension(np) :: rel_error_u, rel_error_af
 

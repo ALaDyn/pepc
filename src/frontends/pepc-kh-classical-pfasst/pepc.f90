@@ -47,9 +47,9 @@ program pepc
    use pf_mod_options
    use pepcboris_paralleldump
 
-   implicit none
+   use mpi
 
-  include 'mpif.h'
+   implicit none
 
   ! variables for pfasst
   integer(kind_default):: mpi_err

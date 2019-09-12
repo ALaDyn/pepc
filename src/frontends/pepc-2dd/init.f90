@@ -461,8 +461,8 @@ module module_init
   subroutine velocity_profile(p)
    use module_globals, only: nsp,ns_tot,percentages,my_rank,n_ranks,tnp,vth,vdrift,uth,udrift,wth,wdrift,root,nsp,&
                              u_pert,v_pert,w_pert,extent,vtilde
+    use mpi
     implicit none
-    include 'mpif.h'
 !
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle)                       :: ip,np,n,j1,species,count_species(1:nsp),rc

@@ -31,8 +31,8 @@ subroutine vis_control
   use physvars
   use treevars
   use utils
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: i, p, iseed1, iseed2, ierr
   real :: Volb, dpx, yt, zt, vosc_old, sigma_old, tpulse_old, u_old, theta_old, phi_old

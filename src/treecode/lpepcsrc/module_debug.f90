@@ -93,8 +93,8 @@ contains
    subroutine debug_initialize()
       use treevars
       use module_utils, only: create_directory
+      use mpi
       implicit none
-      include 'mpif.h'
 
       character(MPI_MAX_PROCESSOR_NAME) :: procname
       integer(kind_default) :: resultlen, ierr
@@ -169,8 +169,8 @@ contains
 #if defined(__ICC) || defined(__INTEL_COMPILER)
       use ifcore
 #endif
+      use mpi
       implicit none
-      include 'mpif.h'
       integer(kind_default) :: ierr
 
 #if defined(__ICC) || defined(__INTEL_COMPILER)
@@ -198,8 +198,8 @@ contains
    !>
    subroutine debug_barrier()
       use treevars, only: MPI_COMM_lpepc
+      use mpi
       implicit none
-      include 'mpif.h'
       integer(kind_default) :: ierr
 
       call MPI_BARRIER(MPI_COMM_lpepc, ierr)

@@ -95,8 +95,8 @@ module module_particle_setup
         !>
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         subroutine  measure_dimensions(LatticeOrigin, BoxDimensions)
+          use mpi
           implicit none
-          include 'mpif.h'
           real*8, intent(out) :: LatticeOrigin(3), BoxDimensions(3)
           real*8 :: minc(3), maxc(3), h(3)
           integer :: ierr
@@ -177,8 +177,8 @@ module module_particle_setup
           use module_velocity_setup
           use module_diagnostics
           use module_pepc_types
+          use mpi
           implicit none
-          include 'mpif.h'
           integer, intent(in) :: iconf
           integer :: fences(-1:n_cpu-1)
           integer :: ierr

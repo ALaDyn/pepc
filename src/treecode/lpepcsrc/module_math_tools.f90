@@ -177,8 +177,8 @@ contains
       use treevars, only: idim
       use module_spacefilling
       use module_debug
+      use mpi
       implicit none
-      include 'mpif.h'
 
       integer(kind_key), intent(in) :: a, b
       integer(kind_key) :: bpi

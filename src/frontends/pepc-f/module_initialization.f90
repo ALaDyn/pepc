@@ -152,9 +152,9 @@ module module_initialization
     use module_interaction_specific
     use module_mirror_boxes
     use module_checkpoint
+    use mpi
 
     implicit none
-    include 'mpif.h'
 
     integer, parameter :: fid = 12
     integer*8 :: npart
@@ -213,8 +213,8 @@ module module_initialization
       use module_interaction_specific
       use module_mirror_boxes
       use module_checkpoint
+      use mpi
       implicit none
-      include 'mpif.h'
       
       integer, parameter :: fid = 666
       integer(kind_particle) :: global_max_label,local_max_label

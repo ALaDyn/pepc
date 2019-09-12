@@ -147,8 +147,8 @@ module module_pusher
 
 		  use physvars
 		  use utils
+                  use mpi
 		  implicit none
-		  include 'mpif.h'
 
 		  integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
 		  integer, intent(in) :: scheme

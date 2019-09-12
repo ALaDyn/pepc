@@ -35,8 +35,8 @@ contains
 
         use physvars
         use files
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer :: j, k, ind, ind0, i, m, ierr, l
         real :: par_rand_res
@@ -611,8 +611,8 @@ contains
         use module_timings
         use omp_lib
         use treevars, only: num_threads
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn, m_n, omp_thread_num
         real*8 :: frac, xt, yt, zt, axt, ayt, azt, wt
@@ -786,8 +786,8 @@ contains
         use physvars
         use treevars, only : maxlevel, idim
         use module_sort, only : sort
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type (t_particle), intent(inout) :: particles(*)
         integer, intent(inout) :: m_np
@@ -1024,8 +1024,8 @@ contains
     subroutine kick_out_particles()
 
         use physvars
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer :: i, k, ierr
         real*8 :: thresh2
@@ -1056,8 +1056,8 @@ contains
     subroutine reset_labels()
 
         use physvars
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer :: i, ierr, nscan
 
@@ -1076,8 +1076,8 @@ contains
         use module_pepc_types
         use module_interaction_specific_types, only: t_particle_results
         use module_directsum
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: np_local, my_rank, n_cpu
         type(t_particle), intent(in) :: particles(1:np_local)

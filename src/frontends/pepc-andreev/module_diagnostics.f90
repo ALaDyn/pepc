@@ -56,9 +56,8 @@ module pepca_diagnostics
     use module_vtk_helpers
     use module_pepc_types
     use pepca_units
+    use mpi
     implicit none
-
-    include 'mpif.h'
 
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
@@ -124,9 +123,8 @@ module pepca_diagnostics
     use pepca_units
     use pepca_globals
     use module_pepc, only: global_tree
+    use mpi
     implicit none
-
-    include 'mpif.h'
 
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
@@ -226,8 +224,8 @@ module pepca_diagnostics
     use module_pepc_types
     use pepca_globals, only: root
     use pepca_units
+    use mpi
     implicit none
-    include 'mpif.h'
 
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime

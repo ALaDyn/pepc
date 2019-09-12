@@ -220,8 +220,8 @@ module helper
   end subroutine push_particles
 
   subroutine filter_particles(p)
+    use mpi
     implicit none
-    include 'mpif.h'
 
     type(t_particle), allocatable, intent(inout) :: p(:)
     integer(kind_particle) :: ip, rp
@@ -336,8 +336,8 @@ module helper
 
     use module_pepc_types
     use module_directsum
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer(kind_particle), allocatable   :: tindx(:)
     real*8, allocatable                   :: trnd(:)
@@ -397,9 +397,8 @@ module helper
 
   subroutine compute_field()
     use module_pepc
+    use mpi
     implicit none
-
-    include 'mpif.h'
 
     real*8             :: ta, tb
     integer, parameter :: fid = 12
@@ -456,9 +455,8 @@ module helper
   subroutine write_particles(p)
     use module_vtk
     use module_vtk_helpers
+    use mpi
     implicit none
-
-    include 'mpif.h'
 
     type(t_particle), intent(in) :: p(:)
 
@@ -522,8 +520,8 @@ module helper
   end subroutine write_domain
 
   real*8 function get_time()
+    use mpi
     implicit none
-    include 'mpif.h'
 
     get_time = MPI_WTIME()
 

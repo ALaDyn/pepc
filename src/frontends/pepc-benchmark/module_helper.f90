@@ -259,8 +259,8 @@ contains
    end subroutine check_energies_local
 
    subroutine check_energies()
+      use mpi
       implicit none
-      include 'mpif.h'
 
       integer            :: info
       real(kind_physics) :: local(2), global(2)
@@ -318,8 +318,8 @@ contains
    end subroutine histogram_local
 
    subroutine test_histogram(check)
+      use mpi
       implicit none
-      include 'mpif.h'
 
       logical, intent(in)           :: check
       logical                       :: peak
@@ -363,8 +363,8 @@ contains
    end subroutine test_histogram
 
    subroutine filter_particles(p)
+      use mpi
       implicit none
-      include 'mpif.h'
 
       type(t_particle), allocatable, intent(inout) :: p(:)
       integer(kind_particle) :: ip
@@ -393,8 +393,8 @@ contains
    subroutine test_particles()
       use module_pepc_types
       use module_directsum
+      use mpi
       implicit none
-      include 'mpif.h'
 
       integer(kind_particle), allocatable   :: tindx(:)
       real*8, allocatable                   :: trnd(:)
@@ -476,9 +476,8 @@ contains
 
    subroutine write_particles(p)
       use module_vtk_helpers
+      use mpi
       implicit none
-
-      include 'mpif.h'
 
       type(t_particle), intent(in) :: p(:)
 

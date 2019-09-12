@@ -218,9 +218,9 @@ subroutine force_laser(p_start,p_finish)
 
   use module_physvars
   use module_particle_props
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   integer, intent(in) :: p_start,p_finish  ! min, max particle nos.
   integer :: p
@@ -1487,9 +1487,9 @@ subroutine track_nc
 
   use module_physvars
   use module_field_grid
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   real, dimension(0:ngx+1) :: rho1d
 
@@ -1607,9 +1607,9 @@ subroutine density_helmholtz
 
   use module_physvars
   use module_particle_props
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   real :: rdx, rdy, rdz, dy, dz, cweight
   real :: fx1, fx2, fy1, fy2, fz1, fz2, xa, ya, za

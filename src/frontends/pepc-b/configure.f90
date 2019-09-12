@@ -35,9 +35,9 @@ subroutine configure
     use module_laser
     use module_io
     use module_particle_beam
+    use mpi
  
     implicit none
-    include 'mpif.h'
 
 
     integer :: i, ierr

@@ -74,8 +74,8 @@ contains
 
         use module_pepc
         use module_interaction_specific, only : sig2
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(out) :: itime
         real, intent(out) :: trun
@@ -203,9 +203,8 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine cleanup(my_rank_l,n_cpu_l)
-
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(in) :: my_rank_l ! MPI cpu rank
         integer, intent(in) :: n_cpu_l  ! MPI # CPUs
@@ -227,9 +226,8 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine setup_MPI_IO_readin(itime)
-
+        use mpi
         implicit none
-        include 'mpif.h'
 
         integer, intent(out) :: itime
 

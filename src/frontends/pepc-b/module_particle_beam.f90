@@ -70,8 +70,8 @@ subroutine beam_control
   use module_physvars
   use module_particle_props
   use module_utilities
+  use mpi
   implicit none
-  include 'mpif.h'
 
   integer :: i, p, iseed1, iseed2, ierr
   real :: Volb, dpx, yt, zt, vosc_old, sigma_old, tpulse_old, u_old, theta_old, phi_old

@@ -32,8 +32,8 @@ subroutine vis_fields
 
   use physvars
   use treevars
+  use mpi
   implicit none   
-  include 'mpif.h'
 
   real, dimension(ngx*ngy*ngz) :: qvis,mvis
   real, dimension(0:ngx+1,0:ngy+1,0:ngz+1) :: bzg

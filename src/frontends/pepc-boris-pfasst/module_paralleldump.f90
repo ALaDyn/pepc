@@ -33,8 +33,8 @@
 !> lets hope they do not overflow :-)
 module pepcboris_paralleldump
   use module_pepc_kinds
+  use mpi
   implicit none
-  include 'mpif.h'
   private
 
   public paralleldump_init

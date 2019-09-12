@@ -243,8 +243,8 @@ end subroutine energy_cons
 subroutine potenergy(epot_total,emag_total)
   use module_physvars
   use module_particle_props
+  use mpi
   implicit none
-  include 'mpif.h'
 
 
   integer :: p, ierr 
@@ -295,9 +295,9 @@ end subroutine potenergy
 subroutine kinenergy(ekine,ekini,ebeam,ebeam_max)
   use module_physvars
   use module_particle_props
+  use mpi
 
   implicit none
-  include 'mpif.h'
 
   integer :: p, ierr
   real*8 :: ekine, ekini, ebeam, sum_plas_e, sum_plas_i, sum_beam, gamma

@@ -115,8 +115,8 @@ contains
       use module_spacefilling, only: key_to_coord, level_from_key
       use module_debug
       use treevars, only: maxlevel
+      use mpi
       implicit none
-      include 'mpif.h'
 
       type(t_decomposition), intent(inout) :: d
       type(t_box), intent(in) :: b
@@ -329,8 +329,8 @@ contains
       !>   bp(2) = particles[me + 1](1)
       !>
       subroutine exchange_boundary_particles()
+         use mpi
          implicit none
-         include 'mpif.h'
 
          integer :: state(MPI_STATUS_SIZE)
          integer(kind_particle) :: npp
@@ -372,8 +372,8 @@ contains
    subroutine domain_restore(d, p)
       use module_pepc_types, only: t_particle, MPI_TYPE_particle_vec
       use module_debug, only: pepc_status
+      use mpi
       implicit none
-      include 'mpif.h'
 
       type(t_decomposition), intent(inout) :: d
       type(t_particle), intent(inout), allocatable :: p(:)

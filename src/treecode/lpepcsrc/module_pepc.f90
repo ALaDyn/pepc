@@ -74,8 +74,8 @@ contains
       use module_domains
       use module_debug
       use pthreads_stuff, only: get_my_core
+      use mpi
       implicit none
-      include 'mpif.h'
       character(*), intent(in) :: frontendname !< name of the program that uses the treecode (only for output purposes)
       integer(kind_pe), optional, intent(out) :: my_rank !< MPI rank of this instance as returned from MPI
       integer(kind_pe), optional, intent(out) :: n_cpu !< number of MPI ranks as returned from MPI
@@ -299,8 +299,8 @@ contains
       use treevars, only: treevars_finalize, MPI_COMM_lpepc
       use pthreads_stuff, only: pthreads_uninit
       use module_tree_communicator, only: tree_communicator_finalize
+      use mpi
       implicit none
-      include 'mpif.h'
       integer(kind_default) :: ierr
 
       integer, intent(inout), optional :: comm !< communicator. if pepc_initialize() initializes MPI, it returns an MPI_COMM_DUP-copy of its own communicator in comm, that can be given here to be freed automatically
@@ -332,8 +332,8 @@ contains
    !>
    subroutine pepc_get_para_file(available, file_name, my_rank, comm)
       use treevars, only: MPI_COMM_lpepc
+      use mpi
       implicit none
-      include 'mpif.h'
 
       logical, intent(out) :: available
       character(len=255), intent(out) :: file_name

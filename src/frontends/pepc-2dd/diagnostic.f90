@@ -36,8 +36,8 @@ module module_diagnostic
 
     subroutine hamiltonian(np,p,pold,t)
       use module_globals,only: lorentz_tilde,nsp,ns_tot,uth,vth,tnp
+      use mpi
       implicit none
-      include 'mpif.h'
       type(t_particle), allocatable, intent(in) :: p(:),pold(:)
       real(kind_particle)          , intent(in) :: t
       integer(kind_particle)       , intent(in) :: np
@@ -142,8 +142,8 @@ module module_diagnostic
       
       subroutine densities(np,p,t)
       use module_globals,only: nsp,ns_tot,percentages
+      use mpi
       implicit none
-      include 'mpif.h'
       type(t_particle), allocatable, intent(in) :: p(:)
       real(kind_particle)          , intent(in) :: t
       integer(kind_particle)       , intent(in) :: np
@@ -210,8 +210,8 @@ module module_diagnostic
 
 
       subroutine beam_rnv(tnp,p,t)
+      use mpi
       implicit none
-      include 'mpif.h'
       type(t_particle), allocatable, intent(in) :: p(:)
       real(kind_particle)          , intent(in) :: t
       integer(kind_particle)       , intent(in) :: tnp

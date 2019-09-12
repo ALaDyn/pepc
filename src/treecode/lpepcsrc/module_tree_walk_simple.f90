@@ -62,8 +62,8 @@ contains
 
    subroutine tree_walk_statistics(u)
       use treevars, only: me, num_pe, MPI_COMM_lpepc
+      use mpi
       implicit none
-      include 'mpif.h'
 
       integer, intent(in) :: u
 

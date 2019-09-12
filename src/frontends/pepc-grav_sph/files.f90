@@ -86,8 +86,8 @@ contains
 
     use module_pepc_types
 
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer, intent(in) :: i
     real, intent(in) :: simtime
@@ -158,8 +158,8 @@ contains
    
     use module_pepc_types
  
+    use mpi
     implicit none
-    include 'mpif.h'
 
     integer :: ierr, fh
     integer(KIND=MPI_OFFSET_KIND) :: header_disp=1024
@@ -253,10 +253,9 @@ contains
          particles
     
 !     use utils
+     use mpi
  
      implicit none
- 
-     include 'mpif.h'
  
      character(*), intent(in) :: filename             ! all processes start this subroutine with the correct filename so BCAST before
      integer, intent(in) :: step
@@ -443,8 +442,8 @@ contains
      use module_pepc, only: &
           pepc_read_parameters_from_file_name
      
+     use mpi
      implicit none
-     include 'mpif.h'
      
      logical            :: available
      character(len=255) :: file_name
@@ -614,8 +613,8 @@ contains
      
      use physvars
 
+     use mpi
      implicit none
-     include 'mpif.h'
      
      integer :: ierr
      integer :: filetype = -1    ! 1 for ascii02, 2 for binary vtk, 3 for mpiio, 4 for ascii01, -1 for unknown
@@ -685,8 +684,8 @@ contains
 !          npart_total, &
 !          particles
 
+    use mpi
     implicit none
-    include 'mpif.h'
 
     character(*), intent(in) :: filename               ! all processes start this subroutine with the correct filename so BCAST before
 

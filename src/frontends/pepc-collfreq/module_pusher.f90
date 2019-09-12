@@ -145,8 +145,8 @@ module module_pusher
     subroutine velocities(particles,scheme)
         use module_pepc_types
         use physvars
+        use mpi
         implicit none
-        include 'mpif.h'
 
         type(t_particle), intent(inout) :: particles(:)
         integer, intent(in) :: scheme
@@ -459,8 +459,8 @@ module module_pusher
       use module_pepc_types
       use module_units
       use physvars
+      use mpi
       implicit none
-      include 'mpif.h'
       type(t_particle), intent(in) :: particles(:)
       real*8 :: ex_e, ex_i
       real*8 :: epot_e, epot_i, H_e, H_i
@@ -613,8 +613,8 @@ module module_pusher
       use module_units
       use module_pepc_types
       use physvars
+      use mpi
       implicit none
-      include 'mpif.h'
       type(t_particle), intent(in) :: particles(:)
       real*8, intent(in) :: Te_before, Ti_before
       real*8 :: betae, betai
@@ -767,8 +767,8 @@ module module_pusher
       use module_units
       use module_pepc_types
       use physvars
+      use mpi
       implicit none
-      include 'mpif.h'
       type(t_particle), intent(in) :: particles(:)
       real*8 :: epot_e, epot_i, H_e, H_i
       real*8 :: Ue_uncor, Ui_uncor

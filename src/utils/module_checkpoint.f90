@@ -23,8 +23,8 @@
 !>
 module module_checkpoint
    use module_pepc_kinds
+   use mpi
    implicit none
-   include 'mpif.h'
 
    private
 

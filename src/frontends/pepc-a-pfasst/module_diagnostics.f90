@@ -91,9 +91,8 @@ module pepca_diagnostics
     use module_vtk_helpers
     use module_pepc_types
     use pepca_units
+    use mpi
     implicit none
-
-    include 'mpif.h'
 
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
@@ -127,9 +126,8 @@ module pepca_diagnostics
     use pepca_units
     use module_pepc, only: global_tree
     use pepca_helper, only: dim
+    use mpi
     implicit none
-
-    include 'mpif.h'
 
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
@@ -231,8 +229,8 @@ module pepca_diagnostics
     use module_pepc_types
     use pepca_units
     use module_debug
+    use mpi
     implicit none
-    include 'mpif.h'
 
     type(t_particle), intent(in) :: p(:)
     real*8, intent(in) :: realtime
@@ -327,8 +325,8 @@ module pepca_diagnostics
   subroutine compare_particles_to_particles(particles, particles_ref, comm, xerr, verr)
     use module_debug
     use module_pepc_types
+    use mpi
     implicit none
-    include 'mpif.h'
     type(t_particle), intent(in) :: particles(:), particles_ref(:)
     integer(kind_default), intent(in) :: comm
     real*8, intent(out) :: xerr, verr
