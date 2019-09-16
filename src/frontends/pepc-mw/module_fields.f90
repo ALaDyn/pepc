@@ -305,7 +305,7 @@ module module_fields
         integer :: i, j, k, vtk_step, ierr
         integer :: globaldims(2,3), mydims(2,3)
         integer :: dims(3), coords(3)
-        logical :: periods
+        logical :: periods(3)
         integer :: comm_cart
 
         globaldims(1,:) = 0
