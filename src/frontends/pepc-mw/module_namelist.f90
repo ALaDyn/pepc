@@ -41,15 +41,24 @@ module module_namelist
 
   contains
 
-    subroutine write_frontend_parameters_to_file(filename)
+    subroutine write_frontend_parameters_to_file(filename, new_file)
       implicit none
       character(*), intent(in) :: filename
       integer, parameter :: filehandle = 91
+      logical, optional :: new_file
 
       if (my_rank ==0) then
-        open(filehandle,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
-        write(filehandle, nml=pepcmw)
-        close(filehandle)
+         if (present(new_file)) then
+            if (new_file) then
+               open(filehandle,file=trim(filename),STATUS='REPLACE')
+            else
+               open(filehandle,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
+            end if
+         else
+            open(filehandle,file=trim(filename),STATUS='UNKNOWN', POSITION = 'APPEND')
+         end if
+         write(filehandle, nml=pepcmw)
+         close(filehandle)
       endif
 
     end subroutine

@@ -84,7 +84,7 @@ program pepc
   if (para_file_available) then
      call read_frontend_parameters_from_file(para_file_name)
   else
-     call write_frontend_parameters_to_file("params.template")
+     call write_frontend_parameters_to_file("params.template", .true.)
   end if
 
   call pepcmw_prepare()
