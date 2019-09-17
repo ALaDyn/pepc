@@ -84,7 +84,14 @@ program pepc
   if (para_file_available) then
      call read_frontend_parameters_from_file(para_file_name)
   else
-     call write_frontend_parameters_to_file("params.template", .true.)
+     block
+        integer :: tmplfl
+
+        call write_frontend_parameters_to_file("params.template", .true.)
+        open(newunit=tmplfl, file="params.template", status='OLD', position='APPEND')
+        call pepc_write_parameters(tmplfl)
+        close(tmplfl)
+     end block
   end if
 
   call pepcmw_prepare()
