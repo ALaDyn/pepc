@@ -81,14 +81,17 @@ program pepc
   if (my_rank==0) call stamp(file_pepc_out,1)
 
   ! Each CPU gets copy of initial data
-  if (para_file_available) call read_frontend_parameters_from_file(para_file_name)
+  if (para_file_available) then
+     call read_frontend_parameters_from_file(para_file_name)
+  else
+     call write_frontend_parameters_to_file("params.template")
+  end if
 
   call pepcmw_prepare()
 
-  if (my_rank == 0) write(*,*) "Starting PEPC-MW with",n_cpu," Processors, simulating",np_local, " Particles on each Processor in",nt,"timesteps..."
-
   ! Set up particles - in case if ispecial ==-1, particles and parameters are automatically read from a file again
   call particle_setup(ispecial)
+  if (my_rank == 0) write(*,*) "Starting PEPC-MW with",n_cpu," Processors, simulating",np_local, " Particles on each Processor in",nt,"timesteps..."
 
   ! initial particle output
   ! no initial checkpoint since this would override the current checkpoint if in resume-mode
