@@ -287,7 +287,7 @@ contains
      if(width<12) then
         write(*,*) 'width of SPH_ASCII02 datacolumns is below 12. Set to a value >=12.'
         ! width < 12 makes no sense and is therefore not implemented.
-        call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        call MPI_ABORT(MPI_COMM_WORLD, 666, ierr)
      end if
 
 

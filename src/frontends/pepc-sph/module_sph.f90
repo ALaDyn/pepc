@@ -660,12 +660,12 @@ contains
          
     use module_debug
 
+    use iso_c_binding
     use mpi
     implicit none
 
     ! Data structure for shipping updated sph properties
-    type t_property_update
-       sequence
+    type, bind(c) :: t_property_update
        integer*8 :: key                                                  !< key
        integer   :: owner                                                !< owner
        real*8    :: smoothing_length                                     !< \bug ab: comments needed
