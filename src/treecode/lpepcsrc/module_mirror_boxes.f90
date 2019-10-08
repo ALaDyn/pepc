@@ -35,7 +35,7 @@ module module_mirror_boxes
    real(kind_physics), public :: LatticeCenter(3) !< holds the central point of the lattice box
    real(kind_physics), public :: LatticeOrigin(3) = [0., 0., 0.] !< holds the lattice origin - can be modified by calling program
    logical, public :: periodicity(3) = [.false., .false., .false.]  !< boolean switches for determining periodicity directions
-   integer, public :: mirror_box_layers = 1 !< size of near-field layer (nmber of shells)
+   integer, public :: mirror_box_layers = 1 !< size of near-field layer (number of shells)
    real(kind_physics), public :: unit_box_volume = 1.0 !< volume box that is spanned by t_lattice_1..3, is initialized in calc_neighour_boxes()
    !> variables that should not be written to
    integer, public :: num_neighbour_boxes = 1

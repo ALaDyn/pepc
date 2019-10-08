@@ -232,6 +232,14 @@ contains
       implicit none
       integer, intent(in) :: filehandle
 
+      write (filehandle, *) "!"
+      write (filehandle, *) "!==============================================================================="
+      write (filehandle, *) "! TREE WALK PARAMETERS"
+      write (filehandle, *) "!"
+      write (filehandle, *) "! max_clusters_per_thread   : maximum number of particles processed in parallel by one workthread"
+      write (filehandle, *) "!                             [30] <module_tree_walk_pthreads_clustered>"
+      write (filehandle, *) "! max_particles_per_cluster : [32] <module_tree_walk_pthreads_clustered>"
+      write (filehandle, *) "!"
       write (filehandle, NML=walk_para_pthreads_clustered)
    end subroutine
 

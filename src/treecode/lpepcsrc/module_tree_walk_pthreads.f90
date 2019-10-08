@@ -220,6 +220,13 @@ contains
       implicit none
       integer, intent(in) :: filehandle
 
+      write (filehandle, *) "!"
+      write (filehandle, *) "!==============================================================================="
+      write (filehandle, *) "! TREE WALK PARAMETERS"
+      write (filehandle, *) "!"
+      write (filehandle, *) "! max_particles_per_thread : maximum number of particles processed in parallael by one workthread"
+      write (filehandle, *) "!                            [30] <module_tree_walk_pthreads>"
+      write (filehandle, *) "!"
       write (filehandle, NML=walk_para_pthreads)
    end subroutine
 

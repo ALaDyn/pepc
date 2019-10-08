@@ -169,6 +169,22 @@ contains
       implicit none
       integer, intent(in) :: filehandle
 
+      write (filehandle, *) "!"
+      write (filehandle, *) "!==============================================================================="
+      write (filehandle, *) "! INTERACTION SPECIFIC PARAMETERS"
+      write (filehandle, *) "!"
+      write (filehandle, *) "! force_law                     : 3/2 = 3D-/2D-Coulomb [3] <module_interaction_specific>"
+      write (filehandle, *) "! mac_select                    : selector for multipole acceptance criterion"
+      write (filehandle, *) "!                                 mac_select==0: Barnes-Hut [0] <module_interaction_specific>"
+      write (filehandle, *) "! include_far_field_if_periodic : .false.==the far-field contribution to periodic boundaries is ignored"
+      write (filehandle, *) "!                                 (aka 'minimum-image-mode') [.true.] <module_interaction_specific>"
+      write (filehandle, *) "! theta2                        : square of multipole opening angle [.36] <module_interaction_specific>"
+      write (filehandle, *) "! eps2                          : square of short-distance cutoff parameter for Plummer potential"
+      write (filehandle, *) "!                                 (0.0 corresponds to classical Coulomb) [0.0]"
+      write (filehandle, *) "!                                 <module_interaction_specific>"
+      write (filehandle, *) "! kelbg_invsqrttemp             : inverse square root of temperature for kelbg potential"
+      write (filehandle, *) "!                                 [0.0] <module_interaction_specific>"
+      write (filehandle, *) "!"
       write (filehandle, NML=calc_force_coulomb)
    end subroutine
 

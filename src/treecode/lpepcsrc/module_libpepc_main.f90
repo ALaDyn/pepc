@@ -67,6 +67,34 @@ contains
       implicit none
       integer, intent(in) :: filehandle
 
+      write (filehandle, *) "!"
+      write (filehandle, *) "!==============================================================================="
+      write (filehandle, *) "! PARAMETERS FOR LIBPEPC"
+      write (filehandle, *) "!"
+      write (filehandle, *) "! debug_level                    : debug level for printed output [0] <module_debug>"
+      write (filehandle, *) "! periodicity(3)                 : boolean switches to determine periodicity directions"
+      write (filehandle, *) "!                                  [.false., .false., .false.] <module_mirror_boxes>"
+      write (filehandle, *) "! np_mult                        : a tricky parameter..."
+      write (filehandle, *) "!                                  start with -45 and decrease if crashes occur"
+      write (filehandle, *) "!                                  depends on the machine, number of particles,"
+      write (filehandle, *) "!                                  memory available, size of the tree, ..."
+      write (filehandle, *) "!                                  be careful since it increases memory"
+      write (filehandle, *) "!                                  [-45] <treevars>"
+      write (filehandle, *) "! curve_type                     : currently has to be 1 [1] <module_libpepc_main>"
+      write (filehandle, *) "! force_cubic_domain             : if .true. PEPC uses an overall cubic enclosure of the"
+      write (filehandle, *) "!                                  particle cloud instead of the cuboid (closer) one"
+      write (filehandle, *) "!                                  [.false.] <module_box>"
+      write (filehandle, *) "! weighted                       : 0/1 to dis-/enable load balancing [1] <module_domains>"
+      write (filehandle, *) "! interaction_list_length_factor : factor for increasing todo_list_length and"
+      write (filehandle, *) "!                                  defer_list_length in case of respective warning"
+      write (filehandle, *) "!                                  (e.g. for very inhomogeneous or 2D cases set to 2..8)"
+      write (filehandle, *) "!                                  [1] <treevars>"
+      write (filehandle, *) "! mirror_box_layers              : size of near-field layer (number of shells)"
+      write (filehandle, *) "!                                  [1] <module_mirror_boxes>"
+      write (filehandle, *) "! num_threads                    : number of threads to be used for hybrid parallelization"
+      write (filehandle, *) "!                                  (plus comm thread) [3] <treevars>"
+      write (filehandle, *) "! idim                           : dimension of the system [3] <treevars>"
+      write (filehandle, *) "!"
       write (filehandle, NML=libpepc)
    end subroutine
 
