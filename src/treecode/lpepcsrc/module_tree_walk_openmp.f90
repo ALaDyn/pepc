@@ -223,7 +223,7 @@ contains
       write (filehandle, *) "!==============================================================================="
       write (filehandle, *) "! TREE WALK PARAMETERS"
       write (filehandle, *) "!"
-      write (filehandle, *) "! max_particles_per_thread : maximum number of particles processed in parallael by one workthread"
+      write (filehandle, *) "! max_particles_per_thread : maximum number of particles processed in parallel by one workthread"
       write (filehandle, *) "!                            [2000] <module_tree_walk_openmp>"
       write (filehandle, *) "!"
       write (filehandle, NML=walk_para_pthreads)

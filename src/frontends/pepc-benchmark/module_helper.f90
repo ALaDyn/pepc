@@ -84,7 +84,7 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbenchmark/ tnp, nt, dt, particle_output, domain_output, reflecting_walls, diag_test, check_step, particle_test, particle_direct, diag_interval, io_interval, plasma_dimensions, setup
+      namelist /pepcbenchmark/ tnp, nt, dt, setup, check_step, diag_test, particle_test, particle_output, domain_output, reflecting_walls, particle_direct, diag_interval, io_interval, plasma_dimensions
 
       ! set default parameter values
       tnp               = 10000                   !&
@@ -110,7 +110,35 @@ contains
          read (fid, NML=pepcbenchmark)
          close (fid)
       else
-         if (root) write (*, *) " == no param file, using default parameter "
+         if (root) write (*, '(a)') " == no param file, using default parameters and writing template to 'params.template' "
+         open (fid, file='params.template', status='replace')
+         write (fid, *) "!"
+         write (fid, *) "!==============================================================================="
+         write (fid, *) "! FRONTEND PARAMETERS FOR BENCHMARK"
+         write (fid, *) "!"
+         write (fid, *) "! tnp                  : total number of particles [10000] <module_helper>"
+         write (fid, *) "! nt                   : number of timesteps [25] <module_helper>"
+         write (fid, *) "! dt                   : time step size [0.02] <module_helper>"
+         write (fid, *) "! setup                : string to define testing/benchmarking setup ['benchmark'] <module_helper>"
+         write (fid, *) "! check_step           : timestep to check histogram [7000] <module_helper>"
+         write (fid, *) "!                        this is highly dependant on number of ranks and setup, so needs to evaluated"
+         write (fid, *) "! diag_test            : check diagnostics for correct physics [.false.] <module_helper>"
+         write (fid, *) "!                        this is highly dependant on number of ranks and setup, so needs to evaluated"
+         write (fid, *) "! particle_test        : check tree code results against direct summation [.false.] <module_helper>"
+         write (fid, *) "! particle_output      : turn vtk output on/off [.false.] <module_helper>"
+         write (fid, *) "! domain_output        : turn vtk output on/off [.false.] <module_helper>"
+         write (fid, *) "! reflecting_walls     : reflect particles at walls [.false.] <module_helper>"
+         write (fid, *) "!                        switch between Coulomb explosion and more deterministic benchmark"
+         write (fid, *) "! particle_direct      : number of particle for direct summation [-1] <module_helper>"
+         write (fid, *) "!                        -1 to test all particles"
+         write (fid, *) "! diag_interval        : number of timesteps between diagnostics [1] <module_helper>"
+         write (fid, *) "! io_interval          : number of timesteps between I/O [1] <module_helper>"
+         write (fid, *) "! plasma_dimensions(3) : size of the simulation box [1.0, 1.0, 1.0] <module_helper>"
+         write (fid, *) "!"
+         write(fid, NML=pepcbenchmark)
+         call pepc_write_parameters(fid)
+         close (fid)
+
       end if
 
       if (root) then
