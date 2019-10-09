@@ -85,12 +85,13 @@ program pepc
      call read_frontend_parameters_from_file(para_file_name)
   else
      block
-        integer :: tmplfl
+        integer :: tmp_filehandle
 
+        if (my_rank==0) write(*,*) "No parameters provided. Using default values and writing template to 'params.template'."
         call write_frontend_parameters_to_file("params.template", .true.)
-        open(newunit=tmplfl, file="params.template", status='OLD', position='APPEND')
-        call pepc_write_parameters(tmplfl)
-        close(tmplfl)
+        open(newunit=tmp_filehandle, file="params.template", status='OLD', position='APPEND')
+        call pepc_write_parameters(tmp_filehandle)
+        close(tmp_filehandle)
      end block
   end if
 
