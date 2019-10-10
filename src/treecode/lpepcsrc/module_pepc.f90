@@ -120,13 +120,13 @@ contains
 
       if (me .eq. 0 .and. pepc_initializes_mpi) then
          ! verbose startup-output
-         write (*, '(a)') "   ____    ____    ____    ____        "
-         write (*, '(a)') "  /\  _`\ /\  _`\ /\  _`\ /\  _`\      "
-         write (*, '(a)') "  \ \ \L\ \ \ \L\_\ \ \L\ \ \ \/\_\      The Pretty Efficient"
-         write (*, '(a)') "   \ \ ,__/\ \  _\L\ \ ,__/\ \ \/_/_           Parallel Coulomb Solver"
-         write (*, '(a)') "    \ \ \/  \ \ \L\ \ \ \/  \ \ \L\ \  "
-         write (*, '(a)') "     \ \_\   \ \____/\ \_\   \ \____/           pepc@fz-juelich.de"
-         write (*, '(a)') "      \/_/    \/___/  \/_/    \/___/   "
+         write (*, '(a)') "    _____   ____   _____   _____                            "
+         write (*, '(a)') "   /\  _ `\/\  __\/\  _ `\/\  __`\       The                "
+         write (*, '(a)') "   \ \ \L\ \ \ \_L\ \ \L\ \ \ \/\_\        Pretty Efficient "
+         write (*, '(a)') "    \ \ ,__/\ \  _\\ \ ,__/\ \ \/_/_       Parallel Coulomb "
+         write (*, '(a)') "     \ \ \/  \ \ \_L\ \ \/  \ \ \_\ \    Solver             "
+         write (*, '(a)') "      \ \_\   \ \____\ \_\   \ \____/                       "
+         write (*, '(a)') "       \/_/    \/____/\/_/    \/___/     pepc@fz-juelich.de "
          write (*, '(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
             SVNREVISION, frontendname, num_pe
          write (*, '("====     MACH = ",a)') MACH
