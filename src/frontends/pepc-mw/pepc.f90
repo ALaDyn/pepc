@@ -58,6 +58,7 @@ program pepc
   implicit none
 
   integer :: vtk_step
+  integer :: tmp_filehandle
   integer(kind_particle) :: num_force_particles
   logical :: para_file_available
   character(255) :: para_file_name
@@ -84,15 +85,11 @@ program pepc
   if (para_file_available) then
      call read_frontend_parameters_from_file(para_file_name)
   else
-     block
-        integer :: tmp_filehandle
-
-        if (my_rank==0) write(*,*) "No parameters provided. Using default values and writing template to 'params.template'."
-        call write_frontend_parameters_to_file("params.template", .true.)
-        open(newunit=tmp_filehandle, file="params.template", status='OLD', position='APPEND')
-        call pepc_write_parameters(tmp_filehandle)
-        close(tmp_filehandle)
-     end block
+     if (my_rank==0) write(*,*) "No parameters provided. Using default values and writing template to 'params.template'."
+     call write_frontend_parameters_to_file("params.template", .true.)
+     open(newunit=tmp_filehandle, file="params.template", status='OLD', position='APPEND')
+     call pepc_write_parameters(tmp_filehandle)
+     close(tmp_filehandle)
   end if
 
   call pepcmw_prepare()

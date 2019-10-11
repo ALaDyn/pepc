@@ -20,6 +20,7 @@
 
 module module_vtk
    use module_base64
+   use iso_c_binding
    implicit none
 
    integer, public, parameter :: VTK_VERTEX               =  1   !&
@@ -67,7 +68,7 @@ module module_vtk
       character(3) :: version = "0.1"
       integer :: my_rank
       integer :: num_pe
-      real*8 :: simtime
+      real(c_double) :: simtime
       integer :: vtk_step
       character(3) ::filesuffix = 'vtk'
       integer :: communicator
@@ -104,14 +105,16 @@ module module_vtk
       procedure :: write_data_repeat_Int4_1 => vtkfile_write_data_repeat_Int4_1
       procedure :: write_data_repeat_Int8_1 => vtkfile_write_data_repeat_Int8_1
 
-      generic :: write_data_array => write_data_array_Real4_1, & ! name, one-dim real*4, number of entries
-         write_data_array_Real4_3, & ! name, three-dim real*4 as three separate arrays, number of entries
+      generic :: write_data_array => write_data_array_Real4_1, & ! name, one-dim real(c_float) number of entries
+         write_data_array_Real4_3, & ! name, three-dim real(c_float) as three separate arrays, number of entries
          write_data_array_Real8_1, & ! ...
          write_data_array_Real8_2, &
          write_data_array_Real8_3, &
+#ifndef __PGI
          write_data_array_Real16_1, & ! ...
          write_data_array_Real16_2, &
          write_data_array_Real16_3, &
+#endif
          write_data_array_Real8_1_field3, &
          write_data_array_Real8_3_field3, &
          write_data_array_Int4_1, &
@@ -164,7 +167,7 @@ contains
       class(vtkfile) :: vtk
       character(*) :: filename_
       integer :: step_
-      real*8 :: simtime_
+      real(c_double) :: simtime_
       integer :: vtk_step_
       call vtk%create_parallel(filename_, step_, 0, 0, simtime_, vtk_step_)
    end subroutine vtkfile_create
@@ -177,7 +180,7 @@ contains
       character(*) :: filename_
       character(50) :: fn
       character(6) :: tmp
-      real*8 :: simtime_
+      real(c_double) :: simtime_
       integer :: my_rank_, num_pe_, step_
       integer :: vtk_step_
       integer, optional :: comm_
@@ -265,8 +268,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      real*4 :: data(:)
-      integer*4 :: numbytes
+      real(c_float) :: data(:)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 1, "Float32")
 
@@ -295,8 +298,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      real*4 :: data1(:), data2(:), data3(:)
-      integer*4 :: numbytes
+      real(c_float) :: data1(:), data2(:), data3(:)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 3, "Float32")
 
@@ -327,9 +330,9 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      real*8 :: data(:)
-      real*8, optional, intent(in) :: scale
-      integer*4 :: numbytes
+      real(c_double) :: data(:)
+      real(c_double), optional, intent(in) :: scale
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 1, "Float64")
 
@@ -370,8 +373,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      real*8 :: data1(:), data2(:)
-      integer*4 :: numbytes
+      real(c_double) :: data1(:), data2(:)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 2, "Float64")
 
@@ -401,9 +404,9 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      real*8 :: data1(:), data2(:), data3(:)
-      real*8, optional, intent(in) :: scale
-      integer*4 :: numbytes
+      real(c_double) :: data1(:), data2(:), data3(:)
+      real(c_double), optional, intent(in) :: scale
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 3, "Float64")
 
@@ -448,9 +451,9 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      real*16 :: data(:)
-      real*16, optional, intent(in) :: scale
-      integer*4 :: numbytes
+      real(c_long_double) :: data(:)
+      real(c_long_double), optional, intent(in) :: scale
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 1, "Float64")
 
@@ -491,8 +494,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      real*16 :: data1(:), data2(:)
-      integer*4 :: numbytes
+      real(c_long_double) :: data1(:), data2(:)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 2, "Float64")
 
@@ -522,9 +525,9 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      real*16 :: data1(:), data2(:), data3(:)
-      real*16, optional, intent(in) :: scale
-      integer*4 :: numbytes
+      real(c_long_double) :: data1(:), data2(:), data3(:)
+      real(c_long_double), optional, intent(in) :: scale
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 3, "Float64")
 
@@ -569,8 +572,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata(1:3), i, j, k
-      real*8 :: data(:, :, :)
-      integer*4 :: numbytes
+      real(c_double) :: data(:, :, :)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 1, "Float64")
 
@@ -607,8 +610,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata(1:3), i, j, k
-      real*8 :: data1(:, :, :), data2(:, :, :), data3(:, :, :)
-      integer*4 :: numbytes
+      real(c_double) :: data1(:, :, :), data2(:, :, :), data3(:, :, :)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 3, "Float64")
 
@@ -647,8 +650,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      integer*4 :: data(:)
-      integer*4 :: numbytes
+      integer(c_int32_t) :: data(:)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 1, "Int32")
 
@@ -676,7 +679,7 @@ contains
       implicit none
       class(vtkfile) :: vtk
       character(*) :: name
-      integer*4 :: data
+      integer(c_int32_t) :: data
 
       call vtk%write_data_array_Int4_1(name, [data])
    end subroutine vtkfile_write_data_Int4_1
@@ -685,7 +688,7 @@ contains
       implicit none
       class(vtkfile) :: vtk
       character(*) :: name
-      integer*8 :: data
+      integer(c_int64_t) :: data
 
       call vtk%write_data_array_Int8_1(name, [data])
    end subroutine vtkfile_write_data_Int8_1
@@ -695,8 +698,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      integer*4 :: data1(:), data2(:), data3(:)
-      integer*4 :: numbytes
+      integer(c_int32_t) :: data1(:), data2(:), data3(:)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 3, "Int32")
 
@@ -727,8 +730,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      integer*8 :: data(:)
-      integer*4 :: numbytes
+      integer(c_int64_t) :: data(:)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 1, "Int64")
 
@@ -757,8 +760,8 @@ contains
       class(vtkfile) :: vtk
       character(*) :: name
       integer :: ndata, i
-      integer*8 :: data1(:), data2(:), data3(:)
-      integer*4 :: numbytes
+      integer(c_int64_t) :: data1(:), data2(:), data3(:)
+      integer(c_int32_t) :: numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 3, "Int64")
 
@@ -788,9 +791,9 @@ contains
       implicit none
       class(vtkfile) :: vtk
       character(*) :: name
-      integer*4 :: n
-      integer*4 :: v
-      integer*4 :: i, numbytes
+      integer(c_int32_t) :: n
+      integer(c_int32_t) :: v
+      integer(c_int32_t) :: i, numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 1, "Int32")
 
@@ -816,9 +819,9 @@ contains
       implicit none
       class(vtkfile) :: vtk
       character(*) :: name
-      integer*4 :: n
-      integer*8 :: v
-      integer*4 :: i, numbytes
+      integer(c_int32_t) :: n
+      integer(c_int64_t) :: v
+      integer(c_int32_t) :: i, numbytes
       type(base64_encoder) :: base64
       call vtk%write_data_array_header(name, 1, "Int64")
 
@@ -879,7 +882,7 @@ contains
       class(vtkfile_unstructured_grid) :: vtk
       character(*) :: filename_
       integer :: step_
-      real*8 :: simtime_
+      real(c_double) :: simtime_
       integer :: vtk_step_
       call vtk%create_parallel(filename_, step_, 0, 0, simtime_, vtk_step_)
    end subroutine vtkfile_unstructured_grid_create
@@ -888,7 +891,7 @@ contains
       implicit none
       class(vtkfile_unstructured_grid) :: vtk
       character(*) :: filename_
-      real*8 :: simtime_
+      real(c_double) :: simtime_
       integer :: my_rank_, num_pe_, step_
       integer :: vtk_step_
       integer, optional :: comm_
@@ -916,7 +919,7 @@ contains
    subroutine vtkfile_unstructured_grid_write_headers8(vtk, npart, ncell)
       implicit none
       class(vtkfile_unstructured_grid) :: vtk
-      integer*8 :: npart, ncell
+      integer(c_int64_t) :: npart, ncell
 
       write (vtk%filehandle, '("<VTKFile type=""UnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
       write (vtk%filehandle, '("<UnstructuredGrid GhostLevel=""0"">")')
@@ -1009,7 +1012,7 @@ contains
       class(vtkfile_rectilinear_grid) :: vtk
       character(*) :: filename_
       integer :: step_
-      real*8 :: simtime_
+      real(c_double) :: simtime_
       integer :: vtk_step_
       call vtk%create_parallel(filename_, step_, 0, 0, simtime_, vtk_step_)
    end subroutine vtkfile_rectilinear_grid_create
@@ -1018,7 +1021,7 @@ contains
       implicit none
       class(vtkfile_rectilinear_grid) :: vtk
       character(*) :: filename_
-      real*8 :: simtime_
+      real(c_double) :: simtime_
       integer :: my_rank_, num_pe_, step_
       integer :: vtk_step_
       integer, optional :: comm_

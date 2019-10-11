@@ -1,0 +1,52 @@
+HELP = "\
+\# Makefile for PGI compilers (non-LLVM version)\n\
+"
+
+MACH     = linux_pgi
+
+DEBUG    = 0
+
+RANLIB   = ranlib
+
+MAKE     = make
+
+AR       = ar
+ARFLAGS  = -rs
+
+CPP      = cpp
+CPPFLAGS = -P -C $(DEFS) --freestanding -DSVNREVISION="\"$(SVNREVISION)\"" -D__PGI
+
+INLINING = -Minline -fast
+
+FFLAGS   = -Mbackslash -O3 -mp -Minfo=all $(INLINING)
+CFLAGS   = -O3
+LDFLAGS  = -O3 -mp -Minfo=all $(INLINING)
+CPPFLAGS += -DNDEBUG
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -g -pg -O0 -mp -Minfo=all -traceback -C -Mbounds
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0 -mp -Minfo=all -traceback
+#  CPPFLAGS += -DNDEBUG
+endif
+ifeq ($(DEBUG), -1)
+  FFLAGS   = -Mbackslash -O3 -mp -Minfo=all $(INLINING)
+  CFLAGS   = -O3
+  LDFLAGS  = -O3 -mp -Minfo=all $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+
+FCPRE    = 
+FC       = mpif90
+
+CCPRE    = 
+CC       = mpicc
+
+LDPRE    = 
+LD       = mpif90
+
+LDLIBS   += 
+
+RM       = rm -rf
+
+COMPILER = $(shell $(FC) --version | head -n 1)
+

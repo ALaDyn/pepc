@@ -1,6 +1,6 @@
-// CPP + Fortran do not allow for multiline replacements. We use ';' to combine several statements
-// in a single line. To keep the line length to a minimum, we use ';;' which will be replaced by
-// '\n' after preprocessing.
+! CPP + Fortran do not allow for multiline replacements. We use ';' to combine several statements
+! in a single line. To keep the line length to a minimum, we use ';;' which will be replaced by
+! '\n' after preprocessing.
 
 #define DEBUG_HEADER(file) \
     write(file,'("[PE ", I6.6, ", file: ",a, ", line ", I0, "] ")', advance='no') debug_my_rank, __FILE__, __LINE__

@@ -19,6 +19,7 @@
 !
 
 module module_base64
+   use iso_c_binding
    implicit none
 
    character, parameter :: chars(0:63) = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', &
@@ -33,18 +34,24 @@ module module_base64
 
    type base64_encoder
       private
-      integer*8 :: buffer = 0
-      integer   :: bits = 0
-      integer   :: istream = 6
-      logical   :: bigendian = .true.
-
+      integer(c_int64_t) :: buffer = 0
+      integer        :: bits = 0
+      integer        :: istream = 6
+      logical        :: bigendian = .true.
+!
    contains
       procedure :: getnextbyte => base64_encoder_getnextbyte
       procedure :: flushbuffer => base64_encoder_flushbuffer
+#ifndef __PGI
       generic   :: encode => encode_real16, encode_real8, encode_real4, encode_int8, encode_int4
+#else
+      generic   :: encode => encode_real8, encode_real4, encode_int8, encode_int4
+#endif
       procedure :: finish => base64_encoder_finish
       procedure :: start => base64_encoder_start
+#ifndef __PGI
       procedure :: encode_real16 => base64_encoder_encode_real16
+#endif
       procedure :: encode_real8 => base64_encoder_encode_real8
       procedure :: encode_real4 => base64_encoder_encode_real4
       procedure :: encode_int8 => base64_encoder_encode_int8
@@ -56,7 +63,7 @@ contains
    function base64_encoder_getnextbyte(base64)
       implicit none
       class(base64_encoder) :: base64
-      integer*1 :: base64_encoder_getnextbyte
+      integer(c_int8_t) :: base64_encoder_getnextbyte
 
       base64_encoder_getnextbyte = int(iand(ibits(base64%buffer, 58, 6), Z'3F'), kind(base64_encoder_getnextbyte))
       base64%buffer = ishft(base64%buffer, 6)
@@ -115,9 +122,9 @@ contains
    subroutine base64_encoder_encode_real16(base64, data)
       implicit none
       class(base64_encoder) :: base64
-      real*16, intent(in), value :: data
-      real*8 :: rtmp
-      integer*8 :: tmp
+      real(c_long_double), intent(in), value :: data
+      real(c_double) :: rtmp
+      integer(c_int64_t) :: tmp
 
       rtmp = real(data, kind(rtmp))
       tmp = transfer(data, rtmp)
@@ -127,8 +134,8 @@ contains
    subroutine base64_encoder_encode_real8(base64, data)
       implicit none
       class(base64_encoder) :: base64
-      real*8, intent(in), value :: data
-      integer*8 :: tmp
+      real(c_double), intent(in), value :: data
+      integer(c_int64_t):: tmp
 
       tmp = transfer(data, tmp)
       call base64%encode_int8(tmp)
@@ -137,8 +144,8 @@ contains
    subroutine base64_encoder_encode_real4(base64, data)
       implicit none
       class(base64_encoder) :: base64
-      real*4, intent(in), value :: data
-      integer*4 :: tmp
+      real(c_float), intent(in), value :: data
+      integer(c_int32_t) :: tmp
 
       tmp = transfer(data, tmp)
       call base64%encode_int4(tmp)
@@ -147,8 +154,8 @@ contains
    subroutine base64_encoder_encode_int8(base64, data)
       implicit none
       class(base64_encoder) :: base64
-      integer*8, intent(in), value :: data
-      integer*4 :: tmp1, tmp2
+      integer(c_int64_t), intent(in), value :: data
+      integer(c_int32_t) :: tmp1, tmp2
 
       tmp1 = int(ibits(data, 0, 32), kind(tmp1))
       tmp2 = int(ibits(data, 32, 32), kind(tmp2))
@@ -159,8 +166,8 @@ contains
    subroutine base64_encoder_encode_int4(base64, data)
       implicit none
       class(base64_encoder) :: base64
-      integer*4, value, intent(in) :: data
-      integer*8 :: tmp
+      integer(c_int32_t), value, intent(in) :: data
+      integer(c_int64_t) :: tmp
 
       tmp = transfer(data, tmp)
       if (.not. base64%bigendian) tmp = ishft(tmp, -32)

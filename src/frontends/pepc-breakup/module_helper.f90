@@ -259,14 +259,14 @@ contains
          dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
 
          ! Seed the next iteration of random numbers
-         ctr_s(1) = CEILING(rand_num(1)*1e15,kind=16)
-         ctr_s(2) = CEILING(rand_num(5)*1e15,kind=16)
-         ctr_s(3) = CEILING(rand_num(2)*1e15,kind=16)
-         ctr_s(4) = CEILING(rand_num(7)*1e15,kind=16)
-         key_s(1) = CEILING(rand_num(4)*1e15,kind=16)
-         key_s(2) = CEILING(rand_num(3)*1e15,kind=16)
-         key_s(3) = CEILING(rand_num(6)*1e15,kind=16)
-         key_s(4) = CEILING(rand_num(8)*1e15,kind=16)
+         ctr_s(1) = CEILING(rand_num(1)*1e15,kind=int32)
+         ctr_s(2) = CEILING(rand_num(5)*1e15,kind=int32)
+         ctr_s(3) = CEILING(rand_num(2)*1e15,kind=int32)
+         ctr_s(4) = CEILING(rand_num(7)*1e15,kind=int32)
+         key_s(1) = CEILING(rand_num(4)*1e15,kind=int32)
+         key_s(2) = CEILING(rand_num(3)*1e15,kind=int32)
+         key_s(3) = CEILING(rand_num(6)*1e15,kind=int32)
+         key_s(4) = CEILING(rand_num(8)*1e15,kind=int32)
 
          x = (2.*rand_num(1) - 1.) * dist_outer
          y = (2.*rand_num(2) - 1.) * dist_outer
@@ -294,14 +294,14 @@ contains
        ! Generating Random Number between [0,1]
        dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
        ! Seed the next iteration of random numbers
-       ctr_s(1) = CEILING(rand_num(1)*1e15,kind=16)
-       ctr_s(2) = CEILING(rand_num(5)*1e15,kind=16)
-       ctr_s(3) = CEILING(rand_num(2)*1e15,kind=16)
-       ctr_s(4) = CEILING(rand_num(7)*1e15,kind=16)
-       key_s(1) = CEILING(rand_num(4)*1e15,kind=16)
-       key_s(2) = CEILING(rand_num(3)*1e15,kind=16)
-       key_s(3) = CEILING(rand_num(6)*1e15,kind=16)
-       key_s(4) = CEILING(rand_num(8)*1e15,kind=16)
+       ctr_s(1) = CEILING(rand_num(1)*1e15,kind=int32)
+       ctr_s(2) = CEILING(rand_num(5)*1e15,kind=int32)
+       ctr_s(3) = CEILING(rand_num(2)*1e15,kind=int32)
+       ctr_s(4) = CEILING(rand_num(7)*1e15,kind=int32)
+       key_s(1) = CEILING(rand_num(4)*1e15,kind=int32)
+       key_s(2) = CEILING(rand_num(3)*1e15,kind=int32)
+       key_s(3) = CEILING(rand_num(6)*1e15,kind=int32)
+       key_s(4) = CEILING(rand_num(8)*1e15,kind=int32)
 
        r = rand_num(1) * minor_radius
        theta  = rand_num(3) * 2. * pi
@@ -318,14 +318,14 @@ contains
        ! Generating Random Number between [0,1]
        dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
        ! Seed the next iteration of random numbers
-       ctr_s(1) = CEILING(rand_num(1)*1e15,kind=16)
-       ctr_s(2) = CEILING(rand_num(5)*1e15,kind=16)
-       ctr_s(3) = CEILING(rand_num(2)*1e15,kind=16)
-       ctr_s(4) = CEILING(rand_num(7)*1e15,kind=16)
-       key_s(1) = CEILING(rand_num(4)*1e15,kind=16)
-       key_s(2) = CEILING(rand_num(3)*1e15,kind=16)
-       key_s(3) = CEILING(rand_num(6)*1e15,kind=16)
-       key_s(4) = CEILING(rand_num(8)*1e15,kind=16)
+       ctr_s(1) = CEILING(rand_num(1)*1e15,kind=int32)
+       ctr_s(2) = CEILING(rand_num(5)*1e15,kind=int32)
+       ctr_s(3) = CEILING(rand_num(2)*1e15,kind=int32)
+       ctr_s(4) = CEILING(rand_num(7)*1e15,kind=int32)
+       key_s(1) = CEILING(rand_num(4)*1e15,kind=int32)
+       key_s(2) = CEILING(rand_num(3)*1e15,kind=int32)
+       key_s(3) = CEILING(rand_num(6)*1e15,kind=int32)
+       key_s(4) = CEILING(rand_num(8)*1e15,kind=int32)
 
        if (rand_num(2) > 0.5) then
           l = -1.0
@@ -400,13 +400,13 @@ contains
       case(1)
         ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
         ctr_s(1) = (my_rank + 1)*np
-        ctr_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+11), kind=16),100**(my_rank+1))
-        ctr_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+11), kind=16),100**(my_rank+1))
-        ctr_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+11), kind=16),100**(my_rank+1))
+        ctr_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+11), kind=int32),100**(my_rank+1))
+        ctr_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+11), kind=int32),100**(my_rank+1))
+        ctr_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+11), kind=int32),100**(my_rank+1))
         key_s(1) = (my_rank + 1)*(step + 1)
-        key_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+7), kind=16),100**(my_rank+1))
-        key_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+7), kind=16),100**(my_rank+1))
-        key_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+7), kind=16),100**(my_rank+1))
+        key_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+7), kind=int32),100**(my_rank+1))
+        key_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+7), kind=int32),100**(my_rank+1))
+        key_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+7), kind=int32),100**(my_rank+1))
 
         do ip = 1, np
            p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1

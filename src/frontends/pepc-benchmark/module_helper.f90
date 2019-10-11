@@ -279,10 +279,17 @@ contains
          e_pot = e_pot + p(ip)%data%q * p(ip)%results%pot * 0.5_kind_physics
 
          ! keep maximum velocity and distance to origin
+#ifdef __PGI
+         v = sqrt(dot_product(p(ip)%data%v, p(ip)%data%v))
+         if (v .gt. v_max) v_max = v
+         r = sqrt(dot_product(p(ip)%x, p(ip)%x))
+         if (r .gt. r_max) r_max = r
+#else
          v = norm2(p(ip)%data%v)
          if (v .gt. v_max) v_max = v
          r = norm2(p(ip)%x)
          if (r .gt. r_max) r_max = r
+#endif
       end do
    end subroutine check_energies_local
 
@@ -338,10 +345,17 @@ contains
 
       do ip = 1, np
          ! check radial position
+#ifdef __PGI
+         if (sqrt(dot_product(p(ip)%x,p(ip)%x)) .ge. r_bin_min .and. sqrt(dot_product(p(ip)%x,p(ip)%x)) .le. r_bin_max) then
+            v_pos = int(sqrt(dot_product(p(ip)%data%v,p(ip)%data%v)) / v_bin)
+            velocity_histo(v_pos) = velocity_histo(v_pos) + 1
+         end if
+#else
          if (norm2(p(ip)%x) .ge. r_bin_min .and. norm2(p(ip)%x) .le. r_bin_max) then
             v_pos = int(norm2(p(ip)%data%v) / v_bin)
             velocity_histo(v_pos) = velocity_histo(v_pos) + 1
          end if
+#endif
       end do
    end subroutine histogram_local
 
