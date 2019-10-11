@@ -140,7 +140,7 @@ makefile.defs:
 
 pepclogo:
 	@echo "    _____   ____   _____   _____                              "
-	@echo "   /\  _ `\/\  __\/\  _ `\/\  __`\       The                  "
+	@echo "   /\  _ \`\/\  __\/\  _ \`\/\  __\`\       The                  "
 	@echo "   \ \ \L\ \ \ \_L\ \ \L\ \ \ \/\_\        Pretty Efficient   "
 	@echo "    \ \ ,__/\ \  _\\ \ ,__/\ \ \/_/_       Parallel Coulomb   "
 	@echo "     \ \ \/  \ \ \_L\ \ \/  \ \ \_\ \    Solver               "

@@ -45,7 +45,7 @@ $(FRONTEND): $(FOBJ) $(COBJ)
 $(FIOBJ): %.o: %.f90 $(SUBFILES)
 	@echo "== compiling F90 file :" $<
 	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
-	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
+	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< | awk 'BEGIN{FS=OFS="!"} {gsub(/;;/, "\n", $$1)} 1' > pp_$< 2>> compile.log
 	@$(FCPRE) $(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
 
 $(CIOBJ): %.o: %.c $(SUBFILES)
@@ -56,7 +56,7 @@ $(CIOBJ): %.o: %.c $(SUBFILES)
 %.o: %.f90 $(SUBFILES)
 	@echo "== compiling F90 file :" $<
 	@perl -p -e 's/^[ \t]*\n/!\n/' $< > p_$<
-	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< > pp_$< 2>> compile.log
+	@$(CPP) $(CPPFLAGS) -include pepc_debug.h p_$< | awk 'BEGIN{FS=OFS="!"} {gsub(/;;/, "\n", $$1)} 1' > pp_$< 2>> compile.log
 	@$(FC) -c $(FFLAGS) $(DBFLAGS) pp_$< -o $@
 
 %.o: %.c $(SUBFILES)
