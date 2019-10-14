@@ -235,7 +235,6 @@ contains
       use module_atomic_ops, only: atomic_mod_increment_and_fetch_int, &
                                    atomic_write_barrier, atomic_read_barrier, &
                                    atomic_load_int
-      use module_tree_node
       use module_debug
       use mpi
       implicit none
@@ -273,10 +272,14 @@ contains
 
       ! we first flag the particle as having been already requested to prevent other threads from doing it while
       ! we are inside this function
+#ifdef __PGI
+      n%request_posted = .true. ! Set requested flag
+#else
 !$OMP atomic seq_cst write
       n%request_posted = .true. ! Set requested flag
 !$OMP end atomic
 !$OMP flush
+#endif
 
 #ifdef MPI_MULTIPLE
       ! we issue the request right here right now from the worker thread instead of using the message queue_top
@@ -625,7 +628,6 @@ contains
       use module_tree, only: t_tree
       use module_pepc_types, only: t_tree_node, t_tree_node_package
       use module_tree_node
-      use module_spacefilling, only: parent_key_from_key
       use module_atomic_ops, only: atomic_write_barrier
       use module_debug
       use mpi
