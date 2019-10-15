@@ -1,0 +1,196 @@
+-------------------------------------------------------------------------------
+This README collects some compiler options for
+   different architectures 
+or
+   different compiler versions
+
+Those may be used to adjust the provided <makefile.defs> for Intel compilers.
+The options may or may not be commented (some of the options have not been used
+for several years). The latest options for common architectures should be
+present in the provided <makefile.defs>, the README merely provides an overview
+of optiones used in the past.
+-------------------------------------------------------------------------------
+
+
+
+
+-------------------------------------------------------------------------------
+HELIOS, INTEL 13.0.079
+-------------------------------------------------------------------------------
+OPTLEV   = 5
+MAKE     = gmake
+AR       = xiar
+ARFLAGS  = -rs
+CPP      = cpp
+CPPFLAGS = -P -C -D__INTEL_COMPILER
+#OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -O3
+OPTIMIZATION = -O3 -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -xAVX
+ifeq ($(OPTLEV), -1)
+  FFLAGS   = -g -pg -O0 -warn all -reentrancy threaded -openmp
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0 -warn all -reentrancy threaded -openmp
+endif
+ifeq ($(OPTLEV), 0)
+  FFLAGS   = -warn all -O0 -reentrancy threaded -openmp
+  CFLAGS   = -O0
+  LDFLAGS  = -warn all -O0 -reentrancy threaded -openmp
+endif
+ifeq ($(OPTLEV), 3)
+  FFLAGS   = -warn all -O3 -reentrancy threaded -openmp
+  CFLAGS   = -O3
+  LDFLAGS  = -warn all -O3 -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
+endif
+ifeq ($(OPTLEV), 5)
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+HELIOS, BULL MPI, INTEL 13.0.079
+-------------------------------------------------------------------------------
+OPTLEV   = 5
+MAKE     = gmake
+AR       = xiar
+ARFLAGS  = -rs
+CPP      = cpp
+CPPFLAGS = -P -C -D__INTEL_COMPILER
+#OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -O3
+OPTIMIZATION = -O3 -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip
+ifeq ($(OPTLEV), -1)
+  FFLAGS   = -g -pg -O0 -warn all -reentrancy threaded -openmp
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0 -warn all -reentrancy threaded -openmp
+endif
+ifeq ($(OPTLEV), 0)
+  FFLAGS   = -warn all -O0 -reentrancy threaded -openmp
+  CFLAGS   = -O0
+  LDFLAGS  = -warn all -O0 -reentrancy threaded -openmp
+endif
+ifeq ($(OPTLEV), 3)
+  FFLAGS   = -warn all -O3 -reentrancy threaded -openmp
+  CFLAGS   = -O3
+  LDFLAGS  = -warn all -O3 -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
+endif
+ifeq ($(OPTLEV), 5)
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
+endif
+FC       = mpif90
+CC       = mpicc
+LD       = mpif90
+
+-------------------------------------------------------------------------------
+JURECA BOOSTER, INTEL 16+
+-------------------------------------------------------------------------------
+MACH     = JURECA_booster_intel
+CPPFLAGS = -P -C -D__INTEL_COMPILER -ffreestanding
+AR       = xiar
+ARFLAGS  = -rs
+#OPTIMIZATION = -Ofast -xHost -finline -finline-functions -ipo-separate UBBEARABLY SLOW TO COMPILE
+OPTIMIZATION = -O3 -axMIC-AVX512 -finline -finline-functions -ipo-separate
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -g -O0 -warn all -reentrancy threaded -CA -CB -CU -fsource-asm
+  CFLAGS   = -g -O0
+  LDFLAGS  = -g -O0 -warn all -reentrancy threaded 
+else
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded 
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+JURECA, INTEL 2015.7
+-------------------------------------------------------------------------------
+AR       = xiar
+ARFLAGS  = -rs
+CPPFLAGS = -P -C -D__INTEL_COMPILER -ffreestanding
+OPTIMIZATION = -Ofast -xHost -finline -finline-functions -ipo-separate
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -g -O0 -warn all -reentrancy threaded -openmp
+  CFLAGS   = -g -O0
+  LDFLAGS  = -g -O0 -warn all -reentrancy threaded -openmp
+else
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+JUROPA3, MIC, Xeon Phi, INTEL 15+
+-------------------------------------------------------------------------------
+MAKE     = gmake
+AR       = xiar
+ARFLAGS  = -rs
+CPPFLAGS = -P -C -D__INTEL_COMPILER
+OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -O3
+FFLAGS = -mmic -warn all -reentrancy threaded -openmp
+CFLAGS = -mmic
+LDFLAGS = -mmic -warn all -reentrancy threaded -openmp -Qoption,link,"-rpath=/usr/local/intel/Composer/composerxe/lib/mic"
+# tell the openPA configure script that we are cross-compiling
+# see http://software.intel.com/en-us/forums/topic/391645 for details
+OPENPA_CONFIGFLAGS="--host=blackfin"
+ifeq ($(OPTLEV), -1)
+  FFLAGS   += -g -pg -O0
+  CFLAGS   += -g -pg -O0
+  LDFLAGS  += -g -pg -O0
+endif
+ifeq ($(OPTLEV), 0)
+  FFLAGS   += -O0
+  CFLAGS   += -O0
+  LDFLAGS  += -O0
+endif
+ifeq ($(OPTLEV), 3)
+  FFLAGS   += -O3
+  CFLAGS   += -O3
+  LDFLAGS  += -O3
+  CPPFLAGS += -DNDEBUG
+endif
+ifeq ($(OPTLEV), 5)
+  FFLAGS   += $(OPTIMIZATION)
+  CFLAGS   += $(OPTIMIZATION)
+  LDFLAGS  += $(OPTIMIZATION)
+  CPPFLAGS += -DNDEBUG
+endif
+FC       = mpiifort
+CC       = mpiicc
+LD       = mpiifort
+
+-------------------------------------------------------------------------------
+JUROPA, INTEL 12.1.2
+-------------------------------------------------------------------------------
+OPTLEV   = 0
+MAKE     = gmake
+AR       = xiar
+ARFLAGS  = -rs
+CPPFLAGS = -P -C -D__INTEL_COMPILER
+OPTIMIZATION = -ipo -axSSE4.2 -finline -no-inline-factor -finline-functions -inline-level=2 -ip -ipo0 -O3
+ifeq ($(OPTLEV), -1)
+  FFLAGS   = -g -pg -O0 -warn all -reentrancy threaded -openmp
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0 -warn all -reentrancy threaded -openmp
+endif
+ifeq ($(OPTLEV), 0)
+  FFLAGS   = -warn all -O0 -reentrancy threaded -openmp
+  CFLAGS   = -O0
+  LDFLAGS  = -warn all -O0 -reentrancy threaded -openmp
+endif
+ifeq ($(OPTLEV), 3)
+  FFLAGS   = -warn all -O3 -reentrancy threaded -openmp
+  CFLAGS   = -O3
+  LDFLAGS  = -warn all -O3 -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
+endif
+ifeq ($(OPTLEV), 5)
+  FFLAGS   = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CFLAGS   =           $(OPTIMIZATION)
+  LDFLAGS  = -warn all $(OPTIMIZATION) -reentrancy threaded -openmp
+  CPPFLAGS += -DNDEBUG
+endif
