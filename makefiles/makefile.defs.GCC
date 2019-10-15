@@ -44,10 +44,8 @@ INLINING = -flto -fuse-linker-plugin  -fipa-matrix-reorg
 #`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
 INLINING += -u run_communication_loop -u walk_worker_thread
 
-# enable warnings
+# enable warnings (used for DEBUG builds)
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
-# disable warnings
-FWARNINGS =
 
 # enable GCC features pthreads and alike might rely on
 FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
@@ -66,8 +64,7 @@ ifeq ($(DEBUG), 1)
 else
   FFLAGS   = -O2 -mtune=native -march=native $(FFIX) \
     $(INLINING) \
-    $(FFEATURES) \
-    $(FWARNINGS)
+    $(FFEATURES)
   CFLAGS   = -O2 -pthread -Wall $(FFIX) $(INLINING)
   LDFLAGS  = -O2 -pthread $(FFIX) $(INLINING)
   CPPFLAGS += -DNDEBUG

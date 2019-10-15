@@ -1,0 +1,366 @@
+-------------------------------------------------------------------------------
+This README collects some compiler options for
+   different architectures 
+or
+   different compiler versions
+
+Those may be used to adjust the provided <makefile.defs> for GCC. The options
+may or may not be commented (some of the options have not been used for several
+years). The latest options for common architectures should be present in the
+provided <makefile.defs>, the README merely provides an overview of optiones
+used in the past.
+
+Note that <ar> and <ranlib> likely has to match the used GCC toolchain.
+
+To instrument with various tools, try any of the following options/extensions
+VAMPIR
+  FCPRE    = bgvtf90 -vt:f90
+  CCPRE    = bgvtcc  -vt:cc
+  LDPRE    = bgvtf90 -vt:f90
+  # export VT_SYNC_FLUSH=yes
+  # export VT_BUFFER_SIZE=1024M
+  # export VT_COMPRESSION=yes
+  # export VT_FILE_UNIQUE=yes
+  # export VT_MAX_FLUSHES=20
+  # export VT_UNIFY=yes
+  # export VT_CPUIDTRACE=yes
+  # export VT_ETIMESYNC=yes
+  # export VT_IOTRACE=yes
+  # export VT_LIBCTRACE=yes
+  # export VT_GROUPS_SPEC=~/vtgroups.txt
+  # export VT_FILTER_SPEC=~/vtfilter.txt
+  # export VT_METRICS=PAPI_FP_OPS:PAPI_TOT_CYC:PAPI_FP_INS
+  # mpiexec -x -n 4 ../pepcmini ./run.h
+  #
+  # content of vtfilter.txt:
+  # par_rand* -- 0
+  # key2addr* -- 0
+  # __tree_walk_utils_NMOD_walk_single_par* -- 0
+  # 
+  # content of vtgroups.txt (out of date, please update):
+  # YIELD=pthreads_sched_yield
+  # PTHREADS_CONDS=pthreads_conds*
+  # RWLOCKS=rwlocks_*
+  # SCHED_YIELD=pthreads_sched_yield
+  # PTHREADS_THREAD=pthreads_createthread;pthreads_jointhread;pthreads_exitthread;pthreads_init;pthreads_uninit
+  # COMMUNICATOR=__tree_walk_communicator_*
+  # FIELDS=pepc_fields
+  # SORTING=slsort_*
+  # WALKWORKER=WALK_WORKER_THREAD
+  # CALC_FORCE=*calc_force*
+  # PT_FIRST_PARTICLE=__tree_walk_utils_NMOD_get_*
+HPCTOOLKIT
+  LDPRE    = hpclink
+  FFLAGS  += -g -gdwarf-3 -gstrict-dwarf
+  CFLAGS  += -g -gdwarf-3 -gstrict-dwarf
+  LDFLAGS += -g -gdwarf-3 -gstrict-dwarf -Wl,-lc -Wl,-lnss_files -Wl,-lnss_dns -Wl,-lresolv
+  # HPCTOOLKIT USAGE
+  # Call
+  # $>  module load UNITE hpctoolkit papi
+  # Before compiling and execution. You should include those modules into your ~/.bashrc to also have them on the compute nodes.
+  # After (re)compiling the application (e.g. pepc-mini) start it with
+  # $>  runjob --envs  HPCRUN_EVENT_LIST="WALLCLOCK@10000" HPCRUN_TRACE=1 --label : ./pepc-mini ./params
+  # Then generate the structure info (on the frontend node) using
+  # $>  hpcstruct  ./pepc-mini
+  # Build the measurement database from the measurements:
+  # $>  hpcprof -S pepc-mini.hpcstruct -I ../build/IBM-BGQ-juqueen/pepc-mini/ hpctoolkit-pepc-mini-measurements
+SCOREP
+  FCPRE += scorep
+  CCPRE += scorep
+  LDPRE += scorep
+SCALASCA
+  FCPRE += scalasca -instrument
+  CCPRE += scalasca -instrument
+  LDPRE += scalasca -instrument
+GPROF
+  FFLAGS  += -pg -g
+  CFLAGS  += -pg -g
+  LDFLAGS += -pg -g
+GPERFTOOLS
+  # download and installation: http://code.google.com/p/gperftools/
+  # for usage see http://code.google.com/p/gperftools/wiki/GooglePerformanceTools
+  LDFLAGS+=-L${HOME}/programs/lib64
+  LDLIBS += -ltcmalloc -lprofiler
+-------------------------------------------------------------------------------
+
+
+
+
+-------------------------------------------------------------------------------
+GCC 4.7
+-------------------------------------------------------------------------------
+CPPFLAGS = -P -C
+INLINING = -fdump-ipa-inline -findirect-inlining -flto-partition=none -finline-limit=120000
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -pg -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -pg -g 
+  LDFLAGS  =       -O0 -pg -g 
+else
+  FFLAGS   = -Wall -O3 -pg -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens $(INLINING)
+  CFLAGS   = -Wall -O3 -pg
+  LDFLAGS  = -pthread -pg -O3 $(INLINING) -fwhole-program  
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+GCC 4.8
+-------------------------------------------------------------------------------
+CPPFLAGS = -E -x c -P -C -ffreestanding
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Wcharacter-truncation -Wline-truncation -Wsurprising -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -g -gdwarf-3
+  LDFLAGS  =       -O0 -g -gdwarf-3
+else
+  FFLAGS   = -Wall -O5 -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens $(INLINING)
+  CFLAGS   = -Wall -O5
+  LDFLAGS   = -pthread -O5 $(INLINING) -fwhole-program
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+GCC 4.9
+-------------------------------------------------------------------------------
+CPPFLAGS = -P -C -ffreestanding
+                  # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -fkeep-inline-functions -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects -fuse-linker-plugin
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all -fstack-protector-all
+  CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -fstack-protector-all
+  LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
+else
+  FFLAGS   = -Wall -O3 -g -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING) -save-temps
+  CFLAGS   = -Wall -O3 -g
+  LDFLAGS  = -pthread -O3 -g $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+LDFLAGS += -u walk_worker_thread -u run_communication_loop
+
+-------------------------------------------------------------------------------
+GCC 5.1
+-------------------------------------------------------------------------------
+CPPFLAGS = -E -x c -P -C -ffreestanding
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -flto -fuse-linker-plugin -fipa-matrix-reorg
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+INLINING += -u run_communication_loop -u walk_worker_thread
+FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero -fPIC
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+else
+  FFLAGS   = -Ofast \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Ofast -pthread -Wall $(INLINING)
+  LDFLAGS  = -Ofast -pthread $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+CRAY, GCC 4.8
+-------------------------------------------------------------------------------
+CPPFLAGS = -E -x c -P -C -ffreestanding
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg
+FC       = ftn
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -g -gdwarf-3 -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Wcharacter-truncation -Wline-truncation -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -g -gdwarf-3
+  LDFLAGS  =       -O0 -g -gdwarf-3
+else
+  FFLAGS   = -Wall -O5 -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
+  CFLAGS   = -Wall -O5
+  LDFLAGS   = -pthread -O5 $(INLINING) -fwhole-program
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+JUQUEEN, GCC 4.8
+-------------------------------------------------------------------------------
+# GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
+CPP      = cpp -Uvector
+CPPFLAGS = -P -C -DLITTLEENDIAN -ffreestanding -D__TOS_BGQ__
+                               # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -flto -fuse-linker-plugin -fipa-matrix-reorg
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+INLINING += -u run_communication_loop -u walk_worker_thread
+FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+else
+  FFLAGS   = -Ofast \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Ofast -pthread -Wall $(INLINING)
+  LDFLAGS  = -Ofast -pthread $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+# ensure that the BG-Personality features are used correctly
+CFLAGS += -D__TOS_BGQ__
+
+-------------------------------------------------------------------------------
+JUQUEEN, GCC 4.9.3
+-------------------------------------------------------------------------------
+OPENPA_CONFIGFLAGS = --host=bluegene
+# GNU-cpp defines some Altivec extensions that conflict in Fortran source code (comments)
+CPP      = cpp -Uvector
+CPPFLAGS = -P -C -DLITTLEENDIAN -ffreestanding -D__TOS_BGQ__
+                               # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -flto -fuse-linker-plugin -fipa-matrix-reorg
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+INLINING += -u run_communication_loop -u walk_worker_thread
+FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+else
+  FFLAGS   = -Ofast \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Ofast -pthread -Wall
+  LDFLAGS  = -Ofast -pthread $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+# ensure that the BG-Personality features are used correctly
+CFLAGS += -D__TOS_BGQ__
+
+-------------------------------------------------------------------------------
+JURECA BOOSTER
+-------------------------------------------------------------------------------
+CPPFLAGS = -E -x c -P -C -ffreestanding
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -flto -fuse-linker-plugin -fipa-matrix-reorg
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+INLINING += -u run_communication_loop -u walk_worker_thread
+FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
+FARCH = -mfma -mavx512f -mavx512cd -mavx512er -mavx512pf -mtune=knl -march=knl -malign-data=cacheline
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS) \
+    $(FARCH)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall $(FARCH)
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+else
+  FFLAGS   = -Ofast \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS) \
+    $(FARCH)
+  CFLAGS   = -Ofast -pthread -Wall $(INLINING) $(FARCH)
+  LDFLAGS  = -Ofast -pthread $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+JURECA, GCC 5.1
+-------------------------------------------------------------------------------
+CPPFLAGS = -E -x c -P -C -ffreestanding
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -flto -fuse-linker-plugin -fipa-matrix-reorg
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+#'-O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros' can be replaced with '-Ofast' when compiled with GCC/7.3.0 or older, otherwise 'nan' error occurs with velocity/position update.
+INLINING += -u run_communication_loop -u walk_worker_thread
+FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
+    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+else
+  FFLAGS   = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
+    $(INLINING) \
+    $(FFEATURES) \
+    $(FWARNINGS)
+  CFLAGS   = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros -pthread -Wall $(INLINING)
+  LDFLAGS  = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros -pthread $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+JUROPA
+-------------------------------------------------------------------------------
+CPPFLAGS = -P -C
+INLINING = -ftree-vectorize -ftree-vectorizer-verbose=2 -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining -mstringop-strategy=unrolled_loop
+# -flto # deactivated since it lead to problems with MPI_IN_PLACE
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion
+  CFLAGS   = -g -pg -O0
+  LDFLAGS  = -g -pg -O0
+else
+  FFLAGS   = -g -Wall -O3        -ffree-line-length-none $(INLINING)
+  CFLAGS   = -g -Wall -O3
+  LDFLAGS  = -g -pthread -O3 $(INLINING) -fwhole-program 
+  CPPFLAGS += -DNDEBUG
+endif
+
+-------------------------------------------------------------------------------
+OSX, GCC 4.8
+-------------------------------------------------------------------------------
+# Some notes:
+# - OS X ships without a Fortran compiler, this makefile assumes that gcc-4.8
+#   including the Fortran front-end gfortran has been installed by the user.
+# - The stock OpenMPI that comes with OS X does not include Fortran bindings
+#   and Fortran compiler wrappers, these will have to be installed by the
+#   user as well.
+# - The system cpp in OS X is antiquated and thus whatever compiler hides
+#   behind mpicc is (ab)used as the C preprocessor using the -E -x c flags.
+AR       = libtool
+ARFLAGS  = -o
+CPPFLAGS = -E -x c -P -C
+INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg 
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -Wall -O0 -pg -g -fcoarray=none -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wimplicit-interface -Wimplicit-procedure -Wsurprising -Wfunction-elimination -Wrealloc-lhs-all -Wcompare-reals -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -pg -g 
+  LDFLAGS  =       -O0 -pg -g 
+else
+  FFLAGS   = -Wall -O5 -pg    -fcoarray=none -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING)
+  CFLAGS   = -Wall -O5 -pg
+  LDFLAGS  = -pthread -pg -O5 $(INLINING) -fwhole-program  
+  CPPFLAGS += -DNDEBUG
+endif
