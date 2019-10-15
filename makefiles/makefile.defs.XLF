@@ -1,5 +1,5 @@
 HELP = "\
-\# Makefile for JuQueen\n\
+\# Makefile for JUQUEEN\n\
 \# \n\
 \# for sionlib support in pepcb, call\n\nmodule load sionlib\n\n\# before compiling and running\
 "

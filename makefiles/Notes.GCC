@@ -172,6 +172,40 @@ else
 endif
 
 -------------------------------------------------------------------------------
+CRAY, Monte Rosa (CSCS) GCC 4.6.2
+-------------------------------------------------------------------------------
+# Makefile for gcc 4.6.2 on Cray Monte Rosa (CSCS)
+# PGI, PathScale and Cray compiler have source code line lengths restrictions, leading to problems with pepc_debug.h
+# Note: gcc has no -O5 (at least not until gcc-4.7), use -Ofast for all available (even non-standard) acceleration
+OPTLEV   = 5
+AR       = ar
+ARFLAGS  = -rsl 
+INLINING = -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -findirect-inlining -mstringop-strategy=unrolled_loop -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg 
+FC       = ftn
+ifeq ($(OPTLEV), -1)
+  FFLAGS   = -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -fbacktrace -fcheck=all
+  CFLAGS   = -Wall -O0 -g 
+  LDFLAGS  =       -O0 -g
+endif
+ifeq ($(OPTLEV), 0)
+  FFLAGS   =  -Wall -O0 -ffree-line-length-none -fsign-zero -pthread 
+  CFLAGS   =  -Wall -O0 
+  LDFLAGS   =       -O0 -pthread   
+endif
+ifeq ($(OPTLEV), 3)
+  FFLAGS   =  -Wall -O3 -ffree-line-length-none -fsign-zero -pthread 
+  CFLAGS   =  -Wall -O3 
+  LDFLAGS   =       -O3 -pthread  
+  CPPFLAGS += -DNDEBUG
+endif  
+ifeq ($(OPTLEV), 5)
+  FFLAGS   =  -Wall -Ofast -ffree-line-length-none -fsign-zero -pthread $(INLINING)
+  CFLAGS   =  -Wall -Ofast 
+  LDFLAGS   =       -Ofast -pthread $(INLINING) -fwhole-program  
+  CPPFLAGS += -DNDEBUG
+endif  
+
+-------------------------------------------------------------------------------
 CRAY, GCC 4.8
 -------------------------------------------------------------------------------
 CPPFLAGS = -E -x c -P -C -ffreestanding
@@ -364,3 +398,55 @@ else
   LDFLAGS  = -pthread -pg -O5 $(INLINING) -fwhole-program  
   CPPFLAGS += -DNDEBUG
 endif
+
+-------------------------------------------------------------------------------
+ARM, Samsung Exynos, MontBlanc prototype
+-------------------------------------------------------------------------------
+MACH     = Exynos_ARM_gcc
+CPPFLAGS = -P -C -ffreestanding
+                  # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+INLINING = -fkeep-inline-functions -findirect-inlining -flto-partition=none -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -flto -ffat-lto-objects
+INLINING = -fuse-linker-plugin
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -frecursive -ffree-line-length-none -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -fimplicit-none -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wextra -Wno-unused-parameter -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wrealloc-lhs-all -fcheck=all -fstack-protector-all
+  CFLAGS   = -gdwarf-3 -gstrict-dwarf -Wall -O0 -g -fstack-protector-all
+  LDFLAGS  = -gdwarf-3 -gstrict-dwarf       -O0 -g 
+else
+  FFLAGS   = -Wall -O3 -frecursive  -ffree-line-length-none -fsign-zero -fno-protect-parens -faggressive-function-elimination $(INLINING) -save-temps -ftree-vectorize -flto
+  CFLAGS   = -Wall -O3 -ftree-vectorize
+  LDFLAGS  = -pthread -O3 $(INLINING) -ftree-vectorize -flto
+  CPPFLAGS += -DNDEBUG
+endif
+# solve the following issue with lto:
+#`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
+#`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
+LDFLAGS += -u walk_worker_thread -u run_communication_loop
+LDLIBS   = -lgfortran -lm
+# stick this here to include COMPILER VERSION and FLAGS and hello_pepc
+FVERSION = $(shell $(FC) -dumpversion)
+CPPFLAGS += -DSVNREVISION="\"$(SVNVERSION)\"" -DFCC="\"$(FC)\"" -DFVERSION="\"$(FVERSION)\"" -DFFLAGS="\"$(FFLAGS)\""
+
+-------------------------------------------------------------------------------
+ARM, Snowball board, Linaro GCC 4.6.2
+-------------------------------------------------------------------------------
+CPPFLAGS = -P -C
+# the next line seems to break gcc-4.6.2
+INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 --param large-function-insns=120000 --param large-unit-insns=120000 --param large-function-growth=1000 --param inline-unit-growth=1000 --param max-inline-insns-recursive-auto=120000 --param max-inline-recursive-depth-auto=500 -fipa-matrix-reorg -findirect-inlining
+# this line is ok on gcc-4.6.2...
+INLINING = -flto -fdump-ipa-inline -finline-functions-called-once -fearly-inlining -finline-limit=120000 -fipa-matrix-reorg -findirect-inlining
+# ... and quicker than this line
+#INLINING =
+ifeq ($(DEBUG), 1)
+  FFLAGS   = $(OPENMPFLAG) -Wall -O0 -pg -g -ffree-line-length-none -fbounds-check -frange-check -fbacktrace -fvar-tracking -pthread -C -Wconversion -Waliasing -Wampersand -Wsurprising -Wno-tabs -Wline-truncation -Wcharacter-truncation -Wunderflow -pedantic -Wnonstd-intrinsics
+  CFLAGS   = -I/usr/lib/mpich-shmem/include -g -pg -O0
+  LDFLAGS  = $(OPENMPFLAG) -g -pg -O0
+else
+  FFLAGS   = $(OPENMPFLAG) -Wall -O3 -ffree-line-length-none $(INLINING) -mfloat-abi=softfp -mcpu=cortex-a9 -march=armv7-a -mfpu=vfpv3-d16 -ftree-vectorize
+  CFLAGS   = -Wall -O3 $(INLINING) -mfloat-abi=softfp -mcpu=cortex-a9 -march=armv7-a -mfpu=vfpv3-d16 -ftree-vectorize
+  LDFLAGS  = $(OPENMPFLAG) -pthread -O3 $(INLINING) -mfloat-abi=softfp -mcpu=cortex-a9 -march=armv7-a -mfpu=vfpv3-d16 -ftree-vectorize
+  CPPFLAGS += -DNDEBUG
+endif
+FC       = mpif90 -f90=gfortran-4.6.2
+CC       = mpicc -cc=gcc-4.6.2
+LD       = mpif90 -f90=gfortran-4.6.2

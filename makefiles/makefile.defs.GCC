@@ -48,7 +48,10 @@ INLINING += -u run_communication_loop -u walk_worker_thread
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
 
 # enable GCC features pthreads and alike might rely on
-FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero 
+
+# architecture specific switches (think AVVX512 and alike)
+FARCH = -malign-data=cacheline -mtune=native -march=native
 
 # have extra flags to fix compiler problems
 FFIX =
@@ -57,15 +60,14 @@ FFIX =
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
     -fcheck=all -frange-check -fbacktrace -fvar-tracking \
-    $(FFEATURES) \
-    $(FWARNINGS)
-  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+    $(FFEATURES) $(FWARNINGS) $(FARCH)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall $(FARCH)
   LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
-  FFLAGS   = -O2 -mtune=native -march=native $(FFIX) \
-    $(INLINING) \
-    $(FFEATURES)
-  CFLAGS   = -O2 -pthread -Wall $(FFIX) $(INLINING)
+  FFLAGS   = -O2 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
+    $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
+  CFLAGS   = -O2 -pthread -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros\
+    $(FFIX) $(INLINING) $(ARCH)
   LDFLAGS  = -O2 -pthread $(FFIX) $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
