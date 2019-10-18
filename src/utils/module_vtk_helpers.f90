@@ -46,7 +46,7 @@ contains
    !>
    !> Writes particles to a VTK file
    !>
-   subroutine vtk_write_particles(fname, mpi_comm, step, time, vtk_step, p, helper_func, coord_scale)
+   subroutine vtk_write_particles(fname, mpi_communicator, step, time, vtk_step, p, helper_func, coord_scale)
       use module_vtk
       use module_pepc_types
       use module_interaction_specific_types
@@ -54,7 +54,7 @@ contains
       implicit none
 
       character(*), intent(in) :: fname
-      integer(kind_default), intent(in) :: mpi_comm
+      integer(kind_default), intent(in) :: mpi_communicator
       integer, intent(in) :: step
       real*8, intent(in) :: time
       integer, intent(in) :: vtk_step
@@ -79,8 +79,8 @@ contains
       integer(kind_default) :: ierr
       type(vtkfile_unstructured_grid) :: vtk
 
-      call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
-      call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+      call MPI_Comm_rank(mpi_communicator, mpi_rank, ierr)
+      call MPI_Comm_size(mpi_communicator, mpi_size, ierr)
 
       np = size(p)
 
@@ -115,7 +115,7 @@ contains
    !>
    !> Writes a collection of nodes into vtk files as points
    !>
-   subroutine vtk_write_nodes_as_points(fname, mpi_comm, step, tsim, vtk_step, t, nodes, node_vbox, helper_func, coord_scale)
+   subroutine vtk_write_nodes_as_points(fname, mpi_communicator, step, tsim, vtk_step, t, nodes, node_vbox, helper_func, coord_scale)
       use treevars
       use module_vtk
       use module_mirror_boxes
@@ -127,7 +127,7 @@ contains
       implicit none
 
       character(*), intent(in) :: fname
-      integer(kind_default) :: mpi_comm
+      integer(kind_default) :: mpi_communicator
       integer, intent(in) :: step
       integer, intent(in) :: vtk_step
       real*8, intent(in) :: tsim
@@ -159,8 +159,8 @@ contains
 
       type(vtkfile_unstructured_grid) :: vtk
 
-      call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
-      call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+      call MPI_Comm_rank(mpi_communicator, mpi_rank, ierr)
+      call MPI_Comm_size(mpi_communicator, mpi_size, ierr)
 
       num_nodes = size(nodes)
 
@@ -230,7 +230,7 @@ contains
    !>
    !> Writes a collection of nodes into vtk files as boxes
    !>
-   subroutine vtk_write_nodes_as_boxes(fname, mpi_comm, step, tsim, vtk_step, t, nodes, node_vbox, helper_func, coord_scale)
+   subroutine vtk_write_nodes_as_boxes(fname, mpi_communicator, step, tsim, vtk_step, t, nodes, node_vbox, helper_func, coord_scale)
       use treevars
       use module_vtk
       use module_spacefilling
@@ -243,7 +243,7 @@ contains
       implicit none
 
       character(*), intent(in) :: fname
-      integer(kind_default) :: mpi_comm
+      integer(kind_default) :: mpi_communicator
       integer, intent(in) :: step
       integer, intent(in) :: vtk_step
       real*8, intent(in) :: tsim
@@ -290,8 +290,8 @@ contains
       real(kind_physics), dimension(3) :: bshift
       type(vtkfile_unstructured_grid) :: vtk
 
-      call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
-      call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+      call MPI_Comm_rank(mpi_communicator, mpi_rank, ierr)
+      call MPI_Comm_size(mpi_communicator, mpi_size, ierr)
 
       num_nodes = size(nodes)
 
@@ -377,7 +377,7 @@ contains
    !> if particle keys are given to this routine, resulting boxes might be way too small to be visible
    !> using paraview, you can then successively apply the following filters: "Cell Centers", "Glyph" (choose box of appropriate size)
    !>
-   subroutine vtk_write_keys_as_boxes(fname, mpi_comm, step, tsim, vtk_step, bounding_box, keys, colors, key_vbox, coord_scale)
+   subroutine vtk_write_keys_as_boxes(fname, mpi_communicator, step, tsim, vtk_step, bounding_box, keys, colors, key_vbox, coord_scale)
       use treevars
       use module_vtk
       use module_spacefilling
@@ -391,7 +391,7 @@ contains
       implicit none
 
       character(*), intent(in) :: fname
-      integer(kind_default) :: mpi_comm
+      integer(kind_default) :: mpi_communicator
       integer, intent(in) :: step
       integer, intent(in) :: vtk_step
       real*8, intent(in) :: tsim
@@ -422,8 +422,8 @@ contains
       real(kind_physics), dimension(3) :: bshift
       type(vtkfile_unstructured_grid) :: vtk
 
-      call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
-      call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+      call MPI_Comm_rank(mpi_communicator, mpi_rank, ierr)
+      call MPI_Comm_size(mpi_communicator, mpi_size, ierr)
 
       num_keys = size(keys)
       DEBUG_ASSERT(num_keys .eq. size(colors))
@@ -767,7 +767,7 @@ contains
    !> Writes scalar and vector field values on a regular rectangular grid to VTK.
    !>
    subroutine vtk_write_field_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
-                                      scalarvalues, scalarname, vectorvalues, vectorname, mpi_comm)
+                                      scalarvalues, scalarname, vectorvalues, vectorname, mpi_communicator)
       use module_vtk
       use mpi
       implicit none
@@ -778,17 +778,17 @@ contains
       integer, dimension(2, 3), intent(in) :: globaldims, mydims
       real*8, intent(in) :: xcoords(:), ycoords(:), zcoords(:)
       real*8, intent(in) :: scalarvalues(:, :, :), vectorvalues(:, :, :, :)
-      integer, intent(in) :: mpi_comm
+      integer, intent(in) :: mpi_communicator
 
       integer :: mpi_rank, mpi_size, ierr
 
       type(vtkfile_rectilinear_grid) :: vtk
 
-      call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
-      call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+      call MPI_Comm_rank(mpi_communicator, mpi_rank, ierr)
+      call MPI_Comm_size(mpi_communicator, mpi_size, ierr)
 
       call vtk%create_parallel(trim(filename), step, mpi_rank, mpi_size, tsim, vtk_step)
-      call vtk%set_communicator(mpi_comm)
+      call vtk%set_communicator(mpi_communicator)
       call vtk%write_headers(globaldims, mydims)
       call vtk%startcoordinates()
       call vtk%write_data_array("x_coordinate", xcoords)
@@ -813,7 +813,7 @@ contains
    !> accordingly, size(densX) = size([xcoords, ycoords, zcoords])-1
    !>
    subroutine vtk_write_densities_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
-                                          dens1, name1, dens2, name2, mpi_comm, coord_scale)
+                                          dens1, name1, dens2, name2, mpi_communicator, coord_scale)
       use module_vtk
       use mpi
       implicit none
@@ -824,18 +824,18 @@ contains
       integer, dimension(2, 3), intent(in) :: globaldims, mydims
       real*8, intent(in) :: xcoords(:), ycoords(:), zcoords(:)
       real*8, intent(in) :: dens1(:, :, :), dens2(:, :, :)
-      integer, intent(in) :: mpi_comm
+      integer, intent(in) :: mpi_communicator
       real*8, intent(in), optional :: coord_scale
 
       integer :: mpi_rank, mpi_size, ierr
 
       type(vtkfile_rectilinear_grid) :: vtk
 
-      call MPI_Comm_rank(mpi_comm, mpi_rank, ierr)
-      call MPI_Comm_size(mpi_comm, mpi_size, ierr)
+      call MPI_Comm_rank(mpi_communicator, mpi_rank, ierr)
+      call MPI_Comm_size(mpi_communicator, mpi_size, ierr)
 
       call vtk%create_parallel(trim(filename), step, mpi_rank, mpi_size, tsim, vtk_step)
-      call vtk%set_communicator(mpi_comm)
+      call vtk%set_communicator(mpi_communicator)
       call vtk%write_headers(globaldims, mydims)
       call vtk%startcoordinates()
       call vtk%write_data_array("x_coordinate", xcoords, coord_scale)
