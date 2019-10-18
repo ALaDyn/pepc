@@ -258,16 +258,6 @@ contains
          ! Generating Random Number between [0,1]
          dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
 
-         ! Seed the next iteration of random numbers
-         ctr_s(1) = CEILING(rand_num(1)*1e15,kind=int32)
-         ctr_s(2) = CEILING(rand_num(5)*1e15,kind=int32)
-         ctr_s(3) = CEILING(rand_num(2)*1e15,kind=int32)
-         ctr_s(4) = CEILING(rand_num(7)*1e15,kind=int32)
-         key_s(1) = CEILING(rand_num(4)*1e15,kind=int32)
-         key_s(2) = CEILING(rand_num(3)*1e15,kind=int32)
-         key_s(3) = CEILING(rand_num(6)*1e15,kind=int32)
-         key_s(4) = CEILING(rand_num(8)*1e15,kind=int32)
-
          x = (2.*rand_num(1) - 1.) * dist_outer
          y = (2.*rand_num(2) - 1.) * dist_outer
          ran_dist = sqrt(x**2 + y**2)
@@ -293,15 +283,6 @@ contains
 
        ! Generating Random Number between [0,1]
        dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
-       ! Seed the next iteration of random numbers
-       ctr_s(1) = CEILING(rand_num(1)*1e15,kind=int32)
-       ctr_s(2) = CEILING(rand_num(5)*1e15,kind=int32)
-       ctr_s(3) = CEILING(rand_num(2)*1e15,kind=int32)
-       ctr_s(4) = CEILING(rand_num(7)*1e15,kind=int32)
-       key_s(1) = CEILING(rand_num(4)*1e15,kind=int32)
-       key_s(2) = CEILING(rand_num(3)*1e15,kind=int32)
-       key_s(3) = CEILING(rand_num(6)*1e15,kind=int32)
-       key_s(4) = CEILING(rand_num(8)*1e15,kind=int32)
 
        r = rand_num(1) * minor_radius
        theta  = rand_num(3) * 2. * pi
@@ -317,15 +298,6 @@ contains
 
        ! Generating Random Number between [0,1]
        dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
-       ! Seed the next iteration of random numbers
-       ctr_s(1) = CEILING(rand_num(1)*1e15,kind=int32)
-       ctr_s(2) = CEILING(rand_num(5)*1e15,kind=int32)
-       ctr_s(3) = CEILING(rand_num(2)*1e15,kind=int32)
-       ctr_s(4) = CEILING(rand_num(7)*1e15,kind=int32)
-       key_s(1) = CEILING(rand_num(4)*1e15,kind=int32)
-       key_s(2) = CEILING(rand_num(3)*1e15,kind=int32)
-       key_s(3) = CEILING(rand_num(6)*1e15,kind=int32)
-       key_s(4) = CEILING(rand_num(8)*1e15,kind=int32)
 
        if (rand_num(2) > 0.5) then
           l = -1.0

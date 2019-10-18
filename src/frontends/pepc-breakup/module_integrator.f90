@@ -461,10 +461,10 @@ contains
     !  print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime
 
      ! Seeding procedure for RNG (any expression that generates integer unique to the process works)
-     ctr_s(1) = (my_rank + 1)*(nt - step)
-     ctr_s(2:4) = CEILING(particle%x*1e5)
-     key_s(1) = (my_rank + 1)*(step + 1)
-     key_s(2:4) = CEILING(particle%data%v*1e17)
+     ! ctr_s(1) = (my_rank + 1)*(nt - step)
+     ! ctr_s(2:4) = CEILING(particle%x*1e5)
+     ! key_s(1) = (my_rank + 1)*(step + 1)
+     ! key_s(2:4) = CEILING(particle%data%v*1e17)
 
      ! Generating Random Number between [0,1]
      dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
