@@ -73,6 +73,10 @@ ctr_seed[0] = ctr.v[0];
 ctr_seed[1] = ctr.v[1];
 ctr_seed[2] = ctr.v[2];
 ctr_seed[3] = ctr.v[3];
+key_seed[0] = ran_num2.v[0];
+key_seed[1] = ran_num2.v[1];
+key_seed[2] = ran_num2.v[2];
+key_seed[3] = ran_num2.v[3];
 
 output[4] = u01_closed_closed_32_53(ran_num2.v[0]);
 output[5] = u01_closed_closed_32_53(ran_num2.v[1]);
