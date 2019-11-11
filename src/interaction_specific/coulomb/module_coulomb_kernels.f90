@@ -29,6 +29,9 @@ module module_coulomb_kernels
    private
 
    ! shortcut notations
+   ! if memory serves us right, these shortcuts proved to reduce int2float conversions
+   ! for some of the compilers (XLF?) hence generating faster code
+   ! TODO: revisit this and test, possibly using int-expressions
    real(kind_physics), parameter :: zero  = 0._kind_physics   !&
    real(kind_physics), parameter :: one   = 1._kind_physics   !&
    real(kind_physics), parameter :: two   = 2._kind_physics   !&
@@ -61,8 +64,8 @@ contains
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  exyz(3), phi
 
-      real(kind_physics) :: rd, dx, dy, dz, r, dx2, dy2, dz2, dx3, dy3, dz3, rd2, rd3, rd5, rd7, fd1, fd2, fd3, fd4, fd5, fd6, m2rd5, m5rd7, &
-                            pre1, pre2x, pre2y, pre2z, preQ1, preQ2, preQ3
+      real(kind_physics) :: rd, dx, dy, dz, r, dx2, dy2, dz2, rd2, rd3, rd5, rd7, fdx, fdy, fdz, fdxy, fdyz, fdxz, m2rd5, m5rd7, &
+                            pre1, pre2x, pre2y, pre2z, preQx, preQy, preQz
 
       dx = d(1)
       dy = d(2)
@@ -78,16 +81,13 @@ contains
       dx2 = dx * dx
       dy2 = dy * dy
       dz2 = dz * dz
-      dx3 = dx * dx2
-      dy3 = dy * dy2
-      dz3 = dz * dz2
 
-      fd1 = three * dx2 * rd5 - rd3
-      fd2 = three * dy2 * rd5 - rd3
-      fd3 = three * dz2 * rd5 - rd3
-      fd4 = three * dx * dy * rd5
-      fd5 = three * dy * dz * rd5
-      fd6 = three * dx * dz * rd5
+      fdx = three * dx2 * rd5 - rd3
+      fdy = three * dy2 * rd5 - rd3
+      fdz = three * dz2 * rd5 - rd3
+      fdxy = three * dx * dy * rd5
+      fdyz = three * dy * dz * rd5
+      fdxz = three * dx * dz * rd5
 
       m2rd5 = two * rd5
       m5rd7 = five * rd7
@@ -95,22 +95,22 @@ contains
       pre2x = m5rd7 * dx2 - rd5
       pre2y = m5rd7 * dy2 - rd5
       pre2z = m5rd7 * dz2 - rd5
-      preQ1 = pre2x * t%quad(1)
-      preQ2 = pre2y * t%quad(2)
-      preQ3 = pre2z * t%quad(3)
+      preQx = pre2x * t%quad(1)
+      preQy = pre2y * t%quad(2)
+      preQz = pre2z * t%quad(3)
 
       phi = t%charge*rd                                             &  !&  monopole term
             - (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !&  dipole
-            + fd1*t%quad(1) + fd2*t%quad(2) + fd3*t%quad(3)         &  !&  quadrupole
-            + fd4*t%xyquad  + fd5*t%yzquad  + fd6*t%zxquad             !&
+            + fdx*t%quad(1) + fdy*t%quad(2) + fdz*t%quad(3)         &  !&  quadrupole
+            + fdxy*t%xyquad  + fdyz*t%yzquad  + fdxz*t%zxquad          !&
 
       exyz(1) = t%charge*dx*rd3                                     &  !& monopole term
-                - (fd1*t%dip(1) + fd4*t%dip(2) + fd6*t%dip(3))      &  !& dipole term
+                - (fdx*t%dip(1) + fdxy*t%dip(2) + fdxz*t%dip(3))    &  !& dipole term
                 + three * (                                         &  !& quadrupole term
                    dx * (                                           &  !&
                        ( pre2x - m2rd5 )*t%quad(1)                  &  !&
-                     + preQ2                                        &  !&
-                     + preQ3                                        &  !&
+                     + preQy                                        &  !&
+                     + preQz                                        &  !&
                    )                                                &  !&
                    + dy*pre2x*t%xyquad                              &  !&
                    + dz*pre2x*t%zxquad                              &  !&
@@ -118,12 +118,12 @@ contains
                   )                                                    !&
 
       exyz(2) = t%charge*dy*rd3                                     &  !&
-                - (fd2*t%dip(2) + fd4*t%dip(1) + fd5*t%dip(3))      &  !&
+                - (fdy*t%dip(2) + fdxy*t%dip(1) + fdyz*t%dip(3))    &  !&
                 + three * (                                         &  !&
                    dy * (                                           &  !&
                        ( pre2y - m2rd5 )*t%quad(2)                  &  !&
-                     + preQ1                                        &  !&
-                     + preQ3                                        &  !&
+                     + preQx                                        &  !&
+                     + preQz                                        &  !&
                    )                                                &  !&
                    + dx*pre2y*t%xyquad                              &  !&
                    + dz*pre2y*t%yzquad                              &  !&
@@ -131,12 +131,12 @@ contains
                   )                                                    !&
 
       exyz(3) = t%charge*dz*rd3                                     &  !&
-                - (fd3*t%dip(3) + fd5*t%dip(2) + fd6*t%dip(1))      &  !&
+                - (fdz*t%dip(3) + fdyz*t%dip(2) + fdxz*t%dip(1))    &  !&
                 + three * (                                         &  !&
                    dz * (                                           &  !&
                      + ( pre2z - m2rd5 )*t%quad(3)                  &  !&
-                     + preQ2                                        &  !&
-                     + preQ1                                        &  !&
+                     + preQy                                        &  !&
+                     + preQx                                        &  !&
                    )                                                &  !&
                    + dx*pre2z*t%zxquad                              &  !&
                    + dy*pre2z*t%yzquad                              &  !&
