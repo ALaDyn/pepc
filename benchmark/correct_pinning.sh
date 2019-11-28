@@ -13,7 +13,7 @@
 # echo settings? This will break srun integration...
 ECHO=true
 # to fix the integration, try
-#    export PIN=`correct_pinning.sh | grep cpu_bind`
+#    export PIN=`correct_pinning.sh | grep cpu-bind`
 #
 
 # run for JURECA cluster or booster?
@@ -50,7 +50,7 @@ then
 fi
 
 CPUid=0
-MASK="--cpu_bind=mask_cpu:"
+MASK="--cpu-bind=mask_cpu:"
 # loop per process on each node
 for PROC in `seq 1 $SLURM_NTASKS_PER_NODE`
 do
@@ -91,7 +91,7 @@ then
 fi
 
 CPUid=0
-MASK="--cpu_bind=mask_cpu:"
+MASK="--cpu-bind=mask_cpu:"
 # loop per process on each node
 for PROC in `seq 1 $SLURM_NTASKS_PER_NODE`
 do
