@@ -28,6 +28,7 @@ program pepc
    use module_checkpoint
    use diagnostics
    use interactions_integrator
+   use iso_fortran_env
    use rng_wrapper
 
    ! frontend helper routines
@@ -58,14 +59,39 @@ program pepc
      end if
    end if
 
+   ! NOTE: Random123 seeding
+   ! Seeding procedure for Random123 (any expression that generates integer unique to the process works)
+   ! Only 1 instance of seed is required for the whole of pepc-breakup. Counter will be incremented
+   ! at every call of "gen_norm_double_rng()", as well as assigning a random key.
+   ! Excerpt from Random123 documentation (https://www.thesalmons.org/john/random123/releases/1.11.2pre/docs/):
+   ! "The result is highly sensitive to small changes in the inputs, so that the sequence of values produced by simply
+   ! incrementing the counter (or key) is effectively indistinguishable from a sequence of samples of a uniformly distributed
+   ! random variable."
+
    if (resume == 1) then
      np = tnp/n_ranks
      if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
      call read_particles_mpiio(itime_in, MPI_COMM_WORLD, checkin_step, tnp, particles, checkpoint_file, &
                                int(np))
      call write_particles(particles)
+
+     ctr_s(1) = (my_rank + 1)*np
+     ctr_s(2:4) = CEILING(particles(1)%x*1e5, kind=int32)
+     key_s(1) = (my_rank + 1)*n_ranks
+     key_s(2:4) = CEILING(particles(1)%data%v*1e17, kind=int32)
+
    else
      itime_in = 0
+
+     ctr_s(1) = (my_rank + 1)*np
+     ctr_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+11), kind=int32),100**(my_rank+1))
+     ctr_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+11), kind=int32),100**(my_rank+1))
+     ctr_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+11), kind=int32),100**(my_rank+1))
+     key_s(1) = (my_rank + 1)*n_ranks
+     key_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+7), kind=int32),100**(my_rank+1))
+     key_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+7), kind=int32),100**(my_rank+1))
+     key_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+7), kind=int32),100**(my_rank+1))
+
      call init_particles(particles, sim_type)
      ! call torus_diagnostic_xz_grid(major_radius, minor_radius, 8, particles)
      ! call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 9, particles)

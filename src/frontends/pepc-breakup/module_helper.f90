@@ -346,21 +346,6 @@ contains
 
       ! set random seed
       dummy = par_rand(1*my_rank)
-      ! Seeding procedure for Random123 (any expression that generates integer unique to the process works)
-      ! Only 1 instance of seed is required for the whole of pepc-breakup. Counter will be incremented
-      ! at every call of "gen_norm_double_rng()", as well as assigning a random key. 
-      ! Excerpt from Random123 documentation (https://www.thesalmons.org/john/random123/releases/1.11.2pre/docs/):
-      ! "The result is highly sensitive to small changes in the inputs, so that the sequence of values produced by simply
-      ! incrementing the counter (or key) is effectively indistinguishable from a sequence of samples of a uniformly distributed
-      ! random variable."
-      ctr_s(1) = (my_rank + 1)*np
-      ctr_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+11), kind=int32),100**(my_rank+1))
-      ctr_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+11), kind=int32),100**(my_rank+1))
-      ctr_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+11), kind=int32),100**(my_rank+1))
-      key_s(1) = (my_rank + 1)*n_ranks
-      key_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+7), kind=int32),100**(my_rank+1))
-      key_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+7), kind=int32),100**(my_rank+1))
-      key_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+7), kind=int32),100**(my_rank+1)) 
 
       select case(geom)
       case(0)

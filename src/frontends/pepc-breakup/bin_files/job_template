@@ -15,7 +15,7 @@
 #	N_*
 
 #	THEN, RENAME TO JOB_SUBMIT.
-srun --cpu_bind=sockets -l ./pepc-breakup ./params > log
+srun --cpu-bind=sockets -l ./pepc-breakup ./params > log
 
 #=======================Define in job_template====================
 N_Nodes=1
