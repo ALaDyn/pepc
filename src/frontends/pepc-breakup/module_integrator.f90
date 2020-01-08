@@ -157,7 +157,7 @@ contains
       field_vector = cross_product(particle%x,ez)
       field_vector = field_vector/sqrt(dot_product(field_vector, field_vector))
 
-      Itf = 3.62e7_8
+      Itf = 7.524e7_8 !3.62e7_8
       R = sqrt(Coord(1)**2 + Coord(2)**2)
       B_field = field_vector * mu_0 * Itf/(2.0_8 * pi *R) ! field_vector*B0*major_radius/R
       B_field = B_field*((1.e-12)*(c**2))/e_mass ! non-dimensionalise
@@ -167,17 +167,16 @@ contains
 
       ! 4 correction coils surrounding breakdown region, centred around major_radius
       ! Coils are directly solving Biot-Savart Law
-      PF_temp = current_loop_B(Coord, R, 2.2_8, 2.9_8, 35943.1422902196_8) ! 4.0e4_8) !3.0e6_8) !
+      PF_temp = current_loop_B(Coord, R, 3.0_8, 5.8_8, 2357.3662872100125_8) !(JET-like: 35943.1422902196_8) ! 4.0e4_8) !3.0e6_8) !
       PF_final = PF_final + PF_temp
 
-      PF_temp = current_loop_B(Coord, R, -2.2_8, 2.9_8, 35943.1422902196_8) !4.0e4_8) ! 3.0e6_8) !
+      PF_temp = current_loop_B(Coord, R, -3.0_8, 5.8_8, 2357.3662872100125_8) !(JET-like: 35943.1422902196_8) !4.0e4_8) ! 3.0e6_8) !
       PF_final = PF_final + PF_temp
 
-      PF_temp = current_loop_B(Coord, R, 0.0_8, 1.5_8, 1.77e5_8) !1.5e5_8) ! 7.0e6_8) !
-      ! PF_temp = current_loop_B(Coord, R, 0.0_8, 1.5_8, 3.6e6_8)
+      PF_temp = current_loop_B(Coord, R, 0.0_8, 3.0_8, 1.0e5_8)!(JET-like: 1.77e5_8) !1.5e5_8) ! 7.0e6_8) !
       PF_final = PF_final + PF_temp
 
-      PF_temp = current_loop_B(Coord, R, 0.0_8, 4.3_8, 1.77e4_8)!11467.320098924624_8) ! 115453.38348883369_8) !
+      PF_temp = current_loop_B(Coord, R, 0.0_8, 8.3_8, 1.5e4_8)!(JET-like: 1.77e4_8)!11467.320098924624_8) ! 115453.38348883369_8) !
       PF_final = PF_final + PF_temp
 
       ! PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
@@ -186,7 +185,7 @@ contains
 
       R = R/(c*1e-12)
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      particle%data%b = B_field + Pol_B_field
+      particle%data%b = Pol_B_field + B_field
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
@@ -250,7 +249,7 @@ contains
 
       particle%data%f_e = 2.0*E_q_dt_m*particle%results%e*q_m_ratio*particle%data%m*e_mass/(c*dt*1e-12)
       !particle%data%q*particle%results%e/particle%data%m
-      particle%data%f_b = particle%data%m*e_mass*(particle%data%v - V_init)/(c*dt*1e-12) - particle%data%f_e
+      !particle%data%f_b = particle%data%m*e_mass*(particle%data%v - V_init)/(c*dt*1e-12) - particle%data%f_e
 
       ! To isolate the Delta V due to E field and B field, propose to compute
       ! D_V = V_final - V_init
@@ -266,6 +265,7 @@ contains
 
       dist_vec = particle%data%v*dt
       particle%x = particle%x + dist_vec
+      particle%data%f_b(1) = particle%data%f_b(1) + sqrt(dot_product(dist_vec,dist_vec))
 
       particle%data%age = particle%data%age + dt
    end subroutine particle_pusher
@@ -425,6 +425,7 @@ contains
      guide%tmp_particles(buffer_pos)%work = 1.0_8
      guide%tmp_particles(buffer_pos)%data%age = 0.0_8
 
+     guide%tmp_particles(buffer_pos)%label = 0
      guide%tmp_particles(buffer_pos)%data%v = 0.0_8
 
      new_particle = new_particle + 1
@@ -438,6 +439,7 @@ contains
      real(kind_physics), dimension(:), intent(inout) :: CS_vector
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
+     real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss
      integer :: buff_pos, i
 
      ! TODO: not a huge fan of the next 4 lines. Rather make those parameters which might help optimisation
@@ -445,6 +447,7 @@ contains
      V_V01 = 0.516 ! eV, transition energy associated with vibrational excitation from V = 0 -> 1
      IE_H2_ion = 15.426 ! 15.283 eV, Ionization energy of H2+ [Source: T.E.Sharp Atomic Data 2, 119-169 (1971)]. 15.426 by Yoon 2008
      AE_H_ion = 18.075 ! eV, Appearance energy of H+, 18.1 by Yoon 2008
+     H2_mass = 3674.43889456_8 ! H2/e mass ratio
      ! [definition of Appearance energy vs Ionization energy from Mass Spectroscopy (2011) by Gross J.H.]
 
      ! NOTE: Currently, calculation of nu_prime involves obtaining abs_max_CS,
@@ -491,14 +494,37 @@ contains
      polar_theta = 2.0*pi*rand_num(4)
      polar_phi = acos(2.0*rand_num(3) - 1.)
 
+     K_E = 0.5*particle%data%m*vel_mag**2
+     cos_Chi = (2. + K_E - 2.*(1. + K_E)**rand_num(5))/K_E
+     Chi = acos(cos_Chi)
+     unit_inc_vel = particle%data%v/vel_mag
+     scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
+
      select case(i)
      case(0) ! null collision, no update performed
       !  print *, "null coll!"
      case(1) ! elastic scattering (no additional electron, no byproducts)
        ! update velocity to indicate scattering into random angle
-       particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
-       particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
-       particle%data%v(3) = vel_mag * cos(polar_phi)
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*scatter_loss/e_mass)
+       ! particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
+       ! particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
+       ! particle%data%v(3) = vel_mag * cos(polar_phi)
+
+       ! ====Energy dependent scattering angle [Vahedi & Surendra, 1995]====
+       rot_axis = 0.0
+       rot_axis(1) = 1.0
+       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       temp_vel = cross_product(unit_inc_vel, rot_axis)
+       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       prefac = sin(Chi)/sin(polar_phi)
+
+       particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+                         sin(polar_theta)*prefac*temp_vel + &
+                         cos(polar_theta)*prefac*temp_vel1)
+
+       ! =======Anti Parallel Scattering ============================
+       ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
        particle%data%age = 0.0_8
       !  print *, "elastic coll.!"
 
@@ -506,41 +532,86 @@ contains
        ! update velocity to indicate scattering into random angle
        ! TODO: will be less costly to keep 2/e_mass as parameter and multiplying with it - not sure the compile will pick up on this
        ! and do the short-cut for you. Better still: add it to the energies straight away.
-       reduced_vel_mag = sqrt(vel_mag**2 - 2.*R_J02/e_mass)
-       particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
-       particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
-       particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*(R_J02 + scatter_loss)/e_mass)
+
+       ! particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
+       ! particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
+       ! particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
+
+       ! ====Energy dependent scattering angle [Vahedi & Surendra, 1995]====
+       rot_axis = 0.0
+       rot_axis(1) = 1.0
+       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       temp_vel = cross_product(unit_inc_vel, rot_axis)
+       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       prefac = sin(Chi)/sin(polar_phi)
+
+       particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+                        sin(polar_theta)*prefac*temp_vel + &
+                        cos(polar_theta)*prefac*temp_vel1)
+
+       ! ==========================Anti Parallel Scatter =======================
+       ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
        particle%data%age = 0.0_8
       !  print *, "rotational exci.!"
 
      case(3) ! vibrational excitation of H2 molecule, electron will lose the transition energy
        ! update velocity to indicate scattering into random angle
-       reduced_vel_mag = sqrt(vel_mag**2 - 2.*V_V01/e_mass)
-       particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
-       particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
-       particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*(V_V01 + scatter_loss)/e_mass)
+
+       ! particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
+       ! particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
+       ! particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
+       
+       ! ====Energy dependent scattering angle [Vahedi & Surendra, 1995]====
+       rot_axis = 0.0
+       rot_axis(1) = 1.0
+       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       temp_vel = cross_product(unit_inc_vel, rot_axis)
+       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       prefac = sin(Chi)/sin(polar_phi)
+
+       particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+                         sin(polar_theta)*prefac*temp_vel + &
+                         cos(polar_theta)*prefac*temp_vel1)
+       
+       ! ==========================Anti Parallel Scatter =======================
+       ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+      
        particle%data%age = 0.0_8
       !  print *, "vibrational exci.!"
 
      case(4) ! nondissociative ionization (1 additional electron, 1 byproduct)
-       reduced_vel_mag = sqrt(vel_mag**2 - 2.*IE_H2_ion/e_mass)
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*(IE_H2_ion + scatter_loss)/e_mass)
        reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
       !  print *, "incident momentum: ", particle%data%m * reduced_incident
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
-       temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
-       temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
-       temp_vel(3) = cos(polar_phi*0.5)
+       ! temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
+       ! temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
+       ! temp_vel(3) = cos(polar_phi*0.5)
 
-       rot_axis(1) = 0.0
-       rot_axis(2) = 1.0
-       rot_axis(3) = 0.0
-       temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
-       rot_axis(2) = 0.0
-       rot_axis(3) = 1.0
-       temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
+       ! rot_axis(1) = 0.0
+       ! rot_axis(2) = 1.0
+       ! rot_axis(3) = 0.0
+       ! temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
+       ! rot_axis(2) = 0.0
+       ! rot_axis(3) = 1.0
+       ! temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
 
+       rot_axis = 0.0
+       rot_axis(1) = 1.0
+       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       temp_vel = cross_product(unit_inc_vel, rot_axis)
+       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       prefac = sin(Chi)/sin(polar_phi)
+
+       temp_vel = (cos_Chi*unit_inc_vel + sin(polar_theta)*prefac*temp_vel + &
+                  cos(polar_theta)*prefac*temp_vel1)
+
+       ! NOTE: Scaling proper velocity magnitudes w.r.t K_E & momentum
        cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
        temp_vel_mag = (2.*particle%data%m/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)) &
                       * reduced_vel_mag * cos_theta
@@ -561,25 +632,35 @@ contains
       !  print *, "nondissoc.!"
 
      case(5) ! dissociative ionization (1 additional electron, 2 byproducts), Hydrogen atom is ignored!
-       reduced_vel_mag = sqrt(vel_mag**2 - 2.*AE_H_ion/e_mass)
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*(AE_H_ion+scatter_loss)/e_mass)
        reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
       !  print *, "incident momentum: ", particle%data%m * reduced_incident
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
+       ! temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
+       ! temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
+       ! temp_vel(3) = cos(polar_phi*0.5)
 
-       temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
-       temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
-       temp_vel(3) = cos(polar_phi*0.5)
+       ! rot_axis(1) = 0.0
+       ! rot_axis(2) = 1.0
+       ! rot_axis(3) = 0.0
+       ! temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
+       ! rot_axis(2) = 0.0
+       ! rot_axis(3) = 1.0
+       ! temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
 
-       rot_axis(1) = 0.0
-       rot_axis(2) = 1.0
-       rot_axis(3) = 0.0
-       temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
-       rot_axis(2) = 0.0
-       rot_axis(3) = 1.0
-       temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
+       rot_axis = 0.0
+       rot_axis(1) = 1.0
+       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       temp_vel = cross_product(unit_inc_vel, rot_axis)
+       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       prefac = sin(Chi)/sin(polar_phi)
 
+       temp_vel = (cos_Chi*unit_inc_vel + sin(polar_theta)*prefac*temp_vel + &
+                  cos(polar_theta)*prefac*temp_vel1)
+
+       ! NOTE: Scaling proper velocity magnitudes w.r.t K_E & momentum
        cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
        temp_vel_mag = (2.*particle%data%m/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)) &
                       * reduced_vel_mag * cos_theta
@@ -874,6 +955,11 @@ contains
        buffer_zone = 0.75/(c*1e-12)
 
        if (m_radius > (minor_radius+buffer_zone)) then
+         ! if (particles(current_index)%data%q < 0.0_8) then
+         !   charge_count(1) = charge_count(1) + particles(current_index)%data%q
+         ! else
+         !   charge_count(2) = charge_count(2) + particles(current_index)%data%q
+         ! end if
          particles(current_index) = particles(target_swap)
          swapped_cnt = swapped_cnt + 1
        end if
