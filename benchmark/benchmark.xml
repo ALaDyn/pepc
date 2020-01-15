@@ -57,14 +57,14 @@
                            "impi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2019a; module load Intel/2019.3.199-GCC-8.3.0 IntelMPI/2019.3.199", 
                            "ipsmpi": "module purge; module load intel-para", 
                            "psmpi": "module purge; module load GCC ParaStationMPI", 
-                           "ompi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/Devel-2018b; module load GCC/7.3.0 OpenMPI/4.0.0", 
+			   "ompi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/Devel-2019a; module load GCC OpenMPI/4.0.1",
                            "mvapich": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR; export LD_LIBRARY_PATH=/gpfs/software/juwels/stages/2018b/software/CUDA/9.2.88/lib64/stubs/:${LD_LIBRARY_PATH}"
                       }["${list_of_mpis}"],
             "jureca": {
                            "impi": "module purge; module load Intel IntelMPI", 
                            "ipsmpi": "module purge; module load Intel/2019.0.117-GCC-7.3.0 ParaStationMPI/5.2.1-1-mt", 
                            "psmpi": "module purge; module load GCC ParaStationMPI", 
-                           "ompi": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/Devel-2018b; module load GCC/7.3.0 OpenMPI/4.0.0", 
+			   "ompi": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/Devel-2019a; module load GCC/8.3.0 OpenMPI/4.0.1",
                            "mvapich": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR"
                       }["${list_of_mpis}"],
             }["${systemname}"]
@@ -73,7 +73,7 @@
             "psmpi": "module purge; module load Architecture/KNL; module load GCC ParaStationMPI"}["${list_of_mpis}"]
          </parameter>
          <!-- get name for job script based on MPI library used -->
-         <parameter name="job_script" mode="python">{"ompi": "job.ompi.slurm.skel"}.get("${list_of_mpis}","job.slurm.skel")</parameter>
+         <parameter name="job_script" mode="python">{"old_ompi": "job.ompi.slurm.skel"}.get("${list_of_mpis}","job.slurm.skel")</parameter>
          <!-- get name for makefile on MPI (compiler, really) library used -->
          <parameter name="makefile" mode="python">{"ipsmpi": "makefile.defs_intel", "impi": "makefile.defs_intel"}.get("${list_of_mpis}","makefile.defs_gcc")</parameter>
       </parameterset>
@@ -83,8 +83,8 @@
          <!-- Juwels has 2 x 24 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
          <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
          <parameter tag="!booster" name="nodes" type="int" mode="python">{
-            "juwels": "8, 16, 32, 48, 64, 96, 128",
-            "jureca": "32, 48, 64, 96, 128, 192, 256"}["${systemname}"]
+            "juwels": "64",
+            "jureca": "32, 64, 96, 128"}["${systemname}"]
          </parameter>
          <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
          <parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter>
