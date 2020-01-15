@@ -373,6 +373,40 @@ contains
      end do
    end subroutine determine_cross_sections
 
+   subroutine set_Xi_table(fname, file_id, Xi_t)
+     implicit none
+     character(len = *), intent(in) :: fname
+     real(kind_physics), intent(inout), allocatable :: Xi_t(:,:)
+     integer, intent(in) :: file_id
+     integer :: entries, i
+
+     open(file_id,file=fname,action='READ')
+     read(file_id,*) ! Skipping first line
+     read(file_id,*) entries ! Number of entries in data
+
+     allocate(Xi_t(entries,2))
+
+     do i = 1,entries
+       read(file_id,*) Xi_t(i,1), Xi_t(i,2)
+     end do
+     close(file_id)
+   end subroutine set_Xi_table
+
+   subroutine determine_xi(KE, xi)
+     implicit none
+     real(kind_physics), intent(in) :: KE
+     real(kind_physics), intent(out) :: xi
+     integer :: i
+
+     i = 1
+     do while (KE .gt. Xi_table(i,1))
+       i = i + 1
+     end do
+
+     xi = (Xi_table(i,2) - Xi_table(i-1,2))/(Xi_table(i,1) - Xi_table(i-1,1)) &
+          * (KE - Xi_table(i-1,1)) + Xi_table(i-1,2)
+   end subroutine determine_xi
+
    subroutine add_particle(guide, particle, new_particle, buffer_pos, type)
      ! NOTE: A big assumption is made here: Without considering the rovibrational states
      !       of the reaction products, generated particle doesn't store their own internal
@@ -439,7 +473,7 @@ contains
      real(kind_physics), dimension(:), intent(inout) :: CS_vector
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
-     real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss
+     real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi
      integer :: buff_pos, i
 
      ! TODO: not a huge fan of the next 4 lines. Rather make those parameters which might help optimisation
@@ -458,6 +492,7 @@ contains
      ! way of computing the length and weigh that against readability, perhaps a separate inlinable function if there is a faster
      ! way?
      vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
+     K_E = 0.5*particle%data%m*vel_mag**2
      nu_prime = abs_max_CS * vel_mag * neutral_density
     !  call determine_cross_sections(particle, CS_vector, CS_tables)
     !  CS_vector = CS_vector * vel_mag * neutral_density
@@ -469,6 +504,7 @@ contains
     !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
      if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
        call determine_cross_sections(particle, CS_vector, CS_tables)
+       call determine_xi(K_E, xi)
 
        ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
        CS_vector = CS_vector * vel_mag * neutral_density !6545520.13889 test value of constant local_number_density (at 0.001Pa)
@@ -494,8 +530,8 @@ contains
      polar_theta = 2.0*pi*rand_num(4)
      polar_phi = acos(2.0*rand_num(3) - 1.)
 
-     K_E = 0.5*particle%data%m*vel_mag**2
-     cos_Chi = (2. + K_E - 2.*(1. + K_E)**rand_num(5))/K_E
+     ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**rand_num(5))/K_E ! [Vahedi & Surendra]
+     cos_Chi = 1 - (2.*rand_num(5)*(1. - xi))/(1. + xi*(1. - 2.*rand_num(5))) ! [Ohkrimovsky 2002]
      Chi = acos(cos_Chi)
      unit_inc_vel = particle%data%v/vel_mag
      scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
@@ -510,7 +546,7 @@ contains
        ! particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
        ! particle%data%v(3) = vel_mag * cos(polar_phi)
 
-       ! ====Energy dependent scattering angle [Vahedi & Surendra, 1995]====
+       ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
        rot_axis = 0.0
        rot_axis(1) = 1.0
        polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
@@ -538,7 +574,7 @@ contains
        ! particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
        ! particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
 
-       ! ====Energy dependent scattering angle [Vahedi & Surendra, 1995]====
+       ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
        rot_axis = 0.0
        rot_axis(1) = 1.0
        polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
@@ -563,8 +599,8 @@ contains
        ! particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
        ! particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
        ! particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
-       
-       ! ====Energy dependent scattering angle [Vahedi & Surendra, 1995]====
+
+       ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
        rot_axis = 0.0
        rot_axis(1) = 1.0
        polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
@@ -575,10 +611,10 @@ contains
        particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
                          sin(polar_theta)*prefac*temp_vel + &
                          cos(polar_theta)*prefac*temp_vel1)
-       
+
        ! ==========================Anti Parallel Scatter =======================
        ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
-      
+
        particle%data%age = 0.0_8
       !  print *, "vibrational exci.!"
 
@@ -589,6 +625,7 @@ contains
       !  print *, "incident momentum: ", particle%data%m * reduced_incident
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
+       ! ===========================Random Scatter==============================
        ! temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
        ! temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
        ! temp_vel(3) = cos(polar_phi*0.5)
@@ -601,6 +638,7 @@ contains
        ! rot_axis(3) = 1.0
        ! temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
 
+       ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
        rot_axis = 0.0
        rot_axis(1) = 1.0
        polar_phi = acos(dot_product(unit_inc_vel,rot_axis))

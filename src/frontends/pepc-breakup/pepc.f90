@@ -121,6 +121,7 @@ program pepc
    allocate(cross_sections_vector(5))
   !  allocate(flow_count(3))
   !  allocate(total_flow_count(3))
+   call set_Xi_table(trim(file_path)//"Ohkri_Xi_H2.txt", 101, Xi_table)
    !=====================================================================
    call timer_stop(t_user_init)
 

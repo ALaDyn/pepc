@@ -87,6 +87,7 @@ module helper
    real(kind_physics):: rand_num(8)
 
    ! variables related to cross sections and probabilistic collisions
+   real(kind_physics), allocatable :: Xi_table(:,:)
    real(kind_physics), dimension(:), allocatable :: cross_sections_vector
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
                          charge_count(3), total_charge_count(3)
