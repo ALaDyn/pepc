@@ -505,6 +505,17 @@ contains
      if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
        call determine_cross_sections(particle, CS_vector, CS_tables)
        call determine_xi(K_E, xi)
+     
+       !======================== For use in random scatter ================ 
+       polar_theta = 2.0*pi*rand_num(4)
+       polar_phi = acos(2.0*rand_num(3) - 1.)
+
+       !=====================For use in energy dependent scatter =========
+       ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**rand_num(5))/K_E ! [Vahedi & Surendra]
+       cos_Chi = 1 - (2.*rand_num(5)*(1. - xi))/(1. + xi*(1. - 2.*rand_num(5))) ! [Ohkrimovsky 2002]
+       Chi = acos(cos_Chi)
+       unit_inc_vel = particle%data%v/vel_mag
+       scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
 
        ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
        CS_vector = CS_vector * vel_mag * neutral_density !6545520.13889 test value of constant local_number_density (at 0.001Pa)
@@ -524,17 +535,6 @@ contains
      else ! otherwise, no collision happened
        i = 0
      end if
-
-     ! TODO: c.f. http://mathworld.wolfram.com/SpherePointPicking.html
-     ! TODO: c.f. https://corysimon.github.io/articles/uniformdistn-on-sphere/
-     polar_theta = 2.0*pi*rand_num(4)
-     polar_phi = acos(2.0*rand_num(3) - 1.)
-
-     ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**rand_num(5))/K_E ! [Vahedi & Surendra]
-     cos_Chi = 1 - (2.*rand_num(5)*(1. - xi))/(1. + xi*(1. - 2.*rand_num(5))) ! [Ohkrimovsky 2002]
-     Chi = acos(cos_Chi)
-     unit_inc_vel = particle%data%v/vel_mag
-     scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
 
      select case(i)
      case(0) ! null collision, no update performed
