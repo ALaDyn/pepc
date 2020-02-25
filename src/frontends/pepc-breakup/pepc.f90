@@ -33,6 +33,7 @@ program pepc
 
    ! frontend helper routines
    use helper
+   use particles_resize
    use mpi
    implicit none
    ! control variable

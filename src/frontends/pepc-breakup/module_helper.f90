@@ -27,7 +27,6 @@ module helper
    use module_timings
    use iso_fortran_env
    use rng_wrapper
-   use particles_resize
    use, intrinsic :: iso_c_binding, only: c_double
 
    implicit none
@@ -68,6 +67,28 @@ module helper
    type(t_particle), allocatable   :: particles(:)
    real(kind_physics), allocatable :: direct_L2(:)
 
+   type, public :: linked_list_elem
+      type(linked_list_elem), pointer :: next
+      type(t_particle), allocatable :: tmp_particles(:)
+   end type linked_list_elem
+
+   type, public :: linked_list_CS
+      type(linked_list_CS), pointer :: next_CS
+      real(kind_physics), allocatable :: CS(:,:)
+   end type linked_list_CS
+
+   type, public :: diag_vertex
+      real(kind_physics) :: x(1:3)
+      real(kind_physics) :: q_density(1:2)
+      real(kind_physics) :: J_density(1:3)
+   end type diag_vertex
+
+   ! buffer to record newly generated particles & related counters
+   type(linked_list_elem), pointer :: buffer, particle_guide
+   integer :: electron_num, i, new_particle_cnt, local_electron_num, swapped_num
+
+   integer, public :: MPI_TYPE_density
+
    ! density diagnostics related variables
    logical :: density_output
    type(diag_vertex), allocatable  :: density_verts(:), final_density(:)
@@ -75,10 +96,6 @@ module helper
    real(kind_physics) :: dx, dy ,dz, s_min_x, s_min_y, s_min_z
    integer :: x_cell, y_cell, z_cell, iv, ir, cnt
    integer, allocatable :: connectivity_array(:)
-
-   ! buffer to record newly generated particles & related counters
-   type(linked_list_elem), pointer :: buffer, particle_guide
-   integer :: electron_num, i, new_particle_cnt, local_electron_num, swapped_num
 
    ! variables for random number generation
    integer :: dummy
