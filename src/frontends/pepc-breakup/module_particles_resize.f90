@@ -99,6 +99,106 @@ contains
       deallocate (temp_array)
    end subroutine resize_array
 
+   subroutine gather_ll_buffers_omp(buffer, new_offset, new_particles_buffer, thread_id, thread_num)
+     ! NOTE: 'buffer' refers to ll_elem that stores new particles
+     !       'new_particle_buffer' that is shared across all threads must be created first!
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: new_particles_buffer(:)
+     type(linked_list_elem), pointer, intent(inout) :: buffer
+     integer, allocatable, intent(in) :: new_offset(:)
+     integer, intent(in) :: thread_num, thread_id
+     type(linked_list_elem), pointer :: temp_guide
+     integer :: head, tail, ll_buffer_size, i, remainder, ll_elem_cnt, start_i, stop_i, thread_new_p
+
+     if (thread_id .ne. 0) then
+       thread_new_p = new_offset(thread_id + 1) - new_offset(thread_id)
+     else
+       thread_new_p = new_offset(thread_id + 1)
+     end if
+
+     if (thread_new_p .ne. 0) then
+       ll_buffer_size = size(buffer%tmp_particles)
+       ll_elem_cnt = CEILING(real(thread_new_p)/real(ll_buffer_size))
+       remainder = MOD(thread_new_p, ll_buffer_size)
+
+       if (thread_id .ne. 0) then
+         start_i = new_offset(thread_id) + 1
+       else
+         start_i = 1
+       end if
+       stop_i = new_offset(thread_id + 1)
+
+       i = 1
+       head = start_i
+       tail = start_i + ll_buffer_size - 1
+
+       temp_guide => buffer
+       do while (associated(temp_guide))
+          if (i /= ll_elem_cnt) then
+             new_particles_buffer(head:tail) = temp_guide%tmp_particles
+          else if ((i == ll_elem_cnt) .and. (remainder == 0)) then
+             new_particles_buffer(head:stop_i) = temp_guide%tmp_particles
+          else
+             new_particles_buffer(head:stop_i) = temp_guide%tmp_particles(1:(remainder))
+          end if
+
+          head = tail + 1
+          tail = tail + ll_buffer_size
+          i = i + 1
+
+          temp_guide => temp_guide%next
+       end do
+       nullify (temp_guide)
+     end if
+   end subroutine gather_ll_buffers_omp
+
+   subroutine extend_particles_swap_omp(particles, new_particles_buffer, new_particles_size, swapped_cnt)
+     ! NOTE: Remember to deallocate 'new_particle_buffer' outside this subroutine
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     type(t_particle), allocatable, intent(in) :: new_particles_buffer(:)
+     integer, intent(in) :: new_particles_size, swapped_cnt
+     integer :: new_size, head
+
+     head = size(particles) - swapped_cnt + 1
+
+     new_size = size(particles) + new_particles_size - swapped_cnt
+     call resize_array(particles, new_size)
+
+     if (new_particles_size .ne. 0) then
+       particles(head:new_size) = new_particles_buffer
+     end if
+   end subroutine extend_particles_swap_omp
+
+   subroutine extend_particles_swap_inject_omp(particles, new_particles_buffer, new_particles_size, swapped_cnt, electron_num)
+     ! NOTE: Remember to deallocate 'new_particle_buffer' outside this subroutine
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     type(t_particle), allocatable, intent(in) :: new_particles_buffer(:)
+     integer, intent(in) :: new_particles_size, swapped_cnt, electron_num
+     integer :: new_size, head, temp_size
+     real(kind_physics) :: center_pos(3), plane_orient(3)
+
+     head = size(particles) - swapped_cnt + 1
+
+     temp_size = size(particles) + new_particles_size - swapped_cnt
+     new_size = temp_size + electron_num
+     call resize_array(particles, new_size)
+
+     if (new_particles_size .ne. 0) then
+       particles(head:(temp_size)) = new_particles_buffer
+     end if
+
+     if (electron_num /= 0) then
+       center_pos = 0.0
+       center_pos(3) = -0.01
+       plane_orient = 0.0
+       plane_orient(3) = -1.0
+       call injected_electrons(center_pos, plane_orient, 2, 0.025/(c*1e-12), &
+                                 particles, temp_size + 1)
+     end if
+   end subroutine extend_particles_swap_inject_omp
+
    ! NOTE: OBSOLETE SUBROUTINE
    subroutine extend_particles_list(particles, buffer, new_particles_size)
       implicit none

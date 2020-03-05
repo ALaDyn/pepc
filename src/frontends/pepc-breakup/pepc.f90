@@ -35,6 +35,7 @@ program pepc
    use helper
    use particles_resize
    use mpi
+   use omp_lib
    implicit none
    ! control variable
    logical :: doDiag
@@ -48,6 +49,10 @@ program pepc
    call timer_start(t_user_total)
    call timer_start(t_user_init)
    call set_parameter()
+
+   ! #ifdef _OPENMP
+     call OMP_set_num_threads(omp_threads)
+   ! #endif
 
    !=====================prepare array for density diagnostics==================
    if (density_output) then
@@ -76,10 +81,10 @@ program pepc
                                int(np))
      call write_particles(particles)
 
-     ctr_s(1) = (my_rank + 1)*np
-     ctr_s(2:4) = CEILING(particles(1)%x*1e5, kind=int32)
-     key_s(1) = (my_rank + 1)*n_ranks
-     key_s(2:4) = CEILING(particles(1)%data%v*1e17, kind=int32)
+     ! ctr_s(1) = (my_rank + 1)*np
+     ! ctr_s(2:4) = CEILING(particles(1)%x*1e5, kind=int32)
+     ! key_s(1) = (my_rank + 1)*n_ranks
+     ! key_s(2:4) = CEILING(particles(1)%data%v*1e17, kind=int32)
 
    else
      itime_in = 0
@@ -119,7 +124,7 @@ program pepc
    call set_cross_section_table(trim(file_path)//"vibrational_excitation_v_0_1.txt", CS_guide, 13, 0)
    call set_cross_section_table(trim(file_path)//"nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
    call set_cross_section_table(trim(file_path)//"dissociative_ionization_H+.txt", CS_guide, 15, 1)
-   allocate(cross_sections_vector(5))
+   total_cross_sections = 5
   !  allocate(flow_count(3))
   !  allocate(total_flow_count(3))
    call set_Xi_table(trim(file_path)//"Ohkri_Xi_H2.txt", 101, Xi_table)
@@ -138,6 +143,7 @@ program pepc
    if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
+   !$OMP PARALLEL DO if(np/omp_threads > 10) default(private) shared(particles, external_e, dt, V_loop)
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e)
       call boris_velocity_update(particles(i), -dt*0.5_8)
@@ -145,6 +151,7 @@ program pepc
       call particle_EB_field(particles(i), -external_e)
       V_loop = -1.*V_loop
    end do
+   !$OMP END PARALLEL DO
 
    ! free tree specific allocations
    call pepc_timber_tree()
@@ -163,22 +170,48 @@ program pepc
       call timer_start(t_user_step)
 
       doDiag = MOD(step+itime_in+1, diag_interval) .eq. 0
+      np = size(particles)
+
+      call timer_start(t_boris)
+      rank_charge_count = 0
+      allocate(new_particles_offset(omp_threads, 4))
+      allocate(thread_charge_count(omp_threads, 3))
+      allocate(generic_array(omp_threads))
+
+      !$OMP PARALLEL if(np/omp_threads > 10) default(private) &
+      !$OMP shared(omp_threads, particles, new_particles_offset, np) &
+      !$OMP shared(gathered_new_buffer, external_e, dt, V_loop, d, E_q_dt_m) &
+      !$OMP shared(rank_charge_count, thread_charge_count, flt_geom, my_rank) &
+      !$OMP shared(abs_max_CS, neutral_density, CS_tables, B0, B_p, major_radius) &
+      !$OMP shared(minor_radius, plasma_dimensions, generic_array) &
+      !$OMP shared(total_cross_sections)
+
+      ! NOTE: counter and key for Random123 is redefined on thread basis.
+      thread_id = OMP_GET_THREAD_NUM()
+      local_size = np/omp_threads
+      IStart = thread_id*local_size + 1
+      ctr_s(1) = (thread_id + 1)*np
+      ctr_s(2:4) = CEILING(particles(IStart)%x*1e5, kind=int32)
+      key_s(1) = (thread_id + 1)*omp_threads
+      key_s(2:4) = CEILING(particles(IStart)%data%v*1e17, kind=int32)
+
+      if (thread_id .eq. (omp_threads-1)) then
+        local_size = np - local_size*(omp_threads-1)
+      end if
+      IStop = IStart + local_size-1
 
       call allocate_ll_buffer(electron_num, buffer)
       particle_guide => buffer
-      call timer_start(t_boris)
 
       new_particle_cnt = 0
       swapped_num = 0
       charge_count = 0.0
       total_charge_count = 0.0
+      break = 0
       ! flow_count = 0.0
       ! total_flow_count = 0.0
-      do i = 1, size(particles)
-         if (i > (size(particles)-swapped_num)) then
-           EXIT
-         end if
-         call filter_and_swap(particles, flt_geom, i, swapped_num)
+      do i = IStart, IStop
+         call filter_and_swap(particles, flt_geom, i, IStart, IStop, swapped_num, break)
 
 !====================== save the resolved 'e' from tree traverse================
          traversed_e = particles(i)%results%e
@@ -188,27 +221,85 @@ program pepc
          call particle_pusher(particles(i), dt)
 
          if (particles(i)%data%species == 0) then
-           call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, cross_sections_vector)
+            call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, total_cross_sections)
          end if
-        !  call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
+         ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
 
 !=============== revert 'e' to state before addition of external field==========
          particles(i)%results%e = traversed_e
+
+         if (break .eq. 1) then
+           EXIT
+         end if
       end do
 
-      call MPI_REDUCE(charge_count, total_charge_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      new_particles_offset((thread_id + 1),1) = new_particle_cnt
+      new_particles_offset((thread_id + 1),2) = swapped_num
+      new_particles_offset((thread_id + 1),3) = IStart
+      new_particles_offset((thread_id + 1),4) = IStop - swapped_num - IStart
+      thread_charge_count((thread_id + 1),1) = charge_count(1)
+      thread_charge_count((thread_id + 1),2) = charge_count(2)
+      thread_charge_count((thread_id + 1),3) = charge_count(3)
+      !$OMP BARRIER
+
+      !================Gathering totals of filtered and new particles===========
+      if (thread_id .eq. 0) then
+        do i = 2, omp_threads
+          new_particles_offset(i,1) = new_particles_offset(i,1) + new_particles_offset((i-1),1)
+          new_particles_offset(i,2) = new_particles_offset(i,2) + new_particles_offset((i-1),2)
+          thread_charge_count(i,1) = thread_charge_count(i,1) + thread_charge_count((i-1),1)
+          thread_charge_count(i,2) = thread_charge_count(i,2) + thread_charge_count((i-1),2)
+          thread_charge_count(i,3) = thread_charge_count(i,3) + thread_charge_count((i-1),3)
+          generic_array(i) = new_particles_offset(i,1)
+        end do
+
+      !============Overwrite original particles(:), discarding swapped ones=====
+        do i = 1,omp_threads-1
+          CStart = new_particles_offset((i+1),3) - new_particles_offset(i,2)
+          CStop = CStart + new_particles_offset((i+1),4)
+          IStart = new_particles_offset((i+1),3)
+          IStop = IStart + new_particles_offset((i+1),4)
+          particles(CStart:CStop) = particles(IStart:IStop)
+        end do
+
+        generic_array(1) = new_particles_offset(1,1)
+        rank_charge_count = thread_charge_count(omp_threads,:)
+
+        if (new_particles_offset(omp_threads,1) .ne. 0) then
+          allocate(gathered_new_buffer(new_particles_offset(omp_threads,1)))
+        else
+          allocate(gathered_new_buffer(1))
+        end if
+      end if
+      !$OMP BARRIER
+
+      if (new_particles_offset(omp_threads,1) .ne. 0) then
+        call gather_ll_buffers_omp(buffer, generic_array, gathered_new_buffer, thread_id, omp_threads)
+      end if
+      call deallocate_ll_buffer(buffer)
+      !$OMP END PARALLEL
+      deallocate(generic_array)
+
+      new_particle_cnt = new_particles_offset(omp_threads,1)
+      swapped_num = new_particles_offset(omp_threads,2)
+      deallocate(new_particles_offset)
+      deallocate(thread_charge_count)
+
+      call MPI_REDUCE(rank_charge_count, total_charge_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       if (root) then
         print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2), total_charge_count(3)
       end if
 
       if (root) then
         if ((new_particle_cnt > 0) .or. (swapped_num /= 0 .or. electron_num /= 0)) then
-           call extend_particles_list_swap_inject(particles, buffer, new_particle_cnt, electron_num, swapped_num)
+           ! call extend_particles_list_swap_inject(particles, buffer, new_particle_cnt, electron_num, swapped_num)
+           call extend_particles_swap_inject_omp(particles, gathered_new_buffer, new_particle_cnt, swapped_num, electron_num)
           !  print *, "extending particle list successful! New size: ", my_rank, size(particles)
         end if
       else
         if ((new_particle_cnt > 0) .or. (swapped_num /= 0)) then
-          call extend_particles_list_swap(particles, buffer, new_particle_cnt, swapped_num)
+          ! call extend_particles_list_swap(particles, buffer, new_particle_cnt, swapped_num)
+          call extend_particles_swap_omp(particles, gathered_new_buffer, new_particle_cnt, swapped_num)
         end if
       end if
 
@@ -217,9 +308,9 @@ program pepc
       call MPI_REDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       if (root) print *, "Total particles: ", tnp
 
+      deallocate(gathered_new_buffer)
       call timer_stop(t_boris)
       if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
-      call deallocate_ll_buffer(buffer)
 
       ! if (doDiag .and. particle_output) call write_particles(particles)
 
@@ -298,7 +389,7 @@ program pepc
      deallocate(final_density)
      deallocate(density_verts)
    end if
-   deallocate (particles)
+   deallocate(particles)
 
    call timer_stop(t_user_total)
 

@@ -85,7 +85,15 @@ module helper
 
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
-   integer :: electron_num, i, new_particle_cnt, local_electron_num, swapped_num
+   type(t_particle), allocatable   :: gathered_new_buffer(:)
+   integer :: electron_num, i, new_particle_cnt, local_electron_num, swapped_num, break
+   real(kind_physics) :: rank_charge_count(3), charge_count(3), &
+                         total_charge_count(3)
+   integer, allocatable :: new_particles_offset(:,:), generic_array(:)
+   real(kind_physics), allocatable :: thread_charge_count(:,:)
+
+   ! variables related to OMP
+   integer :: omp_threads, thread_id, local_size, IStart, IStop, CStart, CStop
 
    integer, public :: MPI_TYPE_density
 
@@ -105,9 +113,8 @@ module helper
 
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), allocatable :: Xi_table(:,:)
-   real(kind_physics), dimension(:), allocatable :: cross_sections_vector
-   real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure, &
-                         charge_count(3), total_charge_count(3)
+   integer :: total_cross_sections
+   real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure
 
    ! lookup tables for cross section data
    character(255) :: file_path
@@ -149,7 +156,7 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ resume, itime_in, i_wall_time, density_output, &
+      namelist /pepcbreakup/ resume, itime_in, omp_threads, i_wall_time, density_output, &
          x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
          y_length, z_length, sim_type, mode, d, electron_num, tnp, nt, dt, &
          particle_output, domain_output, particle_mpi_output, reflecting_walls, &
@@ -186,6 +193,7 @@ contains
       plasma_dimensions = (/1.0_8, 1.0_8, 1.0_8/)
       external_e = (/0.0_8, 0.0_8, 0.0_8/)
       electron_num = 0
+      omp_threads = 1
 
       ! read in namelist file
       call pepc_read_parameters_from_first_argument(read_para_file, para_file)
@@ -380,9 +388,10 @@ contains
            p(ip)%x(1) = p(ip)%x(1)*0.8*plasma_dimensions(1) - plasma_dimensions(1)*0.4
            p(ip)%x(2) = p(ip)%x(2)*0.8*plasma_dimensions(2) - plasma_dimensions(2)*0.4
           !  p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
-           p(ip)%x(3) = 0.0
+           p(ip)%x(3) = -0.01
 
            p(ip)%data%v = 0.0
+           p(ip)%data%v(3) = -1.0*sqrt((2*15.0/e_mass))
 
            p(ip)%work = 1.0_8
         end do

@@ -6,6 +6,9 @@ resume = REPLACE_RESUME
 ! resuming from which time step?
 itime_in = REPLACE_TIMEIN
 
+! Set OMP threads
+omp_threads = 2
+
 ! allocated wall time. Change this to reflect the wall time in job_script.
 ! Note that depending on the number of MPI ranks involved, overhead due to MPI
 ! will offset the code's internal clock versus wall clock of JURECA accounting.

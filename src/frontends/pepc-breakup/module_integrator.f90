@@ -266,6 +266,8 @@ contains
       dist_vec = particle%data%v*dt
       particle%x = particle%x + dist_vec
       particle%data%f_b(1) = particle%data%f_b(1) + sqrt(dot_product(dist_vec,dist_vec))
+      particle%data%f_b(2) = 0.0_kind_physics
+      particle%data%f_b(3) = 0.0_kind_physics
 
       particle%data%age = particle%data%age + dt
    end subroutine particle_pusher
@@ -465,12 +467,13 @@ contains
      new_particle = new_particle + 1
    end subroutine add_particle
 
-   subroutine collision_update(particle, guide, new_particle, electron_count, CS_vector)
+   subroutine collision_update(particle, guide, new_particle, electron_count, CS_numbers)
      implicit none
      type(t_particle), intent(inout) :: particle
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, electron_count
-     real(kind_physics), dimension(:), intent(inout) :: CS_vector
+     integer, intent(in) :: CS_numbers
+     real(kind_physics), dimension(:), allocatable :: CS_vector
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi
@@ -503,6 +506,7 @@ contains
 
     !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
      if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
+       allocate(CS_vector(CS_numbers))
        call determine_cross_sections(particle, CS_vector, CS_tables)
        call determine_xi(K_E, xi)
 
@@ -531,7 +535,7 @@ contains
            EXIT
          end if
        end do
-
+       deallocate(CS_vector)
      else ! otherwise, no collision happened
        i = 0
      end if
@@ -721,18 +725,18 @@ contains
      end select
    end subroutine collision_update
 
-   recursive subroutine filter_and_swap(particles, geometry, current_index, swapped_cnt)
+   recursive subroutine filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, break_check)
      implicit none
      type(t_particle), allocatable, intent(inout) :: particles(:)
-     integer, intent(inout) :: swapped_cnt
-     integer, intent(in) :: geometry, current_index
-     integer :: buffer_size, target_swap, init_swap_cnt
+     integer, intent(inout) :: swapped_cnt, break_check
+     integer, intent(in) :: geometry, current_index, head_i, tail_i
+     integer :: target_swap, init_swap_cnt!, buffer_size
      real(kind_physics) :: center_pos(3)
      real(kind_physics) :: radius, cyl_radius, plate_radius, cyl_length, box_dim, &
                            x, y, z, box_l, m_radius, buffer_zone
 
-     buffer_size = size(particles)
-     target_swap = buffer_size - swapped_cnt
+     ! buffer_size = size(particles)
+     ! target_swap = buffer_size - swapped_cnt
 
      center_pos = 0.0
      center_pos(3) = 0.0
@@ -741,29 +745,45 @@ contains
      y = particles(current_index)%x(2) - center_pos(2)
 
      init_swap_cnt = swapped_cnt
+     target_swap = tail_i - swapped_cnt
 
      select case(geometry)
      case(1) ! box boundary
        box_dim = 1.0/(c*1e-12)
        box_l = 0.5/(c*1e-12)
 
-       if ((abs(x) > box_dim*0.5) .or. (abs(y) > box_dim*0.5)) then
-         particles(current_index) = particles(target_swap)
-         swapped_cnt = swapped_cnt + 1
-       else
-         if (particles(current_index)%x(3) > 0.0) then
-           charge_count(1) = charge_count(1) + particles(current_index)%data%q
+       if (current_index .lt. target_swap) then
+         if ((abs(x) > box_dim*0.5) .or. (abs(y) > box_dim*0.5)) then
            particles(current_index) = particles(target_swap)
            swapped_cnt = swapped_cnt + 1
-         else if (particles(current_index)%x(3) < -box_l) then
-           charge_count(2) = charge_count(2) + particles(current_index)%data%q
-           particles(current_index) = particles(target_swap)
-           swapped_cnt = swapped_cnt + 1
+         else
+           if (particles(current_index)%x(3) > 0.0) then
+             charge_count(1) = charge_count(1) + particles(current_index)%data%q
+             particles(current_index) = particles(target_swap)
+             swapped_cnt = swapped_cnt + 1
+           else if (particles(current_index)%x(3) < -box_l) then
+             charge_count(2) = charge_count(2) + particles(current_index)%data%q
+             particles(current_index) = particles(target_swap)
+             swapped_cnt = swapped_cnt + 1
+           end if
          end if
-       end if
 
-       if (init_swap_cnt /= swapped_cnt) then
-         call filter_and_swap(particles, geometry, current_index, swapped_cnt)
+         if (init_swap_cnt /= swapped_cnt) then
+           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, break_check)
+         end if
+       else
+         if ((abs(x) > box_dim*0.5) .or. (abs(y) > box_dim*0.5)) then
+           swapped_cnt = swapped_cnt + 1
+         else
+           if (particles(current_index)%x(3) > 0.0) then
+             charge_count(1) = charge_count(1) + particles(current_index)%data%q
+             swapped_cnt = swapped_cnt + 1
+           else if (particles(current_index)%x(3) < -box_l) then
+             charge_count(2) = charge_count(2) + particles(current_index)%data%q
+             swapped_cnt = swapped_cnt + 1
+           end if
+         end if
+         break_check = 1
        end if
 
      case(2) ! cylinder boundary
@@ -772,36 +792,62 @@ contains
        cyl_length = d/(c*1e-12)
        radius = sqrt(x**2 + y**2)
 
-       if (radius < cyl_radius) then
-         if (particles(current_index)%x(3) < -cyl_length)then
-           if (radius < plate_radius) then
-             charge_count(2) = charge_count(2) + particles(current_index)%data%q
-             particles(current_index) = particles(target_swap)
-             swapped_cnt = swapped_cnt + 1
-           else
-             particles(current_index) = particles(target_swap)
-             swapped_cnt = swapped_cnt + 1
-           end if
-         else if (particles(current_index)%x(3) > 0.0) then
-           if (radius < plate_radius) then
-             charge_count(1) = charge_count(1) + particles(current_index)%data%q
-             if (particles(current_index)%data%q < 0.0) then
-               charge_count(3) = charge_count(3) + 1
+       if (current_index .lt. target_swap) then
+         if (radius < cyl_radius) then
+           if (particles(current_index)%x(3) < -cyl_length)then
+             if (radius < plate_radius) then
+               charge_count(2) = charge_count(2) + particles(current_index)%data%q
+               particles(current_index) = particles(target_swap)
+               swapped_cnt = swapped_cnt + 1
+             else
+               particles(current_index) = particles(target_swap)
+               swapped_cnt = swapped_cnt + 1
              end if
-             particles(current_index) = particles(target_swap)
-             swapped_cnt = swapped_cnt + 1
-           else
-             particles(current_index) = particles(target_swap)
-             swapped_cnt = swapped_cnt + 1
+           else if (particles(current_index)%x(3) > 0.0) then
+             if (radius < plate_radius) then
+               charge_count(1) = charge_count(1) + particles(current_index)%data%q
+               if (particles(current_index)%data%q < 0.0) then
+                 charge_count(3) = charge_count(3) + 1
+               end if
+               particles(current_index) = particles(target_swap)
+               swapped_cnt = swapped_cnt + 1
+             else
+               particles(current_index) = particles(target_swap)
+               swapped_cnt = swapped_cnt + 1
+             end if
            end if
+         else
+           particles(current_index) = particles(target_swap)
+           swapped_cnt = swapped_cnt + 1
+         end if
+
+         if (init_swap_cnt /= swapped_cnt) then
+           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, break_check)
          end if
        else
-         particles(current_index) = particles(target_swap)
-         swapped_cnt = swapped_cnt + 1
-       end if
-
-       if (init_swap_cnt /= swapped_cnt) then
-         call filter_and_swap(particles, geometry, current_index, swapped_cnt)
+         if (radius < cyl_radius) then
+           if (particles(current_index)%x(3) < -cyl_length)then
+             if (radius < plate_radius) then
+               charge_count(2) = charge_count(2) + particles(current_index)%data%q
+               swapped_cnt = swapped_cnt + 1
+             else
+               swapped_cnt = swapped_cnt + 1
+             end if
+           else if (particles(current_index)%x(3) > 0.0) then
+             if (radius < plate_radius) then
+               charge_count(1) = charge_count(1) + particles(current_index)%data%q
+               if (particles(current_index)%data%q < 0.0) then
+                 charge_count(3) = charge_count(3) + 1
+               end if
+               swapped_cnt = swapped_cnt + 1
+             else
+               swapped_cnt = swapped_cnt + 1
+             end if
+           end if
+         else
+           swapped_cnt = swapped_cnt + 1
+         end if
+         break_check = 1
        end if
 
      case (3) ! torus shape
@@ -813,18 +859,30 @@ contains
 
        buffer_zone = 0.75/(c*1e-12)
 
-       if (m_radius > (minor_radius+buffer_zone)) then
-         ! if (particles(current_index)%data%q < 0.0_8) then
-         !   charge_count(1) = charge_count(1) + particles(current_index)%data%q
-         ! else
-         !   charge_count(2) = charge_count(2) + particles(current_index)%data%q
-         ! end if
-         particles(current_index) = particles(target_swap)
-         swapped_cnt = swapped_cnt + 1
-       end if
+       if (current_index .lt. target_swap) then
+         if (m_radius > (minor_radius+buffer_zone)) then
+           ! if (particles(current_index)%data%q < 0.0_8) then
+           !   charge_count(1) = charge_count(1) + particles(current_index)%data%q
+           ! else
+           !   charge_count(2) = charge_count(2) + particles(current_index)%data%q
+           ! end if
+           particles(current_index) = particles(target_swap)
+           swapped_cnt = swapped_cnt + 1
+         end if
 
-       if (init_swap_cnt /= swapped_cnt) then
-         call filter_and_swap(particles, geometry, current_index, swapped_cnt)
+         if (init_swap_cnt /= swapped_cnt) then
+           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, break_check)
+         end if
+       else
+         if (m_radius > (minor_radius+buffer_zone)) then
+           ! if (particles(current_index)%data%q < 0.0_8) then
+           !   charge_count(1) = charge_count(1) + particles(current_index)%data%q
+           ! else
+           !   charge_count(2) = charge_count(2) + particles(current_index)%data%q
+           ! end if
+           swapped_cnt = swapped_cnt + 1
+         end if
+         break_check = 1
        end if
 
      end select
