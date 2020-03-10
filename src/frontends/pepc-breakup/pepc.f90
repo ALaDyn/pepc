@@ -50,10 +50,9 @@ program pepc
    call timer_start(t_user_init)
    call set_parameter()
 
-! #ifdef _OPENMP
-     call OMP_set_num_threads(init_omp_threads)
-     print *, "OMP ON!!!"
-! #endif
+#ifdef _OPENMP
+  call OMP_set_num_threads(init_omp_threads)
+#endif
 
    !=====================prepare array for density diagnostics==================
    if (density_output) then
@@ -192,12 +191,17 @@ program pepc
       !$OMP shared(total_cross_sections, step, omp_threads)
 
       ! NOTE: counter and key for Random123 is redefined on thread basis.
+#ifdef _OPENMP
       omp_threads = init_omp_threads
       thread_id = OMP_GET_THREAD_NUM()
       if (np/init_omp_threads .le. 10) then
         thread_id = 0
         omp_threads = 1
       end if
+#else
+      thread_id = 0
+      omp_threads = 1
+#endif
       local_size = np/omp_threads
       IStart = thread_id*local_size + 1
       ctr_s(1) = (thread_id + 1)*np

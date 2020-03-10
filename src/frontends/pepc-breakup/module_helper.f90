@@ -391,8 +391,6 @@ contains
            p(ip)%x(3) = -0.01
 
            p(ip)%data%v = 0.0
-           p(ip)%data%v(3) = -1.0*sqrt((2*15.0/e_mass))
-
            p(ip)%work = 1.0_8
         end do
 
