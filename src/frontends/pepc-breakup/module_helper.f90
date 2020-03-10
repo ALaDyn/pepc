@@ -93,7 +93,7 @@ module helper
    real(kind_physics), allocatable :: thread_charge_count(:,:)
 
    ! variables related to OMP
-   integer :: omp_threads, thread_id, local_size, IStart, IStop, CStart, CStop
+   integer :: init_omp_threads, omp_threads, thread_id, local_size, IStart, IStop, CStart, CStop
 
    integer, public :: MPI_TYPE_density
 
@@ -156,7 +156,7 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ resume, itime_in, omp_threads, i_wall_time, density_output, &
+      namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, density_output, &
          x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
          y_length, z_length, sim_type, mode, d, electron_num, tnp, nt, dt, &
          particle_output, domain_output, particle_mpi_output, reflecting_walls, &

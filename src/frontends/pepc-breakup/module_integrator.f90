@@ -725,10 +725,11 @@ contains
      end select
    end subroutine collision_update
 
-   recursive subroutine filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, break_check)
+   recursive subroutine filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, charge_count, break_check)
      implicit none
      type(t_particle), allocatable, intent(inout) :: particles(:)
      integer, intent(inout) :: swapped_cnt, break_check
+     real(kind_physics), intent(inout) :: charge_count(3)
      integer, intent(in) :: geometry, current_index, head_i, tail_i
      integer :: target_swap, init_swap_cnt!, buffer_size
      real(kind_physics) :: center_pos(3)
@@ -769,7 +770,7 @@ contains
          end if
 
          if (init_swap_cnt /= swapped_cnt) then
-           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, break_check)
+           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, charge_count, break_check)
          end if
        else
          if ((abs(x) > box_dim*0.5) .or. (abs(y) > box_dim*0.5)) then
@@ -822,7 +823,7 @@ contains
          end if
 
          if (init_swap_cnt /= swapped_cnt) then
-           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, break_check)
+           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, charge_count, break_check)
          end if
        else
          if (radius < cyl_radius) then
@@ -871,7 +872,7 @@ contains
          end if
 
          if (init_swap_cnt /= swapped_cnt) then
-           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, break_check)
+           call filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, charge_count, break_check)
          end if
        else
          if (m_radius > (minor_radius+buffer_zone)) then

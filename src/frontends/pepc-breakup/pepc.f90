@@ -50,9 +50,10 @@ program pepc
    call timer_start(t_user_init)
    call set_parameter()
 
-   ! #ifdef _OPENMP
-     call OMP_set_num_threads(omp_threads)
-   ! #endif
+! #ifdef _OPENMP
+     call OMP_set_num_threads(init_omp_threads)
+     print *, "OMP ON!!!"
+! #endif
 
    !=====================prepare array for density diagnostics==================
    if (density_output) then
@@ -173,21 +174,30 @@ program pepc
       np = size(particles)
 
       call timer_start(t_boris)
-      rank_charge_count = 0
-      allocate(new_particles_offset(omp_threads, 4))
-      allocate(thread_charge_count(omp_threads, 3))
-      allocate(generic_array(omp_threads))
+      allocate(new_particles_offset(init_omp_threads, 4))
+      allocate(thread_charge_count(init_omp_threads, 3))
+      allocate(generic_array(init_omp_threads))
+      rank_charge_count = 0.0
+      total_charge_count = 0.0
+      thread_charge_count = 0.0
+      new_particles_offset = 0
+      generic_array = 0
 
-      !$OMP PARALLEL if(np/omp_threads > 10) default(private) &
-      !$OMP shared(omp_threads, particles, new_particles_offset, np) &
+      !$OMP PARALLEL if(np/init_omp_threads > 10) default(private) &
+      !$OMP shared(init_omp_threads, particles, new_particles_offset, np) &
       !$OMP shared(gathered_new_buffer, external_e, dt, V_loop, d, E_q_dt_m) &
       !$OMP shared(rank_charge_count, thread_charge_count, flt_geom, my_rank) &
       !$OMP shared(abs_max_CS, neutral_density, CS_tables, B0, B_p, major_radius) &
       !$OMP shared(minor_radius, plasma_dimensions, generic_array) &
-      !$OMP shared(total_cross_sections)
+      !$OMP shared(total_cross_sections, step, omp_threads)
 
       ! NOTE: counter and key for Random123 is redefined on thread basis.
+      omp_threads = init_omp_threads
       thread_id = OMP_GET_THREAD_NUM()
+      if (np/init_omp_threads .le. 10) then
+        thread_id = 0
+        omp_threads = 1
+      end if
       local_size = np/omp_threads
       IStart = thread_id*local_size + 1
       ctr_s(1) = (thread_id + 1)*np
@@ -206,12 +216,11 @@ program pepc
       new_particle_cnt = 0
       swapped_num = 0
       charge_count = 0.0
-      total_charge_count = 0.0
       break = 0
       ! flow_count = 0.0
       ! total_flow_count = 0.0
       do i = IStart, IStop
-         call filter_and_swap(particles, flt_geom, i, IStart, IStop, swapped_num, break)
+         call filter_and_swap(particles, flt_geom, i, IStart, IStop, swapped_num, charge_count, break)
 
 !====================== save the resolved 'e' from tree traverse================
          traversed_e = particles(i)%results%e
