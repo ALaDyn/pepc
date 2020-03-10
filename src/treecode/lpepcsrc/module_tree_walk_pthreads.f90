@@ -110,7 +110,7 @@ module module_tree_walk
    type :: t_threaddata
       integer :: id !< just a running number to distinguish the threads, currently unused
       logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
-      integer :: coreid !< thread output value: id of thread's processor
+      integer :: coreid !< thread output value: id of thread`s processor
       logical :: finished !< will be set to .true. when the thread has finished
       integer(kind_node) :: counters(NUM_THREAD_COUNTERS)
    end type t_threaddata
@@ -119,7 +119,7 @@ module module_tree_walk
    type(t_threaddata), allocatable, target :: threaddata(:)
    integer, save :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
    real, parameter :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing particles_per_thread for thread which share their processor with the communicator
-   ! variables for adjusting the thread's workload
+   ! variables for adjusting the thread`s workload
    integer, save, public :: max_particles_per_thread = 30 !< maximum number of particles that will in parallel be processed by one workthread
    integer :: particles_per_thread
 

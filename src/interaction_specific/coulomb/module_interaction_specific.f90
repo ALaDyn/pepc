@@ -333,7 +333,7 @@ contains
          call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
       case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
          !  and Kelbg for particle-particle interaction
-         ! It's a leaf, do direct summation with kelbg
+         ! Leaf, do direct summation with Kelbg
          call calc_force_kelbg_3D_direct(particle, node, delta, dist2, kelbg_invsqrttemp, exyz, phic)
       case default
          exyz = 0.
@@ -373,8 +373,7 @@ contains
          call calc_force_LJ(node, delta, dist2, eps2, exyz, phic)
       case (5)  !  compute 3D-Coulomb fields and potential for particle-cluster interaction
          !  and Kelbg for particle-particle interaction
-
-         ! It's a twig, do ME with coulomb
+         ! Twig, do ME with coulomb
          call calc_force_coulomb_3D(node, delta, dist2, exyz, phic)
       case default
          exyz = 0.

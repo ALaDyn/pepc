@@ -57,7 +57,7 @@ contains
    end function
 
    !>
-   !> returns the key of a key's parent
+   !> returns the key of its parent
    !>
    DEBUG_ELEMENTAL function parent_key_from_key(key)
       use module_debug

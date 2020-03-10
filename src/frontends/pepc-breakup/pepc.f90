@@ -70,9 +70,9 @@ program pepc
    ! Only 1 instance of seed is required for the whole of pepc-breakup. Counter will be incremented
    ! at every call of "gen_norm_double_rng()", as well as assigning a random key.
    ! Excerpt from Random123 documentation (https://www.thesalmons.org/john/random123/releases/1.11.2pre/docs/):
-   ! "The result is highly sensitive to small changes in the inputs, so that the sequence of values produced by simply
-   ! incrementing the counter (or key) is effectively indistinguishable from a sequence of samples of a uniformly distributed
-   ! random variable."
+   !   The result is highly sensitive to small changes in the inputs, so that the sequence of values produced by simply
+   !   incrementing the counter (or key) is effectively indistinguishable from a sequence of samples of a uniformly distributed
+   !   random variable.
 
    if (resume == 1) then
      np = tnp/n_ranks

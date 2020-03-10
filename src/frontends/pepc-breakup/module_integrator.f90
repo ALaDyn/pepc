@@ -57,7 +57,7 @@ contains
      vec_out = vec_in*cos_angle + k_cross_v * sin(angle) + rot_axis * k_dot_v
    end function Rodriguez_rotation
 
-   ! Given the velocity vector of particle, it's azimuthal and inclination angle is calculated.
+   ! Given the velocity vector of particle, its azimuthal and inclination angle is calculated.
    ! can be 'adapted' to calculate azimuthal position of particle in torus.
    ! Phi angle is aligned 0 deg from east, counterclock-wise. east coincides with +x-axis
    subroutine angles_calc(vec_in, vel_mag, theta, phi)
@@ -411,7 +411,7 @@ contains
 
    subroutine add_particle(guide, particle, new_particle, buffer_pos, type)
      ! NOTE: A big assumption is made here: Without considering the rovibrational states
-     !       of the reaction products, generated particle doesn't store their own internal
+     !       of the reaction products, generated particle doesn`t store their own internal
      !       energy value. Instead, the reaction energy is entirely converted into kinetic E.
      !       More traditionally, this redistribution of energy is termed as Kinetic Energy Release
      !       in mass spetroscopy
@@ -489,7 +489,7 @@ contains
 
      ! NOTE: Currently, calculation of nu_prime involves obtaining abs_max_CS,
      !       which is the max of total cross section. nu_prime is then obtained
-     !       by multiplying abs_max_CS with the particle's velocity magnitude and
+     !       by multiplying abs_max_CS with the particle`s velocity magnitude and
      !       constant local density. nu_prime will thus be always larger than actual nu!
      ! TODO: not at all critical, but there are many ways of doing the next line, would be interesting to see if there is a fastest
      ! way of computing the length and weigh that against readability, perhaps a separate inlinable function if there is a faster

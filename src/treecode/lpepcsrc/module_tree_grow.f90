@@ -757,7 +757,7 @@ contains
 
    !>
    !> accumulates properties of child nodes to parent node.
-   !> leaves links to node's relatives untouched
+   !> leaves links to node`s relatives untouched
    !>
    subroutine tree_node_update_from_children(t, parent, children, k)
       use module_pepc_types, only: t_tree_node

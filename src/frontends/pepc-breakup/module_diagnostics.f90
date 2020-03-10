@@ -304,7 +304,7 @@ contains
     uplu = upll + offset
     upru = uprl + offset
 
-    ! interpolate the particle's charge to the vertices. Also computes J.
+    ! interpolate the particle charge to the vertices. Also computes J.
     if (particle%data%q < 0.0) then
       vertices(loll)%q_density(1) = (vertices(lorl)%x(1) - xp) &
                                     *(vertices(upll)%x(2) - yp) &

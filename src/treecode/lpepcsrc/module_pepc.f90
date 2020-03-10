@@ -85,7 +85,8 @@ contains
       integer(kind_default) :: ierr, provided
 
       ! "Multiple threads may call MPI, with no restrictions." - MPI-2.2, p. 385
-      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE
+!      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_MULTIPLE
+      integer(kind_default), parameter :: MPI_THREAD_LEVEL = MPI_THREAD_SERIALIZED
 
       call pepc_status('SETUP')
 
