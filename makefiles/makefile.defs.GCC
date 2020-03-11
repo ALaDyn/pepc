@@ -76,6 +76,7 @@ endif
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
   LDFLAGS  += -fopenmp
+  CPPFLAGS += -D_OPENMP
 else
 endif
 

@@ -57,6 +57,7 @@ endif
 ifeq ($(OMP), 1)
   FFLAGS   += -qopenmp
   LDFLAGS  += -qopenmp
+  CPPFLAGS += -D_OPENMP
 else
 endif
 
