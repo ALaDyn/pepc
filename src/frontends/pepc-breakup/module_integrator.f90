@@ -467,16 +467,17 @@ contains
      new_particle = new_particle + 1
    end subroutine add_particle
 
-   subroutine collision_update(particle, guide, new_particle, electron_count, CS_numbers)
+   subroutine collision_update(particle, guide, new_particle, electron_count, CS_numbers, r123_ctr, r123_key)
      implicit none
      type(t_particle), intent(inout) :: particle
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, electron_count
+     integer(kind=int32), intent(inout) :: r123_ctr(4), r123_key(4)
      integer, intent(in) :: CS_numbers
      real(kind_physics), dimension(:), allocatable :: CS_vector
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
-     real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi
+     real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, rand_num(8)
      integer :: buff_pos, i
 
      ! TODO: not a huge fan of the next 4 lines. Rather make those parameters which might help optimisation
@@ -502,7 +503,7 @@ contains
     !  print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime
 
      ! Generating Random Number between [0,1]
-     dummy = gen_norm_double_rng(ctr_s, key_s, rand_num)
+     dummy = gen_norm_double_rng(r123_ctr, r123_key, rand_num)
 
     !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
      if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied

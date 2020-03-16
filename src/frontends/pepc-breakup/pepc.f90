@@ -234,7 +234,7 @@ program pepc
          call particle_pusher(particles(i), dt)
 
          if (particles(i)%data%species == 0) then
-            call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, total_cross_sections)
+            call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, total_cross_sections, ctr_s, key_s)
          end if
          ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
 
