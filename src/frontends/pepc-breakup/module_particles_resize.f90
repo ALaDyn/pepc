@@ -99,6 +99,90 @@ contains
       deallocate (temp_array)
    end subroutine resize_array
 
+   subroutine determine_siblings_at_level(particles, sibling_cnt, unique_parents, level)
+     use treevars, only: maxlevel
+     use module_spacefilling
+     implicit none
+     type(t_particle), allocatable, intent(in) :: particles(:)
+     integer, allocatable, intent(inout) :: sibling_cnt(:)
+     integer, intent(inout) :: unique_parents
+     integer(kind_level), intent(in) :: level
+     ! type(t_particle):: temp_scan_list(50) ! Used to store particle data for the currently scanned particles for merging.
+     integer :: i, lower_bound, upper_bound
+     integer(kind_level) :: level_march
+     integer(kind_key) :: match_key, parent_key
+     real(kind_physics) :: average_siblings
+
+     allocate(sibling_cnt(size(particles)))
+     sibling_cnt = 0
+     level_march = level - maxlevel
+     unique_parents = 1
+
+     ! Compute the parent key for each particle at designated level.
+     ! Since particles are sorted after every pepc_grow_tree,
+     ! siblings are always contiguous!
+     match_key = shift_key_by_level(particles(1)%key, level_march)
+     do i = 1, size(particles)
+       parent_key = shift_key_by_level(particles(i)%key, level_march)
+       if (parent_key .ne. match_key) then
+         unique_parents = unique_parents + 1
+         match_key = parent_key
+       end if
+       sibling_cnt(unique_parents) = sibling_cnt(unique_parents) + 1
+     end do
+
+     average_siblings = 0.0_kind_physics
+     do i = 1, unique_parents
+       average_siblings = average_siblings + sibling_cnt(i)
+     end do
+     average_siblings = average_siblings/unique_parents
+
+     print *, "No. of parents: ", unique_parents, " Average no. of siblings: ", average_siblings
+   end subroutine
+
+   subroutine defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents)
+     use treevars, only: maxlevel
+     use module_spacefilling
+     implicit none
+     type(t_particle), allocatable, intent(in) :: particles(:)
+     real, intent(in) :: sibling_upper_limit
+     integer, allocatable, intent(inout) :: sibling_cnt(:)
+     integer, intent(inout) :: unique_parents
+     integer :: i
+     integer(kind_level) :: level_march, level
+     integer(kind_key) :: match_key, parent_key
+     real(kind_physics) :: average_siblings
+
+     allocate(sibling_cnt(size(particles)))
+     level_march = -18_kind_level
+     average_siblings = size(particles)
+
+     do while(sibling_upper_limit < average_siblings)
+       sibling_cnt = 0
+       unique_parents = 1
+       level = maxlevel + level_march
+
+       match_key = shift_key_by_level(particles(1)%key, level_march)
+       do i = 1, size(particles)
+         parent_key = shift_key_by_level(particles(i)%key, level_march)
+         if (parent_key .ne. match_key) then
+           unique_parents = unique_parents + 1
+           match_key = parent_key
+         end if
+         sibling_cnt(unique_parents) = sibling_cnt(unique_parents) + 1
+       end do
+       level_march = level_march + 1
+
+       average_siblings = 0.0_kind_physics
+       do i = 1, unique_parents
+         average_siblings = average_siblings + sibling_cnt(i)
+       end do
+       average_siblings = average_siblings/unique_parents
+       print *, "Refinement level: ", level, "Average siblings: ", average_siblings, "Sibling upper limit: ", sibling_upper_limit
+     end do
+
+   end subroutine
+
    subroutine gather_ll_buffers_omp(buffer, new_offset, new_particles_buffer, thread_id, thread_num)
      ! NOTE: 'buffer' refers to ll_elem that stores new particles
      !       'new_particle_buffer' that is shared across all threads must be created first!

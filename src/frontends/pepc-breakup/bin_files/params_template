@@ -7,7 +7,7 @@ resume = REPLACE_RESUME
 itime_in = REPLACE_TIMEIN
 
 ! Set OMP threads
-omp_threads = 2
+init_omp_threads = 2
 
 ! allocated wall time. Change this to reflect the wall time in job_script.
 ! Note that depending on the number of MPI ranks involved, overhead due to MPI

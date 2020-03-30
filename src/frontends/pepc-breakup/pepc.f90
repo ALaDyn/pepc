@@ -26,6 +26,7 @@ program pepc
    use module_timings
    use module_debug
    use module_checkpoint
+   use module_spacefilling
    use diagnostics
    use interactions_integrator
    use iso_fortran_env
@@ -143,7 +144,7 @@ program pepc
    if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
-   !$OMP PARALLEL DO if(np/omp_threads > 10) default(private) shared(particles, external_e, dt, V_loop)
+   !$OMP PARALLEL DO if(np/omp_threads > 10) default(private) shared(particles, external_e, dt, V_loop, global_tree)
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e)
       call boris_velocity_update(particles(i), -dt*0.5_8)
@@ -188,7 +189,7 @@ program pepc
       !$OMP shared(rank_charge_count, thread_charge_count, flt_geom, my_rank) &
       !$OMP shared(abs_max_CS, neutral_density, CS_tables, B0, B_p, major_radius) &
       !$OMP shared(minor_radius, plasma_dimensions, generic_array) &
-      !$OMP shared(total_cross_sections, step, omp_threads)
+      !$OMP shared(total_cross_sections, step, omp_threads, key_array)
 
       ! NOTE: counter and key for Random123 is redefined on thread basis.
 #ifdef _OPENMP
@@ -292,6 +293,9 @@ program pepc
       call deallocate_ll_buffer(buffer)
       !$OMP END PARALLEL
       deallocate(generic_array)
+
+      ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
+      call defined_siblings_number_grouping(particles, 50.0, sibling_cnt, unique_parents)
 
       new_particle_cnt = new_particles_offset(omp_threads,1)
       swapped_num = new_particles_offset(omp_threads,2)

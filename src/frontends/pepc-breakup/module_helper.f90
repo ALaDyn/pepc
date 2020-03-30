@@ -63,10 +63,6 @@ module helper
 
    integer, parameter :: particle_direct = -1 ! number of particle for direct summation
 
-   ! particle data (position, velocity, mass, charge)
-   type(t_particle), allocatable   :: particles(:)
-   real(kind_physics), allocatable :: direct_L2(:)
-
    type, public :: linked_list_elem
       type(linked_list_elem), pointer :: next
       type(t_particle), allocatable :: tmp_particles(:)
@@ -82,6 +78,16 @@ module helper
       real(kind_physics) :: q_density(1:2)
       real(kind_physics) :: J_density(1:3)
    end type diag_vertex
+
+   ! particle data (position, velocity, mass, charge)
+   type(t_particle), allocatable   :: particles(:)
+   real(kind_physics), allocatable :: direct_L2(:)
+
+   ! particle merging variables
+   type(t_particle), allocatable   :: merged_particles(:)
+   type(linked_list_elem), pointer :: merge_buffer_0, merge_buffer_1
+   integer, allocatable :: sibling_cnt(:)
+   integer :: merged_cnt, actual_parts_cnt, unique_parents
 
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
@@ -129,6 +135,10 @@ module helper
    real(kind_physics) :: allowed_wall_time
    real(kind_physics) :: current_wall_time, prev_t_user_step = 0.0
    logical :: break_loop
+
+   ! particle merging related variables
+   integer(kind_key) :: dummy_key
+   integer(kind_key), allocatable :: key_array(:)
 
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
@@ -387,8 +397,8 @@ contains
            call random(p(ip)%x)
            p(ip)%x(1) = p(ip)%x(1)*0.8*plasma_dimensions(1) - plasma_dimensions(1)*0.4
            p(ip)%x(2) = p(ip)%x(2)*0.8*plasma_dimensions(2) - plasma_dimensions(2)*0.4
-          !  p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
-           p(ip)%x(3) = -0.01
+           p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
+           ! p(ip)%x(3) = -0.01
 
            p(ip)%data%v = 0.0
            p(ip)%work = 1.0_8
