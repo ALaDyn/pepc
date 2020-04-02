@@ -92,7 +92,7 @@ module helper
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
    type(t_particle), allocatable   :: gathered_new_buffer(:)
-   integer :: electron_num, i, new_particle_cnt, local_electron_num, swapped_num, break
+   integer :: electron_num, i, j, new_particle_cnt, local_electron_num, swapped_num, break
    real(kind_physics) :: rank_charge_count(3), charge_count(3), &
                          total_charge_count(3)
    integer, allocatable :: new_particles_offset(:,:), generic_array(:)

@@ -296,6 +296,11 @@ program pepc
 
       ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
       call defined_siblings_number_grouping(particles, 50.0, sibling_cnt, unique_parents)
+      do i = 1, unique_parents
+        call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
+      end do
+
+      deallocate(sibling_cnt)
 
       new_particle_cnt = new_particles_offset(omp_threads,1)
       swapped_num = new_particles_offset(omp_threads,2)

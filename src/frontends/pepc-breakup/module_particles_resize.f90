@@ -99,15 +99,69 @@ contains
       deallocate (temp_array)
    end subroutine resize_array
 
+   subroutine sort_sibling_species(particles, sibling_cnt, parent_no, unique_parents)
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     integer, allocatable, intent(in) :: sibling_cnt(:)
+     integer, intent(in) :: parent_no, unique_parents
+     type(t_particle), allocatable :: sorting_buffer(:),  copied_local_buffer(:)
+     integer :: i, j, k, istart, istop
+     integer :: sort_width, iLeft, iRight, iEnd, sorted_i, buffer_size
+
+     istart = 1
+     do i = 2, parent_no
+       istart = istart + sibling_cnt(i-1)
+     end do
+     if (parent_no .eq. 1) istart = 1
+     istop = istart + sibling_cnt(parent_no)
+
+     buffer_size = istop - istart + 1
+     allocate(sorting_buffer(buffer_size))
+     allocate(copied_local_buffer(buffer_size))
+
+     copied_local_buffer = particles(istart:istop)
+
+     !begin sorting
+     sort_width = 1
+     do while (sort_width < buffer_size)
+
+       iLeft = 1
+       do while(iLeft <= buffer_size)
+
+         iRight = MIN(iLeft + sort_width, buffer_size)
+         iEnd = MIN(iLeft + 2*sort_width-1, buffer_size)
+         j = iLeft
+         k = iRight
+         do i = iLeft, iEnd !!!CHECK THE EXTENT, Also consider if n < largest sort_width
+           if((j < iRight) .and. &
+           (k > iEnd .or. copied_local_buffer(j)%data%species <= copied_local_buffer(k)%data%species)) then
+             sorting_buffer(i) = copied_local_buffer(j)
+             j = j + 1
+           else
+             sorting_buffer(i) = copied_local_buffer(k)
+             k = k + 1
+           end if
+         end do
+         iLeft = iLeft + 2*sort_width
+       end do
+
+       copied_local_buffer = sorting_buffer
+       sort_width = 2*sort_width
+     end do
+     particles(istart:istop) = copied_local_buffer
+
+     deallocate(sorting_buffer)
+     deallocate(copied_local_buffer)
+   end subroutine
+
    subroutine determine_siblings_at_level(particles, sibling_cnt, unique_parents, level)
      use treevars, only: maxlevel
      use module_spacefilling
      implicit none
-     type(t_particle), allocatable, intent(in) :: particles(:)
+     type(t_particle), allocatable, intent(inout) :: particles(:)
      integer, allocatable, intent(inout) :: sibling_cnt(:)
      integer, intent(inout) :: unique_parents
      integer(kind_level), intent(in) :: level
-     ! type(t_particle):: temp_scan_list(50) ! Used to store particle data for the currently scanned particles for merging.
      integer :: i, lower_bound, upper_bound
      integer(kind_level) :: level_march
      integer(kind_key) :: match_key, parent_key
@@ -144,7 +198,7 @@ contains
      use treevars, only: maxlevel
      use module_spacefilling
      implicit none
-     type(t_particle), allocatable, intent(in) :: particles(:)
+     type(t_particle), allocatable, intent(inout) :: particles(:)
      real, intent(in) :: sibling_upper_limit
      integer, allocatable, intent(inout) :: sibling_cnt(:)
      integer, intent(inout) :: unique_parents
@@ -165,6 +219,7 @@ contains
        match_key = shift_key_by_level(particles(1)%key, level_march)
        do i = 1, size(particles)
          parent_key = shift_key_by_level(particles(i)%key, level_march)
+         particles(i)%data%mp_int1 = parent_key
          if (parent_key .ne. match_key) then
            unique_parents = unique_parents + 1
            match_key = parent_key
@@ -180,7 +235,6 @@ contains
        average_siblings = average_siblings/unique_parents
        print *, "Refinement level: ", level, "Average siblings: ", average_siblings, "Sibling upper limit: ", sibling_upper_limit
      end do
-
    end subroutine
 
    subroutine gather_ll_buffers_omp(buffer, new_offset, new_particles_buffer, thread_id, thread_num)
