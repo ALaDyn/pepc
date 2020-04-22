@@ -84,7 +84,7 @@
          <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
          <parameter tag="!booster" name="nodes" type="int" mode="python">{
             "juwels": "64",
-            "jureca": "32, 64, 96, 128"}["${systemname}"]
+            "jureca": "16, 32, 64, 96"}["${systemname}"]
          </parameter>
          <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
          <parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter>
@@ -157,6 +157,7 @@
          <sub source="##DT##" dest="0.1e-1" />
          <sub source="##NT##" dest="25" />
          <sub source="##NPARTICLES##" dest="$particles" />
+         <!--sub source="##NPARTICLES##" dest="58880000" /-->
       </substituteset>
       <!-- correctness test -->
       <substituteset tag="check" name="inputsub">
@@ -230,6 +231,8 @@
       <!-- define timing patternset -->
       <!-- Regex pattern -->
       <patternset tag="!check" name="timing_pattern">
+         <pattern unit=""     name="nparticle"     type="int"   >== total number of particl.*:\s+${jube_pat_int}</pattern>
+         <pattern unit=""     name="ppthread"      type="int" mode="python">(${nparticle}/(${nodes}*${taskspnode}*${workerthreads}))</pattern>
          <pattern unit="secs" name="wallclock"     type="float"              >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
          <pattern unit="secs" name="tree_walk"     type="float"              >====== tree walk time  :\s+${jube_pat_fp}</pattern>
          <pattern unit="secs" name="tree_grow"     type="float"              >====== tree grow time  :\s+${jube_pat_fp}</pattern>
@@ -255,6 +258,8 @@
 
        -->
       <patternset tag="check" name="timing_pattern">
+         <pattern unit=""     name="nparticle" type="int"   >== total number of particl.*:\s+${jube_pat_int}</pattern>
+         <pattern unit=""     name="ppthread"  type="int" mode="python">(${nparticle}/(${nodes}*${taskspnode}*${workerthreads}))</pattern>
          <pattern unit="secs" name="wallclock" type="float" >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
          <pattern unit="secs" name="tree_walk" type="float" >====== tree walk time  :\s+${jube_pat_fp}</pattern>
          <pattern unit="secs" name="tree_grow" type="float" >====== tree grow time  :\s+${jube_pat_fp}</pattern>
@@ -266,6 +271,10 @@
          <pattern unit="%"    name="egy_drop"  type="float" mode="python">(${egy_tot_max}-${egy_tot_min})/${egy_tot_max} * 100</pattern>
       </patternset>
       <!-- sample output from PEPC will include:
+           == total number of particles :     58880000
+           == number of time steps      :           25
+           == time step                 :   1.0000E-02
+           [...]
            ====== computing step  :           0  // many of those
            ====== simulation time :  0.0000E+00
            ====== tree grow time  :  2.9118E-01
@@ -323,8 +332,8 @@
             <column                           title="tpt"          >threads</column>
             <column                           title="threads"      >total_threads</column>
             <column                           title="xSMT"         >thread_places</column>
-            <column                                                >particles</column>
-            <column              format=".0f" title="parts/thread" >part_per_thrd</column>
+            <column                           title="particles"    >nparticle</column>
+            <column              format=".0f" title="parts/thread" >ppthread</column>
             <column              format=".2f"                      >tree_grow_max</column>
             <column              format=".2f"                      >tree_grow_avg</column>
             <column              format=".2f"                      >tree_grow_min</column>
@@ -352,8 +361,8 @@
             <column                           title="tpt"          >threads</column>
             <column                           title="threads"      >total_threads</column>
             <column                           title="xSMT"         >thread_places</column>
-            <column                                                >particles</column>
-            <column              format=".0f" title="parts/thread" >part_per_thrd</column>
+            <column                           title="particles"    >nparticle</column>
+            <column              format=".0f" title="parts/thread" >ppthread</column>
             <column              format=".2f"                      >tree_grow_avg</column>
             <column              format=".2f"                      >tree_walk_avg</column>
             <column                                                >tree_walk_cnt</column>
@@ -382,8 +391,8 @@
             <column                           title="tpn"            >taskspnode</column>
             <column                           title="tpt"            >threads</column>
             <column                           title="threads"        >total_threads</column>
-            <column                                                  >particles</column>
-            <column              format=".0f" title="parts/thread"   >part_per_thrd</column>
+            <column                           title="particles"      >nparticle</column>
+            <column              format=".0f" title="parts/thread"   >ppthread</column>
             <column              format=".2f" title="wallclock[secs]">wallclock</column>
             <column tag="stats"  format=".2f" title="step_sum[secs]" >step_time_sum</column>
             <column tag="!stats" format=".2f" title="step_sum[secs]" >sum_steps</column>
@@ -399,8 +408,8 @@
             <column                           title="tpn"            >taskspnode</column>
             <column                           title="tpt"            >threads</column>
             <column                           title="threads"        >total_threads</column>
-            <column                                                  >particles</column>
-            <column              format=".0f" title="parts/thread"   >part_per_thrd</column>
+            <column                           title="particles"      >nparticle</column>
+            <column              format=".0f" title="parts/thread"   >ppthread</column>
             <column              format=".2f" title="wallclock[secs]">wallclock</column>
             <column tag="stats"  format=".2f" title="step_sum[secs]" >step_time_sum</column>
             <column tag="!stats" format=".2f" title="step_sum[secs]" >sum_steps</column>

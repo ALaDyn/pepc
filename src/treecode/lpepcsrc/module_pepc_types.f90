@@ -33,12 +33,12 @@ module module_pepc_types
    public :: t_particle_results
    public :: t_tree_node_interaction_data
 
-   integer :: MPI_TYPE_particle_data_sca, & ! we have these private for now to better control where they are used
+   integer :: MPI_TYPE_particle_data_sca, & ! We have these private for now to better control where they are used
               MPI_TYPE_tree_node_interaction_data_sca, &
               MPI_TYPE_particle_results_sca
-   integer, public :: MPI_TYPE_particle_sca, & ! we introduce those in a scalar and vector variant
-                      MPI_TYPE_particle_vec, & ! make sure to use the correct ones
-                      MPI_TYPE_tree_node_sca, &
+   integer, public :: MPI_TYPE_particle_sca, & ! We introduce those in a scalar and vector variant.
+                      MPI_TYPE_particle_vec, & ! Make sure to use the correct ones.
+                      MPI_TYPE_tree_node_sca, & ! The implementation follows 17.1.15 from MPI V.3.0
                       MPI_TYPE_tree_node_vec, &
                       MPI_TYPE_tree_node_package_sca, &
                       MPI_TYPE_tree_node_package_vec, &

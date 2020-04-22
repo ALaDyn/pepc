@@ -186,8 +186,8 @@ contains
       integer(kind_key) :: axorb, mask
       integer(kind_level) :: bpilevel
 
-      DEBUG_ASSERT_MSG(a .lt. b, '("Error: b.lt.a in math_tools::bpi(a = ",o22,"(oct), ",i22,"(dec), b = ",o22,"(oct), ",i22,"(dec))")', a, a, b, b)
-
+      DEBUG_ASSERT_MSG(a .lt. b, '("Error: b.le.a in math_tools::bpi(a = ",o22,"(oct), ",i22,"(dec), b = ",o22,"(oct), ",i22,"(dec))")', a, a, b, b)
+!if (.not. a .lt. b) write(*, *) 'BARRFFFF'
       axorb = ieor(a, b)
       bpilevel = level_from_key(axorb)
       mask = not(2_8**(idim * bpilevel) - 1)

@@ -388,20 +388,21 @@ void slsort_keys(pepckeys_sl_globalcount_t *nin,                             /* 
 #endif
 }
 
-
-void slsort_keys_(pepckeys_sl_globalcount_t *nin,                            /* IN */
-                 pepckeys_sl_globalcount_t *nmax,                            /* IN */
-                 pepckeys_slkey_t *keys,                                     /* INOUT */
-                 pepckeys_sldata0_t *work,                                   /* INOUT */
-                 pepckeys_slindex_t *balance_weight,                         /* IN */
-                 pepckeys_sldata0_t *max_imbalance,                          /* IN */
-                 pepckeys_sl_globalcount_t *nout,                            /* OUT */
-                 pepckeys_slindex_t *indxl, pepckeys_slindex_t *irnkl,       /* OUT */
-                 pepckeys_slindex_t *fscounts, pepckeys_slindex_t *frcounts, /* OUT */
-                 pepckeys_slindex_t *fsdispls, pepckeys_slindex_t *frdispls, /* OUT */
-                 pepckeys_slkey_t *keys2,                                    /* SCRATCH */
-                 pepckeys_slindex_t *irnkl2,                                 /* SCRATCH */
-                 MPI_Fint *fsize, MPI_Fint *frank, MPI_Fint *fcomm)          /* IN */
-{
-  slsort_keys(nin, nmax, keys, work, balance_weight, max_imbalance, nout, indxl, irnkl, fscounts, frcounts, fsdispls, frdispls, keys2, irnkl2, fsize, frank, fcomm);
-}
+//
+//void slsort_keys_(pepckeys_sl_globalcount_t *nin,                            /* IN */
+//                 pepckeys_sl_globalcount_t *nmax,                            /* IN */
+//                 pepckeys_slkey_t *keys,                                     /* INOUT */
+//                 pepckeys_sldata0_t *work,                                   /* INOUT */
+//                 pepckeys_slindex_t *balance_weight,                         /* IN */
+//                 pepckeys_sldata0_t *max_imbalance,                          /* IN */
+//                 pepckeys_sl_globalcount_t *nout,                            /* OUT */
+//                 pepckeys_slindex_t *indxl, pepckeys_slindex_t *irnkl,       /* OUT */
+//                 pepckeys_slindex_t *fscounts, pepckeys_slindex_t *frcounts, /* OUT */
+//                 pepckeys_slindex_t *fsdispls, pepckeys_slindex_t *frdispls, /* OUT */
+//                 pepckeys_slkey_t *keys2,                                    /* SCRATCH */
+//                 pepckeys_slindex_t *irnkl2,                                 /* SCRATCH */
+//                 MPI_Fint *fsize, MPI_Fint *frank, MPI_Fint *fcomm)          /* IN */
+//{
+//  slsort_keys(nin, nmax, keys, work, balance_weight, max_imbalance, nout, indxl, irnkl, fscounts, frcounts, fsdispls, frdispls, keys2, irnkl2, fsize, frank, fcomm);
+//}
+//

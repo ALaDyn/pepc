@@ -68,7 +68,7 @@ slint_t mpi_xcounts2ycounts_grouped(int *xcounts, slint_t nxcounts, int *ycounts
   slint_t i;
   int group_size, group_rank;
 
-  int *all_group_xcounts;
+  int *all_group_xcounts = NULL;
   MPI_Datatype rdt, rdtr;
 
   int group_sizes[nxcounts];
@@ -112,6 +112,8 @@ slint_t mpi_xcounts2ycounts_grouped(int *xcounts, slint_t nxcounts, int *ycounts
 
   /* gather xcounts (transposed) at group-root */
   MPI_Gather(xcounts, nxcounts, MPI_INT, all_group_xcounts, 1, rdtr, 0, group_comm);
+  // int MPI_Gather(const void *sendbuf, int sendcount, MPI_Datatype sendtype, 
+  //                void *recvbuf, int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm)
 
   if (group_rank == 0)
   {
@@ -134,7 +136,12 @@ slint_t mpi_xcounts2ycounts_grouped(int *xcounts, slint_t nxcounts, int *ycounts
       mrdispls[i] = (i == 0)?0:(mrdispls[i - 1] + mrcounts[i - 1]);
     }
 
+    // Superficially it looks lke all_group_xcounts could not be allocated for all ranks within master_comm. This of course
+    // depends on the communicatiors used. Add a check to be sure...
+    if ( all_group_xcounts == NULL ) printf("BARRFFFFF");
     MPI_Alltoallv(all_group_xcounts, mscounts, msdispls, MPI_INT, all_xcounts, mrcounts, mrdispls, MPI_INT, master_comm);
+    // int MPI_Alltoallv(const void *sendbuf, const int *sendcounts, const int *sdispls, MPI_Datatype sendtype, void *recvbuf,
+    //                   const int *recvcounts, const int *rdispls, MPI_Datatype recvtype, MPI_Comm comm)
 
     z_freea(all_group_xcounts);
 

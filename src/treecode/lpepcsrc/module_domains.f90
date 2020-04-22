@@ -109,6 +109,7 @@ contains
    !>  - weighting according to load incurred on previous timestep
    !>
    subroutine domain_decompose(d, b, n, particles, bp, c)
+      use, intrinsic :: iso_c_binding
       use module_pepc_types, only: t_particle, MPI_TYPE_particle_sca, MPI_TYPE_particle_vec
       use module_box, only: t_box
       use module_timings
@@ -127,28 +128,30 @@ contains
 
       integer(kind_default) :: ierr
       integer(kind_particle) :: i, j
-      real*8 :: imba
+      real(c_double) :: imba
       type(t_particle), allocatable :: ship_parts(:), get_parts(:) !< arrays for parallel sort
       integer(kind_key), allocatable :: temp(:), local_keys(:), key_diffs(:)
-      real*8, allocatable :: workload(:)
+      real(c_double), allocatable :: workload(:)
       integer(kind_default), allocatable :: irnkl2(:)
 
       interface
          subroutine slsort_keys(nin, nmax, keys, workload, balance_weight, max_imbalance, nout, indxl, &
-                                irnkl, scounts, rcounts, sdispls, rdispls, keys2, irnkl2, size, rank, comm)
+                                irnkl, scounts, rcounts, sdispls, rdispls, keys2, irnkl2, size, rank, comm) &
+                                bind(C, name='slsort_keys')
+            use, intrinsic :: iso_c_binding
             use module_pepc_kinds
-            integer(kind_particle), intent(in) :: nin
-            integer(kind_particle), intent(in) :: nmax
-            integer(kind_key), intent(inout) :: keys(*)
-            real*8, intent(inout) :: workload(*)
-            integer(kind_default), intent(in) :: balance_weight
-            real*8, intent(in) :: max_imbalance
-            integer(kind_particle), intent(out) :: nout
-            integer(kind_default), intent(out) :: indxl(*), irnkl(*), scounts(*), rcounts(*), sdispls(*), rdispls(*)
-            integer(kind_key), intent(out) :: keys2(*)
-            integer(kind_default), intent(out) :: irnkl2(*)
-            integer(kind_pe), intent(in) :: size, rank
-            integer(kind_default), intent(in) :: comm
+            integer(kind_particle), intent(in) :: nin   ! FINT8_TYPE_C -> int64_t
+            integer(kind_particle), intent(in) :: nmax  ! "
+            integer(kind_key), intent(inout) :: keys(*) ! "
+            real(c_double), intent(inout) :: workload(*)        ! FREAL8_TYPE_C -> double
+            integer(kind_default), intent(in) :: balance_weight ! -> long long
+            real(c_double), intent(in) :: max_imbalance         ! FREAL8_TYPE_C -> double
+            integer(kind_particle), intent(out) :: nout ! FINT8_TYPE_C -> int64_t
+            integer(kind_default), intent(out) :: indxl(*), irnkl(*), scounts(*), rcounts(*), sdispls(*), rdispls(*) ! -> long long
+            integer(kind_key), intent(out) :: keys2(*)  ! FINT8_TYPE_C -> int64_t
+            integer(kind_default), intent(out) :: irnkl2(*) ! -> long long
+            integer(kind_pe), intent(in) :: size, rank  ! MPI_Fint
+            integer(kind_default), intent(in) :: comm   ! MPI_Fint
          end subroutine slsort_keys
       end interface
 
@@ -349,6 +352,8 @@ contains
          else
             next = d%comm_env%rank + 1_kind_pe
          end if
+         !!!TODO!!! wouldn't it be safer to 'null' bp() in cases where we do not
+                  ! reveive data?
 
          ! Copy boundary particles to adjacent PEs to ensure proper tree construction
          !  - if we do not do this, can get two particles on separate PEs 'sharing' a leaf

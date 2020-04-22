@@ -106,32 +106,40 @@ contains
 
       call timer_stop(t_local)
 
+!write(*,*) "root%leaves", root%leaves, " t%npart ", t%npart, "t%nleaf_me ", t%nleaf_me, " t%npart_me ", t%npart_me
       if (.not. tree_check(t, "tree_grow: before exchange")) then
          call tree_dump(t, p)
       end if
+!      if (t%comm_env%rank .eq. 219 .or. t%comm_env%rank .eq. 220) call tree_dump(t, p)
 
       ! Should now have multipole information up to root list level(s) (only up to branch level, the information is correct)
       ! By definition, this is complete: each branch node is self-contained.
       ! This information has to be broadcast to the other PEs so that the top levels can be filled in.
 
       call timer_start(t_exchange_branches)
+      ! This will exchange all branch nodes local to remote and put the received
+      ! ones in the local tree (with some id). It will also keep all branch nodes
       call tree_exchange_branches(t, p, bp, branch_nodes)
       call timer_stop(t_exchange_branches)
 
+!write(*,*) "root%leaves", root%leaves, " t%npart ", t%npart, "t%nleaf_me ", t%nleaf_me, " t%npart_me ", t%npart_me
       ! build global part of tree
       call timer_start(t_global)
       call tree_build_upwards(t, branch_nodes)
       call timer_stop(t_global)
       deallocate (branch_nodes)
 
+!      if (t%comm_env%rank .eq. 219) call tree_dump(t, p)
       if (.not. tree_check(t, "tree_grow: after exchange")) then
          call tree_dump(t, p)
+!         if (t%comm_env%rank .eq. 219) call tree_dump(t, p)
       end if
-
+!write(*,*) "root%leaves", root%leaves, " t%npart ", t%npart, "t%nleaf_me ", t%nleaf_me, " t%npart_me ", t%npart_me
       if (root%leaves .ne. t%npart) then
          call tree_dump(t, p)
+!         if (t%comm_env%rank .eq. 219) call tree_dump(t, p)
          DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root%leaves, ' but npart_total =', t%npart)
-      endif
+      end if
 
       call timer_stop(t_fields_tree)
       call pepc_status('TREE GROWN')
@@ -168,6 +176,7 @@ contains
       call timer_start(t_exchange_branches_pack)
 
       nbranch = int(num_local_branch_nodes, kind=kind(nbranch)) ! we need this cast since MPI-strides have to be of kind_default
+      !!!TODO!!! Consider checking that cast does not fail!
 
       ! Pack local branches for shipping
       allocate (pack_mult(nbranch))
@@ -181,7 +190,8 @@ contains
       ! work out stride lengths so that partial arrays placed sequentially in global array
       allocate (nbranches(t%comm_env%size), igap(t%comm_env%size + 1))
       call MPI_ALLGATHER(nbranch, 1, MPI_KIND_DEFAULT, nbranches, 1, MPI_KIND_DEFAULT, t%comm_env%comm, ierr)
-
+      !!!TODO!!! couldn't the MPI call and the summation be replace by a MPI_SCAN or sth like this?
+      !          causing less of a headache trying to understand what's happening here?
       igap(1) = 0
       do ip = 2, t%comm_env%size + 1_kind_pe
          igap(ip) = igap(ip - 1) + nbranches(ip - 1)
@@ -197,6 +207,9 @@ contains
       ! actually exchange the branch nodes
       call MPI_ALLGATHERV(pack_mult, nbranch, MPI_TYPE_tree_node_package_vec, get_mult, nbranches, igap, MPI_TYPE_tree_node_package_vec, &
                           t%comm_env%comm, ierr)
+      ! int MPI_Allgatherv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+      !                    void *recvbuf, const int *recvcounts, const int *displs,
+      !                    MPI_Datatype recvtype, MPI_Comm comm)
 
       deallocate (pack_mult)
       deallocate (nbranches, igap)
@@ -207,6 +220,7 @@ contains
       ! Integrate remote branches into local tree
       j = 0
       do i = 1, nbranch_sum
+!         if(t%comm_env%rank == 219) write(779,*) 'tree_exchange ', get_mult(i)%key, get_mult(i)%leaves, get_mult(i)%owner
          ! insert all remote branches into local data structures (this does *not* prepare the internal tree connections, but only copies multipole properties and creates the htable-entries)
          if (get_mult(i)%owner .ne. t%comm_env%rank) then
             branch_nodes(i) = tree_provision_node(t)
@@ -228,7 +242,7 @@ contains
    !>
    !> identifies branch nodes in tree `t` and makes them available on all communication ranks.
    !>
-   !> the keys of all boundary nodes are returned in `bk`.
+   !> the keys of all boundary nodes are returned in `bn`.
    !>
    !> @todo Combining this routine with `tree_exchange()` would be more efficient.
    !>
@@ -259,6 +273,7 @@ contains
 
       call tree_exchange(t, num_local_branch_nodes, local_branch_nodes, bn)
       t%nbranch = size(bn, kind=kind(t%nbranch))
+      !!!TODO!!! move the above line to tree_exchange?
 
       deallocate (local_branch_nodes)
 
@@ -305,8 +320,8 @@ contains
          ! First find highest power in the Virtual Domain to ensure a correct branch definition
          L = bpi(vld_llim, vld_rlim)
          ! divide in two sub-domains
-         ! only the last tasks must get 1 particle more
-         ! because it s right limit is possibly not presentable
+         ! only the last task must get 1 particle more
+         ! because its right limit is possibly not presentable
          D1 = L - vld_llim
          D2 = vld_rlim - L
          if (t%comm_env%last) then
@@ -333,7 +348,7 @@ contains
                possible_branch = shift_key_by_level(pos, -(maxlevel - ilevel))
 
                ! After local build hashtable should contain branch key
-               ! otherwise branch does not exists
+               ! otherwise branch does not exist
                ! if entry exists it is counted as branch
                ! otherwise discarded
                if (tree_traverse_to_key(t, possible_branch, found_branch)) then ! entry exists
@@ -351,7 +366,7 @@ contains
                possible_branch = shift_key_by_level(pos, -(maxlevel - ilevel))
 
                ! After build hashtable should contain branch key
-               ! otherwise branch does not exists
+               ! otherwise branch does not exist
                ! if entry exists it is counted as branch
                ! otherwise discarded
                if (tree_traverse_to_key(t, possible_branch, found_branch)) then ! entry exists
@@ -382,8 +397,8 @@ contains
          lme = p(1)%key
          rme = p(ubound(p, 1))%key
 
-         ! get key limits for neighbor tasks
-         ! and build virtual limits, so that a minimum set of branch nodes comes arround
+         ! get key limits for neighbour tasks
+         ! and build virtual limits, so that a minimum set of branch nodes comes around
          ! boundary tasks can access their boundary space fully only need one virtual limit
          l = 2_kind_key**(maxlevel * idim)
          r = 2_kind_key**(maxlevel * idim + 1) - 1
@@ -401,9 +416,8 @@ contains
    end subroutine tree_exchange_branches
 
    !>
-   !> Builds up the tree `t` from the given start keys `keys` towards root
-   !>  - expects, that the nodes that correspond to `keys` already
-   !>    have been inserted into the tree
+   !> Builds up the tree `t` from the given `nodes` towards root
+   !>  - expects, that the `nodes` have been inserted into the tree
    !>  - missing nodes on the way towards root are added automatically
    !>  - already existing nodes are updated
    !>
@@ -428,36 +442,65 @@ contains
 
       integer(kind_node) :: i, nparent, nuniq, k
       integer(kind_node) ::  numnodes, nsub, groupstart, groupend
-      integer(kind_level) :: ilevel, maxlevel
+      integer(kind_level) :: ilevel, maxlevel !, maxlevel2
       integer(kind_key) :: current_parent_key
 
       call pepc_status('BUILD TOWARDS ROOT')
 
+      ! Number of nodes to process
       numnodes = size(nodes, kind=kind(numnodes))
       allocate (key_level(numnodes))
       allocate (sub_key(0:numnodes + 1), sub_nodes(1:numnodes + 1), parent_key(0:numnodes + 1), parent_nodes(1:numnodes + 1))
       allocate (sorted_sub_nodes(1:numnodes + 1), sort_map(1:numnodes + 1))
 
-      ! get levels of branch nodes
+!      write(debug_ipefile,*) "CUL ", numnodes
+!      maxlevel2 = 0
+      ! Get levels of branch nodes, keys/nodes will not be ordered
       do i = 1, numnodes
+!         write(debug_ipefile,'(a,o22)') "CUL ", t%nodes(nodes(i))%key
          key_level(i) = level_from_key(t%nodes(nodes(i))%key)
+!         if (t%nodes(nodes(i))%key.eq.int(o'16673774263',kind_key) .or. t%nodes(nodes(i))%key.eq.int(o'16673774267',kind_key) .or. t%nodes(nodes(i))%key.eq.int(o'1667377426',kind_key)) then
+!            write(debug_ipefile,'(a,o22,6(1x,i0))') 'CULPRIT ', &
+!               t%nodes(nodes(i))%key, &
+!               key_level(i), &
+!               t%nodes(nodes(i))%owner, &
+!               t%nodes(nodes(i))%parent, &
+!               t%nodes(nodes(i))%first_child, &
+!               t%nodes(nodes(i))%leaves, &
+!               t%nodes(nodes(i))%descendants
+!         end if
+!         if (key_level(i) > maxlevel2) maxlevel2 = key_level(i)
       end do
       maxlevel = maxval(key_level(:)) ! Find maximum level
+!      write(debug_ipefile,*) 'maxlevel ', maxlevel, ' maxlevel2 ', maxlevel2
+!      maxlevel = maxlevel2
 
       nparent = 0
-      ! iterate through key levels
+      ! Iterate through key levels
       do ilevel = maxlevel, 1, -1 ! Start at finest level
-         ! Collect all keys at this level
+         ! Collect all keys at this level and generate sub-list
+!         write(debug_ipefile,*) 'ilevel ', ilevel, ' maxlevel ', maxlevel
          nsub = 0
          do i = 1, numnodes
             if (key_level(i) .eq. ilevel) then
                nsub = nsub + 1
                sub_key(nsub) = t%nodes(nodes(i))%key
                sub_nodes(nsub) = nodes(i)
+!               if (t%nodes(nodes(i))%key.eq.int(o'16673774263',kind_key) .or. t%nodes(nodes(i))%key.eq.int(o'16673774267',kind_key) .or. t%nodes(nodes(i))%key.eq.int(o'1667377426',kind_key)) then
+!                  write(debug_ipefile,'(a,o22,2(1x,i0))') 'key on level ', t%nodes(nodes(i))%key, ilevel, nsub
+!               end if
             end if
          end do
+!         if (ilevel == 10 .and. (t%comm_env%rank == 219 .or. t%comm_env%rank == 220)) then
+!            block
+!               character(len=30) :: FMT
+!               write(FMT, '( "(a," , i0 , "(1x,o22))" )') nsub
+!               write(debug_ipefile,FMT) 'sub_keys on lvl 10 ', sub_key(1:nsub)
+!            end block
+!         end if
 
-         ! Augment list with parent keys checked at previous level
+         ! Augment list with parent keys found at from previous level
+         ! Those will need updating or have been created.
          do i = 1, nparent
             sub_key(nsub + i) = parent_key(i)
             sub_nodes(nsub + i) = parent_nodes(i)
@@ -465,12 +508,19 @@ contains
          nsub = nsub + nparent
 
          call sort(sub_key(1:nsub), sort_map(1:nsub)) ! Sort keys
+!         if (ilevel == 10 .and. (t%comm_env%rank == 219 .or. t%comm_env%rank == 220)) then
+!            block
+!               character(len=30) :: FMT
+!               write(FMT, '( "(a," , i0 , "(1x,o22))" )') nsub
+!               write(debug_ipefile,FMT) 'sorted sub_keys on lvl 10 ', sub_key(1:nsub)
+!            end block
+!         end if
 
          do i = 1, nsub
-            sorted_sub_nodes(i) = sub_nodes(sort_map(i))
+            sorted_sub_nodes(i) = sub_nodes(sort_map(i)) ! Sort nodes
          end do
 
-         sub_key(0) = 0 ! remove all duplicates from the list
+         sub_key(0) = 0 ! Remove all duplicates from the list
          nuniq = 0
          do i = 1, nsub
             if (sub_key(i) .ne. sub_key(i - 1)) then
@@ -479,11 +529,18 @@ contains
                sorted_sub_nodes(nuniq) = sorted_sub_nodes(i)
             end if
          end do
+!         if (ilevel == 10 .and. (t%comm_env%rank == 219 .or. t%comm_env%rank == 220)) then
+!            block
+!               character(len=30) :: FMT
+!               write(FMT, '( "(a," , i0 , "(1x,o22))" )') nsub
+!               write(debug_ipefile,FMT) 'sorted+compacted sub_keys on lvl 10 ', sub_key(1:nsub)
+!            end block
+!         end if
 
          nsub = nuniq
          sub_key(nsub + 1) = 0
 
-         ! now, sub_key(1:nsub) contains a list of all keys (unique) at ilevel that
+         ! Now, sub_key(1:nsub) contains a list of all keys (unique) at ilevel that
          ! (1) just have been inserted into the tree
          ! (2) have been modified due to additional child data
          ! tree_nodes() and htable()-entries exist for both cases
@@ -492,7 +549,7 @@ contains
          nparent = 0
 
          do while (i .le. nsub)
-            ! group keys with the same parent
+            ! Group keys with the same parent
             current_parent_key = parent_key_from_key(sub_key(i))
 
             groupstart = i
@@ -507,15 +564,23 @@ contains
             parent_key(nparent) = current_parent_key
             parent_nodes(nparent) = NODE_INVALID
 
+            ! Check all nodes from the group with the same parent if the parent exists already
             do k = groupstart, groupend
+!               if (t%nodes(sorted_sub_nodes(k))%owner .eq. 219) write(debug_ipefile,'(a,o22)') 'grouped ', t%nodes(sorted_sub_nodes(k))%key
                if (t%nodes(sorted_sub_nodes(k))%parent .ne. NODE_INVALID) then
-                  ! a parent node is already existing
+                  ! A parent node is already existing
+                  !    von Benedikt:
+                  !    Hier wird unterstellt, dass aus einer Gruppe von Knoten immer einer einen validen Index für einen Elternknoten hat,
+                  !    oder sonst keiner existiert. Das könnte hier schiefgehen, wenn 1667377426 neu erstellt wird, keine Geschwister hat,
+                  !    die an dem Prozess teilnehmen, aber 166737742 eigentlich schon existiert.
+                  !    Ich glaube nach der k=groupstart,groupend Schleife sollte sicherheitshalber ein tree_traverse_to_key kommen,
+                  !    falls die Schleife keinen Elternknoten findet.
                   parent_nodes(nparent) = t%nodes(sorted_sub_nodes(k))%parent
                   exit
                end if
             end do
 
-            ! a node has to be created from scratch
+            ! If we did not find a parent, a node has to be created from scratch to hold a parent
             if (parent_nodes(nparent) .eq. NODE_INVALID) then
                parent_nodes(nparent) = tree_provision_node(t)
                call tree_node_create_from_children(t, t%nodes(parent_nodes(nparent)), sorted_sub_nodes(groupstart:groupend), current_parent_key)
@@ -525,10 +590,10 @@ contains
             end if
             call tree_node_connect_children(t, parent_nodes(nparent), sorted_sub_nodes(groupstart:groupend))
 
-            ! go on with next group
+            ! Go on with next group
             i = i + 1
          end do
-      end do ! loop over levels
+      end do ! Loop over levels
 
       deallocate (key_level)
       deallocate (sub_key, sub_nodes, parent_key, parent_nodes)

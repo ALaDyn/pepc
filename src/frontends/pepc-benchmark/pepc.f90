@@ -52,6 +52,7 @@ program pepc
          write (*, '(a,i12)')    " ====== computing step  :", step      !&
          write (*, '(a,es12.4)') " ====== simulation time :", step * dt !&
       end if
+!      if(my_rank == 219) write (779, '(a,i12)')    " ====== computing step  :", step      !&
 
       call timer_start(t_user_step)
 
@@ -60,9 +61,13 @@ program pepc
       doCheck = (MOD(step, check_step) .eq. 0) .and. (step .gt. 0) !&
 
       call pepc_particleresults_clear(particles)
+      call timer_reset(t_unused19)
       call pepc_grow_tree(particles)
       np = size(particles, kind=kind(np))
       if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
+      if (root) write (*, '(a,es12.4)') " ====== tree exchb time :", timer_read(t_exchange_branches)
+      if (root) write (*, '(a,es12.4)') " ====== tree bldup time :", timer_read(t_global)
+      if (root) write (*, '(a,es12.4)') " ====== tree check time :", timer_read(t_unused19)
       call pepc_traverse_tree(particles)
       if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
 

@@ -242,7 +242,7 @@ slint_t binning_radix_finalize(binning_t *bm, bin_t *bin, slint_t dc, slweight_t
   slint_t lc, r;
 #ifdef elem_weight
   elements_t xi, end;
-  slweight_t lw;
+  slweight_t lw = 0.0;
 #endif
 
 

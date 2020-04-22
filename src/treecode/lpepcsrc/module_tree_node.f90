@@ -32,6 +32,7 @@ module module_tree_node
    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_REQUEST_SENT             = 1 !< bit is set in flags_local if request for child nodes has actually been sent
    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS  = 2 !< bit is set in flags_local for all nodes that contain some local nodes beneath them
    integer, public, parameter :: TREE_NODE_FLAG_LOCAL_HAS_REMOTE_CONTRIBUTIONS = 3 !< bit is set in flags_local for all nodes that contain some remote nodes beneath them
+   integer, public, parameter :: TREE_NODE_FLAG_LOCAL_CHECKED                  = 4 !< bit is set in flags_local for all nodes that have been check by tree_check
    integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE          = 0 !< bit is set in flags_global for all branch nodes (set in tree_exchange)
    integer, public, parameter :: TREE_NODE_FLAG_GLOBAL_IS_FILL_NODE            = 1 !< bit is set in flags_global for all nodes that are above (towards root) branch nodes
    !&>
@@ -49,34 +50,32 @@ module module_tree_node
 contains
 
    !>
-   !> Returns the first child of node `p`.
+   !> Returns the first child of node `n`.
    !>
-   !> If `p` has children that are locally available, returns `.true.` and `fc`
-   !> points to the child.
-   !> Otherwise, `.false.` is returned and `fc` points to `null()`.
+   !> If `n` has children that are locally available, upon return `fc`
+   !> points to the child otherwise `fc` points to `null()`.
    !>
-   function tree_node_get_first_child(p) result(fc)
+   function tree_node_get_first_child(n) result(fc)
       use module_pepc_types, only: t_tree_node
       use module_atomic_ops
       implicit none
 
       integer(kind_node) :: fc
-      type(t_tree_node), intent(in) :: p
+      type(t_tree_node), intent(in) :: n
 
-      if (tree_node_children_available(p)) then
+      if (tree_node_children_available(n)) then
          call atomic_read_barrier()
-         fc = p%first_child
+         fc = n%first_child
       else
          fc = NODE_INVALID
       end if
    end function tree_node_get_first_child
 
    !>
-   !> Returns the next sibling of node `p`.
+   !> Returns the next sibling of node `n`.
    !>
-   !> If there is a next sibling to `n` returns `.true.` and `s` points
-   !> to the sibling node.
-   !> Otherwise `.false.` is returned and `s` points to `null()`.
+   !> If there is a next sibling to `n` `s` points to the sibling node.
+   !> Otherwise `s` points to `null()`.
    !>
    !> In this context, "next" is defined by the ordering of the node keys.
    !>

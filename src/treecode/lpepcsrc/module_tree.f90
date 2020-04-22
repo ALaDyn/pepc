@@ -323,6 +323,7 @@ contains
    !> returns the reserved index.
    !>
    function tree_provision_node(t)
+!!!TODO!!! make things here threadsafe! atomic operations and alike
       use module_debug
       implicit none
 
@@ -342,6 +343,7 @@ contains
    !> Updates tree internal counters for nodes that have been constructed in-place.
    !>
    subroutine tree_count_node(t, n)
+!!!TODO!!! make things here threadsafe! atomic operations and alike
       use module_pepc_types, only: t_tree_node
       use module_tree_node, only: tree_node_is_leaf
 
@@ -351,7 +353,10 @@ contains
       ! keep count of leaves / twigs
       if (tree_node_is_leaf(n)) then
          t%nleaf = t%nleaf + 1
-         if (n%owner .eq. t%comm_env%rank) t%nleaf_me = t%nleaf_me + 1
+         if (n%owner .eq. t%comm_env%rank) then
+            t%nleaf_me = t%nleaf_me + 1
+!            if (t%comm_env%rank == 219) write(779,*) 'tree_count_node ', n%key, n%leaves
+         end if
       else
          t%ntwig = t%ntwig + 1
          if (n%owner .eq. t%comm_env%rank) t%ntwig_me = t%ntwig_me + 1
@@ -439,6 +444,7 @@ contains
       use module_debug
       use module_pepc_types, only: t_tree_node
       use module_debug
+      use module_timings
       implicit none
 
       logical :: tree_check
@@ -448,6 +454,8 @@ contains
       integer :: nleaf_check, ntwig_check, nleaf_me_check, ntwig_me_check
 
       call pepc_status('CHECK TREE')
+
+      call timer_resume(t_unused19)
 
       tree_check = .true.
       nleaf_check = 0
@@ -459,30 +467,75 @@ contains
       call tree_check_helper(t%node_root)
 
       if (t%nleaf .ne. nleaf_check) then
-         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ', callpoint, ' by PE', t%comm_env%rank, '# leaves in table = ', nleaf_check, ' vs ', t%nleaf, ' accumulated', 'Fixing and continuing for now..')
+         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ', callpoint, ' by PE', t%comm_env%rank, '# leaves in table = ', nleaf_check, ' vs ', t%nleaf, ' accumulated', 'Continuing for now...')
+         DEBUG_WARNING('(a,i0,a,i0,1x,i0)', 'PE', t%comm_env%rank, 's neighbours are: ', t%decomposition%comm_env%rank - 1_kind_pe, t%decomposition%comm_env%rank + 1_kind_pe)
          tree_check = .false.
       end if
 
       if (t%ntwig .ne. ntwig_check) then
-         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ', callpoint, ' by PE', t%comm_env%rank, '# twigs in table = ', ntwig_check, ' vs ', t%ntwig, ' accumulated', 'Fixing and continuing for now..')
+         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ', callpoint, ' by PE', t%comm_env%rank, '# twigs in table = ', ntwig_check, ' vs ', t%ntwig, ' accumulated', 'Continuing for now...')
+         DEBUG_WARNING('(a,i0,a,i0,1x,i0)', 'PE', t%comm_env%rank, 's neighbours are: ', t%decomposition%comm_env%rank - 1_kind_pe, t%decomposition%comm_env%rank + 1_kind_pe)
          tree_check = .false.
       end if
 
       if (t%nleaf_me .ne. nleaf_me_check) then
-         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ', callpoint, ' by PE', t%comm_env%rank, '# own leaves in table = ', nleaf_me_check, ' vs ', t%nleaf_me, ' accumulated', 'Fixing and continuing for now..')
+         DEBUG_WARNING_ALL('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ', callpoint, ' by PE', t%comm_env%rank, '# own leaves in table = ', nleaf_me_check, ' vs ', t%nleaf_me, ' accumulated', 'Continuing for now...')
+         DEBUG_WARNING_ALL('(a,i0,a,i0,1x,i0)', 'PE', t%comm_env%rank, 's neighbours are: ', t%decomposition%comm_env%rank - 1_kind_pe, t%decomposition%comm_env%rank + 1_kind_pe)
          tree_check = .false.
       end if
 
       if (t%ntwig_me .ne. ntwig_me_check) then
-         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ', callpoint, ' by PE', t%comm_env%rank, '# own twigs in table = ', ntwig_me_check, ' vs ', t%ntwig_me, ' accumulated', 'Fixing and continuing for now..')
+         DEBUG_WARNING_ALL('(3a,i0,/,a,i0,a,i0,a,/,a)', 'Table check called ', callpoint, ' by PE', t%comm_env%rank, '# own twigs in table = ', ntwig_me_check, ' vs ', t%ntwig_me, ' accumulated', 'Continuing for now...')
+         DEBUG_WARNING_ALL('(a,i0,a,i0,1x,i0)', 'PE', t%comm_env%rank, 's neighbours are: ', t%decomposition%comm_env%rank - 1_kind_pe, t%decomposition%comm_env%rank + 1_kind_pe)
          tree_check = .false.
       end if
+
+!!!TODO!!! remove this check once problem solved
+!if (t%comm_env%rank == 219 .or. t%comm_env%rank == 220) then
+!   write(*,'(a,i0,a,i0,1x,i0)') 'PE', t%comm_env%rank, ' - t%leaves_me / t%twigs_me: ', t%nleaf_me, t%ntwig_me
+!end if
+!
+!      ! check again, not following tree structure but simply checking all
+!      ! nodes...
+!      nleaf_check = 0
+!      nleaf_me_check = 0
+!      ntwig_check = 0
+!      ntwig_me_check = 0
+!
+!      call tree_check_again_helper
+!
+!      if (t%nleaf .ne. nleaf_check) then
+!         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', '2nd Table check called ', callpoint, ' by PE', t%comm_env%rank, '# leaves in table = ', nleaf_check, ' vs ', t%nleaf, ' accumulated', 'Continuing for now...')
+!         DEBUG_WARNING('(a,i0,a,i0,1x,i0)', '2nd PE', t%comm_env%rank, 's neighbours are: ', t%decomposition%comm_env%rank - 1_kind_pe, t%decomposition%comm_env%rank + 1_kind_pe)
+!      end if
+!
+!      if (t%ntwig .ne. ntwig_check) then
+!         DEBUG_WARNING('(3a,i0,/,a,i0,a,i0,a,/,a)', '2nd Table check called ', callpoint, ' by PE', t%comm_env%rank, '# twigs in table = ', ntwig_check, ' vs ', t%ntwig, ' accumulated', 'Continuing for now...')
+!         DEBUG_WARNING('(a,i0,a,i0,1x,i0)', '2nd PE', t%comm_env%rank, 's neighbours are: ', t%decomposition%comm_env%rank - 1_kind_pe, t%decomposition%comm_env%rank + 1_kind_pe)
+!      end if
+!
+!      if (t%nleaf_me .ne. nleaf_me_check) then
+!         DEBUG_WARNING_ALL('(3a,i0,/,a,i0,a,i0,a,/,a)', '2nd Table check called ', callpoint, ' by PE', t%comm_env%rank, '# own leaves in table = ', nleaf_me_check, ' vs ', t%nleaf_me, ' accumulated', 'Continuing for now...')
+!         DEBUG_WARNING_ALL('(a,i0,a,i0,1x,i0)', '2nd PE', t%comm_env%rank, 's neighbours are: ', t%decomposition%comm_env%rank - 1_kind_pe, t%decomposition%comm_env%rank + 1_kind_pe)
+!      end if
+!
+!      if (t%ntwig_me .ne. ntwig_me_check) then
+!         DEBUG_WARNING_ALL('(3a,i0,/,a,i0,a,i0,a,/,a)', '2nd Table check called ', callpoint, ' by PE', t%comm_env%rank, '# own twigs in table = ', ntwig_me_check, ' vs ', t%ntwig_me, ' accumulated', 'Continuing for now...')
+!         DEBUG_WARNING_ALL('(a,i0,a,i0,1x,i0)', '2nd PE', t%comm_env%rank, 's neighbours are: ', t%decomposition%comm_env%rank - 1_kind_pe, t%decomposition%comm_env%rank + 1_kind_pe)
+!      end if
+!
+!!!!TODO!!! remove this check once problem solved
+!if (t%comm_env%rank == 219 .or. t%comm_env%rank == 220) then
+!   write(*,'(a,i0,a,i0,1x,i0)') '2nd PE', t%comm_env%rank, ' - t%leaves_me / t%twigs_me: ', t%nleaf_me, t%ntwig_me
+!end if
+      call timer_stop(t_unused19)
 
    contains
 
       recursive subroutine tree_check_helper(nid)
          use module_tree_node, only: tree_node_is_leaf, tree_node_get_first_child, &
-                                     tree_node_get_next_sibling, NODE_INVALID
+                                     tree_node_get_next_sibling, NODE_INVALID, &
+                                     TREE_NODE_FLAG_LOCAL_CHECKED
          use module_pepc_types, only: t_tree_node
          implicit none
 
@@ -495,16 +548,20 @@ contains
          ns = NODE_INVALID
 
          n => t%nodes(nid)
+         ! mark node as checked
+         n%flags_local = ibset(n%flags_local, TREE_NODE_FLAG_LOCAL_CHECKED)
          if (tree_node_is_leaf(n)) then
             nleaf_check = nleaf_check + 1
             if (n%owner .eq. t%comm_env%rank) then
                nleaf_me_check = nleaf_me_check + 1
+!               if (t%comm_env%rank == 219) write(779,*) 'check_leaf ', n%key, n%leaves
             end if
             return
          else
             ntwig_check = ntwig_check + 1
             if (n%owner .eq. t%comm_env%rank) then
                ntwig_me_check = ntwig_me_check + 1
+!            if (t%comm_env%rank == 219) write(779,*) 'check_twig ', n%key, n%leaves
             end if
          end if
 
@@ -518,6 +575,32 @@ contains
             end do
          end if
       end subroutine tree_check_helper
+!
+!      subroutine tree_check_again_helper
+!         use module_tree_node, only: NODE_INVALID, TREE_NODE_FLAG_LOCAL_CHECKED
+!         implicit none
+!
+!         integer(kind_node) :: node
+!
+!         do node = 1, t%nodes_nentries
+!            if (t%nodes(node)%descendants .eq. 0 ) then
+!               nleaf_check = nleaf_check + 1
+!               if (t%nodes(node)%owner .eq. t%comm_env%rank) then
+!                  nleaf_me_check = nleaf_me_check + 1
+!!                  if (t%comm_env%rank == 219) write(779,*) 'check2_leaf ', t%nodes(node)%key, t%nodes(node)%leaves
+!               end if
+!            else
+!               ntwig_check = ntwig_check + 1
+!               if (t%nodes(node)%owner .eq. t%comm_env%rank) then
+!                  ntwig_me_check = ntwig_me_check + 1
+!!                  if (t%comm_env%rank == 219) write(779,*) 'check2_twig ', t%nodes(node)%key, t%nodes(node)%leaves
+!               end if
+!            end if
+!            if(t%nodes(node)%parent .eq. NODE_INVALID) write(debug_ipefile,*) "2nd no parent ", t%nodes(node)%owner, t%nodes(node)%key
+!            if(t%nodes(node)%first_child .eq. NODE_INVALID .and. t%nodes(node)%descendants > 0) write(debug_ipefile,*) "2nd no child ", t%nodes(node)%owner, t%nodes(node)%key
+!            if(.not.btest(t%nodes(node)%flags_local, TREE_NODE_FLAG_LOCAL_CHECKED)) write(debug_ipefile,*) "2nd NOT CHECKED ", t%nodes(node)%owner, t%nodes(node)%key, t%nodes(node)%parent, t%nodes(node)%first_child
+!         end do
+!      end subroutine tree_check_again_helper
    end function tree_check
 
    !>
@@ -585,33 +668,33 @@ contains
             t%nodes(i)%flags_global
       end do
 
-      write (debug_ipefile, '(///a)') 'Tree structure'
-
-      write (debug_ipefile, '(//a/,x,a,/,179("-"))') 'Twigs from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
-
-      do i = 1, t%nodes_nentries
-         if (.not. tree_node_is_leaf(t%nodes(i))) then
-            write (debug_ipefile, *) t%nodes(i)%interaction_data
-         endif
-      end do
-
-      write (debug_ipefile, '(//a/,x,a,/,179("-"))') 'Leaves from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
-
-      do i = 1, t%nodes_nentries
-         if (tree_node_is_leaf(t%nodes(i))) then
-            write (debug_ipefile, *) t%nodes(i)%interaction_data
-         endif
-      end do
-
-      if (present(particles)) then
-         ! local particles
-         write (debug_ipefile, '(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_module_pepc_types::t_particle for meaning of the columns)'
-
-         do i = lbound(particles, dim=1), ubound(particles, dim=1)
-            write (debug_ipefile, '(x,i10,x)', advance='no') i
-            write (debug_ipefile, *) particles(i)
-         end do
-      end if
+!!      write (debug_ipefile, '(///a)') 'Tree structure'
+!!
+!!      write (debug_ipefile, '(//a/,x,a,/,179("-"))') 'Twigs from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
+!!
+!!      do i = 1, t%nodes_nentries
+!!         if (.not. tree_node_is_leaf(t%nodes(i))) then
+!!            write (debug_ipefile, *) t%nodes(i)%interaction_data
+!!         endif
+!!      end do
+!!
+!!      write (debug_ipefile, '(//a/,x,a,/,179("-"))') 'Leaves from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
+!!
+!!      do i = 1, t%nodes_nentries
+!!         if (tree_node_is_leaf(t%nodes(i))) then
+!!            write (debug_ipefile, *) t%nodes(i)%interaction_data
+!!         endif
+!!      end do
+!!
+!!      if (present(particles)) then
+!!         ! local particles
+!!         write (debug_ipefile, '(//a/,x,a10,x,a,/,189("-"))') 'Local particles', 'index', 'data (see module_module_pepc_types::t_particle for meaning of the columns)'
+!!
+!!         do i = lbound(particles, dim=1), ubound(particles, dim=1)
+!!            write (debug_ipefile, '(x,i10,x)', advance='no') i
+!!            write (debug_ipefile, *) particles(i)
+!!         end do
+!!      end if
 
       flush (debug_ipefile)
    end subroutine
