@@ -20,6 +20,7 @@
 
 program pepc
    ! pepc modules
+   use treevars, only: maxlevel
    use module_pepc
    use module_pepc_kinds
    use module_pepc_types
@@ -225,7 +226,7 @@ program pepc
       ! flow_count = 0.0
       ! total_flow_count = 0.0
       do i = IStart, IStop
-         call filter_and_swap(particles, flt_geom, i, IStart, IStop, swapped_num, charge_count, break)
+         ! call filter_and_swap(particles, flt_geom, i, IStart, IStop, swapped_num, charge_count, break)
 
 !====================== save the resolved 'e' from tree traverse================
          traversed_e = particles(i)%results%e
@@ -235,7 +236,12 @@ program pepc
          call particle_pusher(particles(i), dt)
 
          if (particles(i)%data%species == 0) then
-            call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, total_cross_sections, ctr_s, key_s)
+            collision_checks = floor(abs(particles(i)%data%q)) + particles(i)%label
+            j = 0
+            do while (j < collision_checks)
+              call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, total_cross_sections, ctr_s, key_s)
+              j = j + 1
+            end do
          end if
          ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
 
@@ -294,14 +300,6 @@ program pepc
       !$OMP END PARALLEL
       deallocate(generic_array)
 
-      ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
-      call defined_siblings_number_grouping(particles, 50.0, sibling_cnt, unique_parents)
-      do i = 1, unique_parents
-        call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
-      end do
-
-      deallocate(sibling_cnt)
-
       new_particle_cnt = new_particles_offset(omp_threads,1)
       swapped_num = new_particles_offset(omp_threads,2)
       deallocate(new_particles_offset)
@@ -325,16 +323,46 @@ program pepc
         end if
       end if
 
-      np = size(particles)
-      tnp = 0
-      call MPI_REDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-      if (root) print *, "Total particles: ", tnp
+      ! np = size(particles)
+      ! tnp = 0
+      ! call MPI_REDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      ! if (root) print *, "Total particles: ", tnp
 
       deallocate(gathered_new_buffer)
       call timer_stop(t_boris)
       if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
 
       ! if (doDiag .and. particle_output) call write_particles(particles)
+
+      !=====================Particle Merging====================================
+      if (tnp > 500000) then
+        sibling_upper_limit = 50
+        call compute_particle_keys(global_tree%bounding_box, particles)
+        call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
+        ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
+        call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents) !NOTE: sibling_cnt is allocated here.
+        do i = 1, unique_parents
+          call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
+        end do
+
+        call allocate_ll_buffer(electron_num, buffer)
+        particle_guide => buffer
+        new_particle_cnt = 0
+        do i = 1, unique_parents
+          !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don't merge!
+          call momentum_partition_merging(particles, sibling_cnt, sibling_upper_limit, &
+                                               i, particle_guide, new_particle_cnt)
+        end do
+        call merge_replace_particles_list(particles, buffer, new_particle_cnt)
+        call deallocate_ll_buffer(buffer)
+        deallocate(sibling_cnt)
+      end if
+      !=========================================================================
+
+      np = size(particles)
+      tnp = 0
+      call MPI_REDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      if (root) print *, "Total particles: ", tnp
 
       call pepc_particleresults_clear(particles)
 

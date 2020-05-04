@@ -415,4 +415,57 @@ contains
       vertices(iv)%J_density = 0.0
     end do
   end subroutine clear_density_results
+
+  subroutine add_neutral_points(bounding_box, nx, ny, nz, particles)
+    use module_box
+    implicit none
+    integer, intent(in) :: nx, ny, nz
+    type(t_box), intent(in) :: bounding_box
+    type(t_particle), allocatable, intent(inout) :: particles(:)
+    type(t_particle), allocatable :: neutral_points(:), temp_array(:)
+    real(kind_physics) :: extents(3), box_min(3), delta(3)
+    integer :: total_n, n, i, old_size, new_size, plane_n
+
+    total_n = nx*ny*nz
+    old_size = size(particles)
+    new_size = old_size + total_n
+
+    allocate(temp_array(old_size))
+    temp_array = particles
+
+    deallocate(particles)
+    allocate(particles(new_size))
+    particles(1:old_size) = temp_array
+    deallocate(temp_array)
+
+    extents = bounding_box%boxsize
+    box_min = bounding_box%boxmin
+    delta(1) = extents(1)/nx
+    delta(2) = extents(2)/ny
+    delta(3) = extents(3)/nz
+    plane_n = nx*ny
+
+    allocate(neutral_points(total_n))
+
+    do n = 0, total_n - 1
+      i = n + 1
+      neutral_points(i)%x(1) = MOD(n, nx)*delta(1) + box_min(1)
+      neutral_points(i)%x(2) = FLOOR(real(MOD(n, plane_n)/nx))*delta(2) + box_min(2)
+      neutral_points(i)%x(3) = FLOOR(real(n/plane_n))*delta(3) + box_min(3)
+      ! coordinates calculations
+
+      ! fill out the rest of the important variables
+      neutral_points(i)%data%v = 0.0_kind_physics
+      neutral_points(i)%data%m = 0.0_kind_physics
+      neutral_points(i)%data%q = 0.0_kind_physics
+      neutral_points(i)%data%b = 0.0_kind_physics
+      neutral_points(i)%data%f_e = 0.0_kind_physics
+      neutral_points(i)%data%f_b = 0.0_kind_physics
+      neutral_points(i)%data%species = 50.0_kind_physics
+      neutral_points(i)%label = i
+    end do
+
+    particles((old_size + 1):new_size) = neutral_points
+    deallocate(neutral_points)
+  end subroutine
 end module

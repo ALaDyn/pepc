@@ -87,7 +87,8 @@ module helper
    type(t_particle), allocatable   :: merged_particles(:)
    type(linked_list_elem), pointer :: merge_buffer_0, merge_buffer_1
    integer, allocatable :: sibling_cnt(:)
-   integer :: merged_cnt, actual_parts_cnt, unique_parents
+   integer :: unique_parents, merged_cnt, actual_parts_cnt(3) ! actual count done by charge of particles and species.
+   integer :: sibling_upper_limit, collision_checks
 
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
@@ -386,7 +387,7 @@ contains
       select case(geom)
       case(0)
         do ip = 1, np
-           p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1
+           p(ip)%label = 0 !my_rank*(tnp/n_ranks) + ip - 1
            p(ip)%data%q = -1.0_8
            p(ip)%data%m = 1.0_8
            p(ip)%data%species = 0
@@ -401,12 +402,15 @@ contains
            ! p(ip)%x(3) = -0.01
 
            p(ip)%data%v = 0.0
+           p(ip)%data%f_b = 0.0_kind_physics
+           p(ip)%data%f_e = 0.0_kind_physics
+           p(ip)%label = 0
            p(ip)%work = 1.0_8
         end do
 
       case(1)
         do ip = 1, np
-           p(ip)%label = my_rank*(tnp/n_ranks) + ip - 1
+           p(ip)%label = 0 !my_rank*(tnp/n_ranks) + ip - 1
            if (MOD(ip,2) .eq. 0) then
                p(ip)%data%q = 1.0_8
                p(ip)%data%m = 3673.43889456_8
@@ -433,6 +437,9 @@ contains
            rand_scale = 1.0_8
            p(ip)%data%v = -1.0*magnitude*toroidal_vec*rand_scale
            ! p(ip)%data%v = 0.0_8
+           p(ip)%data%f_b = 0.0_kind_physics
+           p(ip)%data%f_e = 0.0_kind_physics
+           p(ip)%label = 0
 
            p(ip)%work = 1.0_8
         end do

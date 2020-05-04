@@ -409,6 +409,294 @@ contains
           * (KE - Xi_table(i-1,1)) + Xi_table(i-1,2)
    end subroutine determine_xi
 
+   ! subroutine energy_partition(particles, sibling_cnt, parent_no)
+   !   implicit none
+   !
+   ! end subroutine energy_partition
+
+   subroutine momentum_partition_merging(particles, sibling_cnt, sibling_upper_limit, &
+                                        parent_no, merged_guide, merged_cnt)
+     ! NOTE: make sure the particle list is sorted by species within the sibling extent before using this subroutine!
+     ! Quadrants  : 1 - +x +y +z
+     !            : 2 - +x +y -z
+     !            : 3 - +x -y +z
+     !            : 4 - +x -y -z
+     !            : 5 - -x +y +z
+     !            : 6 - -x +y -z
+     !            : 7 - -x -y +z
+     !            : 8 - -x -y -z
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     integer, allocatable, intent(in) :: sibling_cnt(:)
+     integer, intent(in) :: sibling_upper_limit
+     integer, intent(in) :: parent_no
+     type(linked_list_elem), pointer, intent(inout) :: merged_guide
+     integer, intent(inout) :: merged_cnt
+     integer :: ll_elem_gen, istart, istop, i, j, species, direction, direction_cnt(8), buffer_pos
+     type(t_particle), allocatable :: directional_buffer(:,:)
+
+     allocate(directional_buffer(8,sibling_upper_limit))
+
+     istart = 1
+     do i = 2, parent_no
+       istart = istart + sibling_cnt(i-1)
+     end do
+     if (parent_no .eq. 1) istart = 1
+     istop = istart + sibling_cnt(parent_no) - 1
+
+     ! count the number of particles of the same species, in each of the 8 directions.
+     ! merging subroutine is called once for every species.
+     species = 0
+     direction_cnt = 0
+     do i = istart, istop
+       if (particles(i)%data%species .ne. species) then
+         ! print *, "Different species detected: ", particles(i)%data%species
+         ! print *, "Direction count of last species: ", direction_cnt
+         do j = 1, 8
+           call elastic_merging(j, directional_buffer, direction_cnt(j), merged_guide, &
+                                merged_cnt, species, particles(i)%data%mp_int1)
+         end do
+         species = particles(i)%data%species
+         direction_cnt = 0
+       end if
+
+       ! NOTE: momentum direction filtering
+       if (particles(i)%data%v(1) > 0.0_kind_physics) then
+         if (particles(i)%data%v(2) > 0.0_kind_physics) then
+           if (particles(i)%data%v(3) > 0.0_kind_physics) then
+             direction = 1
+           else
+             direction = 2
+           end if
+         else
+           if (particles(i)%data%v(3) > 0.0_kind_physics) then
+             direction = 3
+           else
+             direction = 4
+           end if
+         end if
+       else
+         if (particles(i)%data%v(2) > 0.0_kind_physics) then
+           if (particles(i)%data%v(3) > 0.0_kind_physics) then
+             direction = 5
+           else
+             direction = 6
+           end if
+         else
+           if (particles(i)%data%v(3) > 0.0_kind_physics) then
+             direction = 7
+           else
+             direction = 8
+           end if
+         end if
+       end if
+
+       direction_cnt(direction) = direction_cnt(direction) + 1
+       directional_buffer(direction,direction_cnt(direction)) = particles(i)
+     end do
+     ! print *, "Final species: ", particles(i)%data%species
+     ! print *, "Direction count of last species: ", direction_cnt
+     ! Final merge for the last species
+     do i = 1, 8
+       call elastic_merging(i, directional_buffer, direction_cnt(i), merged_guide, &
+                            merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1)
+     end do
+     ! print *, "Parent no: ", parent_no, istart, istop, "Finished merging.", size(particles)
+
+     deallocate(directional_buffer)
+   end subroutine momentum_partition_merging
+
+   subroutine elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, species, parent_key)
+     !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
+     !       most direct way of doing it is to copy the particles into respective directional buffer.
+     !       don't sum them up yet! information will be lost if done so.
+     implicit none
+     integer, intent(in) :: direction, direction_cnt, species, parent_key
+     type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
+     type(linked_list_elem), pointer, intent(inout) :: merged_guide
+     integer, intent(inout) :: merged_cnt
+     integer :: i, j, buffer_pos, ll_elem_gen, filled, filled_ion, correct_sign, m_i, remainder, &
+                extent
+     real(kind_physics) :: v_squared, cos_theta, vel_mag, vel_mag2, unit_vec(3), d(3)
+     real(kind_physics) :: max_vec(3), w, Chi, rot_axis(3)
+     type(t_particle), allocatable :: temp_particle(:), ion_temp_particle(:), merged_buffer(:)
+     type(t_particle) :: sum_particle
+
+     allocate(temp_particle(direction_cnt))
+     allocate(ion_temp_particle(direction_cnt))
+     allocate(merged_buffer(4))
+     m_i = 0
+     ! print *, "ll_elem count: ", CEILING(REAL(merged_cnt/size(merged_guide%tmp_particles))), buffer_pos
+
+     !NOTE: use f_e as a dummy variable to store v^2, for energy balance during elastic merging.
+     !      summing up the particles to one. used later for elastic merging.
+     if (direction_cnt > 2) then
+       ! variables used to count number of filled buffer. Sort to old or new particles.
+       !NOTE: any new particles generated from ionisation events is marked with label = -1.0
+       !      don't merge this with older particles.
+       filled = 0
+       filled_ion = 0
+       do i = 1, direction_cnt
+         if (directional_buffer(direction,i)%label .ge. 0) then
+           filled = filled + 1
+           temp_particle(filled) = directional_buffer(direction,i)
+         else if(directional_buffer(direction,i)%label .lt. 0) then
+           filled_ion = filled_ion + 1
+           ion_temp_particle(filled_ion) = directional_buffer(direction,i)
+         end if
+       end do
+
+       if (filled > 2) then
+         call resolve_elastic_merge_momentum(temp_particle, filled, merged_buffer, m_i)
+       else
+         do i = 1, filled
+           m_i = m_i + 1
+           merged_buffer(m_i) = temp_particle(i)
+           merged_buffer(m_i)%label = 0
+         end do
+       end if
+
+       if (filled_ion > 2) then
+         call resolve_elastic_merge_momentum(ion_temp_particle, filled_ion, merged_buffer, m_i)
+       else
+         do i = 1, filled_ion
+           m_i = m_i + 1
+           merged_buffer(m_i) = ion_temp_particle(i)
+           merged_buffer(m_i)%label = 0
+         end do
+       end if
+       ! after merging, 'label' variable in particle will have a new functionality.
+       ! set label = 1 if 1 additional check during 'collision_update' is required.
+
+     else
+       do i = 1, direction_cnt
+         m_i = m_i + 1
+         merged_buffer(m_i) = directional_buffer(direction,i)
+         merged_buffer(m_i)%label = 0
+       end do
+     end if
+
+     !NOTE: now that merged_buffer is filled, copy to merged_guide ll_element.
+     if (m_i .ne. 0) then
+       ll_elem_gen = MOD(merged_cnt, size(merged_guide%tmp_particles))
+       buffer_pos = ll_elem_gen + 1
+       ! print *, "buffer_pos: ", buffer_pos
+       if (ll_elem_gen == 0 .and. merged_cnt > 0) then
+          call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
+          merged_guide => merged_guide%next
+          nullify (merged_guide%next)
+       end if
+
+       ll_elem_gen = ll_elem_gen + m_i
+       if (ll_elem_gen <= size(merged_guide%tmp_particles)) then
+         remainder = buffer_pos + m_i - 1
+         merged_guide%tmp_particles(buffer_pos:remainder) = merged_buffer(1:m_i)
+         ! print *, "Compare x: ", m_i,  merged_guide%tmp_particles(buffer_pos)%x, merged_buffer(1)%x
+       else
+         extent = size(merged_guide%tmp_particles) - buffer_pos + 1
+         remainder = ll_elem_gen - size(merged_guide%tmp_particles)
+         merged_guide%tmp_particles(buffer_pos:size(merged_guide%tmp_particles)) = &
+         merged_buffer(1:extent)
+
+         call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
+         merged_guide => merged_guide%next
+         merged_guide%tmp_particles(1:remainder) = merged_buffer((extent + 1):m_i)
+         nullify (merged_guide%next)
+       end if
+       merged_cnt = merged_cnt + m_i
+       ! print *, "ll_elem_gen", ll_elem_gen, size(merged_guide%tmp_particles), merged_cnt, parent_key
+     end if
+
+     deallocate(temp_particle)
+     deallocate(ion_temp_particle)
+     deallocate(merged_buffer)
+   end subroutine elastic_merging
+
+   subroutine resolve_elastic_merge_momentum(input_buffer, input_cnt, merged_buffer, m_i)
+     implicit none
+     type(t_particle), allocatable, intent(in) :: input_buffer(:)
+     integer, intent(in) :: input_cnt
+     type(t_particle), allocatable, intent(inout) :: merged_buffer(:)
+     integer, intent(inout) :: m_i
+     type(t_particle) :: sum_particle
+     real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
+                           Chi, rot_axis(3), w
+     integer :: i, j, species, parent_key, correct_sign
+
+     species = input_buffer(1)%data%species
+     parent_key = input_buffer(1)%data%mp_int1
+     !initialise sum_particle
+     sum_particle%data%q = 0.0_kind_physics
+     sum_particle%data%v = 0.0_kind_physics
+     sum_particle%data%m = 0.0_kind_physics
+     sum_particle%data%f_e = 0.0_kind_physics
+     sum_particle%x = 0.0_kind_physics
+
+     ! initialise d(3) vector, essentially the unit vector of the max extent in x, y, z, direction
+     d = 0.0
+     max_vec = 0.0
+     do i = 1, input_cnt
+       v_squared = dot_product(input_buffer(i)%data%v, input_buffer(i)%data%v)
+       sum_particle%data%q = sum_particle%data%q + input_buffer(i)%data%q
+       sum_particle%data%v = sum_particle%data%v + input_buffer(i)%data%v
+       sum_particle%data%m = sum_particle%data%m + input_buffer(i)%data%m
+       sum_particle%x = sum_particle%x + input_buffer(i)%x
+       sum_particle%data%f_e(1) = sum_particle%data%f_e(1) + v_squared
+
+       do j = 1, 3
+         if (abs(input_buffer(i)%data%v(j)) > max_vec(j)) then
+           max_vec(j) = abs(input_buffer(i)%data%v(j))
+           d(j) = input_buffer(i)%data%v(j)
+         end if
+       end do
+     end do
+     d = d/sqrt(dot_product(d,d))
+     sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
+
+     max_vec = 0.0_kind_physics
+     vel_mag2 = dot_product(sum_particle%data%v, sum_particle%data%v)
+     vel_mag = sqrt(vel_mag2)
+     unit_vec = sum_particle%data%v/vel_mag
+     w = input_cnt*0.5
+     Chi = acos(sqrt(2.0 - 2.0*w*sum_particle%data%f_e(1)/vel_mag2))
+
+     rot_axis = cross_product(sum_particle%data%v, d)
+     rot_axis = rot_axis/sqrt(dot_product(rot_axis, rot_axis))
+     max_vec = Rodriguez_rotation(Chi, rot_axis, unit_vec)
+
+     ! Check if the resulting velocity vector is in the same momentum quadrant.
+     ! if not, flip the rotation direction.
+     correct_sign = 1
+     do j = 1, 3
+       if (max_vec(j)*sum_particle%data%v(j) .lt. 0) then
+         correct_sign = 0
+       end if
+     end do
+     if (correct_sign == 0) then
+       max_vec = Rodriguez_rotation(-1.0*Chi, rot_axis, unit_vec)
+     end if
+     m_i = m_i + 1
+     merged_buffer(m_i)%x = input_buffer(1)%x
+     merged_buffer(m_i)%data%v = 0.5*dot_product(sum_particle%data%v, max_vec)/w * max_vec
+     merged_buffer(m_i)%data%q = sum_particle%data%q*0.5 !can be thought of as abs(sum_q)*0.5 = weight
+     merged_buffer(m_i)%data%m = sum_particle%data%m*0.5 !equivalent to merged_part_mass = mass_species*weight
+     merged_buffer(m_i)%label = 0
+     if (MOD(input_cnt,2) .ne. 0) then
+       merged_buffer(m_i)%label = 1
+     end if
+     merged_buffer(m_i)%data%species = species
+     merged_buffer(m_i)%data%mp_int1 = parent_key
+
+     m_i = m_i + 1
+     merged_buffer(m_i)%x = input_buffer(2)%x
+     merged_buffer(m_i)%data%v = sum_particle%data%v/w - merged_buffer(m_i - 1)%data%v
+     merged_buffer(m_i)%data%q = sum_particle%data%q*0.5
+     merged_buffer(m_i)%data%m = sum_particle%data%m*0.5
+     merged_buffer(m_i)%label = 0
+     merged_buffer(m_i)%data%species = species
+     merged_buffer(m_i)%data%mp_int1 = parent_key
+   end subroutine resolve_elastic_merge_momentum
+
    subroutine add_particle(guide, particle, new_particle, buffer_pos, type)
      ! NOTE: A big assumption is made here: Without considering the rovibrational states
      !       of the reaction products, generated particle doesn`t store their own internal
@@ -428,6 +716,7 @@ contains
         ! print *, "Extending Temp_array!!!!!"
         call allocate_ll_buffer(size(guide%tmp_particles), guide%next)
         guide => guide%next
+        nullify (guide%next)
      end if
 
      select case(type)
@@ -460,8 +749,11 @@ contains
      guide%tmp_particles(buffer_pos)%x = particle%x
      guide%tmp_particles(buffer_pos)%work = 1.0_8
      guide%tmp_particles(buffer_pos)%data%age = 0.0_8
+     guide%tmp_particles(buffer_pos)%data%f_e = 0.0_kind_physics
+     guide%tmp_particles(buffer_pos)%data%f_b = 0.0_kind_physics
+     guide%tmp_particles(buffer_pos)%results%pot = 0.0_kind_physics
 
-     guide%tmp_particles(buffer_pos)%label = 0
+     guide%tmp_particles(buffer_pos)%label = -1
      guide%tmp_particles(buffer_pos)%data%v = 0.0_8
 
      new_particle = new_particle + 1
@@ -724,6 +1016,7 @@ contains
       !  print *, "dissoc.!"
 
      end select
+     particle%label = 0
    end subroutine collision_update
 
    recursive subroutine filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, charge_count, break_check)

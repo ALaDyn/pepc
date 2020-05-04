@@ -150,8 +150,57 @@ contains
      end do
      particles(istart:istop) = copied_local_buffer
 
+     do i = istart, istop
+       particles(i)%label = i
+     end do
+
      deallocate(sorting_buffer)
      deallocate(copied_local_buffer)
+   end subroutine
+
+   subroutine sort_particles_by_key(particles)
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     type(t_particle), allocatable :: sorting_buffer(:)
+     integer :: i, j, k
+     integer :: sort_width, iLeft, iRight, iEnd, sorted_i, buffer_size
+
+     buffer_size = size(particles)
+     allocate(sorting_buffer(buffer_size))
+
+     !begin sorting
+     sort_width = 1
+     do while (sort_width < buffer_size)
+
+       iLeft = 1
+       do while(iLeft <= buffer_size)
+
+         iRight = MIN(iLeft + sort_width, buffer_size)
+         iEnd = MIN(iLeft + 2*sort_width-1, buffer_size)
+         j = iLeft
+         k = iRight
+         do i = iLeft, iEnd !!!CHECK THE EXTENT, Also consider if n < largest sort_width
+           if((j < iRight) .and. &
+           (k > iEnd .or. particles(j)%key <= particles(k)%key)) then
+             sorting_buffer(i) = particles(j)
+             j = j + 1
+           else
+             sorting_buffer(i) = particles(k)
+             k = k + 1
+           end if
+         end do
+         iLeft = iLeft + 2*sort_width
+       end do
+
+       particles = sorting_buffer
+       sort_width = 2*sort_width
+     end do
+     ! particles = copied_local_buffer
+     ! do i = 1, buffer_size
+     !   particles(i)%label = 0
+     ! end do
+
+     deallocate(sorting_buffer)
    end subroutine
 
    subroutine determine_siblings_at_level(particles, sibling_cnt, unique_parents, level)
@@ -199,10 +248,10 @@ contains
      use module_spacefilling
      implicit none
      type(t_particle), allocatable, intent(inout) :: particles(:)
-     real, intent(in) :: sibling_upper_limit
+     integer, intent(inout) :: sibling_upper_limit
      integer, allocatable, intent(inout) :: sibling_cnt(:)
      integer, intent(inout) :: unique_parents
-     integer :: i
+     integer :: i, max_siblings
      integer(kind_level) :: level_march, level
      integer(kind_key) :: match_key, parent_key
      real(kind_physics) :: average_siblings
@@ -211,30 +260,47 @@ contains
      level_march = -18_kind_level
      average_siblings = size(particles)
 
-     do while(sibling_upper_limit < average_siblings)
-       sibling_cnt = 0
+     if (sibling_upper_limit < average_siblings) then
+       do while(sibling_upper_limit < average_siblings)
+         sibling_cnt = 0
+         level = maxlevel + level_march
+         unique_parents = 1
+
+         match_key = shift_key_by_level(particles(1)%key, level_march)
+         do i = 1, size(particles)
+           parent_key = shift_key_by_level(particles(i)%key, level_march)
+           particles(i)%data%mp_int1 = parent_key
+           if (parent_key .ne. match_key) then
+             unique_parents = unique_parents + 1
+             match_key = parent_key
+           end if
+           sibling_cnt(unique_parents) = sibling_cnt(unique_parents) + 1
+         end do
+         level_march = level_march + 1
+
+         average_siblings = 0.0_kind_physics
+         do i = 1, unique_parents
+           average_siblings = average_siblings + sibling_cnt(i)
+         end do
+         average_siblings = average_siblings/unique_parents
+       end do
+     else if (sibling_upper_limit > average_siblings) then
        unique_parents = 1
-       level = maxlevel + level_march
-
-       match_key = shift_key_by_level(particles(1)%key, level_march)
-       do i = 1, size(particles)
-         parent_key = shift_key_by_level(particles(i)%key, level_march)
-         particles(i)%data%mp_int1 = parent_key
-         if (parent_key .ne. match_key) then
-           unique_parents = unique_parents + 1
-           match_key = parent_key
-         end if
-         sibling_cnt(unique_parents) = sibling_cnt(unique_parents) + 1
+       level = -1
+       do i = 0, size(particles)
+         particles(i)%data%mp_int1 = level
        end do
-       level_march = level_march + 1
+       sibling_cnt(1) = average_siblings
+     end if
 
-       average_siblings = 0.0_kind_physics
-       do i = 1, unique_parents
-         average_siblings = average_siblings + sibling_cnt(i)
-       end do
-       average_siblings = average_siblings/unique_parents
-       print *, "Refinement level: ", level, "Average siblings: ", average_siblings, "Sibling upper limit: ", sibling_upper_limit
+     max_siblings = 0
+     do i  = 1, unique_parents
+       if (sibling_cnt(i) > max_siblings) then
+         max_siblings = sibling_cnt(i)
+       end if
      end do
+     sibling_upper_limit = max_siblings
+     print *, "Refinement level: ", level, "Max siblings: ", sibling_upper_limit, "Unique parents: ", unique_parents
    end subroutine
 
    subroutine gather_ll_buffers_omp(buffer, new_offset, new_particles_buffer, thread_id, thread_num)
@@ -555,6 +621,9 @@ contains
 
          particles_list(index)%x = center_pos
          particles_list(index)%data%v = 0.0
+         particles_list(index)%data%f_b = 0.0_kind_physics
+         particles_list(index)%data%f_e = 0.0_kind_physics
+         particles_list(index)%label = 0
 
          do i = 1, 3
            if (plane(i) == 0.0) then
@@ -577,6 +646,9 @@ contains
 
          particles_list(index)%x = center_pos
          particles_list(index)%data%v = plane * magnitude
+         particles_list(index)%data%f_b = 0.0_kind_physics
+         particles_list(index)%data%f_e = 0.0_kind_physics
+         particles_list(index)%label = 0
 
          theta = ran(2)*2.*pi
          u = ran(1) + ran(3)
@@ -599,6 +671,51 @@ contains
        end do
      end select
    end subroutine injected_electrons
+
+   subroutine merge_replace_particles_list(particles, buffer, merged_cnt)
+      implicit none
+      type(t_particle), allocatable, intent(inout) :: particles(:)
+      type(linked_list_elem), pointer, intent(inout) :: buffer
+      type(linked_list_elem), pointer :: temp_guide
+      integer, intent(in) :: merged_cnt
+      integer :: new_size, head, tail, ll_buffer_size, i, remainder, ll_elem_cnt
+
+      ll_buffer_size = size(buffer%tmp_particles)
+      ll_elem_cnt = CEILING(real(merged_cnt)/real(ll_buffer_size))
+      remainder = MOD(merged_cnt, ll_buffer_size)
+
+      new_size = merged_cnt
+      i = 1
+      head = 1
+
+      if (new_size < ll_buffer_size) then
+        tail = new_size
+      else
+        tail = ll_buffer_size
+      end if
+
+      deallocate(particles)
+      allocate(particles(new_size))
+      ! print *, "Linked List elements: ", ll_elem_cnt, size(particles), new_particles_size, remainder
+
+      temp_guide => buffer
+      do while (associated(temp_guide))
+        if (i /= ll_elem_cnt) then
+          particles(head:tail) = temp_guide%tmp_particles
+        else if ((i == ll_elem_cnt) .and. (remainder == 0)) then
+          particles(head:new_size) = temp_guide%tmp_particles
+        else
+          particles(head:new_size) = temp_guide%tmp_particles(1:(remainder))
+        end if
+
+        head = tail + 1
+        tail = tail + ll_buffer_size
+        i = i + 1
+        
+        temp_guide => temp_guide%next
+      end do
+      nullify (temp_guide)
+   end subroutine merge_replace_particles_list
 
    subroutine register_density_diag_type()
      use mpi
