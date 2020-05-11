@@ -665,7 +665,15 @@ contains
        end do
 
        ! print *, "parent_key: ", parent_key, direction, grouped_count
-       do j = 1, filtered_instance
+
+       ! Don't merge the particles with less than 10.0eV
+       do j = 1, grouped_count(1)
+         m_i = m_i + 1
+         merged_buffer(m_i) = energy_collector(1,j)
+         merged_buffer(m_i)%label = 0
+       end do
+       ! Merge the rest according to the grouped energy levels.
+       do j = 2, filtered_instance
          if (grouped_count(j) > 2) then
            allocate(pass_buffer(direction_cnt))
            pass_buffer = energy_collector(j,1:direction_cnt)
@@ -736,7 +744,7 @@ contains
      integer, intent(inout) :: m_i
      type(t_particle) :: sum_particle
      real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
-                           Chi, rot_axis(3), w1, w2
+                           Chi, rot_axis(3), w1, w2, total_weight, ave_E
      integer :: i, j, species, parent_key, correct_sign
 
      species = input_buffer(1)%data%species
@@ -746,11 +754,13 @@ contains
      sum_particle%data%v = 0.0_kind_physics
      sum_particle%data%m = 0.0_kind_physics
      sum_particle%data%f_e = 0.0_kind_physics
+     sum_particle%data%f_b = 0.0_kind_physics
      sum_particle%x = 0.0_kind_physics
 
      ! initialise d(3) vector, essentially the unit vector of the max extent in x, y, z, direction
      d = 0.0
      max_vec = 0.0
+     total_weight = 0.0
      do i = 1, input_cnt
        v_squared = dot_product(input_buffer(i)%data%v, input_buffer(i)%data%v)
        sum_particle%data%q = sum_particle%data%q + input_buffer(i)%data%q
@@ -758,6 +768,7 @@ contains
        sum_particle%data%m = sum_particle%data%m + input_buffer(i)%data%m
        sum_particle%x = sum_particle%x + input_buffer(i)%x
        sum_particle%data%f_e(1) = sum_particle%data%f_e(1) + v_squared
+       total_weight = total_weight + abs(input_buffer(i)%data%q)
 
        do j = 1, 3
          if (abs(input_buffer(i)%data%v(j)) > max_vec(j)) then
@@ -768,6 +779,7 @@ contains
      end do
      d = d/sqrt(dot_product(d,d))
      sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
+     ave_E = 0.5*sum_particle%data%m*e_mass*sum_particle%data%f_e(1)/(total_weight*total_weight)
 
      ! NOTE: account for vel_mag = 0.0!!!!! causes nan
      max_vec = 0.0_kind_physics
@@ -775,18 +787,13 @@ contains
      vel_mag = sqrt(vel_mag2)
 
      if (vel_mag2 .ne. 0.0_kind_physics) then
-       if (MOD(input_cnt,2) .ne. 0) then
-         w1 = CEILING(1.0*input_cnt/2.0)
-       else
-         w1 = input_cnt*0.5
-       end if
-
-       if (w1 < (input_cnt - vel_mag2/sum_particle%data%f_e(1))) then
-         w1 = CEILING(input_cnt - vel_mag2/sum_particle%data%f_e(1))
+       w1 = CEILING(1.0*total_weight/2.0)
+       if (w1 < (total_weight - vel_mag2/sum_particle%data%f_e(1))) then
+         w1 = CEILING(total_weight - vel_mag2/sum_particle%data%f_e(1))
        end if
 
        unit_vec = sum_particle%data%v/vel_mag
-       Chi = acos(sqrt(input_cnt/w1 - (input_cnt*input_cnt/w1 - input_cnt)*sum_particle%data%f_e(1)/vel_mag2))
+       Chi = acos(sqrt(total_weight/w1 - (total_weight*total_weight/w1 - total_weight)*sum_particle%data%f_e(1)/vel_mag2))
 
        rot_axis = cross_product(sum_particle%data%v, d)
        rot_axis = rot_axis/sqrt(dot_product(rot_axis, rot_axis))
@@ -807,20 +814,21 @@ contains
        ! Fill in values for merged particle 1
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(1)%x
-       merged_buffer(m_i)%data%v = dot_product(sum_particle%data%v, max_vec)/input_cnt * max_vec
+       merged_buffer(m_i)%data%v = dot_product(sum_particle%data%v, max_vec)/total_weight * max_vec
        merged_buffer(m_i)%data%q = input_buffer(1)%data%q*w1
        merged_buffer(m_i)%data%m = input_buffer(1)%data%m*w1
        merged_buffer(m_i)%data%b = 0.0
        merged_buffer(m_i)%data%f_e = 0.0
        merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%f_b(2) = ave_E
        merged_buffer(m_i)%data%age = 0.0
        merged_buffer(m_i)%label = group_index
        merged_buffer(m_i)%data%species = species
        merged_buffer(m_i)%data%mp_int1 = parent_key
-       ! if(parent_key == 7313) print *, "1. check Chi: ", Chi, sum_particle%data%f_e(1)/vel_mag2, input_cnt, w1, merged_buffer(m_i)%data%q
+       ! if(parent_key == 7313) print *, "1. check Chi: ", Chi, sum_particle%data%f_e(1)/vel_mag2, total_weight, w1, merged_buffer(m_i)%data%q
 
        ! Fill in values for merged particle 2
-       w2 = input_cnt - w1
+       w2 = total_weight - w1
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(2)%x
        merged_buffer(m_i)%data%v = (sum_particle%data%v - w1 * merged_buffer(m_i - 1)%data%v)/w2
@@ -829,6 +837,7 @@ contains
        merged_buffer(m_i)%data%b = 0.0
        merged_buffer(m_i)%data%f_e = 0.0
        merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%f_b(2) = ave_E
        merged_buffer(m_i)%data%age = 0.0
        merged_buffer(m_i)%label = group_index
        merged_buffer(m_i)%data%species = species
@@ -838,11 +847,7 @@ contains
        !                       (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
        !                       w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
      else
-       if (MOD(input_cnt,2) .ne. 0) then
-         w1 = CEILING(1.0*input_cnt/2.0)
-       else
-         w1 = input_cnt*0.5
-       end if
+       w1 = CEILING(1.0*total_weight/2.0)
        ! Fill in values for merged particle 1
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(1)%x
@@ -858,7 +863,7 @@ contains
        merged_buffer(m_i)%data%mp_int1 = parent_key
 
        ! Fill in values for merged particle 2
-       w2 = input_cnt - w1
+       w2 = total_weight - w1
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(2)%x
        merged_buffer(m_i)%data%v = 0.0_kind_physics
@@ -969,6 +974,10 @@ contains
      vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
      K_E = 0.5*(particle%data%m/weight)*e_mass*vel_mag**2
      nu_prime = abs_max_CS * vel_mag * neutral_density
+
+     if ((abs(particle%data%q) .gt. 1.0_kind_physics)) then
+       K_E = particle%data%f_b(2)
+     end if
     !  call determine_cross_sections(particle, CS_vector, CS_tables)
     !  CS_vector = CS_vector * vel_mag * neutral_density
     !  print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime
