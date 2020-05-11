@@ -453,8 +453,8 @@ contains
          ! print *, "Different species detected: ", particles(i)%data%species
          ! print *, "Direction count of last species: ", direction_cnt
          do j = 1, 8
-           call elastic_merging(j, directional_buffer, direction_cnt(j), merged_guide, &
-                                merged_cnt, species, particles(i)%data%mp_int1)
+             call energy_elastic_merging(j, directional_buffer, direction_cnt(j), merged_guide, &
+                                  merged_cnt, species, particles(i)%data%mp_int1)
          end do
          species = particles(i)%data%species
          direction_cnt = 0
@@ -498,15 +498,15 @@ contains
      ! print *, "Direction count of last species: ", direction_cnt
      ! Final merge for the last species
      do i = 1, 8
-       call elastic_merging(i, directional_buffer, direction_cnt(i), merged_guide, &
-                            merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1)
+         call energy_elastic_merging(i, directional_buffer, direction_cnt(i), merged_guide, &
+                              merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1)
      end do
      ! print *, "Parent no: ", parent_no, istart, istop, "Finished merging.", size(particles)
 
      deallocate(directional_buffer)
    end subroutine momentum_partition_merging
 
-   subroutine elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, species, parent_key)
+   subroutine age_elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, species, parent_key)
      !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
      !       most direct way of doing it is to copy the particles into respective directional buffer.
      !       don't sum them up yet! information will be lost if done so.
@@ -515,10 +515,8 @@ contains
      type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
      type(linked_list_elem), pointer, intent(inout) :: merged_guide
      integer, intent(inout) :: merged_cnt
-     integer :: i, j, buffer_pos, ll_elem_gen, filled, filled_ion, correct_sign, m_i, remainder, &
+     integer :: i, j, buffer_pos, ll_elem_gen, filled, filled_ion, m_i, remainder, &
                 extent
-     real(kind_physics) :: v_squared, cos_theta, vel_mag, vel_mag2, unit_vec(3), d(3)
-     real(kind_physics) :: max_vec(3), w, Chi, rot_axis(3)
      type(t_particle), allocatable :: temp_particle(:), ion_temp_particle(:), merged_buffer(:)
      type(t_particle) :: sum_particle
 
@@ -547,7 +545,7 @@ contains
        end do
 
        if (filled > 2) then
-         call resolve_elastic_merge_momentum(temp_particle, filled, merged_buffer, m_i)
+         call resolve_elastic_merge_momentum(temp_particle, filled, merged_buffer, m_i, 0)
        else
          do i = 1, filled
            m_i = m_i + 1
@@ -557,7 +555,7 @@ contains
        end if
 
        if (filled_ion > 2) then
-         call resolve_elastic_merge_momentum(ion_temp_particle, filled_ion, merged_buffer, m_i)
+         call resolve_elastic_merge_momentum(ion_temp_particle, filled_ion, merged_buffer, m_i, 0)
        else
          do i = 1, filled_ion
            m_i = m_i + 1
@@ -591,6 +589,7 @@ contains
        if (ll_elem_gen <= size(merged_guide%tmp_particles)) then
          remainder = buffer_pos + m_i - 1
          merged_guide%tmp_particles(buffer_pos:remainder) = merged_buffer(1:m_i)
+         ! print *, "ll_elem_gen", ll_elem_gen, buffer_pos, remainder, m_i, parent_key
          ! print *, "Compare x: ", m_i,  merged_guide%tmp_particles(buffer_pos)%x, merged_buffer(1)%x
        else
          extent = size(merged_guide%tmp_particles) - buffer_pos + 1
@@ -600,6 +599,7 @@ contains
 
          call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
          merged_guide => merged_guide%next
+         ! print *, "extension", ll_elem_gen, buffer_pos, remainder, (extent + 1), m_i, parent_key
          merged_guide%tmp_particles(1:remainder) = merged_buffer((extent + 1):m_i)
          nullify (merged_guide%next)
        end if
@@ -610,17 +610,133 @@ contains
      deallocate(temp_particle)
      deallocate(ion_temp_particle)
      deallocate(merged_buffer)
-   end subroutine elastic_merging
+   end subroutine age_elastic_merging
 
-   subroutine resolve_elastic_merge_momentum(input_buffer, input_cnt, merged_buffer, m_i)
+   subroutine energy_elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, species, parent_key)
+     !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
+     !       most direct way of doing it is to copy the particles into respective directional buffer.
+     !       don't sum them up yet! information will be lost if done so.
+     implicit none
+     integer, intent(in) :: direction, direction_cnt, species, parent_key
+     type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
+     type(linked_list_elem), pointer, intent(inout) :: merged_guide
+     integer, intent(inout) :: merged_cnt
+     integer :: i, j, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i
+     integer, allocatable :: grouped_count(:)
+     real(kind_physics) :: kin_e, weight, vel(3)
+     real(kind_physics), allocatable :: energy_threshold(:)
+     type(t_particle), allocatable :: energy_collector(:,:), merged_buffer(:), pass_buffer(:)
+     type(t_particle) :: sum_particle
+
+     filtered_instance = 6
+     allocate(energy_threshold(filtered_instance))
+     allocate(merged_buffer(direction_cnt))
+     m_i = 0
+     ! print *, "ll_elem count: ", CEILING(REAL(merged_cnt/size(merged_guide%tmp_particles))), buffer_pos
+     energy_threshold(1) = 0.0
+     energy_threshold(2) = 10.0
+     energy_threshold(3) = 20.0
+     energy_threshold(4) = 30.0
+     energy_threshold(5) = 40.0
+     energy_threshold(6) = 60.0
+     f_i = filtered_instance
+
+     if (direction_cnt > 2) then
+       allocate(grouped_count(filtered_instance))
+       allocate(energy_collector(filtered_instance, direction_cnt))
+       ! variables used to count number of filled buffer. Sort to old or new particles.
+       !NOTE: any new particles generated from ionisation events is marked with label = -1.0
+       !      don't merge this with older particles.
+       grouped_count = 0
+       do i = 1, direction_cnt
+         weight = abs(directional_buffer(direction,i)%data%q)
+         vel = directional_buffer(direction,i)%data%v
+         kin_e = 0.5*(directional_buffer(direction,i)%data%m/weight)*e_mass*dot_product(vel,vel)
+
+         if (kin_e >= energy_threshold(filtered_instance)) then
+           f_i = filtered_instance
+         else
+           do while (kin_e < energy_threshold(f_i))
+             f_i = f_i - 1
+           end do
+         end if
+         grouped_count(f_i) = grouped_count(f_i) + 1
+         energy_collector(f_i, grouped_count(f_i)) = directional_buffer(direction,i)
+       end do
+
+       ! print *, "parent_key: ", parent_key, direction, grouped_count
+       do j = 1, filtered_instance
+         if (grouped_count(j) > 2) then
+           allocate(pass_buffer(direction_cnt))
+           pass_buffer = energy_collector(j,1:direction_cnt)
+           call resolve_elastic_merge_momentum(pass_buffer, grouped_count(j), merged_buffer, m_i, j)
+           deallocate(pass_buffer)
+         else
+           do i = 1, grouped_count(j)
+             m_i = m_i + 1
+             merged_buffer(m_i) = energy_collector(j,i)
+             merged_buffer(m_i)%label = 0
+           end do
+         end if
+       end do
+       ! after merging, 'label' variable in particle will have a new functionality.
+       ! set label = 1 if 1 additional check during 'collision_update' is required.
+
+       deallocate(grouped_count)
+       deallocate(energy_collector)
+     else
+       do i = 1, direction_cnt
+         m_i = m_i + 1
+         merged_buffer(m_i) = directional_buffer(direction,i)
+         merged_buffer(m_i)%label = 0
+       end do
+     end if
+     deallocate(energy_threshold)
+     !NOTE: now that merged_buffer is filled, copy to merged_guide ll_element.
+     if (m_i .ne. 0) then
+       ll_elem_gen = MOD(merged_cnt, size(merged_guide%tmp_particles))
+       buffer_pos = ll_elem_gen + 1
+       ! print *, "buffer_pos: ", buffer_pos
+       if (ll_elem_gen == 0 .and. merged_cnt > 0) then
+          call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
+          merged_guide => merged_guide%next
+          nullify (merged_guide%next)
+       end if
+
+       ll_elem_gen = ll_elem_gen + m_i
+       if (ll_elem_gen <= size(merged_guide%tmp_particles)) then
+         remainder = buffer_pos + m_i - 1
+         merged_guide%tmp_particles(buffer_pos:remainder) = merged_buffer(1:m_i)
+         ! print *, "ll_elem_gen", ll_elem_gen, buffer_pos, remainder, m_i, parent_key
+         ! print *, "Compare x: ", m_i,  merged_guide%tmp_particles(buffer_pos)%x, merged_buffer(1)%x
+       else
+         extent = size(merged_guide%tmp_particles) - buffer_pos + 1
+         remainder = ll_elem_gen - size(merged_guide%tmp_particles)
+         merged_guide%tmp_particles(buffer_pos:size(merged_guide%tmp_particles)) = &
+         merged_buffer(1:extent)
+
+         call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
+         merged_guide => merged_guide%next
+         ! print *, "extension", ll_elem_gen, buffer_pos, remainder, (extent + 1), m_i, parent_key
+         merged_guide%tmp_particles(1:remainder) = merged_buffer((extent + 1):m_i)
+         nullify (merged_guide%next)
+       end if
+       merged_cnt = merged_cnt + m_i
+       ! print *, "New merged value!"
+       ! print *, "ll_elem_gen", ll_elem_gen, size(merged_guide%tmp_particles), merged_cnt, parent_key
+     end if
+     deallocate(merged_buffer)
+   end subroutine energy_elastic_merging
+
+   subroutine resolve_elastic_merge_momentum(input_buffer, input_cnt, merged_buffer, m_i, group_index)
      implicit none
      type(t_particle), allocatable, intent(in) :: input_buffer(:)
-     integer, intent(in) :: input_cnt
+     integer, intent(in) :: input_cnt, group_index
      type(t_particle), allocatable, intent(inout) :: merged_buffer(:)
      integer, intent(inout) :: m_i
      type(t_particle) :: sum_particle
      real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
-                           Chi, rot_axis(3), w
+                           Chi, rot_axis(3), w1, w2
      integer :: i, j, species, parent_key, correct_sign
 
      species = input_buffer(1)%data%species
@@ -653,48 +769,109 @@ contains
      d = d/sqrt(dot_product(d,d))
      sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
 
+     ! NOTE: account for vel_mag = 0.0!!!!! causes nan
      max_vec = 0.0_kind_physics
      vel_mag2 = dot_product(sum_particle%data%v, sum_particle%data%v)
      vel_mag = sqrt(vel_mag2)
-     unit_vec = sum_particle%data%v/vel_mag
-     w = input_cnt*0.5
-     Chi = acos(sqrt(2.0 - 2.0*w*sum_particle%data%f_e(1)/vel_mag2))
 
-     rot_axis = cross_product(sum_particle%data%v, d)
-     rot_axis = rot_axis/sqrt(dot_product(rot_axis, rot_axis))
-     max_vec = Rodriguez_rotation(Chi, rot_axis, unit_vec)
-
-     ! Check if the resulting velocity vector is in the same momentum quadrant.
-     ! if not, flip the rotation direction.
-     correct_sign = 1
-     do j = 1, 3
-       if (max_vec(j)*sum_particle%data%v(j) .lt. 0) then
-         correct_sign = 0
+     if (vel_mag2 .ne. 0.0_kind_physics) then
+       if (MOD(input_cnt,2) .ne. 0) then
+         w1 = CEILING(1.0*input_cnt/2.0)
+       else
+         w1 = input_cnt*0.5
        end if
-     end do
-     if (correct_sign == 0) then
-       max_vec = Rodriguez_rotation(-1.0*Chi, rot_axis, unit_vec)
-     end if
-     m_i = m_i + 1
-     merged_buffer(m_i)%x = input_buffer(1)%x
-     merged_buffer(m_i)%data%v = 0.5*dot_product(sum_particle%data%v, max_vec)/w * max_vec
-     merged_buffer(m_i)%data%q = sum_particle%data%q*0.5 !can be thought of as abs(sum_q)*0.5 = weight
-     merged_buffer(m_i)%data%m = sum_particle%data%m*0.5 !equivalent to merged_part_mass = mass_species*weight
-     merged_buffer(m_i)%label = 0
-     if (MOD(input_cnt,2) .ne. 0) then
-       merged_buffer(m_i)%label = 1
-     end if
-     merged_buffer(m_i)%data%species = species
-     merged_buffer(m_i)%data%mp_int1 = parent_key
 
-     m_i = m_i + 1
-     merged_buffer(m_i)%x = input_buffer(2)%x
-     merged_buffer(m_i)%data%v = sum_particle%data%v/w - merged_buffer(m_i - 1)%data%v
-     merged_buffer(m_i)%data%q = sum_particle%data%q*0.5
-     merged_buffer(m_i)%data%m = sum_particle%data%m*0.5
-     merged_buffer(m_i)%label = 0
-     merged_buffer(m_i)%data%species = species
-     merged_buffer(m_i)%data%mp_int1 = parent_key
+       if (w1 < (input_cnt - vel_mag2/sum_particle%data%f_e(1))) then
+         w1 = CEILING(input_cnt - vel_mag2/sum_particle%data%f_e(1))
+       end if
+
+       unit_vec = sum_particle%data%v/vel_mag
+       Chi = acos(sqrt(input_cnt/w1 - (input_cnt*input_cnt/w1 - input_cnt)*sum_particle%data%f_e(1)/vel_mag2))
+
+       rot_axis = cross_product(sum_particle%data%v, d)
+       rot_axis = rot_axis/sqrt(dot_product(rot_axis, rot_axis))
+       max_vec = Rodriguez_rotation(Chi, rot_axis, unit_vec)
+
+       ! Check if the resulting velocity vector is in the same momentum quadrant.
+       ! if not, flip the rotation direction.
+       correct_sign = 1
+       do j = 1, 3
+         if (max_vec(j)*sum_particle%data%v(j) .lt. 0) then
+           correct_sign = 0
+         end if
+       end do
+       if (correct_sign == 0) then
+         max_vec = Rodriguez_rotation(-1.0*Chi, rot_axis, unit_vec)
+       end if
+
+       ! Fill in values for merged particle 1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(1)%x
+       merged_buffer(m_i)%data%v = dot_product(sum_particle%data%v, max_vec)/input_cnt * max_vec
+       merged_buffer(m_i)%data%q = input_buffer(1)%data%q*w1
+       merged_buffer(m_i)%data%m = input_buffer(1)%data%m*w1
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+       ! if(parent_key == 7313) print *, "1. check Chi: ", Chi, sum_particle%data%f_e(1)/vel_mag2, input_cnt, w1, merged_buffer(m_i)%data%q
+
+       ! Fill in values for merged particle 2
+       w2 = input_cnt - w1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(2)%x
+       merged_buffer(m_i)%data%v = (sum_particle%data%v - w1 * merged_buffer(m_i - 1)%data%v)/w2
+       merged_buffer(m_i)%data%q = input_buffer(2)%data%q*w2
+       merged_buffer(m_i)%data%m = input_buffer(2)%data%m*w2
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+       ! print *, "Check V: ", sum_particle%data%v, w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v
+       ! print *, "Check e diff: ", sum_particle%data%f_e(1) - &
+       !                       (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
+       !                       w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
+     else
+       if (MOD(input_cnt,2) .ne. 0) then
+         w1 = CEILING(1.0*input_cnt/2.0)
+       else
+         w1 = input_cnt*0.5
+       end if
+       ! Fill in values for merged particle 1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(1)%x
+       merged_buffer(m_i)%data%v = 0.0_kind_physics
+       merged_buffer(m_i)%data%q = input_buffer(1)%data%q*w1
+       merged_buffer(m_i)%data%m = input_buffer(1)%data%m*w1
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+
+       ! Fill in values for merged particle 2
+       w2 = input_cnt - w1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(2)%x
+       merged_buffer(m_i)%data%v = 0.0_kind_physics
+       merged_buffer(m_i)%data%q = input_buffer(2)%data%q*w2
+       merged_buffer(m_i)%data%m = input_buffer(2)%data%m*w2
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+     end if
    end subroutine resolve_elastic_merge_momentum
 
    subroutine add_particle(guide, particle, new_particle, buffer_pos, type)
@@ -770,6 +947,7 @@ contains
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, rand_num(8)
+     real(kind_physics) :: weight
      integer :: buff_pos, i
 
      ! TODO: not a huge fan of the next 4 lines. Rather make those parameters which might help optimisation
@@ -787,8 +965,9 @@ contains
      ! TODO: not at all critical, but there are many ways of doing the next line, would be interesting to see if there is a fastest
      ! way of computing the length and weigh that against readability, perhaps a separate inlinable function if there is a faster
      ! way?
+     weight = abs(particle%data%q)
      vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
-     K_E = 0.5*particle%data%m*vel_mag**2
+     K_E = 0.5*(particle%data%m/weight)*e_mass*vel_mag**2
      nu_prime = abs_max_CS * vel_mag * neutral_density
     !  call determine_cross_sections(particle, CS_vector, CS_tables)
     !  CS_vector = CS_vector * vel_mag * neutral_density

@@ -236,7 +236,7 @@ program pepc
          call particle_pusher(particles(i), dt)
 
          if (particles(i)%data%species == 0) then
-            collision_checks = floor(abs(particles(i)%data%q)) + particles(i)%label
+            collision_checks = floor(abs(particles(i)%data%q))
             j = 0
             do while (j < collision_checks)
               call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, total_cross_sections, ctr_s, key_s)
@@ -335,8 +335,8 @@ program pepc
       ! if (doDiag .and. particle_output) call write_particles(particles)
 
       !=====================Particle Merging====================================
-      if (tnp > 500000) then
-        sibling_upper_limit = 50
+      if (tnp > 400000) then
+        sibling_upper_limit = 500
         call compute_particle_keys(global_tree%bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)

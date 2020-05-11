@@ -113,7 +113,9 @@ contains
        istart = istart + sibling_cnt(i-1)
      end do
      if (parent_no .eq. 1) istart = 1
-     istop = istart + sibling_cnt(parent_no)
+     istop = istart + sibling_cnt(parent_no) - 1
+
+     ! print *, "particle parent: ", parent_no, particles(istart)%data%mp_int1, particles(istop)%data%mp_int1
 
      buffer_size = istop - istart + 1
      allocate(sorting_buffer(buffer_size))
@@ -711,7 +713,7 @@ contains
         head = tail + 1
         tail = tail + ll_buffer_size
         i = i + 1
-        
+
         temp_guide => temp_guide%next
       end do
       nullify (temp_guide)

@@ -401,7 +401,11 @@ contains
            p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
            ! p(ip)%x(3) = -0.01
 
-           p(ip)%data%v = 0.0
+           magnitude = MOD(real(ip), 100.0) !sqrt((2*100.0/e_mass))
+           magnitude = sqrt((2*magnitude/e_mass))
+           ! call random_number(rand_scale)
+           rand_scale = 1.0_8
+           p(ip)%data%v(3) = -1.0*magnitude*rand_scale
            p(ip)%data%f_b = 0.0_kind_physics
            p(ip)%data%f_e = 0.0_kind_physics
            p(ip)%label = 0
