@@ -216,7 +216,7 @@ program pepc
       end if
       IStop = IStart + local_size-1
 
-      call allocate_ll_buffer(electron_num, buffer)
+      call allocate_ll_buffer(50, buffer)
       particle_guide => buffer
 
       new_particle_cnt = 0
@@ -226,7 +226,7 @@ program pepc
       ! flow_count = 0.0
       ! total_flow_count = 0.0
       do i = IStart, IStop
-         ! call filter_and_swap(particles, flt_geom, i, IStart, IStop, swapped_num, charge_count, break)
+         call filter_and_swap(particles, flt_geom, i, IStart, IStop, swapped_num, charge_count, break)
 
 !====================== save the resolved 'e' from tree traverse================
          traversed_e = particles(i)%results%e
@@ -340,16 +340,20 @@ program pepc
         call compute_particle_keys(global_tree%bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
-        call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents) !NOTE: sibling_cnt is allocated here.
+
+        !NOTE: sibling_cnt is allocated here.
+        !      sibling_upper_limit is also updated to the max no. of actual siblings across all parents.
+        call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents)
         do i = 1, unique_parents
           call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
         end do
 
-        call allocate_ll_buffer(electron_num, buffer)
+        call allocate_ll_buffer(sibling_upper_limit, buffer)
         particle_guide => buffer
         new_particle_cnt = 0
         do i = 1, unique_parents
           !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don't merge!
+          ! print *, "Merging ", i, "of ", unique_parents, " unique parents."
           call momentum_partition_merging(particles, sibling_cnt, sibling_upper_limit, &
                                                i, particle_guide, new_particle_cnt)
         end do

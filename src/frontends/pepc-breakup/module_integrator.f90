@@ -409,11 +409,6 @@ contains
           * (KE - Xi_table(i-1,1)) + Xi_table(i-1,2)
    end subroutine determine_xi
 
-   ! subroutine energy_partition(particles, sibling_cnt, parent_no)
-   !   implicit none
-   !
-   ! end subroutine energy_partition
-
    subroutine momentum_partition_merging(particles, sibling_cnt, sibling_upper_limit, &
                                         parent_no, merged_guide, merged_cnt)
      ! NOTE: make sure the particle list is sorted by species within the sibling extent before using this subroutine!
@@ -453,8 +448,10 @@ contains
          ! print *, "Different species detected: ", particles(i)%data%species
          ! print *, "Direction count of last species: ", direction_cnt
          do j = 1, 8
+           if (direction_cnt(i) .ne. 0) then
              call energy_elastic_merging(j, directional_buffer, direction_cnt(j), merged_guide, &
                                   merged_cnt, species, particles(i)%data%mp_int1)
+           end if
          end do
          species = particles(i)%data%species
          direction_cnt = 0
@@ -498,8 +495,10 @@ contains
      ! print *, "Direction count of last species: ", direction_cnt
      ! Final merge for the last species
      do i = 1, 8
+       if (direction_cnt(i) .ne. 0) then
          call energy_elastic_merging(i, directional_buffer, direction_cnt(i), merged_guide, &
                               merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1)
+       end if
      end do
      ! print *, "Parent no: ", parent_no, istart, istop, "Finished merging.", size(particles)
 
@@ -629,8 +628,10 @@ contains
      type(t_particle) :: sum_particle
 
      filtered_instance = 6
+     ! print *, "Direction ", direction, " of 8, starting merged_buffer allocation .", direction_cnt
      allocate(energy_threshold(filtered_instance))
      allocate(merged_buffer(direction_cnt))
+
      m_i = 0
      ! print *, "ll_elem count: ", CEILING(REAL(merged_cnt/size(merged_guide%tmp_particles))), buffer_pos
      energy_threshold(1) = 0.0
@@ -644,9 +645,8 @@ contains
      if (direction_cnt > 2) then
        allocate(grouped_count(filtered_instance))
        allocate(energy_collector(filtered_instance, direction_cnt))
-       ! variables used to count number of filled buffer. Sort to old or new particles.
-       !NOTE: any new particles generated from ionisation events is marked with label = -1.0
-       !      don't merge this with older particles.
+
+       ! Sorting particle based on energy
        grouped_count = 0
        do i = 1, direction_cnt
          weight = abs(directional_buffer(direction,i)%data%q)
@@ -660,35 +660,37 @@ contains
              f_i = f_i - 1
            end do
          end if
+         if(f_i < 1 .or. f_i > filtered_instance) print *, "Chekcing f_i: ", f_i
          grouped_count(f_i) = grouped_count(f_i) + 1
          energy_collector(f_i, grouped_count(f_i)) = directional_buffer(direction,i)
+
+         ! Don't merge the particles with less than 10.0eV
+         if (f_i .eq. 1) then
+           m_i = m_i + 1
+           merged_buffer(m_i) = directional_buffer(direction,i)
+           merged_buffer(m_i)%label = 0
+         end if
        end do
 
        ! print *, "parent_key: ", parent_key, direction, grouped_count
 
-       ! Don't merge the particles with less than 10.0eV
-       do j = 1, grouped_count(1)
-         m_i = m_i + 1
-         merged_buffer(m_i) = energy_collector(1,j)
-         merged_buffer(m_i)%label = 0
-       end do
        ! Merge the rest according to the grouped energy levels.
        do j = 2, filtered_instance
-         if (grouped_count(j) > 2) then
-           allocate(pass_buffer(direction_cnt))
-           pass_buffer = energy_collector(j,1:direction_cnt)
-           call resolve_elastic_merge_momentum(pass_buffer, grouped_count(j), merged_buffer, m_i, j)
-           deallocate(pass_buffer)
-         else
-           do i = 1, grouped_count(j)
-             m_i = m_i + 1
-             merged_buffer(m_i) = energy_collector(j,i)
-             merged_buffer(m_i)%label = 0
-           end do
+         if(grouped_count(j) .ne. 0) then
+           if (grouped_count(j) > 2) then
+             allocate(pass_buffer(grouped_count(j)))
+             pass_buffer = energy_collector(j,1:grouped_count(j))
+             call resolve_elastic_merge_momentum(pass_buffer, grouped_count(j), merged_buffer, m_i, j)
+             deallocate(pass_buffer)
+           else
+             do i = 1, grouped_count(j)
+               m_i = m_i + 1
+               merged_buffer(m_i) = energy_collector(j,i)
+               merged_buffer(m_i)%label = 0
+             end do
+           end if
          end if
        end do
-       ! after merging, 'label' variable in particle will have a new functionality.
-       ! set label = 1 if 1 additional check during 'collision_update' is required.
 
        deallocate(grouped_count)
        deallocate(energy_collector)
@@ -700,6 +702,7 @@ contains
        end do
      end if
      deallocate(energy_threshold)
+
      !NOTE: now that merged_buffer is filled, copy to merged_guide ll_element.
      if (m_i .ne. 0) then
        ll_elem_gen = MOD(merged_cnt, size(merged_guide%tmp_particles))
@@ -734,6 +737,7 @@ contains
        ! print *, "ll_elem_gen", ll_elem_gen, size(merged_guide%tmp_particles), merged_cnt, parent_key
      end if
      deallocate(merged_buffer)
+     ! print *, "merged_buffer Deallocation done"
    end subroutine energy_elastic_merging
 
    subroutine resolve_elastic_merge_momentum(input_buffer, input_cnt, merged_buffer, m_i, group_index)
@@ -781,7 +785,6 @@ contains
      sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
      ave_E = 0.5*sum_particle%data%m*e_mass*sum_particle%data%f_e(1)/(total_weight*total_weight)
 
-     ! NOTE: account for vel_mag = 0.0!!!!! causes nan
      max_vec = 0.0_kind_physics
      vel_mag2 = dot_product(sum_particle%data%v, sum_particle%data%v)
      vel_mag = sqrt(vel_mag2)
@@ -825,7 +828,6 @@ contains
        merged_buffer(m_i)%label = group_index
        merged_buffer(m_i)%data%species = species
        merged_buffer(m_i)%data%mp_int1 = parent_key
-       ! if(parent_key == 7313) print *, "1. check Chi: ", Chi, sum_particle%data%f_e(1)/vel_mag2, total_weight, w1, merged_buffer(m_i)%data%q
 
        ! Fill in values for merged particle 2
        w2 = total_weight - w1
@@ -975,9 +977,9 @@ contains
      K_E = 0.5*(particle%data%m/weight)*e_mass*vel_mag**2
      nu_prime = abs_max_CS * vel_mag * neutral_density
 
-     if ((abs(particle%data%q) .gt. 1.0_kind_physics)) then
-       K_E = particle%data%f_b(2)
-     end if
+     ! if ((abs(particle%data%q) .gt. 1.0_kind_physics)) then
+     !   K_E = particle%data%f_b(2)
+     ! end if
     !  call determine_cross_sections(particle, CS_vector, CS_tables)
     !  CS_vector = CS_vector * vel_mag * neutral_density
     !  print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime

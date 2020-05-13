@@ -36,7 +36,7 @@ contains
       type(linked_list_elem), pointer, intent(inout) :: temp_array
       integer :: buffer_size, i
 
-      buffer_size = 50 !electron_num
+      buffer_size = electron_num
 
       allocate (temp_array)
       allocate (temp_array%tmp_particles(buffer_size))
@@ -260,10 +260,10 @@ contains
 
      allocate(sibling_cnt(size(particles)))
      level_march = -18_kind_level
-     average_siblings = size(particles)
+     max_siblings = size(particles)
 
-     if (sibling_upper_limit < average_siblings) then
-       do while(sibling_upper_limit < average_siblings)
+     if (sibling_upper_limit < max_siblings) then
+       do while(sibling_upper_limit < max_siblings)
          sibling_cnt = 0
          level = maxlevel + level_march
          unique_parents = 1
@@ -280,27 +280,21 @@ contains
          end do
          level_march = level_march + 1
 
-         average_siblings = 0.0_kind_physics
+         max_siblings = 0
          do i = 1, unique_parents
-           average_siblings = average_siblings + sibling_cnt(i)
+           if (sibling_cnt(i) > max_siblings) then
+             max_siblings = sibling_cnt(i)
+           end if
          end do
-         average_siblings = average_siblings/unique_parents
        end do
-     else if (sibling_upper_limit > average_siblings) then
+     else if (sibling_upper_limit > max_siblings) then
        unique_parents = 1
        level = -1
        do i = 0, size(particles)
          particles(i)%data%mp_int1 = level
        end do
-       sibling_cnt(1) = average_siblings
+       sibling_cnt(1) = max_siblings
      end if
-
-     max_siblings = 0
-     do i  = 1, unique_parents
-       if (sibling_cnt(i) > max_siblings) then
-         max_siblings = sibling_cnt(i)
-       end if
-     end do
      sibling_upper_limit = max_siblings
      print *, "Refinement level: ", level, "Max siblings: ", sibling_upper_limit, "Unique parents: ", unique_parents
    end subroutine

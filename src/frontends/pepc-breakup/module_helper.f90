@@ -390,6 +390,7 @@ contains
            p(ip)%label = 0 !my_rank*(tnp/n_ranks) + ip - 1
            p(ip)%data%q = -1.0_8
            p(ip)%data%m = 1.0_8
+           p(ip)%data%b = 0.0_8
            p(ip)%data%species = 0
 
            p(ip)%data%age = 0.0_8
@@ -398,11 +399,11 @@ contains
            call random(p(ip)%x)
            p(ip)%x(1) = p(ip)%x(1)*0.8*plasma_dimensions(1) - plasma_dimensions(1)*0.4
            p(ip)%x(2) = p(ip)%x(2)*0.8*plasma_dimensions(2) - plasma_dimensions(2)*0.4
-           p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
-           ! p(ip)%x(3) = -0.01
+           ! p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
+           p(ip)%x(3) = -0.01
 
-           magnitude = MOD(real(ip), 100.0) !sqrt((2*100.0/e_mass))
-           magnitude = sqrt((2*magnitude/e_mass))
+           ! magnitude = MOD(real(ip), 100.0) !sqrt((2*100.0/e_mass))
+           magnitude = 0.0_kind_physics !sqrt((2*magnitude/e_mass))
            ! call random_number(rand_scale)
            rand_scale = 1.0_8
            p(ip)%data%v(3) = -1.0*magnitude*rand_scale
