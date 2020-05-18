@@ -337,6 +337,7 @@ program pepc
       !=====================Particle Merging====================================
       if (tnp > 400000) then
         sibling_upper_limit = 500
+        merge_ratio = 0.75
         call compute_particle_keys(global_tree%bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)

@@ -448,7 +448,7 @@ contains
          ! print *, "Different species detected: ", particles(i)%data%species
          ! print *, "Direction count of last species: ", direction_cnt
          do j = 1, 8
-           if (direction_cnt(i) .ne. 0) then
+           if (direction_cnt(j) .ne. 0) then
              call energy_elastic_merging(j, directional_buffer, direction_cnt(j), merged_guide, &
                                   merged_cnt, species, particles(i)%data%mp_int1)
            end if
@@ -620,7 +620,8 @@ contains
      type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
      type(linked_list_elem), pointer, intent(inout) :: merged_guide
      integer, intent(inout) :: merged_cnt
-     integer :: i, j, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i
+     integer :: i, j, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
+                merge_instance, merge_collector_size, IStart, IStop
      integer, allocatable :: grouped_count(:)
      real(kind_physics) :: kin_e, weight, vel(3)
      real(kind_physics), allocatable :: energy_threshold(:)
@@ -628,6 +629,7 @@ contains
      type(t_particle) :: sum_particle
 
      filtered_instance = 6
+     merge_collector_size = 4
      ! print *, "Direction ", direction, " of 8, starting merged_buffer allocation .", direction_cnt
      allocate(energy_threshold(filtered_instance))
      allocate(merged_buffer(direction_cnt))
@@ -660,7 +662,7 @@ contains
              f_i = f_i - 1
            end do
          end if
-         if(f_i < 1 .or. f_i > filtered_instance) print *, "Chekcing f_i: ", f_i
+         if(f_i < 1 .or. f_i > filtered_instance) print *, "Checking f_i: ", f_i
          grouped_count(f_i) = grouped_count(f_i) + 1
          energy_collector(f_i, grouped_count(f_i)) = directional_buffer(direction,i)
 
@@ -678,10 +680,26 @@ contains
        do j = 2, filtered_instance
          if(grouped_count(j) .ne. 0) then
            if (grouped_count(j) > 2) then
-             allocate(pass_buffer(grouped_count(j)))
-             pass_buffer = energy_collector(j,1:grouped_count(j))
-             call resolve_elastic_merge_momentum(pass_buffer, grouped_count(j), merged_buffer, m_i, j)
-             deallocate(pass_buffer)
+             merge_instance = FLOOR(0.5*grouped_count(j)*(1.0 - merge_ratio))
+             remainder = grouped_count(j) - merge_collector_size*merge_instance
+
+             do i = 1, merge_instance
+               IStart = (i - 1)*merge_collector_size + 1
+               IStop = IStart + merge_collector_size - 1
+               allocate(pass_buffer(merge_collector_size))
+               pass_buffer = energy_collector(j,IStart:IStop)
+               call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
+               deallocate(pass_buffer)
+             end do
+
+             do i = (grouped_count(j) - remainder + 1), grouped_count(j)
+               m_i = m_i + 1
+               merged_buffer(m_i) = energy_collector(j,i)
+               merged_buffer(m_i)%label = 0
+             end do
+             ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
+             !          " remainder: ", remainder, " merged p: ", merge_instance*2, ". Diff: ", &
+             !          merge_ratio*grouped_count(j) - (merge_instance*2 + remainder)
            else
              do i = 1, grouped_count(j)
                m_i = m_i + 1

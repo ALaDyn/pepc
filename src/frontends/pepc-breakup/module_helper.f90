@@ -89,6 +89,7 @@ module helper
    integer, allocatable :: sibling_cnt(:)
    integer :: unique_parents, merged_cnt, actual_parts_cnt(3) ! actual count done by charge of particles and species.
    integer :: sibling_upper_limit, collision_checks
+   real(kind_physics) :: merge_ratio
 
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
