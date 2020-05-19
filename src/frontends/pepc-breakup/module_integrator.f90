@@ -681,6 +681,10 @@ contains
          if(grouped_count(j) .ne. 0) then
            if (grouped_count(j) > 2) then
              merge_instance = FLOOR(0.5*grouped_count(j)*(1.0 - merge_ratio))
+             if (merge_ratio < 0.5) then
+               merge_instance = FLOOR(merge_ratio*grouped_count(j)*0.5)
+               merge_collector_size = FLOOR(1.0*grouped_count(j)/merge_instance)
+             end if
              remainder = grouped_count(j) - merge_collector_size*merge_instance
 
              do i = 1, merge_instance
@@ -692,11 +696,20 @@ contains
                deallocate(pass_buffer)
              end do
 
-             do i = (grouped_count(j) - remainder + 1), grouped_count(j)
-               m_i = m_i + 1
-               merged_buffer(m_i) = energy_collector(j,i)
-               merged_buffer(m_i)%label = 0
-             end do
+             IStart = grouped_count(j) - remainder + 1
+             IStop = grouped_count(j)
+             if (merge_ratio >= 0.5 .or. remainder <= 2) then
+               do i = IStart, IStop
+                 m_i = m_i + 1
+                 merged_buffer(m_i) = energy_collector(j,i)
+                 merged_buffer(m_i)%label = 0
+               end do
+             else if (merge_ratio < 0.5 .and. remainder > 2) then
+               allocate(pass_buffer(remainder))
+               pass_buffer = energy_collector(j,IStart:IStop)
+               call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
+               deallocate(pass_buffer)
+             end if
              ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
              !          " remainder: ", remainder, " merged p: ", merge_instance*2, ". Diff: ", &
              !          merge_ratio*grouped_count(j) - (merge_instance*2 + remainder)
@@ -862,7 +875,8 @@ contains
        merged_buffer(m_i)%label = group_index
        merged_buffer(m_i)%data%species = species
        merged_buffer(m_i)%data%mp_int1 = parent_key
-       ! print *, "Check V: ", sum_particle%data%v, w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v
+       ! print *, "Check V diff: ", sum_particle%data%v - &
+       !                         (w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v)
        ! print *, "Check e diff: ", sum_particle%data%f_e(1) - &
        !                       (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
        !                       w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
