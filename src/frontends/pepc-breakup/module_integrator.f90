@@ -814,7 +814,7 @@ contains
      end do
      d = d/sqrt(dot_product(d,d))
      sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
-     ave_E = 0.5*sum_particle%data%m*e_mass*sum_particle%data%f_e(1)/(total_weight*total_weight)
+     ave_E = 0.5*input_buffer(1)%data%m*e_mass*sum_particle%data%f_e(1)/total_weight
 
      max_vec = 0.0_kind_physics
      vel_mag2 = dot_product(sum_particle%data%v, sum_particle%data%v)
