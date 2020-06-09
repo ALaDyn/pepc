@@ -121,11 +121,11 @@ program pepc
 
    allocate(CS_tables)
    CS_guide => CS_tables
-   call set_cross_section_table(trim(file_path)//"elastic_scattering_H2.txt", CS_guide, 11, 0)
+   call set_cross_section_table(trim(file_path)//"Ext_elastic_scattering_H2.txt", CS_guide, 11, 0)
    call set_cross_section_table(trim(file_path)//"rotational_excitation_J_0_2.txt", CS_guide, 12, 0)
    call set_cross_section_table(trim(file_path)//"vibrational_excitation_v_0_1.txt", CS_guide, 13, 0)
-   call set_cross_section_table(trim(file_path)//"nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
-   call set_cross_section_table(trim(file_path)//"dissociative_ionization_H+.txt", CS_guide, 15, 1)
+   call set_cross_section_table(trim(file_path)//"Ext_nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
+   call set_cross_section_table(trim(file_path)//"Ext_dissociative_ionization_H+.txt", CS_guide, 15, 1)
    total_cross_sections = 5
   !  allocate(flow_count(3))
   !  allocate(total_flow_count(3))
@@ -145,7 +145,7 @@ program pepc
    if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
-   !$OMP PARALLEL DO if(np/omp_threads > 10) default(private) shared(particles, external_e, dt, V_loop, global_tree)
+   !$OMP PARALLEL DO if(np/omp_threads > 10) default(private) shared(particles, external_e, dt, V_loop)
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e)
       call boris_velocity_update(particles(i), -dt*0.5_8)
@@ -190,7 +190,7 @@ program pepc
       !$OMP shared(rank_charge_count, thread_charge_count, flt_geom, my_rank) &
       !$OMP shared(abs_max_CS, neutral_density, CS_tables, B0, B_p, major_radius) &
       !$OMP shared(minor_radius, plasma_dimensions, generic_array) &
-      !$OMP shared(total_cross_sections, step, omp_threads, key_array)
+      !$OMP shared(total_cross_sections, step, omp_threads)
 
       ! NOTE: counter and key for Random123 is redefined on thread basis.
 #ifdef _OPENMP

@@ -797,9 +797,9 @@ contains
      max_vec = 0.0
      total_weight = 0.0
      do i = 1, input_cnt
-       v_squared = dot_product(input_buffer(i)%data%v, input_buffer(i)%data%v)
+       v_squared = abs(input_buffer(i)%data%q)*dot_product(input_buffer(i)%data%v, input_buffer(i)%data%v)
        sum_particle%data%q = sum_particle%data%q + input_buffer(i)%data%q
-       sum_particle%data%v = sum_particle%data%v + input_buffer(i)%data%v
+       sum_particle%data%v = sum_particle%data%v + abs(input_buffer(i)%data%q)*input_buffer(i)%data%v
        sum_particle%data%m = sum_particle%data%m + input_buffer(i)%data%m
        sum_particle%x = sum_particle%x + input_buffer(i)%x
        sum_particle%data%f_e(1) = sum_particle%data%f_e(1) + v_squared
@@ -965,6 +965,7 @@ contains
      guide%tmp_particles(buffer_pos)%x = particle%x
      guide%tmp_particles(buffer_pos)%work = 1.0_8
      guide%tmp_particles(buffer_pos)%data%age = 0.0_8
+     guide%tmp_particles(buffer_pos)%data%b = 0.0_kind_physics
      guide%tmp_particles(buffer_pos)%data%f_e = 0.0_kind_physics
      guide%tmp_particles(buffer_pos)%data%f_b = 0.0_kind_physics
      guide%tmp_particles(buffer_pos)%results%pot = 0.0_kind_physics
