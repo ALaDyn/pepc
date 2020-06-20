@@ -445,8 +445,7 @@ contains
      direction_cnt = 0
      do i = istart, istop
        if (particles(i)%data%species .ne. species) then
-         ! print *, "Different species detected: ", particles(i)%data%species
-         ! print *, "Direction count of last species: ", direction_cnt
+         ! print *, "Different species detected: ", particles(i)%data%species, direction_cnt
          do j = 1, 8
            if (direction_cnt(j) .ne. 0) then
              call energy_elastic_merging(j, directional_buffer, direction_cnt(j), merged_guide, &
@@ -491,8 +490,7 @@ contains
        direction_cnt(direction) = direction_cnt(direction) + 1
        directional_buffer(direction,direction_cnt(direction)) = particles(i)
      end do
-     ! print *, "Final species: ", particles(i)%data%species
-     ! print *, "Direction count of last species: ", direction_cnt
+     ! print *, "Final species: ", particles(i)%data%species, direction_cnt
      ! Final merge for the last species
      do i = 1, 8
        if (direction_cnt(i) .ne. 0) then
@@ -624,7 +622,7 @@ contains
                 merge_instance, merge_collector_size, IStart, IStop
      integer, allocatable :: grouped_count(:)
      real(kind_physics) :: kin_e, weight, vel(3)
-     real(kind_physics), allocatable :: energy_threshold(:)
+     real(kind_physics), allocatable :: energy_threshold(:), max_weight(:)
      type(t_particle), allocatable :: energy_collector(:,:), merged_buffer(:), pass_buffer(:)
      type(t_particle) :: sum_particle
 
@@ -632,7 +630,10 @@ contains
      merge_collector_size = 4
      ! print *, "Direction ", direction, " of 8, starting merged_buffer allocation .", direction_cnt
      allocate(energy_threshold(filtered_instance))
+     allocate(max_weight(filtered_instance))
      allocate(merged_buffer(direction_cnt))
+
+     max_weight = 1.0_kind_physics
 
      m_i = 0
      ! print *, "ll_elem count: ", CEILING(REAL(merged_cnt/size(merged_guide%tmp_particles))), buffer_pos
@@ -665,6 +666,9 @@ contains
          if(f_i < 1 .or. f_i > filtered_instance) print *, "Checking f_i: ", f_i
          grouped_count(f_i) = grouped_count(f_i) + 1
          energy_collector(f_i, grouped_count(f_i)) = directional_buffer(direction,i)
+         if (weight > max_weight(f_i)) then
+           max_weight(f_i) = weight
+         end if
 
          ! Don't merge the particles with less than 10.0eV
          if (f_i .eq. 1) then
@@ -680,6 +684,14 @@ contains
        do j = 2, filtered_instance
          if(grouped_count(j) .ne. 0) then
            if (grouped_count(j) > 2) then
+             if (max_weight(j) > 1.0_kind_physics) then 
+               allocate(pass_buffer(grouped_count(j)))
+               pass_buffer = energy_collector(j,1:grouped_count(j))
+               call sort_particles_by_weight(pass_buffer)
+               energy_collector(j,1:grouped_count(j)) = pass_buffer
+               deallocate(pass_buffer)
+             end if
+
              merge_instance = FLOOR(0.5*grouped_count(j)*(1.0 - merge_ratio))
              if (merge_ratio < 0.5) then
                merge_instance = FLOOR(merge_ratio*grouped_count(j)*0.5)
@@ -733,6 +745,7 @@ contains
        end do
      end if
      deallocate(energy_threshold)
+     deallocate(max_weight)
 
      !NOTE: now that merged_buffer is filled, copy to merged_guide ll_element.
      if (m_i .ne. 0) then
@@ -750,7 +763,6 @@ contains
          remainder = buffer_pos + m_i - 1
          merged_guide%tmp_particles(buffer_pos:remainder) = merged_buffer(1:m_i)
          ! print *, "ll_elem_gen", ll_elem_gen, buffer_pos, remainder, m_i, parent_key
-         ! print *, "Compare x: ", m_i,  merged_guide%tmp_particles(buffer_pos)%x, merged_buffer(1)%x
        else
          extent = size(merged_guide%tmp_particles) - buffer_pos + 1
          remainder = ll_elem_gen - size(merged_guide%tmp_particles)
@@ -764,7 +776,6 @@ contains
          nullify (merged_guide%next)
        end if
        merged_cnt = merged_cnt + m_i
-       ! print *, "New merged value!"
        ! print *, "ll_elem_gen", ll_elem_gen, size(merged_guide%tmp_particles), merged_cnt, parent_key
      end if
      deallocate(merged_buffer)
@@ -779,11 +790,22 @@ contains
      integer, intent(inout) :: m_i
      type(t_particle) :: sum_particle
      real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
-                           Chi, rot_axis(3), w1, w2, total_weight, ave_E
+                           Chi, rot_axis(3), w1, w2, total_weight, ave_E, mass, charge
      integer :: i, j, species, parent_key, correct_sign
 
      species = input_buffer(1)%data%species
      parent_key = input_buffer(1)%data%mp_int1
+
+     if (species == 0) then
+       mass = 1.0_kind_physics
+       charge = -1.0_kind_physics
+     else if (species == 1) then
+       mass = 1836.21957489_kind_physics
+       charge = 1.0_kind_physics
+     else if (species == 2) then
+       mass = 3673.43889456_kind_physics
+       charge = 1.0_kind_physics
+     end if
      !initialise sum_particle
      sum_particle%data%q = 0.0_kind_physics
      sum_particle%data%v = 0.0_kind_physics
@@ -814,7 +836,7 @@ contains
      end do
      d = d/sqrt(dot_product(d,d))
      sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
-     ave_E = 0.5*input_buffer(1)%data%m*e_mass*sum_particle%data%f_e(1)/total_weight
+     ave_E = 0.5*sum_particle%data%m*e_mass*sum_particle%data%f_e(1)/(total_weight*total_weight)
 
      max_vec = 0.0_kind_physics
      vel_mag2 = dot_product(sum_particle%data%v, sum_particle%data%v)
@@ -828,6 +850,7 @@ contains
 
        unit_vec = sum_particle%data%v/vel_mag
        Chi = acos(sqrt(total_weight/w1 - (total_weight*total_weight/w1 - total_weight)*sum_particle%data%f_e(1)/vel_mag2))
+       ! if (isnan(Chi)) print *, "Chi calculation failed!"
 
        rot_axis = cross_product(sum_particle%data%v, d)
        rot_axis = rot_axis/sqrt(dot_product(rot_axis, rot_axis))
@@ -849,8 +872,8 @@ contains
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(1)%x
        merged_buffer(m_i)%data%v = dot_product(sum_particle%data%v, max_vec)/total_weight * max_vec
-       merged_buffer(m_i)%data%q = input_buffer(1)%data%q*w1
-       merged_buffer(m_i)%data%m = input_buffer(1)%data%m*w1
+       merged_buffer(m_i)%data%q = charge*w1
+       merged_buffer(m_i)%data%m = mass*w1
        merged_buffer(m_i)%data%b = 0.0
        merged_buffer(m_i)%data%f_e = 0.0
        merged_buffer(m_i)%data%f_b = 0.0
@@ -865,8 +888,8 @@ contains
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(2)%x
        merged_buffer(m_i)%data%v = (sum_particle%data%v - w1 * merged_buffer(m_i - 1)%data%v)/w2
-       merged_buffer(m_i)%data%q = input_buffer(2)%data%q*w2
-       merged_buffer(m_i)%data%m = input_buffer(2)%data%m*w2
+       merged_buffer(m_i)%data%q = charge*w2
+       merged_buffer(m_i)%data%m = mass*w2
        merged_buffer(m_i)%data%b = 0.0
        merged_buffer(m_i)%data%f_e = 0.0
        merged_buffer(m_i)%data%f_b = 0.0
@@ -886,8 +909,8 @@ contains
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(1)%x
        merged_buffer(m_i)%data%v = 0.0_kind_physics
-       merged_buffer(m_i)%data%q = input_buffer(1)%data%q*w1
-       merged_buffer(m_i)%data%m = input_buffer(1)%data%m*w1
+       merged_buffer(m_i)%data%q = charge*w1
+       merged_buffer(m_i)%data%m = mass*w1
        merged_buffer(m_i)%data%b = 0.0
        merged_buffer(m_i)%data%f_e = 0.0
        merged_buffer(m_i)%data%f_b = 0.0
@@ -901,8 +924,8 @@ contains
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(2)%x
        merged_buffer(m_i)%data%v = 0.0_kind_physics
-       merged_buffer(m_i)%data%q = input_buffer(2)%data%q*w2
-       merged_buffer(m_i)%data%m = input_buffer(2)%data%m*w2
+       merged_buffer(m_i)%data%q = charge*w2
+       merged_buffer(m_i)%data%m = mass*w2
        merged_buffer(m_i)%data%b = 0.0
        merged_buffer(m_i)%data%f_e = 0.0
        merged_buffer(m_i)%data%f_b = 0.0
@@ -969,6 +992,7 @@ contains
      guide%tmp_particles(buffer_pos)%data%f_e = 0.0_kind_physics
      guide%tmp_particles(buffer_pos)%data%f_b = 0.0_kind_physics
      guide%tmp_particles(buffer_pos)%results%pot = 0.0_kind_physics
+     guide%tmp_particles(buffer_pos)%data%mp_int1 = 0
 
      guide%tmp_particles(buffer_pos)%label = -1
      guide%tmp_particles(buffer_pos)%data%v = 0.0_8

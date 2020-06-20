@@ -22,6 +22,7 @@
 !> helper module
 !>
 module helper
+   use module_box
    use module_pepc_kinds
    use module_pepc_types
    use module_timings
@@ -89,7 +90,8 @@ module helper
    integer, allocatable :: sibling_cnt(:)
    integer :: unique_parents, merged_cnt, actual_parts_cnt(3) ! actual count done by charge of particles and species.
    integer :: sibling_upper_limit, collision_checks
-   real(kind_physics) :: merge_ratio
+   real(kind_physics) :: merge_ratio,  local_min_x(3), local_max_x(3), min_x(3), max_x(3)
+   type(t_box) :: bounding_box
 
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
@@ -411,6 +413,7 @@ contains
            p(ip)%data%v(3) = -1.0*magnitude*rand_scale
            p(ip)%data%f_b = 0.0_kind_physics
            p(ip)%data%f_e = 0.0_kind_physics
+           p(ip)%data%mp_int1 = 0
            p(ip)%label = 0
            p(ip)%work = 1.0_8
         end do
@@ -447,6 +450,7 @@ contains
            p(ip)%data%b = 0.0_kind_physics
            p(ip)%data%f_b = 0.0_kind_physics
            p(ip)%data%f_e = 0.0_kind_physics
+           p(ip)%data%mp_int1 = 0
            p(ip)%label = 0
 
            p(ip)%work = 1.0_8

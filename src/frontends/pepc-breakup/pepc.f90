@@ -183,6 +183,10 @@ program pepc
       thread_charge_count = 0.0
       new_particles_offset = 0
       generic_array = 0
+      local_min_x = 1e16_kind_physics
+      min_x = 1e16_kind_physics
+      local_max_x = 0.0_kind_physics
+      max_x = 0.0_kind_physics
 
       !$OMP PARALLEL if(np/init_omp_threads > 10) default(private) &
       !$OMP shared(init_omp_threads, particles, new_particles_offset, np) &
@@ -323,10 +327,10 @@ program pepc
         end if
       end if
 
-      ! np = size(particles)
-      ! tnp = 0
-      ! call MPI_REDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
-      ! if (root) print *, "Total particles: ", tnp
+!      np = size(particles)
+!      tnp = 0
+!      call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
+!      if (root) print *, "Total particles: ", tnp
 
       deallocate(gathered_new_buffer)
       call timer_stop(t_boris)
@@ -335,10 +339,29 @@ program pepc
       ! if (doDiag .and. particle_output) call write_particles(particles)
 
       !=====================Particle Merging====================================
+      do i = 1, size(particles)
+        do j = 1, size(local_min_x)
+          if (particles(i)%x(j) < local_min_x(j)) then
+            local_min_x(j) = particles(i)%x(j)
+          end if
+
+          if (particles(i)%x(j) > local_max_x(j)) then
+            local_max_x(j) = particles(i)%x(j)
+          end if
+        end do
+        particles(i)%data%mp_int1 = 0
+      end do
+
+      call MPI_ALLREDUCE(local_min_x, min_x, size(min_x), MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(local_max_x, max_x, size(max_x), MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
+      bounding_box%boxmin = min_x
+      bounding_box%boxmax = max_x
+      bounding_box%boxsize = max_x - min_x 
+
       if (tnp > 400000) then
         sibling_upper_limit = 500
         merge_ratio = 0.75
-        call compute_particle_keys(global_tree%bounding_box, particles)
+        call compute_particle_keys(bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
 
@@ -366,7 +389,7 @@ program pepc
 
       np = size(particles)
       tnp = 0
-      call MPI_REDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (root) print *, "Total particles: ", tnp
 
       call pepc_particleresults_clear(particles)

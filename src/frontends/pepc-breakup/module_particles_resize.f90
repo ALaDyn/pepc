@@ -135,10 +135,17 @@ contains
          j = iLeft
          k = iRight
          do i = iLeft, iEnd !!!CHECK THE EXTENT, Also consider if n < largest sort_width
-           if((j < iRight) .and. &
-           (k > iEnd .or. copied_local_buffer(j)%data%species <= copied_local_buffer(k)%data%species)) then
-             sorting_buffer(i) = copied_local_buffer(j)
-             j = j + 1
+           if (j < iRight) then
+             if (k > iEnd) then
+               sorting_buffer(i) = copied_local_buffer(j)
+               j = j + 1
+             else if (copied_local_buffer(j)%data%species <= copied_local_buffer(k)%data%species) then
+               sorting_buffer(i) = copied_local_buffer(j)
+               j = j + 1
+             else
+               sorting_buffer(i) = copied_local_buffer(k)
+               k = k + 1
+             end if
            else
              sorting_buffer(i) = copied_local_buffer(k)
              k = k + 1
@@ -182,10 +189,69 @@ contains
          j = iLeft
          k = iRight
          do i = iLeft, iEnd !!!CHECK THE EXTENT, Also consider if n < largest sort_width
-           if((j < iRight) .and. &
-           (k > iEnd .or. particles(j)%key <= particles(k)%key)) then
-             sorting_buffer(i) = particles(j)
-             j = j + 1
+           if (j < iRight) then
+             if (k > iEnd) then
+               sorting_buffer(i) = particles(j)
+               j = j + 1
+             else if (particles(j)%key <= particles(k)%key) then
+               sorting_buffer(i) = particles(j)
+               j = j + 1 
+             else
+               sorting_buffer(i) = particles(k)
+               k = k + 1
+             end if
+           else
+             sorting_buffer(i) = particles(k)
+             k = k + 1
+           end if
+         end do
+         iLeft = iLeft + 2*sort_width
+       end do
+
+       particles = sorting_buffer
+       sort_width = 2*sort_width
+     end do
+     ! particles = copied_local_buffer
+     ! do i = 1, buffer_size
+     !   particles(i)%label = 0
+     ! end do
+
+     deallocate(sorting_buffer)
+   end subroutine
+
+   subroutine sort_particles_by_weight(particles)
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     type(t_particle), allocatable :: sorting_buffer(:)
+     integer :: i, j, k
+     integer :: sort_width, iLeft, iRight, iEnd, sorted_i, buffer_size
+
+     buffer_size = size(particles)
+     allocate(sorting_buffer(buffer_size))
+
+     !begin sorting
+     sort_width = 1
+     do while (sort_width < buffer_size)
+
+       iLeft = 1
+       do while(iLeft <= buffer_size)
+
+         iRight = MIN(iLeft + sort_width, buffer_size)
+         iEnd = MIN(iLeft + 2*sort_width-1, buffer_size)
+         j = iLeft
+         k = iRight
+         do i = iLeft, iEnd !!!CHECK THE EXTENT, Also consider if n < largest sort_width
+           if (j < iRight) then
+             if (k > iEnd) then
+               sorting_buffer(i) = particles(j)
+               j = j + 1
+             else if (abs(particles(j)%data%q) <= abs(particles(k)%data%q)) then
+               sorting_buffer(i) = particles(j)
+               j = j + 1 
+             else
+               sorting_buffer(i) = particles(k)
+               k = k + 1
+             end if
            else
              sorting_buffer(i) = particles(k)
              k = k + 1
@@ -611,9 +677,11 @@ contains
         !  call frand123NormDouble( state, mu, sigma2, res_mag )
          particles_list(index)%data%q = -1.0_8
          particles_list(index)%data%m = 1.0_8
+         particles_list(index)%data%b = 0.0_8
          particles_list(index)%data%species = 0
          particles_list(index)%data%age = 0.0_8
          particles_list(index)%work = 1.0_8
+         particles_list(index)%data%mp_int1 = 0
 
          particles_list(index)%x = center_pos
          particles_list(index)%data%v = 0.0
@@ -636,9 +704,11 @@ contains
         !  call frand123NormDouble( state, mu, sigma2, res_mag )
          particles_list(index)%data%q = -1.0_8
          particles_list(index)%data%m = 1.0_8
+         particles_list(index)%data%b = 0.0_8
          particles_list(index)%data%species = 0
          particles_list(index)%data%age = 0.0_8
          particles_list(index)%work = 1.0_8
+         particles_list(index)%data%mp_int1 = 0
 
          particles_list(index)%x = center_pos
          particles_list(index)%data%v = plane * magnitude
