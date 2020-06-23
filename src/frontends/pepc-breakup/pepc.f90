@@ -356,7 +356,7 @@ program pepc
       call MPI_ALLREDUCE(local_max_x, max_x, size(max_x), MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
       bounding_box%boxmin = min_x
       bounding_box%boxmax = max_x
-      bounding_box%boxsize = max_x - min_x 
+      bounding_box%boxsize = max_x - min_x
 
       if (tnp > 400000) then
         sibling_upper_limit = 500

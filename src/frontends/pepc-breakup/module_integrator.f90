@@ -336,14 +336,16 @@ contains
      type(linked_list_CS), pointer, intent(in) :: guide_CS
      real(kind_physics), dimension(:), intent(inout) :: sigma_vec
      integer :: i, table_rows, CS_table_no
-     real(kind_physics) :: energy
+     real(kind_physics) :: energy, scaled_mass
      type(linked_list_CS), pointer :: temp_guide
+
+     scaled_mass = particle%data%m/abs(particle%data%q)
 
      CS_table_no = 1
      temp_guide => guide_CS
      do while (associated(temp_guide))
        table_rows = size(temp_guide%CS,1)
-       energy = 0.5 * particle%data%m * e_mass * dot_product(particle%data%v,particle%data%v)
+       energy = 0.5 * scaled_mass * e_mass * dot_product(particle%data%v,particle%data%v)
       !  print *, "energy: ", energy, dot_product(particle%data%v,particle%data%v)
 
        i = 1
@@ -684,7 +686,7 @@ contains
        do j = 2, filtered_instance
          if(grouped_count(j) .ne. 0) then
            if (grouped_count(j) > 2) then
-             if (max_weight(j) > 1.0_kind_physics) then 
+             if (max_weight(j) > 1.0_kind_physics) then
                allocate(pass_buffer(grouped_count(j)))
                pass_buffer = energy_collector(j,1:grouped_count(j))
                call sort_particles_by_weight(pass_buffer)
@@ -790,7 +792,8 @@ contains
      integer, intent(inout) :: m_i
      type(t_particle) :: sum_particle
      real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
-                           Chi, rot_axis(3), w1, w2, total_weight, ave_E, mass, charge
+                           Chi, rot_axis(3), w1, w2, total_weight, ave_E, mass, charge, &
+                           v_diff, e_diff
      integer :: i, j, species, parent_key, correct_sign
 
      species = input_buffer(1)%data%species
@@ -898,11 +901,17 @@ contains
        merged_buffer(m_i)%label = group_index
        merged_buffer(m_i)%data%species = species
        merged_buffer(m_i)%data%mp_int1 = parent_key
-       ! print *, "Check V diff: ", sum_particle%data%v - &
-       !                         (w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v)
-       ! print *, "Check e diff: ", sum_particle%data%f_e(1) - &
-       !                       (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
-       !                       w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
+
+       ! merged_buffer(m_i)%data%b = sum_particle%data%v - (w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v)
+       ! v_diff = sqrt(dot_product(merged_buffer(m_i)%data%b, merged_buffer(m_i)%data%b))
+       ! if (v_diff > 1e-16_kind_physics) print *, "Noticeable Velocity Error!", v_diff
+       !
+       ! e_diff = sum_particle%data%f_e(1) - &
+       !          (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
+       !           w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
+       ! if (e_diff > 1e-16_kind_physics) print *, "Noticeable Energy Error!", e_diff
+       !
+       ! merged_buffer(m_i)%data%b = 0.0
      else
        w1 = CEILING(1.0*total_weight/2.0)
        ! Fill in values for merged particle 1
@@ -1011,7 +1020,7 @@ contains
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, rand_num(8)
-     real(kind_physics) :: weight
+     real(kind_physics) :: weight, scaled_mass
      integer :: buff_pos, i
 
      ! TODO: not a huge fan of the next 4 lines. Rather make those parameters which might help optimisation
@@ -1030,8 +1039,9 @@ contains
      ! way of computing the length and weigh that against readability, perhaps a separate inlinable function if there is a faster
      ! way?
      weight = abs(particle%data%q)
+     scaled_mass = particle%data%m/weight
      vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
-     K_E = 0.5*(particle%data%m/weight)*e_mass*vel_mag**2
+     K_E = 0.5*scaled_mass*e_mass*vel_mag**2
      nu_prime = abs_max_CS * vel_mag * neutral_density
 
      ! if ((abs(particle%data%q) .gt. 1.0_kind_physics)) then
@@ -1166,7 +1176,7 @@ contains
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*(IE_H2_ion + scatter_loss)/e_mass)
        reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
-      !  print *, "incident momentum: ", particle%data%m * reduced_incident
+      !  print *, "incident momentum: ", scaled_mass* reduced_incident
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
        ! ===========================Random Scatter==============================
@@ -1195,18 +1205,18 @@ contains
 
        ! NOTE: Scaling proper velocity magnitudes w.r.t K_E & momentum
        cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
-       temp_vel_mag = (2.*particle%data%m/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)) &
+       temp_vel_mag = (2.*scaled_mass/(guide%tmp_particles(buff_pos)%data%m + scaled_mass)) &
                       * reduced_vel_mag * cos_theta
-       temp_vel1_mag = reduced_vel_mag*sqrt(particle%data%m**2 + 2. * particle%data%m * guide%tmp_particles(buff_pos)%data%m &
-                       * (1. - 2. * (cos_theta**2)) + guide%tmp_particles(buff_pos)%data%m**2)/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)
+       temp_vel1_mag = reduced_vel_mag*sqrt(scaled_mass**2 + 2. * scaled_mass * guide%tmp_particles(buff_pos)%data%m &
+                       * (1. - 2. * (cos_theta**2)) + guide%tmp_particles(buff_pos)%data%m**2)/(guide%tmp_particles(buff_pos)%data%m + scaled_mass)
        guide%tmp_particles(buff_pos)%data%v = temp_vel * temp_vel_mag
 
-       temp_vel1 = reduced_incident - (guide%tmp_particles(buff_pos)%data%m/particle%data%m) * &
+       temp_vel1 = reduced_incident - (guide%tmp_particles(buff_pos)%data%m/scaled_mass) * &
                    guide%tmp_particles(buff_pos)%data%v
 
        particle%data%v = temp_vel1
        particle%data%age = 0.0_8
-      !  print *, "outgoing momentum: ", particle%data%m*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
+      !  print *, "outgoing momentum: ", scaled_mass*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
       !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
 
@@ -1217,7 +1227,7 @@ contains
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*(AE_H_ion+scatter_loss)/e_mass)
        reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
-      !  print *, "incident momentum: ", particle%data%m * reduced_incident
+      !  print *, "incident momentum: ", scaled_mass * reduced_incident
 
        call add_particle(guide, particle, new_particle, buff_pos, 0)
        ! temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
@@ -1244,18 +1254,18 @@ contains
 
        ! NOTE: Scaling proper velocity magnitudes w.r.t K_E & momentum
        cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
-       temp_vel_mag = (2.*particle%data%m/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)) &
+       temp_vel_mag = (2.*scaled_mass/(guide%tmp_particles(buff_pos)%data%m + scaled_mass)) &
                       * reduced_vel_mag * cos_theta
-       temp_vel1_mag = reduced_vel_mag*sqrt(particle%data%m**2 + 2. * particle%data%m * guide%tmp_particles(buff_pos)%data%m &
-                       * (1. - 2. * (cos_theta**2)) + guide%tmp_particles(buff_pos)%data%m**2)/(guide%tmp_particles(buff_pos)%data%m + particle%data%m)
+       temp_vel1_mag = reduced_vel_mag*sqrt(scaled_mass**2 + 2. * scaled_mass * guide%tmp_particles(buff_pos)%data%m &
+                       * (1. - 2. * (cos_theta**2)) + guide%tmp_particles(buff_pos)%data%m**2)/(guide%tmp_particles(buff_pos)%data%m + scaled_mass)
        guide%tmp_particles(buff_pos)%data%v = temp_vel * temp_vel_mag
 
-       temp_vel1 = reduced_incident - (guide%tmp_particles(buff_pos)%data%m/particle%data%m) * &
+       temp_vel1 = reduced_incident - (guide%tmp_particles(buff_pos)%data%m/scaled_mass) * &
                    guide%tmp_particles(buff_pos)%data%v
 
        particle%data%v = temp_vel1
        particle%data%age = 0.0_8
-      !  print *, "outgoing momentum: ", particle%data%m*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
+      !  print *, "outgoing momentum: ", scaled_mass*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
       !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
 
