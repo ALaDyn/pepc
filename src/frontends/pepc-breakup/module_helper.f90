@@ -88,7 +88,7 @@ module helper
    type(t_particle), allocatable   :: merged_particles(:)
    type(linked_list_elem), pointer :: merge_buffer_0, merge_buffer_1
    integer, allocatable :: sibling_cnt(:)
-   integer :: unique_parents, merged_cnt, actual_parts_cnt(3) ! actual count done by charge of particles and species.
+   integer :: unique_parents, merged_cnt, actual_parts_cnt(3), total_actual_parts(3)
    integer :: sibling_upper_limit, collision_checks
    real(kind_physics) :: merge_ratio,  local_min_x(3), local_max_x(3), min_x(3), max_x(3)
    type(t_box) :: bounding_box
@@ -98,7 +98,7 @@ module helper
    type(t_particle), allocatable   :: gathered_new_buffer(:)
    integer :: electron_num, i, j, new_particle_cnt, local_electron_num, swapped_num, break
    real(kind_physics) :: rank_charge_count(3), charge_count(3), &
-                         total_charge_count(3)
+                         total_charge_count(3), seed_dl(3)
    integer, allocatable :: new_particles_offset(:,:), generic_array(:)
    real(kind_physics), allocatable :: thread_charge_count(:,:)
 

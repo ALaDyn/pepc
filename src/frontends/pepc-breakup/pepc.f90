@@ -130,6 +130,7 @@ program pepc
   !  allocate(flow_count(3))
   !  allocate(total_flow_count(3))
    call set_Xi_table(trim(file_path)//"Ohkri_Xi_H2.txt", 101, Xi_table)
+   seed_dl = 0.0_kind_physics
    !=====================================================================
    call timer_stop(t_user_init)
 
@@ -339,7 +340,9 @@ program pepc
       ! if (doDiag .and. particle_output) call write_particles(particles)
 
       !=====================Particle Merging====================================
+      actual_parts_cnt = 0
       do i = 1, size(particles)
+        dummy = particles(i)%data%species + 1
         do j = 1, size(local_min_x)
           if (particles(i)%x(j) < local_min_x(j)) then
             local_min_x(j) = particles(i)%x(j)
@@ -350,17 +353,22 @@ program pepc
           end if
         end do
         particles(i)%data%mp_int1 = 0
+        actual_parts_cnt(dummy) = actual_parts_cnt(dummy) + abs(particles(i)%data%q)
       end do
+
+      if (root) total_actual_parts = 0
+      call MPI_REDUCE(actual_parts_cnt, total_actual_parts, 3, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
 
       call MPI_ALLREDUCE(local_min_x, min_x, size(min_x), MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
       call MPI_ALLREDUCE(local_max_x, max_x, size(max_x), MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
       bounding_box%boxmin = min_x
       bounding_box%boxmax = max_x
       bounding_box%boxsize = max_x - min_x
+      seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
 
       if (tnp > 400000) then
-        sibling_upper_limit = 500
-        merge_ratio = 0.75
+        sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
+        merge_ratio = 0.85
         call compute_particle_keys(bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
@@ -390,7 +398,10 @@ program pepc
       np = size(particles)
       tnp = 0
       call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
-      if (root) print *, "Total particles: ", tnp
+      if (root) then
+        print *, "Total particles: ", tnp
+        print *, "Actual species count: ", total_actual_parts
+      end if
 
       call pepc_particleresults_clear(particles)
 

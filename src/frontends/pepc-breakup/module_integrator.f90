@@ -185,7 +185,7 @@ contains
 
       R = R/(c*1e-12)
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      particle%data%b = Pol_B_field + B_field
+      particle%data%b = 0.0_kind_physics !Pol_B_field + B_field
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
@@ -621,7 +621,7 @@ contains
      type(linked_list_elem), pointer, intent(inout) :: merged_guide
      integer, intent(inout) :: merged_cnt
      integer :: i, j, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
-                merge_instance, merge_collector_size, IStart, IStop
+                merge_instance, merge_collector_size, IStart, IStop, j_start
      integer, allocatable :: grouped_count(:)
      real(kind_physics) :: kin_e, weight, vel(3)
      real(kind_physics), allocatable :: energy_threshold(:), max_weight(:)
@@ -673,17 +673,24 @@ contains
          end if
 
          ! Don't merge the particles with less than 10.0eV
-         if (f_i .eq. 1) then
-           m_i = m_i + 1
-           merged_buffer(m_i) = directional_buffer(direction,i)
-           merged_buffer(m_i)%label = 0
+         if (species .eq. 0) then
+           if (f_i .eq. 1) then
+             m_i = m_i + 1
+             merged_buffer(m_i) = directional_buffer(direction,i)
+             merged_buffer(m_i)%label = 0
+           end if
          end if
        end do
 
        ! print *, "parent_key: ", parent_key, direction, grouped_count
+       if (species .eq. 0) then
+         j_start = 2
+       else
+         j_start = 1
+       end if
 
        ! Merge the rest according to the grouped energy levels.
-       do j = 2, filtered_instance
+       do j = j_start, filtered_instance
          if(grouped_count(j) .ne. 0) then
            if (grouped_count(j) > 2) then
              if (max_weight(j) > 1.0_kind_physics) then
@@ -874,6 +881,7 @@ contains
        ! Fill in values for merged particle 1
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(1)%x
+       merged_buffer(m_i)%work = 1.0_8
        merged_buffer(m_i)%data%v = dot_product(sum_particle%data%v, max_vec)/total_weight * max_vec
        merged_buffer(m_i)%data%q = charge*w1
        merged_buffer(m_i)%data%m = mass*w1
@@ -890,6 +898,7 @@ contains
        w2 = total_weight - w1
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(2)%x
+       merged_buffer(m_i)%work = 1.0_8
        merged_buffer(m_i)%data%v = (sum_particle%data%v - w1 * merged_buffer(m_i - 1)%data%v)/w2
        merged_buffer(m_i)%data%q = charge*w2
        merged_buffer(m_i)%data%m = mass*w2
@@ -917,6 +926,7 @@ contains
        ! Fill in values for merged particle 1
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(1)%x
+       merged_buffer(m_i)%work = 1.0_8
        merged_buffer(m_i)%data%v = 0.0_kind_physics
        merged_buffer(m_i)%data%q = charge*w1
        merged_buffer(m_i)%data%m = mass*w1
@@ -932,6 +942,7 @@ contains
        w2 = total_weight - w1
        m_i = m_i + 1
        merged_buffer(m_i)%x = input_buffer(2)%x
+       merged_buffer(m_i)%work = 1.0_8
        merged_buffer(m_i)%data%v = 0.0_kind_physics
        merged_buffer(m_i)%data%q = charge*w2
        merged_buffer(m_i)%data%m = mass*w2
@@ -945,7 +956,7 @@ contains
      end if
    end subroutine resolve_elastic_merge_momentum
 
-   subroutine add_particle(guide, particle, new_particle, buffer_pos, type)
+   subroutine add_particle(guide, particle, new_particle, buffer_pos, ran, type)
      ! NOTE: A big assumption is made here: Without considering the rovibrational states
      !       of the reaction products, generated particle doesn`t store their own internal
      !       energy value. Instead, the reaction energy is entirely converted into kinetic E.
@@ -955,6 +966,7 @@ contains
      type(t_particle), intent(in) :: particle
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, buffer_pos
+     real(kind_physics), intent(in) :: ran(8)
      integer, intent(in) :: type
      integer :: ll_elem_gen
 
@@ -994,7 +1006,13 @@ contains
 
      end select
 
-     guide%tmp_particles(buffer_pos)%x = particle%x
+     if (type .eq. 0) then
+       guide%tmp_particles(buffer_pos)%x(1) = particle%x(1) + (2.0*ran(6) - 1.0)*seed_dl(1)
+       guide%tmp_particles(buffer_pos)%x(2) = particle%x(2) + (2.0*ran(7) - 1.0)*seed_dl(2)
+       guide%tmp_particles(buffer_pos)%x(3) = particle%x(3) + (2.0*ran(8) - 1.0)*seed_dl(3)
+     else
+       guide%tmp_particles(buffer_pos)%x = particle%x
+     end if
      guide%tmp_particles(buffer_pos)%work = 1.0_8
      guide%tmp_particles(buffer_pos)%data%age = 0.0_8
      guide%tmp_particles(buffer_pos)%data%b = 0.0_kind_physics
@@ -1178,7 +1196,7 @@ contains
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
       !  print *, "incident momentum: ", scaled_mass* reduced_incident
 
-       call add_particle(guide, particle, new_particle, buff_pos, 0)
+       call add_particle(guide, particle, new_particle, buff_pos, rand_num, 0)
        ! ===========================Random Scatter==============================
        ! temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
        ! temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
@@ -1220,7 +1238,7 @@ contains
       !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
 
-       call add_particle(guide, particle, new_particle, buff_pos, 2)
+       call add_particle(guide, particle, new_particle, buff_pos, rand_num, 2)
       !  print *, "nondissoc.!"
 
      case(5) ! dissociative ionization (1 additional electron, 2 byproducts), Hydrogen atom is ignored!
@@ -1229,7 +1247,7 @@ contains
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
       !  print *, "incident momentum: ", scaled_mass * reduced_incident
 
-       call add_particle(guide, particle, new_particle, buff_pos, 0)
+       call add_particle(guide, particle, new_particle, buff_pos, rand_num, 0)
        ! temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
        ! temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
        ! temp_vel(3) = cos(polar_phi*0.5)
@@ -1269,7 +1287,7 @@ contains
       !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
 
-       call add_particle(guide, particle, new_particle, buff_pos, 1)
+       call add_particle(guide, particle, new_particle, buff_pos, rand_num, 1)
       !  print *, "dissoc.!"
 
      end select
