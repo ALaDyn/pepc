@@ -96,9 +96,9 @@ module helper
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
    type(t_particle), allocatable   :: gathered_new_buffer(:)
-   integer :: electron_num, i, j, new_particle_cnt, local_electron_num, swapped_num, break
-   real(kind_physics) :: rank_charge_count(3), charge_count(3), &
-                         total_charge_count(3), seed_dl(3)
+   integer :: electron_num, i, j, new_particle_cnt, local_electron_num, swapped_num, break, virtual_particle_cnt(2)
+   real(kind_physics) :: rank_charge_count(5), charge_count(5), &
+                         total_charge_count(5), seed_dl(3)
    integer, allocatable :: new_particles_offset(:,:), generic_array(:)
    real(kind_physics), allocatable :: thread_charge_count(:,:)
 
@@ -123,8 +123,9 @@ module helper
 
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), allocatable :: Xi_table(:,:)
-   integer :: total_cross_sections
+   integer :: total_cross_sections, eirene_cross_sections
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure
+   real(kind_physics), allocatable :: eirene_coeffs1(:), eirene_coeffs2(:)
 
    ! lookup tables for cross section data
    character(255) :: file_path

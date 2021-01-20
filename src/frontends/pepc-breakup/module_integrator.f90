@@ -314,6 +314,57 @@ contains
      close(file_id)
    end subroutine set_cross_section_table
 
+   subroutine set_eirene_coeffs(fname, file_id, coeffs)
+     implicit none
+     real(kind_physics), allocatable, intent(inout) :: coeffs(:)
+     real(kind_physics) :: emin, emax
+     character(len = *), intent(in) :: fname
+     integer, intent(in) :: file_id
+     integer :: entries, i
+
+     open(file_id,file=fname,action='READ')
+     read(file_id,*) ! Skipping first line
+     read(file_id,*) entries, emin, emax ! Number of entries in data
+
+     allocate(coeffs(entries+2))
+     coeffs(1) = emin
+     coeffs(2) = emax
+
+     do i = 3, entries+2
+       read(file_id,*) coeffs(i)
+     end do
+     close(file_id)
+   end subroutine set_eirene_coeffs
+
+   subroutine Eirene_fit(coeffs, E, cross_sec, CS_index)
+     real(kind_physics), allocatable, intent(in) :: coeffs(:)
+     real(kind_physics), dimension(:), intent(inout) :: cross_sec
+     real(kind_physics), intent(in) :: E
+     real(kind_physics) :: ln_E, ln_sigma, Emin, Emax
+     integer, intent(inout) :: CS_index
+     integer :: i, n, starting_index
+     ! E in eV, Emin & Emax describe the valid region. Any E outside of the range
+     ! gives 0.0 cross section value. Note that the computed sigma by Eirene
+     ! is at the unit of cm^2. Remember to non-dimensionalise!
+     ln_sigma = 0.0
+     ln_E = log(E)
+     n = size(coeffs)
+     Emin = coeffs(1)
+     Emax = coeffs(2)
+     starting_index = 3
+
+     if ((E < Emin) .or. (E > Emax)) then
+       cross_sec(CS_index) = 0.0
+     else
+       do i = starting_index, n
+         ln_sigma = ln_sigma + coeffs(i)*ln_E**(i-starting_index)
+       end do
+       ln_sigma = ln_sigma - log(1e-16)
+       cross_sec(CS_index) = cross_sec(CS_index-1) + exp(ln_sigma)*10000.0/(c**2) ! non-dimensionalise.
+     end if
+     CS_index = CS_index + 1
+   end subroutine Eirene_fit
+
    subroutine determine_absolute_max_CS(guide_CS, max_CS)
      implicit none
      type(linked_list_CS), pointer, intent(in) :: guide_CS
@@ -1027,25 +1078,28 @@ contains
      new_particle = new_particle + 1
    end subroutine add_particle
 
-   subroutine collision_update(particle, guide, new_particle, electron_count, CS_numbers, r123_ctr, r123_key)
+   subroutine collision_update(particle, guide, new_particle, electron_count, CS_numbers, r123_ctr, r123_key, charge_count)
      implicit none
      type(t_particle), intent(inout) :: particle
      type(linked_list_elem), pointer, intent(inout) :: guide
      integer, intent(inout) :: new_particle, electron_count
      integer(kind=int32), intent(inout) :: r123_ctr(4), r123_key(4)
      integer, intent(in) :: CS_numbers
+     real(kind_physics), intent(inout) :: charge_count(5)
      real(kind_physics), dimension(:), allocatable :: CS_vector
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, rand_num(8)
-     real(kind_physics) :: weight, scaled_mass
-     integer :: buff_pos, i
+     real(kind_physics) :: weight, scaled_mass, Disso_H1, Disso_H2
+     integer :: buff_pos, i, CS_index
 
      ! TODO: not a huge fan of the next 4 lines. Rather make those parameters which might help optimisation
      R_J02 = 0.0441 ! eV, transition energy associated with rotational excitation from J = 0 -> 2
      V_V01 = 0.516 ! eV, transition energy associated with vibrational excitation from V = 0 -> 1
      IE_H2_ion = 15.426 ! 15.283 eV, Ionization energy of H2+ [Source: T.E.Sharp Atomic Data 2, 119-169 (1971)]. 15.426 by Yoon 2008
      AE_H_ion = 18.075 ! eV, Appearance energy of H+, 18.1 by Yoon 2008
+     Disso_H1 = 4.47787 !eV, H dissociation energy H(1s) + H(1s)
+     Disso_H2 = 14.676 !eV, H dissociation energy H(1s) + H(2s)
      H2_mass = 3674.43889456_8 ! H2/e mass ratio
      ! [definition of Appearance energy vs Ionization energy from Mass Spectroscopy (2011) by Gross J.H.]
 
@@ -1074,9 +1128,12 @@ contains
 
     !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
      if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
-       allocate(CS_vector(CS_numbers))
+       allocate(CS_vector(total_cross_sections))
        call determine_cross_sections(particle, CS_vector, CS_tables)
        call determine_xi(K_E, xi)
+       CS_index = total_cross_sections - eirene_cross_sections + 1
+       call Eirene_fit(eirene_coeffs1, K_E, CS_vector, CS_index)
+       call Eirene_fit(eirene_coeffs2, K_E, CS_vector, CS_index)
 
        !======================== For use in random scatter ================
        polar_theta = 2.0*pi*rand_num(4)
@@ -1290,6 +1347,65 @@ contains
        call add_particle(guide, particle, new_particle, buff_pos, rand_num, 1)
       !  print *, "dissoc.!"
 
+    case(6) ! H2 molecule dissociation into H(1s) atoms (no additional electron, no byproducts)
+       ! update velocity to indicate scattering into random angle
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H1 + scatter_loss)/e_mass)
+       ! particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
+       ! particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
+       ! particle%data%v(3) = vel_mag * cos(polar_phi)
+
+       ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+       rot_axis = 0.0
+       rot_axis(1) = 1.0
+       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       temp_vel = cross_product(unit_inc_vel, rot_axis)
+       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       prefac = sin(Chi)/sin(polar_phi)
+
+       particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+                         sin(polar_theta)*prefac*temp_vel + &
+                         cos(polar_theta)*prefac*temp_vel1)
+
+       ! =======Anti Parallel Scattering ============================
+       ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
+       particle%data%age = 0.0_8
+      !  print *, "elastic coll.!"
+      !NOTE: remember to add a H atom counter, note that it is required to consider the
+      !      enveloping Openmp operation, as well as the MPI implementation!
+      !      Consider extending 'thread_charge_count' by 1 field.
+      charge_count(4) = charge_count(4) + 2
+
+    case(7) ! H2 molecule dissociation into H(1s) & H(2s) atoms (no additional electron, no byproducts)
+      ! update velocity to indicate scattering into random angle
+      reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H2 + scatter_loss)/e_mass)
+      ! particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
+      ! particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
+      ! particle%data%v(3) = vel_mag * cos(polar_phi)
+
+      ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+      rot_axis = 0.0
+      rot_axis(1) = 1.0
+      polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+      temp_vel = cross_product(unit_inc_vel, rot_axis)
+      temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+      prefac = sin(Chi)/sin(polar_phi)
+
+      particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+                        sin(polar_theta)*prefac*temp_vel + &
+                        cos(polar_theta)*prefac*temp_vel1)
+
+      ! =======Anti Parallel Scattering ============================
+      ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
+      particle%data%age = 0.0_8
+      !   print *, "elastic coll.!"
+      !NOTE: remember to add a H atom counter, note that it is required to consider the
+      !      enveloping Openmp operation, as well as the MPI implementation!
+      !      Consider extending 'thread_charge_count' by 1 field.
+      charge_count(4) = charge_count(4) + 1
+      charge_count(5) = charge_count(5) + 1
+
      end select
      particle%label = 0
    end subroutine collision_update
@@ -1298,7 +1414,7 @@ contains
      implicit none
      type(t_particle), allocatable, intent(inout) :: particles(:)
      integer, intent(inout) :: swapped_cnt, break_check
-     real(kind_physics), intent(inout) :: charge_count(3)
+     real(kind_physics), intent(inout) :: charge_count(5)
      integer, intent(in) :: geometry, current_index, head_i, tail_i
      integer :: target_swap, init_swap_cnt!, buffer_size
      real(kind_physics) :: center_pos(3)

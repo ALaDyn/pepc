@@ -90,16 +90,6 @@ program pepc
 
    else
      itime_in = 0
-
-     ctr_s(1) = (my_rank + 1)*np
-     ctr_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+11), kind=int32),100**(my_rank+1))
-     ctr_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+11), kind=int32),100**(my_rank+1))
-     ctr_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+11), kind=int32),100**(my_rank+1))
-     key_s(1) = (my_rank + 1)*n_ranks
-     key_s(2) = MOD(CEILING(sqrt(2.0)*10**(my_rank+7), kind=int32),100**(my_rank+1))
-     key_s(3) = MOD(CEILING(0.5*(1+sqrt(5.0))*10**(my_rank+7), kind=int32),100**(my_rank+1))
-     key_s(4) = MOD(CEILING(sqrt(3.0)*10**(my_rank+7), kind=int32),100**(my_rank+1))
-
      call init_particles(particles, sim_type)
      ! call torus_diagnostic_xz_grid(major_radius, minor_radius, 8, particles)
      ! call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 9, particles)
@@ -126,7 +116,10 @@ program pepc
    call set_cross_section_table(trim(file_path)//"vibrational_excitation_v_0_1.txt", CS_guide, 13, 0)
    call set_cross_section_table(trim(file_path)//"Ext_nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
    call set_cross_section_table(trim(file_path)//"Ext_dissociative_ionization_H+.txt", CS_guide, 15, 1)
-   total_cross_sections = 5
+   call set_eirene_coeffs(trim(file_path)//"disso_2xH(1s).txt", 11, eirene_coeffs1)
+   call set_eirene_coeffs(trim(file_path)//"disso_H(1s)_H(2s).txt", 12, eirene_coeffs2)
+   total_cross_sections = 7
+   eirene_cross_sections = 2
   !  allocate(flow_count(3))
   !  allocate(total_flow_count(3))
    call set_Xi_table(trim(file_path)//"Ohkri_Xi_H2.txt", 101, Xi_table)
@@ -162,7 +155,7 @@ program pepc
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
-
+   virtual_particle_cnt = 0
    do step = 0, nt - 1
       if (root) then
          write (*, *) " "
@@ -177,7 +170,7 @@ program pepc
 
       call timer_start(t_boris)
       allocate(new_particles_offset(init_omp_threads, 4))
-      allocate(thread_charge_count(init_omp_threads, 3))
+      allocate(thread_charge_count(init_omp_threads, 5))
       allocate(generic_array(init_omp_threads))
       rank_charge_count = 0.0
       total_charge_count = 0.0
@@ -244,7 +237,9 @@ program pepc
             collision_checks = floor(abs(particles(i)%data%q))
             j = 0
             do while (j < collision_checks)
-              call collision_update(particles(i), particle_guide, new_particle_cnt, electron_num, total_cross_sections, ctr_s, key_s)
+              call collision_update(particles(i), particle_guide, new_particle_cnt, &
+                                    electron_num, total_cross_sections, ctr_s, key_s, &
+                                    charge_count)
               j = j + 1
             end do
          end if
@@ -262,9 +257,7 @@ program pepc
       new_particles_offset((thread_id + 1),2) = swapped_num
       new_particles_offset((thread_id + 1),3) = IStart
       new_particles_offset((thread_id + 1),4) = IStop - swapped_num - IStart
-      thread_charge_count((thread_id + 1),1) = charge_count(1)
-      thread_charge_count((thread_id + 1),2) = charge_count(2)
-      thread_charge_count((thread_id + 1),3) = charge_count(3)
+      thread_charge_count((thread_id + 1),:) = charge_count(:)
       !$OMP BARRIER
 
       !================Gathering totals of filtered and new particles===========
@@ -272,9 +265,7 @@ program pepc
         do i = 2, omp_threads
           new_particles_offset(i,1) = new_particles_offset(i,1) + new_particles_offset((i-1),1)
           new_particles_offset(i,2) = new_particles_offset(i,2) + new_particles_offset((i-1),2)
-          thread_charge_count(i,1) = thread_charge_count(i,1) + thread_charge_count((i-1),1)
-          thread_charge_count(i,2) = thread_charge_count(i,2) + thread_charge_count((i-1),2)
-          thread_charge_count(i,3) = thread_charge_count(i,3) + thread_charge_count((i-1),3)
+          thread_charge_count(i,:) = thread_charge_count(i,:) + thread_charge_count((i-1),:)
           generic_array(i) = new_particles_offset(i,1)
         end do
 
@@ -310,10 +301,12 @@ program pepc
       deallocate(new_particles_offset)
       deallocate(thread_charge_count)
 
-      call MPI_REDUCE(rank_charge_count, total_charge_count, 3, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+      call MPI_REDUCE(rank_charge_count, total_charge_count, 5, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       if (root) then
-        print *, "SUMMED CHARGE COUNT: ", total_charge_count(1), total_charge_count(2), total_charge_count(3)
+        print *, "SUMMED CHARGE COUNT: ", total_charge_count(1:3)
       end if
+      virtual_particle_cnt(1) = virtual_particle_cnt(1) + int(total_charge_count(4))
+      virtual_particle_cnt(2) = virtual_particle_cnt(2) + int(total_charge_count(5))
 
       if (root) then
         if ((new_particle_cnt > 0) .or. (swapped_num /= 0 .or. electron_num /= 0)) then
@@ -400,7 +393,7 @@ program pepc
       call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (root) then
         print *, "Total particles: ", tnp
-        print *, "Actual species count: ", total_actual_parts
+        print *, "Actual species count: ", total_actual_parts, virtual_particle_cnt
       end if
 
       call pepc_particleresults_clear(particles)
