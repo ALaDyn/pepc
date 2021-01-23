@@ -228,22 +228,37 @@ contains
    subroutine boris_velocity_update(particle, dt)
       implicit none
       type(t_particle), intent(inout) :: particle
-      real*8, intent(in) :: dt
-      real*8 :: Vm(3), Vd(3), Vp(3), tan_w(3), sin_w(3), V_cross(3), V_init(3)
-      real*8 :: half_dt, q_m_ratio
+      real(kind_physics), intent(in) :: dt
+      real(kind_physics) :: Vm(3), Vd(3), Vp(3), tan_w(3), sin_w(3), V_cross(3), V_init(3)
+      real(kind_physics) :: half_dt, q_m_ratio, Vm_par(3), B_unit_vec(3), theta, B_mag
+
       V_init = particle%data%v
       half_dt = dt*0.5_8
-
       q_m_ratio = particle%data%q*half_dt/particle%data%m
 
       Vm = particle%data%v + E_q_dt_m*particle%results%e*q_m_ratio
-      tan_w = particle%data%b*q_m_ratio
-      sin_w = 2.0_8*tan_w/(1 + dot_product(tan_w, tan_w))
 
-      V_cross = cross_product(Vm, tan_w)
-      Vd = Vm + V_cross
-      V_cross = cross_product(Vd, sin_w)
-      Vp = Vm + V_cross
+      !! NOTE: Boris-B Implementation with uncorrected gyrophase error
+      ! tan_w = particle%data%b*q_m_ratio
+      ! sin_w = 2.0_8*tan_w/(1 + dot_product(tan_w, tan_w))
+
+      ! V_cross = cross_product(Vm, tan_w)
+      ! Vd = Vm + V_cross
+      ! V_cross = cross_product(Vd, sin_w)
+      ! Vp = Vm + V_cross
+
+      ! NOTE: Boris-C implementation by Zenitani and Umeda 2018
+      B_mag = sqrt(dot_product(particle%data%b, particle%data%b))
+      if (B_mag > 0.0_kind_physics) then
+        B_unit_vec = particle%data%b/B_mag
+        theta = particle%data%q*dt*B_mag/particle%data%m
+        Vm_par = dot_product(Vm, B_unit_vec)*B_unit_vec
+        Vp = Vm_par + (Vm - Vm_par)*cos(theta) + cross_product(Vm, B_unit_vec)*sin(theta)
+      else
+        B_unit_vec = 0.0
+        theta = 0.0
+        Vp = Vm
+      end if
 
       particle%data%v = Vp + E_q_dt_m*particle%results%e*q_m_ratio
 
@@ -1344,6 +1359,7 @@ contains
       !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
 
+       charge_count(4) = charge_count(4) + 1
        call add_particle(guide, particle, new_particle, buff_pos, rand_num, 1)
       !  print *, "dissoc.!"
 
