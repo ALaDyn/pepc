@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # Copyright (C) 2006-2007 Matthew West
 # Licensed under the GNU General Public License version 2 or (at your
 # option) any later version. See the file COPYING for details.
@@ -6,7 +6,7 @@
 import re, sys, os, getopt
 
 def usage():
-    print """f90_mod_deps.py [options] <file ...>
+    print("""f90_mod_deps.py [options] <file ...>
 
 Generates dependencies for the given Fortran 90 source files based on
 module and use statements in them. Options are:
@@ -47,7 +47,7 @@ Example:
 f90_mod_deps.py --output src/myfile.deps --dep-re "(pmc_.*)" \\
       --dep-template "src/\1.mod" --mod-re "(.*)" \\
       --mod-template "src/\1.mod" src/myfile.f90
-"""
+""")
 
 # default options
 class Opts:
@@ -81,7 +81,7 @@ def get_deps_and_mods(filename, opts):
     mods = []
     f = open(filename)
     if not f:
-        print "ERROR: unable to open %s%s" % filename
+        print("ERROR: unable to open %s%s" % filename)
         sys.exit(1)
     use_line_re = re.compile("^\s*use\s+([a-z][a-z0-9_]+)", re.IGNORECASE)                               # 1: new by ab: takes only one valid module name ([a-z][a-z0-9_]+), almost following
                                                                                                          #  the fortran 2008 standard (ftp://ftp.nag.co.uk/sc22wg5/N1801-N1850/N1830.pdf, p.273)
@@ -135,7 +135,7 @@ def process_args():
                                     "dep-template=", "mod-re=",
                                     "mod-template=", "o-prefix=", "verbose"])
     except getopt.GetoptError:
-        print "ERROR: invalid commandline options"
+        print("ERROR: invalid commandline options")
         usage()
         sys.exit(1)
     myopts = Opts()
