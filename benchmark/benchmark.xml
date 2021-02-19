@@ -27,83 +27,113 @@
       <!-- test for system, only cluster part possible, use tag for booster -->
       <parameterset name="system">
          <parameter name="systemname" mode="shell">printf "%s" `cat /etc/FZJ/systemname`</parameter>
+         <parameter tag="booster" name="systemname">KNL</parameter>
+         <parameter name="partition" mode="python">{
+            "juwels": "batch",
+            "jureca": "batch",
+            "jurecadc": "dc-cpu",
+            "jusuf": "batch",
+            "KNL": "booster"}["${systemname}"]
+         </parameter>
       </parameterset>
       <!-- loop over different stages to test those -->
       <parameterset name="stageset">
          <!-- a list of possible MPI libraries we can try -->
          <parameter                      name="impi"></parameter>
-         <parameter tag="allmpi,intel"   name="impi">impi</parameter>
+         <parameter tag="allmpi|intel"   name="impi">impi</parameter>
          <parameter                      name="ipsmpi"></parameter>
-         <parameter tag="allmpi,ips"     name="ipsmpi">ipsmpi</parameter>
+         <parameter tag="allmpi|ips"     name="ipsmpi">ipsmpi</parameter>
          <parameter                      name="psmpi"></parameter>
-         <parameter tag="allmpi,ps"      name="psmpi">psmpi</parameter>
+         <parameter tag="allmpi|ps"      name="psmpi">psmpi</parameter>
          <parameter                      name="mvapich"></parameter>
-         <parameter tag="allmpi,mvapich" name="mvapich">mvapich</parameter>
+         <parameter tag="allmpi|mvapich" name="mvapich">mvapich</parameter>
          <parameter                      name="ompi"></parameter>
-         <parameter tag="allmpi,ompi"    name="ompi">ompi</parameter>
+         <parameter tag="allmpi|ompi"    name="ompi">ompi</parameter>
          <!-- combine all MPIs to single parameter to loop over if tags present, otherwise use all three -->
-         <parameter tag="!booster,intel,ips,ps,mvapich,ompi,allmpi" name="list_of_mpis" mode="python">
+         <parameter tag="!booster+(intel|ips|ps|mvapich|ompi|allmpi)" name="list_of_mpis" mode="python">
             ",".join([i for i in "${impi} ${ipsmpi} ${psmpi} ${ompi} ${mvapich}".split(" ") if len(i) > 0])
          </parameter>
-         <parameter tag="!booster,!intel,!ips,!ps,!mvapich,!ompi" name="list_of_mpis" mode="python">
+         <parameter tag="!booster+!intel+!ips+!ps+!mvapich+!ompi" name="list_of_mpis" mode="python">
             ",".join([i for i in "impi ipsmpi psmpi ompi mvapich".split(" ") if len(i) > 0])
          </parameter>
          <parameter tag="booster" name="list_of_mpis" mode="python">
-            ",".join([i for i in "${psmpi}".split(" ") if len(i) > 0])
+            ",".join([i for i in "psmpi".split(" ") if len(i) > 0])
          </parameter>
          <!-- prepare module load commands -->
-         <parameter tag="!booster" name="load_modules" mode="python">{
+         <parameter name="load_modules" mode="python">{
             "juwels": {
                            "impi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2019a; module load Intel/2019.3.199-GCC-8.3.0 IntelMPI/2019.3.199", 
-                           "ipsmpi": "module purge; module load intel-para", 
-                           "psmpi": "module purge; module load GCC ParaStationMPI", 
-                           "ompi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/Devel-2018b; module load GCC/7.3.0 OpenMPI/4.0.0", 
+                           "ipsmpi": "module purge; module load intel-para",
+                           "psmpi": "module purge; module load GCC ParaStationMPI",
+                           "ompi": "module purge; module load GCC OpenMPI/4.0.1",
                            "mvapich": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR; export LD_LIBRARY_PATH=/gpfs/software/juwels/stages/2018b/software/CUDA/9.2.88/lib64/stubs/:${LD_LIBRARY_PATH}"
                       }["${list_of_mpis}"],
             "jureca": {
-                           "impi": "module purge; module load Intel IntelMPI", 
-                           "ipsmpi": "module purge; module load Intel/2019.0.117-GCC-7.3.0 ParaStationMPI/5.2.1-1-mt", 
-                           "psmpi": "module purge; module load GCC ParaStationMPI", 
-                           "ompi": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/Devel-2018b; module load GCC/7.3.0 OpenMPI/4.0.0", 
+                           "impi": "module purge; module load Intel IntelMPI",
+                           "ipsmpi": "module purge; module load Intel/2019.0.117-GCC-7.3.0 ParaStationMPI/5.2.1-1-mt",
+                           "psmpi": "module purge; module load GCC ParaStationMPI",
+                           "ompi": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/Devel-2019a; module load GCC/8.3.0 OpenMPI/4.0.1",
                            "mvapich": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR"
+                      }["${list_of_mpis}"],
+            "jurecadc": {
+                           "impi": "module purge; module load Intel IntelMPI",
+                           "ipsmpi": "module purge; module load Intel ParaStationMPI",
+                           "psmpi": "module purge; module load GCC ParaStationMPI",
+                           "ompi": "module purge; module load GCC OpenMPI",
+                      }["${list_of_mpis}"],
+            "jusuf": {
+                           "impi": "module purge; module load Intel IntelMPI",
+                           "ipsmpi": "module purge; module load Intel ParaStationMPI",
+                           "psmpi": "module purge; module load GCC ParaStationMPI",
+                           "ompi": "module purge; module load GCC OpenMPI",
+                      }["${list_of_mpis}"],
+            "KNL": {
+                           "impi": "module purge; module load Architecture/KNL; module load Intel IntelMPI",
+                           "psmpi": "module purge; module load Architecture/KNL; module load GCC ParaStationMPI",
+                           "ompi": "module purge; module load Architecture/KNL; module load GCC OpenMPI"
                       }["${list_of_mpis}"],
             }["${systemname}"]
          </parameter>
-         <parameter tag="booster" name="load_modules" mode="python">{
-            "psmpi": "module purge; module load Architecture/KNL; module load GCC ParaStationMPI"}["${list_of_mpis}"]
-         </parameter>
          <!-- get name for job script based on MPI library used -->
-         <parameter name="job_script" mode="python">{"ompi": "job.ompi.slurm.skel"}.get("${list_of_mpis}","job.slurm.skel")</parameter>
+         <parameter name="job_script" mode="python">{"old_ompi": "job.ompi.slurm.skel"}.get("${list_of_mpis}","job.slurm.skel")</parameter>
          <!-- get name for makefile on MPI (compiler, really) library used -->
-         <parameter name="makefile" mode="python">{"ipsmpi": "makefile.defs_intel", "impi": "makefile.defs_intel"}.get("${list_of_mpis}","makefile.defs_gcc")</parameter>
+         <parameter name="makefile" mode="python">{"ipsmpi": "makefiles/makefile.defs.Intel", "impi": "makefiles/makefile.defs.Intel"}.get("${list_of_mpis}","makefiles/makefile.defs.GCC")</parameter>
       </parameterset>
       <!-- node configuration: #nodes, #ranks per node, #threads per rank -->
       <parameterset name="nodeset">
          <parameter                name="nodes" type="int">-1</parameter>
          <!-- Juwels has 2 x 24 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
          <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
-         <parameter tag="!booster" name="nodes" type="int" mode="python">{
-            "juwels": "8, 16, 32, 48, 64, 96, 128",
-            "jureca": "32, 48, 64, 96, 128, 192, 256"}["${systemname}"]
-         </parameter>
+         <!-- Jureca-DC has 2 x 64 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
          <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
-         <parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter>
+         <parameter name="nodes" type="int" mode="python">{
+            "juwels": "2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160",
+            "jureca": "32, 64, 96, 128",
+            "jurecadc": "2, 4, 8, 16, 24",
+            "jusuf": "2, 4",
+            "KNL": "4, 8"}["${systemname}"]
+         </parameter>
+         <!--parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter-->
          <!-- the check has be 'designed' for Jureca and 12 nodes, stick to the number of nodes at least -->
          <parameter tag="check"    name="nodes" type="int">12</parameter>
          <!-- set the number of task per node, with dual socket ccNUMA, 2 could be a good option -->
          <!-- with 2 memory interfaces per CPU and dual socket, 4 could be a good option -->
          <!-- 4 will likely also make sense for the booster, given the quadrants, more may be beneficial however -->
          <parameter tag="!booster" name="taskspnode" type="int">4</parameter>
-         <parameter tag="booster"  name="taskspnode" type="int">8</parameter>
+         <parameter tag="booster"  name="taskspnode" type="int">2, 4</parameter>
          <!-- change HWT to the number of hardware threads you want PEPC to use -->
-         <parameter tag="!booster" name="threads" mode="python" type="int">{
+         <parameter name="threads" mode="python" type="int">{
             "juwels": ",".join(str(int(HWT/${taskspnode})) for HWT in [96]),
-            "jureca": ",".join(str(int(HWT/${taskspnode})) for HWT in [48])}["${systemname}"]
+            "jureca": ",".join(str(int(HWT/${taskspnode})) for HWT in [48]),
+            "jurecadc": ",".join(str(int(HWT/${taskspnode})) for HWT in [256]),
+            "jusuf": ",".join(str(int(HWT/${taskspnode})) for HWT in [128]),
+            "KNL": ",".join(str(int(HWT/${taskspnode})) for HWT in [136])}["${systemname}"]
          </parameter>
-         <parameter tag="booster"  name="threads" mode="python" type="int">",".join(str(int(HWT/${taskspnode})) for HWT in [136])</parameter>
          <!-- define how many SMT threads we want to use per rank -->
          <parameter tag="!booster" name="thread_places" mode="python" type="int">{
             "juwels": 2 if ($threads*$taskspnode)>48 else 1,
+            "jurecadc": 2 if ($threads*$taskspnode)>128 else 1,
+            "jusuf": 2 if ($threads*$taskspnode)>128 else 1,
             "jureca": 2 if ($threads*$taskspnode)>24 else 1}["${systemname}"]
          </parameter>
          <parameter tag="booster"  name="thread_places" mode="python" type="int">4 if ($threads*$taskspnode)>136 else ( 2 if ($threads*$taskspnode)>68 else 1 )</parameter>
@@ -116,7 +146,7 @@
          <parameter               name="mode" type="string">benchmark</parameter>
          <parameter tag="check"   name="mode" type="string">test</parameter>
          <!-- strong scaling with constant number of particles -->
-         <parameter               name="particles" type="int">100000000</parameter>
+         <parameter               name="particles" type="int">50000000</parameter>
          <!-- weak scaling with constant number of particles per thread -->
          <parameter tag="weak"    name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
          <!-- the check run has a set number of particles, don't touch settings below -->
@@ -155,7 +185,7 @@
          <sub source="##THREADS##" dest="$workerthreads" />
          <sub source="##DIAG##" dest=".false." />
          <sub source="##DT##" dest="0.1e-1" />
-         <sub source="##NT##" dest="25" />
+         <sub source="##NT##" dest="10" />
          <sub source="##NPARTICLES##" dest="$particles" />
       </substituteset>
       <!-- correctness test -->
@@ -172,6 +202,7 @@
       </substituteset>
       <substituteset name="runsub">
          <iofile in="${job_script}" out="job.slurm" />
+         <sub source="##PARTITION##" dest="$partition" />
          <sub source="##NODES##" dest="$nodes" />
          <sub source="##TASKSPNODE##" dest="$taskspnode" />
          <sub source="##THREADS##" dest="$threads" />
@@ -194,6 +225,7 @@
          <use>walkset</use>
          <use tag="!nocompile">walksub</use>
          <use tag="!nocompile">sources</use>
+         <do tag="booster">sed -ie 's/^FARCH =.*$/FARCH = -march=knl -mtune=knl -mprefetchwt1 -mavx512f -mavx512er -mavx512cd -mavx512pf -malign-data=cacheline/' makefile.defs</do>
          <!-- compile sources -->
          <do tag="!nocompile" done_file="bin/pepc-benchmark">module list; make allclean pepc-benchmark</do>
          <!-- copy binary back onto original source tree -->
@@ -231,11 +263,11 @@
       <!-- Regex pattern -->
       <patternset tag="!check" name="timing_pattern">
          <pattern unit="secs" name="wallclock"     type="float"              >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_walk"     type="float"              >====== tree walk time  :\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_grow"     type="float"              >====== tree grow time  :\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="comm_recv"     type="float"              >====== tree comm recv  :\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="comm_reqs"     type="float"              >====== tree comm reqs  :\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="step_time"     type="float"              >== time in step.*:\s+${jube_pat_fp}</pattern>
+         <pattern unit="secs" name="tree_walk"     type="float"              >====== tree walk time\s+:\s+${jube_pat_fp}</pattern>
+         <pattern unit="secs" name="tree_grow"     type="float"              >====== tree grow time\s+:\s+${jube_pat_fp}</pattern>
+         <pattern unit="secs" name="comm_recv"     type="float"              >====== tree comm recv\s+:\s+${jube_pat_fp}</pattern>
+         <pattern unit="secs" name="comm_reqs"     type="float"              >====== tree comm reqs\s+:\s+${jube_pat_fp}</pattern>
+         <pattern unit="secs" name="step_time"     type="float"              >== time in step\s+\[s\]\s+:\s+${jube_pat_fp}</pattern>
          <pattern unit="secs" name="sum_steps"     type="float" mode="python">${step_time_sum}-${step_time}</pattern>
          <pattern unit=""     name="total_threads" type="int"   mode="python">${nodes}*${taskspnode}*${threads}</pattern>
          <pattern unit=""     name="part_per_thrd" type="float" mode="python">${particles}/(${nodes}*${taskspnode}*${workerthreads})</pattern>
@@ -256,8 +288,8 @@
        -->
       <patternset tag="check" name="timing_pattern">
          <pattern unit="secs" name="wallclock" type="float" >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_walk" type="float" >====== tree walk time  :\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_grow" type="float" >====== tree grow time  :\s+${jube_pat_fp}</pattern>
+         <pattern unit="secs" name="tree_walk" type="float" >====== tree walk time\s+:\s+${jube_pat_fp}</pattern>
+         <pattern unit="secs" name="tree_grow" type="float" >====== tree grow time\s+:\s+${jube_pat_fp}</pattern>
          <pattern unit="secs" name="step_time" type="float" >== time in step.*:\s+${jube_pat_fp}</pattern>
          <pattern             name="l2_test"   type="float" >== \[direct test\] L2 error in probed particles\s+:\s+${jube_pat_fp}</pattern>
          <pattern unit="a.u." name="egy_tot"   type="float" >== \[energies\]\s+energy:\s+${jube_pat_fp}</pattern>
@@ -310,7 +342,7 @@
       </analyser>
 
       <!-- Create result table -->
-      <result tag="longresult">
+      <result tag="longresult+!check">
          <use>analysis</use> <!-- use existing analyser -->
          <table name="result" style="pretty" sort="threads">
             <column                           title="job"          >jube_benchmark_padid</column>
@@ -335,13 +367,14 @@
             <column              format=".2f"                      >step_time_max</column>
             <column              format=".3f"                      >step_time_avg</column>
             <column              format=".2f"                      >step_time_min</column>
+            <column              format=".2f"                      >sum_steps</column>
             <column tag="stats"  format=".2f"                      >wallclock_avg</column>
             <column tag="stats"  format=".2f"                      >wallclock_min</column>
             <column tag="stats"                                    >wallclock_cnt</column>
             <column tag="!stats" format=".2f"                      >wallclock</column>
          </table>
       </result>
-      <result tag="longresult">
+      <result tag="longresult+!check">
          <use>analysis</use> <!-- use existing analyser -->
          <table name="result_csv" style="csv" sort="threads">
             <column                           title="arch"         >systemname</column>
@@ -372,7 +405,7 @@
             <column tag="stats"                                    >comm_reqs_min</column>
          </table>
       </result>
-      <result tag="!longresult,!check">
+      <result tag="!longresult+!check">
          <use>analysis</use> <!-- use existing analyser -->
          <table name="short_result" style="pretty" sort="nodes, taskspnode, threads">
             <column                           title="arch"           >systemname</column>
@@ -389,7 +422,7 @@
             <column tag="!stats" format=".2f" title="step_sum[secs]" >sum_steps</column>
          </table>
       </result>
-      <result tag="!longresult,!check">
+      <result tag="!longresult+!check">
          <use>analysis</use> <!-- use existing analyser -->
          <table name="short_result_csv" style="csv" sort="threads">
             <column                           title="arch"           >systemname</column>
@@ -406,7 +439,7 @@
             <column tag="!stats" format=".2f" title="step_sum[secs]" >sum_steps</column>
          </table>
       </result>
-      <result tag="!longresult,check">
+      <result tag="check">
          <use>analysis</use> <!-- use existing analyser -->
          <table name="result" style="pretty" sort="threads">
             <column              title="run"          >jube_wp_id</column>

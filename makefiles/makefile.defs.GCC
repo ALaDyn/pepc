@@ -64,11 +64,11 @@ ifeq ($(DEBUG), 1)
   CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall $(FARCH)
   LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
-  FFLAGS   = -O2 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
+  FFLAGS   = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
     $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
-  CFLAGS   = -O2 -pthread -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros\
-    $(FFIX) $(INLINING) $(ARCH)
-  LDFLAGS  = -O2 -pthread $(FFIX) $(INLINING)
+  CFLAGS   = -O3 -pthread -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
+    $(FFIX) $(INLINING) $(FARCH)
+  LDFLAGS  = -O3 -pthread $(FFIX) $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
 
