@@ -96,7 +96,8 @@ module helper
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
    type(t_particle), allocatable   :: gathered_new_buffer(:)
-   integer :: electron_num, i, j, new_particle_cnt, local_electron_num, swapped_num, break, virtual_particle_cnt(2)
+   integer :: electron_num, i, j, new_particle_cnt, local_electron_num, &
+              swapped_num, break, virtual_particle_cnt(2), H1s, H2s
    real(kind_physics) :: rank_charge_count(5), charge_count(5), &
                          total_charge_count(5), seed_dl(3)
    integer, allocatable :: new_particles_offset(:,:), generic_array(:)
@@ -144,6 +145,7 @@ module helper
    ! particle merging related variables
    integer(kind_key) :: dummy_key
    integer(kind_key), allocatable :: key_array(:)
+   real(kind_physics), allocatable :: energy_group_levels(:)
 
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
@@ -173,7 +175,7 @@ contains
 
       namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, density_output, &
          x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
-         y_length, z_length, sim_type, mode, d, electron_num, tnp, nt, dt, &
+         y_length, z_length, sim_type, mode, d, electron_num, tnp, H1s, H2s, nt, dt, &
          particle_output, domain_output, particle_mpi_output, reflecting_walls, &
          particle_test, diag_interval, plasma_dimensions, init_temperature, &
          pressure, external_e, major_radius, minor_radius, B0, B_p, V_loop
@@ -181,6 +183,7 @@ contains
       ! set default parameter values
       resume = 0
       itime_in = 0
+      init_omp_threads = 1 
       i_wall_time = '00:00:00'
       density_output = .false.
       x_cell = 0
@@ -197,6 +200,8 @@ contains
       d = 0.0015
       electron_num = 0
       tnp = 10000
+      H1s = 0
+      H2s = 0
       nt = 25
       dt = 1e-2
       particle_test = .false.
@@ -277,6 +282,9 @@ contains
         electron_num = 0
         flt_geom = 3
       end if
+
+      virtual_particle_cnt(1) = H1s
+      virtual_particle_cnt(2) = H2s
 
       call pepc_prepare(3_kind_dim)
    end subroutine set_parameter
@@ -443,8 +451,8 @@ contains
            toroidal_vec(3) = p(ip)%x(1)*ez(2) - p(ip)%x(2)*ez(1)
            toroidal_vec = toroidal_vec/sqrt(dot_product(toroidal_vec, toroidal_vec))
 
-           magnitude = sqrt((2*15.0/e_mass))
-           ! call random_number(rand_scale)
+           magnitude = sqrt((2*16.5/e_mass))
+           call random_number(rand_scale)
            rand_scale = 1.0_8
            p(ip)%data%v = -1.0*magnitude*toroidal_vec*rand_scale
            ! p(ip)%data%v = 0.0_8
@@ -680,6 +688,8 @@ contains
      write(23, '(i1)') 1
      write(23, '(i10)') resume_step
      write(23, '(i10)') tnp
+     write(23, '(i10)') virtual_particle_cnt(1)
+     write(23, '(i10)') virtual_particle_cnt(2)
      close(23)
    end subroutine write_updated_resume_variables
 

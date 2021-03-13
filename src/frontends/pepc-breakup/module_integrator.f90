@@ -179,13 +179,13 @@ contains
       PF_temp = current_loop_B(Coord, R, 0.0_8, 8.3_8, 1.5e4_8)!(JET-like: 1.77e4_8)!11467.320098924624_8) ! 115453.38348883369_8) !
       PF_final = PF_final + PF_temp
 
-      ! PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
-      ! PF_temp = 0.0005 * ((1.e-12)*(c**2))/e_mass * PF_unit_vector
-      Pol_B_field = PF_final! + PF_temp
+      PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
+      PF_temp = 0.0005 * ((1.e-12)*(c**2))/e_mass * PF_unit_vector ! Add a tiny B field in the poloidal direction.
+      Pol_B_field = PF_final + PF_temp
 
       R = R/(c*1e-12)
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      particle%data%b = 0.0_kind_physics !Pol_B_field + B_field
+      particle%data%b = Pol_B_field + B_field
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
@@ -517,7 +517,7 @@ contains
          do j = 1, 8
            if (direction_cnt(j) .ne. 0) then
              call energy_elastic_merging(j, directional_buffer, direction_cnt(j), merged_guide, &
-                                  merged_cnt, species, particles(i)%data%mp_int1)
+                                  merged_cnt, species, particles(i)%data%mp_int1, energy_group_levels)
            end if
          end do
          species = particles(i)%data%species
@@ -563,7 +563,8 @@ contains
      do i = 1, 8
        if (direction_cnt(i) .ne. 0) then
          call energy_elastic_merging(i, directional_buffer, direction_cnt(i), merged_guide, &
-                              merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1)
+                              merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
+                              energy_group_levels)
        end if
      end do
      ! print *, "Parent no: ", parent_no, istart, istop, "Finished merging.", size(particles)
@@ -677,7 +678,8 @@ contains
      deallocate(merged_buffer)
    end subroutine age_elastic_merging
 
-   subroutine energy_elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, species, parent_key)
+   subroutine energy_elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, &
+                                     species, parent_key, energy_threshold)
      !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
      !       most direct way of doing it is to copy the particles into respective directional buffer.
      !       don't sum them up yet! information will be lost if done so.
@@ -686,18 +688,19 @@ contains
      type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
      type(linked_list_elem), pointer, intent(inout) :: merged_guide
      integer, intent(inout) :: merged_cnt
+     real(kind_physics), allocatable, intent(in) :: energy_threshold(:)
      integer :: i, j, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
                 merge_instance, merge_collector_size, IStart, IStop, j_start
      integer, allocatable :: grouped_count(:)
      real(kind_physics) :: kin_e, weight, vel(3)
-     real(kind_physics), allocatable :: energy_threshold(:), max_weight(:)
+     real(kind_physics), allocatable :: max_weight(:)
      type(t_particle), allocatable :: energy_collector(:,:), merged_buffer(:), pass_buffer(:)
      type(t_particle) :: sum_particle
 
-     filtered_instance = 6
+     filtered_instance = size(energy_threshold)
      merge_collector_size = 4
      ! print *, "Direction ", direction, " of 8, starting merged_buffer allocation .", direction_cnt
-     allocate(energy_threshold(filtered_instance))
+!      allocate(energy_threshold(filtered_instance))
      allocate(max_weight(filtered_instance))
      allocate(merged_buffer(direction_cnt))
 
@@ -705,12 +708,12 @@ contains
 
      m_i = 0
      ! print *, "ll_elem count: ", CEILING(REAL(merged_cnt/size(merged_guide%tmp_particles))), buffer_pos
-     energy_threshold(1) = 0.0
-     energy_threshold(2) = 10.0
-     energy_threshold(3) = 20.0
-     energy_threshold(4) = 30.0
-     energy_threshold(5) = 40.0
-     energy_threshold(6) = 60.0
+!      energy_threshold(1) = 0.0
+!      energy_threshold(2) = 10.0
+!      energy_threshold(3) = 20.0
+!      energy_threshold(4) = 30.0
+!      energy_threshold(5) = 40.0
+!      energy_threshold(6) = 60.0
      f_i = filtered_instance
 
      if (direction_cnt > 2) then
@@ -731,29 +734,29 @@ contains
              f_i = f_i - 1
            end do
          end if
-         if(f_i < 1 .or. f_i > filtered_instance) print *, "Checking f_i: ", f_i
+         if(f_i < 1 .or. f_i > filtered_instance) print *, "Checking f_i: ", f_i, kin_e
          grouped_count(f_i) = grouped_count(f_i) + 1
          energy_collector(f_i, grouped_count(f_i)) = directional_buffer(direction,i)
          if (weight > max_weight(f_i)) then
            max_weight(f_i) = weight
          end if
 
-         ! Don't merge the particles with less than 10.0eV
-         if (species .eq. 0) then
-           if (f_i .eq. 1) then
-             m_i = m_i + 1
-             merged_buffer(m_i) = directional_buffer(direction,i)
-             merged_buffer(m_i)%label = 0
-           end if
-         end if
+         ! Don't merge the particles with less than 10.0eV, copied directly to merged_buffer.
+!          if (species .eq. 0) then
+!            if (f_i .eq. 1) then
+!              m_i = m_i + 1
+!              merged_buffer(m_i) = directional_buffer(direction,i)
+!              merged_buffer(m_i)%label = 0
+!            end if
+!          end if
        end do
 
        ! print *, "parent_key: ", parent_key, direction, grouped_count
-       if (species .eq. 0) then
-         j_start = 2
-       else
+!        if (species .eq. 0) then
+!          j_start = 2
+!        else
          j_start = 1
-       end if
+!        end if
 
        ! Merge the rest according to the grouped energy levels.
        do j = j_start, filtered_instance
@@ -819,7 +822,7 @@ contains
          merged_buffer(m_i)%label = 0
        end do
      end if
-     deallocate(energy_threshold)
+!      deallocate(energy_threshold)
      deallocate(max_weight)
 
      !NOTE: now that merged_buffer is filled, copy to merged_guide ll_element.
@@ -1145,7 +1148,6 @@ contains
      if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
        allocate(CS_vector(total_cross_sections))
        call determine_cross_sections(particle, CS_vector, CS_tables)
-       call determine_xi(K_E, xi)
        CS_index = total_cross_sections - eirene_cross_sections + 1
        call Eirene_fit(eirene_coeffs1, K_E, CS_vector, CS_index)
        call Eirene_fit(eirene_coeffs2, K_E, CS_vector, CS_index)
@@ -1156,10 +1158,12 @@ contains
 
        !=====================For use in energy dependent scatter =========
        ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**rand_num(5))/K_E ! [Vahedi & Surendra]
-       cos_Chi = 1 - (2.*rand_num(5)*(1. - xi))/(1. + xi*(1. - 2.*rand_num(5))) ! [Ohkrimovsky 2002]
-       Chi = acos(cos_Chi)
+       ! call determine_xi(K_E, xi)
+       ! cos_Chi = 1 - (2.*rand_num(5)*(1. - xi))/(1. + xi*(1. - 2.*rand_num(5))) ! [Ohkrimovsky 2002]
+       ! Chi = acos(cos_Chi)
        unit_inc_vel = particle%data%v/vel_mag
-       scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
+       scatter_loss = 0.0_kind_physics
+       ! scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
 
        ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
        CS_vector = CS_vector * vel_mag * neutral_density !6545520.13889 test value of constant local_number_density (at 0.001Pa)
@@ -1186,21 +1190,21 @@ contains
      case(1) ! elastic scattering (no additional electron, no byproducts)
        ! update velocity to indicate scattering into random angle
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*scatter_loss/e_mass)
-       ! particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
-       ! particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
-       ! particle%data%v(3) = vel_mag * cos(polar_phi)
+       particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
+       particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
+       particle%data%v(3) = vel_mag * cos(polar_phi)
 
        ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
-       rot_axis = 0.0
-       rot_axis(1) = 1.0
-       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
-       temp_vel = cross_product(unit_inc_vel, rot_axis)
-       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
-       prefac = sin(Chi)/sin(polar_phi)
+       ! rot_axis = 0.0
+       ! rot_axis(1) = 1.0
+       ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+       ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       ! prefac = sin(Chi)/sin(polar_phi)
 
-       particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
-                         sin(polar_theta)*prefac*temp_vel + &
-                         cos(polar_theta)*prefac*temp_vel1)
+       ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+       !                   sin(polar_theta)*prefac*temp_vel + &
+       !                   cos(polar_theta)*prefac*temp_vel1)
 
        ! =======Anti Parallel Scattering ============================
        ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
@@ -1214,21 +1218,21 @@ contains
        ! and do the short-cut for you. Better still: add it to the energies straight away.
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*(R_J02 + scatter_loss)/e_mass)
 
-       ! particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
-       ! particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
-       ! particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
+       particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
+       particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
+       particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
 
        ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
-       rot_axis = 0.0
-       rot_axis(1) = 1.0
-       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
-       temp_vel = cross_product(unit_inc_vel, rot_axis)
-       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
-       prefac = sin(Chi)/sin(polar_phi)
+       ! rot_axis = 0.0
+       ! rot_axis(1) = 1.0
+       ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+       ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       ! prefac = sin(Chi)/sin(polar_phi)
 
-       particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
-                        sin(polar_theta)*prefac*temp_vel + &
-                        cos(polar_theta)*prefac*temp_vel1)
+       ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+       !                  sin(polar_theta)*prefac*temp_vel + &
+       !                  cos(polar_theta)*prefac*temp_vel1)
 
        ! ==========================Anti Parallel Scatter =======================
        ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
@@ -1240,21 +1244,21 @@ contains
        ! update velocity to indicate scattering into random angle
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*(V_V01 + scatter_loss)/e_mass)
 
-       ! particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
-       ! particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
-       ! particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
+       particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
+       particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
+       particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
 
        ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
-       rot_axis = 0.0
-       rot_axis(1) = 1.0
-       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
-       temp_vel = cross_product(unit_inc_vel, rot_axis)
-       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
-       prefac = sin(Chi)/sin(polar_phi)
+       ! rot_axis = 0.0
+       ! rot_axis(1) = 1.0
+       ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+       ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       ! prefac = sin(Chi)/sin(polar_phi)
 
-       particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
-                         sin(polar_theta)*prefac*temp_vel + &
-                         cos(polar_theta)*prefac*temp_vel1)
+       ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+       !                   sin(polar_theta)*prefac*temp_vel + &
+       !                   cos(polar_theta)*prefac*temp_vel1)
 
        ! ==========================Anti Parallel Scatter =======================
        ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
@@ -1270,28 +1274,28 @@ contains
 
        call add_particle(guide, particle, new_particle, buff_pos, rand_num, 0)
        ! ===========================Random Scatter==============================
-       ! temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
-       ! temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
-       ! temp_vel(3) = cos(polar_phi*0.5)
+       temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
+       temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
+       temp_vel(3) = cos(polar_phi*0.5)
 
-       ! rot_axis(1) = 0.0
-       ! rot_axis(2) = 1.0
-       ! rot_axis(3) = 0.0
-       ! temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
-       ! rot_axis(2) = 0.0
-       ! rot_axis(3) = 1.0
-       ! temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
+       rot_axis(1) = 0.0
+       rot_axis(2) = 1.0
+       rot_axis(3) = 0.0
+       temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
+       rot_axis(2) = 0.0
+       rot_axis(3) = 1.0
+       temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
 
        ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
-       rot_axis = 0.0
-       rot_axis(1) = 1.0
-       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
-       temp_vel = cross_product(unit_inc_vel, rot_axis)
-       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
-       prefac = sin(Chi)/sin(polar_phi)
+       ! rot_axis = 0.0
+       ! rot_axis(1) = 1.0
+       ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+       ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       ! prefac = sin(Chi)/sin(polar_phi)
 
-       temp_vel = (cos_Chi*unit_inc_vel + sin(polar_theta)*prefac*temp_vel + &
-                  cos(polar_theta)*prefac*temp_vel1)
+       ! temp_vel = (cos_Chi*unit_inc_vel + sin(polar_theta)*prefac*temp_vel + &
+       !            cos(polar_theta)*prefac*temp_vel1)
 
        ! NOTE: Scaling proper velocity magnitudes w.r.t K_E & momentum
        cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
@@ -1320,27 +1324,27 @@ contains
       !  print *, "incident momentum: ", scaled_mass * reduced_incident
 
        call add_particle(guide, particle, new_particle, buff_pos, rand_num, 0)
-       ! temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
-       ! temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
-       ! temp_vel(3) = cos(polar_phi*0.5)
+       temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
+       temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
+       temp_vel(3) = cos(polar_phi*0.5)
 
-       ! rot_axis(1) = 0.0
-       ! rot_axis(2) = 1.0
-       ! rot_axis(3) = 0.0
-       ! temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
-       ! rot_axis(2) = 0.0
-       ! rot_axis(3) = 1.0
-       ! temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
+       rot_axis(1) = 0.0
+       rot_axis(2) = 1.0
+       rot_axis(3) = 0.0
+       temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
+       rot_axis(2) = 0.0
+       rot_axis(3) = 1.0
+       temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
 
-       rot_axis = 0.0
-       rot_axis(1) = 1.0
-       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
-       temp_vel = cross_product(unit_inc_vel, rot_axis)
-       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
-       prefac = sin(Chi)/sin(polar_phi)
+       ! rot_axis = 0.0
+       ! rot_axis(1) = 1.0
+       ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+       ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       ! prefac = sin(Chi)/sin(polar_phi)
 
-       temp_vel = (cos_Chi*unit_inc_vel + sin(polar_theta)*prefac*temp_vel + &
-                  cos(polar_theta)*prefac*temp_vel1)
+       ! temp_vel = (cos_Chi*unit_inc_vel + sin(polar_theta)*prefac*temp_vel + &
+       !            cos(polar_theta)*prefac*temp_vel1)
 
        ! NOTE: Scaling proper velocity magnitudes w.r.t K_E & momentum
        cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
@@ -1358,7 +1362,7 @@ contains
       !  print *, "outgoing momentum: ", scaled_mass*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
       !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
-
+       
        charge_count(4) = charge_count(4) + 1
        call add_particle(guide, particle, new_particle, buff_pos, rand_num, 1)
       !  print *, "dissoc.!"
@@ -1366,21 +1370,21 @@ contains
     case(6) ! H2 molecule dissociation into H(1s) atoms (no additional electron, no byproducts)
        ! update velocity to indicate scattering into random angle
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H1 + scatter_loss)/e_mass)
-       ! particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
-       ! particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
-       ! particle%data%v(3) = vel_mag * cos(polar_phi)
+       particle%data%v(1) = vel_mag * sin(polar_phi*0.5) * cos(polar_theta)
+       particle%data%v(2) = vel_mag * sin(polar_phi*0.5) * sin(polar_theta)
+       particle%data%v(3) = vel_mag * cos(polar_phi*0.5)
 
        ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
-       rot_axis = 0.0
-       rot_axis(1) = 1.0
-       polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
-       temp_vel = cross_product(unit_inc_vel, rot_axis)
-       temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
-       prefac = sin(Chi)/sin(polar_phi)
+       ! rot_axis = 0.0
+       ! rot_axis(1) = 1.0
+       ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+       ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       ! prefac = sin(Chi)/sin(polar_phi)
 
-       particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
-                         sin(polar_theta)*prefac*temp_vel + &
-                         cos(polar_theta)*prefac*temp_vel1)
+       ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+       !                   sin(polar_theta)*prefac*temp_vel + &
+       !                   cos(polar_theta)*prefac*temp_vel1)
 
        ! =======Anti Parallel Scattering ============================
        ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
@@ -1395,21 +1399,21 @@ contains
     case(7) ! H2 molecule dissociation into H(1s) & H(2s) atoms (no additional electron, no byproducts)
       ! update velocity to indicate scattering into random angle
       reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H2 + scatter_loss)/e_mass)
-      ! particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
-      ! particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
-      ! particle%data%v(3) = vel_mag * cos(polar_phi)
+      particle%data%v(1) = vel_mag * sin(polar_phi*0.5) * cos(polar_theta)
+      particle%data%v(2) = vel_mag * sin(polar_phi*0.5) * sin(polar_theta)
+      particle%data%v(3) = vel_mag * cos(polar_phi*0.5)
 
       ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
-      rot_axis = 0.0
-      rot_axis(1) = 1.0
-      polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
-      temp_vel = cross_product(unit_inc_vel, rot_axis)
-      temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
-      prefac = sin(Chi)/sin(polar_phi)
+      ! rot_axis = 0.0
+      ! rot_axis(1) = 1.0
+      ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+      ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+      ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+      ! prefac = sin(Chi)/sin(polar_phi)
 
-      particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
-                        sin(polar_theta)*prefac*temp_vel + &
-                        cos(polar_theta)*prefac*temp_vel1)
+      ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+      !                   sin(polar_theta)*prefac*temp_vel + &
+      !                   cos(polar_theta)*prefac*temp_vel1)
 
       ! =======Anti Parallel Scattering ============================
       ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
@@ -1563,11 +1567,11 @@ contains
 
        if (current_index .lt. target_swap) then
          if (m_radius > (minor_radius+buffer_zone)) then
-           ! if (particles(current_index)%data%q < 0.0_8) then
-           !   charge_count(1) = charge_count(1) + particles(current_index)%data%q
-           ! else
-           !   charge_count(2) = charge_count(2) + particles(current_index)%data%q
-           ! end if
+           if (particles(current_index)%data%q < 0.0_8) then
+             charge_count(1) = charge_count(1) + particles(current_index)%data%q
+           else
+             charge_count(2) = charge_count(2) + particles(current_index)%data%q
+           end if
            particles(current_index) = particles(target_swap)
            swapped_cnt = swapped_cnt + 1
          end if
@@ -1577,11 +1581,11 @@ contains
          end if
        else
          if (m_radius > (minor_radius+buffer_zone)) then
-           ! if (particles(current_index)%data%q < 0.0_8) then
-           !   charge_count(1) = charge_count(1) + particles(current_index)%data%q
-           ! else
-           !   charge_count(2) = charge_count(2) + particles(current_index)%data%q
-           ! end if
+           if (particles(current_index)%data%q < 0.0_8) then
+             charge_count(1) = charge_count(1) + particles(current_index)%data%q
+           else
+             charge_count(2) = charge_count(2) + particles(current_index)%data%q
+           end if
            swapped_cnt = swapped_cnt + 1
          end if
          break_check = 1

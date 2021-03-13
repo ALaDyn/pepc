@@ -103,6 +103,9 @@ program pepc
   !  call getcwd(file_path)
    file_path = "../src/frontends/pepc-breakup/cross_sections/"
    call set_cross_section_table(trim(file_path)//"total_scattering_H2.txt", CS_guide, 11, 1)
+   allocate(energy_group_levels(size(CS_tables%CS, 1) + 1))
+   energy_group_levels = 0.0
+   energy_group_levels(2:size(energy_group_levels)) = CS_tables%CS(:,1)
 
    ! NOTE: Future prospect: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
    !       look at some external function DDFSA or DFSA.
@@ -116,6 +119,7 @@ program pepc
    call set_cross_section_table(trim(file_path)//"vibrational_excitation_v_0_1.txt", CS_guide, 13, 0)
    call set_cross_section_table(trim(file_path)//"Ext_nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
    call set_cross_section_table(trim(file_path)//"Ext_dissociative_ionization_H+.txt", CS_guide, 15, 1)
+   ! call set_cross_section_table(trim(file_path)//"total_dissociation_H.txt",CS_guide,16,1)
    call set_eirene_coeffs(trim(file_path)//"disso_2xH(1s).txt", 11, eirene_coeffs1)
    call set_eirene_coeffs(trim(file_path)//"disso_H(1s)_H(2s).txt", 12, eirene_coeffs2)
    total_cross_sections = 7
@@ -139,7 +143,6 @@ program pepc
    if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
 
-   !$OMP PARALLEL DO if(np/omp_threads > 10) default(private) shared(particles, external_e, dt, V_loop)
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e)
       call boris_velocity_update(particles(i), -dt*0.5_8)
@@ -147,7 +150,6 @@ program pepc
       call particle_EB_field(particles(i), -external_e)
       V_loop = -1.*V_loop
    end do
-   !$OMP END PARALLEL DO
 
    ! free tree specific allocations
    call pepc_timber_tree()
@@ -155,7 +157,6 @@ program pepc
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
-   virtual_particle_cnt = 0
    do step = 0, nt - 1
       if (root) then
          write (*, *) " "
@@ -303,7 +304,7 @@ program pepc
 
       call MPI_REDUCE(rank_charge_count, total_charge_count, 5, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
       if (root) then
-        print *, "SUMMED CHARGE COUNT: ", total_charge_count(1:3)
+        write (*,'(a,f7.2,f7.2,f7.2)') "SUMMED CHARGE COUNT: ", total_charge_count(1:3)
       end if
       virtual_particle_cnt(1) = virtual_particle_cnt(1) + int(total_charge_count(4))
       virtual_particle_cnt(2) = virtual_particle_cnt(2) + int(total_charge_count(5))
@@ -359,9 +360,9 @@ program pepc
       bounding_box%boxsize = max_x - min_x
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
 
-      if (tnp > 400000) then
+      if (tnp > 615000) then
         sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
-        merge_ratio = 0.85
+        merge_ratio = 0.99
         call compute_particle_keys(bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
@@ -392,8 +393,8 @@ program pepc
       tnp = 0
       call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (root) then
-        print *, "Total particles: ", tnp
-        print *, "Actual species count: ", total_actual_parts, virtual_particle_cnt
+        write (*,'(a,i7)') "Total particles: ", tnp
+        write (*,'(a,i10,i10,i10,i10,i10)') "Actual species count: ", total_actual_parts, virtual_particle_cnt
       end if
 
       call pepc_particleresults_clear(particles)
@@ -446,7 +447,7 @@ program pepc
       if (doDiag .and. particle_mpi_output) then
         call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
         call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
-        call write_updated_resume_variables(step+itime_in+1)
+        if (root) call write_updated_resume_variables(step+itime_in+1)
       end if
 
       call timer_stop(t_user_step)
@@ -465,6 +466,7 @@ program pepc
 
    end do
 
+   deallocate(energy_group_levels)
    call deallocate_CS_buffer(CS_tables)
 
    if (density_output) then
