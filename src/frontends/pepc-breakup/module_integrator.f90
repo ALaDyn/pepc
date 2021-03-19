@@ -698,7 +698,7 @@ contains
      type(t_particle) :: sum_particle
 
      filtered_instance = size(energy_threshold)
-     merge_collector_size = 4
+     merge_collector_size = 2 ! 4
      ! print *, "Direction ", direction, " of 8, starting merged_buffer allocation .", direction_cnt
 !      allocate(energy_threshold(filtered_instance))
      allocate(max_weight(filtered_instance))
@@ -782,7 +782,8 @@ contains
                IStop = IStart + merge_collector_size - 1
                allocate(pass_buffer(merge_collector_size))
                pass_buffer = energy_collector(j,IStart:IStop)
-               call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
+               ! call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
+               call resolve_elastic_merge_1p(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
                deallocate(pass_buffer)
              end do
 
@@ -797,7 +798,8 @@ contains
              else if (merge_ratio < 0.5 .and. remainder > 2) then
                allocate(pass_buffer(remainder))
                pass_buffer = energy_collector(j,IStart:IStop)
-               call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
+               ! call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
+               call resolve_elastic_merge_1p(pass_buffer, remainder, merged_buffer, m_i, j)
                deallocate(pass_buffer)
              end if
              ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
@@ -1024,6 +1026,121 @@ contains
        merged_buffer(m_i)%data%mp_int1 = parent_key
      end if
    end subroutine resolve_elastic_merge_momentum
+
+   subroutine resolve_elastic_merge_1p(input_buffer, input_cnt, merged_buffer, m_i, group_index)
+     implicit none
+     type(t_particle), allocatable, intent(in) :: input_buffer(:)
+     integer, intent(in) :: input_cnt, group_index
+     type(t_particle), allocatable, intent(inout) :: merged_buffer(:)
+     integer, intent(inout) :: m_i
+     type(t_particle) :: sum_particle
+     real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
+                           Chi, rot_axis(3), w1, w2, total_weight, ave_E, mass, charge, &
+                           v_diff, e_diff
+     integer :: i, j, species, parent_key, correct_sign
+
+     species = input_buffer(1)%data%species
+     parent_key = input_buffer(1)%data%mp_int1
+
+     if (species == 0) then
+       mass = 1.0_kind_physics
+       charge = -1.0_kind_physics
+     else if (species == 1) then
+       mass = 1836.21957489_kind_physics
+       charge = 1.0_kind_physics
+     else if (species == 2) then
+       mass = 3673.43889456_kind_physics
+       charge = 1.0_kind_physics
+     end if
+     !initialise sum_particle
+     sum_particle%data%q = 0.0_kind_physics
+     sum_particle%data%v = 0.0_kind_physics
+     sum_particle%data%m = 0.0_kind_physics
+     sum_particle%data%f_e = 0.0_kind_physics
+     sum_particle%data%f_b = 0.0_kind_physics
+     sum_particle%x = 0.0_kind_physics
+
+     ! initialise d(3) vector, essentially the unit vector of the max extent in x, y, z, direction
+     d = 0.0
+     max_vec = 0.0
+     total_weight = 0.0
+     do i = 1, input_cnt
+       v_squared = abs(input_buffer(i)%data%q)*dot_product(input_buffer(i)%data%v, input_buffer(i)%data%v)
+       sum_particle%data%q = sum_particle%data%q + input_buffer(i)%data%q
+       sum_particle%data%v = sum_particle%data%v + abs(input_buffer(i)%data%q)*input_buffer(i)%data%v
+       sum_particle%data%m = sum_particle%data%m + input_buffer(i)%data%m
+       sum_particle%x = sum_particle%x + input_buffer(i)%x
+       sum_particle%data%f_e(1) = sum_particle%data%f_e(1) + v_squared
+       total_weight = total_weight + abs(input_buffer(i)%data%q)
+
+       do j = 1, 3
+         if (abs(input_buffer(i)%data%v(j)) > max_vec(j)) then
+           max_vec(j) = abs(input_buffer(i)%data%v(j))
+           d(j) = input_buffer(i)%data%v(j)
+         end if
+       end do
+     end do
+     sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
+     ave_E = 0.5*sum_particle%data%m*e_mass*sum_particle%data%f_e(1)/(total_weight*total_weight)
+
+     max_vec = 0.0_kind_physics
+     vel_mag2 = dot_product(sum_particle%data%v, sum_particle%data%v)
+     vel_mag = sqrt(vel_mag2)
+
+     if (vel_mag2 .ne. 0.0_kind_physics) then
+       w1 = total_weight
+      
+       ! Not resolving the energy and momentum to fulfill conservation laws.
+       ! Rather, merging 2 particles into 1, keeping only the energy conserved. 
+       unit_vec = sum_particle%data%v/vel_mag
+       vel_mag = 0.0_kind_physics
+       vel_mag = sqrt(2.0 * ave_E/(e_mass*mass))
+
+       ! Fill in values for merged particle 1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(1)%x
+       merged_buffer(m_i)%work = 1.0_8
+       merged_buffer(m_i)%data%v = vel_mag * unit_vec
+       merged_buffer(m_i)%data%q = charge*w1
+       merged_buffer(m_i)%data%m = mass*w1
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%f_b(2) = ave_E
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+
+       ! merged_buffer(m_i)%data%b = sum_particle%data%v - (w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v)
+       ! v_diff = sqrt(dot_product(merged_buffer(m_i)%data%b, merged_buffer(m_i)%data%b))
+       ! if (v_diff > 1e-16_kind_physics) print *, "Noticeable Velocity Error!", v_diff
+       !
+       ! e_diff = sum_particle%data%f_e(1) - &
+       !          (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
+       !           w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
+       ! if (e_diff > 1e-16_kind_physics) print *, "Noticeable Energy Error!", e_diff
+       !
+       ! merged_buffer(m_i)%data%b = 0.0
+     else
+       w1 = total_weight
+       ! Fill in values for merged particle 1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(1)%x
+       merged_buffer(m_i)%work = 1.0_8
+       merged_buffer(m_i)%data%v = 0.0_kind_physics
+       merged_buffer(m_i)%data%q = charge*w1
+       merged_buffer(m_i)%data%m = mass*w1
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+
+     end if
+   end subroutine resolve_elastic_merge_1p
 
    subroutine add_particle(guide, particle, new_particle, buffer_pos, ran, type)
      ! NOTE: A big assumption is made here: Without considering the rovibrational states
