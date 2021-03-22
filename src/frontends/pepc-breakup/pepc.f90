@@ -236,13 +236,54 @@ program pepc
 
          if (particles(i)%data%species == 0) then
             collision_checks = floor(abs(particles(i)%data%q))
-            j = 0
-            do while (j < collision_checks)
+            if (collision_checks .eq. 1) then
               call collision_update(particles(i), particle_guide, new_particle_cnt, &
                                     electron_num, total_cross_sections, ctr_s, key_s, &
                                     charge_count)
-              j = j + 1
-            end do
+            else
+! NOTE: Assuming a super-particle that represents 5 electrons, at eV ready to ionise.
+!       5 collision checks are done. Make sure that the checks are done with eV
+!       initially carried by super-particle!
+              stored_vel = particles(i)%data%v
+              last_v = 0.0
+              new_mass = collision_checks
+              j = 0
+              do while (j < collision_checks)
+                particles(i)%data%v = stored_vel
+                old_part_cnt = new_particle_cnt
+                call collision_update(particles(i), particle_guide, new_particle_cnt, &
+                                      electron_num, total_cross_sections, ctr_s, key_s, &
+                                      charge_count)
+
+! NOTE: If there are instances of ionisation, electron velocity after ionisation
+!       has to be recorded before the next collision check is evaluated again.
+!       Therefore, add_particle is called! Since this electron is now recorded
+!       elsewhere, it means that the super-particle has reduced in mass & charge.
+!       The final velocity of super-particle is the last non-ionising vector.
+                if (new_particle_cnt .ne. old_part_cnt) then
+                  if (new_mass > 1) then
+                    rand_num = 0.75
+                    call add_particle(particle_guide, particles(i), new_particle_cnt, tmp_buff_pos, rand_num, 0)
+                    particle_guide%tmp_particles(tmp_buff_pos)%data%v = particles(i)%data%v
+                  else
+                    particles(i)%data%m = 1.0
+                    particles(i)%data%q = -1.0
+                  end if
+                  new_mass = new_mass - 1
+                else
+                  last_v = particles(i)%data%v
+                end if
+                j = j + 1
+              end do
+
+! NOTE: If only a few ionisation instance occured, the original element is then
+!       updated to a reduced super-particle.
+              if (new_mass > 0) then
+                particles(i)%data%m = new_mass
+                particles(i)%data%q = -1.0*new_mass
+                particles(i)%data%v = last_v
+              end if
+            end if
          end if
          ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
 

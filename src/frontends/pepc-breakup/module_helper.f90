@@ -146,6 +146,8 @@ module helper
    integer(kind_key) :: dummy_key
    integer(kind_key), allocatable :: key_array(:)
    real(kind_physics), allocatable :: energy_group_levels(:)
+   real(kind_physics) :: last_v(3), stored_vel(3)
+   integer :: new_mass, old_part_cnt, tmp_buff_pos
 
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
@@ -183,7 +185,7 @@ contains
       ! set default parameter values
       resume = 0
       itime_in = 0
-      init_omp_threads = 1 
+      init_omp_threads = 1
       i_wall_time = '00:00:00'
       density_output = .false.
       x_cell = 0

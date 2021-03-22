@@ -1089,9 +1089,9 @@ contains
 
      if (vel_mag2 .ne. 0.0_kind_physics) then
        w1 = total_weight
-      
+
        ! Not resolving the energy and momentum to fulfill conservation laws.
-       ! Rather, merging 2 particles into 1, keeping only the energy conserved. 
+       ! Rather, merging 2 particles into 1, keeping only the energy conserved.
        unit_vec = sum_particle%data%v/vel_mag
        vel_mag = 0.0_kind_physics
        vel_mag = sqrt(2.0 * ave_E/(e_mass*mass))
@@ -1224,7 +1224,7 @@ contains
      real(kind_physics), dimension(:), allocatable :: CS_vector
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
-     real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, rand_num(8)
+     real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, ran_num(8)
      real(kind_physics) :: weight, scaled_mass, Disso_H1, Disso_H2
      integer :: buff_pos, i, CS_index
 
@@ -1259,10 +1259,10 @@ contains
     !  print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime
 
      ! Generating Random Number between [0,1]
-     dummy = gen_norm_double_rng(r123_ctr, r123_key, rand_num)
+     dummy = gen_norm_double_rng(r123_ctr, r123_key, ran_num)
 
-    !  print *, "rand: ", rand_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
-     if (rand_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
+    !  print *, "rand: ", ran_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
+     if (ran_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
        allocate(CS_vector(total_cross_sections))
        call determine_cross_sections(particle, CS_vector, CS_tables)
        CS_index = total_cross_sections - eirene_cross_sections + 1
@@ -1270,13 +1270,13 @@ contains
        call Eirene_fit(eirene_coeffs2, K_E, CS_vector, CS_index)
 
        !======================== For use in random scatter ================
-       polar_theta = 2.0*pi*rand_num(4)
-       polar_phi = acos(2.0*rand_num(3) - 1.)
+       polar_theta = 2.0*pi*ran_num(4)
+       polar_phi = acos(2.0*ran_num(3) - 1.)
 
        !=====================For use in energy dependent scatter =========
-       ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**rand_num(5))/K_E ! [Vahedi & Surendra]
+       ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**ran_num(5))/K_E ! [Vahedi & Surendra]
        ! call determine_xi(K_E, xi)
-       ! cos_Chi = 1 - (2.*rand_num(5)*(1. - xi))/(1. + xi*(1. - 2.*rand_num(5))) ! [Ohkrimovsky 2002]
+       ! cos_Chi = 1 - (2.*ran_num(5)*(1. - xi))/(1. + xi*(1. - 2.*ran_num(5))) ! [Ohkrimovsky 2002]
        ! Chi = acos(cos_Chi)
        unit_inc_vel = particle%data%v/vel_mag
        scatter_loss = 0.0_kind_physics
@@ -1289,7 +1289,7 @@ contains
        ! TODO: also looks like it can be combined with the select case below via a rather long/convoluted if-elseif construct that
        ! may read more easily
        i = 1
-       do while (rand_num(2) > (CS_vector(i)/nu_prime))
+       do while (ran_num(2) > (CS_vector(i)/nu_prime))
          i = i + 1
          if (i > size(CS_vector)) then
            i = 0
@@ -1389,7 +1389,7 @@ contains
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
       !  print *, "incident momentum: ", scaled_mass* reduced_incident
 
-       call add_particle(guide, particle, new_particle, buff_pos, rand_num, 0)
+       call add_particle(guide, particle, new_particle, buff_pos, ran_num, 0)
        ! ===========================Random Scatter==============================
        temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
        temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
@@ -1431,7 +1431,7 @@ contains
       !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
 
-       call add_particle(guide, particle, new_particle, buff_pos, rand_num, 2)
+       call add_particle(guide, particle, new_particle, buff_pos, ran_num, 2)
       !  print *, "nondissoc.!"
 
      case(5) ! dissociative ionization (1 additional electron, 2 byproducts), Hydrogen atom is ignored!
@@ -1440,7 +1440,7 @@ contains
        call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
       !  print *, "incident momentum: ", scaled_mass * reduced_incident
 
-       call add_particle(guide, particle, new_particle, buff_pos, rand_num, 0)
+       call add_particle(guide, particle, new_particle, buff_pos, ran_num, 0)
        temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
        temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
        temp_vel(3) = cos(polar_phi*0.5)
@@ -1479,9 +1479,9 @@ contains
       !  print *, "outgoing momentum: ", scaled_mass*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
       !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
       !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
-       
+
        charge_count(4) = charge_count(4) + 1
-       call add_particle(guide, particle, new_particle, buff_pos, rand_num, 1)
+       call add_particle(guide, particle, new_particle, buff_pos, ran_num, 1)
       !  print *, "dissoc.!"
 
     case(6) ! H2 molecule dissociation into H(1s) atoms (no additional electron, no byproducts)
