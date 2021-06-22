@@ -369,7 +369,7 @@ contains
      starting_index = 3
 
      if ((E < Emin) .or. (E > Emax)) then
-       cross_sec(CS_index) = 0.0
+       cross_sec(CS_index) = cross_sec(CS_index-1)
      else
        do i = starting_index, n
          ln_sigma = ln_sigma + coeffs(i)*ln_E**(i-starting_index)
@@ -516,7 +516,7 @@ contains
          ! print *, "Different species detected: ", particles(i)%data%species, direction_cnt
          do j = 1, 8
            if (direction_cnt(j) .ne. 0) then
-             call energy_elastic_merging(j, directional_buffer, direction_cnt(j), merged_guide, &
+             call energy_elastic_merging_low_weight(j, directional_buffer, direction_cnt(j), merged_guide, &
                                   merged_cnt, species, particles(i)%data%mp_int1, energy_group_levels)
            end if
          end do
@@ -562,7 +562,7 @@ contains
      ! Final merge for the last species
      do i = 1, 8
        if (direction_cnt(i) .ne. 0) then
-         call energy_elastic_merging(i, directional_buffer, direction_cnt(i), merged_guide, &
+         call energy_elastic_merging_low_weight(i, directional_buffer, direction_cnt(i), merged_guide, &
                               merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
                               energy_group_levels)
        end if
@@ -698,7 +698,7 @@ contains
      type(t_particle) :: sum_particle
 
      filtered_instance = size(energy_threshold)
-     merge_collector_size = 2 ! 4
+     merge_collector_size = 4 ! 2
      ! print *, "Direction ", direction, " of 8, starting merged_buffer allocation .", direction_cnt
 !      allocate(energy_threshold(filtered_instance))
      allocate(max_weight(filtered_instance))
@@ -782,8 +782,7 @@ contains
                IStop = IStart + merge_collector_size - 1
                allocate(pass_buffer(merge_collector_size))
                pass_buffer = energy_collector(j,IStart:IStop)
-               ! call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
-               call resolve_elastic_merge_1p(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
+               call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
                deallocate(pass_buffer)
              end do
 
@@ -798,8 +797,7 @@ contains
              else if (merge_ratio < 0.5 .and. remainder > 2) then
                allocate(pass_buffer(remainder))
                pass_buffer = energy_collector(j,IStart:IStop)
-               ! call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
-               call resolve_elastic_merge_1p(pass_buffer, remainder, merged_buffer, m_i, j)
+               call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
                deallocate(pass_buffer)
              end if
              ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
@@ -862,6 +860,223 @@ contains
      ! print *, "merged_buffer Deallocation done"
    end subroutine energy_elastic_merging
 
+   subroutine energy_elastic_merging_low_weight(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, &
+                                     species, parent_key, energy_threshold)
+     !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
+     !       most direct way of doing it is to copy the particles into respective directional buffer.
+     !       don't sum them up yet! information will be lost if done so.
+     implicit none
+     integer, intent(in) :: direction, direction_cnt, species, parent_key
+     type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
+     type(linked_list_elem), pointer, intent(inout) :: merged_guide
+     integer, intent(inout) :: merged_cnt
+     real(kind_physics), allocatable, intent(in) :: energy_threshold(:)
+     integer :: i, j, k, l, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
+                merge_instance, merge_collector_size, IStart, IStop, j_start, progenitor_cnt, min_weight
+     integer, allocatable :: grouped_count(:), weight_counts(:)
+     real(kind_physics) :: kin_e, weight, vel(3)
+     real(kind_physics), allocatable :: max_weight(:)
+     type(t_particle), allocatable :: energy_collector(:,:), merged_buffer(:), pass_buffer(:)
+     type(t_particle) :: sum_particle
+
+     filtered_instance = size(energy_threshold)
+     merge_collector_size = 4
+     ! print *, "Direction ", direction, " of 8, starting merged_buffer allocation .", direction_cnt
+!      allocate(energy_threshold(filtered_instance))
+     allocate(max_weight(filtered_instance))
+     allocate(merged_buffer(direction_cnt))
+
+     max_weight = 1.0_kind_physics
+
+     m_i = 0
+     ! print *, "ll_elem count: ", CEILING(REAL(merged_cnt/size(merged_guide%tmp_particles))), buffer_pos
+!      energy_threshold(1) = 0.0
+!      energy_threshold(2) = 10.0
+!      energy_threshold(3) = 20.0
+!      energy_threshold(4) = 30.0
+!      energy_threshold(5) = 40.0
+!      energy_threshold(6) = 60.0
+     f_i = filtered_instance
+
+     if (direction_cnt > 2) then
+       allocate(grouped_count(filtered_instance))
+       allocate(energy_collector(filtered_instance, direction_cnt))
+
+       ! Sorting particle based on energy
+       grouped_count = 0
+       do i = 1, direction_cnt
+         weight = abs(directional_buffer(direction,i)%data%q)
+         vel = directional_buffer(direction,i)%data%v
+         kin_e = 0.5*(directional_buffer(direction,i)%data%m/weight)*e_mass*dot_product(vel,vel)
+
+         if (kin_e >= energy_threshold(filtered_instance)) then
+           f_i = filtered_instance
+         else
+           do while (kin_e < energy_threshold(f_i))
+             f_i = f_i - 1
+           end do
+         end if
+         if(f_i < 1 .or. f_i > filtered_instance) print *, "Checking f_i: ", f_i, kin_e
+         grouped_count(f_i) = grouped_count(f_i) + 1
+         energy_collector(f_i, grouped_count(f_i)) = directional_buffer(direction,i)
+         if (weight > max_weight(f_i)) then
+           max_weight(f_i) = weight
+         end if
+
+         ! Don't merge the particles with less than 10.0eV, copied directly to merged_buffer.
+!          if (species .eq. 0) then
+!            if (f_i .eq. 1) then
+!              m_i = m_i + 1
+!              merged_buffer(m_i) = directional_buffer(direction,i)
+!              merged_buffer(m_i)%label = 0
+!            end if
+!          end if
+       end do
+
+       ! print *, "parent_key: ", parent_key, direction, grouped_count
+!        if (species .eq. 0) then
+!          j_start = 2
+!        else
+         j_start = 1
+!        end if
+
+       ! Merge the rest according to the grouped energy levels.
+       do j = j_start, filtered_instance
+         if(grouped_count(j) .ne. 0) then
+           if (grouped_count(j) > 2) then
+             progenitor_cnt = grouped_count(j)
+             if (max_weight(j) > 1.0_kind_physics) then
+               allocate(pass_buffer(grouped_count(j)))
+               pass_buffer = energy_collector(j,1:grouped_count(j))
+               call sort_particles_by_weight(pass_buffer)
+               energy_collector(j,1:grouped_count(j)) = pass_buffer
+               deallocate(pass_buffer)
+
+               ! count the numbers of particle at each weight
+               allocate(weight_counts(max_weight(j)))
+               weight_counts = 0
+               min_weight = int(abs(energy_collector(j,1)%data%q))
+               do k = 1, grouped_count(j)
+                 l = int(abs(energy_collector(j,k)%data%q))
+                 weight_counts(l) = weight_counts(l) + 1
+               end do
+
+               ! NOTE: THINK ON HOW TO LIMIT THE MERGE CANDIDATES TO lowest WEIGHT_COUNTS
+               if (weight_counts(min_weight) < merge_collector_size) then
+                 do i = 1, grouped_count(j)
+                   m_i = m_i + 1
+                   merged_buffer(m_i) = energy_collector(j,i)
+                   merged_buffer(m_i)%label = 0
+                 end do
+                 deallocate(weight_counts)
+                 !print *, "Triggered CYCLE!"
+                 CYCLE
+               else
+                 ! target_cnt = CEILING(grouped_count(j)*merge_ratio)
+                 progenitor_cnt = weight_counts(min_weight)
+                 remainder = grouped_count(j) - progenitor_cnt
+                 if (remainder > CEILING(grouped_count(j)*merge_ratio)) then
+                   merge_instance = FLOOR(1.0*progenitor_cnt/merge_collector_size)
+                 else
+                   merge_instance = FLOOR((grouped_count(j)*(1 - merge_ratio))/(merge_collector_size - 2))
+                 end if
+                 remainder = remainder + (progenitor_cnt - merge_instance*merge_collector_size)
+                 deallocate(weight_counts)
+               end if
+             else
+               ! NOTE: Consider replacing 0.5 with 1/(collector_size - 2), so that the merging
+               !       is not restricted to 4 -> 2 particles.
+               merge_instance = FLOOR(0.5*grouped_count(j)*(1.0 - merge_ratio))
+               if (merge_ratio < 0.5) then
+                 merge_instance = FLOOR(merge_ratio*grouped_count(j)*0.5)
+                 merge_collector_size = FLOOR(1.0*grouped_count(j)/merge_instance)
+               end if
+               remainder = grouped_count(j) - merge_collector_size*merge_instance
+             end if
+
+             do i = 1, merge_instance
+               IStart = (i - 1)*merge_collector_size + 1
+               IStop = IStart + merge_collector_size - 1
+               allocate(pass_buffer(merge_collector_size))
+               pass_buffer = energy_collector(j,IStart:IStop)
+               call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
+               deallocate(pass_buffer)
+             end do
+
+             IStart = grouped_count(j) - remainder + 1
+             IStop = grouped_count(j)
+             if (merge_ratio >= 0.5 .or. remainder <= 2) then
+               do i = IStart, IStop
+                 m_i = m_i + 1
+                 merged_buffer(m_i) = energy_collector(j,i)
+                 merged_buffer(m_i)%label = 0
+               end do
+             else if (merge_ratio < 0.5 .and. remainder > 2) then
+               allocate(pass_buffer(remainder))
+               pass_buffer = energy_collector(j,IStart:IStop)
+               call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
+               deallocate(pass_buffer)
+             end if
+             ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
+             !          " remainder: ", remainder, " merged p: ", merge_instance*2, ". Diff: ", &
+             !          merge_ratio*grouped_count(j) - (merge_instance*2 + remainder)
+           else
+             do i = 1, grouped_count(j)
+               m_i = m_i + 1
+               merged_buffer(m_i) = energy_collector(j,i)
+               merged_buffer(m_i)%label = 0
+             end do
+           end if
+         end if
+       end do
+
+       deallocate(grouped_count)
+       deallocate(energy_collector)
+     else
+       do i = 1, direction_cnt
+         m_i = m_i + 1
+         merged_buffer(m_i) = directional_buffer(direction,i)
+         merged_buffer(m_i)%label = 0
+       end do
+     end if
+!      deallocate(energy_threshold)
+     deallocate(max_weight)
+
+     !NOTE: now that merged_buffer is filled, copy to merged_guide ll_element.
+     if (m_i .ne. 0) then
+       ll_elem_gen = MOD(merged_cnt, size(merged_guide%tmp_particles))
+       buffer_pos = ll_elem_gen + 1
+       ! print *, "buffer_pos: ", buffer_pos
+       if (ll_elem_gen == 0 .and. merged_cnt > 0) then
+          call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
+          merged_guide => merged_guide%next
+          nullify (merged_guide%next)
+       end if
+
+       ll_elem_gen = ll_elem_gen + m_i
+       if (ll_elem_gen <= size(merged_guide%tmp_particles)) then
+         remainder = buffer_pos + m_i - 1
+         merged_guide%tmp_particles(buffer_pos:remainder) = merged_buffer(1:m_i)
+         ! print *, "ll_elem_gen", ll_elem_gen, buffer_pos, remainder, m_i, parent_key
+       else
+         extent = size(merged_guide%tmp_particles) - buffer_pos + 1
+         remainder = ll_elem_gen - size(merged_guide%tmp_particles)
+         merged_guide%tmp_particles(buffer_pos:size(merged_guide%tmp_particles)) = &
+         merged_buffer(1:extent)
+
+         call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
+         merged_guide => merged_guide%next
+         ! print *, "extension", ll_elem_gen, buffer_pos, remainder, (extent + 1), m_i, parent_key
+         merged_guide%tmp_particles(1:remainder) = merged_buffer((extent + 1):m_i)
+         nullify (merged_guide%next)
+       end if
+       merged_cnt = merged_cnt + m_i
+       ! print *, "ll_elem_gen", ll_elem_gen, size(merged_guide%tmp_particles), merged_cnt, parent_key
+     end if
+     deallocate(merged_buffer)
+     ! print *, "merged_buffer Deallocation done"
+   end subroutine energy_elastic_merging_low_weight
+
    subroutine resolve_elastic_merge_momentum(input_buffer, input_cnt, merged_buffer, m_i, group_index)
      implicit none
      type(t_particle), allocatable, intent(in) :: input_buffer(:)
@@ -871,7 +1086,7 @@ contains
      type(t_particle) :: sum_particle
      real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
                            Chi, rot_axis(3), w1, w2, total_weight, ave_E, mass, charge, &
-                           v_diff, e_diff
+                           v_diff, e_diff, rot_axis_mag, Chi_arg
      integer :: i, j, species, parent_key, correct_sign
 
      species = input_buffer(1)%data%species
@@ -930,11 +1145,21 @@ contains
        end if
 
        unit_vec = sum_particle%data%v/vel_mag
-       Chi = acos(sqrt(total_weight/w1 - (total_weight*total_weight/w1 - total_weight)*sum_particle%data%f_e(1)/vel_mag2))
+       Chi_arg = sqrt(total_weight/w1 - (total_weight*total_weight/w1 - total_weight)*sum_particle%data%f_e(1)/vel_mag2)
+       if (Chi_arg > 1.0_kind_physics .and. Chi_arg < (1.0_kind_physics + 1e-15)) then
+         Chi_arg = 1.0_kind_physics
+       end if
+       Chi = acos(Chi_arg)
        ! if (isnan(Chi)) print *, "Chi calculation failed!"
 
        rot_axis = cross_product(sum_particle%data%v, d)
-       rot_axis = rot_axis/sqrt(dot_product(rot_axis, rot_axis))
+       rot_axis_mag = sqrt(dot_product(rot_axis, rot_axis))
+       if (rot_axis_mag < 1e-15) then
+         rot_axis = 0.0_kind_physics
+         rot_axis(1) = 1.0_kind_physics
+       else
+         rot_axis = rot_axis/rot_axis_mag
+       end if
        max_vec = Rodriguez_rotation(Chi, rot_axis, unit_vec)
 
        ! Check if the resulting velocity vector is in the same momentum quadrant.
@@ -1027,121 +1252,6 @@ contains
      end if
    end subroutine resolve_elastic_merge_momentum
 
-   subroutine resolve_elastic_merge_1p(input_buffer, input_cnt, merged_buffer, m_i, group_index)
-     implicit none
-     type(t_particle), allocatable, intent(in) :: input_buffer(:)
-     integer, intent(in) :: input_cnt, group_index
-     type(t_particle), allocatable, intent(inout) :: merged_buffer(:)
-     integer, intent(inout) :: m_i
-     type(t_particle) :: sum_particle
-     real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
-                           Chi, rot_axis(3), w1, w2, total_weight, ave_E, mass, charge, &
-                           v_diff, e_diff
-     integer :: i, j, species, parent_key, correct_sign
-
-     species = input_buffer(1)%data%species
-     parent_key = input_buffer(1)%data%mp_int1
-
-     if (species == 0) then
-       mass = 1.0_kind_physics
-       charge = -1.0_kind_physics
-     else if (species == 1) then
-       mass = 1836.21957489_kind_physics
-       charge = 1.0_kind_physics
-     else if (species == 2) then
-       mass = 3673.43889456_kind_physics
-       charge = 1.0_kind_physics
-     end if
-     !initialise sum_particle
-     sum_particle%data%q = 0.0_kind_physics
-     sum_particle%data%v = 0.0_kind_physics
-     sum_particle%data%m = 0.0_kind_physics
-     sum_particle%data%f_e = 0.0_kind_physics
-     sum_particle%data%f_b = 0.0_kind_physics
-     sum_particle%x = 0.0_kind_physics
-
-     ! initialise d(3) vector, essentially the unit vector of the max extent in x, y, z, direction
-     d = 0.0
-     max_vec = 0.0
-     total_weight = 0.0
-     do i = 1, input_cnt
-       v_squared = abs(input_buffer(i)%data%q)*dot_product(input_buffer(i)%data%v, input_buffer(i)%data%v)
-       sum_particle%data%q = sum_particle%data%q + input_buffer(i)%data%q
-       sum_particle%data%v = sum_particle%data%v + abs(input_buffer(i)%data%q)*input_buffer(i)%data%v
-       sum_particle%data%m = sum_particle%data%m + input_buffer(i)%data%m
-       sum_particle%x = sum_particle%x + input_buffer(i)%x
-       sum_particle%data%f_e(1) = sum_particle%data%f_e(1) + v_squared
-       total_weight = total_weight + abs(input_buffer(i)%data%q)
-
-       do j = 1, 3
-         if (abs(input_buffer(i)%data%v(j)) > max_vec(j)) then
-           max_vec(j) = abs(input_buffer(i)%data%v(j))
-           d(j) = input_buffer(i)%data%v(j)
-         end if
-       end do
-     end do
-     sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
-     ave_E = 0.5*sum_particle%data%m*e_mass*sum_particle%data%f_e(1)/(total_weight*total_weight)
-
-     max_vec = 0.0_kind_physics
-     vel_mag2 = dot_product(sum_particle%data%v, sum_particle%data%v)
-     vel_mag = sqrt(vel_mag2)
-
-     if (vel_mag2 .ne. 0.0_kind_physics) then
-       w1 = total_weight
-
-       ! Not resolving the energy and momentum to fulfill conservation laws.
-       ! Rather, merging 2 particles into 1, keeping only the energy conserved.
-       unit_vec = sum_particle%data%v/vel_mag
-       vel_mag = 0.0_kind_physics
-       vel_mag = sqrt(2.0 * ave_E/(e_mass*mass))
-
-       ! Fill in values for merged particle 1
-       m_i = m_i + 1
-       merged_buffer(m_i)%x = input_buffer(1)%x
-       merged_buffer(m_i)%work = 1.0_8
-       merged_buffer(m_i)%data%v = vel_mag * unit_vec
-       merged_buffer(m_i)%data%q = charge*w1
-       merged_buffer(m_i)%data%m = mass*w1
-       merged_buffer(m_i)%data%b = 0.0
-       merged_buffer(m_i)%data%f_e = 0.0
-       merged_buffer(m_i)%data%f_b = 0.0
-       merged_buffer(m_i)%data%f_b(2) = ave_E
-       merged_buffer(m_i)%data%age = 0.0
-       merged_buffer(m_i)%label = group_index
-       merged_buffer(m_i)%data%species = species
-       merged_buffer(m_i)%data%mp_int1 = parent_key
-
-       ! merged_buffer(m_i)%data%b = sum_particle%data%v - (w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v)
-       ! v_diff = sqrt(dot_product(merged_buffer(m_i)%data%b, merged_buffer(m_i)%data%b))
-       ! if (v_diff > 1e-16_kind_physics) print *, "Noticeable Velocity Error!", v_diff
-       !
-       ! e_diff = sum_particle%data%f_e(1) - &
-       !          (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
-       !           w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
-       ! if (e_diff > 1e-16_kind_physics) print *, "Noticeable Energy Error!", e_diff
-       !
-       ! merged_buffer(m_i)%data%b = 0.0
-     else
-       w1 = total_weight
-       ! Fill in values for merged particle 1
-       m_i = m_i + 1
-       merged_buffer(m_i)%x = input_buffer(1)%x
-       merged_buffer(m_i)%work = 1.0_8
-       merged_buffer(m_i)%data%v = 0.0_kind_physics
-       merged_buffer(m_i)%data%q = charge*w1
-       merged_buffer(m_i)%data%m = mass*w1
-       merged_buffer(m_i)%data%b = 0.0
-       merged_buffer(m_i)%data%f_e = 0.0
-       merged_buffer(m_i)%data%f_b = 0.0
-       merged_buffer(m_i)%data%age = 0.0
-       merged_buffer(m_i)%label = group_index
-       merged_buffer(m_i)%data%species = species
-       merged_buffer(m_i)%data%mp_int1 = parent_key
-
-     end if
-   end subroutine resolve_elastic_merge_1p
-
    subroutine add_particle(guide, particle, new_particle, buffer_pos, ran, type)
      ! NOTE: A big assumption is made here: Without considering the rovibrational states
      !       of the reaction products, generated particle doesn`t store their own internal
@@ -1221,7 +1331,7 @@ contains
      integer(kind=int32), intent(inout) :: r123_ctr(4), r123_key(4)
      integer, intent(in) :: CS_numbers
      real(kind_physics), intent(inout) :: charge_count(5)
-     real(kind_physics), dimension(:), allocatable :: CS_vector
+     real(kind_physics), dimension(:), allocatable :: CS_vector, total_CS
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, ran_num(8)
@@ -1249,19 +1359,23 @@ contains
      scaled_mass = particle%data%m/weight
      vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
      K_E = 0.5*scaled_mass*e_mass*vel_mag**2
-     nu_prime = abs_max_CS * vel_mag * neutral_density
+     
+     allocate(total_CS(1))
+     call determine_cross_sections(particle, total_CS, CS_total_scatter)
+     nu_prime = vel_mag * neutral_density * total_CS(1) ! abs_max_CS
+     deallocate(total_CS)
 
      ! if ((abs(particle%data%q) .gt. 1.0_kind_physics)) then
      !   K_E = particle%data%f_b(2)
      ! end if
-    !  call determine_cross_sections(particle, CS_vector, CS_tables)
-    !  CS_vector = CS_vector * vel_mag * neutral_density
-    !  print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime
+     ! call determine_cross_sections(particle, CS_vector, CS_tables)
+     ! CS_vector = CS_vector * vel_mag * neutral_density
+     ! print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime
 
      ! Generating Random Number between [0,1]
      dummy = gen_norm_double_rng(r123_ctr, r123_key, ran_num)
 
-    !  print *, "rand: ", ran_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
+     ! print *, "rand: ", ran_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
      if (ran_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
        allocate(CS_vector(total_cross_sections))
        call determine_cross_sections(particle, CS_vector, CS_tables)
@@ -1269,11 +1383,11 @@ contains
        call Eirene_fit(eirene_coeffs1, K_E, CS_vector, CS_index)
        call Eirene_fit(eirene_coeffs2, K_E, CS_vector, CS_index)
 
-       !======================== For use in random scatter ================
+      !======================== For use in random scatter ================
        polar_theta = 2.0*pi*ran_num(4)
        polar_phi = acos(2.0*ran_num(3) - 1.)
 
-       !=====================For use in energy dependent scatter =========
+      !=====================For use in energy dependent scatter =========
        ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**ran_num(5))/K_E ! [Vahedi & Surendra]
        ! call determine_xi(K_E, xi)
        ! cos_Chi = 1 - (2.*ran_num(5)*(1. - xi))/(1. + xi*(1. - 2.*ran_num(5))) ! [Ohkrimovsky 2002]
@@ -1327,7 +1441,7 @@ contains
        ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
 
        particle%data%age = 0.0_8
-      !  print *, "elastic coll.!"
+       ! print *, "elastic coll.!"
 
      case(2) ! rotational excitation of H2 molecule, electron will lose the transition energy
        ! update velocity to indicate scattering into random angle
@@ -1355,12 +1469,12 @@ contains
        ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
 
        particle%data%age = 0.0_8
-      !  print *, "rotational exci.!"
+       ! print *, "rotational exci.!"
 
      case(3) ! vibrational excitation of H2 molecule, electron will lose the transition energy
        ! update velocity to indicate scattering into random angle
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*(V_V01 + scatter_loss)/e_mass)
-
+ 
        particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
        particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
        particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
@@ -1381,7 +1495,7 @@ contains
        ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
 
        particle%data%age = 0.0_8
-      !  print *, "vibrational exci.!"
+       !  print *, "vibrational exci.!"
 
      case(4) ! nondissociative ionization (1 additional electron, 1 byproduct)
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*(IE_H2_ion + scatter_loss)/e_mass)
@@ -1484,7 +1598,7 @@ contains
        call add_particle(guide, particle, new_particle, buff_pos, ran_num, 1)
       !  print *, "dissoc.!"
 
-    case(6) ! H2 molecule dissociation into H(1s) atoms (no additional electron, no byproducts)
+     case(6) ! H2 molecule dissociation into H(1s) atoms (no additional electron, no byproducts)
        ! update velocity to indicate scattering into random angle
        reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H1 + scatter_loss)/e_mass)
        particle%data%v(1) = vel_mag * sin(polar_phi*0.5) * cos(polar_theta)
@@ -1511,41 +1625,436 @@ contains
       !NOTE: remember to add a H atom counter, note that it is required to consider the
       !      enveloping Openmp operation, as well as the MPI implementation!
       !      Consider extending 'thread_charge_count' by 1 field.
-      charge_count(4) = charge_count(4) + 2
+       charge_count(4) = charge_count(4) + 2
 
-    case(7) ! H2 molecule dissociation into H(1s) & H(2s) atoms (no additional electron, no byproducts)
-      ! update velocity to indicate scattering into random angle
-      reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H2 + scatter_loss)/e_mass)
-      particle%data%v(1) = vel_mag * sin(polar_phi*0.5) * cos(polar_theta)
-      particle%data%v(2) = vel_mag * sin(polar_phi*0.5) * sin(polar_theta)
-      particle%data%v(3) = vel_mag * cos(polar_phi*0.5)
+     case(7) ! H2 molecule dissociation into H(1s) & H(2s) atoms (no additional electron, no byproducts)
+       ! update velocity to indicate scattering into random angle
+       reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H2 + scatter_loss)/e_mass)
+       particle%data%v(1) = vel_mag * sin(polar_phi*0.5) * cos(polar_theta)
+       particle%data%v(2) = vel_mag * sin(polar_phi*0.5) * sin(polar_theta)
+       particle%data%v(3) = vel_mag * cos(polar_phi*0.5)
 
-      ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
-      ! rot_axis = 0.0
-      ! rot_axis(1) = 1.0
-      ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
-      ! temp_vel = cross_product(unit_inc_vel, rot_axis)
-      ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
-      ! prefac = sin(Chi)/sin(polar_phi)
+       ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+       ! rot_axis = 0.0
+       ! rot_axis(1) = 1.0
+       ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+       ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+       ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+       ! prefac = sin(Chi)/sin(polar_phi)
 
-      ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
-      !                   sin(polar_theta)*prefac*temp_vel + &
-      !                   cos(polar_theta)*prefac*temp_vel1)
+       ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+       !                   sin(polar_theta)*prefac*temp_vel + &
+       !                   cos(polar_theta)*prefac*temp_vel1)
 
-      ! =======Anti Parallel Scattering ============================
-      ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+       ! =======Anti Parallel Scattering ============================
+       ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
 
-      particle%data%age = 0.0_8
-      !   print *, "elastic coll.!"
-      !NOTE: remember to add a H atom counter, note that it is required to consider the
-      !      enveloping Openmp operation, as well as the MPI implementation!
-      !      Consider extending 'thread_charge_count' by 1 field.
-      charge_count(4) = charge_count(4) + 1
-      charge_count(5) = charge_count(5) + 1
+       particle%data%age = 0.0_8
+       !   print *, "elastic coll.!"
+       !NOTE: remember to add a H atom counter, note that it is required to consider the
+       !      enveloping Openmp operation, as well as the MPI implementation!
+       !      Consider extending 'thread_charge_count' by 1 field.
+       charge_count(4) = charge_count(4) + 1
+       charge_count(5) = charge_count(5) + 1
 
      end select
      particle%label = 0
    end subroutine collision_update
+
+   subroutine collision_update_rep(particle, guide, new_particle, electron_count, CS_numbers, r123_ctr, r123_key, charge_count)
+     implicit none
+     type(t_particle), intent(inout) :: particle
+     type(linked_list_elem), pointer, intent(inout) :: guide
+     integer, intent(inout) :: new_particle, electron_count
+     integer(kind=int32), intent(inout) :: r123_ctr(4), r123_key(4)
+     integer, intent(in) :: CS_numbers
+     real(kind_physics), intent(inout) :: charge_count(5)
+     real(kind_physics), dimension(:), allocatable :: CS_vector, probs, total_CS
+     real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, R_J02, V_V01, IE_H2_ion, AE_H_ion, theta, phi, polar_theta, polar_phi
+     real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
+     real(kind_physics) :: H2_mass, K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, ran_num(8)
+     real(kind_physics) :: weight, scaled_mass, Disso_H1, Disso_H2
+     integer :: buff_pos, i, CS_index, j, remainder
+     integer, allocatable :: outcome_counts(:)
+
+     ! TODO: not a huge fan of the next 4 lines. Rather make those parameters which might help optimisation
+     R_J02 = 0.0441 ! eV, transition energy associated with rotational excitation from J = 0 -> 2
+     V_V01 = 0.516 ! eV, transition energy associated with vibrational excitation from V = 0 -> 1
+     IE_H2_ion = 15.426 ! 15.283 eV, Ionization energy of H2+ [Source: T.E.Sharp Atomic Data 2, 119-169 (1971)]. 15.426 by Yoon 2008
+     AE_H_ion = 18.075 ! eV, Appearance energy of H+, 18.1 by Yoon 2008
+     Disso_H1 = 4.47787 !eV, H dissociation energy H(1s) + H(1s)
+     Disso_H2 = 14.676 !eV, H dissociation energy H(1s) + H(2s)
+     H2_mass = 3674.43889456_8 ! H2/e mass ratio
+     ! [definition of Appearance energy vs Ionization energy from Mass Spectroscopy (2011) by Gross J.H.]
+
+     ! NOTE: Currently, calculation of nu_prime involves obtaining abs_max_CS,
+     !       which is the max of total cross section. nu_prime is then obtained
+     !       by multiplying abs_max_CS with the particle`s velocity magnitude and
+     !       constant local density. nu_prime will thus be always larger than actual nu!
+     ! TODO: not at all critical, but there are many ways of doing the next line, would be interesting to see if there is a fastest
+     ! way of computing the length and weigh that against readability, perhaps a separate inlinable function if there is a faster
+     ! way?
+     weight = abs(particle%data%q)
+     scaled_mass = particle%data%m/weight
+     vel_mag = sqrt(dot_product(particle%data%v,particle%data%v))
+     K_E = 0.5*scaled_mass*e_mass*vel_mag**2
+
+     allocate(total_CS(1))
+     call determine_cross_sections(particle, total_CS, CS_total_scatter)
+     nu_prime = total_CS(1) * vel_mag * neutral_density
+     deallocate(total_CS)
+
+     ! if ((abs(particle%data%q) .gt. 1.0_kind_physics)) then
+     !   K_E = particle%data%f_b(2)
+     ! end if
+    !  call determine_cross_sections(particle, CS_vector, CS_tables)
+    !  CS_vector = CS_vector * vel_mag * neutral_density
+    !  print *, nu_prime, (1 - exp(-1*nu_prime*dt)), CS_vector/nu_prime
+
+     ! Generating Random Number between [0,1]
+     dummy = gen_norm_double_rng(r123_ctr, r123_key, ran_num)
+
+    !  print *, "rand: ", ran_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
+     if (ran_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
+       allocate(CS_vector(total_cross_sections))
+       allocate(probs(total_cross_sections + 1))
+       allocate(outcome_counts(total_cross_sections + 1))
+       call determine_cross_sections(particle, CS_vector, CS_tables)
+       CS_index = total_cross_sections - eirene_cross_sections + 1
+       call Eirene_fit(eirene_coeffs1, K_E, CS_vector, CS_index)
+       call Eirene_fit(eirene_coeffs2, K_E, CS_vector, CS_index)
+
+!      !======================== For use in random scatter ================
+!      polar_theta = 2.0*pi*ran_num(4)
+!      polar_phi = acos(2.0*ran_num(3) - 1.)
+
+!      !=====================For use in energy dependent scatter =========
+!      ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**ran_num(5))/K_E ! [Vahedi & Surendra]
+!      ! call determine_xi(K_E, xi)
+!      ! cos_Chi = 1 - (2.*ran_num(5)*(1. - xi))/(1. + xi*(1. - 2.*ran_num(5))) ! [Ohkrimovsky 2002]
+!      ! Chi = acos(cos_Chi)
+!      unit_inc_vel = particle%data%v/vel_mag
+!      scatter_loss = 0.0_kind_physics
+!      ! scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
+
+       ! Convert CS_vector (cross section of all reactions) to Collision freq., nu.
+       CS_vector = CS_vector * vel_mag * neutral_density !6545520.13889 test value of constant local_number_density (at 0.001Pa)
+
+       !===================Weighted probability collision outcomes===============
+       probs(1) = CS_vector(1)/nu_prime
+       do j = 2, size(CS_vector)
+         probs(j) = (CS_vector(j) - CS_vector(j - 1))/nu_prime
+       end do
+       probs(size(probs)) = (nu_prime - CS_vector(total_cross_sections))/nu_prime
+
+       ! Outcomes are sorted by case 'i' below.
+       outcome_counts(1) = FLOOR(probs(total_cross_sections+1)*weight)
+       do j = 2, total_cross_sections+1
+         outcome_counts(j) = FLOOR(probs(j-1)*weight)
+       end do
+       remainder = weight - sum(outcome_counts)
+       outcome_counts(1) = outcome_counts(1) + remainder
+       !========================================================================
+
+!       ! TODO: this to me looks like it could be a simple do-loop
+!       ! TODO: also looks like it can be combined with the select case below via a rather long/convoluted if-elseif construct that
+!       ! may read more easily
+!       i = 1
+!       do while (ran_num(2) > (CS_vector(i)/nu_prime))
+!         i = i + 1
+!         if (i > size(CS_vector)) then
+!           i = 0
+!           EXIT
+!         end if
+!       end do
+       deallocate(CS_vector)
+       deallocate(probs)
+!     else ! otherwise, no collision happened
+!       i = 0
+!     end if
+
+     do i = 0, size(outcome_counts)-1
+       do j = 1, outcome_counts(i+1)
+         dummy = gen_norm_double_rng(r123_ctr, r123_key, ran_num)
+         polar_theta = 2.0*pi*ran_num(4)
+         polar_phi = acos(2.0*ran_num(3) - 1.)
+       
+         !=====================For use in energy dependent scatter =========
+         ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**ran_num(5))/K_E ! [Vahedi & Surendra]
+         ! call determine_xi(K_E, xi)
+         ! cos_Chi = 1 - (2.*ran_num(5)*(1. - xi))/(1. + xi*(1. - 2.*ran_num(5))) ! [Ohkrimovsky 2002]
+         ! Chi = acos(cos_Chi)
+         unit_inc_vel = particle%data%v/vel_mag
+         scatter_loss = 0.0_kind_physics
+         ! scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
+
+!     do j = 1, int(weight)
+!       if (i .ne. 0) then
+!         dummy = gen_norm_double_rng(r123_ctr, r123_key, ran_num)
+!         polar_theta = 2.0*pi*ran_num(4)
+!         polar_phi = acos(2.0*ran_num(3) - 1.)
+!       
+!         !=====================For use in energy dependent scatter =========
+!         ! cos_Chi = (2. + K_E - 2.*(1. + K_E)**ran_num(5))/K_E ! [Vahedi & Surendra]
+!         ! call determine_xi(K_E, xi)
+!         ! cos_Chi = 1 - (2.*ran_num(5)*(1. - xi))/(1. + xi*(1. - 2.*ran_num(5))) ! [Ohkrimovsky 2002]
+!         ! Chi = acos(cos_Chi)
+!         unit_inc_vel = particle%data%v/vel_mag
+!         scatter_loss = 0.0_kind_physics
+!         ! scatter_loss = 2.*(1. - cos_Chi)/H2_mass ! lost energy calculation
+!       end if
+
+       select case(i)
+       case(0) ! null collision, no update performed
+        !  print *, "null coll!"
+       case(1) ! elastic scattering (no additional electron, no byproducts)
+         ! update velocity to indicate scattering into random angle
+         reduced_vel_mag = sqrt(vel_mag**2 - 2.*scatter_loss/e_mass)
+         particle%data%v(1) = vel_mag * sin(polar_phi) * cos(polar_theta)
+         particle%data%v(2) = vel_mag * sin(polar_phi) * sin(polar_theta)
+         particle%data%v(3) = vel_mag * cos(polar_phi)
+
+         ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+         ! rot_axis = 0.0
+         ! rot_axis(1) = 1.0
+         ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+         ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+         ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+         ! prefac = sin(Chi)/sin(polar_phi)
+
+         ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+         !                   sin(polar_theta)*prefac*temp_vel + &
+         !                   cos(polar_theta)*prefac*temp_vel1)
+
+         ! =======Anti Parallel Scattering ============================
+         ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
+         particle%data%age = 0.0_8
+         ! print *, "elastic coll.!"
+
+       case(2) ! rotational excitation of H2 molecule, electron will lose the transition energy
+         ! update velocity to indicate scattering into random angle
+         ! TODO: will be less costly to keep 2/e_mass as parameter and multiplying with it - not sure the compile will pick up on this
+         ! and do the short-cut for you. Better still: add it to the energies straight away.
+         reduced_vel_mag = sqrt(vel_mag**2 - 2.*(R_J02 + scatter_loss)/e_mass)
+
+         particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
+         particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
+         particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
+
+         ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+         ! rot_axis = 0.0
+         ! rot_axis(1) = 1.0
+         ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+         ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+         ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+         ! prefac = sin(Chi)/sin(polar_phi)
+
+         ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+         !                  sin(polar_theta)*prefac*temp_vel + &
+         !                  cos(polar_theta)*prefac*temp_vel1)
+
+         ! ==========================Anti Parallel Scatter =======================
+         ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
+         particle%data%age = 0.0_8
+         ! print *, "rotational exci.!"
+
+       case(3) ! vibrational excitation of H2 molecule, electron will lose the transition energy
+         ! update velocity to indicate scattering into random angle
+         reduced_vel_mag = sqrt(vel_mag**2 - 2.*(V_V01 + scatter_loss)/e_mass)
+ 
+         particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
+         particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
+         particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
+
+         ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+         ! rot_axis = 0.0
+         ! rot_axis(1) = 1.0
+         ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+         ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+         ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+         ! prefac = sin(Chi)/sin(polar_phi)
+
+         ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+         !                   sin(polar_theta)*prefac*temp_vel + &
+         !                   cos(polar_theta)*prefac*temp_vel1)
+
+         ! ==========================Anti Parallel Scatter =======================
+         ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
+         particle%data%age = 0.0_8
+        !  print *, "vibrational exci.!"
+
+       case(4) ! nondissociative ionization (1 additional electron, 1 byproduct)
+         reduced_vel_mag = sqrt(vel_mag**2 - 2.*(IE_H2_ion + scatter_loss)/e_mass)
+         reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
+         call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
+        !  print *, "incident momentum: ", scaled_mass* reduced_incident
+
+         call add_particle(guide, particle, new_particle, buff_pos, ran_num, 0)
+         ! ===========================Random Scatter==============================
+         temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
+         temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
+         temp_vel(3) = cos(polar_phi*0.5)
+
+         rot_axis(1) = 0.0
+         rot_axis(2) = 1.0
+         rot_axis(3) = 0.0
+         temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
+         rot_axis(2) = 0.0
+         rot_axis(3) = 1.0
+         temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
+
+         ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+         ! rot_axis = 0.0
+         ! rot_axis(1) = 1.0
+         ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+         ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+         ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+         ! prefac = sin(Chi)/sin(polar_phi)
+
+         ! temp_vel = (cos_Chi*unit_inc_vel + sin(polar_theta)*prefac*temp_vel + &
+         !            cos(polar_theta)*prefac*temp_vel1)
+
+         ! NOTE: Scaling proper velocity magnitudes w.r.t K_E & momentum
+         cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
+         temp_vel_mag = (2.*scaled_mass/(guide%tmp_particles(buff_pos)%data%m + scaled_mass)) &
+                        * reduced_vel_mag * cos_theta
+         temp_vel1_mag = reduced_vel_mag*sqrt(scaled_mass**2 + 2. * scaled_mass * guide%tmp_particles(buff_pos)%data%m &
+                         * (1. - 2. * (cos_theta**2)) + guide%tmp_particles(buff_pos)%data%m**2)/(guide%tmp_particles(buff_pos)%data%m + scaled_mass)
+         guide%tmp_particles(buff_pos)%data%v = temp_vel * temp_vel_mag
+
+         temp_vel1 = reduced_incident - (guide%tmp_particles(buff_pos)%data%m/scaled_mass) * &
+                     guide%tmp_particles(buff_pos)%data%v
+
+         particle%data%v = temp_vel1
+         particle%data%age = 0.0_8
+        !  print *, "outgoing momentum: ", scaled_mass*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
+        !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
+        !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
+
+         call add_particle(guide, particle, new_particle, buff_pos, ran_num, 2)
+        !  print *, "nondissoc.!"
+
+       case(5) ! dissociative ionization (1 additional electron, 2 byproducts), Hydrogen atom is ignored!
+         reduced_vel_mag = sqrt(vel_mag**2 - 2.*(AE_H_ion+scatter_loss)/e_mass)
+         reduced_incident = particle%data%v * (reduced_vel_mag/vel_mag)
+         call angles_calc(reduced_incident, reduced_vel_mag, theta, phi)
+        !  print *, "incident momentum: ", scaled_mass * reduced_incident
+
+         call add_particle(guide, particle, new_particle, buff_pos, ran_num, 0)
+         temp_vel(1) = sin(polar_phi*0.5) * cos(polar_theta)
+         temp_vel(2) = sin(polar_phi*0.5) * sin(polar_theta)
+         temp_vel(3) = cos(polar_phi*0.5)
+
+         rot_axis(1) = 0.0
+         rot_axis(2) = 1.0
+         rot_axis(3) = 0.0
+         temp_vel = Rodriguez_rotation(theta, rot_axis, temp_vel)
+         rot_axis(2) = 0.0
+         rot_axis(3) = 1.0
+         temp_vel = Rodriguez_rotation(phi, rot_axis, temp_vel)
+
+         ! rot_axis = 0.0
+         ! rot_axis(1) = 1.0
+         ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+         ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+         ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+         ! prefac = sin(Chi)/sin(polar_phi)
+
+         ! temp_vel = (cos_Chi*unit_inc_vel + sin(polar_theta)*prefac*temp_vel + &
+         !            cos(polar_theta)*prefac*temp_vel1)
+
+         ! NOTE: Scaling proper velocity magnitudes w.r.t K_E & momentum
+         cos_theta = dot_product(temp_vel, reduced_incident)/reduced_vel_mag
+         temp_vel_mag = (2.*scaled_mass/(guide%tmp_particles(buff_pos)%data%m + scaled_mass)) &
+                        * reduced_vel_mag * cos_theta
+         temp_vel1_mag = reduced_vel_mag*sqrt(scaled_mass**2 + 2. * scaled_mass * guide%tmp_particles(buff_pos)%data%m &
+                         * (1. - 2. * (cos_theta**2)) + guide%tmp_particles(buff_pos)%data%m**2)/(guide%tmp_particles(buff_pos)%data%m + scaled_mass)
+         guide%tmp_particles(buff_pos)%data%v = temp_vel * temp_vel_mag
+
+         temp_vel1 = reduced_incident - (guide%tmp_particles(buff_pos)%data%m/scaled_mass) * &
+                     guide%tmp_particles(buff_pos)%data%v
+
+         particle%data%v = temp_vel1
+         particle%data%age = 0.0_8
+        !  print *, "outgoing momentum: ", scaled_mass*temp_vel1 + guide%tmp_particles(buff_pos)%data%v * guide%tmp_particles(buff_pos)%data%m
+        !  print *, "incident kinetic energy: ", 0.5*reduced_vel_mag**2
+        !  print *, "outgoing kinetic energy: ", 0.5*(temp_vel1_mag**2 + temp_vel_mag**2)
+
+         charge_count(4) = charge_count(4) + 1
+         call add_particle(guide, particle, new_particle, buff_pos, ran_num, 1)
+        !  print *, "dissoc.!"
+
+       case(6) ! H2 molecule dissociation into H(1s) atoms (no additional electron, no byproducts)
+         ! update velocity to indicate scattering into random angle
+         reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H1 + scatter_loss)/e_mass)
+         particle%data%v(1) = vel_mag * sin(polar_phi*0.5) * cos(polar_theta)
+         particle%data%v(2) = vel_mag * sin(polar_phi*0.5) * sin(polar_theta)
+         particle%data%v(3) = vel_mag * cos(polar_phi*0.5)
+
+         ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+         ! rot_axis = 0.0
+         ! rot_axis(1) = 1.0
+         ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+         ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+         ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+         ! prefac = sin(Chi)/sin(polar_phi)
+
+         ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+         !                   sin(polar_theta)*prefac*temp_vel + &
+         !                   cos(polar_theta)*prefac*temp_vel1)
+
+         ! =======Anti Parallel Scattering ============================
+         ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
+         particle%data%age = 0.0_8
+        !  print *, "elastic coll.!"
+        !NOTE: remember to add a H atom counter, note that it is required to consider the
+        !      enveloping Openmp operation, as well as the MPI implementation!
+        !      Consider extending 'thread_charge_count' by 1 field.
+        charge_count(4) = charge_count(4) + 2
+
+       case(7) ! H2 molecule dissociation into H(1s) & H(2s) atoms (no additional electron, no byproducts)
+         ! update velocity to indicate scattering into random angle
+         reduced_vel_mag = sqrt(vel_mag**2 - 2.*(Disso_H2 + scatter_loss)/e_mass)
+         particle%data%v(1) = vel_mag * sin(polar_phi*0.5) * cos(polar_theta)
+         particle%data%v(2) = vel_mag * sin(polar_phi*0.5) * sin(polar_theta)
+         particle%data%v(3) = vel_mag * cos(polar_phi*0.5)
+
+         ! =================Vahedi Surendra 1995 / Ohkrimovsky 2002 ==============
+         ! rot_axis = 0.0
+         ! rot_axis(1) = 1.0
+         ! polar_phi = acos(dot_product(unit_inc_vel,rot_axis))
+         ! temp_vel = cross_product(unit_inc_vel, rot_axis)
+         ! temp_vel1 = cross_product(unit_inc_vel, -1.*temp_vel)
+         ! prefac = sin(Chi)/sin(polar_phi)
+
+         ! particle%data%v = reduced_vel_mag*(cos_Chi*unit_inc_vel + &
+         !                   sin(polar_theta)*prefac*temp_vel + &
+         !                   cos(polar_theta)*prefac*temp_vel1)
+
+         ! =======Anti Parallel Scattering ============================
+         ! particle%data%v = -1.0*reduced_vel_mag*unit_inc_vel
+
+         particle%data%age = 0.0_8
+         !   print *, "elastic coll.!"
+         !NOTE: remember to add a H atom counter, note that it is required to consider the
+         !      enveloping Openmp operation, as well as the MPI implementation!
+         !      Consider extending 'thread_charge_count' by 1 field.
+         charge_count(4) = charge_count(4) + 1
+         charge_count(5) = charge_count(5) + 1
+
+       end select
+!     end do
+     end do
+     end do
+
+     deallocate(outcome_counts)
+     end if
+     particle%label = 0
+   end subroutine collision_update_rep
 
    recursive subroutine filter_and_swap(particles, geometry, current_index, head_i, tail_i, swapped_cnt, charge_count, break_check)
      implicit none

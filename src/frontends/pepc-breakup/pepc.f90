@@ -97,20 +97,24 @@ program pepc
    end if
 
    !========================read cross section data======================
-   allocate(CS_tables)
-   CS_guide => CS_tables
+   allocate(CS_total_scatter)
+   CS_guide => CS_total_scatter
    ! IMPORTANT NOTE: the order of set_cross_section_table must correspond to the case orders in collision_update()
   !  call getcwd(file_path)
    file_path = "../src/frontends/pepc-breakup/cross_sections/"
-   call set_cross_section_table(trim(file_path)//"total_scattering_H2.txt", CS_guide, 11, 1)
-   allocate(energy_group_levels(size(CS_tables%CS, 1) + 1))
+   call set_cross_section_table(trim(file_path)//"energy_grouping.txt", CS_guide, 11, 1)
+   
+   allocate(energy_group_levels(size(CS_total_scatter%CS, 1) + 1))
    energy_group_levels = 0.0
-   energy_group_levels(2:size(energy_group_levels)) = CS_tables%CS(:,1)
-
+   energy_group_levels(2:size(energy_group_levels)) = CS_total_scatter%CS(:,1)
+   call deallocate_CS_buffer(CS_total_scatter)
    ! NOTE: Future prospect: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
    !       look at some external function DDFSA or DFSA.
-   call determine_absolute_max_CS(CS_tables, abs_max_CS)
-   call deallocate_CS_buffer(CS_tables)
+   allocate(CS_total_scatter)
+   CS_guide => CS_total_scatter
+   call set_cross_section_table(trim(file_path)//"total_scattering_H2.txt", CS_guide, 11, 1)
+   call determine_absolute_max_CS(CS_total_scatter, abs_max_CS)
+   ! call deallocate_CS_buffer(CS_tables)
 
    allocate(CS_tables)
    CS_guide => CS_tables
@@ -180,8 +184,8 @@ program pepc
       generic_array = 0
       local_min_x = 1e16_kind_physics
       min_x = 1e16_kind_physics
-      local_max_x = 0.0_kind_physics
-      max_x = 0.0_kind_physics
+      local_max_x = -1e16_kind_physics
+      max_x = -1e16_kind_physics
 
       !$OMP PARALLEL if(np/init_omp_threads > 10) default(private) &
       !$OMP shared(init_omp_threads, particles, new_particles_offset, np) &
@@ -240,49 +244,26 @@ program pepc
               call collision_update(particles(i), particle_guide, new_particle_cnt, &
                                     electron_num, total_cross_sections, ctr_s, key_s, &
                                     charge_count)
+!            if (collision_checks .ge. 10) then
+!              call collision_update_rep(particles(i), particle_guide, new_particle_cnt, &
+!                                    electron_num, total_cross_sections, ctr_s, key_s, &
+!                                    charge_count)
             else
 ! NOTE: Assuming a super-particle that represents 5 electrons, at eV ready to ionise.
 !       5 collision checks are done. Make sure that the checks are done with eV
 !       initially carried by super-particle!
               stored_vel = particles(i)%data%v
-              last_v = 0.0
-              new_mass = collision_checks
+              ! last_v = 0.0
+              ! new_mass = collision_checks
               j = 0
               do while (j < collision_checks)
                 particles(i)%data%v = stored_vel
-                old_part_cnt = new_particle_cnt
+                ! old_part_cnt = new_particle_cnt
                 call collision_update(particles(i), particle_guide, new_particle_cnt, &
                                       electron_num, total_cross_sections, ctr_s, key_s, &
                                       charge_count)
-
-! NOTE: If there are instances of ionisation, electron velocity after ionisation
-!       has to be recorded before the next collision check is evaluated again.
-!       Therefore, add_particle is called! Since this electron is now recorded
-!       elsewhere, it means that the super-particle has reduced in mass & charge.
-!       The final velocity of super-particle is the last non-ionising vector.
-                if (new_particle_cnt .ne. old_part_cnt) then
-                  if (new_mass > 1) then
-                    rand_num = 0.75
-                    call add_particle(particle_guide, particles(i), new_particle_cnt, tmp_buff_pos, rand_num, 0)
-                    particle_guide%tmp_particles(tmp_buff_pos)%data%v = particles(i)%data%v
-                  else
-                    particles(i)%data%m = 1.0
-                    particles(i)%data%q = -1.0
-                  end if
-                  new_mass = new_mass - 1
-                else
-                  last_v = particles(i)%data%v
-                end if
                 j = j + 1
               end do
-
-! NOTE: If only a few ionisation instance occured, the original element is then
-!       updated to a reduced super-particle.
-              if (new_mass > 0) then
-                particles(i)%data%m = new_mass
-                particles(i)%data%q = -1.0*new_mass
-                particles(i)%data%v = last_v
-              end if
             end if
          end if
          ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
@@ -434,7 +415,7 @@ program pepc
       tnp = 0
       call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (root) then
-        write (*,'(a,i7)') "Total particles: ", tnp
+        write (*,'(a,i10)') "Total particles: ", tnp
         write (*,'(a,i10,i10,i10,i10,i10)') "Actual species count: ", total_actual_parts, virtual_particle_cnt
       end if
 
@@ -509,6 +490,7 @@ program pepc
 
    deallocate(energy_group_levels)
    call deallocate_CS_buffer(CS_tables)
+   call deallocate_CS_buffer(CS_total_scatter)
 
    if (density_output) then
      deallocate(final_density)

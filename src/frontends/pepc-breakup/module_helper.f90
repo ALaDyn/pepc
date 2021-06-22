@@ -130,7 +130,7 @@ module helper
 
    ! lookup tables for cross section data
    character(255) :: file_path
-   type(linked_list_CS), pointer :: CS_tables, CS_guide
+   type(linked_list_CS), pointer :: CS_tables, CS_guide, CS_total_scatter
 
    ! variables describing external fields
    real(kind_physics) :: d, major_radius, minor_radius, B0, B_p, V_loop
@@ -676,10 +676,12 @@ contains
      implicit none
 
      type(diag_vertex), intent(in) :: vertices(:)
-     integer :: vtk_step
+     integer :: vtk_step, temp_step
 
-     vtk_step = vtk_step_of_step(step)
-     call vtk_write_densities("densities", step, dt*step, vtk_step, vertices)
+     temp_step = (step + 1)/1000
+
+     vtk_step = vtk_step_of_step(temp_step)
+     call vtk_write_densities("densities", temp_step, dt*step, vtk_step, vertices)
    end subroutine write_densities
 
    subroutine write_updated_resume_variables(resume_step)
@@ -735,11 +737,13 @@ contains
 
       type(t_particle), intent(in) :: p(:)
 
-      integer :: vtk_step
+      integer :: vtk_step, temp_step
+
+      temp_step = (step + 1)/1000
 
       call timer_start(t_user_particleio)
-      vtk_step = vtk_step_of_step(step)
-      call vtk_write_particles("particles", MPI_COMM_WORLD, step, dt*step, vtk_step, p, coulomb_and_l2)
+      vtk_step = vtk_step_of_step(temp_step)
+      call vtk_write_particles("particles", MPI_COMM_WORLD, temp_step, dt*step, vtk_step, p, coulomb_and_l2)
       call timer_stop(t_user_particleio)
       if (root) write (*, '(a,es12.4)') " == [write particles] time in vtk output [s]      : ", timer_read(t_user_particleio)
 
