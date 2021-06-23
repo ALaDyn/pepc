@@ -13,50 +13,60 @@ init_omp_threads = 2
 ! Note that depending on the number of MPI ranks involved, overhead due to MPI
 ! will offset the code's internal clock versus wall clock of JURECA accounting.
 ! Recommended to use a  lower 'i_wall_time' than requested wall clock in job_script.
-i_wall_time = 00:10:00
+i_wall_time = 23:50:00
 
 ! Density grid for interpolation on?
 density_output = .true.
 
-! Density grid definitions, only required with 'density_output' == .true.
+! Mesh mode: 0 - for rectilinear grids
+!          : 1 - use an externally generated unstructured tetrahedral mesh.
+mesh_mode = 1
+
+! If mesh_mode set to 1, provide the full path of the .msh file (Version 4 gmsh).
+mesh_name = "./scripting.msh"
+
+! Density grid definitions, only required with 'density_output' == .true. AND 
+! mesh_mode == 0
 ! Number of cells in x,y,z direction.
-x_cell = 100
-y_cell = 100
-z_cell = 50
+x_cell = 215 ! 43
+y_cell = 215 ! 43
+z_cell = 50 ! 10
 
 ! Define the extent of the density grid (meters)
-minimum_x = -4.25
-minimum_y = -4.25
-minimum_z = -1.35
-x_length = 8.5
-y_length = 8.5
-z_length = 2.7
+minimum_x = -7.56
+minimum_y = -7.56
+minimum_z = -1.76
+x_length = 15.12
+y_length = 15.12
+z_length = 3.52
 
 ! simulation type: 0 = Electrode Plates, 1 = Tokamak Setting
-sim_type = 0
+sim_type = 1
 
 ! Only for tokamak case, electron seeding method:
 ! 0 = randomly distributed in torus
 ! 1 = seeded on a plane
-mode = 1
+mode = 0
 
 ! Only for Electrode Plates, plate distance (in meters)
 d = 0.0011870845
 
 ! Only for Electrode Plates, injected electrons per step
-electron_num = 20
+electron_num = 0 !20
 
 ! total number of particles
 tnp = REPLACE_TNP
+H1s = REPLACE_VP1
+H2s = REPLACE_VP2
 
 ! number of time steps
 nt = REPLACE_NSTEP
 
 ! time step (in picoseconds)
-dt = 1
+dt = 17.5
 
 ! diagnostics and output interval
-diag_interval = 1000
+diag_interval = 1
 
 ! turn data and domain output on/off
 particle_output = .true.
@@ -73,17 +83,17 @@ particle_test = .false.
 plasma_dimensions = 0.05 0.05 0.025 !1.0 1.0 1.0
 
 ! initial electron temperature (K)
-init_temperature = 273.15
+init_temperature = 373.15
 
 ! pressure of vessel (Pa)
-pressure = 333.31
+pressure = 0.002 !333.31
 
 ! external electric field (in V/m)
-external_e = 0.0 0.0 100000.0
+external_e = 0.0 0.0 0.0 !100000.0
 
 ! tokamak torus descriptions (in meters)
-major_radius = 2.9
-minor_radius = 0.5
+major_radius = 5.8 !2.9
+minor_radius = 1.0 !0.5
 
 ! toroidal magnetic field strength (Tesla)
 B0 = 2.5
@@ -92,7 +102,7 @@ B0 = 2.5
 B_p = 0.024
 
 ! loop voltage along tokamak torus(V/m)
-V_loop = 11.0
+V_loop = 22.0 !11.0
 /
 
 &calc_force_coulomb

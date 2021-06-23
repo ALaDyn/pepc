@@ -5,9 +5,9 @@
 #SBATCH --cpus-per-task=N_CPU
 #SBATCH --output=pepc-breakup_out.%j
 #SBATCH --error=pepc-breakup_err.%j
-#SBATCH --time=00:10:00
-#SBATCH --partition=devel
-#SBATCH --gres=mem128
+#SBATCH --time=24:00:00
+#SBATCH --partition=dc-cpu
+#SBATCH --gres=mem512
 
 
 # NOTE: THIS IS THE JOB_TEMPLATE, REMEMBER TO COPY AND ALTER THE FILE FOR
@@ -19,12 +19,12 @@ srun --cpu-bind=sockets -l ./pepc-breakup ./params > log
 
 #=======================Define in job_template====================
 N_Nodes=1
-N_Tasks=4
+N_Tasks=21
 N_Cpu=12
 #========================================================================
 
 JOB_ITER=N_ITER
-TOTAL_STEP_ITER=24000
+TOTAL_STEP_ITER=30000000
 
 if [ -f ./update_variable.txt ]; then
     input_file="update_variable.txt"
