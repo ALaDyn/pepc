@@ -167,12 +167,12 @@ contains
     end do
   end subroutine torus_diagnostic_xy_grid
 
-  subroutine cell_vertices(cell_n, vertices)!loll, lorl, upll, uprl, lolu, loru, uplu, upru)
+  subroutine cube_cell_vertices(cell_n, vertices)!loll, lorl, upll, uprl, lolu, loru, uplu, upru)
     implicit none
-    integer, intent(in) :: cell_n
-    integer, intent(out) :: vertices(8) !loll, lorl, upll, uprl, lolu, loru, uplu, upru
-    integer :: ny, nz, offset
-    real*8 :: temp_val
+    integer(kind_particle), intent(in) :: cell_n
+    integer(kind_particle), intent(out) :: vertices(8) !loll, lorl, upll, uprl, lolu, loru, uplu, upru
+    integer(kind_particle) :: ny, nz, offset
+    real(kind_physics) :: temp_val
 
     ! NOTE: cell number is taken as starting from '0', to compensate the nature of
     !       division coupled with FLOOR function. Cell numbers technically starts at '1'
@@ -191,22 +191,38 @@ contains
     vertices(6) = vertices(2) + offset                               ! loru
     vertices(7) = vertices(3) + offset                               ! uplu
     vertices(8) = vertices(4) + offset                               ! upru
-  end subroutine cell_vertices
+  end subroutine cube_cell_vertices
 
-  subroutine construct_connectivity(array)
+  subroutine construct_connectivity_cube(array)
     implicit none
-    integer, allocatable, intent(inout) :: array(:)
-    integer :: ic, start_index, end_index
+    integer(kind_particle), allocatable, intent(inout) :: array(:)
+    integer(kind_particle) :: ic, start_index, end_index
 
    !  print *, size(array)/8
 
     do ic = 1, size(array)/8
       start_index = (ic - 1)*8 + 1
       end_index = start_index + 7
-      call cell_vertices(ic, array(start_index:end_index))
+      call cube_cell_vertices(ic, array(start_index:end_index))
      !  print *, ic, array(start_index:end_index)
     end do
-  end subroutine construct_connectivity
+  end subroutine construct_connectivity_cube
+
+  subroutine construct_connectivity_tets(array, tets_connectivity_matrix)
+    implicit none
+    integer(kind_particle), allocatable, intent(inout) :: array(:)
+    integer(kind_particle), allocatable, intent(in) :: tets_connectivity_matrix(:,:)
+    integer(kind_particle) :: i_elem, i_cnt
+
+    ! NOTE: VTK connectivity starts from 0 index
+    do i_elem = 1, size(tets_connectivity_matrix(:,1))
+      i_cnt = (i_elem - 1)*4
+      array(i_cnt + 1) = tets_connectivity_matrix(i_elem,1) - 1
+      array(i_cnt + 2) = tets_connectivity_matrix(i_elem,2) - 1
+      array(i_cnt + 3) = tets_connectivity_matrix(i_elem,3) - 1
+      array(i_cnt + 4) = tets_connectivity_matrix(i_elem,4) - 1
+    end do
+  end subroutine construct_connectivity_tets
 
   subroutine init_diagnostic_verts(vertices, min_x, min_y, min_z, &
                                    x_width, y_width, z_width)
@@ -227,7 +243,7 @@ contains
 
      if (my_rank == 0) then
        allocate(connectivity_array(x_cell*y_cell*z_cell*8))
-       call construct_connectivity(connectivity_array)
+       call construct_connectivity_cube(connectivity_array)
        ! print *, connectivity_array
      end if
 
@@ -265,6 +281,7 @@ contains
     type(t_particle), intent(in) :: particle
     type(diag_vertex), allocatable, intent(inout) :: vertices(:)
     real(kind_physics) :: min_x, min_y, min_z, inv_vol, xp, yp, zp, coeff
+    real(kind_physics) :: temp_q_dens
     integer :: total_vertices, nx, ny, nz, N_cell
     integer :: loll, lorl, upll, uprl, lolu, loru, uplu, upru, offset
     ! NOTE: loll = lower left corner, lower plane
@@ -281,6 +298,7 @@ contains
     min_y = vertices(1)%x(2) + 0.5*dy
     min_z = vertices(1)%x(3) + 0.5*dz
     inv_vol = 1./(dx*dy*dz)
+    ! print *, dx*dy*dz, dx, dy ,dz
 
     offset = (x_cell + 1)*(y_cell + 1)
 
@@ -306,60 +324,60 @@ contains
 
     ! interpolate the particle charge to the vertices. Also computes J.
     if (particle%data%q < 0.0) then
-      vertices(loll)%q_density(1) = (vertices(lorl)%x(1) - xp) &
-                                    *(vertices(upll)%x(2) - yp) &
-                                    *(vertices(lolu)%x(3) - zp) &
-                                    *coeff + vertices(loll)%q_density(1)
-      vertices(loll)%J_density = vertices(loll)%q_density(1) * particle%data%v &
+      temp_q_dens = (vertices(lorl)%x(1) - xp) &
+                    *(vertices(upll)%x(2) - yp) &
+                    *(vertices(lolu)%x(3) - zp)*coeff
+      vertices(loll)%q_density(1) = temp_q_dens + vertices(loll)%q_density(1)
+      vertices(loll)%J_density = temp_q_dens*particle%data%v &
                                  + vertices(loll)%J_density
 
-      vertices(lorl)%q_density(1) = (xp - vertices(loll)%x(1)) &
-                                    *(vertices(uprl)%x(2) - yp) &
-                                    *(vertices(loru)%x(3) - zp) &
-                                    *coeff + vertices(lorl)%q_density(1)
-      vertices(lorl)%J_density = vertices(lorl)%q_density(1) * particle%data%v &
+      temp_q_dens = (xp - vertices(loll)%x(1)) &
+                    *(vertices(uprl)%x(2) - yp) &
+                    *(vertices(loru)%x(3) - zp)*coeff
+      vertices(lorl)%q_density(1) = temp_q_dens + vertices(lorl)%q_density(1)
+      vertices(lorl)%J_density = temp_q_dens*particle%data%v &
                                  + vertices(lorl)%J_density
 
-      vertices(upll)%q_density(1) = (vertices(uprl)%x(1) - xp) &
-                                    *(yp - vertices(loll)%x(2)) &
-                                    *(vertices(uplu)%x(3) - zp) &
-                                    *coeff + vertices(upll)%q_density(1)
-      vertices(upll)%J_density = vertices(upll)%q_density(1) * particle%data%v &
+      temp_q_dens = (vertices(uprl)%x(1) - xp) &
+                    *(yp - vertices(loll)%x(2)) &
+                    *(vertices(uplu)%x(3) - zp)*coeff
+      vertices(upll)%q_density(1) = temp_q_dens + vertices(upll)%q_density(1)
+      vertices(upll)%J_density = temp_q_dens*particle%data%v &
                                  + vertices(upll)%J_density
 
-      vertices(uprl)%q_density(1) = (xp - vertices(upll)%x(1)) &
-                                    *(yp - vertices(lorl)%x(2)) &
-                                    *(vertices(upru)%x(3) - zp) &
-                                    *coeff + vertices(uprl)%q_density(1)
-      vertices(uprl)%J_density = vertices(uprl)%q_density(1) * particle%data%v &
+      temp_q_dens = (xp - vertices(upll)%x(1)) &
+                    *(yp - vertices(lorl)%x(2)) &
+                    *(vertices(upru)%x(3) - zp)*coeff
+      vertices(uprl)%q_density(1) = temp_q_dens + vertices(uprl)%q_density(1)
+      vertices(uprl)%J_density = temp_q_dens*particle%data%v &
                                  + vertices(uprl)%J_density
 
-      vertices(lolu)%q_density(1) = (vertices(loru)%x(1) - xp) &
-                                    *(vertices(uplu)%x(2) - yp) &
-                                    *(zp - vertices(loll)%x(3)) &
-                                    *coeff + vertices(lolu)%q_density(1)
-      vertices(lolu)%J_density = vertices(lolu)%q_density(1) * particle%data%v &
+      temp_q_dens = (vertices(loru)%x(1) - xp) &
+                    *(vertices(uplu)%x(2) - yp) &
+                    *(zp - vertices(loll)%x(3))*coeff
+      vertices(lolu)%q_density(1) = temp_q_dens + vertices(lolu)%q_density(1)
+      vertices(lolu)%J_density = temp_q_dens*particle%data%v &
                                  + vertices(lolu)%J_density
 
-      vertices(loru)%q_density(1) = (xp - vertices(lolu)%x(1)) &
-                                    *(vertices(upru)%x(2) - yp) &
-                                    *(zp - vertices(lorl)%x(3)) &
-                                    *coeff + vertices(loru)%q_density(1)
-      vertices(loru)%J_density = vertices(loru)%q_density(1) * particle%data%v &
+      temp_q_dens = (xp - vertices(lolu)%x(1)) &
+                    *(vertices(upru)%x(2) - yp) &
+                    *(zp - vertices(lorl)%x(3))*coeff
+      vertices(loru)%q_density(1) = temp_q_dens + vertices(loru)%q_density(1)
+      vertices(loru)%J_density = temp_q_dens*particle%data%v &
                                  + vertices(loru)%J_density
 
-      vertices(uplu)%q_density(1) = (vertices(upru)%x(1) - xp) &
-                                    *(yp - vertices(lolu)%x(2)) &
-                                    *(zp - vertices(upll)%x(3)) &
-                                    *coeff + vertices(uplu)%q_density(1)
-      vertices(uplu)%J_density = vertices(uplu)%q_density(1) * particle%data%v &
+      temp_q_dens = (vertices(upru)%x(1) - xp) &
+                    *(yp - vertices(lolu)%x(2)) &
+                    *(zp - vertices(upll)%x(3))*coeff
+      vertices(uplu)%q_density(1) = temp_q_dens + vertices(uplu)%q_density(1)
+      vertices(uplu)%J_density = temp_q_dens*particle%data%v &
                                  + vertices(uplu)%J_density
 
-      vertices(upru)%q_density(1) = (xp - vertices(uplu)%x(1)) &
-                                    *(yp - vertices(loru)%x(2)) &
-                                    *(zp - vertices(uprl)%x(3)) &
-                                    *coeff + vertices(upru)%q_density(1)
-      vertices(upru)%J_density = vertices(upru)%q_density(1) * particle%data%v &
+      temp_q_dens = (xp - vertices(uplu)%x(1)) &
+                    *(yp - vertices(loru)%x(2)) &
+                    *(zp - vertices(uprl)%x(3))*coeff
+      vertices(upru)%q_density(1) = temp_q_dens + vertices(upru)%q_density(1)
+      vertices(upru)%J_density = temp_q_dens*particle%data%v &
                                  + vertices(upru)%J_density
 
      !  test = vertices(loll)%q_density(1) + vertices(lorl)%q_density(1) &
@@ -368,38 +386,61 @@ contains
      !         + vertices(uplu)%q_density(1) + vertices(upru)%q_density(1)
      !  print *, test
    else if (particle%data%q > 0.0) then
-     vertices(loll)%q_density(2) = (vertices(lorl)%x(1) - xp) &
-                                   *(vertices(upll)%x(2) - yp) &
-                                   *(vertices(lolu)%x(3) - zp) &
-                                   *coeff + vertices(loll)%q_density(2)
-     vertices(lorl)%q_density(2) = (xp - vertices(loll)%x(1)) &
-                                   *(vertices(uprl)%x(2) - yp) &
-                                   *(vertices(loru)%x(3) - zp) &
-                                   *coeff + vertices(lorl)%q_density(2)
-     vertices(upll)%q_density(2) = (vertices(uprl)%x(1) - xp) &
-                                   *(yp - vertices(loll)%x(2)) &
-                                   *(vertices(uplu)%x(3) - zp) &
-                                   *coeff + vertices(upll)%q_density(2)
-     vertices(uprl)%q_density(2) = (xp - vertices(upll)%x(1)) &
-                                   *(yp - vertices(lorl)%x(2)) &
-                                   *(vertices(upru)%x(3) - zp) &
-                                   *coeff + vertices(uprl)%q_density(2)
-     vertices(lolu)%q_density(2) = (vertices(loru)%x(1) - xp) &
-                                   *(vertices(uplu)%x(2) - yp) &
-                                   *(zp - vertices(loll)%x(3)) &
-                                   *coeff + vertices(lolu)%q_density(2)
-     vertices(loru)%q_density(2) = (xp - vertices(lolu)%x(1)) &
-                                   *(vertices(upru)%x(2) - yp) &
-                                   *(zp - vertices(lorl)%x(3)) &
-                                   *coeff + vertices(loru)%q_density(2)
-     vertices(uplu)%q_density(2) = (vertices(upru)%x(1) - xp) &
-                                   *(yp - vertices(lolu)%x(2)) &
-                                   *(zp - vertices(upll)%x(3)) &
-                                   *coeff + vertices(uplu)%q_density(2)
-     vertices(upru)%q_density(2) = (xp - vertices(uplu)%x(1)) &
-                                   *(yp - vertices(loru)%x(2)) &
-                                   *(zp - vertices(uprl)%x(3)) &
-                                   *coeff + vertices(upru)%q_density(2)
+     temp_q_dens = (vertices(lorl)%x(1) - xp) &
+                   *(vertices(upll)%x(2) - yp) &
+                   *(vertices(lolu)%x(3) - zp)*coeff
+     vertices(loll)%q_density(2) = temp_q_dens + vertices(loll)%q_density(2)
+     vertices(loll)%J_density = temp_q_dens*particle%data%v &
+                                + vertices(loll)%J_density
+
+     temp_q_dens = (xp - vertices(loll)%x(1)) &
+                   *(vertices(uprl)%x(2) - yp) &
+                   *(vertices(loru)%x(3) - zp)*coeff
+     vertices(lorl)%q_density(2) = temp_q_dens + vertices(lorl)%q_density(2)
+     vertices(lorl)%J_density = temp_q_dens*particle%data%v &
+                                + vertices(lorl)%J_density
+
+     temp_q_dens = (vertices(uprl)%x(1) - xp) &
+                   *(yp - vertices(loll)%x(2)) &
+                   *(vertices(uplu)%x(3) - zp)*coeff
+     vertices(upll)%q_density(2) = temp_q_dens + vertices(upll)%q_density(2)
+     vertices(upll)%J_density = temp_q_dens*particle%data%v &
+                                + vertices(upll)%J_density
+
+     temp_q_dens = (xp - vertices(upll)%x(1)) &
+                   *(yp - vertices(lorl)%x(2)) &
+                   *(vertices(upru)%x(3) - zp)*coeff
+     vertices(uprl)%q_density(2) = temp_q_dens + vertices(uprl)%q_density(2)
+     vertices(uprl)%J_density = temp_q_dens*particle%data%v &
+                                + vertices(uprl)%J_density
+
+     temp_q_dens = (vertices(loru)%x(1) - xp) &
+                   *(vertices(uplu)%x(2) - yp) &
+                   *(zp - vertices(loll)%x(3))*coeff
+     vertices(lolu)%q_density(2) = temp_q_dens + vertices(lolu)%q_density(2)
+     vertices(lolu)%J_density = temp_q_dens*particle%data%v &
+                                + vertices(lolu)%J_density
+
+     temp_q_dens = (xp - vertices(lolu)%x(1)) &
+                   *(vertices(upru)%x(2) - yp) &
+                   *(zp - vertices(lorl)%x(3))*coeff
+     vertices(loru)%q_density(2) = temp_q_dens + vertices(loru)%q_density(2)
+     vertices(loru)%J_density = temp_q_dens*particle%data%v &
+                                + vertices(loru)%J_density
+
+     temp_q_dens = (vertices(upru)%x(1) - xp) &
+                   *(yp - vertices(lolu)%x(2)) &
+                   *(zp - vertices(upll)%x(3))*coeff
+     vertices(uplu)%q_density(2) = temp_q_dens + vertices(uplu)%q_density(2)
+     vertices(uplu)%J_density = temp_q_dens*particle%data%v &
+                                + vertices(uplu)%J_density
+
+     temp_q_dens = (xp - vertices(uplu)%x(1)) &
+                   *(yp - vertices(loru)%x(2)) &
+                   *(zp - vertices(uprl)%x(3))*coeff
+     vertices(upru)%q_density(2) = temp_q_dens + vertices(upru)%q_density(2)
+     vertices(upru)%J_density = temp_q_dens*particle%data%v &
+                                + vertices(upru)%J_density
     end if
   end subroutine density_interpolation
 
@@ -468,4 +509,235 @@ contains
     particles((old_size + 1):new_size) = neutral_points
     deallocate(neutral_points)
   end subroutine
+
+  subroutine read_msh_file(fname, vertices, connectivity, rank)
+    implicit none
+    type(diag_vertex), allocatable, intent(inout) :: vertices(:)
+    integer(kind_particle), allocatable, intent(inout) :: connectivity(:,:)
+    character(255), intent(in) :: fname
+    integer, intent(in) :: rank
+    character(255) :: read_string
+    integer :: entries, i, j, stat, state
+    integer :: int1, int2, int3, int4, int5, node_number, entity_blocks, &
+               node_lines_skip, element_number, elem_dim, elem_type, &
+               elem_lines_skip, resume_index
+    real(kind_physics) :: flt1, flt2, flt3
+    ! NOTE: state description:
+    !       state -1: no action Done
+    !       state 0: used in line skipping.
+    !       state 1: read general statistics of $Nodes
+    !       state 2: read general statistics of $Elements
+    !       state 3: read statistics of $Node entity_blocks
+    !       state 4: read statistics of $Elements entity_blocks
+    !       state 5: begin reading and storing node coordinates
+    !       state 6: begin reading and storing element connectivities
+
+    open(11,file=fname,action='READ')
+    state = -1
+    node_lines_skip = 0
+    elem_lines_skip = 0
+    i = -1
+    j = -1
+    do
+      read(11, '(a)', iostat=stat) read_string
+      if (stat .ne. 0) EXIT
+      ! print *, "State: ", state
+
+      if (read_string(1:6) == '$Nodes') then
+        state = 1
+        resume_index = 0
+        CYCLE
+      elseif(read_string(1:9) == '$EndNodes') then
+        print *, "Done reading nodes."
+        node_lines_skip = 0
+        state = -1
+        CYCLE
+      elseif (read_string(1:9) == '$Elements') then
+        state = 2
+        CYCLE
+      elseif (read_string(1:12) == '$EndElements') then
+        print *, "Done reading elements."
+        state = -1
+        CYCLE
+      end if
+
+      if (state == 1) then
+        ! print *, read_string
+        read(read_string, *) int1, int2, int3, int4
+        entity_blocks = int1
+        node_number = int2
+        allocate(vertices(node_number))
+        print *, "Rank ", rank, "Vertices array allocated!", node_number
+        do int5 = 1, node_number
+          vertices(int5)%x = 0.0
+          vertices(int5)%q_density = 0.0
+          vertices(int5)%J_density = 0.0
+        end do
+        state = 3
+        CYCLE
+      elseif (state == 2) then
+        read(read_string, *) int1, int2, int3, int4
+        entity_blocks = int1
+        element_number = int2
+        state = 4
+        CYCLE
+      end if
+
+      if (state == 3) then
+        ! print *, read_string
+        read(read_string, *) int1, int2, int3, int4
+        node_lines_skip = int4
+        i = 0
+        state = 0
+        ! print *, node_lines_skip
+        CYCLE
+      elseif (state == 4) then
+        ! print *, read_string
+        read(read_string, *) int1, int2, int3, int4
+        elem_dim = int1
+        elem_type = int3
+        elem_lines_skip = int4
+        i = 0
+        state = 0
+        if ((elem_dim == 3) .and. (elem_type == 4)) then
+          allocate(connectivity(elem_lines_skip, 4))
+          print *, "Rank ", rank, "Connectivity array allocated!", elem_lines_skip
+          state = 6
+        end if
+        CYCLE
+      end if
+      ! NOTE: Skipping lines
+      if (state == 0) then
+        i = i + 1
+        if (i == node_lines_skip) then
+          i = 0
+          j = 0
+          state = 5
+          CYCLE
+        elseif (i == elem_lines_skip) then
+          i = 0
+          j = 0
+          state = 4
+          CYCLE
+        end if
+      end if
+      ! NOTE: Storing data to respective arrays
+      if (state == 5) then
+        j = j + 1
+        read(read_string, *) flt1, flt2, flt3
+        vertices(j+resume_index)%x(1) = flt1
+        vertices(j+resume_index)%x(2) = flt2
+        vertices(j+resume_index)%x(3) = flt3
+
+        if (j == node_lines_skip) then
+          resume_index = resume_index + j
+          state = 3
+        end if
+      elseif(state == 6) then
+        j = j + 1
+        read(read_string, *) int1, int2, int3, int4, int5
+        connectivity(j,1) = int2
+        connectivity(j,2) = int3
+        connectivity(j,3) = int4
+        connectivity(j,4) = int5
+      end if
+    end do
+
+    close(11)
+  end subroutine read_msh_file
+
+  function tet_volume_V1(point_a, point_b, point_c, point_d) result(vol)
+    implicit none
+    real(kind_physics), intent(in) :: point_a(3), point_b(3), point_c(3), point_d(3)
+    real(kind_physics) :: vol, vec_a(3), vec_b(3), vec_c(3), temp_vec(3)
+
+    temp_vec = 0.0
+    vec_a = point_a - point_d
+    vec_b = point_b - point_d
+    vec_c = point_c - point_d
+
+    temp_vec = cross_product(vec_b, vec_c)
+    vol = abs(dot_product(vec_a,temp_vec))/6.0
+  end function tet_volume_V1
+
+  subroutine tet_mesh_interpolation(particle, vertices, connectivity)
+    implicit none
+    type(diag_vertex), allocatable, intent(inout) :: vertices(:)
+    integer(kind_particle), allocatable, intent(inout) :: connectivity(:,:)
+    type(t_particle), intent(in) :: particle
+    real(kind_physics) :: bc1, bc2, bc3, bc4, ref_vol, temp_vol, volume_scale, eps
+    real(kind_physics) :: p1(3), p2(3), p3(3), p4(3), t_p(3), check_sum, min_sum
+    real(kind_physics) :: temp_q_dens
+    integer :: i, j, bug_check, el1, el2, el3, el4
+
+    bug_check = 0
+    min_sum = 1E8
+    eps = 1E-15
+    do i = 1, size(connectivity(:,1))
+      el1 = connectivity(i,1)
+      el2 = connectivity(i,2)
+      el3 = connectivity(i,3)
+      el4 = connectivity(i,4)
+
+      p1 = vertices(el1)%x
+      p2 = vertices(el2)%x
+      p3 = vertices(el3)%x
+      p4 = vertices(el4)%x
+      t_p = particle%x
+
+      ref_vol = tet_volume_V1(p1, p2, p3, p4)
+      volume_scale = 1.0/ref_vol
+
+      temp_vol = tet_volume_V1(t_p, p2, p3, p4)
+      bc1 = temp_vol*volume_scale
+
+      temp_vol = tet_volume_V1(p1, t_p, p3, p4)
+      bc2 = temp_vol*volume_scale
+
+      temp_vol = tet_volume_V1(p1, p2, t_p, p4)
+      bc3 = temp_vol*volume_scale
+
+      temp_vol = tet_volume_V1(p1, p2, p3, t_p)
+      bc4 = temp_vol*volume_scale
+
+      check_sum = bc1 + bc2 + bc3 + bc4
+      if (check_sum < min_sum) then
+        min_sum = check_sum
+      end if
+
+      if (check_sum > 1.0 + eps) then
+        CYCLE
+      else
+        ! print *, ref_vol!, bc1, bc2, bc3, bc4,
+        j = 1
+        if (particle%data%q > 0.0) then
+          j = 2
+        end if
+        temp_q_dens = bc1*particle%data%q*volume_scale
+        vertices(el1)%q_density(j) = temp_q_dens + vertices(el1)%q_density(j)
+        vertices(el1)%J_density = temp_q_dens*particle%data%v + vertices(el1)%J_density
+
+        temp_q_dens = bc2*particle%data%q*volume_scale
+        vertices(el2)%q_density(j) = temp_q_dens + vertices(el2)%q_density(j)
+        vertices(el2)%J_density = temp_q_dens*particle%data%v + vertices(el2)%J_density
+
+        temp_q_dens = bc3*particle%data%q*volume_scale
+        vertices(el3)%q_density(j) = temp_q_dens + vertices(el3)%q_density(j)
+        vertices(el3)%J_density = temp_q_dens*particle%data%v + vertices(el3)%J_density
+
+        temp_q_dens = bc4*particle%data%q*volume_scale
+        vertices(el4)%q_density(j) = temp_q_dens + vertices(el4)%q_density(j)
+        vertices(el4)%J_density = temp_q_dens*particle%data%v + vertices(el4)%J_density
+
+        !NOTE: avoid double_counting particle on edges
+        bug_check = 1
+        EXIT
+      end if
+    end do
+
+    if (bug_check == 0) then
+      print *, "Particle is not interpolated!", t_p, min_sum
+    end if
+  end subroutine tet_mesh_interpolation
+
 end module

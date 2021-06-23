@@ -75,9 +75,9 @@ module helper
    end type linked_list_CS
 
    type, public :: diag_vertex
-      real(kind_physics) :: x(1:3)
-      real(kind_physics) :: q_density(1:2)
-      real(kind_physics) :: J_density(1:3)
+      real(kind_physics) :: x(1:3) = 0.0
+      real(kind_physics) :: q_density(1:2) = 0.0
+      real(kind_physics) :: J_density(1:3) = 0.0
    end type diag_vertex
 
    ! particle data (position, velocity, mass, charge)
@@ -113,8 +113,9 @@ module helper
    type(diag_vertex), allocatable  :: density_verts(:), final_density(:)
    real(kind_physics) :: minimum_x, minimum_y, minimum_z, x_length, y_length, z_length
    real(kind_physics) :: dx, dy ,dz, s_min_x, s_min_y, s_min_z
-   integer :: x_cell, y_cell, z_cell, iv, ir, cnt
-   integer, allocatable :: connectivity_array(:)
+   integer :: x_cell, y_cell, z_cell, iv, ir, cnt, mesh_mode,  N_element
+   integer(kind_particle), allocatable :: connectivity_array(:), connectivity_tets(:,:)
+   character(255) :: mesh_name
 
    ! variables for random number generation
    integer :: dummy
@@ -176,7 +177,7 @@ contains
       logical            :: read_para_file
 
       namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, density_output, &
-         x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
+         mesh_mode, mesh_name, x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
          y_length, z_length, sim_type, mode, d, electron_num, tnp, H1s, H2s, nt, dt, &
          particle_output, domain_output, particle_mpi_output, reflecting_walls, &
          particle_test, diag_interval, plasma_dimensions, init_temperature, &
@@ -188,6 +189,8 @@ contains
       init_omp_threads = 1
       i_wall_time = '00:00:00'
       density_output = .false.
+      mesh_mode = 0
+      mesh_name = './'
       x_cell = 0
       y_cell = 0
       z_cell = 0
@@ -240,6 +243,8 @@ contains
          write (*, '(a,l12)') " == particle test                       : ", particle_test
          write (*, '(a,l12)') " == particle output                     : ", particle_output
          write (*, '(a,l12)') " == density interpolation               : ", density_output
+         write (*, '(a,i12)') " == mesh mode                           : ", mesh_mode
+         write (*, '(a,a100)')   " == .msh filepath                       : ", mesh_name
          write (*, '(a,l12)') " == domain output                       : ", domain_output
          write (*, '(a,l12)') " == particle mpi output                 : ", particle_mpi_output
          write (*, '(a,l12)') " == reflecting walls                    : ", reflecting_walls
@@ -290,6 +295,16 @@ contains
 
       call pepc_prepare(3_kind_dim)
    end subroutine set_parameter
+
+   function cross_product(vector1, vector2) result(vector_ans)
+      implicit none
+      real*8, intent(in) :: vector1(3), vector2(3)
+      real*8 :: vector_ans(3)
+
+      vector_ans(1) = vector1(2)*vector2(3) - vector1(3)*vector2(2)
+      vector_ans(2) = vector1(3)*vector2(1) - vector1(1)*vector2(3)
+      vector_ans(3) = vector1(1)*vector2(2) - vector1(2)*vector2(1)
+   end function cross_product
 
    function torus_geometry(mode) result(pos)
      implicit none
@@ -411,17 +426,17 @@ contains
 
           ! NOTE: square plane distribution
            call random(p(ip)%x)
-           p(ip)%x(1) = p(ip)%x(1)*0.8*plasma_dimensions(1) - plasma_dimensions(1)*0.4
-           p(ip)%x(2) = p(ip)%x(2)*0.8*plasma_dimensions(2) - plasma_dimensions(2)*0.4
-           ! p(ip)%x(3) = -p(ip)%x(3)*plasma_dimensions(3)
-           p(ip)%x(3) = -0.01
+           p(ip)%x(1) = p(ip)%x(1)*plasma_dimensions(1) ! p(ip)%x(1)*0.8*plasma_dimensions(1) - plasma_dimensions(1)*0.4
+           p(ip)%x(2) = p(ip)%x(2)*plasma_dimensions(2) ! p(ip)%x(2)*0.8*plasma_dimensions(2) - plasma_dimensions(2)*0.4
+           p(ip)%x(3) = p(ip)%x(3)*plasma_dimensions(3)
+           ! p(ip)%x(3) = -0.01
 
            ! magnitude = MOD(real(ip), 100.0) !sqrt((2*100.0/e_mass))
-           magnitude = 0.0_kind_physics !sqrt((2*magnitude/e_mass))
+           magnitude = sqrt((2*17.0/e_mass)) ! 0.0_kind_physics
            ! call random_number(rand_scale)
            rand_scale = 1.0_8
            p(ip)%data%v = 0.0_kind_physics
-           p(ip)%data%v(3) = -1.0*magnitude*rand_scale
+           p(ip)%data%v(1) = 1.0*magnitude*rand_scale
            p(ip)%data%f_b = 0.0_kind_physics
            p(ip)%data%f_e = 0.0_kind_physics
            p(ip)%data%mp_int1 = 0
@@ -613,7 +628,8 @@ contains
     !  close(12)
    end subroutine write_text_output
 
-   subroutine vtk_write_densities(fname, step, time, vtk_step, vertices, helper_func, coord_scale)
+   subroutine vtk_write_densities(fname, step, time, vtk_step, vertices, &
+                                  ncell, npart, offset, vtk_type, helper_func, coord_scale)
      use module_vtk
      use module_pepc_types
      use module_interaction_specific_types
@@ -621,10 +637,10 @@ contains
      implicit none
 
      character(*), intent(in) :: fname
-     integer, intent(in) :: step
+     integer, intent(in) :: step, vtk_step, vtk_type, offset
      real*8, intent(in) :: time
-     integer, intent(in) :: vtk_step
      type(diag_vertex), intent(in) :: vertices(:)
+     integer(kind_particle), intent(in) :: ncell, npart
 
      interface
        subroutine helper_func(d, r, vtkf)
@@ -640,13 +656,10 @@ contains
      optional :: helper_func
      real(kind_physics), intent(in), optional :: coord_scale
 
-     integer(kind_particle) :: i, ncell, npart
+     integer(kind_particle) :: i
      integer(kind_pe) :: mpi_rank, mpi_size
      integer(kind_default) :: ierr
      type(vtkfile_unstructured_grid) :: vtk
-
-     ncell = x_cell*y_cell*z_cell
-     npart = (x_cell + 1)*(y_cell + 1)*(z_cell + 1)
 
      call vtk%create(fname, step, time, vtk_step)
        call vtk%write_headers(npart, ncell)
@@ -661,9 +674,10 @@ contains
        call vtk%finishpointdata()
        call vtk%startcells()
          call vtk%write_data_array("connectivity", connectivity_array)
-         call vtk%write_data_array("offsets", [((i*8),i=1,ncell)])
-         call vtk%write_data_array("types", [(VTK_VOXEL,i=1,ncell)])
+         call vtk%write_data_array("offsets", [((i*offset),i=1,ncell)])
+         call vtk%write_data_array("types", [(vtk_type,i=1,ncell)])
        call vtk%finishcells()
+       print *, "Done writing Cell"
        call vtk%startcelldata()
         ! no cell data here as cells correspond to points anyway, in case of problems use PointDataToCellData Filter in Paraview
        call vtk%finishcelldata()
@@ -671,17 +685,31 @@ contains
      call vtk%close()
    end subroutine vtk_write_densities
 
-   subroutine write_densities(vertices)
+   subroutine write_densities(vertices, mode)
+     use module_vtk
      use mpi
      implicit none
 
      type(diag_vertex), intent(in) :: vertices(:)
-     integer :: vtk_step, temp_step
+     integer, intent(in) :: mode
+     integer :: vtk_step, offset
+     integer(kind_particle) :: ncell, npart
 
-     temp_step = (step + 1)/1000
-
-     vtk_step = vtk_step_of_step(temp_step)
-     call vtk_write_densities("densities", temp_step, dt*step, vtk_step, vertices)
+     vtk_step = vtk_step_of_step(step)
+     if (mode == 0) then
+       ncell = x_cell*y_cell*z_cell
+       npart = (x_cell + 1)*(y_cell + 1)*(z_cell + 1)
+       offset = 8
+       call vtk_write_densities("densities", step, dt*step, vtk_step, vertices, &
+                                ncell, npart, offset, VTK_VOXEL)
+     elseif (mode == 1) then
+       ncell = N_element
+       npart = size(vertices)
+       offset = 4
+       call vtk_write_densities("densities", step, dt*step, vtk_step, vertices, &
+                                ncell, npart, offset, VTK_TETRA)
+     end if
+     ! call vtk_write_densities("densities", step, dt*step, vtk_step, vertices)
    end subroutine write_densities
 
    subroutine write_updated_resume_variables(resume_step)

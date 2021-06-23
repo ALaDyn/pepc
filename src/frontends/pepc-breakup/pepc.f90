@@ -58,8 +58,14 @@ program pepc
 
    !=====================prepare array for density diagnostics==================
    if (density_output) then
-     call init_diagnostic_verts(density_verts, minimum_x, minimum_y, minimum_z, &
-                                x_length, y_length, z_length)
+     if (mesh_mode == 0) then
+       call init_diagnostic_verts(density_verts, minimum_x, minimum_y, minimum_z, &
+                                  x_length, y_length, z_length)
+     elseif(mesh_mode == 1) then
+       call read_msh_file(mesh_name, density_verts, connectivity_tets, my_rank)
+       N_element = size(connectivity_tets(:,1))
+     end if
+
      if (root) then
        allocate(final_density(size(density_verts)*n_ranks))
      else
@@ -103,7 +109,7 @@ program pepc
   !  call getcwd(file_path)
    file_path = "../src/frontends/pepc-breakup/cross_sections/"
    call set_cross_section_table(trim(file_path)//"energy_grouping.txt", CS_guide, 11, 1)
-   
+
    allocate(energy_group_levels(size(CS_total_scatter%CS, 1) + 1))
    energy_group_levels = 0.0
    energy_group_levels(2:size(energy_group_levels)) = CS_total_scatter%CS(:,1)
@@ -382,9 +388,9 @@ program pepc
       bounding_box%boxsize = max_x - min_x
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
 
-      if (tnp > 615000) then
+      if (tnp > 10000) then
         sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
-        merge_ratio = 0.99
+        merge_ratio = 0.9
         call compute_particle_keys(bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
@@ -439,9 +445,16 @@ program pepc
       ! NOTE: if density diagnostic is on, do these
       if (doDiag .and. density_output) then
          call timer_start(t_interpolate)
-         do i = 1, size(particles)
-           call density_interpolation(particles(i), density_verts)
-         end do
+         if (mesh_mode == 0) then
+           do i = 1, size(particles)
+             call density_interpolation(particles(i), density_verts)
+           end do
+         elseif (mesh_mode == 1) then
+           do i = 1, size(particles)
+             ! if (MOD(i,10000) == 0) print *, my_rank, i
+             call tet_mesh_interpolation(particles(i), density_verts, connectivity_tets)
+           end do
+         end if
 
          call MPI_GATHER(density_verts, size(density_verts), MPI_TYPE_density, &
                          final_density, size(density_verts), MPI_TYPE_density, 0, &
@@ -459,7 +472,12 @@ program pepc
              end do
            end do
 
-           call write_densities(density_verts)
+           if (mesh_mode == 1) then
+             allocate(connectivity_array(N_element*4))
+             call construct_connectivity_tets(connectivity_array, connectivity_tets)
+           end if
+           print *, "Start writing density"
+           call write_densities(density_verts, mesh_mode)
          end if
          call clear_density_results(density_verts)
          call timer_stop(t_interpolate)
@@ -495,6 +513,10 @@ program pepc
    if (density_output) then
      deallocate(final_density)
      deallocate(density_verts)
+     if (root) deallocate(connectivity_array)
+     if (mesh_mode == 1) then
+       deallocate(connectivity_tets)
+     end if
    end if
    deallocate(particles)
 

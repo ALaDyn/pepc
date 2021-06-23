@@ -33,16 +33,6 @@ module interactions_integrator
    implicit none
 
 contains
-   function cross_product(vector1, vector2) result(vector_ans)
-      implicit none
-      real*8, intent(in) :: vector1(3), vector2(3)
-      real*8 :: vector_ans(3)
-
-      vector_ans(1) = vector1(2)*vector2(3) - vector1(3)*vector2(2)
-      vector_ans(2) = vector1(3)*vector2(1) - vector1(1)*vector2(3)
-      vector_ans(3) = vector1(1)*vector2(2) - vector1(2)*vector2(1)
-   end function cross_product
-
    function Rodriguez_rotation(angle, rot_axis, vec_in) result(vec_out)
      implicit none
      real(kind_physics), intent(in), dimension(:) :: vec_in, rot_axis
@@ -185,7 +175,7 @@ contains
 
       R = R/(c*1e-12)
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      particle%data%b = Pol_B_field + B_field
+      particle%data%b = 0.0_kind_physics ! Pol_B_field + B_field
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
@@ -689,7 +679,7 @@ contains
      type(linked_list_elem), pointer, intent(inout) :: merged_guide
      integer, intent(inout) :: merged_cnt
      real(kind_physics), allocatable, intent(in) :: energy_threshold(:)
-     integer :: i, j, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
+     integer :: i, j, k, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
                 merge_instance, merge_collector_size, IStart, IStop, j_start
      integer, allocatable :: grouped_count(:)
      real(kind_physics) :: kin_e, weight, vel(3)
