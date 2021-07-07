@@ -164,6 +164,17 @@ program pepc
    ! free tree specific allocations
    call pepc_timber_tree()
 
+   min_x(1) = -25184.1_kind_physics
+   min_x(2) = -25184.1_kind_physics
+   min_x(3) = -5837.4_kind_physics
+   max_x(1) = 25184.1_kind_physics
+   max_x(2) = 25184.1_kind_physics
+   max_x(3) = 5837.4_kind_physics
+   bounding_box%boxmin = min_x
+   bounding_box%boxmax = max_x
+   bounding_box%boxsize = max_x - min_x
+   seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
+
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
@@ -188,10 +199,10 @@ program pepc
       thread_charge_count = 0.0
       new_particles_offset = 0
       generic_array = 0
-      local_min_x = 1e16_kind_physics
-      min_x = 1e16_kind_physics
-      local_max_x = -1e16_kind_physics
-      max_x = -1e16_kind_physics
+      ! local_min_x = 1e16_kind_physics
+      ! min_x = 1e16_kind_physics
+      ! local_max_x = -1e16_kind_physics
+      ! max_x = -1e16_kind_physics
 
       !$OMP PARALLEL if(np/init_omp_threads > 10) default(private) &
       !$OMP shared(init_omp_threads, particles, new_particles_offset, np) &
@@ -365,15 +376,15 @@ program pepc
       actual_parts_cnt = 0
       do i = 1, size(particles)
         dummy = particles(i)%data%species + 1
-        do j = 1, size(local_min_x)
-          if (particles(i)%x(j) < local_min_x(j)) then
-            local_min_x(j) = particles(i)%x(j)
-          end if
+        ! do j = 1, size(local_min_x)
+        !   if (particles(i)%x(j) < local_min_x(j)) then
+        !     local_min_x(j) = particles(i)%x(j)
+        !   end if
 
-          if (particles(i)%x(j) > local_max_x(j)) then
-            local_max_x(j) = particles(i)%x(j)
-          end if
-        end do
+        !   if (particles(i)%x(j) > local_max_x(j)) then
+        !     local_max_x(j) = particles(i)%x(j)
+        !   end if
+        ! end do
         particles(i)%data%mp_int1 = 0
         actual_parts_cnt(dummy) = actual_parts_cnt(dummy) + abs(particles(i)%data%q)
       end do
@@ -381,16 +392,22 @@ program pepc
       if (root) total_actual_parts = 0
       call MPI_REDUCE(actual_parts_cnt, total_actual_parts, 3, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
 
-      call MPI_ALLREDUCE(local_min_x, min_x, size(min_x), MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(local_max_x, max_x, size(max_x), MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
-      bounding_box%boxmin = min_x
-      bounding_box%boxmax = max_x
-      bounding_box%boxsize = max_x - min_x
-      seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
+      ! call MPI_ALLREDUCE(local_min_x, min_x, size(min_x), MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
+      ! call MPI_ALLREDUCE(local_max_x, max_x, size(max_x), MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
+      ! min_x(1) = -25184.08918746048_kind_physics
+      ! min_x(2) = -25184.08918746048_kind_physics
+      ! min_x(3) = -5837.37166596766_kind_physics
+      ! max_x(1) = 25184.08918746048_kind_physics
+      ! max_x(2) = 25184.08918746048_kind_physics
+      ! max_x(3) = 5837.37166596766_kind_physics
+      ! bounding_box%boxmin = min_x
+      ! bounding_box%boxmax = max_x
+      ! bounding_box%boxsize = max_x - min_x
+      ! seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
 
-      if (tnp > 10000) then
+      if (tnp > 5000000) then
         sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
-        merge_ratio = 0.9
+        merge_ratio = 0.99
         call compute_particle_keys(bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
@@ -439,6 +456,14 @@ program pepc
         call pepc_timber_tree()
       ! end if
 
+!============================preempt_checkpointing here=========================
+      call preempt_checkpointing(current_wall_time, prev_t_user_step, doDiag, particles, step, break_loop)
+
+      if (doDiag .and. particle_mpi_output) then
+        call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
+        call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
+        if (root) call write_updated_resume_variables(step+itime_in+1)
+      end if
 !=============================Writing output files==============================
       if (doDiag .and. particle_output) call write_particles(particles)
 
@@ -484,12 +509,6 @@ program pepc
          if (root) write (*, '(a,es12.4)') " ====== density interpolation [s]:", timer_read(t_interpolate)
       end if
 
-      if (doDiag .and. particle_mpi_output) then
-        call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
-        call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
-        if (root) call write_updated_resume_variables(step+itime_in+1)
-      end if
-
       call timer_stop(t_user_step)
       if (root) write (*, '(a,es12.4)') " == time in step [s]                              : ", timer_read(t_user_step)
       prev_t_user_step = timer_read(t_user_step)
@@ -500,10 +519,8 @@ program pepc
       current_wall_time = timer_read(t_user_total)
       ! if (root) print *, timer_read(t_user_total)
       call timer_resume(t_user_total)
-!============================preempt_checkpointing here=========================
-      call preempt_checkpointing(current_wall_time, prev_t_user_step, doDiag, particles, step, break_loop)
+      
       if (break_loop) EXIT
-
    end do
 
    deallocate(energy_group_levels)

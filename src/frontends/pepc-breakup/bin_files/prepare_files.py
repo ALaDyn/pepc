@@ -31,11 +31,11 @@ f = fileinput.input(input_file_name, False)
 
 #===================Write previously read variables into new file============
 remaining_step = total_iteration - int(var_values[1])
-if (remaining_step > 1000000):
-    remaining_step = 1000000
+#if (remaining_step > 1000000):
+#    remaining_step = 1000000
 #print(remaining_step)
-checkW = ('REPLACE_RESUME', 'REPLACE_TIMEIN', 'REPLACE_TNP', 'REPLACE_NSTEP')
-replaceW = (var_values[0], var_values[1], var_values[2], str(remaining_step))
+checkW = ('REPLACE_RESUME', 'REPLACE_TIMEIN', 'REPLACE_TNP', 'REPLACE_VP1', 'REPLACE_VP2', 'REPLACE_NSTEP')
+replaceW = (var_values[0], var_values[1], var_values[2], var_values[3], var_values[4], str(remaining_step))
 
 for line in f:
     for check, rep in zip(checkW, replaceW):

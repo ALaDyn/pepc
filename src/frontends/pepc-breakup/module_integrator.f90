@@ -175,7 +175,7 @@ contains
 
       R = R/(c*1e-12)
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      particle%data%b = 0.0_kind_physics ! Pol_B_field + B_field
+      particle%data%b = Pol_B_field + B_field
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
