@@ -43,7 +43,7 @@ module module_domains
       type(t_comm_env) :: comm_env !< the communication topology over which the domain is decomposed
    end type t_decomposition
 
-   integer(kind_default), save, public :: weighted = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
+   integer(kind_default), public :: weighted = 1 !< set to 0 to disable load balancing, 1 to enable load balancing
 
    public decomposition_destroy
    public decomposition_allocated

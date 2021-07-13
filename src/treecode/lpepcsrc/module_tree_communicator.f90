@@ -252,7 +252,7 @@ contains
       type(t_request_queue_entry) :: req
 #endif
 
-      ! check wether the node has already been requested
+      ! check whether the node has already been requested
       ! this if-construct should be secured against synchronous invocation (together with the modification while receiving data)
       ! otherwise it will be possible that two walk threads can synchronously post a particle to the request queue
       ! (this _may_ be fixed upon receiving data, ignoring already present data)

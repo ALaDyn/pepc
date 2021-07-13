@@ -176,7 +176,7 @@ module module_timings
    integer, private, parameter :: numtimings = t_userdefined_last
 
    !> array for local timings
-   real*8, save, private, dimension(1:numtimings) :: tim = 0.
+   real*8, private, dimension(1:numtimings) :: tim = 0.
 
 contains
 

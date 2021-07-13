@@ -50,7 +50,7 @@ contains
       integer(kind_default), intent(in) :: itime
       type(t_particle), intent(in), dimension(:) :: dp
       character(*), optional, intent(out) :: filename_out
-      logical, save :: firstcall = .true.
+      logical :: firstcall = .true.
       character(50) :: dir
       integer(kind_particle) :: i
       character(100) :: filename
@@ -93,7 +93,7 @@ contains
       integer(kind_default), intent(in) :: itime
       type(t_particle), intent(in), dimension(:) :: dp
       character(*), intent(out) :: filename
-      logical, save :: firstcall = .true.
+      logical :: firstcall = .true.
 
       character(50) :: dir
 
@@ -133,7 +133,7 @@ contains
       character(*), intent(out) :: filename
       integer :: fh, ierr, status(MPI_STATUS_SIZE)
       integer(KIND=MPI_OFFSET_KIND) :: disp
-      logical, save :: firstcall = .true.
+      logical :: firstcall = .true.
       character(50) :: dir
       integer(kind_particle) :: n_totsum
 

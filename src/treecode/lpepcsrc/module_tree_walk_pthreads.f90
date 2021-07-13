@@ -117,10 +117,10 @@ module module_tree_walk
 
    type(t_pthread_with_type), target, allocatable :: thread_handles(:)
    type(t_threaddata), allocatable, target :: threaddata(:)
-   integer, save :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
+   integer :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
    real, parameter :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing particles_per_thread for thread which share their processor with the communicator
    ! variables for adjusting the thread`s workload
-   integer, save, public :: max_particles_per_thread = 30 !< maximum number of particles that will in parallel be processed by one workthread
+   integer, public :: max_particles_per_thread = 30 !< maximum number of particles that will in parallel be processed by one workthread
    integer :: particles_per_thread
 
    real(kind_physics) :: vbox(3)
