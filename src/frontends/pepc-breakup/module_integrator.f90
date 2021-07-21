@@ -485,10 +485,23 @@ contains
      integer, intent(in) :: parent_no
      type(linked_list_elem), pointer, intent(inout) :: merged_guide
      integer, intent(inout) :: merged_cnt
-     integer :: ll_elem_gen, istart, istop, i, j, species, direction, direction_cnt(8), buffer_pos
+     integer :: ll_elem_gen, istart, istop, i, j, species, direction, direction_cnt(8), buffer_pos, iter_i, iter_j
      type(t_particle), allocatable :: directional_buffer(:,:)
 
      allocate(directional_buffer(8,sibling_upper_limit))
+     do iter_i = 1, 8
+       do iter_j = 1, sibling_upper_limit
+         directional_buffer(iter_i,iter_j)%x = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%q = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%v = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%m = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%b = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%f_e = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%f_b = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%results%e = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%results%pot = 0.0_kind_physics
+       end do
+     end do
 
      istart = 1
      do i = 2, parent_no
@@ -862,7 +875,8 @@ contains
      integer, intent(inout) :: merged_cnt
      real(kind_physics), allocatable, intent(in) :: energy_threshold(:)
      integer :: i, j, k, l, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
-                merge_instance, merge_collector_size, IStart, IStop, j_start, progenitor_cnt, min_weight
+                merge_instance, merge_collector_size, IStart, IStop, j_start, progenitor_cnt, min_weight, &
+                iter_i, iter_j
      integer, allocatable :: grouped_count(:), weight_counts(:)
      real(kind_physics) :: kin_e, weight, vel(3)
      real(kind_physics), allocatable :: max_weight(:)
@@ -875,6 +889,17 @@ contains
 !      allocate(energy_threshold(filtered_instance))
      allocate(max_weight(filtered_instance))
      allocate(merged_buffer(direction_cnt))
+     do iter_i = 1, direction_cnt
+       merged_buffer(iter_i)%x = 0.0_kind_physics
+       merged_buffer(iter_i)%data%q = 0.0_kind_physics
+       merged_buffer(iter_i)%data%v = 0.0_kind_physics
+       merged_buffer(iter_i)%data%m = 0.0_kind_physics
+       merged_buffer(iter_i)%data%b = 0.0_kind_physics
+       merged_buffer(iter_i)%data%f_e = 0.0_kind_physics
+       merged_buffer(iter_i)%data%f_b = 0.0_kind_physics
+       merged_buffer(iter_i)%results%e = 0.0_kind_physics
+       merged_buffer(iter_i)%results%pot = 0.0_kind_physics
+     end do
 
      max_weight = 1.0_kind_physics
 
@@ -891,6 +916,19 @@ contains
      if (direction_cnt > 2) then
        allocate(grouped_count(filtered_instance))
        allocate(energy_collector(filtered_instance, direction_cnt))
+       do iter_i = 1, filtered_instance
+         do iter_j = 1, direction_cnt
+           energy_collector(iter_i,iter_j)%x = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%q = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%v = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%m = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%b = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%f_e = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%f_b = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%results%e = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%results%pot = 0.0_kind_physics
+         end do
+       end do
 
        ! Sorting particle based on energy
        grouped_count = 0
@@ -937,6 +975,18 @@ contains
              progenitor_cnt = grouped_count(j)
              if (max_weight(j) > 1.0_kind_physics) then
                allocate(pass_buffer(grouped_count(j)))
+               do iter_i = 1, grouped_count(j)
+                 pass_buffer(iter_i)%x = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%q = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%v = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%m = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%b = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_e = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_b = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%e = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%pot = 0.0_kind_physics
+               end do
+
                pass_buffer = energy_collector(j,1:grouped_count(j))
                call sort_particles_by_weight(pass_buffer)
                energy_collector(j,1:grouped_count(j)) = pass_buffer
@@ -988,6 +1038,19 @@ contains
                IStart = (i - 1)*merge_collector_size + 1
                IStop = IStart + merge_collector_size - 1
                allocate(pass_buffer(merge_collector_size))
+               
+               do iter_i = 1, merge_collector_size
+                 pass_buffer(iter_i)%x = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%q = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%v = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%m = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%b = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_e = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_b = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%e = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%pot = 0.0_kind_physics
+               end do
+               
                pass_buffer = energy_collector(j,IStart:IStop)
                call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
                deallocate(pass_buffer)
@@ -1003,6 +1066,18 @@ contains
                end do
              else if (merge_ratio < 0.5 .and. remainder > 2) then
                allocate(pass_buffer(remainder))
+               do iter_i = 1, remainder
+                 pass_buffer(iter_i)%x = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%q = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%v = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%m = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%b = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_e = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_b = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%e = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%pot = 0.0_kind_physics
+               end do
+
                pass_buffer = energy_collector(j,IStart:IStop)
                call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
                deallocate(pass_buffer)
@@ -1093,12 +1168,15 @@ contains
        charge = 1.0_kind_physics
      end if
      !initialise sum_particle
+     sum_particle%x = 0.0_kind_physics
      sum_particle%data%q = 0.0_kind_physics
      sum_particle%data%v = 0.0_kind_physics
      sum_particle%data%m = 0.0_kind_physics
+     sum_particle%data%b = 0.0_kind_physics
      sum_particle%data%f_e = 0.0_kind_physics
      sum_particle%data%f_b = 0.0_kind_physics
-     sum_particle%x = 0.0_kind_physics
+     sum_particle%results%e = 0.0_kind_physics
+     sum_particle%results%pot = 0.0_kind_physics
 
      ! initialise d(3) vector, essentially the unit vector of the max extent in x, y, z, direction
      d = 0.0
@@ -1305,6 +1383,7 @@ contains
      guide%tmp_particles(buffer_pos)%data%f_e = 0.0_kind_physics
      guide%tmp_particles(buffer_pos)%data%f_b = 0.0_kind_physics
      guide%tmp_particles(buffer_pos)%results%pot = 0.0_kind_physics
+     guide%tmp_particles(buffer_pos)%results%e = 0.0_kind_physics
      guide%tmp_particles(buffer_pos)%data%mp_int1 = 0
 
      guide%tmp_particles(buffer_pos)%label = -1
