@@ -1,27 +1,24 @@
-___
+# PEPC -  Pretty Efficient Parallel Coulomb-solver
 
-       PEPC -  Pretty Efficient Parallel Coulomb-solver
+##### Authors:  
+Paul Gibbon, Mathias Winkel, Robert Speck, Lukas Arnold  
+Forschungszentrum Juelich GmbH  
+Juelich Supercomputing Centre  
 
-       Authors:  Paul Gibbon  
-                 Mathias Winkel  
-                 Robert Speck  
-                 Lukas Arnold  
-                 Forschungszentrum Juelich GmbH  
-                 Juelich Supercomputing Centre  
-
-       Webpage: [http://www.fz-juelich.de/ias/jsc/pepc](http://www.fz-juelich.de/ias/jsc/pepc)  
-       E-Mail:  p[epc@fz-juelich.de](mail-to:pepc@fz-juelich.de)  
-
-___
+#### Webpage:  
+[http://www.fz-juelich.de/ias/jsc/pepc](http://www.fz-juelich.de/ias/jsc/pepc)  
+#### E-Mail:  
+[pepc@fz-juelich.de](mail-to:pepc@fz-juelich.de)  
 
 
 # 0. LICENSE
 
 This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 
-Copyright (C) 2002-2021 Juelich Supercomputing Centre,   
-                        Forschungszentrum Juelich GmbH,  
-                        Germany
+Copyright (C) 2002-2021  
+Juelich Supercomputing Centre,   
+Forschungszentrum Juelich GmbH,  
+Germany
 
 PEPC is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -90,20 +87,27 @@ Parallel make (i.e. `make -j`) should work.
 
 There are several different frontends available at the moment:
 
-pepc-b:    Laser/beam-plasma with magnetic fields  
-pepc-e:    pure electrostatics  
-           simple molecular dynamics,  
-           some diagnostics for energy, performance, vtk output etc.  
-pepc-mini: pure electrostatics  
-           simple molecular dynamics  
-           no diagnostics  
-           minimum requirements to get pepc running  
-pepc-mw:   frontend for laser-plasma interaction (experimental)  
-pepc-s:    library version for inclusion in ScaFaCoS project  
-pepc-nn:   tree-based nearest neighbour search  
-pepc-sph:  gravitation and smoothed particle hydrodynamics (sph)  
-           for astrophysics research (experimental)  
-pepc-v:    vortex dynamics using the vortex particle method  
+* `pepc-b`:  
+Laser/beam-plasma with magnetic fields  
+* `pepc-e`: 
+pure electrostatics,  
+simple molecular dynamics,  
+some diagnostics for energy, performance, vtk output etc.
+* `pepc-mini`:  
+pure electrostatics  
+simple molecular dynamics  
+no diagnostics  
+minimum requirements to get pepc running  
+* `pepc-mw`:  
+frontend for laser-plasma interaction (experimental)  
+* `pepc-s`:  
+library version for inclusion in ScaFaCoS project  
+* `pepc-nn`:  
+tree-based nearest neighbour search  
+* `pepc-sph`:  
+gravitation and smoothed particle hydrodynamics (sph) for astrophysics research (experimental)  
+`pepc-v`:  
+vortex dynamics using the vortex particle method  
 
 To build an alternative frontend, just call
 
@@ -152,29 +156,23 @@ from the root directory. A users guide is in preparation.
 
 # 5. DIRECTORY STRUCTURE / ADDING OWN FUNCTIONALITY
 
-Inside the ./src/ directory, you will find four subdirectories:
- - treecode: PEPC kernel, everything that is necessary for
-             the pure algorithmic part of the treecode
- - interaction_specific: interaction specific backends. The different
-             subdirectories herein (currently: coulomb, vortex, and
-             nearestneighbour) provide data structures and functions
-             for the different applications. See inline documentation
-             in the sourcecode (especially inside the coulomb-subdir,
-             which should be well documented) to finc out about what the
-             functions should do and which of them are necessary.
-             The only files that must be provided in this directory are
-             (names may not be changed, public functions and datastructures 
-             inside these files are mandatory):
-              - module_interaction_specific.f90: data structures and functions
-                  for manipulating them
-              - module_calc_force.f90: functions for actual force-law and
-                  multipole acceptance criterion etc.
-              - makefile.backend: backend specific modifications to
-                  treecode makefile, may be empty
- - utils: source code of utilities (mainly for treecode diagnostics,
-             vtk-output etc.)
- - frontends: different applications that utilize the treecode for their
-             respective very specific purpose
+Inside the `./src/` directory, you will find four subdirectories:
+- treecode: PEPC kernel, everything that is necessary for the pure algorithmic part of the treecode
+- interaction_specific: interaction specific backends. The different
+  subdirectories herein (currently: coulomb, vortex, and
+  nearestneighbour) provide data structures and functions
+  for the different applications. See inline documentation
+  in the sourcecode (especially inside the coulomb-subdir,
+  which should be well documented) to finc out about what the
+  functions should do and which of them are necessary.
+  The only files that must be provided in this directory are
+  (names may not be changed, public functions and datastructures
+  inside these files are mandatory):
+  * `module_interaction_specific.f90`: data structures and functions for manipulating them
+  * `module_calc_force.f90`: functions for actual force-law and multipole acceptance criterion etc.
+  * `makefile.backend`: backend specific modifications to treecode makefile, may be empty
+- utils: source code of utilities (mainly for treecode diagnostics, vtk-output etc.)
+- frontends: different applications that utilize the treecode for their respective very specific purpose
             
 In case you want to use pepc for developing an own treecode-based N-body code,
 you might start by copying and modifying the pepc-mini frontend, which is a 
@@ -193,4 +191,4 @@ types but not the functions that are dealing with them (for example for adding
 velocity, mass, etc.), take a look at the coulomb-backend. There, this is done for the
 pepc-mini frontend, that uses other types than for example pepc-b while still
 using the same force expression. See also variable BACKENDTYPE in pepc-mini's 
-makefile.include.
+`makefile.include`.
