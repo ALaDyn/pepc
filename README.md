@@ -1,25 +1,26 @@
-============================================================
-=
-=       PEPC -  Pretty Efficient Parallel Coulomb-solver
-=
-=       Authors:  Paul Gibbon
-=                 Mathias Winkel
-=                 Robert Speck
-=                 Lukas Arnold
-=                 Forschungszentrum Juelich GmbH
-=                 Juelich Supercomputing Centre
-=
-=       Webpage: http://www.fz-juelich.de/ias/jsc/pepc
-=       E-Mail:  pepc@fz-juelich.de
-=
-============================================================
+___
 
-0. LICENSE
+       PEPC -  Pretty Efficient Parallel Coulomb-solver
+
+       Authors:  Paul Gibbon  
+                 Mathias Winkel  
+                 Robert Speck  
+                 Lukas Arnold  
+                 Forschungszentrum Juelich GmbH  
+                 Juelich Supercomputing Centre  
+
+       Webpage: [http://www.fz-juelich.de/ias/jsc/pepc](http://www.fz-juelich.de/ias/jsc/pepc)  
+       E-Mail:  p[epc@fz-juelich.de](mail-to:pepc@fz-juelich.de)  
+
+___
+
+
+# 0. LICENSE
 
 This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 
-Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
-                        Forschungszentrum Juelich GmbH,
+Copyright (C) 2002-2021 Juelich Supercomputing Centre,   
+                        Forschungszentrum Juelich GmbH,  
                         Germany
 
 PEPC is free software: you can redistribute it and/or modify
@@ -29,16 +30,14 @@ the Free Software Foundation, either version 3 of the License, or
 
 PEPC is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU Lesser General Public License for more details.
 
 You should have received a copy of the GNU Lesser General Public License
-along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
+along with PEPC. If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
 
 
-============================================================
-
-1. REQUIREMENTS
+# 1. REQUIREMENTS
 
  - A reasonably modern Fortran compiler with support for
    Fortran 2003 object orientation, e.g.:
@@ -51,18 +50,19 @@ along with PEPC.  If not, see <http://www.gnu.org/licenses/>.
    PEPC will complain about missing support at run time.
  - Support for POSIX threads (pthreads).
 
-============================================================
 
-2. COMPILATION
+# 2. COMPILATION
 
 For compiling this program, the machine-dependent compiler 
 names and flags have to be set in a definition file called
-'makefile.defs' in the root directory.
+`makefile.defs` in the root directory.
 
 Several exemplary definitions are available in the subdirectory
-./makefiles. For example, on JUQUEEN you can simply call
+`./makefiles`. For example, on JUQUEEN you can simply call
 
-"ln -sf ./makefiles/makefile.defs.juqueen_xlf ./makefile.defs"
+```sh
+ln -sf ./makefiles/makefile.defs.juqueen_xlf ./makefile.defs
+```
 
 from the root directory to create a symbolic link the the 
 appropriate definitions. Some makefile.defs contain
@@ -72,76 +72,85 @@ forget to take a look there for hints.
 After providing the makefile.defs file, you can simply
 call 
 
-"make help"
+```
+make help
+```
 
 to show information/recommendation on machine specifics.
 
 After setting the proper environment (modules, paths) 
 call 
 
-"make pepc-mini"
+```sh
+make pepc-mini
+```
 
-to build the pepc-mini frontend into the ./bin/ directory. 
-Parallel make (i.e. "make -j") should work.
+to build the `pepc-mini` frontend into the `./bin/` directory. 
+Parallel make (i.e. `make -j`) should work.
 
 There are several different frontends available at the moment:
 
-pepc-b:    Laser/beam-plasma with magnetic fields
-pepc-e:    pure electrostatics
-             simple molecular dynamics, 
-             some diagnostics for energy, performance, vtk output etc.
-pepc-mini: pure electrostatics
-             simple molecular dynamics
-             no diagnostics
-             minimum requirements to get pepc running
-pepc-mw:   frontend for laser-plasma interaction (experimental)
-pepc-s:    library version for inclusion in ScaFaCoS project
-pepc-nn:   tree-based nearest neighbour search
-pepc-sph:  gravitation and smoothed particle hydrodynamics (sph)
-           for astrophysics research (experimental)
-pepc-v:    vortex dynamics using the vortex particle method
+pepc-b:    Laser/beam-plasma with magnetic fields  
+pepc-e:    pure electrostatics  
+           simple molecular dynamics,  
+           some diagnostics for energy, performance, vtk output etc.  
+pepc-mini: pure electrostatics  
+           simple molecular dynamics  
+           no diagnostics  
+           minimum requirements to get pepc running  
+pepc-mw:   frontend for laser-plasma interaction (experimental)  
+pepc-s:    library version for inclusion in ScaFaCoS project  
+pepc-nn:   tree-based nearest neighbour search  
+pepc-sph:  gravitation and smoothed particle hydrodynamics (sph)  
+           for astrophysics research (experimental)  
+pepc-v:    vortex dynamics using the vortex particle method  
 
 To build an alternative frontend, just call
 
-"make pepc-e"
+```sh
+make pepc-e
+```
 or
-"make pepc-mw"
+```sh
+make pepc-mw
+```
 
 All frontends can be built using 
 
-"make (-j) all"
+```sh
+make (-j) All
+```
 
 At the current stage, there is no real documentation available for the
 different frontends. However, you might simply want to take a look at 
 the respective sourcecode to find out what they are doing.
 
 
-============================================================
-
-3. RUNNING THE PROGRAM
+# 3. RUNNING THE PROGRAM
 
 Usually, the frontend's source directories contain a sample
 input deck for the frontends. For running pepc-essential
-it is for example called "params". It contains user-adjustable
+it is for example called `params`. It contains user-adjustable
 parameters and can be fed to the executable as first command
 line parameter:
-$ cd bin
-$ mpirun -np 32 pepc-essential ../src/frontneds/pepc/essential/params
+```sh
+cd bin
+mpirun -np 32 pepc-essential ../src/frontneds/pepc/essential/params
+```
 
-============================================================
 
-4. DOCUMENTATION
+# 4. DOCUMENTATION
 
 Rudimentary doxygen documentation is available by calling
 
-"make doc"
+```sh
+make doc
+```
 
 from the root directory. A users guide is in preparation. 
 
 
-============================================================
-
-5. DIRECTORY STRUCTURE / ADDING OWN FUNCTIONALITY
+# 5. DIRECTORY STRUCTURE / ADDING OWN FUNCTIONALITY
 
 Inside the ./src/ directory, you will find four subdirectories:
  - treecode: PEPC kernel, everything that is necessary for
