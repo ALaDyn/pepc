@@ -7,14 +7,17 @@ stages:
 # run a before_script for all that installs OpenMPI
 default:
   before_script:
-    - apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
+    - which mpif90
+    #- apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
+    - apt-get install -y -qq openmpi-bin libopenmpi-dev
+    - which mpif90
 
 # build binary to check compilation, creating MPI binary for a number of frontends
 build:pepc-mini:
   stage: build
   tags:
     - public-docker
-  image: gcc:latest
+  image: gcc:buster-10
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-mini
@@ -23,7 +26,7 @@ build:pepc-essential:
   stage: build
   tags:
     - public-docker
-  image: gcc:latest
+  image: gcc:buster-10
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-essential
@@ -32,7 +35,7 @@ build:pepc-benchmark:
   stage: build
   tags:
     - public-docker
-  image: gcc:latest
+  image: gcc:buster-10
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-benchmark
