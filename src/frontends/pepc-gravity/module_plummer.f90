@@ -12,7 +12,7 @@ module plummer
   real*8,  parameter :: MFRAC = 0.999_8 ! mass cut off at MFRAC of total
   real*8,  parameter :: TWOTO31 = 2147483648.0_8
   integer, parameter :: MULT = 1103515245
-  integer, parameter :: MASK = X'7FFFFFFF'
+  integer, parameter :: MASK = int(Z'7FFFFFFF')
   integer, parameter :: ADD = 12345
   integer, parameter :: seed = 123
   

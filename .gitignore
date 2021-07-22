@@ -2,10 +2,9 @@
 *.o
 *.mod
 
-# build directory
+# build, lib, bin directory
 build
-
-# bin directory
+lib
 bin
 
 # Generated documentation
@@ -14,6 +13,8 @@ doc
 # vim files
 .*.un~
 .*swp
+
+tags
 
 # Temporary files
 CMakeCache.txt

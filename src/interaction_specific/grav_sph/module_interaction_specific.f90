@@ -492,7 +492,7 @@ contains
           particle%results%maxidx   = particle%results%maxidx + 1
           if( particle%results%maxidx > max_neighbour_particles ) then
              write(*,*) "Number of neighbours found in symmetric neighbour search bigger than max_neighbour_particles. Increase this value, recompile and try again."
-             call MPI_ABORT(MPI_COMM_WORLD, ierr)
+             call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
           end if
 
        else

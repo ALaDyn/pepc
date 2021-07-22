@@ -267,7 +267,7 @@ program pepce
      
   else
      write(*,*) "Error: unknown run_type in pepc.f90."
-     call MPI_ABORT( MPI_COMM_WORLD, ierr )
+     call MPI_ABORT( MPI_COMM_WORLD, 13, ierr )
      
   end if
   

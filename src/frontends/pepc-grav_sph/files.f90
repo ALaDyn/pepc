@@ -91,7 +91,7 @@ contains
 
     integer, intent(in) :: i
     real, intent(in) :: simtime
-    integer :: p, fh, ierr, err, status(MPI_STATUS_SIZE)
+    integer :: p, fh, ierr, status(MPI_STATUS_SIZE)
     integer(KIND=MPI_OFFSET_KIND) :: disp, header_disp=1024
 
     character(50) :: cfile
@@ -110,7 +110,7 @@ contains
        call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
        if (ierr .ne. MPI_SUCCESS) then
           write(*,*) 'something is wrong here: file open failed',my_rank,ierr,cfile
-          call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
+          call MPI_ABORT(MPI_COMM_WORLD, 12, ierr)
           stop
        end if
        ! Set file view to BYTE for header, only rank 0 writes it
@@ -122,7 +122,7 @@ contains
           call MPI_FILE_GET_POSITION(fh, disp, ierr)
           if (disp .gt. header_disp) then
              write(*,*) "header_size is too small: ", header_disp, "<", disp
-             call MPI_ABORT(MPI_COMM_WORLD,err,ierr)
+             call MPI_ABORT(MPI_COMM_WORLD, 12, ierr)
              stop
           end if
        end if
@@ -298,7 +298,7 @@ contains
      if(width<12) then
         write(*,*) 'width of SPH_ASCII02 datacolumns is below 12. Set to a value >=12.'
         ! width < 12 makes no sense and is therefore not implemented.
-        call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        call MPI_ABORT(MPI_COMM_WORLD, 12, ierr)
      end if
 
 
@@ -556,7 +556,7 @@ contains
            write(*,*) "Exiting."
         end if
         
-        call MPI_ABORT(MPI_COMM_WORLD, ierr)
+        call MPI_ABORT(MPI_COMM_WORLD, 12, ierr)
         
      end if
 
