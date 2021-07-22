@@ -9,6 +9,8 @@ Juelich Supercomputing Centre
 [http://www.fz-juelich.de/ias/jsc/pepc](http://www.fz-juelich.de/ias/jsc/pepc)  
 #### E-Mail:  
 [pepc@fz-juelich.de](mail-to:pepc@fz-juelich.de)  
+#### CI:  
+[![pipeline status](https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc/badges/master/pipeline.svg)](https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc/-/commits/master) 
 
 
 # 0. LICENSE

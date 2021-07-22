@@ -1,0 +1,25 @@
+# Object files
+*.o
+*.mod
+
+# build directory
+build
+
+# bin directory
+bin
+
+# Generated documentation
+doc
+
+# vim files
+.*.un~
+.*swp
+
+# Temporary files
+CMakeCache.txt
+CMakeFiles/
+cmake/CMakeCache.txt
+cmake/CMakeFiles/
+cmake/Makefile
+cmake/cmake_install.cmake
+cmake/install_manifest.txt

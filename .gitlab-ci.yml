@@ -1,0 +1,56 @@
+stages:
+  - build
+    #   - test
+    #   - html     # this run doxygen (prefer FORD)
+    #   - deploy   # this could push doxygen to pages
+
+# run a before_script for all that installs OpenMPI
+default:
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
+
+# build binary to check compilation, creating MPI binary for a number of frontends
+build:pepc-mini:
+  stage: build
+  tags:
+    - public-docker
+  image: gcc:latest
+  script:
+    - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - make pepc-mini
+
+build:pepc-essential:
+  stage: build
+  tags:
+    - public-docker
+  image: gcc:latest
+  script:
+    - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - make pepc-essential
+
+build:pepc-benchmark:
+  stage: build
+  tags:
+    - public-docker
+  image: gcc:latest
+  script:
+    - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - make pepc-benchmark
+
+build:pepc-breakup:
+  stage: build
+  tags:
+    - public-docker
+  image: gcc:latest
+  script:
+    - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - make pepc-breakup
+
+build:pepc-kh:
+  stage: build
+  tags:
+    - public-docker
+  image: gcc:latest
+  script:
+    - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - make pepc-kh
