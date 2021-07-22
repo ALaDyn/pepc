@@ -7,37 +7,43 @@ stages:
 # run a before_script for all that installs OpenMPI
 default:
   before_script:
-    - which mpif90 || echo "no MPI found"
-    #- apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
-    - apt-get install -y -qq openmpi-bin libopenmpi-dev || echo "apt intall failed"
-    - which mpif90 || echo "no MPI found"
+    - apt update -qq || echo "apt udpate failed"
+    - apt install -y -qq openmpi-bin libopenmpi-dev exuberant-ctags || echo "apt install failed - to be ignored for now"
+    - which mpif90
 
 # build binary to check compilation, creating MPI binary for a number of frontends
 build:pepc-mini:
   stage: build
   tags:
     - public-docker
-  image: gcc:10-buster
+  image: gcc:latest
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-mini
 
+# build pepc-essential with all available walks to see if any of those fail
 build:pepc-essential:
   stage: build
   tags:
     - public-docker
-  image: gcc:10-buster
+  image: gcc:latest
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - echo "WALK = pthreads" >> src/frontends/pepc-essential/makefile.frontend
+    - make pepc-essential
+    - echo "WALK = pthreads_clustered" >> src/frontends/pepc-essential/makefile.frontend
+    - make pepc-essential
+    - echo "WALK = openmp" >> src/frontends/pepc-essential/makefile.frontend
+    - make pepc-essential
+    - echo "WALK = simple" >> src/frontends/pepc-essential/makefile.frontend
     - make pepc-essential
 
 build:pepc-benchmark:
   stage: build
   tags:
     - public-docker
-  image: gcc:10-buster
+  image: gcc:latest
   script:
-    - apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-benchmark
 
@@ -56,6 +62,5 @@ build:pepc-kh:
     - public-docker
   image: gcc:latest
   script:
-    - apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-kh
