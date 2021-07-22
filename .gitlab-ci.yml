@@ -7,10 +7,10 @@ stages:
 # run a before_script for all that installs OpenMPI
 default:
   before_script:
-    - which mpif90
+    - which mpif90 || echo "no MPI found"
     #- apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
     - apt-get install -y -qq openmpi-bin libopenmpi-dev
-    - which mpif90
+    - which mpif90 || echo "no MPI found"
 
 # build binary to check compilation, creating MPI binary for a number of frontends
 build:pepc-mini:
