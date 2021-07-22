@@ -9,7 +9,7 @@ default:
   before_script:
     - which mpif90 || echo "no MPI found"
     #- apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
-    - apt-get install -y -qq openmpi-bin libopenmpi-dev
+    - apt-get install -y -qq openmpi-bin libopenmpi-dev || echo "apt intall failed"
     - which mpif90 || echo "no MPI found"
 
 # build binary to check compilation, creating MPI binary for a number of frontends
@@ -17,7 +17,7 @@ build:pepc-mini:
   stage: build
   tags:
     - public-docker
-  image: gcc:buster-10
+  image: gcc:10-buster
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-mini
@@ -26,7 +26,7 @@ build:pepc-essential:
   stage: build
   tags:
     - public-docker
-  image: gcc:buster-10
+  image: gcc:10-buster
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-essential
@@ -35,8 +35,9 @@ build:pepc-benchmark:
   stage: build
   tags:
     - public-docker
-  image: gcc:buster-10
+  image: gcc:10-buster
   script:
+    - apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-benchmark
 
@@ -55,5 +56,6 @@ build:pepc-kh:
     - public-docker
   image: gcc:latest
   script:
+    - apt-get update -qq && apt-get install -y -qq openmpi-bin libopenmpi-dev
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-kh
