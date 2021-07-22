@@ -312,6 +312,7 @@ contains
          implicit none
 
          integer(kind_node), intent(in) :: n
+         integer(kind_particle) :: ip
 
          type(t_tree_node), pointer :: node
          integer(kind_node) :: ns
