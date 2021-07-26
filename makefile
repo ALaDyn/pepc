@@ -64,7 +64,9 @@ $(LIBDIR)/libsl.a: $(LIBDIR)
 	@$(MAKE) -C "$(SLPEPCDIR)" $(MFLAGS)
 	@cp -p "$(SLPEPCDIR)/libsl.a" "$(LIBDIR)/libsl.a"
 
-libopa: $(LIBDIR)
+libopa: $(LIBDIR)/libopa.a
+
+$(LIBDIR)/libopa.a: $(LIBDIR)
 	@printf "==== $(UL)building openpa$(NC)\n"
 	@ROOTDIR="$(ROOTDIR)" $(MAKE) -C "$(OPADIR)" $(MFLAGS)
 
@@ -92,7 +94,7 @@ cleanall: cleanlib cleandoc clean
 
 allclean: cleanall
 
-pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a libopa
+pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a $(LIBDIR)/libopa.a
 	@if [ ! -d "$(FRONTENDDIR)/$@" ]; then printf "======== $(RED)Frontend $@ does not exist. Aborting.$(NC)\n"; false; fi
 	@printf "======== start building frontend $(BC){ $@ }$(NC)\n"
 	@printf "==== date: $(BC)$(shell "date")$(NC)\n"
@@ -142,7 +144,7 @@ pepclogo:
 	@echo "    _____   ____   _____   _____                              "
 	@echo "   /\  _ \`\/\  __\/\  _ \`\/\  __\`\       The                  "
 	@echo "   \ \ \L\ \ \ \_L\ \ \L\ \ \ \/\_\        Pretty Efficient   "
-	@echo "    \ \ ,__/\ \  _\\ \ ,__/\ \ \/_/_       Parallel Coulomb   "
+	@echo "    \ \ ,__/\ \  _\\ \ ,__/\ \ \/_/_        Parallel Coulomb   "
 	@echo "     \ \ \/  \ \ \_L\ \ \/  \ \ \_\ \    Solver               "
 	@echo "      \ \_\   \ \____\ \_\   \ \____/                         "
 	@echo "       \/_/    \/____/\/_/    \/___/     pepc@fz-juelich.de   "

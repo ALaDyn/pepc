@@ -16,6 +16,8 @@ doc
 
 tags
 
+makefile.defs
+
 # Temporary files
 CMakeCache.txt
 CMakeFiles/

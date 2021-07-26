@@ -1,1 +1,1 @@
-../pepc-nn/module_neighbour_test.f90
+../pepc-neighbour/module_neighbour_test.f90
