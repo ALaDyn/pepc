@@ -40,8 +40,7 @@ module module_interaction_specific_types
          !real(kind_physics) :: b(3)          !< magnetic filed at particle position (due to external fields applied in frontend)
       end type t_particle_data
       integer, private, parameter :: nprops_particle_data = 4
-
-      
+     
       !> Data structure for shipping results
       type t_particle_results
          real(kind_physics)               :: pot    !< Scalar potential
@@ -125,7 +124,6 @@ module module_interaction_specific_types
 
       end subroutine vtk_write_particle_data_results
 
-
       !>
       !> Writes (a sensible subset of) tree node interaction data to a VTK file.
       !>
@@ -141,21 +139,21 @@ module module_interaction_specific_types
 !        call vtkf%write_data_array("current density", d(:)%current   )
       end subroutine vtk_write_node_interaction_data
 
-
       !>
       !> Creates and registers interaction-specific MPI-types
       !> is automatically called from register_libpepc_mpi_types()
       !>
-      subroutine register_interaction_specific_mpi_types(mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results)
+      subroutine register_interaction_specific_mpi_types(MPI_TYPE_particle_data, MPI_TYPE_tree_node_interaction_data, MPI_TYPE_particle_results)
         use mpi
         implicit none
-        integer, intent(out) :: mpi_type_particle_data, MPI_TYPE_tree_node_interaction_data, mpi_type_particle_results
+        integer, intent(out) :: MPI_TYPE_particle_data, MPI_TYPE_tree_node_interaction_data, MPI_TYPE_particle_results
 
         integer, parameter :: max_props = nprops_particle_data + nprops_particle_results + nprops_tree_node_interaction_data ! maxval([..]) would be enough, but ifort does notlike that
 
         integer :: ierr
         ! address calculation
-        integer, dimension(1:max_props) :: blocklengths, displacements, types
+        integer, dimension(1:max_props) :: blocklengths, types
+        integer(KIND=MPI_ADDRESS_KIND), dimension(1:max_props) :: displacements
         integer(KIND=MPI_ADDRESS_KIND), dimension(0:max_props) :: address
         ! dummies for address calculation
         type(t_particle_data)    :: dummy_particle_data
@@ -163,17 +161,16 @@ module module_interaction_specific_types
         type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
         ! register particle data type
-        blocklengths(1:nprops_particle_data)  = [1, 3, 1, 1]
+        blocklengths(1:nprops_particle_data) = [1, 3, 1, 1]
         types(1:nprops_particle_data)         = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
-        call MPI_GET_ADDRESS( dummy_particle_data,   address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%q, address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%v, address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%m, address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_data%g, address(4), ierr )
-
-        displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
-        call MPI_TYPE_STRUCT( nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr )
-        call MPI_TYPE_COMMIT( mpi_type_particle_data, ierr)
+        call MPI_GET_ADDRESS(dummy_particle_data,   address(0), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_data%q, address(1), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_data%v, address(2), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_data%m, address(3), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_data%g, address(4), ierr)  !&
+        displacements(1:nprops_particle_data) = address(1:nprops_particle_data) - address(0)
+        call MPI_TYPE_CREATE_STRUCT(nprops_particle_data, blocklengths, displacements, types, MPI_TYPE_particle_data, ierr )
+        call MPI_TYPE_COMMIT(MPI_TYPE_particle_data, ierr)
 
         ! register results data type
         blocklengths(1:nprops_particle_results)  = [1, 3, 3, 3, 3, 3, 3, 3, 3]
@@ -181,26 +178,26 @@ module module_interaction_specific_types
                                                     MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS,&
                                                     MPI_KIND_PHYSICS ]
                                                     
-        call MPI_GET_ADDRESS( dummy_particle_results      , address(0) , ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%pot  , address(1) , ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%E    , address(2) , ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%A    , address(3) , ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%B    , address(4) , ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%J    , address(5) , ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%Jirr , address(6) , ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%dxA  , address(7) , ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%dyA  , address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_particle_results%dzA  , address(9), ierr )
-!        call MPI_GET_ADDRESS( dummy_particle_results%dxE  , address(7) , ierr )
-!        call MPI_GET_ADDRESS( dummy_particle_results%dyE  , address(8) , ierr )
-!        call MPI_GET_ADDRESS( dummy_particle_results%dxxA , address(12), ierr )
-!        call MPI_GET_ADDRESS( dummy_particle_results%dxyA , address(13), ierr )
-!        call MPI_GET_ADDRESS( dummy_particle_results%dyyA , address(14), ierr )
-!        call MPI_GET_ADDRESS( dummy_particle_results%rho , address(9), ierr )
+        call MPI_GET_ADDRESS(dummy_particle_results     , address(0), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%pot , address(1), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%E   , address(2), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%A   , address(3), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%B   , address(4), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%J   , address(5), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%Jirr, address(6), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%dxA , address(7), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%dyA , address(8), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_particle_results%dzA , address(9), ierr)  !&
+!        call MPI_GET_ADDRESS(dummy_particle_results%dxE , address(7), ierr)  !&
+!        call MPI_GET_ADDRESS(dummy_particle_results%dyE , address(8), ierr)  !&
+!        call MPI_GET_ADDRESS(dummy_particle_results%dxxA, address(12), ierr)  !&
+!        call MPI_GET_ADDRESS(dummy_particle_results%dxyA, address(13), ierr)  !&
+!        call MPI_GET_ADDRESS(dummy_particle_results%dyyA, address(14), ierr)  !&
+!        call MPI_GET_ADDRESS(dummy_particle_results%rho , address(9), ierr)  !&
 
-        displacements(1:nprops_particle_results) = int(address(1:nprops_particle_results) - address(0))
-        call MPI_TYPE_STRUCT( nprops_particle_results, blocklengths, displacements, types, mpi_type_particle_results, ierr )
-        call MPI_TYPE_COMMIT( mpi_type_particle_results, ierr)
+        displacements(1:nprops_particle_results) = address(1:nprops_particle_results) - address(0)
+        call MPI_TYPE_CREATE_STRUCT(nprops_particle_results, blocklengths, displacements, types, MPI_TYPE_particle_results, ierr)
+        call MPI_TYPE_COMMIT(MPI_TYPE_particle_results, ierr)
 
         ! register multipole data type
         blocklengths(1:nprops_tree_node_interaction_data)  = [3, 1, 1, 3, 3, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1]
@@ -208,32 +205,32 @@ module module_interaction_specific_types
                                                               MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
                                                               MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, &
                                                               MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS]
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data,            address(0), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%coc,        address(1), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%charge,     address(2), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%abs_charge, address(3), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%dip,        address(4), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quad,       address(5), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%xyquad,     address(6), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%yzquad,     address(7), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%zxquad,     address(8), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%monoj,      address(9), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%dipjx,      address(10), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%dipjy,      address(11), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%dipjz,      address(12), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjx,     address(13), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjy,     address(14), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjz,     address(15), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjxy,    address(16), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjyz,    address(17), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%quadjzx,    address(18), ierr )
-!        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%g,          address(19), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%current,    address(19), ierr )
-        call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%bmax,       address(20), ierr )
-        !call MPI_GET_ADDRESS( dummy_tree_node_interaction_data%jj,         address(9), ierr )
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data,            address(0),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%coc,        address(1),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%charge,     address(2),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%abs_charge, address(3),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%dip,        address(4),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%quad,       address(5),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%xyquad,     address(6),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%yzquad,     address(7),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%zxquad,     address(8),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%monoj,      address(9),  ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%dipjx,      address(10), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%dipjy,      address(11), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%dipjz,      address(12), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%quadjx,     address(13), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%quadjy,     address(14), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%quadjz,     address(15), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%quadjxy,    address(16), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%quadjyz,    address(17), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%quadjzx,    address(18), ierr)  !&
+!        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%g,          address(19), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%current,    address(19), ierr)  !&
+        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%bmax,       address(20), ierr)  !&
+!        call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%jj,         address(9), ierr)  !&
 
-        displacements(1:nprops_tree_node_interaction_data) = int(address(1:nprops_tree_node_interaction_data) - address(0))
-        call MPI_TYPE_STRUCT( nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr )
-        call MPI_TYPE_COMMIT( MPI_TYPE_tree_node_interaction_data, ierr)
+        displacements(1:nprops_tree_node_interaction_data) = address(1:nprops_tree_node_interaction_data) - address(0)
+        call MPI_TYPE_CREATE_STRUCT(nprops_tree_node_interaction_data, blocklengths, displacements, types, MPI_TYPE_tree_node_interaction_data, ierr)
+        call MPI_TYPE_COMMIT(MPI_TYPE_tree_node_interaction_data, ierr)
       end subroutine register_interaction_specific_mpi_types
 end module module_interaction_specific_types

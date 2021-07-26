@@ -211,7 +211,8 @@ module helper
     use mpi
     implicit none
     type(t_particle), allocatable, intent(in)    :: p(:)
-    integer(kind_particle)                       :: rc,np
+    integer(kind_particle)                       :: np
+    integer                                      :: rc
     character(255)                               :: filename
     character(*), parameter                      :: part_dir = "particles/"
     integer(kind = MPI_OFFSET_KIND)              :: mpi_disp,my_offset
@@ -330,7 +331,8 @@ subroutine init_particles(p,field_grid)
     implicit none
     type(t_particle), allocatable, intent(inout) :: p(:)
     type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ip,rc,jp
+    integer(kind_particle)                       :: ip,jp
+    integer                                      :: rc
     real(kind_particle)                          :: dummy,nd,lambda,rtnp,gl
     
     character(100)                               :: filename_i
@@ -600,7 +602,8 @@ subroutine init_particles(p,field_grid)
   use mpi
   implicit none
     type(t_particle), allocatable, intent(in)    :: p(:)
-    integer(kind_particle)                       :: ip,np,rc
+    integer(kind_particle)                       :: ip,np
+    integer                                      :: rc
     real(kind_particle)                          :: wpe,wgf,alpha
     logical                                      :: flag
     
@@ -1009,7 +1012,7 @@ subroutine init_particles(p,field_grid)
 
 !          open(unit=rc,file=trim(folder)//trim("monopole3d.dat"),form='formatted',status='unknown',access='append')
 !          open(unit=rc,file=trim(folder)//trim("dipole3d.dat"),form='formatted',status='unknown',position='append')
-          open(unit=rc,file=trim(folder)//trim("quadrupole3d.dat"),form='formatted',status='unknown',position='append')
+          open(newunit=rc,file=trim(folder)//trim("quadrupole3d.dat"),form='formatted',status='unknown',position='append')
           write(rc,*) sqrt(theta2), phi_err, E_err, A_err, Ax_err, Ay_err, Az_err, B_err, J_err, Jir_err, Fdar_err, FEl_err
 !          write(rc,*) sqrt(theta2), phi_err, E_err, Ex_err, Ey_err, A_err, Ax_err, Ay_err, Axx_err, Axy_err, Ayy_err,B_err, J_err, Jir_err, Fdar_err, FEl_err
           close(rc)

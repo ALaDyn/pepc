@@ -252,7 +252,8 @@ subroutine copy_particle(p,q,np)
     type(t_particle), allocatable, intent(out)   :: q(:)
     integer(kind_particle)       , intent(in)    :: np
 
-    integer(kind_particle)                       :: ip,rc
+    integer(kind_particle)                       :: ip
+    integer                                      :: rc
 
     if (allocated(q)) deallocate(q)
     allocate(q(np),stat=rc )
@@ -311,7 +312,8 @@ function gyrofrequency(p)
     implicit none
     type(t_particle), allocatable, intent(in)    :: p(:)
     real(kind_particle)                          :: gyrofrequency,Bnorm,Bnormg
-    integer(kind_particle)                       :: ip,rc
+    integer(kind_particle)                       :: ip
+    integer                                      :: ierr
 
     Bnorm  = zero
     Bnormg = zero
@@ -320,7 +322,7 @@ function gyrofrequency(p)
         Bnorm = Bnorm + dot_product(p(ip)%results%B,p(ip)%results%B)
     enddo
 
-    call MPI_ALLREDUCE(Bnorm, Bnormg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+    call MPI_ALLREDUCE(Bnorm, Bnormg, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
     Bnormg  = sqrt(Bnormg)/real(tnp,kind=kind_particle)
 
     gyrofrequency = abs(p(1)%data%q)/p(1)%data%m*Bnormg

@@ -131,7 +131,7 @@ module module_init
     implicit none
 
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ip,np,rc=125
+    integer(kind_particle)                       :: ip,np
     character(255)                               :: filename
     character(*), parameter                      :: part_dir = "particles/"
     integer(kind = MPI_OFFSET_KIND)              :: mpi_disp,my_offset
@@ -317,7 +317,7 @@ module module_init
     implicit none
 !
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ipl,gpl,np,n!,rc
+    integer(kind_particle)                       :: ipl,gpl,np,n
     real(kind_particle)                          :: r,r0,theta,alpha,r1,rtnp,mrank!,nrank
 
     if (root)   write(*,*)            "== ...Loading Particle's Position "
@@ -465,7 +465,8 @@ module module_init
     implicit none
 !
     type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)                       :: ip,np,n,j1,species,count_species(1:nsp),rc
+    integer(kind_particle)                       :: ip,np,n,j1,species,count_species(1:nsp)
+    integer                                      :: ierr
     real(kind_particle)                          :: v_th(1:3),v_drift(1:3),sumV,gl
 
     np     = size(p, kind=kind_particle)
@@ -504,8 +505,8 @@ module module_init
                 
     end do
     
-    call MPI_ALLREDUCE(MPI_IN_PLACE , count_species(1:nsp)  , nsp, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-    call MPI_ALLREDUCE(MPI_IN_PLACE , sumV                  , 1  , MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+    call MPI_ALLREDUCE(MPI_IN_PLACE , count_species(1:nsp)  , nsp, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE , sumV                  , 1  , MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
 
     if ( root ) then
         write(*,*) 'Number of particles per species: ',count_species(1:nsp)

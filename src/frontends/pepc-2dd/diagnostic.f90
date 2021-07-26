@@ -41,7 +41,8 @@ module module_diagnostic
       type(t_particle), allocatable, intent(in) :: p(:),pold(:)
       real(kind_particle)          , intent(in) :: t
       integer(kind_particle)       , intent(in) :: np
-      integer(kind_particle)                    :: ip,jp,species,rc=201,rd=202
+      integer(kind_particle)                    :: ip,jp,species
+      integer                                   :: rc,rd
       real(kind_particle)                       :: upot(1:nsp),ukin(1:nsp),udar(1:nsp),gam,v2,ploc(1:3),&
                                                    uk_mean(1:nsp),uk_std(1:nsp),count_species(1:nsp),rtnp,etot,pmax(1:3),divA!,vthermal(1:3),g 
 
@@ -129,8 +130,8 @@ module module_diagnostic
         etot    =         sum(upot(1:nsp))
         etot    = etot  + sum(udar(1:nsp))
         etot    = etot  + sum(ukin(1:nsp))
-        open(unit=rc,file=trim(folder)//trim("energy_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
-        open(unit=rd,file=trim(folder)//trim("momentum_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        open(newunit=rc,file=trim(folder)//trim("energy_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        open(newunit=rd,file=trim(folder)//trim("momentum_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
         write(rc,*) t,ukin(1:nsp),uk_mean(1:nsp),uk_std(1:nsp),upot(1:nsp),udar(1:nsp),etot,divA
         write(rd,*) t,ploc,pmax
         close (rc )
@@ -147,7 +148,8 @@ module module_diagnostic
       type(t_particle), allocatable, intent(in) :: p(:)
       real(kind_particle)          , intent(in) :: t
       integer(kind_particle)       , intent(in) :: np
-      integer(kind_particle)                    :: ip,species,i,j,rc=201
+      integer(kind_particle)                    :: ip,species,i,j
+      integer                                   :: rc
       real(kind_particle)                       :: E2(1:nsp,1:3),B2(1:nsp,1:3),E2_rms(1:nsp,1:3),B2_rms(1:nsp,1:3),count_species(1:nsp)
 
       E2     = zero
@@ -198,7 +200,7 @@ module module_diagnostic
       enddo
       
       if (root) then
-        open(unit=rc,file=trim(folder)//trim("density_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        open(newunit=rc,file=trim(folder)//trim("density_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
         write(rc,*) t,E2(1:nsp,1),E2(1:nsp,2),E2(1:nsp,3),B2(1:nsp,1),B2(1:nsp,2),B2(1:nsp,3),&
                       E2_rms(1:nsp,1),E2_rms(1:nsp,2),E2_rms(1:nsp,3),B2_rms(1:nsp,1),B2_rms(1:nsp,2),B2_rms(1:nsp,3)
         close (rc )
@@ -215,7 +217,8 @@ module module_diagnostic
       type(t_particle), allocatable, intent(in) :: p(:)
       real(kind_particle)          , intent(in) :: t
       integer(kind_particle)       , intent(in) :: tnp
-      integer(kind_particle)                    :: ip,jp,np,rc=201
+      integer(kind_particle)                    :: ip,jp,np
+      integer                                   :: rc
       real(kind_particle)                       :: rloc,rglo,vloc(1:3),vglo(1:3),vrloc,vrglo,rtnp
 
       rloc      = zero
@@ -246,7 +249,7 @@ module module_diagnostic
 
 
       if (root) then
-        open(unit=rc,file=trim(folder)//trim("beam_rnv_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+        open(newunit=rc,file=trim(folder)//trim("beam_rnv_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
         write(rc,*) t,rglo,vglo(1:3),vrglo
         close (rc )
       endif

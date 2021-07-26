@@ -152,7 +152,8 @@ module module_integration
         procedure (implicit_nkPtr_update)    , pointer      :: nk_ptr_update  => null ()
         procedure (implicit_nkPtr_scheme)    , pointer      :: nk_ptr_scheme  => null ()
         procedure (explicit_ptr)             , pointer      :: exp_ptr        => null ()
-        integer(kind_particle)                              :: errmsg_nk,iter,rc=100                          ! Picard Iteration
+        integer(kind_particle)                              :: errmsg_nk,iter                          ! Picard Iteration
+        integer                                             :: rc
         real(kind_particle)                                 :: errnk,static_gmres!,errmsg(1:3,1:5)        ! Global Error - Picard Iteration
 
         if (adv .eq. 0) then
@@ -215,7 +216,7 @@ module module_integration
                 if (root) then
 !                    write(*,'(a,i4,2x,es12.4,es12.4,es12.4,es12.4,es12.4,es12.4)') " == Resual : ", iter,errnk,errmsg
                     write(*,'(a,i4,2x,es12.4)') " == Resual : ", iter,errnk
-                    open(unit=rc,file=trim(folder)//trim("residuo_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
+                    open(newunit=rc,file=trim(folder)//trim("residuo_")//trim(adjustl(ischeme))//".dat",form='formatted',status='unknown',position='append')
                     write(rc,*) iter,errnk!(:,1),errmsg(:,2),errmsg(:,3),errmsg(:,4),errmsg(:,5)
                     close (rc )
                 endif
@@ -415,8 +416,8 @@ module module_integration
     real(kind_particle)                              :: err_x,err_v,rat,toll_old        
     type(t_particle), allocatable                    :: r(:)!,error(:)
     type(pma_particle), allocatable                  :: s(:)
-    integer(kind_particle)                           :: rc,ip,j,maxit
-    integer(kind_particle) , parameter               :: filehandle =  40_kind_physics
+    integer(kind_particle)                           :: ip,j,maxit
+    integer                                          :: rc, filehandle
     character(100)                                   :: filename
     integer                                          :: iteration
 
@@ -606,7 +607,7 @@ module module_integration
                 endif
                 
                 write(filename,'(a,"errors_",i6.6,".dat")') trim(folder), my_rank
-                open(filehandle, file=trim(filename), STATUS='REPLACE')
+                open(newunit=filehandle, file=trim(filename), STATUS='REPLACE')
                 
                 do ip = 1,np
 
@@ -617,7 +618,7 @@ module module_integration
 
                 enddo
                 
-                close (rc )
+                close (filehandle )
             endif
                 
                 
@@ -704,8 +705,8 @@ module module_integration
     real(kind_particle)                              :: err_A,err_dxA,err_dyA,err_x,err_v,rat,toll_old        
     type(t_particle), allocatable                    :: r(:)!,error(:)
     type(pma_particle), allocatable                  :: s(:)
-    integer(kind_particle)                           :: rc,ip,j,maxit
-    integer(kind_particle) , parameter               :: filehandle =  40_kind_physics
+    integer(kind_particle)                           :: ip,j,maxit
+    integer                                          :: rc, filehandle
     character(100)                                   :: filename
     integer                                          :: iteration
 
@@ -928,7 +929,7 @@ module module_integration
                 endif
                 
                 write(filename,'(a,"errors_",i6.6,".dat")') trim(folder), my_rank
-                open(filehandle, file=trim(filename), STATUS='REPLACE')
+                open(newunit=filehandle, file=trim(filename), STATUS='REPLACE')
                 
                 do ip = 1,np
 
@@ -942,7 +943,7 @@ module module_integration
 
                 enddo
                 
-                close (rc )
+                close (filehandle )
             endif
                 
                 
@@ -1027,7 +1028,8 @@ module module_integration
     real(kind_particle)                              :: e,m,v(1:3),grad(1:3),vxb(1:3)
 
     type(t_particle), allocatable                    :: r(:)!,error(:)
-    integer(kind_particle)                           :: rc,ip
+    integer(kind_particle)                           :: ip
+    integer                                          :: rc
 
     if (allocated(r)) deallocate(r)
     allocate( r(np), stat=rc )
@@ -1181,7 +1183,8 @@ module module_integration
     real(kind_particle)                              :: e,m,v(1:3),grad(1:3),vxb(1:3)
 
     type(t_particle), allocatable                    :: r(:)!,error(:)
-    integer(kind_particle)                           :: rc,ip
+    integer(kind_particle)                           :: ip
+    integer                                          :: rc
 
     if (allocated(r)) deallocate(r)
     allocate( r(np), stat=rc )
@@ -1332,7 +1335,8 @@ module module_integration
     real(kind_particle)                              :: e,m,v(1:3),grad(1:3),vxb(1:3)
 
     type(t_particle), allocatable                    :: r(:),s(:)!,error(:)
-    integer(kind_particle)                           :: rc,ip
+    integer(kind_particle)                           :: ip
+    integer                                          :: rc
 
     if (allocated(r)) deallocate(r)
     allocate( r(np), stat=rc )
