@@ -1,7 +1,7 @@
 # PEPC -  Pretty Efficient Parallel Coulomb-solver
 
 ##### Authors:  
-Paul Gibbon, Mathias Winkel, Robert Speck, Lukas Arnold  
+Paul Gibbon, Mathias Winkel, Benedikt Steinbusch, Robert Speck, Junxian Chew, Dirk Brömmel, Lukas Arnold  
 Forschungszentrum Juelich GmbH  
 Juelich Supercomputing Centre  
 
@@ -91,34 +91,31 @@ There are several different frontends available at the moment:
 
 * `pepc-b`:  
 Laser/beam-plasma with magnetic fields  
-* `pepc-e`: 
-pure electrostatics,  
-simple molecular dynamics,  
-some diagnostics for energy, performance, vtk output etc.
+* `pepc-essential`/`pepc-benchmark`:  
+simple setup w/ a Coulomb explosion  
+also used for benchmarking  
+* `pepc-darwin-2d`:  
+2D version w/ Darwin appoximation for electrodynamics
 * `pepc-mini`:  
 pure electrostatics  
 simple molecular dynamics  
 no diagnostics  
-minimum requirements to get pepc running  
-* `pepc-mw`:  
-frontend for laser-plasma interaction (experimental)  
-* `pepc-s`:  
-library version for inclusion in ScaFaCoS project  
+*minimum requirements to get `PEPC` running*  
 * `pepc-neighbour`:  
 tree-based nearest neighbour search  
-* `pepc-sph`:  
-gravitation and smoothed particle hydrodynamics (sph) for astrophysics research (experimental)  
-`pepc-v`:  
+* `pepc-kh`, `pepc-kh-essential`:  
+Kevin-Helmholtz setup (`essential` following text-books)
+* `pepc-v`:  
 vortex dynamics using the vortex particle method  
 
 To build an alternative frontend, just call
 
 ```sh
-make pepc-e
+make pepc-essential
 ```
 or
 ```sh
-make pepc-mw
+make pepc-benchmark
 ```
 
 All frontends can be built using 

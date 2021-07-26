@@ -1,3 +1,0 @@
-To be able to build this frontend, you will first have
-to enter libnpy-0.4/src and call 'make' therein
-to create libnpy.a in libnpy-0.4/lib
