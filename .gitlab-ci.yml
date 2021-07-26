@@ -21,11 +21,11 @@ build:libs:
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make libsl libopa
-   artifacts:
-      when: on_success
-      expire_in: 1h
-      paths:
-        - lib
+  artifacts:
+    when: on_success
+    expire_in: 1h
+    paths:
+      - lib
 
 # build binary to check compilation, creating MPI binary for a number of frontends
 build:pepc-mini:
