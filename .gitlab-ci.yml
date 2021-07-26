@@ -1,4 +1,5 @@
 stages:
+  - build_libs
   - build
     #   - test
     #   - html     # this run doxygen (prefer FORD)
@@ -11,27 +12,38 @@ default:
     - apt install -y -qq openmpi-bin libopenmpi-dev exuberant-ctags || echo "apt install failed - to be ignored for now"
     - which mpif90
 
+# build libsl and libOPA ahead of frontends
+build:libs:
+  stage: build_libs
+  tags:
+    - public-docker
+  image: gcc:latest
+  script:
+    - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - make libsl libopa
+   artifacts:
+      when: on_success
+      expire_in: 1h
+      paths:
+        - lib
+
 # build binary to check compilation, creating MPI binary for a number of frontends
 build:pepc-mini:
   stage: build
+  dependencies:
+    - build:libs
   tags:
     - public-docker
   image: gcc:latest
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-mini
-  artifacts:
-    when: on_success
-    paths:
-      - build
-      - lib
-      - bin
 
 # build pepc-essential with all available walks to see if any of those fail
 build:pepc-essential:
   stage: build
   dependencies:
-    - build:pepc-mini
+    - build:libs
   tags:
     - public-docker
   image: gcc:latest
@@ -49,7 +61,7 @@ build:pepc-essential:
 build:pepc-benchmark:
   stage: build
   dependencies:
-    - build:pepc-mini
+    - build:libs
   tags:
     - public-docker
   image: gcc:latest
@@ -60,7 +72,7 @@ build:pepc-benchmark:
 build:pepc-breakup:
   stage: build
   dependencies:
-    - build:pepc-mini
+    - build:libs
   tags:
     - public-docker
   image: gcc:latest
@@ -71,7 +83,7 @@ build:pepc-breakup:
 build:pepc-kh:
   stage: build
   dependencies:
-    - build:pepc-mini
+    - build:libs
   tags:
     - public-docker
   image: gcc:latest
@@ -84,7 +96,7 @@ build:pepc-kh:
 build:pepc-all:
   stage: build
   dependencies:
-    - build:pepc-mini
+    - build:libs
   tags:
     - public-docker
   image: gcc:latest
