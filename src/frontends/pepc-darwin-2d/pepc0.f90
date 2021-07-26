@@ -45,7 +45,7 @@ program pepc
   errtol = 1.0d-8
   !allocate(particles0(10), stat=rc )
   !!! initialize pepc library and MPI
-  call pepc_initialize("pepc-2dd", my_rank, n_ranks, .true.)
+  call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true.)
 
   root = my_rank.eq.0
 

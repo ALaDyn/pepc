@@ -108,7 +108,7 @@ module module_globals
                                          phitilde,lorentz_tilde,newmark_x,newmark_v,&
                                          newmark_Es,newmark_Ei,newmark_B,newmark_g,dA_1,dA__1,dA_0
 
-  character(*), parameter :: FRONTEND_NAME = "pepc-2dd"
+  character(*), parameter :: FRONTEND_NAME = "pepc-darwin-2d"
   character(255)          :: ischeme,restart_file,folder
   
   type(t_particle)          , allocatable    :: pold(:)

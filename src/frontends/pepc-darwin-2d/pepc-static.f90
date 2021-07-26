@@ -57,8 +57,8 @@ program pepc
 
   !!! initialize pepc library and MPI
 
-  call pepc_initialize("pepc-2dd", my_rank, n_ranks, .true., comm=communicator)
-!  call pepc_initialize("pepc-2dd", my_rank, n_ranks, .true.)
+  call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true., comm=communicator)
+!  call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true.)
 
   root = my_rank.eq.0
   timer(1) = get_time()

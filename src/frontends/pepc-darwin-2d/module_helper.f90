@@ -152,7 +152,7 @@ module helper
     call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
     if (read_para_file) then
-      if(root) write(*,'(a)') " == reading parameter file, section pepc-2dd : ", para_file
+      if(root) write(*,'(a)') " == reading parameter file, section pepc-darwin-2d : ", para_file
       open(fid,file=para_file)
       read(fid,NML=pepc2dd)
       close(fid)

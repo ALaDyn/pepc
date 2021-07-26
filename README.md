@@ -104,7 +104,7 @@ minimum requirements to get pepc running
 frontend for laser-plasma interaction (experimental)  
 * `pepc-s`:  
 library version for inclusion in ScaFaCoS project  
-* `pepc-nn`:  
+* `pepc-neighbour`:  
 tree-based nearest neighbour search  
 * `pepc-sph`:  
 gravitation and smoothed particle hydrodynamics (sph) for astrophysics research (experimental)  

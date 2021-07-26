@@ -109,7 +109,7 @@ subroutine pepc_setup()
 
 
   if (my_rank == 0) then
-     write(*,*) "Starting PEPC-NN with",n_cpu," Processors, simulating",np_local, &
+     write(*,*) "Starting PEPC-NEIGHBOUR with",n_cpu," Processors, simulating",np_local, &
                          " Particles on each Processor in",nt,"timesteps..."
   end if
 

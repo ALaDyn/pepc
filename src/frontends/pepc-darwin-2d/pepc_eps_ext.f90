@@ -38,23 +38,23 @@ program pepc
   implicit none
 
   ! timing variables
-  real*8 :: timer(5)
-  real*8 :: t1, t2!,t
-  type(t_particle), allocatable   :: q(:),r(:)
-  type(physics_pars_t)            :: physics_pars
-  type(field_grid_t)              :: field_grid
-  type(pepc_pars_t)               :: pepc_pars
-  integer(kind_particle)          :: ii
-  ! control variable
-  logical :: doDiag!
+!  real*8 :: timer(5)
+!  real*8 :: t1, t2!,t
+!  type(t_particle), allocatable   :: q(:),r(:)
+!  type(physics_pars_t)            :: physics_pars
+!  type(field_grid_t)              :: field_grid
+!  type(pepc_pars_t)               :: pepc_pars
+!  integer(kind_particle)          :: ii,flag
+!  real(kind_particle),allocatable:: divergence(:,:),prova
+!  ! control variable
+!  logical :: doDiag!
 
   !!! initialize pepc library and MPI
-  call pepc_initialize("pepc-2dd", my_rank, n_ranks, .true., comm=communicator)
-  !call pepc_initialize('pepc-2dd', init_mpi=.false., db_level_in=DBG_STATUS, comm=communicator)
+  call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true., comm=communicator)
+  !call pepc_initialize('pepc-darwin-2d', init_mpi=.false., db_level_in=DBG_STATUS, comm=communicator)
 
   root = my_rank.eq.0
 
-  timer(1) = get_time()
 
   call set_parameter()
 
@@ -72,11 +72,7 @@ program pepc
           case (7)  ! disc random distribution
               call init_particles_disc(particles)
           case (8)  ! Solenoidal distribution
-              call init_particles_two_wires(particles)
-          case (9)  ! SDefault initial setup - 3D random particles with thermal velocity
-              call init_particles3D(particles)
-          case (10)  ! 3D Solenoid
-              call init_particles_solenoid(particles)
+              call init_particles_solenoidal(particles)
 
           case default
 
@@ -84,59 +80,13 @@ program pepc
 
   end select
 
-  call pepc_setup(pepc_pars)
-  call setup_field_grid(field_grid, pepc_pars%pepc_comm)
-
-  timer(2) = get_time()
-
-  if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
-
-  do step=0, nt
-    if(root) then
-      write(*,*) " "
-      write(*,'(a,i12)')    " ====== computing step  :", step
-      write(*,'(a,es12.4)') " ====== simulation time :", step * dt
-    end if
-
-    timer(3) = get_time()
-
-    call pepc_particleresults_clear(particles)
-    timer(1) = get_time()
-    t1 = get_time()
-
-    call pepc_grow_tree(particles)
-
-    !print *, global_tree%nodes(global_tree%node_root)%interaction_data
-
-    np = size(particles, kind=kind(np))
-    t2 = get_time()
-    if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", t2-t1
-    t1 = get_time()
-
-    call pepc_traverse_tree(particles)
-    t2 = get_time()
-    if(root) write(*,'(a,es12.4)') " ====== tree walk time  :", t2-t1
-
-    call pepc_timber_tree()
-    call test_particles()
-
-    timer(4) = get_time()
-    if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer(4) - timer(3)
-
-    call timings_GatherAndOutput(step, 0)
-
-  end do
-
-
+  call pepc_particleresults_clear(particles)
+  call pepc_grow_tree(particles)
+  call pepc_traverse_tree(particles)
+  call pepc_timber_tree()
+  call estimation_eps2(particles)
   deallocate(particles)
 
-  timer(5) = get_time()
-
-  if(root) then
-    write(*,*)            " "
-    write(*,'(a)')        " ===== finished pepc simulation"
-    write(*,'(a,es12.4)') " ===== total run time [s]: ",timer(5) - timer(1)
-  end if
 
   !!! cleanup pepc and MPI
   call pepc_finalize()

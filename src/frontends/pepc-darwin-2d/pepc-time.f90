@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2016 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -57,8 +57,8 @@ program pepc
 
   !!! initialize pepc library and MPI
 
-  call pepc_initialize("pepc-2dd", my_rank, n_ranks, .true., comm=communicator)
-!  call pepc_initialize("pepc-2dd", my_rank, n_ranks, .true.)
+  call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true., comm=communicator)
+!  call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true.)
 
   root = my_rank.eq.0
   timer(1) = get_time()
@@ -87,14 +87,13 @@ program pepc
     end if
 
     timer(3) = get_time()
-    
+
     call pepc_particleresults_clear(particles)
     timer(1) = get_time()
     t1 = get_time()
-    
-    call write_particles_ascii(step, particles)
+
     call pepc_grow_tree(particles)
-    
+
     t2 = get_time()
     if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", t2-t1
     t1 = get_time()
@@ -116,8 +115,8 @@ program pepc
     dointerp = mod( step , diag_interval) .eq. 0 .and. step .ne. 0
     
     call normalize(np, particles)
-
-    if (step>0)  call hamiltonian(np,particles,pold,real(step, kind = kind_particle)*dt)
+    
+    call hamiltonian(np,particles,pold,real(step, kind = kind_particle)*dt)
 
    
 !    call write_particles_ascii(step, particles)
