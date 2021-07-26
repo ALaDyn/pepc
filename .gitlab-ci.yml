@@ -20,10 +20,18 @@ build:pepc-mini:
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-mini
+   artifacts:
+      when: on_success
+      paths:
+        - build
+        - lib
+        - bin
 
 # build pepc-essential with all available walks to see if any of those fail
 build:pepc-essential:
   stage: build
+  dependencies:
+    - build:pepc-mini
   tags:
     - public-docker
   image: gcc:latest
@@ -40,6 +48,8 @@ build:pepc-essential:
 
 build:pepc-benchmark:
   stage: build
+  dependencies:
+    - build:pepc-mini
   tags:
     - public-docker
   image: gcc:latest
@@ -49,6 +59,8 @@ build:pepc-benchmark:
 
 build:pepc-breakup:
   stage: build
+  dependencies:
+    - build:pepc-mini
   tags:
     - public-docker
   image: gcc:latest
@@ -58,9 +70,24 @@ build:pepc-breakup:
 
 build:pepc-kh:
   stage: build
+  dependencies:
+    - build:pepc-mini
   tags:
     - public-docker
   image: gcc:latest
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-kh
+
+# finally build all available frontends to see a list of working ones
+# (ditch others in favour of this step
+build:pepc-all:
+  stage: build
+  dependencies:
+    - build:pepc-mini
+  tags:
+    - public-docker
+  image: gcc:latest
+  script:
+    - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - make all
