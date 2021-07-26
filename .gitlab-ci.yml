@@ -20,12 +20,12 @@ build:pepc-mini:
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-mini
-   artifacts:
-      when: on_success
-      paths:
-        - build
-        - lib
-        - bin
+  artifacts:
+    when: on_success
+    paths:
+      - build
+      - lib
+      - bin
 
 # build pepc-essential with all available walks to see if any of those fail
 build:pepc-essential:
