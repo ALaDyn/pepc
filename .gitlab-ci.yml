@@ -5,19 +5,12 @@ stages:
     #   - html     # this run doxygen (prefer FORD)
     #   - deploy   # this could push doxygen to pages
 
-# run a before_script for all that installs OpenMPI
-default:
-  before_script:
-    - apt update -qq || echo "apt udpate failed"
-    - apt install -y -qq openmpi-bin libopenmpi-dev exuberant-ctags || echo "apt install failed - to be ignored for now"
-    - which mpif90
-
 # build libsl and libOPA ahead of frontends
 build:libs:
   stage: build_libs
   tags:
     - public-docker
-  image: gcc:latest
+  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make libsl libopa
@@ -34,7 +27,7 @@ build:pepc-mini:
     - build:libs
   tags:
     - public-docker
-  image: gcc:latest
+  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-mini
@@ -46,7 +39,7 @@ build:pepc-essential:
     - build:libs
   tags:
     - public-docker
-  image: gcc:latest
+  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - echo "WALK = pthreads" >> src/frontends/pepc-essential/makefile.frontend
@@ -64,7 +57,7 @@ build:pepc-benchmark:
     - build:libs
   tags:
     - public-docker
-  image: gcc:latest
+  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-benchmark
@@ -75,7 +68,7 @@ build:pepc-breakup:
     - build:libs
   tags:
     - public-docker
-  image: gcc:latest
+  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-breakup
@@ -86,7 +79,7 @@ build:pepc-kh:
     - build:libs
   tags:
     - public-docker
-  image: gcc:latest
+  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-kh
@@ -99,7 +92,7 @@ build:pepc-all:
     - build:libs
   tags:
     - public-docker
-  image: gcc:latest
+  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make all
