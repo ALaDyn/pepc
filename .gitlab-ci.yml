@@ -5,12 +5,15 @@ stages:
     #   - html     # this run doxygen (prefer FORD)
     #   - deploy   # this could push doxygen to pages
 
+variables:
+  IMAGE: "$CI_REGISTRY/broemmel1/docker-images/pepc-build:3.13"
+
 # build libsl and libOPA ahead of frontends
 build:libs:
   stage: build_libs
   tags:
     - public-docker
-  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
+  image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make libsl libopa
@@ -27,7 +30,7 @@ build:pepc-mini:
     - build:libs
   tags:
     - public-docker
-  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
+  image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-mini
@@ -39,7 +42,7 @@ build:pepc-essential:
     - build:libs
   tags:
     - public-docker
-  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
+  image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - echo "WALK = pthreads" >> src/frontends/pepc-essential/makefile.frontend
@@ -57,7 +60,7 @@ build:pepc-benchmark:
     - build:libs
   tags:
     - public-docker
-  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
+  image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-benchmark
@@ -68,7 +71,7 @@ build:pepc-breakup:
     - build:libs
   tags:
     - public-docker
-  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
+  image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-breakup
@@ -79,7 +82,7 @@ build:pepc-kh:
     - build:libs
   tags:
     - public-docker
-  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
+  image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make pepc-kh
@@ -92,7 +95,7 @@ build:pepc-all:
     - build:libs
   tags:
     - public-docker
-  image: $CI_REGISTRY/broemmel1/docker-images/pepc-build
+  image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make all
