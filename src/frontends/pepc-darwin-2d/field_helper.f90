@@ -617,7 +617,6 @@ contains
         subroutine vtk_write_scalar_on_grid(filename, step, tsim, vtk_step, globaldims, mydims, xcoords, ycoords, zcoords, &
                           dens1, name1, mpi_comm, coord_scale)
           use module_vtk
-          use mpi
           implicit none
           character(*), intent(in) :: filename, name1!, name2
           integer, intent(in) :: step
