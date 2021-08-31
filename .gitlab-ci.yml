@@ -33,6 +33,7 @@ build:pepc-mini:
   image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - touch lib/*
     - make pepc-mini
 
 # build pepc-essential with all available walks to see if any of those fail
@@ -45,6 +46,7 @@ build:pepc-essential:
   image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - touch lib/*
     - echo "WALK = pthreads" >> src/frontends/pepc-essential/makefile.frontend
     - make pepc-essential
     - echo "WALK = pthreads_clustered" >> src/frontends/pepc-essential/makefile.frontend
@@ -63,6 +65,7 @@ build:pepc-benchmark:
   image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - touch lib/*
     - make pepc-benchmark
 
 build:pepc-breakup:
@@ -74,6 +77,7 @@ build:pepc-breakup:
   image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - touch lib/*
     - make pepc-breakup
 
 build:pepc-kh:
@@ -85,6 +89,7 @@ build:pepc-kh:
   image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - touch lib/*
     - make pepc-kh
 
 # finally build all available frontends to see a list of working ones
@@ -98,4 +103,5 @@ build:pepc-all:
   image: $IMAGE
   script:
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    - touch lib/*
     - make all
