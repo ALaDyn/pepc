@@ -1,0 +1,11 @@
+#!/bin/bash -x
+#SBATCH --account=jzam04
+#SBATCH --nodes=16
+#SBATCH --ntasks=64
+#SBATCH --output=mpi-out.%j
+#SBATCH --error=mpi-err.%j
+#SBATCH --time=00:30:00
+#ml Architecture/KNL
+srun --exclusive -n 64 ../../bin/pepc-2dd ./params_weibel
+wait
+

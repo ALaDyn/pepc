@@ -1,0 +1,48 @@
++ '[' -z '' ']'
++ case "$-" in
++ __lmod_vx=x
++ '[' -n x ']'
++ set +x
+Shell debugging temporarily silenced: export LMOD_SH_DBG_ON=1 for this output (/p/software/jurecadc/lmod/8.4.1/init/bash)
+Shell debugging restarted
++ unset __lmod_vx
++ srun --exclusive -n 64 ../../bin/pepc-2dd ./params_weibel
+#0  0x439957 in ???
+#1  0x4079b9 in ???
+#2  0x407e90 in ???
+#3  0x407e90 in ???
+#4  0x407e90 in ???
+#5  0x407e90 in ???
+#6  0x407e90 in ???
+#7  0x407e90 in ???
+#8  0x407e90 in ???
+#9  0x407e90 in ???
+#10  0x407e90 in ???
+#11  0x407e90 in ???
+#12  0x415f3c in ???
+#13  0x419c31 in ???
+#14  0x42545a in ???
+#15  0x44eeea in ???
+#16  0x40343c in ???
+#17  0x15423ffdc7b2 in ???
+#18  0x40347d in ???
+#19  0xffffffffffffffff in ???
+application called MPI_Abort(comm=0x84000000, 1) - process 0srun: error: jrc0039: tasks 13-15: Terminated
+srun: error: jrc0039: task 12: Exited with exit code 1
+srun: error: jrc0049: tasks 36-39: Terminated
+srun: error: jrc0047: tasks 28-31: Terminated
+srun: error: jrc0037: tasks 4-7: Terminated
+srun: error: jrc0041: tasks 20-23: Terminated
+srun: error: jrc0052: tasks 48-51: Terminated
+srun: error: jrc0053: tasks 52-55: Terminated
+srun: error: jrc0040: tasks 16-19: Terminated
+srun: error: jrc0050: tasks 40-43: Terminated
+srun: error: jrc0038: tasks 8-11: Terminated
+srun: error: jrc0048: tasks 32-35: Terminated
+srun: error: jrc0046: tasks 24-27: Terminated
+srun: error: jrc0054: tasks 56-59: Terminated
+srun: error: jrc0055: tasks 60-63: Terminated
+srun: error: jrc0051: tasks 44-47: Terminated
+srun: error: jrc0036: tasks 0-3: Terminated
+srun: Force Terminated job step 9088741.0
++ wait

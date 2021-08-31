@@ -1,0 +1,49 @@
++ '[' -z '' ']'
++ case "$-" in
++ __lmod_vx=x
++ '[' -n x ']'
++ set +x
+Shell debugging temporarily silenced: export LMOD_SH_DBG_ON=1 for this output (/p/software/jurecadc/lmod/8.4.1/init/bash)
+Shell debugging restarted
++ unset __lmod_vx
++ srun --exclusive -n 64 ../../bin/pepc-2dd ./params_weibel
+Fatal error in PMPI_Alltoallv: Internal MPI error!, error stack:
+PMPI_Alltoallv(389)....................: MPI_Alltoallv(sbuf=0x11a77e0, scnts=0xa49310, sdispls=0xa93780, dtype=USER<resized>, rbuf=0x155b320, rcnts=0xa49420, rdispls=0xa43dc0, datatype=dtype=USER<resized>, comm=comm=0x84000003) failed
+MPID_Alltoallv(304)....................: 
+MPIR_Alltoallv_impl(199)...............: 
+MPIR_Alltoallv_intra_auto(108).........: Failure during collective
+MPIR_Alltoallv_intra_auto(103).........: 
+MPIR_Alltoallv_intra_scattered(135)....: 
+MPIR_Request_completion_processing(173): INTERNAL ERROR: unexpected value in case statement (value=-1323622384)
+MPIR_Alltoallv_intra_scattered(135)....: 
+(unknown)(): Pending request (no error)INTERNAL ERROR: invalid error code 38b192 (Ring ids do not match) in MPIR_Alltoallv_intra_auto:103
+Fatal error in PMPI_Alltoallv: Other MPI error, error stack:
+PMPI_Alltoallv(389)...........: MPI_Alltoallv(sbuf=0x2ad8d10, scnts=0x23ee310, sdispls=0x2438780, dtype=USER<resized>, rbuf=0x2e8c850, rcnts=0x23ee420, rdispls=0x23e8dc0, datatype=dtype=USER<resized>, comm=comm=0x84000003) failed
+MPID_Alltoallv(304)...........: 
+MPIR_Alltoallv_impl(199)......: 
+MPIR_Alltoallv_intra_auto(108): Failure during collective
+MPIR_Alltoallv_intra_auto(103): INTERNAL ERROR: invalid error code 38b192 (Ring ids do not match) in MPIR_Alltoallv_intra_auto:103
+Fatal error in PMPI_Alltoallv: Other MPI error, error stack:
+PMPI_Alltoallv(389)...........: MPI_Alltoallv(sbuf=0x1235c60, scnts=0xb4c310, sdispls=0xb96780, dtype=USER<resized>, rbuf=0x15e97a0, rcnts=0xb4c420, rdispls=0xb46dc0, datatype=dtype=USER<resized>, comm=comm=0x84000003) failed
+MPID_Alltoallv(304)...........: 
+MPIR_Alltoallv_impl(199)......: 
+MPIR_Alltoallv_intra_auto(108): Failure during collective
+MPIR_Alltoallv_intra_auto(103): srun: error: jrc0037: tasks 4-5,7: Terminated
+srun: error: jrc0037: task 6: Exited with exit code 15
+srun: error: jrc0051: tasks 44-47: Terminated
+srun: error: jrc0052: tasks 48-51: Terminated
+srun: error: jrc0048: tasks 32-35: Terminated
+srun: error: jrc0049: tasks 36-39: Terminated
+srun: error: jrc0050: tasks 40-43: Terminated
+srun: error: jrc0055: tasks 60-63: Terminated
+srun: error: jrc0039: tasks 12-15: Terminated
+srun: error: jrc0041: tasks 20-23: Terminated
+srun: error: jrc0047: tasks 28-31: Terminated
+srun: error: jrc0038: tasks 8-11: Terminated
+srun: error: jrc0046: tasks 24-27: Terminated
+srun: error: jrc0054: tasks 56-59: Terminated
+srun: error: jrc0053: tasks 52-55: Terminated
+srun: error: jrc0040: tasks 16-19: Terminated
+srun: error: jrc0036: tasks 0-3: Terminated
+srun: Force Terminated job step 9088740.0
++ wait
