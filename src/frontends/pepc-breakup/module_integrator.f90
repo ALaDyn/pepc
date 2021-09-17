@@ -117,7 +117,7 @@ contains
      k = sqrt(4*r_pos*coil_radius/(denom1*denom1))
 
      Kk = elliptic_fk(k)
-     Ek = elliptic_ek(k)
+     Ek = elliptic_ek(k, Kk)
 
      Br = ((z2 + r_pos2 + R2)*Ek/denom2 - Kk)*prefac*z/r_pos
      Bz = prefac*((R2 - z2 - r_pos2)*Ek/denom2 + Kk)

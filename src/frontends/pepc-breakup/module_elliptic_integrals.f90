@@ -78,7 +78,7 @@ contains
     rf_out = rf(x, y, z, errtol, ierr)
   end
 
-  function elliptic_ek(k) result(value)
+  function elliptic_ek(k, rf) result(value)
 
   !*****************************************************************************80
   !
@@ -113,8 +113,9 @@ contains
     real(kind_physics) :: errtol
     integer :: ierr
     real(kind_physics) :: k
+    real(kind_physics), intent(in) :: rf
     real(kind_physics) :: rd_out
-    real(kind_physics) :: rf_out
+    ! real(kind_physics) :: rf_out
     real(kind_physics) :: value
     real(kind_physics) :: x
     real(kind_physics) :: y
@@ -126,8 +127,8 @@ contains
     errtol = 1.0D-03
 
     rd_out = rd(x, y, z, errtol, ierr)
-    rf_out = rf(x, y, z, errtol, ierr)
-    value = rf_out - k * k * rd_out/3.0D+00
+    ! rf_out = rf(x, y, z, errtol, ierr)
+    value = rf - k * k * rd_out/3.0D+00
   end
 
   function rf( x, y, z, errtol, ierr )
@@ -204,14 +205,14 @@ contains
   !
     implicit none
 
-    real(kind_physics) :: c1
-    real(kind_physics) :: c2
-    real(kind_physics) :: c3
+    real(kind_physics), parameter :: c1 = 0.0416666666666666666
+    real(kind_physics), parameter :: c2 = 0.0681818181818181818
+    real(kind_physics), parameter :: c3 = 0.0714285714285714285
     real(kind_physics) :: e2
     real(kind_physics) :: e3
     real(kind_physics) :: epslon
     real(kind_physics) :: errtol
-    integer :: ierr
+    integer :: ierr, rf_iter, loop_count, l
     real(kind_physics) :: lamda
     real(kind_physics) :: lolim
     real(kind_physics) :: mu
@@ -241,23 +242,32 @@ contains
     data lolim /3.D-78/
     data uplim /1.D+75/
 
-    if ( &
-      x < 0.0D+00 .or. &
-      y < 0.0D+00 .or. &
-      z < 0.0D+00 .or. &
-      x + y < lolim .or. &
-      x + z < lolim .or. &
-      y + z < lolim .or. &
-      uplim <= x .or. &
-      uplim <= y .or. &
-      uplim <= z ) then
-      write ( *, '(a)' ) ''
+    ! if ( &
+    !   x < 0.0D+00 .or. &
+    !   y < 0.0D+00 .or. &
+    !   z < 0.0D+00 .or. &
+    !   x + y < lolim .or. &
+    !   x + z < lolim .or. &
+    !   y + z < lolim .or. &
+    !   uplim <= x .or. &
+    !   uplim <= y .or. &
+    !   uplim <= z ) then
+    !   write ( *, '(a)' ) ''
+    !   write ( *, '(a)' ) 'RF - Error!'
+    !   write ( *, '(a)' ) '  Invalid input arguments.'
+    !   write ( *, '(a,d23.16)' ) '  X = ', x
+    !   write ( *, '(a,d23.16)' ) '  Y = ', y
+    !   write ( *, '(a,d23.16)' ) '  Z = ', z
+    !   write ( *, '(a)' ) ''
+    !   ierr = 1
+    !   rf = 0.0D+00
+    !   return
+    ! end if
+
+    if (y < 0.0 .or. y < lolim .or. uplim <= y) then
       write ( *, '(a)' ) 'RF - Error!'
       write ( *, '(a)' ) '  Invalid input arguments.'
-      write ( *, '(a,d23.16)' ) '  X = ', x
       write ( *, '(a,d23.16)' ) '  Y = ', y
-      write ( *, '(a,d23.16)' ) '  Z = ', z
-      write ( *, '(a)' ) ''
       ierr = 1
       rf = 0.0D+00
       return
@@ -267,26 +277,40 @@ contains
     xn = x
     yn = y
     zn = z
+    rf_iter = 0
+    loop_count = 8
 
-    do
+    ! do
 
-      mu = ( xn + yn + zn ) / 3.0d0
-      xndev = 2.0d0 - ( mu + xn ) / mu
-      yndev = 2.0d0 - ( mu + yn ) / mu
-      zndev = 2.0d0 - ( mu + zn ) / mu
-      epslon = max ( abs ( xndev ), abs ( yndev ), abs ( zndev ) )
+    !   mu = ( xn + yn + zn ) / 3.0d0
+    !   xndev = 2.0d0 - ( mu + xn ) / mu
+    !   yndev = 2.0d0 - ( mu + yn ) / mu
+    !   zndev = 2.0d0 - ( mu + zn ) / mu
+    !   epslon = max ( abs ( xndev ), abs ( yndev ), abs ( zndev ) )
 
-      if ( epslon < errtol ) then
-        c1 = 1.0d0 / 24.0d0
-        c2 = 3.0d0 / 44.0d0
-        c3 = 1.0d0 / 14.0d0
-        e2 = xndev * yndev - zndev * zndev
-        e3 = xndev * yndev * zndev
-        s = 1.0d0 + ( c1 * e2 - 0.1d0 - c2 * e3 ) * e2 + c3 * e3
-        rf = s / sqrt ( mu )
-        return
-      end if
+    !   if ( epslon < errtol ) then
+    !     ! c1 = 1.0d0 / 24.0d0
+    !     ! c2 = 3.0d0 / 44.0d0
+    !     ! c3 = 1.0d0 / 14.0d0
+    !     e2 = xndev * yndev - zndev * zndev
+    !     e3 = xndev * yndev * zndev
+    !     s = 1.0d0 + ( c1 * e2 - 0.1d0 - c2 * e3 ) * e2 + c3 * e3
+    !     rf = s / sqrt ( mu )
+    !     print *, "rf iteration: ", rf_iter
+    !     return
+    !   end if
 
+    !   xnroot = sqrt ( xn )
+    !   ynroot = sqrt ( yn )
+    !   znroot = sqrt ( zn )
+    !   lamda = xnroot * ( ynroot + znroot ) + ynroot * znroot
+    !   xn = ( xn + lamda ) * 0.25d0
+    !   yn = ( yn + lamda ) * 0.25d0
+    !   zn = ( zn + lamda ) * 0.25d0
+    !   rf_iter = rf_iter + 1
+    ! end do
+
+    do l = 1, loop_count
       xnroot = sqrt ( xn )
       ynroot = sqrt ( yn )
       znroot = sqrt ( zn )
@@ -294,9 +318,19 @@ contains
       xn = ( xn + lamda ) * 0.25d0
       yn = ( yn + lamda ) * 0.25d0
       zn = ( zn + lamda ) * 0.25d0
-
     end do
 
+    mu = ( xn + yn + zn ) / 3.0d0
+    xndev = 2.0d0 - ( mu + xn ) / mu
+    yndev = 2.0d0 - ( mu + yn ) / mu
+    zndev = 2.0d0 - ( mu + zn ) / mu
+    epslon = max ( abs ( xndev ), abs ( yndev ), abs ( zndev ) )
+
+    if ( epslon > errtol ) print *, "Unsatisfactory rf epslon."
+    e2 = xndev * yndev - zndev * zndev
+    e3 = xndev * yndev * zndev
+    s = 1.0d0 + ( c1 * e2 - 0.1d0 - c2 * e3 ) * e2 + c3 * e3
+    rf = s / sqrt ( mu )
   end
 
   function rd( x, y, z, errtol, ierr )
@@ -373,10 +407,10 @@ contains
   !
     implicit none
 
-    real(kind_physics) :: c1
-    real(kind_physics) :: c2
-    real(kind_physics) :: c3
-    real(kind_physics) :: c4
+    real(kind_physics), parameter :: c1 = 0.21428571428571428571
+    real(kind_physics), parameter :: c2 = 0.16666666666666666666
+    real(kind_physics), parameter :: c3 = 0.40909090909090909090
+    real(kind_physics), parameter :: c4 = 0.11538461538461538461
     real(kind_physics) :: ea
     real(kind_physics) :: eb
     real(kind_physics) :: ec
@@ -384,7 +418,7 @@ contains
     real(kind_physics) :: ef
     real(kind_physics) :: epslon
     real(kind_physics) :: errtol
-    integer :: ierr
+    integer :: ierr, rd_iter, loop_count, l
     real(kind_physics) :: lamda
     real(kind_physics) :: lolim
     real(kind_physics) :: mu
@@ -420,21 +454,30 @@ contains
     data lolim /6.D-51/
     data uplim /1.D+48/
 
-    if ( &
-      x < 0.0D+00 .or. &
-      y < 0.0D+00 .or. &
-      x + y < lolim .or. &
-      z < lolim .or. &
-      uplim < x .or. &
-      uplim < y .or. &
-      uplim < z ) then
-      write ( *, '(a)' ) ''
+    ! if ( &
+    !   x < 0.0D+00 .or. &
+    !   y < 0.0D+00 .or. &
+    !   x + y < lolim .or. &
+    !   z < lolim .or. &
+    !   uplim < x .or. &
+    !   uplim < y .or. &
+    !   uplim < z ) then
+    !   write ( *, '(a)' ) ''
+    !   write ( *, '(a)' ) 'RD - Error!'
+    !   write ( *, '(a)' ) '  Invalid input arguments.'
+    !   write ( *, '(a,d23.16)' ) '  X = ', x
+    !   write ( *, '(a,d23.16)' ) '  Y = ', y
+    !   write ( *, '(a,d23.16)' ) '  Z = ', z
+    !   write ( *, '(a)' ) ''
+    !   ierr = 1
+    !   rd = 0.0D+00
+    !   return
+    ! end if
+
+    if ( y < 0.0 .or. x + y < lolim .or. uplim < y)  then
       write ( *, '(a)' ) 'RD - Error!'
       write ( *, '(a)' ) '  Invalid input arguments.'
-      write ( *, '(a,d23.16)' ) '  X = ', x
       write ( *, '(a,d23.16)' ) '  Y = ', y
-      write ( *, '(a,d23.16)' ) '  Z = ', z
-      write ( *, '(a)' ) ''
       ierr = 1
       rd = 0.0D+00
       return
@@ -446,32 +489,47 @@ contains
     zn = z
     sigma = 0.0d0
     power4 = 1.0d0
+    rd_iter = 0
+    loop_count = 8
 
-    do
+    ! do 
+    ! 
+    !   mu = ( xn + yn + 3.0d0 * zn ) * 0.2d0
+    !   xndev = ( mu - xn ) / mu
+    !   yndev = ( mu - yn ) / mu
+    !   zndev = ( mu - zn ) / mu
+    !   epslon = max ( abs ( xndev ), abs ( yndev ), abs ( zndev ) )
 
-      mu = ( xn + yn + 3.0d0 * zn ) * 0.2d0
-      xndev = ( mu - xn ) / mu
-      yndev = ( mu - yn ) / mu
-      zndev = ( mu - zn ) / mu
-      epslon = max ( abs ( xndev ), abs ( yndev ), abs ( zndev ) )
+    !   if ( epslon < errtol ) then
+    !     ! c1 = 3.0d0 / 14.0d0
+    !     ! c2 = 1.0d0 / 6.0d0
+    !     ! c3 = 9.0d0 / 22.0d0
+    !     ! c4 = 3.0d0 / 26.0d0
+    !     ea = xndev * yndev
+    !     eb = zndev * zndev
+    !     ec = ea - eb
+    !     ed = ea - 6.0d0 * eb
+    !     ef = ed + ec + ec
+    !     s1 = ed * ( - c1 + 0.25d0 * c3 * ed - 1.5d0 * c4 * zndev * ef )
+    !     s2 = zndev * ( c2 * ef + zndev * ( - c3 * ec + zndev * c4 * ea ) )
+    !     rd = 3.0d0 * sigma + power4 * ( 1.0d0 + s1 + s2 ) / ( mu * sqrt ( mu ) )
+    !     print *, "rd iteration: ", rd_iter
+    !     return
+    !   end if
 
-      if ( epslon < errtol ) then
-        c1 = 3.0d0 / 14.0d0
-        c2 = 1.0d0 / 6.0d0
-        c3 = 9.0d0 / 22.0d0
-        c4 = 3.0d0 / 26.0d0
-        ea = xndev * yndev
-        eb = zndev * zndev
-        ec = ea - eb
-        ed = ea - 6.0d0 * eb
-        ef = ed + ec + ec
-        s1 = ed * ( - c1 + 0.25d0 * c3 * ed - 1.5d0 * c4 * zndev * ef )
-        s2 = zndev * ( c2 * ef + zndev * ( - c3 * ec + zndev * c4 * ea ) )
-        rd = 3.0d0 * sigma + power4 * ( 1.0d0 + s1 + s2 ) / ( mu * sqrt ( mu ) )
+    !   xnroot = sqrt ( xn )
+    !   ynroot = sqrt ( yn )
+    !   znroot = sqrt ( zn )
+    !   lamda = xnroot * ( ynroot + znroot ) + ynroot * znroot
+    !   sigma = sigma + power4 / ( znroot * ( zn + lamda ) )
+    !   power4 = power4 * 0.25d0
+    !   xn = ( xn + lamda ) * 0.25d0
+    !   yn = ( yn + lamda ) * 0.25d0
+    !   zn = ( zn + lamda ) * 0.25d0
+    !   rd_iter = rd_iter + 1
+    ! end do
 
-        return
-      end if
-
+    do l = 1, loop_count
       xnroot = sqrt ( xn )
       ynroot = sqrt ( yn )
       znroot = sqrt ( zn )
@@ -481,7 +539,23 @@ contains
       xn = ( xn + lamda ) * 0.25d0
       yn = ( yn + lamda ) * 0.25d0
       zn = ( zn + lamda ) * 0.25d0
-
     end do
+
+    mu = ( xn + yn + 3.0d0 * zn ) * 0.2d0
+    xndev = ( mu - xn ) / mu
+    yndev = ( mu - yn ) / mu
+    zndev = ( mu - zn ) / mu
+    epslon = max ( abs ( xndev ), abs ( yndev ), abs ( zndev ) )
+
+    if ( epslon > errtol ) print *, "Unsatisfactory rd epslon." 
+    ea = xndev * yndev
+    eb = zndev * zndev
+    ec = ea - eb
+    ed = ea - 6.0d0 * eb
+    ef = ed + ec + ec
+    s1 = ed * ( - c1 + 0.25d0 * c3 * ed - 1.5d0 * c4 * zndev * ef )
+    s2 = zndev * ( c2 * ef + zndev * ( - c3 * ec + zndev * c4 * ea ) )
+    rd = 3.0d0 * sigma + power4 * ( 1.0d0 + s1 + s2 ) / ( mu * sqrt ( mu ) )
+
   end
 end module
