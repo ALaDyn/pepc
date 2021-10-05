@@ -85,11 +85,11 @@ contains
 
    function matrix_vector_multiplication(mat, vec) result(ans)
       implicit none
-      real*8, allocatable, intent(in) :: mat(:, :), vec(:)
-      real*8 :: ans(size(mat, 1))
+      real(kind_physics), allocatable, intent(in) :: mat(:, :), vec(:)
+      real(kind_physics) :: ans(size(mat, 1))
       integer :: i, j
 
-      ans = 0.0_8
+      ans = 0.0
       do i = 1, size(mat, 1)
          do j = 1, size(mat, 2)
             ans(i) = ans(i) + mat(i, j)*vec(j)
@@ -131,12 +131,157 @@ contains
      B_out = B_out*((1.e-12)*(c**2))/e_mass ! non-dimensionalise
    end function current_loop_B
 
-   subroutine particle_EB_field(particle, E_field)
+   subroutine poloidal_B_grid(B_pol_array, ncell_r, ncell_z, start_r, start_z, r_length, z_length)
+     !NOTE: start_r, start_z, r_length, z_length are in meters
+     implicit none
+     real(kind_physics), allocatable, intent(inout) :: B_pol_array(:,:)
+     integer, intent(in) :: ncell_r, ncell_z
+     real(kind_physics), intent(in) :: start_r, start_z, r_length, z_length
+     integer :: n_total, l, r_i, z_i
+     real(kind_physics) :: dr, dz, coords(3), temp_B(3), final_B(3)
+
+     n_total = (ncell_r + 1)*(ncell_z + 1)
+     allocate(B_pol_array(n_total, 5))
+     !NOTE: B_pol_array(i, 1) = r coord
+     !      B_pol_array(i, 2) = z coord
+     !      B_pol_array(i, 3) = BPol_x
+     !      B_pol_array(i, 4) = BPol_y
+     !      B_pol_array(i, 5) = BPol_z
+     B_pol_array = 0.0
+
+     dr = r_length/ncell_r !in meters
+     dz = z_length/ncell_z
+
+     r_i = 0
+     z_i = 0
+
+     do l = 1, n_total
+       B_pol_array(l,1) = start_r + r_i*dr
+       B_pol_array(l,2) = start_z - z_i*dz
+
+       r_i = r_i + 1
+
+       if (mod(l,ncell_r + 1) == 0) then
+         r_i = 0
+         z_i = z_i + 1
+       end if
+
+       coords(1) = B_pol_array(l,1)
+       coords(2) = 0.0
+       coords(3) = B_pol_array(l,2)
+       temp_B = 0.0
+       final_B = 0.0
+
+       temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_8)
+       final_B = temp_B
+
+       temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 2357.3662872100125_8)
+       final_B = final_B + temp_B
+
+       temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_8)
+       final_B = final_B + temp_B
+
+       temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 1.5e4_8)
+       final_B = final_B + temp_B
+
+       B_pol_array(l,1) = B_pol_array(l,1)/(c*1e-12)
+       B_pol_array(l,2) = B_pol_array(l,2)/(c*1e-12)
+       B_pol_array(l,3) = final_B(1)
+       B_pol_array(l,4) = final_B(2)
+       B_pol_array(l,5) = final_B(3)
+     end do
+   end subroutine poloidal_B_grid
+
+   subroutine compute_Bpol_from_grid(B_pol_array, ncell_r, ncell_z, r_length, z_length, particle)
+     implicit none
+     real(kind_physics), allocatable, intent(in) :: B_pol_array(:,:)
+     real(kind_physics), intent(in) :: r_length, z_length
+     integer, intent(in) :: ncell_r, ncell_z
+     type(t_particle), intent(inout) :: particle
+     real(kind_physics) :: dr, dz, start_r, start_z, r_pos, z_pos, xp, yp, area, &
+                           coeff, temp_B(3), c_tl, c_tr, c_bl, c_br, angle, &
+                           pos_mag, theta, phi, final_B(3)
+     real(kind_physics):: matrix(3,3)
+     integer :: r_i, z_i, top_left, top_right, bot_left, bot_right, cell_num
+
+     dr = r_length/(ncell_r*c*1e-12)
+     dz = z_length/(ncell_z*c*1e-12)
+
+     start_r = B_pol_array(1,1)
+     start_z = B_pol_array(1,2)
+
+     xp = particle%x(1)
+     yp = particle%x(2)
+     z_pos = particle%x(3)
+     r_pos = sqrt(xp**2 + yp**2)
+
+     pos_mag = sqrt(dot_product(particle%x, particle%x))
+     ! calculate which cell in x and z direction the current particle belongs to.
+     r_i = floor(abs(r_pos - start_r)/dr) + 1
+     z_i = floor(abs(z_pos - start_z)/dz) + 1
+
+     ! calculate B_pol_array node indices that encapsulate particle
+     cell_num = (z_i - 1)*ncell_r + r_i
+     top_left = cell_num + z_i - 1
+     top_right = top_left + 1
+     bot_left = top_left + ncell_r + 1
+     bot_right = bot_left + 1
+
+     ! interpolate B_pol from nodes to particle
+     area = dr * dz
+     coeff = 1.0/area
+     temp_B = 0.0
+
+     ! weights are calculated
+     c_tl = (B_pol_array(bot_right, 1) - r_pos)*&
+            (z_pos - B_pol_array(bot_right, 2))*coeff
+     c_tr = (r_pos - B_pol_array(bot_left, 1))*&
+            (z_pos - B_pol_array(bot_left, 2))*coeff
+     c_bl = (B_pol_array(top_right, 1) - r_pos)*&
+            (B_pol_array(top_right, 2) - z_pos)*coeff
+     c_br = (r_pos - B_pol_array(top_left, 1))*&
+            (B_pol_array(top_left, 2) - z_pos)*coeff
+
+     temp_B(1) = c_tl*B_pol_array(top_left, 3) + &
+                 c_tr*B_pol_array(top_right, 3) + &
+                 c_bl*B_pol_array(bot_left, 3) + &
+                 c_br*B_pol_array(bot_right, 3)
+
+     temp_B(2) = c_tl*B_pol_array(top_left, 4) + &
+                 c_tr*B_pol_array(top_right, 4) + &
+                 c_bl*B_pol_array(bot_left, 4) + &
+                 c_br*B_pol_array(bot_right, 4)
+
+     temp_B(3) = c_tl*B_pol_array(top_left, 5) + &
+                 c_tr*B_pol_array(top_right, 5) + &
+                 c_bl*B_pol_array(bot_left, 5) + &
+                 c_br*B_pol_array(bot_right, 5)
+
+     ! print *, "B_pol: ", temp_B
+     !NOTE: B_pol_array is resolved on an XZ-plane, with point on +X side.
+     !      need to rotate the interpolated temp_B to be inplane of particle.
+     matrix = 0.0
+     angle = 0.0
+
+     call angles_calc(particle%x, pos_mag, theta, phi)
+     angle = phi
+     matrix(1,1) = cos(angle)
+     matrix(2,1) = sin(angle)
+     matrix(1,2) = -sin(angle)
+     matrix(2,2) = cos(angle)
+     matrix(3,3) = 1.0
+
+     final_B = MATMUL(matrix,temp_B)
+     particle%data%b = final_B
+   end subroutine compute_Bpol_from_grid
+
+   subroutine particle_EB_field(particle, E_field, B_pol_array)
       implicit none
       type(t_particle), intent(inout) :: particle
       real(kind_physics), intent(in) :: E_field(3)
       real(kind_physics) :: Coord(3), B_field(3), ez(3), Pol_B_field(3), field_vector(3)
       real(kind_physics) :: R, PF_final(3), PF_temp(3), Itf, Ipf, PF_unit_vector(3)
+      real(kind_physics), allocatable, intent(in) :: B_pol_array(:,:)
 
       ez = 0.0
       ez(3) = 1.0
@@ -157,18 +302,21 @@ contains
 
       ! 4 correction coils surrounding breakdown region, centred around major_radius
       ! Coils are directly solving Biot-Savart Law
-      PF_temp = current_loop_B(Coord, R, 3.0_8, 5.8_8, 2357.3662872100125_8) !(JET-like: 35943.1422902196_8) ! 4.0e4_8) !3.0e6_8) !
-      PF_final = PF_final + PF_temp
+      ! PF_temp = current_loop_B(Coord, R, 3.0_8, 5.8_8, 2357.3662872100125_8) !(JET-like: 35943.1422902196_8) ! 4.0e4_8) !3.0e6_8) !
+      ! PF_final = PF_final + PF_temp
+      
+      ! PF_temp = current_loop_B(Coord, R, -3.0_8, 5.8_8, 2357.3662872100125_8) !(JET-like: 35943.1422902196_8) !4.0e4_8) ! 3.0e6_8) !
+      ! PF_final = PF_final + PF_temp
+      
+      ! PF_temp = current_loop_B(Coord, R, 0.0_8, 3.0_8, 1.0e5_8)!(JET-like: 1.77e5_8) !1.5e5_8) ! 7.0e6_8) !
+      ! PF_final = PF_final + PF_temp
+      
+      ! PF_temp = current_loop_B(Coord, R, 0.0_8, 8.3_8, 1.5e4_8)!(JET-like: 1.77e4_8)!11467.320098924624_8) ! 115453.38348883369_8) !
+      ! PF_final = PF_final + PF_temp
 
-      PF_temp = current_loop_B(Coord, R, -3.0_8, 5.8_8, 2357.3662872100125_8) !(JET-like: 35943.1422902196_8) !4.0e4_8) ! 3.0e6_8) !
-      PF_final = PF_final + PF_temp
 
-      PF_temp = current_loop_B(Coord, R, 0.0_8, 3.0_8, 1.0e5_8)!(JET-like: 1.77e5_8) !1.5e5_8) ! 7.0e6_8) !
-      PF_final = PF_final + PF_temp
-
-      PF_temp = current_loop_B(Coord, R, 0.0_8, 8.3_8, 1.5e4_8)!(JET-like: 1.77e4_8)!11467.320098924624_8) ! 115453.38348883369_8) !
-      PF_final = PF_final + PF_temp
-
+      call compute_Bpol_from_grid(B_pol_array, 200, 200, 3.5_kind_physics, 3.5_kind_physics, particle)
+      PF_final = particle%data%b
       PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
       PF_temp = 0.0005 * ((1.e-12)*(c**2))/e_mass * PF_unit_vector ! Add a tiny B field in the poloidal direction.
       Pol_B_field = PF_final + PF_temp

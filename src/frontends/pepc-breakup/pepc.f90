@@ -152,12 +152,14 @@ program pepc
    neutral_density = calculate_neutral_density(pressure, init_temperature)
    if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
+   call poloidal_B_grid(B_pol_grid, 200, 200, 4.05_kind_physics, 1.75_kind_physics, &
+                        3.5_kind_physics, 3.5_kind_physics)
 
    do i = 1, size(particles)
-      call particle_EB_field(particles(i), external_e)
+      call particle_EB_field(particles(i), external_e, B_pol_grid)
       call boris_velocity_update(particles(i), -dt*0.5_8)
       V_loop = -1.*V_loop
-      call particle_EB_field(particles(i), -external_e)
+      call particle_EB_field(particles(i), -external_e, B_pol_grid)
       V_loop = -1.*V_loop
    end do
 
@@ -199,7 +201,7 @@ program pepc
       !$OMP shared(rank_charge_count, thread_charge_count, flt_geom, my_rank) &
       !$OMP shared(abs_max_CS, neutral_density, CS_tables, B0, B_p, major_radius) &
       !$OMP shared(minor_radius, plasma_dimensions, generic_array) &
-      !$OMP shared(total_cross_sections, step, omp_threads)
+      !$OMP shared(total_cross_sections, step, omp_threads) firstprivate(B_pol_grid)
 
       ! NOTE: counter and key for Random123 is redefined on thread basis.
 #ifdef _OPENMP
@@ -240,7 +242,7 @@ program pepc
 !====================== save the resolved 'e' from tree traverse================
          traversed_e = particles(i)%results%e
 
-         call particle_EB_field(particles(i), external_e)
+         call particle_EB_field(particles(i), external_e, B_pol_grid)
          call boris_velocity_update(particles(i), dt)
          call particle_pusher(particles(i), dt)
 
@@ -270,6 +272,7 @@ program pepc
                                       charge_count)
                 j = j + 1
               end do
+
             end if
          end if
          ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
@@ -513,6 +516,7 @@ program pepc
    deallocate(energy_group_levels)
    call deallocate_CS_buffer(CS_tables)
    call deallocate_CS_buffer(CS_total_scatter)
+   deallocate(B_pol_grid)
 
    if (density_output) then
      deallocate(final_density)

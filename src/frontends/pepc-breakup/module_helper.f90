@@ -121,13 +121,14 @@ module helper
    integer :: dummy
    integer, allocatable :: r_seeds(:)
    integer(kind=int32) :: ctr_s(4), key_s(4)
-   real(kind_physics):: rand_num(8)
+   real(kind_physics):: rand_num(8), dummy_val(8)
 
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), allocatable :: Xi_table(:,:)
-   integer :: total_cross_sections, eirene_cross_sections
+   integer :: total_cross_sections, eirene_cross_sections, coll_type, start_i
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure
    real(kind_physics), allocatable :: eirene_coeffs1(:), eirene_coeffs2(:)
+   integer, allocatable :: outcomes(:)
 
    ! lookup tables for cross section data
    character(255) :: file_path
@@ -135,6 +136,7 @@ module helper
 
    ! variables describing external fields
    real(kind_physics) :: d, major_radius, minor_radius, B0, B_p, V_loop
+   real(kind_physics), allocatable :: B_pol_grid(:,:)
 
    ! checkpoint related variables
    character(255) :: checkpoint_file, i_wall_time
@@ -148,7 +150,7 @@ module helper
    integer(kind_key), allocatable :: key_array(:)
    real(kind_physics), allocatable :: energy_group_levels(:)
    real(kind_physics) :: last_v(3), stored_vel(3)
-   integer :: new_mass, old_part_cnt, tmp_buff_pos
+   integer :: new_mass, old_part_cnt, tmp_buff_pos, stored_i
 
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
