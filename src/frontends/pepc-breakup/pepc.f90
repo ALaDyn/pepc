@@ -251,7 +251,7 @@ program pepc
             if (collision_checks .eq. 1) then
               call collision_update(particles(i), particle_guide, new_particle_cnt, &
                                     electron_num, total_cross_sections, ctr_s, key_s, &
-                                    charge_count)
+                                    charge_count, coll_type)
 !            if (collision_checks .ge. 10) then
 !              call collision_update_rep(particles(i), particle_guide, new_particle_cnt, &
 !                                    electron_num, total_cross_sections, ctr_s, key_s, &
@@ -261,6 +261,8 @@ program pepc
 !       5 collision checks are done. Make sure that the checks are done with eV
 !       initially carried by super-particle!
               stored_vel = particles(i)%data%v
+              allocate(outcomes(total_cross_sections + 1))
+              outcomes = 0
               ! last_v = 0.0
               ! new_mass = collision_checks
               j = 0
@@ -269,10 +271,34 @@ program pepc
                 ! old_part_cnt = new_particle_cnt
                 call collision_update(particles(i), particle_guide, new_particle_cnt, &
                                       electron_num, total_cross_sections, ctr_s, key_s, &
-                                      charge_count)
+                                      charge_count, coll_type)
+                outcomes(coll_type + 1) = outcomes(coll_type + 1) + 1
                 j = j + 1
               end do
+              
+              j = size(outcomes)
+              do j = size(outcomes), 1, -1
+                if (outcomes(j) .gt. 0) start_i = j
+              end do
 
+              ! print *, "Outcomes: ", outcomes, "start_i = ", start_i
+
+              stored_i = start_i
+              tmp_buff_pos = 0
+              start_i = start_i + 1
+
+              do j = start_i, size(outcomes)
+                if (outcomes(j) .gt. 0) then
+                  dummy = gen_norm_double_rng(ctr_s, key_s, dummy_val)
+                  call add_particle(particle_guide, particles(i), new_particle_cnt, tmp_buff_pos, dummy_val, 0)
+                  call resolve_incident_electron_outcome(particle_guide%tmp_particles(tmp_buff_pos), &
+                       stored_vel, dummy_val, j - 1, outcomes(j))
+                end if
+              end do
+              dummy = gen_norm_double_rng(ctr_s, key_s, dummy_val)
+              call resolve_incident_electron_outcome(particles(i), stored_vel, dummy_val, stored_i - 1, outcomes(stored_i))
+
+              deallocate(outcomes)
             end if
          end if
          ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
