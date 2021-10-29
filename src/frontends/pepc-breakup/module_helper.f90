@@ -92,6 +92,7 @@ module helper
    integer :: sibling_upper_limit, collision_checks
    real(kind_physics) :: merge_ratio,  local_min_x(3), local_max_x(3), min_x(3), max_x(3)
    type(t_box) :: bounding_box
+   integer(kind_particle) :: last_merge_tnp
 
    ! buffer to record newly generated particles & related counters
    type(linked_list_elem), pointer :: buffer, particle_guide
@@ -150,7 +151,7 @@ module helper
    integer(kind_key), allocatable :: key_array(:)
    real(kind_physics), allocatable :: energy_group_levels(:)
    real(kind_physics) :: last_v(3), stored_vel(3)
-   integer :: new_mass, old_part_cnt, tmp_buff_pos, stored_i
+   integer :: new_mass, old_part_cnt, tmp_buff_pos, stored_i, steps_since_last
 
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s

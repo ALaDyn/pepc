@@ -1423,16 +1423,18 @@ contains
        merged_buffer(m_i)%data%species = species
        merged_buffer(m_i)%data%mp_int1 = parent_key
 
-       ! merged_buffer(m_i)%data%b = sum_particle%data%v - (w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v)
-       ! v_diff = sqrt(dot_product(merged_buffer(m_i)%data%b, merged_buffer(m_i)%data%b))
-       ! if (v_diff > 1e-16_kind_physics) print *, "Noticeable Velocity Error!", v_diff
-       !
-       ! e_diff = sum_particle%data%f_e(1) - &
-       !          (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
-       !           w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
-       ! if (e_diff > 1e-16_kind_physics) print *, "Noticeable Energy Error!", e_diff
-       !
-       ! merged_buffer(m_i)%data%b = 0.0
+       ! if (species == 0) then
+       !   merged_buffer(m_i)%data%b = sum_particle%data%v - (w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v)
+       !   v_diff = sqrt(dot_product(merged_buffer(m_i)%data%b, merged_buffer(m_i)%data%b))
+       !   if (v_diff > 1e-15_kind_physics) print *, "Noticeable Momentum Error!", v_diff
+        
+       !   e_diff = sum_particle%data%f_e(1) - &
+       !            (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
+       !             w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
+       !   if (e_diff > 1e-15_kind_physics) print *, "Noticeable Energy Error!", e_diff
+        
+       !   merged_buffer(m_i)%data%b = 0.0
+       ! end if
      else
        w1 = CEILING(1.0*total_weight/2.0)
        ! Fill in values for merged particle 1

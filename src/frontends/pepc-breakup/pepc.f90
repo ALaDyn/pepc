@@ -169,6 +169,8 @@ program pepc
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
+   steps_since_last = 0
+   last_merge_tnp = 0
    do step = 0, nt - 1
       if (root) then
          write (*, *) " "
@@ -414,16 +416,23 @@ program pepc
       bounding_box%boxmax = max_x + 10.0_kind_physics
       bounding_box%boxsize = max_x - min_x
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
+      steps_since_last = steps_since_last + 1
 
-      if (tnp > 5000000) then
+      if (tnp > 5000000 .and. steps_since_last > 250000) then
         !==========Redistribute particles among the MPI Ranks====================
         call pepc_particleresults_clear(particles)
         call pepc_grow_tree(particles)
         call pepc_timber_tree()
         !========================================================================
 
+        merge_ratio = 1. - (2.*(1.0 - last_merge_tnp/tnp))
+        if (merge_ratio .lt. 0.5) then
+          merge_ratio = 0.5001
+        end if
+        if (root) print *, "Merge ratio: ",  merge_ratio
+
         sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
-        merge_ratio = 0.90
+        ! merge_ratio = 0.90
         call compute_particle_keys(bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
         ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
@@ -447,6 +456,7 @@ program pepc
         call merge_replace_particles_list(particles, buffer, new_particle_cnt)
         call deallocate_ll_buffer(buffer)
         deallocate(sibling_cnt)
+        steps_since_last = 1 
       end if
       !=========================================================================
 
@@ -456,6 +466,10 @@ program pepc
       if (root) then
         write (*,'(a,i10)') "Total particles: ", tnp
         write (*,'(a,i10,i10,i10,i10,i10)') "Actual species count: ", total_actual_parts, virtual_particle_cnt
+      end if
+
+      if (steps_since_last .eq. 1) then
+        last_merge_tnp = tnp
       end if
 
       call pepc_particleresults_clear(particles)
