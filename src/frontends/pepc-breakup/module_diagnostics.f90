@@ -167,6 +167,402 @@ contains
     end do
   end subroutine torus_diagnostic_xy_grid
 
+  subroutine unit_vector_distribution(particle_list, table, N_theta, N_phi)
+    implicit none
+    type(t_particle), allocatable, intent(in) :: particle_list(:)
+    integer, intent(in) :: N_theta, N_phi
+    real(kind_physics), allocatable, intent(inout) :: table(:,:)
+    integer :: N_parts, entry_row, entry_col, l
+    real(kind_physics) :: x(3), v(3), x_mag, vel_mag, theta, phi, d_phi, d_theta, weight
+    real(kind_physics) :: rot_axis(3)
+    ! Table structure:
+    ! columns are the range of theta (poloidal angle)
+    ! rows are range of phi (toroidal angle)
+    ! entry of the table denotes the counts of particles within that phi & theta
+
+    allocate(table(N_phi, N_theta))
+    d_phi = 2.*pi/N_phi
+    d_theta = pi/N_theta
+
+    table = 0.0_kind_physics
+    ! theta = 0.0 aligns with +Z axis
+    ! phi = 0.0 aligns with +X axis
+
+    rot_axis = 0.0_kind_physics
+    rot_axis(3) = 1.0_kind_physics
+    N_parts = size(particle_list)
+    do l = 1, N_parts
+      x = particle_list(l)%x
+      v = particle_list(l)%data%v
+      weight = abs(particle_list(l)%data%q)
+      x_mag = sqrt(dot_product(x,x))
+      vel_mag = sqrt(dot_product(v,v))
+      
+      if (particle_list(l)%data%species == 0) then
+      ! particle velocity NOT rotated to X-Z plane
+      ! count directly added to the table entries.
+        !call angles_calc(v, vel_mag, theta, phi)
+        !entry_row = ceiling(phi/d_phi)
+        !entry_col = ceiling(theta/d_theta)
+        !table(entry_row, entry_col) = table(entry_row, entry_col) + weight
+
+      ! particle velocity rotated to X-Z plane, particles are centered around (0, 0, 0) coord
+      ! once particle velocity is aligned with respective to E field,
+      ! count is then added to the table entries.
+        call angles_calc(x, x_mag, theta, phi)
+        v = Rodriguez_rotation(-phi, rot_axis, v)
+        call angles_calc(v, vel_mag, theta, phi)
+        entry_row = ceiling(phi/d_phi)
+        entry_col = ceiling(theta/d_theta)
+        table(entry_row, entry_col) = table(entry_row, entry_col) + weight
+      end if
+    end do
+  end subroutine unit_vector_distribution
+
+  subroutine toroidal_weight_distribution(particle_list, table, N_phi)
+    implicit none
+    type(t_particle), allocatable, intent(in) :: particle_list(:)
+    integer, intent(in) :: N_phi
+    real(kind_physics), allocatable, intent(inout) :: table(:,:)
+    integer :: N_parts, l, idx
+    real(kind_physics) :: d_phi, x(3), x_mag, theta, phi, weight
+    
+    ! Structure of table, column 1 is the total simulated particle,
+    ! column 2 is total weight.
+    allocate(table(N_phi,2))
+    table = 0.0_kind_physics
+    N_parts = size(particle_list)
+    d_phi = 2.*pi/N_phi
+
+    do l = 1, N_parts
+      x = particle_list(l)%x
+      x_mag = sqrt(dot_product(x,x))
+      weight = abs(particle_list(l)%data%q)
+
+      if (particle_list(l)%data%species == 0) then
+        call angles_calc(x, x_mag, theta, phi)
+        idx = ceiling(phi/d_phi)
+        table(idx,1) = table(idx,1) + 1._kind_physics
+        table(idx,2) = table(idx,2) + weight
+      end if
+    end do
+  end subroutine toroidal_weight_distribution
+
+  subroutine toroidal_max_weights(particle_list, table, table1, N_phi)
+    implicit none
+    type(t_particle), allocatable, intent(in) :: particle_list(:)
+    integer, intent(in) :: N_phi
+    real(kind_physics), allocatable, intent(inout) :: table(:), table1(:)
+    integer :: N_parts, l, idx
+    real(kind_physics) :: d_phi, x(3), x_mag, theta, phi, weight
+    
+    ! Structure of table, column 1 is the min weight,
+    ! column 2 is max weight.
+    allocate(table(N_phi))
+    allocate(table1(N_phi))
+    table = 0.0_kind_physics
+    table1 = 0.0_kind_physics
+    N_parts = size(particle_list)
+    d_phi = 2.*pi/N_phi
+
+    do l = 1, N_phi
+      table(l) = 1e16
+      table1(l) = -1e16
+    end do
+
+    do l = 1, N_parts
+      x = particle_list(l)%x
+      x_mag = sqrt(dot_product(x,x))
+      weight = abs(particle_list(l)%data%q)
+
+      if (particle_list(l)%data%species == 0) then
+        call angles_calc(x, x_mag, theta, phi)
+        idx = ceiling(phi/d_phi)
+        if (table(idx) > weight) then
+          table(idx) = weight
+        end if
+        
+        if (table1(idx) < weight) then
+          table1(idx) = weight
+        end if 
+      end if
+    end do
+  end subroutine toroidal_max_weights
+
+  subroutine V_par_perp_calculation(particle_list, table)
+    implicit none
+    type(t_particle), allocatable, intent(in) :: particle_list(:)
+    real(kind_physics), allocatable, intent(inout) :: table(:,:)
+    integer :: N_parts, l
+    real(kind_physics) :: ref_axis(3), sign_val
+    real(kind_physics) :: x(3), x_mag, weight, Vpar(3), Vperp(3), temp_vel(3)
+    real(kind_physics) :: v(3), Vsquared, direction(3)
+
+    ref_axis = 0.0_kind_physics
+    ref_axis(3) = 1.0_kind_physics
+
+    N_parts = size(particle_list)
+    allocate(table(4, N_parts))
+    table = 0.0_kind_physics
+
+    do l = 1, N_parts
+      x = particle_list(l)%x
+      x_mag = sqrt(dot_product(x,x))
+      weight = abs(particle_list(l)%data%q)
+      v = particle_list(l)%data%v
+      Vsquared = dot_product(v,v)
+
+      if (particle_list(l)%data%species == 0) then
+        direction = 0.0_kind_physics
+        temp_vel = cross_product(x, ref_axis)
+        temp_vel = temp_vel/(sqrt(dot_product(temp_vel, temp_vel)))
+
+        Vpar = dot_product(v,temp_vel)*temp_vel
+        
+        sign_val = 1.0_kind_physics
+        direction = cross_product(x,Vpar)
+        if (direction(3) < 0.0) then
+          sign_val = -1.0_kind_physics
+        end if
+
+        Vpar = sign_val*Vpar
+        Vperp = v - Vpar
+        table(1, l) = sign_val*sqrt(dot_product(Vpar,Vpar))
+        table(2, l) = sqrt(dot_product(Vperp, Vperp))
+        table(3, l) = weight
+        table(4, l) = Vsquared
+      end if
+    end do
+  end subroutine V_par_perp_calculation
+
+  subroutine V_par_perp_histogram(table, N, total_parts, file_ID, filename)
+    use mpi
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: table(:,:)
+    integer, intent(in) :: N, file_ID
+    integer(kind_particle), intent(in) :: total_parts
+    character(len=255), intent(in) :: filename
+    integer :: rank_size, local_array_size, l, idx
+    integer, allocatable :: receive_cnt(:), offsets(:)
+    real(kind_physics), allocatable :: global_table(:,:), bin_count(:,:)
+    real(kind_physics) :: total_weight, min_limits(4), max_limits(4), Vpar_width, Vperp_width, Vsquared_width
+    real(kind_physics) :: Vpar_diff, Vperp_diff, Vpar_mean, Vperp_mean, total_KE, Vsquared, Vsquared_diff
+
+    ! Structure of bin_counts: Vpar_bin_mid, Vpar_cnt, Vperp_bin_mid, Vperp_cnt, V^2, V^2 cnt
+    ! min_limits and max_limits: Vpar, Vperp, weight, V^2
+    if (root) then
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, rank_size, ierr)
+      allocate(receive_cnt(rank_size))
+      allocate(offsets(rank_size))
+      allocate(global_table(4, total_parts))
+      allocate(bin_count(6, N))
+      receive_cnt = 0
+      offsets = 0
+      global_table = 0.0_kind_physics
+      bin_count = 0.0_kind_physics
+    end if
+
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, rank_size, ierr)
+    local_array_size = size(table)
+    call MPI_GATHER(local_array_size, 1, MPI_INT, receive_cnt, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      do l = 2, rank_size
+        offsets(l) = offsets(l-1) + receive_cnt(l-1)
+      end do
+    end if
+    call MPI_GATHERV(table, local_array_size, MPI_KIND_PHYSICS,&
+                     global_table, receive_cnt, offsets, MPI_KIND_PHYSICS, &
+                     0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      min_limits = minval(global_table, 2)
+      max_limits = maxval(global_table, 2)
+
+      Vpar_width = (max_limits(1) - min_limits(1))/N
+      Vperp_width = (max_limits(2) - min_limits(2))/N
+      Vsquared_width = (max_limits(4) - min_limits(4))/N 
+
+      bin_count(1, 1) = min_limits(1) + Vpar_width*0.5
+      bin_count(3, 1) = min_limits(2) + Vperp_width*0.5
+      bin_count(5, 1) = min_limits(4) + Vsquared_width*0.5
+      do l = 2, N
+        bin_count(1, l) = bin_count(1, l-1) + Vpar_width
+        bin_count(3, l) = bin_count(3, l-1) + Vperp_width
+        bin_count(5, l) = bin_count(5, l-1) + Vsquared_width
+      end do
+
+      Vpar_mean = 0.0_kind_physics
+      Vperp_mean = 0.0_kind_physics
+      total_weight = 0.0_kind_physics
+      total_KE = 0.0_kind_physics
+      do l = 1, total_parts
+        Vpar_diff = global_table(1,l) - min_limits(1)
+        idx = ceiling(Vpar_diff/Vpar_width)
+        if (idx < 1) then
+          idx = 1
+        end if
+
+        bin_count(2, idx) = bin_count(2, idx) + global_table(3,l)
+
+        Vperp_diff = global_table(2,l) - min_limits(2)
+        idx = ceiling(Vperp_diff/Vperp_width)
+        if (idx < 1) then
+          idx = 1
+        end if
+
+        Vpar_mean = Vpar_mean + global_table(1,l)*global_table(3,l)
+        Vperp_mean = Vperp_mean + global_table(2,l)*global_table(3,l)
+        bin_count(4, idx) = bin_count(4, idx) + global_table(3,l)
+        total_weight = total_weight + global_table(3,l)
+
+        Vsquared_diff = global_table(4,l) - min_limits(4)
+        idx = ceiling(Vsquared_diff/Vsquared_width)
+        if (idx < 1) then
+          idx = 1
+        end if
+
+        bin_count(6, idx) = bin_count(6, idx) + global_table(3,l)
+
+        total_KE = total_KE + global_table(4,l)*global_table(3,l)
+      end do
+      Vpar_mean = Vpar_mean/total_weight
+      Vperp_mean = Vperp_mean/total_weight
+      total_KE = total_KE/total_weight
+
+      open(file_ID, file=filename, action='WRITE', position='append')
+      write(file_ID, *) 'Vpar_mid    ', 'Vpar_cnt   ', 'Vperp_mid    ', 'Vperp_cnt    ', 'Vsquared_mid    ', 'Vsquared_cnt'
+    
+      write(file_ID, *) 'Mean: ', Vpar_mean, Vperp_mean, total_KE
+      do l = 1, N
+        total_weight = total_weight + bin_count(2, l)
+        write(file_ID, *) bin_count(1, l), bin_count(2, l), bin_count(3, l), bin_count(4, l), bin_count(5, l), bin_count(6, l)
+      end do
+      close(file_ID)
+
+      deallocate(bin_count)
+      deallocate(global_table)
+      deallocate(offsets)
+      deallocate(receive_cnt)
+    end if
+
+    deallocate(table)
+  end subroutine V_par_perp_histogram
+
+  subroutine gather_weights_tables(table, global_table, file_ID, filename)
+    use mpi
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: table(:,:), global_table(:,:)
+    integer, intent(in) :: file_ID
+    character(len=255), intent(in) :: filename
+    integer :: N_entries, m
+    integer, allocatable :: N_counts(:)
+
+    allocate(N_counts(size(shape(table))))
+    N_counts = shape(table)
+    N_entries = size(table)
+
+    if (root) then
+      allocate(global_table(N_counts(1), N_counts(2)))
+      global_table = 0.0_kind_physics
+    end if
+    call MPI_REDUCE(table, global_table, N_entries, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      open(file_ID, file=filename, action='WRITE', position='append')
+      write(file_ID, *) 'Counts    ', 'total weight   '
+    
+      do m = 1, N_counts(1)
+        write(file_ID, *) global_table(m,1), global_table(m,2)
+      end do
+      close(file_ID)
+      deallocate(global_table)
+    end if
+
+    deallocate(table)
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  end subroutine gather_weights_tables
+
+  subroutine gather_minmaxWeights_tables(table, table1, global_table, global_table1, file_ID, filename)
+    use mpi
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: table(:), global_table(:)
+    real(kind_physics), allocatable, intent(inout) :: table1(:), global_table1(:)
+    integer, intent(in) :: file_ID
+    character(len=255), intent(in) :: filename
+    integer :: N_entries, m
+
+    N_entries = size(table)
+
+    if (root) then
+      allocate(global_table(N_entries))
+      allocate(global_table1(N_entries))
+      global_table = 1e16_kind_physics
+      global_table1 = -1e16_kind_physics
+    end if
+    call MPI_REDUCE(table, global_table, N_entries, MPI_KIND_PHYSICS, MPI_MIN, 0, MPI_COMM_WORLD, ierr)
+    call MPI_REDUCE(table1, global_table1, N_entries, MPI_KIND_PHYSICS, MPI_MAX, 0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      open(file_ID, file=filename, action='WRITE', position='append')
+      write(file_ID, *) 'min_weight    ', 'max_weight   '
+    
+      do m = 1, N_entries
+        write(file_ID, *) global_table(m), global_table1(m)
+      end do
+      close(file_ID)
+      deallocate(global_table)
+      deallocate(global_table1)
+    end if
+
+    deallocate(table)
+    deallocate(table1)
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  end subroutine gather_minmaxWeights_tables
+
+  subroutine gather_spherical_angle_tables(table, global_table, file_ID, filename)
+    use mpi
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: table(:,:), global_table(:,:)
+    integer, intent(in) :: file_ID
+    character(len=255), intent(in) :: filename
+    integer, allocatable :: N_counts(:)
+    integer :: N_entries, m, n
+    real(kind_physics) :: phi, theta, d_phi, d_theta
+
+    allocate(N_counts(size(shape(table))))
+    N_counts = shape(table)
+    N_entries = size(table)
+
+    if (root) then
+      allocate(global_table(N_counts(1), N_counts(2)))
+      global_table = 0.0_kind_physics
+    end if
+    call MPI_REDUCE(table, global_table, N_entries, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      d_phi = 2.0*pi/N_counts(1)
+      d_theta = pi/N_counts(2)
+
+      open(file_ID, file=filename, action='WRITE', position='append')
+      write(file_ID, *) 'PHI    ', 'THETA    ', 'VALUE   '
+    
+      do m = 1, N_counts(1)
+        phi = m*d_phi - d_phi*0.5
+        do n = 1, N_counts(2)
+          theta = n*d_theta - d_theta*0.5
+          write(file_ID, *) phi, theta, global_table(m,n)
+        end do
+      end do
+      close(file_ID)
+      deallocate(global_table)
+    end if
+
+    deallocate(N_counts)
+    deallocate(table)
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  end subroutine gather_spherical_angle_tables
+
   subroutine cube_cell_vertices(cell_n, vertices)!loll, lorl, upll, uprl, lolu, loru, uplu, upru)
     implicit none
     integer(kind_particle), intent(in) :: cell_n

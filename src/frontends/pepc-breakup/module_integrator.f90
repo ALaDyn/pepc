@@ -33,56 +33,6 @@ module interactions_integrator
    implicit none
 
 contains
-   function Rodriguez_rotation(angle, rot_axis, vec_in) result(vec_out)
-     implicit none
-     real(kind_physics), intent(in), dimension(:) :: vec_in, rot_axis
-     real(kind_physics), intent(in) :: angle
-     real(kind_physics) :: vec_out(3), k_cross_v(3)
-     real(kind_physics) :: k_dot_v, cos_angle
-     ! rot_axis == k, vec_in  == v
-     cos_angle = cos(angle)
-     k_cross_v = cross_product(rot_axis, vec_in)
-     k_dot_v = dot_product(rot_axis, vec_in) * (1. - cos_angle)
-
-     vec_out = vec_in*cos_angle + k_cross_v * sin(angle) + rot_axis * k_dot_v
-   end function Rodriguez_rotation
-
-   ! Given the velocity vector of particle, its azimuthal and inclination angle is calculated.
-   ! can be 'adapted' to calculate azimuthal position of particle in torus.
-   ! Phi angle is aligned 0 deg from east, counterclock-wise. east coincides with +x-axis
-   subroutine angles_calc(vec_in, vel_mag, theta, phi)
-     implicit none
-     real(kind_physics), dimension(:), intent(in):: vec_in
-     real(kind_physics), intent(in) :: vel_mag
-     real(kind_physics), intent(out) :: theta, phi
-
-     if ((vec_in(1) /= 0.0) .and. (vec_in(2) /= 0.0)) then
-       if ((vec_in(2) > 0.0) .and. (vec_in(1) < 0.0)) then
-         phi = pi + atan(vec_in(2)/vec_in(1))
-       else if ((vec_in(2) < 0.0) .and. (vec_in(1)> 0.0)) then
-         phi = 2. * pi + atan(vec_in(2)/vec_in(1))
-       else if ((vec_in(2) > 0.0) .and. (vec_in(1) > 0.0)) then
-         phi = atan(vec_in(2)/vec_in(1))
-       else
-         phi = pi + atan(vec_in(2)/vec_in(1))
-       end if
-     else if (vec_in(1) == 0.0) then
-       if (vec_in(2) > 0.0) then
-         phi = 0.5*pi
-       else
-         phi = 1.5*pi
-       end if
-     else if (vec_in(2) == 0.0) then
-       if (vec_in(1) > 0.0) then
-         phi = 0.0
-       else
-         phi = pi
-       end if
-     end if
-
-     theta = acos(vec_in(3)/vel_mag)
-   end subroutine angles_calc
-
    function matrix_vector_multiplication(mat, vec) result(ans)
       implicit none
       real(kind_physics), allocatable, intent(in) :: mat(:, :), vec(:)
@@ -722,6 +672,123 @@ contains
 
      deallocate(directional_buffer)
    end subroutine momentum_partition_merging
+
+   subroutine momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
+                                        parent_no, merged_guide, merged_cnt)
+     ! NOTE: make sure the particle list is sorted by species within the sibling extent before using this subroutine!
+     ! Quadrants  : 1 - +x +y +z
+     !            : 2 - +x +y -z
+     !            : 3 - +x -y +z
+     !            : 4 - +x -y -z
+     !            : 5 - -x +y +z
+     !            : 6 - -x +y -z
+     !            : 7 - -x -y +z
+     !            : 8 - -x -y -z
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     integer, allocatable, intent(in) :: sibling_cnt(:)
+     integer, intent(in) :: sibling_upper_limit
+     integer, intent(in) :: parent_no
+     type(linked_list_elem), pointer, intent(inout) :: merged_guide
+     integer, intent(inout) :: merged_cnt
+     integer :: ll_elem_gen, istart, istop, i, j, species, direction, direction_cnt(8), buffer_pos, iter_i, iter_j
+     type(t_particle), allocatable :: directional_buffer(:,:)
+     real(kind_physics) :: V_mag, theta, phi, V_temp(3), r_axis(3)
+
+     allocate(directional_buffer(8,sibling_upper_limit))
+     do iter_i = 1, 8
+       do iter_j = 1, sibling_upper_limit
+         directional_buffer(iter_i,iter_j)%x = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%q = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%v = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%m = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%b = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%f_e = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%f_b = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%results%e = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%results%pot = 0.0_kind_physics
+       end do
+     end do
+
+     istart = 1
+     do i = 2, parent_no
+       istart = istart + sibling_cnt(i-1)
+     end do
+     if (parent_no .eq. 1) istart = 1
+     istop = istart + sibling_cnt(parent_no) - 1
+
+     ! count the number of particles of the same species, in each of the 8 directions.
+     ! merging subroutine is called once for every species.
+     species = 0
+     direction_cnt = 0
+     do i = istart, istop
+       if (particles(i)%data%species .ne. species) then
+         ! print *, "Different species detected: ", particles(i)%data%species, direction_cnt
+         do j = 1, 8
+           if (direction_cnt(j) .ne. 0) then
+             call energy_elastic_merging_low_weight(j, directional_buffer, direction_cnt(j), merged_guide, &
+                                  merged_cnt, species, particles(i)%data%mp_int1, energy_group_levels)
+           end if
+         end do
+         species = particles(i)%data%species
+         direction_cnt = 0
+       end if
+
+       V_temp = particles(i)%data%v
+       V_mag = sqrt(dot_product(V_temp, V_temp))
+       call angles_calc(V_temp, V_mag, theta, phi)
+
+       r_axis = 0.0_kind_physics
+       r_axis(3) = 1.0_kind_physics
+       V_temp = Rodriguez_rotation(-phi, r_axis, V_temp)  
+
+       ! NOTE: momentum direction filtering
+       if (V_temp(1) > 0.0_kind_physics) then
+         if (V_temp(2) > 0.0_kind_physics) then
+           if (V_temp(3) > 0.0_kind_physics) then
+             direction = 1
+           else
+             direction = 2
+           end if
+         else
+           if (V_temp(3) > 0.0_kind_physics) then
+             direction = 3
+           else
+             direction = 4
+           end if
+         end if
+       else
+         if (V_temp(2) > 0.0_kind_physics) then
+           if (V_temp(3) > 0.0_kind_physics) then
+             direction = 5
+           else
+             direction = 6
+           end if
+         else
+           if (V_temp(3) > 0.0_kind_physics) then
+             direction = 7
+           else
+             direction = 8
+           end if
+         end if
+       end if
+
+       direction_cnt(direction) = direction_cnt(direction) + 1
+       directional_buffer(direction,direction_cnt(direction)) = particles(i)
+     end do
+     ! print *, "Final species: ", particles(i)%data%species, direction_cnt
+     ! Final merge for the last species
+     do i = 1, 8
+       if (direction_cnt(i) .ne. 0) then
+         call energy_elastic_merging_low_weight(i, directional_buffer, direction_cnt(i), merged_guide, &
+                              merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
+                              energy_group_levels)
+       end if
+     end do
+     ! print *, "Parent no: ", parent_no, istart, istop, "Finished merging.", size(particles)
+
+     deallocate(directional_buffer)
+   end subroutine momentum_partition_merging_alt
 
    subroutine age_elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, species, parent_key)
      !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,

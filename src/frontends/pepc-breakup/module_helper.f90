@@ -116,7 +116,12 @@ module helper
    real(kind_physics) :: dx, dy ,dz, s_min_x, s_min_y, s_min_z
    integer :: x_cell, y_cell, z_cell, iv, ir, cnt, mesh_mode,  N_element
    integer(kind_particle), allocatable :: connectivity_array(:), connectivity_tets(:,:)
-   character(255) :: mesh_name
+   character(255) :: mesh_name, file_name
+
+   ! general diagnostics
+   real(kind_physics), allocatable :: local_table1D(:), global_table1D(:)
+   real(kind_physics), allocatable :: local_table1D_1(:), global_table1D_1(:)
+   real(kind_physics), allocatable :: local_table2(:,:), global_table2(:,:)
 
    ! variables for random number generation
    integer :: dummy
@@ -308,6 +313,56 @@ contains
       vector_ans(2) = vector1(3)*vector2(1) - vector1(1)*vector2(3)
       vector_ans(3) = vector1(1)*vector2(2) - vector1(2)*vector2(1)
    end function cross_product
+
+   function Rodriguez_rotation(angle, rot_axis, vec_in) result(vec_out)
+     implicit none
+     real(kind_physics), intent(in), dimension(:) :: vec_in, rot_axis
+     real(kind_physics), intent(in) :: angle
+     real(kind_physics) :: vec_out(3), k_cross_v(3)
+     real(kind_physics) :: k_dot_v, cos_angle
+     ! rot_axis == k, vec_in  == v
+     cos_angle = cos(angle)
+     k_cross_v = cross_product(rot_axis, vec_in)
+     k_dot_v = dot_product(rot_axis, vec_in) * (1. - cos_angle)
+
+     vec_out = vec_in*cos_angle + k_cross_v * sin(angle) + rot_axis * k_dot_v
+   end function Rodriguez_rotation
+
+   ! Given the velocity vector of particle, its azimuthal and inclination angle is calculated.
+   ! can be 'adapted' to calculate azimuthal position of particle in torus.
+   ! Phi angle is aligned 0 deg from east, counterclock-wise. east coincides with +x-axis
+   subroutine angles_calc(vec_in, vel_mag, theta, phi)
+     implicit none
+     real(kind_physics), dimension(:), intent(in):: vec_in
+     real(kind_physics), intent(in) :: vel_mag
+     real(kind_physics), intent(out) :: theta, phi
+
+     if ((vec_in(1) /= 0.0) .and. (vec_in(2) /= 0.0)) then
+       if ((vec_in(2) > 0.0) .and. (vec_in(1) < 0.0)) then
+         phi = pi + atan(vec_in(2)/vec_in(1))
+       else if ((vec_in(2) < 0.0) .and. (vec_in(1)> 0.0)) then
+         phi = 2. * pi + atan(vec_in(2)/vec_in(1))
+       else if ((vec_in(2) > 0.0) .and. (vec_in(1) > 0.0)) then
+         phi = atan(vec_in(2)/vec_in(1))
+       else
+         phi = pi + atan(vec_in(2)/vec_in(1))
+       end if
+     else if (vec_in(1) == 0.0) then
+       if (vec_in(2) > 0.0) then
+         phi = 0.5*pi
+       else
+         phi = 1.5*pi
+       end if
+     else if (vec_in(2) == 0.0) then
+       if (vec_in(1) > 0.0) then
+         phi = 0.0
+       else
+         phi = pi
+       end if
+     end if
+
+     theta = acos(vec_in(3)/vel_mag)
+   end subroutine angles_calc
 
    function torus_geometry(mode) result(pos)
      implicit none

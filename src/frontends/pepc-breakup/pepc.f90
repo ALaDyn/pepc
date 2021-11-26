@@ -249,59 +249,59 @@ program pepc
          call particle_pusher(particles(i), dt)
 
          if (particles(i)%data%species == 0) then
-            collision_checks = floor(abs(particles(i)%data%q))
-            if (collision_checks .eq. 1) then
-              call collision_update(particles(i), particle_guide, new_particle_cnt, &
-                                    electron_num, total_cross_sections, ctr_s, key_s, &
-                                    charge_count, coll_type)
+           collision_checks = floor(abs(particles(i)%data%q))
+           if (collision_checks .eq. 1) then
+             call collision_update(particles(i), particle_guide, new_particle_cnt, &
+                                   electron_num, total_cross_sections, ctr_s, key_s, &
+                                   charge_count, coll_type)
 !            if (collision_checks .ge. 10) then
 !              call collision_update_rep(particles(i), particle_guide, new_particle_cnt, &
 !                                    electron_num, total_cross_sections, ctr_s, key_s, &
 !                                    charge_count)
-            else
+           else
 ! NOTE: Assuming a super-particle that represents 5 electrons, at eV ready to ionise.
 !       5 collision checks are done. Make sure that the checks are done with eV
 !       initially carried by super-particle!
-              stored_vel = particles(i)%data%v
-              allocate(outcomes(total_cross_sections + 1))
-              outcomes = 0
-              ! last_v = 0.0
-              ! new_mass = collision_checks
-              j = 0
-              do while (j < collision_checks)
-                particles(i)%data%v = stored_vel
-                ! old_part_cnt = new_particle_cnt
-                call collision_update(particles(i), particle_guide, new_particle_cnt, &
-                                      electron_num, total_cross_sections, ctr_s, key_s, &
-                                      charge_count, coll_type)
-                outcomes(coll_type + 1) = outcomes(coll_type + 1) + 1
-                j = j + 1
-              end do
+             stored_vel = particles(i)%data%v
+             allocate(outcomes(total_cross_sections + 1))
+             outcomes = 0
+             ! last_v = 0.0
+             ! new_mass = collision_checks
+             j = 0
+             do while (j < collision_checks)
+               particles(i)%data%v = stored_vel
+               ! old_part_cnt = new_particle_cnt
+               call collision_update(particles(i), particle_guide, new_particle_cnt, &
+                                     electron_num, total_cross_sections, ctr_s, key_s, &
+                                     charge_count, coll_type)
+               outcomes(coll_type + 1) = outcomes(coll_type + 1) + 1
+               j = j + 1
+             end do
               
-              j = size(outcomes)
-              do j = size(outcomes), 1, -1
-                if (outcomes(j) .gt. 0) start_i = j
-              end do
+             j = size(outcomes)
+             do j = size(outcomes), 1, -1
+               if (outcomes(j) .gt. 0) start_i = j
+             end do
 
-              ! print *, "Outcomes: ", outcomes, "start_i = ", start_i
+             ! print *, "Outcomes: ", outcomes, "start_i = ", start_i
 
-              stored_i = start_i
-              tmp_buff_pos = 0
-              start_i = start_i + 1
+             stored_i = start_i
+             tmp_buff_pos = 0
+             start_i = start_i + 1
 
-              do j = start_i, size(outcomes)
-                if (outcomes(j) .gt. 0) then
-                  dummy = gen_norm_double_rng(ctr_s, key_s, dummy_val)
-                  call add_particle(particle_guide, particles(i), new_particle_cnt, tmp_buff_pos, dummy_val, 0)
-                  call resolve_incident_electron_outcome(particle_guide%tmp_particles(tmp_buff_pos), &
-                       stored_vel, dummy_val, j - 1, outcomes(j))
-                end if
-              end do
-              dummy = gen_norm_double_rng(ctr_s, key_s, dummy_val)
-              call resolve_incident_electron_outcome(particles(i), stored_vel, dummy_val, stored_i - 1, outcomes(stored_i))
+             do j = start_i, size(outcomes)
+               if (outcomes(j) .gt. 0) then
+                 dummy = gen_norm_double_rng(ctr_s, key_s, dummy_val)
+                 call add_particle(particle_guide, particles(i), new_particle_cnt, tmp_buff_pos, dummy_val, 0)
+                 call resolve_incident_electron_outcome(particle_guide%tmp_particles(tmp_buff_pos), &
+                      stored_vel, dummy_val, j - 1, outcomes(j))
+               end if
+             end do
+             dummy = gen_norm_double_rng(ctr_s, key_s, dummy_val)
+             call resolve_incident_electron_outcome(particles(i), stored_vel, dummy_val, stored_i - 1, outcomes(stored_i))
 
-              deallocate(outcomes)
-            end if
+             deallocate(outcomes)
+           end if
          end if
          ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
 
@@ -418,7 +418,7 @@ program pepc
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
       steps_since_last = steps_since_last + 1
 
-      if (tnp > 5000000 .and. steps_since_last > 250000) then
+      if (tnp > 100000 .and. steps_since_last > 250000) then
         !==========Redistribute particles among the MPI Ranks====================
         call pepc_particleresults_clear(particles)
         call pepc_grow_tree(particles)
@@ -430,16 +430,17 @@ program pepc
           merge_ratio = 0.5001
         end if
         if (root) print *, "Merge ratio: ",  merge_ratio
+        ! merge_ratio = 0.5001_kind_physics
 
         sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
         ! merge_ratio = 0.90
         call compute_particle_keys(bounding_box, particles)
         call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
-        ! call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 4_kind_level)
+        call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 6_kind_level)
 
         !NOTE: sibling_cnt is allocated here.
         !      sibling_upper_limit is also updated to the max no. of actual siblings across all parents.
-        call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents)
+        ! call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents)
         do i = 1, unique_parents
           call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
         end do
@@ -450,7 +451,7 @@ program pepc
         do i = 1, unique_parents
           !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don't merge!
           ! print *, "Merging ", i, "of ", unique_parents, " unique parents."
-          call momentum_partition_merging(particles, sibling_cnt, sibling_upper_limit, &
+          call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
                                                i, particle_guide, new_particle_cnt)
         end do
         call merge_replace_particles_list(particles, buffer, new_particle_cnt)
@@ -475,15 +476,15 @@ program pepc
       call pepc_particleresults_clear(particles)
 
       ! if (mod(step,5) .eq. 0) then
-        call pepc_grow_tree(particles)
-        np = size(particles, kind=kind(np))
-        if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
-        call pepc_traverse_tree(particles)
-        if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
+       call pepc_grow_tree(particles)
+       np = size(particles, kind=kind(np))
+       if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
+       call pepc_traverse_tree(particles)
+       if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
 
-        if (doDiag .and. domain_output) call write_domain(particles)
-        if (dbg(DBG_STATS)) call pepc_statistics(step)
-        call pepc_timber_tree()
+       if (doDiag .and. domain_output) call write_domain(particles)
+       if (dbg(DBG_STATS)) call pepc_statistics(step)
+       call pepc_timber_tree()
       ! end if
 
 !============================preempt_checkpointing here=========================
@@ -495,7 +496,19 @@ program pepc
         if (root) call write_updated_resume_variables(step+itime_in+1)
       end if
 !=============================Writing output files==============================
-      if (doDiag .and. particle_output) call write_particles(particles)
+      if (doDiag .and. particle_output) then 
+        call write_particles(particles)
+        write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
+        file_name = trim(file_name)
+        ! call toroidal_weight_distribution(particles, local_table2, 1000)
+        ! call gather_weights_tables(local_table2, global_table2, 55, file_name)
+        ! call toroidal_max_weights(particles, local_table1D, local_table1D_1, 1000)
+        ! call gather_minmaxWeights_tables(local_table1D, local_table1D_1, global_table1D, global_table1D_1, 55, file_name)
+        ! call unit_vector_distribution(particles, local_table2, 50, 100)
+        ! call gather_spherical_angle_tables(local_table2, global_table2, 55, file_name)
+        call V_par_perp_calculation(particles, local_table2)
+        call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
+      end if
 
       ! NOTE: if density diagnostic is on, do these
       if (doDiag .and. density_output) then
