@@ -362,6 +362,11 @@ contains
       bin_count = 0.0_kind_physics
     end if
 
+    if (.not. root) then
+      allocate(receive_cnt(0))
+      allocate(global_table(0,0))
+      allocate(offsets(0))
+    end if
     call MPI_COMM_SIZE(MPI_COMM_WORLD, rank_size, ierr)
     local_array_size = size(table)
     call MPI_GATHER(local_array_size, 1, MPI_INT, receive_cnt, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
@@ -371,6 +376,7 @@ contains
         offsets(l) = offsets(l-1) + receive_cnt(l-1)
       end do
     end if
+
     call MPI_GATHERV(table, local_array_size, MPI_KIND_PHYSICS,&
                      global_table, receive_cnt, offsets, MPI_KIND_PHYSICS, &
                      0, MPI_COMM_WORLD, ierr)
@@ -401,6 +407,8 @@ contains
         idx = ceiling(Vpar_diff/Vpar_width)
         if (idx < 1) then
           idx = 1
+        else if (idx > N) then
+          idx = N - 1
         end if
 
         bin_count(2, idx) = bin_count(2, idx) + global_table(3,l)
@@ -409,6 +417,8 @@ contains
         idx = ceiling(Vperp_diff/Vperp_width)
         if (idx < 1) then
           idx = 1
+        else if (idx > N) then
+          idx = N - 1
         end if
 
         Vpar_mean = Vpar_mean + global_table(1,l)*global_table(3,l)
@@ -420,6 +430,8 @@ contains
         idx = ceiling(Vsquared_diff/Vsquared_width)
         if (idx < 1) then
           idx = 1
+        else if (idx > N) then
+          idx = N - 1
         end if
 
         bin_count(6, idx) = bin_count(6, idx) + global_table(3,l)
@@ -441,10 +453,10 @@ contains
       close(file_ID)
 
       deallocate(bin_count)
-      deallocate(global_table)
-      deallocate(offsets)
-      deallocate(receive_cnt)
     end if
+    deallocate(global_table)
+    deallocate(offsets)
+    deallocate(receive_cnt)
 
     deallocate(table)
   end subroutine V_par_perp_histogram

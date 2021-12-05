@@ -303,7 +303,7 @@ program pepc
              deallocate(outcomes)
            end if
          end if
-         ! call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
+!          call test_ionization(particles(i), particle_guide, new_particle_cnt, electron_num)
 
 !=============== revert 'e' to state before addition of external field==========
          particles(i)%results%e = traversed_e
@@ -430,7 +430,7 @@ program pepc
           merge_ratio = 0.5001
         end if
         if (root) print *, "Merge ratio: ",  merge_ratio
-        ! merge_ratio = 0.5001_kind_physics
+        merge_ratio = 0.5001_kind_physics
 
         sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
         ! merge_ratio = 0.90
@@ -451,8 +451,10 @@ program pepc
         do i = 1, unique_parents
           !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don't merge!
           ! print *, "Merging ", i, "of ", unique_parents, " unique parents."
-          call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
-                                               i, particle_guide, new_particle_cnt)
+          ! call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
+          !                                     i, particle_guide, new_particle_cnt)
+          call momentum_partition_merging_fine(particles, sibling_cnt, sibling_upper_limit, &
+                                               i, particle_guide, new_particle_cnt, 8, 4)
         end do
         call merge_replace_particles_list(particles, buffer, new_particle_cnt)
         call deallocate_ll_buffer(buffer)

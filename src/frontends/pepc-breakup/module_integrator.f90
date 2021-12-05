@@ -790,6 +790,126 @@ contains
      deallocate(directional_buffer)
    end subroutine momentum_partition_merging_alt
 
+   subroutine momentum_partition_merging_fine(particles, sibling_cnt, sibling_upper_limit, &
+                                        parent_no, merged_guide, merged_cnt, phi_div, theta_div)
+     ! NOTE: make sure the particle list is sorted by species within the sibling extent before using this subroutine!
+     ! Quadrants  : 1 - +x +y +z
+     !            : 2 - +x +y -z
+     !            : 3 - +x -y +z
+     !            : 4 - +x -y -z
+     !            : 5 - -x +y +z
+     !            : 6 - -x +y -z
+     !            : 7 - -x -y +z
+     !            : 8 - -x -y -z
+     implicit none
+     type(t_particle), allocatable, intent(inout) :: particles(:)
+     integer, allocatable, intent(in) :: sibling_cnt(:)
+     integer, intent(in) :: sibling_upper_limit
+     integer, intent(in) :: parent_no
+     integer, intent(in) :: phi_div, theta_div
+     type(linked_list_elem), pointer, intent(inout) :: merged_guide
+     integer, intent(inout) :: merged_cnt
+     integer :: ll_elem_gen, istart, istop, i, j, species, direction, total_div, buffer_pos, iter_i, iter_j
+     integer :: theta_idx, phi_idx, final_idx
+     integer, allocatable :: direction_cnt(:)
+     type(t_particle), allocatable :: directional_buffer(:,:)
+     real(kind_physics) :: V_mag, V_magT, theta, phi, V_temp(3), r_axis(3), theta_width, phi_width
+
+     total_div = phi_div*theta_div
+     allocate(directional_buffer(total_div,sibling_upper_limit))
+     allocate(direction_cnt(total_div))
+     theta_width = pi/theta_div
+     phi_width = 2_kind_physics*pi/phi_div
+     ! The arrangement of the directional_buffer:
+     ! iterate through all phi = [0, 2 pi] for each theta 
+     do iter_i = 1, total_div
+       do iter_j = 1, sibling_upper_limit
+         directional_buffer(iter_i,iter_j)%x = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%q = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%v = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%m = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%b = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%f_e = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%data%f_b = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%results%e = 0.0_kind_physics
+         directional_buffer(iter_i,iter_j)%results%pot = 0.0_kind_physics
+       end do
+     end do
+
+     istart = 1
+     do i = 2, parent_no
+       istart = istart + sibling_cnt(i-1)
+     end do
+     if (parent_no .eq. 1) istart = 1
+     istop = istart + sibling_cnt(parent_no) - 1
+
+     ! count the number of particles of the same species, in each of the 8 directions.
+     ! merging subroutine is called once for every species.
+     species = 0
+     direction_cnt = 0
+     do i = istart, istop
+       if (particles(i)%data%species .ne. species) then
+         ! print *, "Different species detected: ", particles(i)%data%species, direction_cnt
+         do j = 1, total_div
+           if (direction_cnt(j) .ne. 0) then
+             call energy_elastic_merging_low_weight(j, directional_buffer, direction_cnt(j), merged_guide, &
+                                  merged_cnt, species, particles(i)%data%mp_int1, energy_group_levels)
+           end if
+         end do
+         species = particles(i)%data%species
+         direction_cnt = 0
+       end if
+
+       V_temp = particles(i)%data%v
+       V_mag = sqrt(dot_product(V_temp, V_temp))
+       call angles_calc(V_temp, V_mag, theta, phi)
+
+       r_axis = 0.0_kind_physics
+       r_axis(3) = 1.0_kind_physics
+       V_temp = Rodriguez_rotation(-phi, r_axis, V_temp)  
+       V_magT = sqrt(dot_product(V_temp, V_temp))
+
+       V_magT = abs(V_mag - V_magT)
+       if (V_magT > 0.5) then
+         print *, "V_mag after rotation altered!"
+       end if
+
+       ! NOTE: momentum direction filtering
+       call angles_calc(V_temp, V_mag, theta, phi)
+       theta_idx = ceiling(theta/theta_width)
+       phi_idx = ceiling(phi/phi_width)
+       if (theta_idx < 1) then
+         theta_idx = 1
+       else if (theta_idx > theta_div) then
+         theta_idx = theta_div
+       end if
+
+       if (phi_idx < 1) then
+         phi_idx = 1
+       else if (phi_idx > phi_div) then
+         phi_idx = phi_div
+       end if
+
+       final_idx = (theta_idx - 1)*phi_div + phi_idx !theta_idx*phi_idx
+
+       direction_cnt(final_idx) = direction_cnt(final_idx) + 1
+       directional_buffer(final_idx,direction_cnt(final_idx)) = particles(i)
+     end do
+     ! print *, "Final species: ", particles(i)%data%species, direction_cnt
+     ! Final merge for the last species
+     do i = 1, total_div
+       if (direction_cnt(i) .ne. 0) then
+         call energy_elastic_merging_low_weight(i, directional_buffer, direction_cnt(i), merged_guide, &
+                              merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
+                              energy_group_levels)
+       end if
+     end do
+     ! print *, "Parent no: ", parent_no, istart, istop, "Finished merging.", size(particles)
+
+     deallocate(direction_cnt)
+     deallocate(directional_buffer)
+   end subroutine momentum_partition_merging_fine
+
    subroutine age_elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, species, parent_key)
      !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
      !       most direct way of doing it is to copy the particles into respective directional buffer.
@@ -1267,7 +1387,7 @@ contains
                end do
                
                pass_buffer = energy_collector(j,IStart:IStop)
-               call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
+               call resolve_elastic_merge_momentum_nonphys(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
                deallocate(pass_buffer)
              end do
 
@@ -1294,7 +1414,7 @@ contains
                end do
 
                pass_buffer = energy_collector(j,IStart:IStop)
-               call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
+               call resolve_elastic_merge_momentum_nonphys(pass_buffer, remainder, merged_buffer, m_i, j)
                deallocate(pass_buffer)
              end if
              ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
@@ -1536,6 +1656,154 @@ contains
        merged_buffer(m_i)%data%mp_int1 = parent_key
      end if
    end subroutine resolve_elastic_merge_momentum
+
+   subroutine resolve_elastic_merge_momentum_nonphys(input_buffer, input_cnt, merged_buffer, m_i, group_index)
+     implicit none
+     type(t_particle), allocatable, intent(in) :: input_buffer(:)
+     integer, intent(in) :: input_cnt, group_index
+     type(t_particle), allocatable, intent(inout) :: merged_buffer(:)
+     integer, intent(inout) :: m_i
+     type(t_particle) :: sum_particle
+     real(kind_physics) :: d(3), max_vec(3), v_squared, vel_mag2, vel_mag, unit_vec(3), &
+                           Chi, rot_axis(3), w1, w2, total_weight, ave_E, mass, charge, &
+                           v_diff, e_diff, rot_axis_mag, Chi_arg
+     integer :: i, j, species, parent_key, correct_sign
+
+     species = input_buffer(1)%data%species
+     parent_key = input_buffer(1)%data%mp_int1
+
+     if (species == 0) then
+       mass = 1.0_kind_physics
+       charge = -1.0_kind_physics
+     else if (species == 1) then
+       mass = 1836.21957489_kind_physics
+       charge = 1.0_kind_physics
+     else if (species == 2) then
+       mass = 3673.43889456_kind_physics
+       charge = 1.0_kind_physics
+     end if
+     !initialise sum_particle
+     sum_particle%x = 0.0_kind_physics
+     sum_particle%data%q = 0.0_kind_physics
+     sum_particle%data%v = 0.0_kind_physics
+     sum_particle%data%m = 0.0_kind_physics
+     sum_particle%data%b = 0.0_kind_physics
+     sum_particle%data%f_e = 0.0_kind_physics
+     sum_particle%data%f_b = 0.0_kind_physics
+     sum_particle%results%e = 0.0_kind_physics
+     sum_particle%results%pot = 0.0_kind_physics
+
+     ! initialise d(3) vector, essentially the unit vector of the max extent in x, y, z, direction
+     d = 0.0
+     max_vec = 0.0
+     total_weight = 0.0
+     do i = 1, input_cnt
+       v_squared = abs(input_buffer(i)%data%q)*dot_product(input_buffer(i)%data%v, input_buffer(i)%data%v)
+       sum_particle%data%q = sum_particle%data%q + input_buffer(i)%data%q
+       sum_particle%data%v = sum_particle%data%v + abs(input_buffer(i)%data%q)*input_buffer(i)%data%v
+       sum_particle%data%m = sum_particle%data%m + input_buffer(i)%data%m
+       sum_particle%x = sum_particle%x + input_buffer(i)%x
+       sum_particle%data%f_e(1) = sum_particle%data%f_e(1) + v_squared
+       total_weight = total_weight + abs(input_buffer(i)%data%q)
+
+       do j = 1, 3
+         if (abs(input_buffer(i)%data%v(j)) > max_vec(j)) then
+           max_vec(j) = abs(input_buffer(i)%data%v(j))
+           d(j) = input_buffer(i)%data%v(j)
+         end if
+       end do
+     end do
+     d = d/sqrt(dot_product(d,d))
+     sum_particle%x = sum_particle%x/abs(sum_particle%data%q)
+     ave_E = 0.5*sum_particle%data%m*e_mass*sum_particle%data%f_e(1)/(total_weight*total_weight)
+
+     vel_mag = sqrt(sum_particle%data%f_e(1)/total_weight)
+
+     max_vec = 0.0_kind_physics
+     max_vec = sum_particle%data%v/sqrt(dot_product(sum_particle%data%v, sum_particle%data%v))
+
+     if (vel_mag .ne. 0.0_kind_physics) then
+       w1 = CEILING(1.0*total_weight/2.0)
+
+       ! Fill in values for merged particle 1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(1)%x
+       merged_buffer(m_i)%work = 1.0_8
+       merged_buffer(m_i)%data%v = vel_mag * max_vec
+       merged_buffer(m_i)%data%q = charge * w1
+       merged_buffer(m_i)%data%m = mass * w1
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%f_b(2) = ave_E
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+
+       ! Fill in values for merged particle 2
+       w2 = total_weight - w1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(2)%x
+       merged_buffer(m_i)%work = 1.0_8
+       merged_buffer(m_i)%data%v = vel_mag * max_vec
+       merged_buffer(m_i)%data%q = charge*w2
+       merged_buffer(m_i)%data%m = mass*w2
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%f_b(2) = ave_E
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+
+       ! if (species == 0) then
+       !   merged_buffer(m_i)%data%b = sum_particle%data%v - (w1*merged_buffer(m_i - 1)%data%v + w2*merged_buffer(m_i)%data%v)
+       !   v_diff = sqrt(dot_product(merged_buffer(m_i)%data%b, merged_buffer(m_i)%data%b))
+       !   if (v_diff > 1e-15_kind_physics) print *, "Noticeable Momentum Error!", v_diff
+        
+       !   e_diff = sum_particle%data%f_e(1) - &
+       !            (w1*dot_product(merged_buffer(m_i - 1)%data%v, merged_buffer(m_i - 1)%data%v) + &
+       !             w2*dot_product(merged_buffer(m_i)%data%v, merged_buffer(m_i)%data%v))
+       !   if (e_diff > 1e-15_kind_physics) print *, "Noticeable Energy Error!", e_diff
+        
+       !   merged_buffer(m_i)%data%b = 0.0
+       ! end if
+     else
+       w1 = CEILING(1.0*total_weight/2.0)
+       ! Fill in values for merged particle 1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(1)%x
+       merged_buffer(m_i)%work = 1.0_8
+       merged_buffer(m_i)%data%v = 0.0_kind_physics
+       merged_buffer(m_i)%data%q = charge*w1
+       merged_buffer(m_i)%data%m = mass*w1
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+
+       ! Fill in values for merged particle 2
+       w2 = total_weight - w1
+       m_i = m_i + 1
+       merged_buffer(m_i)%x = input_buffer(2)%x
+       merged_buffer(m_i)%work = 1.0_8
+       merged_buffer(m_i)%data%v = 0.0_kind_physics
+       merged_buffer(m_i)%data%q = charge*w2
+       merged_buffer(m_i)%data%m = mass*w2
+       merged_buffer(m_i)%data%b = 0.0
+       merged_buffer(m_i)%data%f_e = 0.0
+       merged_buffer(m_i)%data%f_b = 0.0
+       merged_buffer(m_i)%data%age = 0.0
+       merged_buffer(m_i)%label = group_index
+       merged_buffer(m_i)%data%species = species
+       merged_buffer(m_i)%data%mp_int1 = parent_key
+     end if
+   end subroutine resolve_elastic_merge_momentum_nonphys
 
    subroutine add_particle(guide, particle, new_particle, buffer_pos, ran, type)
      ! NOTE: A big assumption is made here: Without considering the rovibrational states
