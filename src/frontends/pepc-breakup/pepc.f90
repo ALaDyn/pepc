@@ -108,7 +108,7 @@ program pepc
    ! IMPORTANT NOTE: the order of set_cross_section_table must correspond to the case orders in collision_update()
   !  call getcwd(file_path)
    file_path = "../src/frontends/pepc-breakup/cross_sections/"
-   call set_cross_section_table(trim(file_path)//"energy_grouping.txt", CS_guide, 11, 1)
+   call set_cross_section_table(trim(file_path)//"energy_grouping_fine.txt", CS_guide, 11, 1)
 
    allocate(energy_group_levels(size(CS_total_scatter%CS, 1) + 1))
    energy_group_levels = 0.0
@@ -418,7 +418,7 @@ program pepc
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
       steps_since_last = steps_since_last + 1
 
-      if (tnp > 100000 .and. steps_since_last > 250000) then
+      if (tnp > 5000000 .and. steps_since_last > 250000) then
         !==========Redistribute particles among the MPI Ranks====================
         call pepc_particleresults_clear(particles)
         call pepc_grow_tree(particles)
@@ -427,7 +427,7 @@ program pepc
 
         merge_ratio = 1. - (2.*(1.0 - last_merge_tnp/tnp))
         if (merge_ratio .lt. 0.5) then
-          merge_ratio = 0.5001
+          merge_ratio = 0.5001_kind_physics
         end if
         if (root) print *, "Merge ratio: ",  merge_ratio
         merge_ratio = 0.5001_kind_physics
@@ -454,7 +454,7 @@ program pepc
           ! call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
           !                                     i, particle_guide, new_particle_cnt)
           call momentum_partition_merging_fine(particles, sibling_cnt, sibling_upper_limit, &
-                                               i, particle_guide, new_particle_cnt, 8, 4)
+                                               i, particle_guide, new_particle_cnt, 16, 8)
         end do
         call merge_replace_particles_list(particles, buffer, new_particle_cnt)
         call deallocate_ll_buffer(buffer)
@@ -478,15 +478,15 @@ program pepc
       call pepc_particleresults_clear(particles)
 
       ! if (mod(step,5) .eq. 0) then
-       call pepc_grow_tree(particles)
-       np = size(particles, kind=kind(np))
-       if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
-       call pepc_traverse_tree(particles)
-       if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
+        call pepc_grow_tree(particles)
+        np = size(particles, kind=kind(np))
+        if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
+        call pepc_traverse_tree(particles)
+        if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
 
-       if (doDiag .and. domain_output) call write_domain(particles)
-       if (dbg(DBG_STATS)) call pepc_statistics(step)
-       call pepc_timber_tree()
+        if (doDiag .and. domain_output) call write_domain(particles)
+        if (dbg(DBG_STATS)) call pepc_statistics(step)
+        call pepc_timber_tree()
       ! end if
 
 !============================preempt_checkpointing here=========================

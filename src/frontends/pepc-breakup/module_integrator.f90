@@ -319,12 +319,16 @@ contains
       real(kind_physics), intent(in) :: dt
       real(kind_physics) :: Vm(3), Vd(3), Vp(3), tan_w(3), sin_w(3), V_cross(3), V_init(3)
       real(kind_physics) :: half_dt, q_m_ratio, Vm_par(3), B_unit_vec(3), theta, B_mag
+      real(kind_physics) :: gamma_factor, v_mag_sq
 
       V_init = particle%data%v
       half_dt = dt*0.5_8
       q_m_ratio = particle%data%q*half_dt/particle%data%m
+      v_mag_sq = dot_product(V_init, V_init)
 
-      Vm = particle%data%v + E_q_dt_m*particle%results%e*q_m_ratio
+      gamma_factor = 1./sqrt(1 - v_mag_sq)
+
+      Vm = gamma_factor*particle%data%v + E_q_dt_m*particle%results%e*q_m_ratio
 
       !! NOTE: Boris-B Implementation with uncorrected gyrophase error
       ! tan_w = particle%data%b*q_m_ratio
@@ -339,7 +343,7 @@ contains
       B_mag = sqrt(dot_product(particle%data%b, particle%data%b))
       if (B_mag > 0.0_kind_physics) then
         B_unit_vec = particle%data%b/B_mag
-        theta = particle%data%q*dt*B_mag/particle%data%m
+        theta = particle%data%q*dt*B_mag/(particle%data%m*gamma_factor)
         Vm_par = dot_product(Vm, B_unit_vec)*B_unit_vec
         Vp = Vm_par + (Vm - Vm_par)*cos(theta) + cross_product(Vm, B_unit_vec)*sin(theta)
       else
@@ -348,7 +352,8 @@ contains
         Vp = Vm
       end if
 
-      particle%data%v = Vp + E_q_dt_m*particle%results%e*q_m_ratio
+      V_new = Vp + E_q_dt_m*particle%results%e*q_m_ratio
+      particle%data%v = V_new/gamma_factor
 
       particle%data%f_e = 2.0*E_q_dt_m*particle%results%e*q_m_ratio*particle%data%m*e_mass/(c*dt*1e-12)
       !particle%data%q*particle%results%e/particle%data%m
@@ -864,18 +869,8 @@ contains
        V_mag = sqrt(dot_product(V_temp, V_temp))
        call angles_calc(V_temp, V_mag, theta, phi)
 
-       r_axis = 0.0_kind_physics
-       r_axis(3) = 1.0_kind_physics
-       V_temp = Rodriguez_rotation(-phi, r_axis, V_temp)  
-       V_magT = sqrt(dot_product(V_temp, V_temp))
-
-       V_magT = abs(V_mag - V_magT)
-       if (V_magT > 0.5) then
-         print *, "V_mag after rotation altered!"
-       end if
-
        ! NOTE: momentum direction filtering
-       call angles_calc(V_temp, V_mag, theta, phi)
+       ! call angles_calc(V_temp, V_mag, theta, phi)
        theta_idx = ceiling(theta/theta_width)
        phi_idx = ceiling(phi/phi_width)
        if (theta_idx < 1) then
@@ -891,6 +886,7 @@ contains
        end if
 
        final_idx = (theta_idx - 1)*phi_div + phi_idx !theta_idx*phi_idx
+       ! if (final_idx > total_div) print *, "final_idx invalid"
 
        direction_cnt(final_idx) = direction_cnt(final_idx) + 1
        directional_buffer(final_idx,direction_cnt(final_idx)) = particles(i)
@@ -1387,7 +1383,7 @@ contains
                end do
                
                pass_buffer = energy_collector(j,IStart:IStop)
-               call resolve_elastic_merge_momentum_nonphys(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
+               call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
                deallocate(pass_buffer)
              end do
 
@@ -1414,7 +1410,7 @@ contains
                end do
 
                pass_buffer = energy_collector(j,IStart:IStop)
-               call resolve_elastic_merge_momentum_nonphys(pass_buffer, remainder, merged_buffer, m_i, j)
+               call resolve_elastic_merge_momentum(pass_buffer, remainder, merged_buffer, m_i, j)
                deallocate(pass_buffer)
              end if
              ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
@@ -1553,7 +1549,7 @@ contains
          Chi_arg = 1.0_kind_physics
        end if
        Chi = acos(Chi_arg)
-       ! if (isnan(Chi)) print *, "Chi calculation failed!"
+       ! if (isnan(Chi)) print *, "Chi calculation failed!", Chi_arg
 
        rot_axis = cross_product(sum_particle%data%v, d)
        rot_axis_mag = sqrt(dot_product(rot_axis, rot_axis))
