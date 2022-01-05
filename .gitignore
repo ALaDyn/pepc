@@ -14,6 +14,11 @@ doc
 .*.un~
 .*swp
 
+runs
+*~
+*#
+*/*.mod
+*/*.a
 tags
 
 makefile.defs
@@ -26,3 +31,23 @@ cmake/CMakeFiles/
 cmake/Makefile
 cmake/cmake_install.cmake
 cmake/install_manifest.txt
+src/treecode/openpa/openpa/Makefile
+src/treecode/openpa/openpa/_configs.sed
+src/treecode/openpa/openpa/autom4te.cache/
+src/treecode/openpa/openpa/config.log
+src/treecode/openpa/openpa/config.status
+src/treecode/openpa/openpa/libtool
+src/treecode/openpa/openpa/openpa.pc
+src/treecode/openpa/openpa/src/.deps/
+src/treecode/openpa/openpa/src/.libs/
+src/treecode/openpa/openpa/src/Makefile
+src/treecode/openpa/openpa/src/config.h
+src/treecode/openpa/openpa/src/libopa.la
+src/treecode/openpa/openpa/src/opa_config.h
+src/treecode/openpa/openpa/src/opa_primitives.lo
+src/treecode/openpa/openpa/src/opa_queue.lo
+src/treecode/openpa/openpa/src/stamp-h1
+src/treecode/openpa/openpa/test/.deps/
+src/treecode/openpa/openpa/test/Makefile
+src/treecode/sl_pepc/config.h
+src/treecode/sl_pepc/libsl.a
