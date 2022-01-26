@@ -508,6 +508,8 @@ program pepc
         ! call gather_minmaxWeights_tables(local_table1D, local_table1D_1, global_table1D, global_table1D_1, 55, file_name)
         ! call unit_vector_distribution(particles, local_table2, 50, 100)
         ! call gather_spherical_angle_tables(local_table2, global_table2, 55, file_name)
+        ! call V_mean_phi_distribution(particles, local_table2, 1000)
+        ! call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
         call V_par_perp_calculation(particles, local_table2)
         call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
       end if

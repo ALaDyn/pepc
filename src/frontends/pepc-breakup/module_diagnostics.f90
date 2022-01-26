@@ -461,6 +461,98 @@ contains
     deallocate(table)
   end subroutine V_par_perp_histogram
 
+  subroutine V_mean_phi_distribution(particle_list, table, N_phi)
+    implicit none
+    type(t_particle), allocatable, intent(in) :: particle_list(:)
+    integer, intent(in) :: N_phi
+    real(kind_physics), allocatable, intent(inout) :: table(:,:)
+    integer :: N_parts, l, idx
+    real(kind_physics) :: d_phi, x(3), x_mag, theta, phi, Vpar(3), Vperp(3), v(3), weight
+    real(kind_physics) :: Vsquared, ref_axis(3), direction(3), temp_vel(3), sign_val
+
+    ! Structure of table, column 1 is the total simulated particle,
+    ! column 2 is total weight.
+    allocate(table(4, N_phi))
+    table = 0.0_kind_physics
+    N_parts = size(particle_list)
+    d_phi = 2.*pi/N_phi
+
+    ref_axis = 0.0_kind_physics
+    ref_axis(3) = 1.0_kind_physics
+
+    do l = 1, N_parts
+      x = particle_list(l)%x
+      x_mag = sqrt(dot_product(x,x))
+      weight = abs(particle_list(l)%data%q)
+      v = particle_list(l)%data%v
+      Vsquared = dot_product(v,v)
+
+      if (particle_list(l)%data%species == 0) then
+        direction = 0.0_kind_physics
+        temp_vel = cross_product(x, ref_axis)
+        temp_vel = temp_vel/(sqrt(dot_product(temp_vel, temp_vel)))
+
+        Vpar = dot_product(v,temp_vel)*temp_vel
+        
+        sign_val = 1.0_kind_physics
+        direction = cross_product(x,Vpar)
+        if (direction(3) < 0.0) then
+          sign_val = -1.0_kind_physics
+        end if
+
+        Vpar = sign_val*Vpar
+        Vperp = v - Vpar
+
+        call angles_calc(x, x_mag, theta, phi)
+        idx = ceiling(phi/d_phi)
+        table(1, idx) = table(1, idx) + 1._kind_physics
+        table(2, idx) = table(2, idx) + weight
+        table(3, idx) = table(3, idx) + sign_val*sqrt(dot_product(Vpar,Vpar))
+        table(4, idx) = table(4, idx) + sqrt(dot_product(Vperp, Vperp))
+      end if
+    end do
+  end subroutine V_mean_phi_distribution
+
+  subroutine V_mean_phi_distribution_gather(table, global_table, file_ID, filename)
+    use mpi
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: table(:,:), global_table(:,:)
+    integer, intent(in) :: file_ID
+    character(len=255), intent(in) :: filename
+    integer :: N_entries, m
+    integer, allocatable :: N_counts(:)
+    real(kind_physics) :: d_phi, phi, total_electron
+
+    allocate(N_counts(size(shape(table))))
+    N_counts = shape(table)
+    N_entries = size(table)
+
+    if (root) then
+      allocate(global_table(N_counts(1), N_counts(2)))
+      global_table = 0.0_kind_physics
+    end if
+    call MPI_REDUCE(table, global_table, N_entries, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      d_phi = 2.0*pi/N_counts(2)
+      open(file_ID, file=filename, action='WRITE', position='append')
+      write(file_ID, *) 'phi    ', 'Vpar_mean  ', 'Vperp_mean    '
+    
+      total_electron = 0.0_kind_physics
+      do m = 1, N_counts(2)
+        phi = m*d_phi - d_phi*0.5
+        write(file_ID, *) phi, global_table(3, m)/global_table(1, m), global_table(4, m)/global_table(1, m)
+        total_electron = total_electron + global_table(2,m)
+      end do
+      print *, "total counted electrons: ", total_electron
+      close(file_ID)
+      deallocate(global_table)
+    end if
+
+    deallocate(table)
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+  end subroutine V_mean_phi_distribution_gather
+
   subroutine gather_weights_tables(table, global_table, file_ID, filename)
     use mpi
     implicit none
