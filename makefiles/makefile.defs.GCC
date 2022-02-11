@@ -54,7 +54,8 @@ FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -
 FARCH = -malign-data=cacheline -mtune=native -march=native
 
 # have extra flags to fix compiler problems
-FFIX =
+# -fallow-argument-mismatch allows non-conforming MPI modules to work
+FFIX = -fallow-argument-mismatch
 
 # switch further compiler flags depending on DEBUG setting
 ifeq ($(DEBUG), 1)

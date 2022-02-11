@@ -1,130 +1,125 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE jube SYSTEM "<jube.dtd path>">
-<jube>
-   <benchmark name="PEPC Benchmark" outpath="../run/benchmark">
+   <jube>
+      <benchmark name="PEPC Benchmark" outpath="../run/benchmark">
 
-      <!-- ############################################################################################# -->
-      <!-- The benchmark will copy all sources, compile PEPC and initiate a number of runs.              -->
-      <!--    After runs are finished, a table of results may be printed can also be usedto perform a    -->
-      <!--    correctness check of PEPC. NOTE THAT THIS SETUP IS TAILORED FOR MACHINES AT JSC.           -->
-      <!-- Throughout this file, several different tags will be used to switch the benchmark's behaviour -->
-      <!--    tag nocompile : copy binary of pepc-benchmark from source files                            -->
-      <!--                    this will of course only work for the same MPI!                            -->
-      <!--    tag check     : run pepc-benchmark with a correctness check                                -->
-      <!--    tag weak      : run pepc-benchmark in a weak scaling setup (strong scaling is default)     -->
-      <!--    tag stats     : run each benchmark with 5 iterations each to gather variations             -->
-      <!--    tag allmpi    : run all 3 MPI libraries (default)                                          -->
-      <!--    tag ps        : pick ParaStationMPI to run with                                            -->
-      <!--    tag ompi      : pick OpenMPI to run with                                                   -->
-      <!--    tag mvapich   : pick MVAPICH to run with                                                   -->
-      <!--    no tag        : by default, all sources will be copied, pepc-benchmark compiled, and the   -->
-      <!--                    benchmark configuration will be launched. the compiled binary will be      -->
-      <!--                    copied back onto the source tree for later reference.                      -->
-      <!-- ############################################################################################# -->
+         <!-- ############################################################################################# -->
+         <!-- The benchmark will copy all sources, compile PEPC and initiate a number of runs.              -->
+         <!--    After runs are finished, a table of results may be printed can also be usedto perform a    -->
+         <!--    correctness check of PEPC. NOTE THAT THIS SETUP IS TAILORED FOR MACHINES AT JSC.           -->
+         <!-- Throughout this file, several different tags will be used to switch the benchmark's behaviour -->
+         <!--    tag nocompile : copy binary of pepc-benchmark from source files                            -->
+         <!--                    this will of course only work for the same MPI!                            -->
+         <!--    tag check     : run pepc-benchmark with a correctness check                                -->
+         <!--                    (this will only work if compiler/MPI match)                                -->
+         <!--    tag weak      : run pepc-benchmark in a weak scaling setup (strong scaling is default)     -->
+         <!--    tag stats     : run each benchmark with 5 iterations each to gather variations             -->
+         <!--    tag allmpi    : run all 3 MPI libraries (default)                                          -->
+         <!--    tag ps        : pick ParaStationMPI to run with                                            -->
+         <!--    tag ompi      : pick OpenMPI to run with                                                   -->
+         <!--    tag mvapich   : pick MVAPICH to run with                                                   -->
+         <!--    no tag        : by default, all sources will be copied, pepc-benchmark compiled, and the   -->
+         <!--                    benchmark configuration will be launched. the compiled binary will be      -->
+         <!--                    copied back onto the source tree for later reference.                      -->
+         <!-- ############################################################################################# -->
 
-      <!-- PARAMETER SETS ############################################################################## -->
-      <!-- define all parameter sets we possibly use to benchmark -->
-      <!-- test for system, only cluster part possible, use tag for booster -->
-      <parameterset name="system">
-         <parameter name="systemname" mode="shell">printf "%s" `cat /etc/FZJ/systemname`</parameter>
-         <parameter tag="booster" name="systemname">KNL</parameter>
-         <parameter name="partition" mode="python">{
-            "juwels": "batch",
-            "jureca": "batch",
-            "jurecadc": "dc-cpu",
-            "jusuf": "batch",
-            "KNL": "booster"}["${systemname}"]
-         </parameter>
-      </parameterset>
-      <!-- loop over different stages to test those -->
-      <parameterset name="stageset">
-         <!-- a list of possible MPI libraries we can try -->
-         <parameter                      name="impi"></parameter>
-         <parameter tag="allmpi|intel"   name="impi">impi</parameter>
-         <parameter                      name="ipsmpi"></parameter>
-         <parameter tag="allmpi|ips"     name="ipsmpi">ipsmpi</parameter>
-         <parameter                      name="psmpi"></parameter>
-         <parameter tag="allmpi|ps"      name="psmpi">psmpi</parameter>
-         <parameter                      name="mvapich"></parameter>
-         <parameter tag="allmpi|mvapich" name="mvapich">mvapich</parameter>
-         <parameter                      name="ompi"></parameter>
-         <parameter tag="allmpi|ompi"    name="ompi">ompi</parameter>
-         <!-- combine all MPIs to single parameter to loop over if tags present, otherwise use all three -->
-         <parameter tag="!booster+(intel|ips|ps|mvapich|ompi|allmpi)" name="list_of_mpis" mode="python">
-            ",".join([i for i in "${impi} ${ipsmpi} ${psmpi} ${ompi} ${mvapich}".split(" ") if len(i) > 0])
-         </parameter>
-         <parameter tag="!booster+!intel+!ips+!ps+!mvapich+!ompi" name="list_of_mpis" mode="python">
-            ",".join([i for i in "impi ipsmpi psmpi ompi mvapich".split(" ") if len(i) > 0])
-         </parameter>
-         <parameter tag="booster" name="list_of_mpis" mode="python">
-            ",".join([i for i in "psmpi".split(" ") if len(i) > 0])
-         </parameter>
-         <!-- prepare module load commands -->
-         <parameter name="load_modules" mode="python">{
-            "juwels": {
-                           "impi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2019a; module load Intel/2019.3.199-GCC-8.3.0 IntelMPI/2019.3.199", 
-                           "ipsmpi": "module purge; module load intel-para",
-                           "psmpi": "module purge; module load GCC ParaStationMPI",
-                           "ompi": "module purge; module load GCC OpenMPI/4.0.1",
-                           "mvapich": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR; export LD_LIBRARY_PATH=/gpfs/software/juwels/stages/2018b/software/CUDA/9.2.88/lib64/stubs/:${LD_LIBRARY_PATH}"
-                      }["${list_of_mpis}"],
-            "jureca": {
-                           "impi": "module purge; module load Intel IntelMPI",
-                           "ipsmpi": "module purge; module load Intel/2019.0.117-GCC-7.3.0 ParaStationMPI/5.2.1-1-mt",
-                           "psmpi": "module purge; module load GCC ParaStationMPI",
-                           "ompi": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/Devel-2019a; module load GCC/8.3.0 OpenMPI/4.0.1",
-                           "mvapich": "module purge; module use /usr/local/software/jureca/OtherStages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR"
-                      }["${list_of_mpis}"],
-            "jurecadc": {
-                           "impi": "module purge; module load Intel IntelMPI",
-                           "ipsmpi": "module purge; module load Intel ParaStationMPI",
-                           "psmpi": "module purge; module load GCC ParaStationMPI",
-                           "ompi": "module purge; module load GCC OpenMPI",
-                      }["${list_of_mpis}"],
-            "jusuf": {
-                           "impi": "module purge; module load Intel IntelMPI",
-                           "ipsmpi": "module purge; module load Intel ParaStationMPI",
-                           "psmpi": "module purge; module load GCC ParaStationMPI",
-                           "ompi": "module purge; module load GCC OpenMPI",
-                      }["${list_of_mpis}"],
-            "KNL": {
-                           "impi": "module purge; module load Architecture/KNL; module load Intel IntelMPI",
-                           "psmpi": "module purge; module load Architecture/KNL; module load GCC ParaStationMPI",
-                           "ompi": "module purge; module load Architecture/KNL; module load GCC OpenMPI"
-                      }["${list_of_mpis}"],
-            }["${systemname}"]
-         </parameter>
-         <!-- get name for job script based on MPI library used -->
-         <parameter name="job_script" mode="python">{"old_ompi": "job.ompi.slurm.skel"}.get("${list_of_mpis}","job.slurm.skel")</parameter>
-         <!-- get name for makefile on MPI (compiler, really) library used -->
-         <parameter name="makefile" mode="python">{"ipsmpi": "makefiles/makefile.defs.Intel", "impi": "makefiles/makefile.defs.Intel"}.get("${list_of_mpis}","makefiles/makefile.defs.GCC")</parameter>
-      </parameterset>
-      <!-- node configuration: #nodes, #ranks per node, #threads per rank -->
-      <parameterset name="nodeset">
-         <parameter                name="nodes" type="int">-1</parameter>
-         <!-- Juwels has 2 x 24 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
-         <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
-         <!-- Jureca-DC has 2 x 64 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
-         <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
-         <parameter name="nodes" type="int" mode="python">{
-            "juwels": "2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160",
-            "jureca": "32, 64, 96, 128",
-            "jurecadc": "2, 4, 8, 16, 24",
-            "jusuf": "2, 4",
-            "KNL": "4, 8"}["${systemname}"]
-         </parameter>
-         <!--parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter-->
+         <!-- PARAMETER SETS ############################################################################## -->
+         <!-- define all parameter sets we possibly use to benchmark -->
+         <!-- test for system, only cluster part possible, use tag for booster -->
+         <parameterset name="system">
+            <parameter name="systemname" mode="shell">printf "%s" `cat /etc/FZJ/systemname`</parameter>
+            <parameter tag="booster" name="systemname">KNL</parameter>
+            <parameter name="partition" mode="python">{
+               "juwels": "batch",
+               "jurecadc": "dc-cpu",
+               "jusuf": "batch",
+               "KNL": "booster"}["${systemname}"]
+            </parameter>
+         </parameterset>
+         <!-- loop over different stages to test those -->
+         <parameterset name="stageset">
+            <!-- a list of possible MPI libraries we can try -->
+            <parameter                      name="impi"></parameter>
+            <parameter tag="allmpi|intel"   name="impi">impi</parameter>
+            <parameter                      name="ipsmpi"></parameter>
+            <parameter tag="allmpi|ips"     name="ipsmpi">ipsmpi</parameter>
+            <parameter                      name="psmpi"></parameter>
+            <parameter tag="allmpi|ps"      name="psmpi">psmpi</parameter>
+            <parameter                      name="mvapich"></parameter>
+            <parameter tag="allmpi|mvapich" name="mvapich">mvapich</parameter>
+            <parameter                      name="ompi"></parameter>
+            <parameter tag="allmpi|ompi"    name="ompi">ompi</parameter>
+            <!-- combine all MPIs to single parameter to loop over if tags present, otherwise use all three -->
+            <parameter tag="!booster+(intel|ips|ps|mvapich|ompi|allmpi)" name="list_of_mpis" mode="python">
+               ",".join([i for i in "${impi} ${ipsmpi} ${psmpi} ${ompi} ${mvapich}".split(" ") if len(i) > 0])
+            </parameter>
+            <parameter tag="!booster+!intel+!ips+!ps+!mvapich+!ompi" name="list_of_mpis" mode="python">
+               ",".join([i for i in "impi ipsmpi psmpi ompi mvapich".split(" ") if len(i) > 0])
+            </parameter>
+            <parameter tag="booster" name="list_of_mpis" mode="python">
+               ",".join([i for i in "psmpi".split(" ") if len(i) > 0])
+            </parameter>
+            <!-- prepare module load commands -->
+            <parameter name="load_modules" mode="python">{
+               "juwels": {
+               "impi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2019a; module load Intel/2019.3.199-GCC-8.3.0 IntelMPI/2019.3.199", 
+               "ipsmpi": "module purge; module load intel-para",
+               "psmpi": "module purge; module load GCC ParaStationMPI",
+               "ompi": "module purge; module load GCC OpenMPI",
+               "mvapich": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR; export LD_LIBRARY_PATH=/gpfs/software/juwels/stages/2018b/software/CUDA/9.2.88/lib64/stubs/:${LD_LIBRARY_PATH}"
+               }["${list_of_mpis}"],
+               "jurecadc": {
+               "impi": "module purge; module load Intel IntelMPI",
+               "ipsmpi": "module purge; module load Intel ParaStationMPI",
+               "psmpi": "module purge; module load GCC ParaStationMPI",
+               "ompi": "module purge; module load GCC OpenMPI",
+               }["${list_of_mpis}"],
+               "jusuf": {
+               "impi": "module purge; module load Intel IntelMPI",
+               "ipsmpi": "module purge; module load Intel ParaStationMPI",
+               "psmpi": "module purge; module load GCC ParaStationMPI",
+               "ompi": "module purge; module load GCC OpenMPI",
+               }["${list_of_mpis}"],
+               "KNL": {
+               "impi": "module purge; module load Architecture/KNL; module load Intel IntelMPI",
+               "psmpi": "module purge; module load Architecture/KNL; module load GCC ParaStationMPI",
+               "ompi": "module purge; module load Architecture/KNL; module load GCC OpenMPI"
+               }["${list_of_mpis}"],
+               }["${systemname}"]
+            </parameter>
+            <!-- get name for job script based on MPI library used -->
+            <parameter name="job_script" mode="python">{"old_ompi": "job.ompi.slurm.skel"}.get("${list_of_mpis}","job.slurm.skel")</parameter>
+            <!-- get name for makefile on MPI (compiler, really) library used -->
+            <parameter name="makefile" mode="python">{"ipsmpi": "makefiles/makefile.defs.Intel", "impi": "makefiles/makefile.defs.Intel"}.get("${list_of_mpis}","makefiles/makefile.defs.GCC")</parameter>
+         </parameterset>
+         <!-- node configuration: #nodes, #ranks per node, #threads per rank -->
+         <parameterset name="nodeset">
+            <parameter                name="nodes" type="int">-1</parameter>
+            <!-- Juwels has 2 x 24 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
+            <!-- Jureca has 2 x 12 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
+            <!-- Jureca-DC has 2 x 64 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
+            <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
+            <parameter name="nodes" type="int" mode="python">{
+               "juwels": "2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160",
+               "jurecadc": "8, 16, 32, 48, 64",
+               "jusuf": "2, 4",
+               "KNL": "4, 8, 16, 32"}["${systemname}"]
+            </parameter>
+            <!--parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter-->
          <!-- the check has be 'designed' for Jureca and 12 nodes, stick to the number of nodes at least -->
          <parameter tag="check"    name="nodes" type="int">12</parameter>
          <!-- set the number of task per node, with dual socket ccNUMA, 2 could be a good option -->
          <!-- with 2 memory interfaces per CPU and dual socket, 4 could be a good option -->
          <!-- 4 will likely also make sense for the booster, given the quadrants, more may be beneficial however -->
-         <parameter tag="!booster" name="taskspnode" type="int">4</parameter>
-         <parameter tag="booster"  name="taskspnode" type="int">2, 4</parameter>
+         <parameter name="taskspnode" type="int" mode="python">{
+            "juwels": "4",
+            "jurecadc": "16",
+            "jusuf": "8",
+            "KNL": "4"}["${systemname}"]
+         </parameter>
          <!-- change HWT to the number of hardware threads you want PEPC to use -->
          <parameter name="threads" mode="python" type="int">{
             "juwels": ",".join(str(int(HWT/${taskspnode})) for HWT in [96]),
-            "jureca": ",".join(str(int(HWT/${taskspnode})) for HWT in [48]),
             "jurecadc": ",".join(str(int(HWT/${taskspnode})) for HWT in [256]),
             "jusuf": ",".join(str(int(HWT/${taskspnode})) for HWT in [128]),
             "KNL": ",".join(str(int(HWT/${taskspnode})) for HWT in [136])}["${systemname}"]
@@ -132,9 +127,8 @@
          <!-- define how many SMT threads we want to use per rank -->
          <parameter tag="!booster" name="thread_places" mode="python" type="int">{
             "juwels": 2 if ($threads*$taskspnode)>48 else 1,
-            "jurecadc": 2 if ($threads*$taskspnode)>128 else 1,
             "jusuf": 2 if ($threads*$taskspnode)>128 else 1,
-            "jureca": 2 if ($threads*$taskspnode)>24 else 1}["${systemname}"]
+            "jurecadc": 2 if ($threads*$taskspnode)>128 else 1}["${systemname}"]
          </parameter>
          <parameter tag="booster"  name="thread_places" mode="python" type="int">4 if ($threads*$taskspnode)>136 else ( 2 if ($threads*$taskspnode)>68 else 1 )</parameter>
          <!-- compute worker threads for PEPC -->
@@ -153,7 +147,7 @@
       </parameterset>
       <parameterset name="walkset">
          <!-- select a walk to test, or loop over a number of them (pthreads, simple, openmp) -->
-         <parameter name="walk">pthreads</parameter>
+         <parameter name="walk">pthreads, simple</parameter>
       </parameterset>
 
       <!-- FILE SETS ################################################################################### -->
@@ -464,3 +458,4 @@
 
    </benchmark>
 </jube>
+<!-- vim: set tabstop=3 shiftwidth=3 expandtab :-->
