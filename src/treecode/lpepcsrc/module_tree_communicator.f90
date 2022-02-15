@@ -170,7 +170,9 @@ module module_tree_communicator
     tp = c_loc(t)
     call atomic_store_int(t%communicator%thread_status, TREE_COMM_THREAD_STATUS_STARTING)
     tree_comm_thread_counter = tree_comm_thread_counter + 1
+#ifndef __PGI
     ERROR_ON_FAIL(pthreads_createthread(t%communicator%comm_thread, c_funloc(run_communication_loop), tp, thread_type = THREAD_TYPE_COMMUNICATOR, counter = tree_comm_thread_counter))
+#endif
 
     ! we have to wait here until the communicator has really started to find out its processor id
     do while (atomic_load_int(t%communicator%thread_status) /= TREE_COMM_THREAD_STATUS_STARTED)

@@ -1,0 +1,87 @@
+# this is an example makefile for GCC
+HELP = "\
+\# Makefile for PEPC\n\
+\# (GCC)\n\
+"
+
+# among other things, pathname within build directory
+MACH     = linux_gcc
+
+# enable (1)/disable (0) debugging
+DEBUG    = 1
+
+# enable (1)/disable (0) OpenMP
+OMP      = 0
+
+# enable (1)/disable (0) OpenACC
+OACC     = 1
+
+# define commands, compilers, and flags
+MAKE     = make
+
+CPP      = cpp
+CPPFLAGS = -E -x c -P -C -ffreestanding -D__PGI
+                       # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
+# switch to send_request issued by worker threads
+#CPPFLAGS += -DMPI_MULTIPLE
+CCPRE    =
+CC       = mpicc
+FCPRE    =
+FC       = mpif90
+LDPRE    =
+LD       = mpif90
+LDLIBS   =
+
+RANLIB   = gcc-ranlib
+
+AR       = gcc-ar
+ARFLAGS  = -rs
+
+RM       = rm -rf
+
+# define inlining flags, inlining is key
+INLINING = -Minline -Mipa
+
+# enable warnings (used for DEBUG builds)
+FWARNINGS = -Minform=warn
+
+# enable features pthreads and alike might rely on
+FFEATURES = -Mrecursive
+
+# architecture specific switches (think AVVX512 and alike)
+FARCH = -tp=host
+
+# have extra flags to fix compiler problems (FOR FORTRAN ONLY)
+FFIX =
+
+# switch further compiler flags depending on DEBUG setting
+ifeq ($(DEBUG), 1)
+  FFLAGS   = -O3 -gopt -Mbounds -traceback $(FFIX) $(FFEATURES) $(FWARNINGS) $(FARCH)
+  CFLAGS   = -O3 -gopt -pthread -Wall $(FARCH)
+  LDFLAGS  = -O3 -gopt -pthread
+else
+  FFLAGS   = -O3 $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
+  CFLAGS   = -O3 -pthread $(INLINING) $(FARCH)
+  LDFLAGS  = -O3 -pthread $(INLINING)
+  CPPFLAGS += -DNDEBUG
+endif
+
+# switch further compiler flags depending on OMP setting
+ifeq ($(OMP), 1)
+  FFLAGS   += -fopenmp
+  LDFLAGS  += -fopenmp
+  CPPFLAGS += -D_OPENMP
+else
+endif
+# switch further compiler flags depending on OACC setting
+# -acc=gpu -target=gpu , the latter setting OMP/OACC globally to GPUs
+# -acc=host -target=multicore
+ifeq ($(OACC), 1)
+  FFLAGS   += -acc=gpu -target=gpu -Minfo=accel
+  LDFLAGS  += -acc=gpu -target=gpu
+  CPPFLAGS += -D__OPENACC
+else
+endif
+
+# save compiler (version) string for PEPC's stdout message
+COMPILER = $(shell $(FC) --version | head -n 1)

@@ -69,7 +69,7 @@ module module_interaction_specific_types
 
    !> Data structure for thread local storage of single particles
    !> This includes lists of the interaction partners
-   integer, public, parameter :: MAX_IACT_PARTNERS = 8 * 256 * 4 * 2 ! length of vectors for GPU, multiples of 256 because of gang size?
+   integer, public, parameter :: MAX_IACT_PARTNERS = 256 !8 * 256 * 4 * 2 ! length of vectors for GPU, multiples of 256 because of gang size?
    integer, public, parameter :: ACC_QUEUE_LENGTH  = 10              ! how may lists we accept from the workers at one time
    integer, public, parameter :: GPU_STREAMS = 8                     ! number of GPU lists to prepare, multiple streams may require than one
 

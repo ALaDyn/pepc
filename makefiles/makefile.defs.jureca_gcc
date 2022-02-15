@@ -1,25 +1,33 @@
- HELP = "\
-\# Makefile for gcc 5.1\n\
+# this is an example makefile for GCC
+HELP = "\
+\# Makefile for PEPC\n\
+\# (GCC)\n\
 "
 
+# among other things, pathname within build directory
+MACH     = linux_gcc
 
-MACH     = linux_gcc-5.1
+# enable (1)/disable (0) debugging
+DEBUG    = 1
 
-DEBUG    = 0
-OMP      = 1
+# enable (1)/disable (0) OpenMP
+OMP      = 0
 
+# enable (1)/disable (0) OpenACC
+OACC     = 1
+
+# define commands, compilers, and flags
 MAKE     = make
 
 CPP      = mpicc
 CPPFLAGS = -E -x c -P -C -ffreestanding
                        # ^----- this prevents errors due to nasty automatic pre-inclusion of stdc-predefs.h when using cpp for fortran code
-
+# switch to send_request issued by worker threads
+#CPPFLAGS += -DMPI_MULTIPLE
 CCPRE    =
 CC       = mpicc
-
 FCPRE    =
 FC       = mpif90
-
 LDPRE    =
 LD       = mpif90
 LDLIBS   =
@@ -31,41 +39,70 @@ ARFLAGS  = -rs
 
 RM       = rm -rf
 
-INLINING = -flto -fuse-linker-plugin  \
-	   -fipa-matrix-reorg
-
+# define inlining flags, inlining is key
+INLINING = -flto -fuse-linker-plugin  -fipa-matrix-reorg
 # solve the following issue with lto:
 #`walk_worker_thread' referenced in section `.text' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
 #`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
 #`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
-#'-O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros' can be replaced with '-Ofast' when compiled with GCC/7.3.0 or older, otherwise 'nan' error occurs with velocity/position update.
 INLINING += -u run_communication_loop -u walk_worker_thread
 
+# enable warnings (used for DEBUG builds)
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
-FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero
 
+# enable GCC features pthreads and alike might rely on
+FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -fsign-zero 
+
+# architecture specific switches (think AVVX512 and alike)
+FARCH = -malign-data=cacheline -mtune=native -march=native
+
+# have extra flags to fix compiler problems (FOR FORTRAN ONLY)
+# -fallow-argument-mismatch allows non-conforming MPI modules to work
+FFIX = -fallow-argument-mismatch
+
+# switch further compiler flags depending on DEBUG setting
 ifeq ($(DEBUG), 1)
   FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
     -fcheck=all -frange-check -fbacktrace -fvar-tracking \
-    $(FFEATURES) \
-    $(FWARNINGS)
-  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall
+    $(FFIX) $(FFEATURES) $(FWARNINGS) $(FARCH)
+  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall $(FARCH)
   LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
 else
   FFLAGS   = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
-    $(INLINING) \
-    $(FFEATURES) \
-    $(FWARNINGS)
-  CFLAGS   = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros -pthread -Wall $(INLINING)
-  LDFLAGS  = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros -pthread $(INLINING)
+    $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
+  CFLAGS   = -O3 -pthread -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
+    $(INLINING) $(FARCH)
+  LDFLAGS  = -O3 -pthread $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
 
+# switch further compiler flags depending on OMP setting
 ifeq ($(OMP), 1)
   FFLAGS   += -fopenmp
   LDFLAGS  += -fopenmp
+  CPPFLAGS += -D_OPENMP
+else
+endif
+# switch further compiler flags depending on OACC setting
+# -fopenacc -foffload=-lgfortran -foffload=-latomic -foffload=-lm -foffload=nvptx-none
+# -fopenacc -foffload=-lgfortran -foffload=nvptx-none
+# -fopenacc -foffload=disable
+# -fno-lto
+ifeq ($(OACC), 1)
+  FFLAGS   += -fopenacc -foffload=-lgfortran -foffload=-latomic -foffload=-lgomp -foffload=-lm -foffload=nvptx-none
+  LDFLAGS  += -fopenacc -foffload=-lgfortran -foffload=-latomic -foffload=-lgomp -foffload=-lm -foffload=nvptx-none
+  CPPFLAGS += -D__OPENACC
 else
 endif
 
-
+# save compiler (version) string for PEPC's stdout message
 COMPILER = $(shell $(FC) --version | head -n 1)
+
+# print compiler setting (GCC only) to stdout to verify set flags
+#show_gcc_config:
+#	$(FC) -Q --help=common   $(FFLAGS) -c test.f90
+#	$(FC) -Q --help=target   $(FFLAGS) -c test.f90
+#	$(FC) -Q --help=params   $(FFLAGS) -c test.f90
+#	$(FC) -Q --help=target   $(FFLAGS) -c test.f90
+#	$(FC) -Q --help=warnings $(FFLAGS) -c test.f90
+#	$(FC) -fverbose-asm -S $(FFLAGS) test.f90

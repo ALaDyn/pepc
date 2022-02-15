@@ -228,7 +228,9 @@ contains
       if (      atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTED &
          .and. atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTING ) then
          call atomic_store_int(acc%thread_status, ACC_THREAD_STATUS_STARTING)
+#ifndef __PGI
          ERROR_ON_FAIL(pthreads_createthread(acc%acc_thread, c_funloc(acc_loop), c_null_ptr, thread_type = THREAD_TYPE_ACCELERATOR, counter = 99))
+#endif
 
          ! we have to wait here until the accelerator has really started
          do while (atomic_load_int(acc%thread_status) /= ACC_THREAD_STATUS_STARTED)
@@ -510,6 +512,7 @@ contains
       type(t_tree_node_interaction_data) :: node
       logical :: node_is_leaf
 
+!      write(*,*) 'compute_iact'
       select case (force_law)
       case (2)  !  compute 2D-Coulomb fields and potential of particle p from its interaction list
 
@@ -535,6 +538,7 @@ contains
 
       case (3)  !  compute 3D-Coulomb fields and potential of particle p from its interaction list
 
+!         write(*,*) 'calling dispatcher'
          call dispatch_list(particle, eps2, WORKLOAD_PENALTY_INTERACTION)
 
       case (4)  ! LJ potential for quiet start

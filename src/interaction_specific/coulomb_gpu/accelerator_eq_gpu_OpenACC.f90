@@ -27,13 +27,15 @@ module module_accelerator
       use, intrinsic :: iso_c_binding
       use pthreads_stuff, only: pthreads_sched_yield, get_my_core, pthreads_exitthread
       use module_debug
+      use mpi
 #ifdef __OPENACC
       use openacc
+#ifdef NVVP
       use cudadevice
       use cudafor
 #endif
+#endif
       implicit none
-      include 'mpif.h'
    
       type(c_ptr) :: acc_loop
 
@@ -335,8 +337,10 @@ module module_accelerator
 #ifdef __OPENACC
       !$acc wait
       !$acc end data
+#ifdef NVVP
       write(*,*) 'sync ',cudaDeviceSynchronize()
       write(*,*) 'reset ',cudaDeviceReset()
+#endif
       !call acc_shutdown(acc_device_nvidia)
 #endif
 
@@ -372,6 +376,7 @@ module module_accelerator
       ! when this is called, the accelerator thread is up and running
       ! (we check its status before we continue from calc_force_prepare)
 
+!      write(*,*) 'dispatcher'
       do
          if (atomic_fetch_and_decrement_int(acc%q_len) .gt. 1) then
             ! decrease queue indicator and check if we can add in one got
@@ -405,6 +410,7 @@ module module_accelerator
 
             call critical_section_leave(queue_lock)
 
+!            write(*,*) local_queue_bottom
             return
 
          else

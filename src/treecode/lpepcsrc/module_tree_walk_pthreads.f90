@@ -278,7 +278,9 @@ module module_tree_walk
     ! start the worker threads...
     do ith = 1, num_walk_threads
       threaddata(ith)%id = ith
+#ifndef __PGI
       ERROR_ON_FAIL_MSG(pthreads_createthread(thread_handles(ith), c_funloc(walk_worker_thread), c_loc(threaddata(ith)), thread_type = THREAD_TYPE_WORKER, counter = ith), "Consider setting environment variable BG_APPTHREADDEPTH=2 if you are using BG/P.")
+#endif
     end do
 
     ! ... and wait for work thread completion
