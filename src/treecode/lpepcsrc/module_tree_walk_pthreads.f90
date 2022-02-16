@@ -463,6 +463,11 @@ module module_tree_walk
                 call debug_mpi_abort()
               end if
 
+#ifdef __OPENACC
+              ! start GPU interaction
+              call compute_iact_list(thread_particle_data(i))
+#endif
+
               ! copy forces and potentials back to thread-global array
               particle_data(thread_particle_indices(i))%data = thread_particle_data(i)%data
               particle_data(thread_particle_indices(i))%results = thread_particle_data(i)%results
