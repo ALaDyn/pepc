@@ -622,7 +622,7 @@ contains
          ! print *, "Different species detected: ", particles(i)%data%species, direction_cnt
          do j = 1, 8
            if (direction_cnt(j) .ne. 0) then
-             call energy_elastic_merging_low_weight(j, directional_buffer, direction_cnt(j), merged_guide, &
+             call energy_elastic_merging_aggressive(j, directional_buffer, direction_cnt(j), merged_guide, &
                                   merged_cnt, species, particles(i)%data%mp_int1, energy_group_levels)
            end if
          end do
@@ -668,7 +668,7 @@ contains
      ! Final merge for the last species
      do i = 1, 8
        if (direction_cnt(i) .ne. 0) then
-         call energy_elastic_merging_low_weight(i, directional_buffer, direction_cnt(i), merged_guide, &
+         call energy_elastic_merging_aggressive(i, directional_buffer, direction_cnt(i), merged_guide, &
                               merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
                               energy_group_levels)
        end if
@@ -731,7 +731,7 @@ contains
          ! print *, "Different species detected: ", particles(i)%data%species, direction_cnt
          do j = 1, 8
            if (direction_cnt(j) .ne. 0) then
-             call energy_elastic_merging_low_weight(j, directional_buffer, direction_cnt(j), merged_guide, &
+             call energy_elastic_merging_aggressive(j, directional_buffer, direction_cnt(j), merged_guide, &
                                   merged_cnt, species, particles(i)%data%mp_int1, energy_group_levels)
            end if
          end do
@@ -785,7 +785,7 @@ contains
      ! Final merge for the last species
      do i = 1, 8
        if (direction_cnt(i) .ne. 0) then
-         call energy_elastic_merging_low_weight(i, directional_buffer, direction_cnt(i), merged_guide, &
+         call energy_elastic_merging_aggressive(i, directional_buffer, direction_cnt(i), merged_guide, &
                               merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
                               energy_group_levels)
        end if
@@ -857,7 +857,7 @@ contains
          ! print *, "Different species detected: ", particles(i)%data%species, direction_cnt
          do j = 1, total_div
            if (direction_cnt(j) .ne. 0) then
-             call energy_elastic_merging_low_weight(j, directional_buffer, direction_cnt(j), merged_guide, &
+             call energy_elastic_merging_aggressive(j, directional_buffer, direction_cnt(j), merged_guide, &
                                   merged_cnt, species, particles(i)%data%mp_int1, energy_group_levels)
            end if
          end do
@@ -895,7 +895,7 @@ contains
      ! Final merge for the last species
      do i = 1, total_div
        if (direction_cnt(i) .ne. 0) then
-         call energy_elastic_merging_low_weight(i, directional_buffer, direction_cnt(i), merged_guide, &
+         call energy_elastic_merging_aggressive(i, directional_buffer, direction_cnt(i), merged_guide, &
                               merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
                               energy_group_levels)
        end if
@@ -1411,6 +1411,10 @@ contains
                merge_instance = FLOOR(0.5*grouped_count(j)*(1.0 - merge_ratio))
                if (merge_ratio < 0.5) then
                  merge_instance = FLOOR(merge_ratio*grouped_count(j)*0.5)
+                 if (merge_instance .eq. 0) then 
+                   merge_instance = 1
+                 end if
+                 
                  merge_collector_size = FLOOR(1.0*grouped_count(j)/merge_instance)
                end if
                remainder = grouped_count(j) - merge_collector_size*merge_instance
@@ -1523,6 +1527,267 @@ contains
      deallocate(merged_buffer)
      ! print *, "merged_buffer Deallocation done"
    end subroutine energy_elastic_merging_low_weight
+
+   subroutine energy_elastic_merging_aggressive(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, &
+                                     species, parent_key, energy_threshold)
+     !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
+     !       most direct way of doing it is to copy the particles into respective directional buffer.
+     !       don't sum them up yet! information will be lost if done so.
+     implicit none
+     integer, intent(in) :: direction, direction_cnt, species, parent_key
+     type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
+     type(linked_list_elem), pointer, intent(inout) :: merged_guide
+     integer, intent(inout) :: merged_cnt
+     real(kind_physics), allocatable, intent(in) :: energy_threshold(:)
+     integer :: i, j, k, l, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
+                merge_instance, merge_collector_size, IStart, IStop, j_start, progenitor_cnt, min_weight, &
+                iter_i, iter_j
+     integer, allocatable :: grouped_count(:), weight_counts(:)
+     real(kind_physics) :: kin_e, weight, vel(3)
+     real(kind_physics), allocatable :: max_weight(:)
+     type(t_particle), allocatable :: energy_collector(:,:), merged_buffer(:), pass_buffer(:)
+     type(t_particle) :: sum_particle
+
+     filtered_instance = size(energy_threshold)
+     merge_collector_size = 4
+     ! print *, "Direction ", direction, " of 8, starting merged_buffer allocation .", direction_cnt
+!      allocate(energy_threshold(filtered_instance))
+     allocate(max_weight(filtered_instance))
+     allocate(merged_buffer(direction_cnt))
+     do iter_i = 1, direction_cnt
+       merged_buffer(iter_i)%x = 0.0_kind_physics
+       merged_buffer(iter_i)%data%q = 0.0_kind_physics
+       merged_buffer(iter_i)%data%v = 0.0_kind_physics
+       merged_buffer(iter_i)%data%m = 0.0_kind_physics
+       merged_buffer(iter_i)%data%b = 0.0_kind_physics
+       merged_buffer(iter_i)%data%f_e = 0.0_kind_physics
+       merged_buffer(iter_i)%data%f_b = 0.0_kind_physics
+       merged_buffer(iter_i)%results%e = 0.0_kind_physics
+       merged_buffer(iter_i)%results%pot = 0.0_kind_physics
+     end do
+
+     max_weight = 1.0_kind_physics
+
+     m_i = 0
+     ! print *, "ll_elem count: ", CEILING(REAL(merged_cnt/size(merged_guide%tmp_particles))), buffer_pos
+!      energy_threshold(1) = 0.0
+!      energy_threshold(2) = 10.0
+!      energy_threshold(3) = 20.0
+!      energy_threshold(4) = 30.0
+!      energy_threshold(5) = 40.0
+!      energy_threshold(6) = 60.0
+     f_i = filtered_instance
+
+     if (direction_cnt > 2) then
+       allocate(grouped_count(filtered_instance))
+       allocate(energy_collector(filtered_instance, direction_cnt))
+       do iter_i = 1, filtered_instance
+         do iter_j = 1, direction_cnt
+           energy_collector(iter_i,iter_j)%x = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%q = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%v = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%m = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%b = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%f_e = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%data%f_b = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%results%e = 0.0_kind_physics
+           energy_collector(iter_i,iter_j)%results%pot = 0.0_kind_physics
+         end do
+       end do
+
+       ! Sorting particle based on energy
+       grouped_count = 0
+       do i = 1, direction_cnt
+         weight = abs(directional_buffer(direction,i)%data%q)
+         vel = directional_buffer(direction,i)%data%v
+         kin_e = 0.5*(directional_buffer(direction,i)%data%m/weight)*e_mass*dot_product(vel,vel)
+
+         if (kin_e >= energy_threshold(filtered_instance)) then
+           f_i = filtered_instance
+         else
+           do while (kin_e < energy_threshold(f_i))
+             f_i = f_i - 1
+           end do
+         end if
+         if(f_i < 1 .or. f_i > filtered_instance) print *, "Checking f_i: ", f_i, kin_e
+         grouped_count(f_i) = grouped_count(f_i) + 1
+         energy_collector(f_i, grouped_count(f_i)) = directional_buffer(direction,i)
+         if (weight > max_weight(f_i)) then
+           max_weight(f_i) = weight
+         end if
+
+         ! Don't merge the particles with less than 10.0eV, copied directly to merged_buffer.
+!          if (species .eq. 0) then
+!            if (f_i .eq. 1) then
+!              m_i = m_i + 1
+!              merged_buffer(m_i) = directional_buffer(direction,i)
+!              merged_buffer(m_i)%label = 0
+!            end if
+!          end if
+       end do
+
+       ! print *, "parent_key: ", parent_key, direction, grouped_count
+!        if (species .eq. 0) then
+!          j_start = 2
+!        else
+         j_start = 1
+!        end if
+
+       ! Merge the rest according to the grouped energy levels.
+       do j = j_start, filtered_instance
+         if(grouped_count(j) .ne. 0) then
+           if (grouped_count(j) > 2) then
+             progenitor_cnt = grouped_count(j)
+             if (max_weight(j) > 1.0_kind_physics) then
+               allocate(pass_buffer(grouped_count(j)))
+               do iter_i = 1, grouped_count(j)
+                 pass_buffer(iter_i)%x = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%q = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%v = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%m = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%b = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_e = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_b = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%e = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%pot = 0.0_kind_physics
+               end do
+
+               pass_buffer = energy_collector(j,1:grouped_count(j))
+               call sort_particles_by_weight(pass_buffer)
+               energy_collector(j,1:grouped_count(j)) = pass_buffer
+               deallocate(pass_buffer)
+
+               ! count the numbers of particle at each weight
+               allocate(weight_counts(max_weight(j)))
+               weight_counts = 0
+               min_weight = int(abs(energy_collector(j,1)%data%q))
+               do k = 1, grouped_count(j)
+                 l = int(abs(energy_collector(j,k)%data%q))
+                 weight_counts(l) = weight_counts(l) + 1
+               end do
+
+               if (weight_counts(max_weight(j)) <= 5) then
+                 progenitor_cnt = grouped_count(j) - weight_counts(max_weight(j))
+                 remainder = weight_counts(max_weight(j))
+               else
+                 progenitor_cnt = grouped_count(j)
+                 remainder = 0
+               end if
+               deallocate(weight_counts)
+
+               if (merge_ratio > 0.5_kind_physics) then
+                 merge_instance = FLOOR(0.5*progenitor_cnt*(1.0 - merge_ratio))
+               else
+                 merge_instance = FLOOR(merge_ratio*progenitor_cnt*0.5)
+                 if (merge_instance .eq. 0) then 
+                   merge_instance = 1
+                 end if
+                 merge_collector_size = FLOOR(1.0*progenitor_cnt/merge_instance)
+               end if
+               remainder = remainder + progenitor_cnt - merge_collector_size*merge_instance
+             else
+               ! NOTE: Consider replacing 0.5 with 1/(collector_size - 2), so that the merging
+               !       is not restricted to 4 -> 2 particles.
+               merge_instance = FLOOR(0.5*grouped_count(j)*(1.0 - merge_ratio))
+               if (merge_ratio < 0.5) then
+                 merge_instance = FLOOR(merge_ratio*grouped_count(j)*0.5)
+                 if (merge_instance .eq. 0) then 
+                   merge_instance = 1
+                 end if
+                 
+                 merge_collector_size = FLOOR(1.0*grouped_count(j)/merge_instance)
+               end if
+               remainder = grouped_count(j) - merge_collector_size*merge_instance
+             end if
+
+             do i = 1, merge_instance
+               IStart = (i - 1)*merge_collector_size + 1
+               IStop = IStart + merge_collector_size - 1
+               allocate(pass_buffer(merge_collector_size))
+               
+               do iter_i = 1, merge_collector_size
+                 pass_buffer(iter_i)%x = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%q = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%v = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%m = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%b = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_e = 0.0_kind_physics
+                 pass_buffer(iter_i)%data%f_b = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%e = 0.0_kind_physics
+                 pass_buffer(iter_i)%results%pot = 0.0_kind_physics
+               end do
+               
+               pass_buffer = energy_collector(j,IStart:IStop)
+               call resolve_elastic_merge_momentum(pass_buffer, merge_collector_size, merged_buffer, m_i, j)
+               deallocate(pass_buffer)
+             end do
+
+             IStart = grouped_count(j) - remainder + 1
+             IStop = grouped_count(j)
+             do i = IStart, IStop
+               m_i = m_i + 1
+               merged_buffer(m_i) = energy_collector(j,i)
+               merged_buffer(m_i)%label = 0
+             end do
+             ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
+             !          " remainder: ", remainder, " merged p: ", merge_instance*2, ". Diff: ", &
+             !          merge_ratio*grouped_count(j) - (merge_instance*2 + remainder)
+           else
+             do i = 1, grouped_count(j)
+               m_i = m_i + 1
+               merged_buffer(m_i) = energy_collector(j,i)
+               merged_buffer(m_i)%label = 0
+             end do
+           end if
+         end if
+       end do
+
+       deallocate(grouped_count)
+       deallocate(energy_collector)
+     else
+       do i = 1, direction_cnt
+         m_i = m_i + 1
+         merged_buffer(m_i) = directional_buffer(direction,i)
+         merged_buffer(m_i)%label = 0
+       end do
+     end if
+!      deallocate(energy_threshold)
+     deallocate(max_weight)
+
+     !NOTE: now that merged_buffer is filled, copy to merged_guide ll_element.
+     if (m_i .ne. 0) then
+       ll_elem_gen = MOD(merged_cnt, size(merged_guide%tmp_particles))
+       buffer_pos = ll_elem_gen + 1
+       ! print *, "buffer_pos: ", buffer_pos
+       if (ll_elem_gen == 0 .and. merged_cnt > 0) then
+          call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
+          merged_guide => merged_guide%next
+          nullify (merged_guide%next)
+       end if
+
+       ll_elem_gen = ll_elem_gen + m_i
+       if (ll_elem_gen <= size(merged_guide%tmp_particles)) then
+         remainder = buffer_pos + m_i - 1
+         merged_guide%tmp_particles(buffer_pos:remainder) = merged_buffer(1:m_i)
+         ! print *, "ll_elem_gen", ll_elem_gen, buffer_pos, remainder, m_i, parent_key
+       else
+         extent = size(merged_guide%tmp_particles) - buffer_pos + 1
+         remainder = ll_elem_gen - size(merged_guide%tmp_particles)
+         merged_guide%tmp_particles(buffer_pos:size(merged_guide%tmp_particles)) = &
+         merged_buffer(1:extent)
+
+         call allocate_ll_buffer(size(merged_guide%tmp_particles), merged_guide%next)
+         merged_guide => merged_guide%next
+         ! print *, "extension", ll_elem_gen, buffer_pos, remainder, (extent + 1), m_i, parent_key
+         merged_guide%tmp_particles(1:remainder) = merged_buffer((extent + 1):m_i)
+         nullify (merged_guide%next)
+       end if
+       merged_cnt = merged_cnt + m_i
+       ! print *, "ll_elem_gen", ll_elem_gen, size(merged_guide%tmp_particles), merged_cnt, parent_key
+     end if
+     deallocate(merged_buffer)
+     ! print *, "merged_buffer Deallocation done"
+   end subroutine energy_elastic_merging_aggressive
 
    subroutine resolve_elastic_merge_momentum(input_buffer, input_cnt, merged_buffer, m_i, group_index)
      implicit none

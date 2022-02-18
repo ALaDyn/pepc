@@ -87,7 +87,7 @@ program pepc
      if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
      call read_particles_mpiio(itime_in, MPI_COMM_WORLD, checkin_step, tnp, particles, checkpoint_file, &
                                int(np))
-     call write_particles(particles)
+     ! call write_particles(particles)
 
      ! ctr_s(1) = (my_rank + 1)*np
      ! ctr_s(2:4) = CEILING(particles(1)%x*1e5, kind=int32)
@@ -169,7 +169,7 @@ program pepc
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
-   steps_since_last = 0
+   steps_since_last = 50000
    last_merge_tnp = 0
    do step = 0, nt - 1
       if (root) then
@@ -418,19 +418,22 @@ program pepc
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
       steps_since_last = steps_since_last + 1
 
-      if (tnp > 5000000 .and. steps_since_last > 250000) then
+      if (tnp > 80000000 .and. steps_since_last > 50000) then
         !==========Redistribute particles among the MPI Ranks====================
         call pepc_particleresults_clear(particles)
         call pepc_grow_tree(particles)
         call pepc_timber_tree()
         !========================================================================
 
-        merge_ratio = 1. - (2.*(1.0 - last_merge_tnp/tnp))
-        if (merge_ratio .lt. 0.5) then
-          merge_ratio = 0.5001_kind_physics
+        if (last_merge_tnp .eq. 0) then
+          merge_ratio = 0.500001_kind_physics
         end if
+        merge_ratio = 1. - (2.*(1.0 - last_merge_tnp/tnp))
+!        if (merge_ratio .lt. 0.5) then
+!          merge_ratio = 0.5001_kind_physics
+!        end if
         if (root) print *, "Merge ratio: ",  merge_ratio
-        merge_ratio = 0.5001_kind_physics
+!        merge_ratio = 0.5001_kind_physics
 
         sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
         ! merge_ratio = 0.90
@@ -454,7 +457,7 @@ program pepc
           ! call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
           !                                     i, particle_guide, new_particle_cnt)
           call momentum_partition_merging_fine(particles, sibling_cnt, sibling_upper_limit, &
-                                               i, particle_guide, new_particle_cnt, 16, 8)
+                                               i, particle_guide, new_particle_cnt, 32, 16)
         end do
         call merge_replace_particles_list(particles, buffer, new_particle_cnt)
         call deallocate_ll_buffer(buffer)
