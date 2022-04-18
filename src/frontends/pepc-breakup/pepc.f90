@@ -169,7 +169,7 @@ program pepc
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
-   steps_since_last = 50000
+   steps_since_last = 0
    last_merge_tnp = 0
    do step = 0, nt - 1
       if (root) then
@@ -381,7 +381,7 @@ program pepc
         end if
       end if
 
-!      np = size(particles)
+      np = size(particles)
 !      tnp = 0
 !      call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
 !      if (root) print *, "Total particles: ", tnp
@@ -389,6 +389,11 @@ program pepc
       deallocate(gathered_new_buffer)
       call timer_stop(t_boris)
       if (root) write (*, '(a,es12.4)') " ====== boris_scheme [s]:", timer_read(t_boris)
+
+      if (slice_parts) then
+        if (root) print *, 'Sampling particles'
+        call slice_particles(particles, 4.04_kind_physics, 7.56_kind_physics, -0.20_kind_physics, 0.20_kind_physics, slab_particles)
+      end if
 
       !=====================Particle Merging====================================
       actual_parts_cnt = 0
@@ -418,7 +423,7 @@ program pepc
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
       steps_since_last = steps_since_last + 1
 
-      if (tnp > 80000000 .and. steps_since_last > 50000) then
+      if (tnp > 5000000 .and. steps_since_last > 250000) then
         !==========Redistribute particles among the MPI Ranks====================
         call pepc_particleresults_clear(particles)
         call pepc_grow_tree(particles)
@@ -427,18 +432,20 @@ program pepc
 
         if (last_merge_tnp .eq. 0) then
           merge_ratio = 0.500001_kind_physics
+        else
+          merge_ratio = float(6000000)/float(tnp) ! 1. - (2.*(1.0 - float(80000000)/float(tnp)))
         end if
-        merge_ratio = 1. - (2.*(1.0 - last_merge_tnp/tnp))
+
+        if (merge_ratio > 0.5_kind_physics) merge_ratio = 0.500001_kind_physics
 !        if (merge_ratio .lt. 0.5) then
 !          merge_ratio = 0.5001_kind_physics
 !        end if
         if (root) print *, "Merge ratio: ",  merge_ratio
 !        merge_ratio = 0.5001_kind_physics
 
-        sibling_upper_limit = 4000 !(tnp/n_ranks)*0.5 !500
-        ! merge_ratio = 0.90
+        sibling_upper_limit = 60000 !4000 !(tnp/n_ranks)*0.5 !500
         call compute_particle_keys(bounding_box, particles)
-        call sort_particles_by_key(particles) !Counter act jumbling by filter_and_swap(), as well as new particles.
+        call sort_particles_by_key(particles) !Counter act randomizing by filter_and_swap(), as well as new particles.
         call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 6_kind_level)
 
         !NOTE: sibling_cnt is allocated here.
@@ -471,6 +478,7 @@ program pepc
       call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
       if (root) then
         write (*,'(a,i10)') "Total particles: ", tnp
+        write (*,'(a,i10)') "last_merge_tnp: ", last_merge_tnp
         write (*,'(a,i10,i10,i10,i10,i10)') "Actual species count: ", total_actual_parts, virtual_particle_cnt
       end if
 
@@ -503,18 +511,32 @@ program pepc
 !=============================Writing output files==============================
       if (doDiag .and. particle_output) then 
         call write_particles(particles)
-        write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
-        file_name = trim(file_name)
+        ! call charge_poloidal_distribution(particles, local_table2, global_table2, tnp, itime_in + step + 1)
+
+        ! write(file_name, '(A6,I10.10,A4)') 'weights_', itime_in + step + 1, '.txt'
+        ! file_name = trim(file_name)
         ! call toroidal_weight_distribution(particles, local_table2, 1000)
         ! call gather_weights_tables(local_table2, global_table2, 55, file_name)
+        
+        ! write(file_name, '(A6,I10.10,A4)') 'minmaxWeight_', itime_in + step + 1, '.txt'
+        ! file_name = trim(file_name)
         ! call toroidal_max_weights(particles, local_table1D, local_table1D_1, 1000)
         ! call gather_minmaxWeights_tables(local_table1D, local_table1D_1, global_table1D, global_table1D_1, 55, file_name)
+
+        ! write(file_name, '(A6,I10.10,A4)') 'angles_', itime_in + step + 1, '.txt'
+        ! file_name = trim(file_name)
         ! call unit_vector_distribution(particles, local_table2, 50, 100)
         ! call gather_spherical_angle_tables(local_table2, global_table2, 55, file_name)
+
+        ! write(file_name, '(A6,I10.10,A4)') 'VmeanPhi_', itime_in + step + 1, '.txt'
+        ! file_name = trim(file_name)
         ! call V_mean_phi_distribution(particles, local_table2, 1000)
         ! call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
-        call V_par_perp_calculation(particles, local_table2)
-        call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
+
+        ! write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
+        ! file_name = trim(file_name)
+        ! call V_par_perp_calculation(particles, local_table2)
+        ! call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
       end if
 
       ! NOTE: if density diagnostic is on, do these
@@ -522,7 +544,8 @@ program pepc
          call timer_start(t_interpolate)
          if (mesh_mode == 0) then
            do i = 1, size(particles)
-             call density_interpolation(particles(i), density_verts)
+             ! call density_interpolation(particles(i), density_verts)
+             call Sum_Vde(particles(i), density_verts)
            end do
          elseif (mesh_mode == 1) then
            do i = 1, size(particles)

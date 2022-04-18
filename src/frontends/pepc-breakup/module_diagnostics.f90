@@ -27,6 +27,7 @@ module diagnostics
    use module_pepc_types
    use module_timings
    use helper
+   use interactions_integrator
    implicit none
 
 contains
@@ -77,18 +78,18 @@ contains
     end do
   end subroutine torus_diagnostic_xz_grid
 
-  subroutine torus_diagnostic_xz_breakdown(major_radius, minor_radius, subdivisions, points)
+  subroutine torus_diagnostic_xz_breakdown(major_radius, minor_radius, N_point_1D, points)
     ! Diagnostic_grid populates domain with points at regular distance, in xz plane
     implicit none
     real(kind_physics), intent(in) :: major_radius, minor_radius
-    integer, intent(in) :: subdivisions ! denotes number of subdivisions in 1 dimension
+    integer, intent(in) :: N_point_1D ! denotes number of subdivisions in 1 dimension
     type(t_particle), allocatable, intent(inout) :: points(:)
     real(kind_physics) :: increments, temp_dist(2), dist_sum_x, &
                           dist_sum_z, x_length
     integer :: total_points_1D, total_points
 
     x_length = 2.0_8*minor_radius
-    total_points_1D = (2**subdivisions + 1)
+    total_points_1D = N_point_1D !(2**subdivisions + 1)
     total_points = total_points_1D**2
     increments = x_length/(total_points_1D - 1)
 
@@ -119,6 +120,7 @@ contains
       points(i)%work = 1.0_8
       points(i)%data%v = 0.0
     end do
+    !print *, points(1)%x(1), points(1)%x(3), points(size(points))%x(1), points(size(points))%x(3)
   end subroutine torus_diagnostic_xz_breakdown
 
   subroutine torus_diagnostic_xy_grid(major_radius, minor_radius, subdivisions, points, z_offset)
@@ -166,6 +168,89 @@ contains
       points(i)%data%v = 0.0
     end do
   end subroutine torus_diagnostic_xy_grid
+
+  subroutine charge_poloidal_distribution(particle_list, table, global_table, n_total, t_step)
+    use mpi
+    implicit none
+    type(t_particle), allocatable, intent(in) :: particle_list(:)
+    character(len=255) :: filename
+    real(kind_physics), allocatable, intent(inout) :: table(:,:), global_table(:,:)
+    integer(kind_particle), intent(in) :: n_total
+    real(kind_physics) :: coords(3), z, R
+    integer :: n_parts, l, local_array_size
+    integer, allocatable :: offsets(:), receive_cnt(:)
+    integer :: rank_size, t_step
+
+    ! Table structure: charge 
+    !                  radial distance
+    !                  vertical distance (z height)
+
+    if (root) then
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, rank_size, ierr)
+      allocate(offsets(rank_size))
+      allocate(receive_cnt(rank_size))
+      allocate(global_table(3,n_total))
+      offsets = 0
+      receive_cnt = 0
+      global_table = 0.0_kind_physics
+      print *, "Starting poloidal mapping", size(global_table)
+    else
+      allocate(global_table(0,0))
+      allocate(offsets(0))
+      allocate(receive_cnt(0))
+    end if
+
+    n_parts = size(particle_list)
+    allocate(table(3,n_parts))
+    table = 0.0_kind_physics 
+
+    do l = 1, n_parts
+      coords = particle_list(l)%x
+
+      ! Scaling to meters
+      R = sqrt(coords(1)**2 + coords(2)**2)*(c*1e-12)
+      z = coords(3)*(c*1e-12)
+
+      table(1,l) = particle_list(l)%data%q
+      table(2,l) = R
+      table(3,l) = z
+    end do
+
+    local_array_size = size(table)
+    call MPI_GATHER(local_array_size, 1, MPI_INT, receive_cnt, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      do l = 2, rank_size
+        offsets(l) = offsets(l-1) + receive_cnt(l-1)
+      end do
+      do l = 1, rank_size
+        print *, receive_cnt(l), offsets(l)
+      end do
+    end if
+
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+    call MPI_GATHERV(table, local_array_size, MPI_KIND_PHYSICS,&
+                     global_table, receive_cnt, offsets, MPI_KIND_PHYSICS, &
+                     0, MPI_COMM_WORLD, ierr) 
+
+    if (root) then
+      print *, "Start writing file"
+      write(filename, '(A6,I10.10,A4)') 'charge_poloidal_distribution_', t_step, '.txt'
+      filename = trim(filename)
+      open(53, file=filename, action='WRITE', position='append')
+      write(53, *) 'charge    ', 'R(m)    ', 'z(m)    '
+    
+      do l = 1, n_total
+        write(53, *) global_table(1, l), global_table(2, l), global_table(3, l)
+      end do
+      close(53)
+    end if
+
+    deallocate(global_table)
+    deallocate(table)
+    deallocate(receive_cnt)
+    deallocate(offsets)
+  end subroutine charge_poloidal_distribution
 
   subroutine unit_vector_distribution(particle_list, table, N_theta, N_phi)
     implicit none
@@ -944,6 +1029,95 @@ contains
     end if
   end subroutine density_interpolation
 
+  subroutine Sum_Vde(particle, vertices)
+    implicit none
+    type(t_particle), intent(in) :: particle
+    type(diag_vertex), allocatable, intent(inout) :: vertices(:)
+    real(kind_physics) :: min_x, min_y, min_z, inv_vol, xp, yp, zp, coeff
+    real(kind_physics) :: temp_q_dens
+    integer :: total_vertices, nx, ny, nz, N_cell
+    integer :: loll, lorl, upll, uprl, lolu, loru, uplu, upru, offset
+    ! NOTE: loll = lower left corner, lower plane
+    !       lorl = lower right corner, lower plane
+    !       uplu = upper left corner, upper plane
+    !       upru = upper right corner, upper plane
+    !       The rest can be inferred.
+
+    total_vertices = size(vertices)
+
+    !  NOTE: dx, dy & dz are global variables, 'min' denotes the minimum position
+    !        where particles are allowed to populate.
+    min_x = vertices(1)%x(1) + 0.5*dx
+    min_y = vertices(1)%x(2) + 0.5*dy
+    min_z = vertices(1)%x(3) + 0.5*dz
+    inv_vol = 1./(dx*dy*dz)
+    ! print *, dx*dy*dz, dx, dy ,dz
+
+    offset = (x_cell + 1)*(y_cell + 1)
+
+    xp = particle%x(1)
+    yp = particle%x(2)
+    zp = particle%x(3)
+    coeff = particle%data%q * inv_vol**2
+    ! - min_x to centre the coordinates to 0.0, easier to compute cell num.
+    nx = FLOOR((xp - min_x)/dx + 0.5)
+    ny = FLOOR((yp - min_y)/dy + 0.5)
+    nz = FLOOR((zp - min_z)/dz + 0.5)
+    N_cell = (x_cell*y_cell)*nz + (x_cell*ny + nx) + 1
+
+    ! with cell number known, calculate the 8 vertices that bounds the cell.
+    loll = N_cell + ny + (y_cell + 1 + x_cell)*nz
+    lorl = loll + 1
+    upll = loll + x_cell + 1
+    uprl = upll + 1
+    lolu = loll + offset
+    loru = lorl + offset
+    uplu = upll + offset
+    upru = uprl + offset
+
+    ! interpolate the particle charge to the vertices. Also computes J.
+    if (particle%data%q < 0.0) then
+      temp_q_dens = 1.0
+      vertices(loll)%q_density(1) = temp_q_dens + vertices(loll)%q_density(1)
+      vertices(loll)%J_density = temp_q_dens*particle%data%v &
+                                 + vertices(loll)%J_density
+
+      vertices(lorl)%q_density(1) = temp_q_dens + vertices(lorl)%q_density(1)
+      vertices(lorl)%J_density = temp_q_dens*particle%data%v &
+                                 + vertices(lorl)%J_density
+
+      vertices(upll)%q_density(1) = temp_q_dens + vertices(upll)%q_density(1)
+      vertices(upll)%J_density = temp_q_dens*particle%data%v &
+                                 + vertices(upll)%J_density
+
+      vertices(uprl)%q_density(1) = temp_q_dens + vertices(uprl)%q_density(1)
+      vertices(uprl)%J_density = temp_q_dens*particle%data%v &
+                                 + vertices(uprl)%J_density
+
+      vertices(lolu)%q_density(1) = temp_q_dens + vertices(lolu)%q_density(1)
+      vertices(lolu)%J_density = temp_q_dens*particle%data%v &
+                                 + vertices(lolu)%J_density
+
+      vertices(loru)%q_density(1) = temp_q_dens + vertices(loru)%q_density(1)
+      vertices(loru)%J_density = temp_q_dens*particle%data%v &
+                                 + vertices(loru)%J_density
+
+      vertices(uplu)%q_density(1) = temp_q_dens + vertices(uplu)%q_density(1)
+      vertices(uplu)%J_density = temp_q_dens*particle%data%v &
+                                 + vertices(uplu)%J_density
+
+      vertices(upru)%q_density(1) = temp_q_dens + vertices(upru)%q_density(1)
+      vertices(upru)%J_density = temp_q_dens*particle%data%v &
+                                 + vertices(upru)%J_density
+
+     !  test = vertices(loll)%q_density(1) + vertices(lorl)%q_density(1) &
+     !         + vertices(upll)%q_density(1) + vertices(uprl)%q_density(1) &
+     !         + vertices(lolu)%q_density(1) + vertices(loru)%q_density(1) &
+     !         + vertices(uplu)%q_density(1) + vertices(upru)%q_density(1)
+     !  print *, test
+   end if
+  end subroutine Sum_Vde
+
   subroutine clear_density_results(vertices)
     implicit none
     type(diag_vertex), allocatable, intent(inout) :: vertices(:)
@@ -1239,5 +1413,176 @@ contains
       print *, "Particle is not interpolated!", t_p, min_sum
     end if
   end subroutine tet_mesh_interpolation
+
+  subroutine slice_particles(particles_list, xmin, xmax, ymin, ymax, slab_particles)
+    implicit none
+    type(t_particle), allocatable, intent(inout) :: particles_list(:)
+    type(linked_list_elem), pointer, intent(inout) :: slab_particles
+    real(kind_physics), intent(in) :: xmin, xmax, ymin, ymax
+    type(linked_list_elem), pointer :: slab_guide
+    integer :: n_local_slab, k, l, ll_buffer_size, ll_elem_cnt, remainder, head, tail
+    real(kind_physics) :: x_sign_check, y_sign_check, s_xmin, s_xmax, s_ymin, s_ymax
+
+    ll_buffer_size = 50
+    n_local_slab = 0
+    l = 0
+
+    s_xmin = xmin/(c*1e-12)
+    s_xmax = xmax/(c*1e-12)
+    s_ymin = ymin/(c*1e-12)
+    s_ymax = ymax/(c*1e-12)
+
+    ! Record all particles that lies within the x and y range into a linked list element
+    do k = 1, size(particles_list)
+      x_sign_check = (particles_list(k)%x(1) - s_xmin)*(particles_list(k)%x(1) - s_xmax)
+      y_sign_check = (particles_list(k)%x(2) - s_ymin)*(particles_list(k)%x(2) - s_ymax)
+      if (x_sign_check < 0.0_kind_physics .and. y_sign_check < 0.0_kind_physics) then
+        if (n_local_slab == 0) then
+          call allocate_ll_buffer(ll_buffer_size, slab_particles)
+          slab_guide => slab_particles
+          nullify(slab_guide%next)
+        end if
+
+        if ((n_local_slab .ne. 0) .and. (mod(n_local_slab,ll_buffer_size) == 0)) then
+          call allocate_ll_buffer(ll_buffer_size, slab_guide%next)
+          slab_guide => slab_guide%next
+          nullify(slab_guide%next)
+          l = 0
+        end if
+
+        n_local_slab = n_local_slab + 1
+        l = l + 1
+        slab_guide%tmp_particles(l) = particles_list(k)   
+      end if
+    end do
+    
+    deallocate(particles_list)
+    allocate(particles_list(n_local_slab))
+
+    if (n_local_slab .ne. 0) then
+      head = 1
+      
+      ll_elem_cnt = CEILING(real(n_local_slab)/real(ll_buffer_size))
+      remainder = MOD(n_local_slab, ll_buffer_size)
+      tail = ll_buffer_size 
+
+      i = 1
+      slab_guide => slab_particles
+      do while (associated(slab_guide))
+        if (i /= ll_elem_cnt) then
+          particles_list(head:tail) = slab_guide%tmp_particles
+        else if ((i == ll_elem_cnt) .and. (remainder == 0)) then
+          particles_list(head:n_local_slab) = slab_guide%tmp_particles
+        else
+          particles_list(head:n_local_slab) = slab_guide%tmp_particles(1:(remainder))
+        end if
+
+        head = tail + 1
+        tail = tail + ll_buffer_size
+        i = i + 1
+
+        slab_guide => slab_guide%next
+      end do
+      nullify (slab_guide)
+    end if
+  end subroutine slice_particles
+
+  subroutine streakline_integral(particle, init_dx, gradB_lim, iters, major_radius, minor_radius, tok_origin, conn_length)
+    implicit none
+    type(t_particle), intent(inout) :: particle
+    real(kind_physics), intent(in) :: init_dx, gradB_lim, major_radius, minor_radius
+    real(kind_physics), intent(in) :: tok_origin(3)
+    real(kind_physics), intent(out) :: conn_length
+    real(kind_physics) :: gradB, B_mag, new_B_mag, new_pos(3), B(3), new_B(3), pos_a
+    real(kind_physics) :: r_xy, r_x, r_y, r_z, init_pos(3), dx, length_lim, total_length
+    type(t_particle) :: particle_tmp
+    integer(kind_particle) :: iters, i, j
+
+    particle_tmp%x = 0.0_kind_physics
+    particle_tmp%data%q = 0.0_kind_physics
+    particle_tmp%data%v = 0.0_kind_physics
+    particle_tmp%data%m = 0.0_kind_physics
+    particle_tmp%data%b = 0.0_kind_physics
+    particle_tmp%data%f_e = 0.0_kind_physics
+    particle_tmp%data%f_b = 0.0_kind_physics
+    particle_tmp%results%e = 0.0_kind_physics
+    particle_tmp%results%pot = 0.0_kind_physics
+
+    dx = init_dx
+    pos_a = 0.0
+    total_length = 0.0
+    length_lim = 10000./(c*1e-12) 
+    i = 0
+    dx = 0.003335_kind_physics! 0.0001335_kind_physics
+    do while(pos_a < minor_radius .and. total_length < length_lim)
+      call particle_EB_field(particle, external_e, B_pol_grid)
+      B_mag = sqrt(dot_product(particle%data%b, particle%data%b))
+      B = particle%data%b/B_mag
+
+      new_pos = particle%x + B*dx
+      particle_tmp%x = new_pos
+      call particle_EB_field(particle_tmp, external_e, B_pol_grid)
+      new_B_mag = sqrt(dot_product(particle_tmp%data%b, particle_tmp%data%b))
+      gradB = (new_B_mag - B_mag)/dx
+
+      ! j = 0
+      ! do while(abs(gradB) > gradB_lim .and. dx > 1e-4_kind_physics)
+      !   dx = dx*0.5_kind_physics
+      !   new_pos = particle%x + B*dx
+      !   particle_tmp%x = new_pos
+      !   call particle_EB_field(particle_tmp, external_e, B_pol_grid)
+      !   new_B_mag = sqrt(dot_product(particle_tmp%data%b, particle_tmp%data%b))
+      !   gradB = (new_B_mag - B_mag)/dx
+
+      !   j = j + 1
+      ! end do
+      total_length = total_length + dx
+
+      particle%x = new_pos
+      r_x = particle%x(1) - tok_origin(1)
+      r_y = particle%x(2) - tok_origin(2)
+      r_z = particle%x(3) - tok_origin(3)
+      r_xy = sqrt(r_x**2 + r_y**2)
+      r_xy = r_xy - major_radius
+
+      pos_a = sqrt(r_xy**2 + r_z**2)
+      i = i + 1
+      if (mod(i, 200000000) == 0) i = 0 !print *, "pos: ", i, B, "dx: ", dx, "B_mag: ", B_mag
+    end do
+    conn_length = total_length
+    particle%data%f_b(1) = conn_length
+  end subroutine streakline_integral
+
+  subroutine connection_length_output(global_table, file_ID)!, filename)
+    use mpi
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: global_table(:,:)
+    integer, intent(in) :: file_ID
+    !character(len=255), intent(in) :: filename
+    integer :: N_entries, m
+    integer, allocatable :: N_counts(:)    
+
+    ! local_table2(1:3,:) = particle's initial coordinate.
+    ! local_table2(4,:)   = connection length
+    ! local_table2(5,:)   = particle's init B_mag
+    ! local_table2(6,:)   = particle's final B_mag
+
+    allocate(N_counts(size(shape(global_table))))
+    N_counts = shape(global_table)
+    N_entries = size(global_table)
+
+    if (root) then
+      print *, "N_counts", N_counts
+      open(file_ID, file='test', action='WRITE', position='append')
+      print *, "file opened"
+      write(file_ID, *) 'init_x    ', 'init_y   ', 'init_z   ', 'length   ', 'init_Bmag   ', 'final_Bmag   '
+      print *, "Start looping"
+      do m = 1, N_counts(2)
+        write(file_ID, *) global_table(1,m), global_table(2,m), global_table(3,m), global_table(4,m), global_table(5,m), global_table(6,m)
+      end do
+      close(file_ID)
+    end if
+    deallocate(N_counts)
+  end subroutine connection_length_output
 
 end module

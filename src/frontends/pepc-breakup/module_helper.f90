@@ -95,7 +95,7 @@ module helper
    integer(kind_particle) :: last_merge_tnp
 
    ! buffer to record newly generated particles & related counters
-   type(linked_list_elem), pointer :: buffer, particle_guide
+   type(linked_list_elem), pointer :: buffer, particle_guide, slab_particles
    type(t_particle), allocatable   :: gathered_new_buffer(:)
    integer :: electron_num, i, j, new_particle_cnt, local_electron_num, &
               swapped_num, break, virtual_particle_cnt(2), H1s, H2s
@@ -119,6 +119,7 @@ module helper
    character(255) :: mesh_name, file_name
 
    ! general diagnostics
+   logical :: slice_parts
    real(kind_physics), allocatable :: local_table1D(:), global_table1D(:)
    real(kind_physics), allocatable :: local_table1D_1(:), global_table1D_1(:)
    real(kind_physics), allocatable :: local_table2(:,:), global_table2(:,:)
@@ -184,7 +185,7 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, density_output, &
+      namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, slice_parts, density_output, &
          mesh_mode, mesh_name, x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
          y_length, z_length, sim_type, mode, d, electron_num, tnp, H1s, H2s, nt, dt, &
          particle_output, domain_output, particle_mpi_output, reflecting_walls, &
@@ -196,6 +197,7 @@ contains
       itime_in = 0
       init_omp_threads = 1
       i_wall_time = '00:00:00'
+      slice_parts = .false.
       density_output = .false.
       mesh_mode = 0
       mesh_name = './'

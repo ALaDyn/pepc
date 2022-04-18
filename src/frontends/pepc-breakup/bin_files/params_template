@@ -15,6 +15,9 @@ init_omp_threads = 2
 ! Recommended to use a  lower 'i_wall_time' than requested wall clock in job_script.
 i_wall_time = 23:50:00
 
+! Record only a slice of the particles
+slice_parts = .false.
+
 ! Density grid for interpolation on?
 density_output = .true.
 

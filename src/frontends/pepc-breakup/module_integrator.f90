@@ -140,6 +140,7 @@ contains
        B_pol_array(l,4) = final_B(2)
        B_pol_array(l,5) = final_B(3)
      end do
+     ! print *, B_pol_array(1,1), B_pol_array(1,2), B_pol_array(n_total,1), B_pol_array(n_total,2)
    end subroutine poloidal_B_grid
 
    subroutine compute_Bpol_from_grid(B_pol_array, ncell_r, ncell_z, r_length, z_length, particle)
@@ -154,6 +155,7 @@ contains
      real(kind_physics):: matrix(3,3)
      integer :: r_i, z_i, top_left, top_right, bot_left, bot_right, cell_num
 
+     cell_num = ncell_r * ncell_z
      dr = r_length/(ncell_r*c*1e-12)
      dz = z_length/(ncell_z*c*1e-12)
 
@@ -1636,7 +1638,7 @@ contains
        ! Merge the rest according to the grouped energy levels.
        do j = j_start, filtered_instance
          if(grouped_count(j) .ne. 0) then
-           if (grouped_count(j) > 2) then
+           if (grouped_count(j) > 4) then
              progenitor_cnt = grouped_count(j)
              if (max_weight(j) > 1.0_kind_physics) then
                allocate(pass_buffer(grouped_count(j)))
@@ -1679,9 +1681,9 @@ contains
                  merge_instance = FLOOR(0.5*progenitor_cnt*(1.0 - merge_ratio))
                else
                  merge_instance = FLOOR(merge_ratio*progenitor_cnt*0.5)
-                 if (merge_instance .eq. 0) then 
-                   merge_instance = 1
-                 end if
+                 ! if (merge_instance .eq. 0) then 
+                 !   merge_instance = 1
+                 ! end if
                  merge_collector_size = FLOOR(1.0*progenitor_cnt/merge_instance)
                end if
                remainder = remainder + progenitor_cnt - merge_collector_size*merge_instance
@@ -1722,13 +1724,15 @@ contains
                deallocate(pass_buffer)
              end do
 
-             IStart = grouped_count(j) - remainder + 1
-             IStop = grouped_count(j)
-             do i = IStart, IStop
-               m_i = m_i + 1
-               merged_buffer(m_i) = energy_collector(j,i)
-               merged_buffer(m_i)%label = 0
-             end do
+             if (remainder .ne. 0) then 
+               IStart = grouped_count(j) - remainder + 1
+               IStop = grouped_count(j)
+               do i = IStart, IStop
+                 m_i = m_i + 1
+                 merged_buffer(m_i) = energy_collector(j,i)
+                 merged_buffer(m_i)%label = 0
+               end do
+             end if
              ! print *, "n_t: ", grouped_count(j), " target: ", merge_ratio*grouped_count(j), &
              !          " remainder: ", remainder, " merged p: ", merge_instance*2, ". Diff: ", &
              !          merge_ratio*grouped_count(j) - (merge_instance*2 + remainder)
@@ -2115,6 +2119,8 @@ contains
        merged_buffer(m_i)%data%species = species
        merged_buffer(m_i)%data%mp_int1 = parent_key
      end if
+
+     if (abs((w1*vel_mag**2. + w2*vel_mag**2.) - sum_particle%data%f_e(1)) > 1.0_kind_physics) print *, "energy issue"
    end subroutine resolve_elastic_merge_momentum_nonphys
 
    subroutine add_particle(guide, particle, new_particle, buffer_pos, ran, type)
@@ -2261,7 +2267,6 @@ contains
         ! TODO: will be less costly to keep 2/e_mass as parameter and multiplying with it - not sure the compile will pick up on this
         ! and do the short-cut for you. Better still: add it to the energies straight away.
         reduced_vel_mag = sqrt(vel_mag**2 - 2.*(R_J02 + scatter_loss)/e_mass)
-
         particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
         particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
         particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
@@ -2287,7 +2292,6 @@ contains
       case(3) ! vibrational excitation of H2 molecule, electron will lose the transition energy
         ! update velocity to indicate scattering into random angle
         reduced_vel_mag = sqrt(vel_mag**2 - 2.*(V_V01 + scatter_loss)/e_mass)
-
         particle%data%v(1) = reduced_vel_mag * sin(polar_phi) * cos(polar_theta)
         particle%data%v(2) = reduced_vel_mag * sin(polar_phi) * sin(polar_theta)
         particle%data%v(3) = reduced_vel_mag * cos(polar_phi)
