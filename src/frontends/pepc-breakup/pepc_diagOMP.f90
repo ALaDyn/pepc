@@ -102,6 +102,60 @@ program pepc
      ! call torus_diagnostic_xy_grid(major_radius, minor_radius, 10, particles, 1.0_8)
    end if
 
+   allocate(CS_total_scatter)
+   CS_guide => CS_total_scatter
+   ! IMPORTANT NOTE: the order of set_cross_section_table must correspond to the case orders in collision_update()
+  !  call getcwd(file_path)
+   file_path = "../src/frontends/pepc-breakup/cross_sections/"
+   call set_cross_section_table(trim(file_path)//"energy_grouping_fine.txt", CS_guide, 11, 1)
+
+   allocate(energy_group_levels(size(CS_total_scatter%CS, 1) + 1))
+   energy_group_levels = 0.0
+   energy_group_levels(2:size(energy_group_levels)) = CS_total_scatter%CS(:,1)
+   call deallocate_CS_buffer(CS_total_scatter)
+   ! NOTE: Future prospect: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
+   !       look at some external function DDFSA or DFSA.
+   allocate(CS_total_scatter)
+   CS_guide => CS_total_scatter
+   call set_cross_section_table(trim(file_path)//"total_scattering_H2.txt", CS_guide, 11, 1)
+   call determine_absolute_max_CS(CS_total_scatter, abs_max_CS)
+   ! call deallocate_CS_buffer(CS_tables)
+
+   allocate(CS_tables)
+   CS_guide => CS_tables
+   call set_cross_section_table(trim(file_path)//"elastic_scattering_H2.txt", CS_guide, 11, 0)
+   call set_cross_section_table(trim(file_path)//"rotational_excitation_J_0_2.txt", CS_guide, 12, 0)
+   call set_cross_section_table(trim(file_path)//"vibrational_excitation_v_0_1.txt", CS_guide, 13, 0)
+   call set_cross_section_table(trim(file_path)//"nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
+   call set_cross_section_table(trim(file_path)//"dissociative_ionization_H+.txt", CS_guide, 15, 1)
+   ! call set_cross_section_table(trim(file_path)//"total_dissociation_H.txt",CS_guide,16,1)
+   call set_eirene_coeffs(trim(file_path)//"disso_2xH(1s).txt", 11, eirene_coeffs1)
+   call set_eirene_coeffs(trim(file_path)//"disso_H(1s)_H(2s).txt", 12, eirene_coeffs2)
+   total_cross_sections = 7
+   eirene_cross_sections = 2
+  !  allocate(flow_count(3))
+  !  allocate(total_flow_count(3))
+   call set_Xi_table(trim(file_path)//"Ohkri_Xi_H2.txt", 101, Xi_table)
+   seed_dl = 0.0_kind_physics
+   allocate(slopes(5))
+   slopes(1) = -1.3107391388451723_kind_physics
+   slopes(2) = -1.0731754363246897_kind_physics
+   slopes(3) = -1.281279728327093_kind_physics
+   slopes(4) = -0.7528131703479132_kind_physics
+   slopes(5) = -0.9941396255026491_kind_physics
+
+!   allocate(local_table1D(5))
+!   local_table1D = 0.0_kind_physics
+!   particles(1)%data%m = 1
+!   particles(1)%data%q = 1
+!   particles(1)%data%v = 0.0_kind_physics
+!   particles(1)%data%v(2) = sqrt((2*2000./e_mass))
+!   call determine_cross_sections_ext(particles(1), local_table1D, CS_tables, slopes)
+!
+!   print *, local_table1D
+!
+!   deallocate(local_table1D)
+
    if (root) print *, "Particle initialisation done."
    ! shift velocity to half a step back, before initial condition
    ! In order for that to happen, initial field config has to be known first
@@ -111,14 +165,17 @@ program pepc
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
    call poloidal_B_grid(B_pol_grid, 200, 200, 4.05_kind_physics, 1.75_kind_physics, &
                         3.5_kind_physics, 3.5_kind_physics)
-
-   do i = 1, np
+   do i = 1, size(particles)
      call particle_EB_field(particles(i), external_e, B_pol_grid)
+     print *, particles(i)%data%b
    end do
 
    ! free tree specific allocations
 !   call pepc_timber_tree()
    call write_particles(particles)
+!   call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
+!   call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
+   
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
@@ -162,13 +219,18 @@ program pepc
      call streakline_integral(particles(i), 0.1/(c*1e-12), 1e-8_kind_physics, 30_kind_particle, major_radius, minor_radius, local_min_x, global_table2(4,i))  
      neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
      global_table2(6,i) = neutral_density
+
+     
      ! print*, init_omp_threads,  global_table2(1,i), global_table2(2,i), global_table2(3,i), global_table2(4,i), global_table2(5,i), global_table2(6,i) 
    end do
    !$OMP END PARALLEL
 
+   call calculate_next_E_steps(0.0026944002417373996_kind_physics, last_merge_tnp)
+   print *, 'E_steps: ', last_merge_tnp, 1/(last_merge_tnp*dt*1e-12)
+
    ! call MPI_BARRIER(MPI_COMM_WORLD, ierr)
    ! step = 2
-   call write_particles(particles)
+!   call write_particles(particles)
    if (root) print *, "Done Write!"
 
    ! call MPI_GATHER(local_table2, size(local_table2), MPI_KIND_PHYSICS, &
@@ -199,6 +261,9 @@ program pepc
    deallocate(B_pol_grid)
 
    deallocate(particles)
+   deallocate(slopes)
+   call deallocate_CS_buffer(CS_tables)
+   call deallocate_CS_buffer(CS_total_scatter)
 
    ! cleanup pepc and MPI
    call free_density_diag_type()

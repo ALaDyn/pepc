@@ -235,7 +235,7 @@ contains
 
     if (root) then
       print *, "Start writing file"
-      write(filename, '(A6,I10.10,A4)') 'charge_poloidal_distribution_', t_step, '.txt'
+      write(filename, '(A16,I10.10,A4)') 'charge_pol_dist_', t_step, '.txt'
       filename = trim(filename)
       open(53, file=filename, action='WRITE', position='append')
       write(53, *) 'charge    ', 'R(m)    ', 'z(m)    '
@@ -251,6 +251,113 @@ contains
     deallocate(receive_cnt)
     deallocate(offsets)
   end subroutine charge_poloidal_distribution
+
+  subroutine define_ionisation_array(ionisation_array, ncell_r, ncell_z, resume_logic, t_step_in)
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: ionisation_array(:)
+    integer, intent(in) :: ncell_r, ncell_z
+    integer, optional, intent(in) :: resume_logic, t_step_in
+    character(len=255) :: filename
+    real(kind_physics) :: dummy1, dummy2
+    integer :: N_cell, i_cell
+    
+    N_cell = ncell_r * ncell_z
+    allocate(ionisation_array(N_cell))
+
+    if (resume_logic == 1) then
+      write(filename, '(A10,I10.10,A4)') 'ion_count_', t_step_in, '.txt'
+      open(53, file=trim("./")//filename, action='READ')
+      read(53, *) ! Skipping first line
+
+      do i_cell = 1, N_cell
+        read(53, *) dummy1, dummy2, ionisation_array(i_cell)
+      end do
+      close(53)
+    else
+      do i_cell = 1, N_cell
+        ionisation_array(i_cell) = 0.0_kind_physics
+      end do
+    end if
+  end subroutine define_ionisation_array
+
+  subroutine record_ionisation_count(ionisation_array, ncell_r, ncell_z, start_r, start_z, r_length, z_length, particle)
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: ionisation_array(:)
+    real(kind_physics), intent(in) :: r_length, z_length, start_r, start_z
+    integer, intent(in) :: ncell_r, ncell_z
+    type(t_particle), intent(in) :: particle
+    real(kind_physics) :: dr, dz, r_pos, z_pos, xp, yp, top_left(2)
+    integer :: r_i, z_i, cell_num
+
+    ! start_r & start_z refers to the upper left corner of the poloidal plane grid (not the coordinate of the cell center).
+    ! start_r, start_z, r_length, z_length in meters
+    top_left(1) = start_r/(c*1e-12)
+    top_left(2) = start_z/(c*1e-12)
+    dr = r_length/(ncell_r*c*1e-12)
+    dz = z_length/(ncell_z*c*1e-12)
+
+    xp = particle%x(1)
+    yp = particle%x(2)
+    z_pos = particle%x(3)
+    r_pos = sqrt(xp**2 + yp**2)
+
+    ! calculate which cell in x and z direction the current particle belongs to.
+    r_i = floor(abs(r_pos - top_left(1))/dr) + 1
+    z_i = floor(abs(z_pos - top_left(2))/dz) + 1
+
+    ! calculate ionisation_array cell index that particle belongs to
+    cell_num = (z_i - 1)*ncell_r + r_i
+    ionisation_array(cell_num) = ionisation_array(cell_num) + 1
+  end subroutine record_ionisation_count
+
+  subroutine write_ionisation_count(ionisation_array, t_step, ncell_r, ncell_z, start_r, start_z, r_length, z_length)
+    use mpi
+    implicit none
+    real(kind_physics), allocatable, intent(in) :: ionisation_array(:)
+    integer, intent(in) :: ncell_r, ncell_z, t_step
+    real(kind_physics), intent(in) :: start_r, start_z, r_length, z_length
+    real(kind_physics), allocatable :: output_array(:,:), temp_global_array(:)
+    real(kind_physics) :: dr, dz
+    character(len=255) :: filename
+    integer :: N_cell, r_i, z_i, i_cell
+
+    N_cell = ncell_r * ncell_z
+
+    if (root) then      
+      allocate(output_array(2, N_cell))
+      allocate(temp_global_array(N_cell))
+      dr = r_length/ncell_r
+      dz = z_length/ncell_z
+
+      do i_cell = 1, N_cell
+        r_i = mod(i_cell,ncell_r) - 1
+        z_i = i_cell/ncell_r
+      
+        output_array(1, i_cell) = start_r + r_i*dr + 0.5*dr
+        output_array(2, i_cell) = start_z - z_i*dr - 0.5*dz
+      end do
+
+    else 
+      allocate(output_array(1, 1))
+      allocate(temp_global_array(1))
+    end if
+
+    call MPI_REDUCE(ionisation_array, temp_global_array, N_cell, MPI_KIND_PHYSICS, MPI_SUM, 0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      write(filename, '(A10,I10.10,A4)') 'ion_count_', t_step, '.txt'
+      open(107, file=filename, action='WRITE', position='append')
+      write(107, *) 'R(m)   ', 'z(m)   ', 'count'
+    
+      do i_cell = 1, N_cell
+        write(107, *) output_array(1, i_cell), output_array(2, i_cell), temp_global_array(i_cell)
+      end do
+      close(107)
+    end if
+
+    deallocate(output_array)
+    deallocate(temp_global_array)
+  end subroutine 
 
   subroutine unit_vector_distribution(particle_list, table, N_theta, N_phi)
     implicit none

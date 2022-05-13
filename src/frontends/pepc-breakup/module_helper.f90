@@ -120,9 +120,10 @@ module helper
 
    ! general diagnostics
    logical :: slice_parts
-   real(kind_physics), allocatable :: local_table1D(:), global_table1D(:)
+   real(kind_physics), allocatable :: local_table1D(:), global_table1D(:), local_ion_instance(:)
    real(kind_physics), allocatable :: local_table1D_1(:), global_table1D_1(:)
    real(kind_physics), allocatable :: local_table2(:,:), global_table2(:,:)
+   real(kind_physics), allocatable :: glob_ion_instance(:), thread_ion_instance(:,:), rank_ion_instance(:)
 
    ! variables for random number generation
    integer :: dummy
@@ -140,6 +141,7 @@ module helper
    ! lookup tables for cross section data
    character(255) :: file_path
    type(linked_list_CS), pointer :: CS_tables, CS_guide, CS_total_scatter
+   real(kind_physics), allocatable :: slopes(:)
 
    ! variables describing external fields
    real(kind_physics) :: d, major_radius, minor_radius, B0, B_p, V_loop
@@ -370,14 +372,14 @@ contains
      implicit none
      real(kind_physics) :: pos(3), ran(3)
      integer, intent(in) :: mode
-     real*8 :: theta, phi, l, r, dist, inplane_dist, x, y, z, ran_dist, dist_outer, dist_inner
-     integer :: repeat
+     real(kind_physics) :: theta, phi, l, r, dist, inplane_dist, x, y, z, ran_dist, dist_outer, dist_inner
+     integer :: rep
 
      select case(mode)
      case(0) ! random torus distribution
-       repeat = 1
+       rep = 1
 
-       do while (repeat .eq. 1)
+       do while (rep .eq. 1)
          dist_outer = major_radius + minor_radius
          dist_inner = major_radius - minor_radius
 
@@ -396,12 +398,12 @@ contains
              pos(1) = x
              pos(2) = y
              pos(3) = z
-             repeat = 0
+             rep = 0
            else
-             repeat = 1
+             rep = 1
            end if
          else
-           repeat = 1
+           rep = 1
          end if
        end do
 

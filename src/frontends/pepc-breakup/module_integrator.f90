@@ -122,16 +122,17 @@ contains
        temp_B = 0.0
        final_B = 0.0
 
-       temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_8)
+       temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
        final_B = temp_B
 
-       temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 2357.3662872100125_8)
+       temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
        final_B = final_B + temp_B
 
-       temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_8)
+       temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_kind_physics)
        final_B = final_B + temp_B
 
-       temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 1.5e4_8)
+       ! temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 1.5e4_kind_physics)
+       temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 14999.608645648648_kind_physics)
        final_B = final_B + temp_B
 
        B_pol_array(l,1) = B_pol_array(l,1)/(c*1e-12)
@@ -268,10 +269,8 @@ contains
 
 
       call compute_Bpol_from_grid(B_pol_array, 200, 200, 3.5_kind_physics, 3.5_kind_physics, particle)
-      PF_final = particle%data%b
-      PF_unit_vector = PF_final/sqrt(dot_product(PF_final, PF_final))
-      PF_temp = 0.0005 * ((1.e-12)*(c**2))/e_mass * PF_unit_vector ! Add a tiny B field in the poloidal direction.
-      Pol_B_field = PF_final + PF_temp
+      ! PF_final = particle%data%b
+      Pol_B_field = particle%data%b ! PF_final + PF_temp
 
       R = R/(c*1e-12)
       particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
@@ -393,6 +392,25 @@ contains
      density = density * (1e-12 * c)**3
 
    end function calculate_neutral_density
+
+   subroutine calculate_next_E_steps(n_e, E_steps)
+     ! m_e = 1.0, e = -1.0. Rescale to SI unit, compute the plasma frequency
+     ! then nondimensionalise again.
+     implicit none
+     real(kind_physics), intent(in) :: n_e
+     integer(kind_particle), intent(out) :: E_steps
+     real(kind_physics) :: scaled_n, scaled_e, scaled_me, omega_p
+     real(kind_physics) :: delta_t
+
+     scaled_n = n_e/(1e-12*c)**3
+     scaled_e = -1.0*e
+     scaled_me = 9.1093837015e-31_kind_physics
+     delta_t = dt*1e-12 
+     omega_p = sqrt(scaled_n*scaled_e**2/(eps_0 * scaled_me))
+     print *, "Negative?", scaled_n, scaled_e, scaled_e**2
+     E_steps = 1./(omega_p*delta_t)
+     print *, "Negative 2?", delta_t, omega_p, E_steps
+   end subroutine calculate_next_E_steps
 
    subroutine set_cross_section_table(fname, guide_CS, file_id, is_last)
      implicit none
@@ -537,6 +555,73 @@ contains
        CS_table_no = CS_table_no + 1
      end do
    end subroutine determine_cross_sections
+
+   subroutine determine_cross_sections_ext(particle, sigma_vec, guide_CS, slopes_table)
+     implicit none
+     type(t_particle), intent(in) :: particle
+     type(linked_list_CS), pointer, intent(in) :: guide_CS
+     real(kind_physics), dimension(:), intent(inout) :: sigma_vec
+     real(kind_physics), allocatable, optional, intent(in) :: slopes_table(:)
+     integer :: i, table_rows, CS_table_no
+     real(kind_physics) :: energy, scaled_mass, temp_val
+     type(linked_list_CS), pointer :: temp_guide
+
+     scaled_mass = particle%data%m/abs(particle%data%q)
+
+     CS_table_no = 1
+     temp_guide => guide_CS
+     do while (associated(temp_guide))
+       table_rows = size(temp_guide%CS,1)
+       energy = 0.5 * scaled_mass * e_mass * dot_product(particle%data%v,particle%data%v)
+       ! print *, "energy: ", energy, dot_product(particle%data%v,particle%data%v)
+
+       i = 1
+       ! if energy is less/more than range of temp_guide%CS, return 0.0.
+       ! if slopes_table is provided, straight interpolation to inf energy will be done.
+       if (energy < temp_guide%CS(i,1)) then
+         if (CS_table_no .ne. 1) then
+           sigma_vec(CS_table_no) = sigma_vec(CS_table_no - 1)
+         else
+           sigma_vec(CS_table_no) = 0.0_kind_physics
+         end if
+       else if (energy > temp_guide%CS(table_rows,1)) then
+         if (present(slopes_table)) then
+           temp_val = slopes_table(CS_table_no)*(LOG10(energy) - LOG10(temp_guide%CS(table_rows,1))) &
+                      + LOG10(temp_guide%CS(table_rows,2))
+           ! print *, CS_table_no, slopes_table(CS_table_no)
+           if (CS_table_no .ne. 1) then
+             sigma_vec(CS_table_no) = 10.**temp_val + sigma_vec(CS_table_no - 1)
+           else
+             sigma_vec(CS_table_no) = 10.**temp_val
+           end if
+         else
+           if (CS_table_no .ne. 1) then
+             sigma_vec(CS_table_no) = sigma_vec(CS_table_no - 1)
+           else
+             sigma_vec(CS_table_no) = 0.0_kind_physics
+           end if
+         end if
+       else
+         do while (energy > temp_guide%CS(i,1))
+           ! print *, temp_guide%CS(i,1)
+           i = i + 1 ! this will return the 'i' that is immediately higher than 'energy'
+         end do
+
+         if (CS_table_no .ne. 1) then
+           sigma_vec(CS_table_no) = (temp_guide%CS(i,2) - temp_guide%CS(i-1,2))/(temp_guide%CS(i,1) - temp_guide%CS(i-1,1)) &
+                                * (energy-temp_guide%CS(i-1,1)) + temp_guide%CS(i-1,2) + sigma_vec(CS_table_no - 1)
+         else
+           sigma_vec(CS_table_no) = (temp_guide%CS(i,2) - temp_guide%CS(i-1,2))/(temp_guide%CS(i,1) - temp_guide%CS(i-1,1)) &
+                                * (energy-temp_guide%CS(i-1,1)) + temp_guide%CS(i-1,2)
+         end if
+         ! Subsequent values in Sigma vector is a cumulation of previous cross sections
+         ! multiplying each element in the sigma vector with local_density & velocity magnitude
+         ! will give collision frequency.
+       end if
+       temp_guide => temp_guide%next_CS
+       CS_table_no = CS_table_no + 1
+     end do
+   end subroutine determine_cross_sections_ext
 
    subroutine set_Xi_table(fname, file_id, Xi_t)
      implicit none
@@ -2472,6 +2557,7 @@ contains
      integer, intent(out) :: c_type
      real(kind_physics), intent(inout) :: charge_count(5)
      real(kind_physics), dimension(:), allocatable :: CS_vector, total_CS
+     real(kind_physics), allocatable :: total_CS_slope(:)
      real(kind_physics) :: vel_mag, nu_prime, reduced_vel_mag, theta, phi, polar_theta, polar_phi
      real(kind_physics) :: rot_axis(3), temp_vel(3), temp_vel1(3), reduced_incident(3), cos_theta, temp_vel_mag, temp_vel1_mag
      real(kind_physics) :: K_E, cos_Chi, Chi, unit_inc_vel(3), chi_rotation_axis(3), prefac, scatter_loss, xi, ran_num(8)
@@ -2500,9 +2586,12 @@ contains
      K_E = 0.5*scaled_mass*e_mass*vel_mag**2
      
      allocate(total_CS(1))
-     call determine_cross_sections(particle, total_CS, CS_total_scatter)
+     allocate(total_CS_slope(1))
+     total_CS_slope =  -0.9406717544342171_kind_physics
+     call determine_cross_sections_ext(particle, total_CS, CS_total_scatter, total_CS_slope)
      nu_prime = vel_mag * neutral_density * total_CS(1) ! abs_max_CS
      deallocate(total_CS)
+     deallocate(total_CS_slope)
 
      ! if ((abs(particle%data%q) .gt. 1.0_kind_physics)) then
      !   K_E = particle%data%f_b(2)
@@ -2517,7 +2606,7 @@ contains
      ! print *, "rand: ", ran_num(1), " expression: ", (1 - exp(-1*nu_prime*dt))!(1 - exp(-1*CS_vector(size(CS_vector))*dt))
      if (ran_num(1) < (1 - exp(-1*nu_prime*dt))) then ! type of collision determined if satisfied
        allocate(CS_vector(total_cross_sections))
-       call determine_cross_sections(particle, CS_vector, CS_tables)
+       call determine_cross_sections_ext(particle, CS_vector, CS_tables, slopes)
        CS_index = total_cross_sections - eirene_cross_sections + 1
        call Eirene_fit(eirene_coeffs1, K_E, CS_vector, CS_index)
        call Eirene_fit(eirene_coeffs2, K_E, CS_vector, CS_index)

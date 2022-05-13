@@ -124,11 +124,11 @@ program pepc
 
    allocate(CS_tables)
    CS_guide => CS_tables
-   call set_cross_section_table(trim(file_path)//"Ext_elastic_scattering_H2.txt", CS_guide, 11, 0)
+   call set_cross_section_table(trim(file_path)//"elastic_scattering_H2.txt", CS_guide, 11, 0)
    call set_cross_section_table(trim(file_path)//"rotational_excitation_J_0_2.txt", CS_guide, 12, 0)
    call set_cross_section_table(trim(file_path)//"vibrational_excitation_v_0_1.txt", CS_guide, 13, 0)
-   call set_cross_section_table(trim(file_path)//"Ext_nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
-   call set_cross_section_table(trim(file_path)//"Ext_dissociative_ionization_H+.txt", CS_guide, 15, 1)
+   call set_cross_section_table(trim(file_path)//"nondissociative_ionization_H2+.txt", CS_guide, 14, 0)
+   call set_cross_section_table(trim(file_path)//"dissociative_ionization_H+.txt", CS_guide, 15, 1)
    ! call set_cross_section_table(trim(file_path)//"total_dissociation_H.txt",CS_guide,16,1)
    call set_eirene_coeffs(trim(file_path)//"disso_2xH(1s).txt", 11, eirene_coeffs1)
    call set_eirene_coeffs(trim(file_path)//"disso_H(1s)_H(2s).txt", 12, eirene_coeffs2)
@@ -138,33 +138,41 @@ program pepc
   !  allocate(total_flow_count(3))
    call set_Xi_table(trim(file_path)//"Ohkri_Xi_H2.txt", 101, Xi_table)
    seed_dl = 0.0_kind_physics
+   allocate(slopes(5))
+   slopes(1) = -1.3107391388451723_kind_physics
+   slopes(2) = -1.0731754363246897_kind_physics
+   slopes(3) = -1.281279728327093_kind_physics
+   slopes(4) = -0.7528131703479132_kind_physics
+   slopes(5) = -0.9941396255026491_kind_physics
+
    !=====================================================================
    call timer_stop(t_user_init)
 
    if (root) write (*, '(a,es12.4)') " === init time [s]: ", timer_read(t_user_init)
-
-   ! shift velocity to half a step back, before initial condition
-   ! In order for that to happen, initial field config has to be known first
-   call pepc_particleresults_clear(particles)
-   call pepc_grow_tree(particles)
-   call pepc_traverse_tree(particles)
 
    neutral_density = calculate_neutral_density(pressure, init_temperature)
    if (root) write (*, '(a,es12.4)') " === number density of neutrals: ", neutral_density
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
    call poloidal_B_grid(B_pol_grid, 200, 200, 4.05_kind_physics, 1.75_kind_physics, &
                         3.5_kind_physics, 3.5_kind_physics)
+   if (resume .ne. 1) then
+     do i = 1, size(particles)
+     ! shift velocity to half a step back, before initial condition
+     ! In order for that to happen, initial field config has to be known first
+        call pepc_particleresults_clear(particles)
+        call pepc_grow_tree(particles)
+        call pepc_traverse_tree(particles)
 
-   do i = 1, size(particles)
-      call particle_EB_field(particles(i), external_e, B_pol_grid)
-      call boris_velocity_update(particles(i), -dt*0.5_8)
-      V_loop = -1.*V_loop
-      call particle_EB_field(particles(i), -external_e, B_pol_grid)
-      V_loop = -1.*V_loop
-   end do
+        call particle_EB_field(particles(i), external_e, B_pol_grid)
+        call boris_velocity_update(particles(i), -dt*0.5_8)
+        V_loop = -1.*V_loop
+        call particle_EB_field(particles(i), -external_e, B_pol_grid)
+        V_loop = -1.*V_loop
 
-   ! free tree specific allocations
-   call pepc_timber_tree()
+     ! free tree specific allocations
+        call pepc_timber_tree()
+     end do
+   end if
 
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
@@ -488,7 +496,7 @@ program pepc
 
       call pepc_particleresults_clear(particles)
 
-      ! if (mod(step,5) .eq. 0) then
+      if (mod(step + itime_in + 1, 100000) .eq. 0) then
         call pepc_grow_tree(particles)
         np = size(particles, kind=kind(np))
         if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
@@ -498,7 +506,7 @@ program pepc
         if (doDiag .and. domain_output) call write_domain(particles)
         if (dbg(DBG_STATS)) call pepc_statistics(step)
         call pepc_timber_tree()
-      ! end if
+      end if
 
 !============================preempt_checkpointing here=========================
       call preempt_checkpointing(current_wall_time, prev_t_user_step, doDiag, particles, step, break_loop)
@@ -510,7 +518,8 @@ program pepc
       end if
 !=============================Writing output files==============================
       if (doDiag .and. particle_output) then 
-        call write_particles(particles)
+        ! call write_particles(particles)
+
         ! call charge_poloidal_distribution(particles, local_table2, global_table2, tnp, itime_in + step + 1)
 
         ! write(file_name, '(A6,I10.10,A4)') 'weights_', itime_in + step + 1, '.txt'
@@ -533,10 +542,10 @@ program pepc
         ! call V_mean_phi_distribution(particles, local_table2, 1000)
         ! call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
 
-        ! write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
-        ! file_name = trim(file_name)
-        ! call V_par_perp_calculation(particles, local_table2)
-        ! call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
+        write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
+        file_name = trim(file_name)
+        call V_par_perp_calculation(particles, local_table2)
+        call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
       end if
 
       ! NOTE: if density diagnostic is on, do these
@@ -600,6 +609,7 @@ program pepc
    call deallocate_CS_buffer(CS_tables)
    call deallocate_CS_buffer(CS_total_scatter)
    deallocate(B_pol_grid)
+   deallocate(slopes)
 
    if (density_output) then
      deallocate(final_density)
