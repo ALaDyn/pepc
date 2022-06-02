@@ -87,7 +87,7 @@ program pepc
      if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
      call read_particles_mpiio(itime_in, MPI_COMM_WORLD, checkin_step, tnp, particles, checkpoint_file, &
                                int(np))
-     ! call write_particles(particles)
+     call write_particles(particles)
 
      ! ctr_s(1) = (my_rank + 1)*np
      ! ctr_s(2:4) = CEILING(particles(1)%x*1e5, kind=int32)
@@ -100,6 +100,7 @@ program pepc
      ! call torus_diagnostic_xz_grid(major_radius, minor_radius, 8, particles)
      ! call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 9, particles)
      ! call torus_diagnostic_xy_grid(major_radius, minor_radius, 10, particles, 1.0_8)
+     call write_particles(particles)
    end if
 
    !========================read cross section data======================
@@ -155,23 +156,22 @@ program pepc
    E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
    call poloidal_B_grid(B_pol_grid, 200, 200, 4.05_kind_physics, 1.75_kind_physics, &
                         3.5_kind_physics, 3.5_kind_physics)
+
    if (resume .ne. 1) then
+     call pepc_particleresults_clear(particles)
+     call pepc_grow_tree(particles)
+     call pepc_traverse_tree(particles)
      do i = 1, size(particles)
      ! shift velocity to half a step back, before initial condition
      ! In order for that to happen, initial field config has to be known first
-        call pepc_particleresults_clear(particles)
-        call pepc_grow_tree(particles)
-        call pepc_traverse_tree(particles)
-
         call particle_EB_field(particles(i), external_e, B_pol_grid)
         call boris_velocity_update(particles(i), -dt*0.5_8)
         V_loop = -1.*V_loop
         call particle_EB_field(particles(i), -external_e, B_pol_grid)
         V_loop = -1.*V_loop
-
-     ! free tree specific allocations
-        call pepc_timber_tree()
      end do
+     ! free tree specific allocations
+     call pepc_timber_tree()
    end if
 
    ! NOTE: Possible error in reported charge values! due to positive charges generated
@@ -253,8 +253,9 @@ program pepc
          traversed_e = particles(i)%results%e
 
          call particle_EB_field(particles(i), external_e, B_pol_grid)
-         call boris_velocity_update(particles(i), dt)
-         call particle_pusher(particles(i), dt)
+         ! call boris_velocity_update(particles(i), dt)
+         ! call particle_pusher(particles(i), dt)
+         call boris_velocity_update_ext(particles(i), dt)
 
          if (particles(i)%data%species == 0) then
            collision_checks = floor(abs(particles(i)%data%q))
@@ -431,55 +432,55 @@ program pepc
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
       steps_since_last = steps_since_last + 1
 
-      if (tnp > 5000000 .and. steps_since_last > 250000) then
-        !==========Redistribute particles among the MPI Ranks====================
-        call pepc_particleresults_clear(particles)
-        call pepc_grow_tree(particles)
-        call pepc_timber_tree()
-        !========================================================================
-
-        if (last_merge_tnp .eq. 0) then
-          merge_ratio = 0.500001_kind_physics
-        else
-          merge_ratio = float(6000000)/float(tnp) ! 1. - (2.*(1.0 - float(80000000)/float(tnp)))
-        end if
-
-        if (merge_ratio > 0.5_kind_physics) merge_ratio = 0.500001_kind_physics
-!        if (merge_ratio .lt. 0.5) then
-!          merge_ratio = 0.5001_kind_physics
+!      if (tnp > 5000000 .and. steps_since_last > 250000) then
+!        !==========Redistribute particles among the MPI Ranks====================
+!        call pepc_particleresults_clear(particles)
+!        call pepc_grow_tree(particles)
+!        call pepc_timber_tree()
+!        !========================================================================
+!
+!        if (last_merge_tnp .eq. 0) then
+!          merge_ratio = 0.500001_kind_physics
+!        else
+!          merge_ratio = float(6000000)/float(tnp) ! 1. - (2.*(1.0 - float(80000000)/float(tnp)))
 !        end if
-        if (root) print *, "Merge ratio: ",  merge_ratio
-!        merge_ratio = 0.5001_kind_physics
-
-        sibling_upper_limit = 60000 !4000 !(tnp/n_ranks)*0.5 !500
-        call compute_particle_keys(bounding_box, particles)
-        call sort_particles_by_key(particles) !Counter act randomizing by filter_and_swap(), as well as new particles.
-        call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 6_kind_level)
-
-        !NOTE: sibling_cnt is allocated here.
-        !      sibling_upper_limit is also updated to the max no. of actual siblings across all parents.
-        ! call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents)
-        do i = 1, unique_parents
-          call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
-        end do
-
-        call allocate_ll_buffer(sibling_upper_limit, buffer)
-        particle_guide => buffer
-        new_particle_cnt = 0
-        do i = 1, unique_parents
-          !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don't merge!
-          ! print *, "Merging ", i, "of ", unique_parents, " unique parents."
-          ! call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
-          !                                     i, particle_guide, new_particle_cnt)
-          call momentum_partition_merging_fine(particles, sibling_cnt, sibling_upper_limit, &
-                                               i, particle_guide, new_particle_cnt, 32, 16)
-        end do
-        call merge_replace_particles_list(particles, buffer, new_particle_cnt)
-        call deallocate_ll_buffer(buffer)
-        deallocate(sibling_cnt)
-        steps_since_last = 1 
-      end if
-      !=========================================================================
+!
+!        if (merge_ratio > 0.5_kind_physics) merge_ratio = 0.500001_kind_physics
+!!        if (merge_ratio .lt. 0.5) then
+!!          merge_ratio = 0.5001_kind_physics
+!!        end if
+!        if (root) print *, "Merge ratio: ",  merge_ratio
+!!        merge_ratio = 0.5001_kind_physics
+!
+!        sibling_upper_limit = 60000 !4000 !(tnp/n_ranks)*0.5 !500
+!        call compute_particle_keys(bounding_box, particles)
+!        call sort_particles_by_key(particles) !Counter act randomizing by filter_and_swap(), as well as new particles.
+!        call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 6_kind_level)
+!
+!        !NOTE: sibling_cnt is allocated here.
+!        !      sibling_upper_limit is also updated to the max no. of actual siblings across all parents.
+!        ! call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents)
+!        do i = 1, unique_parents
+!          call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
+!        end do
+!
+!        call allocate_ll_buffer(sibling_upper_limit, buffer)
+!        particle_guide => buffer
+!        new_particle_cnt = 0
+!        do i = 1, unique_parents
+!          !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don't merge!
+!          ! print *, "Merging ", i, "of ", unique_parents, " unique parents."
+!          ! call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
+!          !                                     i, particle_guide, new_particle_cnt)
+!          call momentum_partition_merging_fine(particles, sibling_cnt, sibling_upper_limit, &
+!                                               i, particle_guide, new_particle_cnt, 32, 16)
+!        end do
+!        call merge_replace_particles_list(particles, buffer, new_particle_cnt)
+!        call deallocate_ll_buffer(buffer)
+!        deallocate(sibling_cnt)
+!        steps_since_last = 1 
+!      end if
+!      !=========================================================================
 
       np = size(particles)
       tnp = 0
@@ -494,9 +495,8 @@ program pepc
         last_merge_tnp = tnp
       end if
 
-      call pepc_particleresults_clear(particles)
-
-      if (mod(step + itime_in + 1, 100000) .eq. 0) then
+      if (mod(step + itime_in + 1, diag_interval) .eq. 0) then
+        call pepc_particleresults_clear(particles)
         call pepc_grow_tree(particles)
         np = size(particles, kind=kind(np))
         if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)

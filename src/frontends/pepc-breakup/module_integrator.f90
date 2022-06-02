@@ -122,6 +122,20 @@ contains
        temp_B = 0.0
        final_B = 0.0
 
+       ! Quad: absolute zero at null:
+!       temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
+!       final_B = temp_B
+!
+!       temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
+!       final_B = final_B + temp_B
+!
+!       temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_kind_physics)
+!       final_B = final_B + temp_B
+!
+!       temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 1.5e4_kind_physics)
+!       final_B = final_B + temp_B
+       ! =====================================
+       ! Quad: 3e-5T at null
        temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
        final_B = temp_B
 
@@ -131,9 +145,89 @@ contains
        temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_kind_physics)
        final_B = final_B + temp_B
 
-       ! temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 1.5e4_kind_physics)
-       temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 14999.608645648648_kind_physics)
+       temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 15230.960401449627_kind_physics)
        final_B = final_B + temp_B
+       ! =====================================
+
+       ! Quad: 1e-8T at null, 8mT at edge
+!      temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
+!      final_B = temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 14999.921729129723_kind_physics)
+!      final_B = final_B + temp_B
+       !=====================================
+
+       ! Quad: 1e-8T at null, 4mT at edge
+!      temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 1178.6831436050063_kind_physics)
+!      final_B = temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 1178.6831436050063_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 5.0e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 7499.921729129726_kind_physics)
+!      final_B = final_B + temp_B
+       ! ====================================
+
+       ! Octu: 1e-8T at null, 2.25mT at edge
+!      temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.905_8, 1.994e4_kind_physics)
+!      final_B = temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.905_8, 1.994e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 2.905_8, 2.11e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.905_8, 2.01e4_kind_physics)
+!      final_B = final_B + temp_B
+   
+!      temp_B = current_loop_B(coords, coords(1), 2.1213203435596424_kind_physics, 7.976320343559642_kind_physics, -2e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), -2.1213203435596424_kind_physics, 7.976320343559642_kind_physics, -2e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 2.1213203435596424_kind_physics, 3.8336796564403572_kind_physics, -2e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), -2.1213203435596424_kind_physics, 3.8336796564403572_kind_physics, -2e4_kind_physics)
+!      final_B = final_B + temp_B
+       !=======================================
+
+       ! Octu: 1e-8T at null, 1.125mT at edge
+!      temp_B = current_loop_B(coords, coords(1), 3.625_kind_physics, 6.01_kind_physics, 1.997e4_kind_physics)
+!      final_B = temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), -3.625_kind_physics, 6.01_kind_physics, 1.997e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 2.385_kind_physics, 2.095e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 9.635_kind_physics, 2.0e4_kind_physics)
+!      final_B = final_B + temp_B
+   
+!      temp_B = current_loop_B(coords, coords(1), 2.561754254920789_kind_physics, 8.484264781706207_kind_physics, -1.99775e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), -2.561754254920789_kind_physics, 8.484264781706207_kind_physics, -1.99775e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), 2.5838537179184247_kind_physics, 3.5568370847154855_kind_physics, -1.99805e4_kind_physics)
+!      final_B = final_B + temp_B
+
+!      temp_B = current_loop_B(coords, coords(1), -2.5838537179184247_kind_physics, 3.5568370847154855_kind_physics, -1.99805e4_kind_physics)
+!      final_B = final_B + temp_B 
+       ! =====================================
 
        B_pol_array(l,1) = B_pol_array(l,1)/(c*1e-12)
        B_pol_array(l,2) = B_pol_array(l,2)/(c*1e-12)
@@ -245,7 +339,7 @@ contains
       field_vector = cross_product(particle%x,ez)
       field_vector = field_vector/sqrt(dot_product(field_vector, field_vector))
 
-      Itf = 7.524e7_8 !3.62e7_8
+      Itf = 7.524e7_kind_physics !3.62e7_8 obsolete
       R = sqrt(Coord(1)**2 + Coord(2)**2)
       B_field = field_vector * mu_0 * Itf/(2.0_8 * pi *R) ! field_vector*B0*major_radius/R
       B_field = B_field*((1.e-12)*(c**2))/e_mass ! non-dimensionalise
@@ -380,6 +474,79 @@ contains
 
       particle%data%age = particle%data%age + dt
    end subroutine particle_pusher
+
+   subroutine boris_velocity_update_ext(particle, dt)
+      implicit none
+      type(t_particle), intent(inout) :: particle
+      real(kind_physics), intent(in) :: dt
+      real(kind_physics) :: Vm(3), Vd(3), Vp(3), tan_w(3), sin_w(3), V_cross(3), V_init(3)
+      real(kind_physics) :: half_dt, q_m_ratio, Vm_par(3), B_unit_vec(3), theta, B_mag
+      real(kind_physics) :: gamma_factor, v_mag_sq, V_new(3), dist_vec(3)
+      real(kind_physics) :: ideal_dt, dt_ratio, par_V_mag, temp_V_par(3), temp_V_perp(3)
+
+      V_init = particle%data%v
+      half_dt = dt*0.5_8
+      q_m_ratio = particle%data%q*half_dt/particle%data%m
+      v_mag_sq = dot_product(V_init, V_init)
+
+      gamma_factor = 1./sqrt(1 - v_mag_sq)
+
+      Vm = gamma_factor*particle%data%v + E_q_dt_m*particle%results%e*q_m_ratio
+
+      !! NOTE: Boris-B Implementation with uncorrected gyrophase error
+      ! tan_w = particle%data%b*q_m_ratio
+      ! sin_w = 2.0_8*tan_w/(1 + dot_product(tan_w, tan_w))
+
+      ! V_cross = cross_product(Vm, tan_w)
+      ! Vd = Vm + V_cross
+      ! V_cross = cross_product(Vd, sin_w)
+      ! Vp = Vm + V_cross
+
+      ! NOTE: Boris-C implementation by Zenitani and Umeda 2018
+      B_mag = sqrt(dot_product(particle%data%b, particle%data%b))
+      if (B_mag > 0.0_kind_physics) then
+        B_unit_vec = particle%data%b/B_mag
+        theta = particle%data%q*dt*B_mag/(particle%data%m*gamma_factor)
+        Vm_par = dot_product(Vm, B_unit_vec)*B_unit_vec
+        Vp = Vm_par + (Vm - Vm_par)*cos(theta) + cross_product(Vm, B_unit_vec)*sin(theta)
+      else
+        B_unit_vec = 0.0
+        theta = 0.0
+        Vp = Vm
+      end if
+
+      V_new = Vp + E_q_dt_m*particle%results%e*q_m_ratio
+      particle%data%v = V_new/gamma_factor
+
+      particle%data%f_e = 2.0*E_q_dt_m*particle%results%e*q_m_ratio*particle%data%m*e_mass/(c*dt*1e-12)
+      !particle%data%q*particle%results%e/particle%data%m
+      !particle%data%f_b = particle%data%m*e_mass*(particle%data%v - V_init)/(c*dt*1e-12) - particle%data%f_e
+
+      ! To isolate the Delta V due to E field and B field, propose to compute
+      ! D_V = V_final - V_init
+      ! D_Ve = 2.0*E_q_dt_m*particle%results%e*q_m_ratio
+      ! D_Vb = D_V - D_Ve
+
+      ! Crude correction of perpendicular position update
+      ideal_dt = 2.*pi*particle%data%m/(particle%data%q*B_mag*3)
+      dt_ratio = 1.0_kind_physics
+      if (ideal_dt < dt) then
+        dt_ratio = ideal_dt/dt
+        par_V_mag = dot_product(particle%data%v,B_unit_vec)
+        temp_V_par = par_V_mag*B_unit_vec
+        temp_V_perp = particle%data%v - temp_V_par
+        dist_vec = temp_V_par*dt + temp_V_perp*dt*dt_ratio
+      else
+        dist_vec = particle%data%v*dt
+      end if
+
+      particle%x = particle%x + dist_vec
+      particle%data%f_b(1) = particle%data%f_b(1) + sqrt(dot_product(dist_vec,dist_vec))
+      particle%data%f_b(2) = 0.0_kind_physics
+      particle%data%f_b(3) = 0.0_kind_physics
+
+      particle%data%age = particle%data%age + dt
+   end subroutine boris_velocity_update_ext
 
    function calculate_neutral_density(pressure, temperature) result(density)
      implicit none

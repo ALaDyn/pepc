@@ -530,7 +530,7 @@ contains
            toroidal_vec(3) = p(ip)%x(1)*ez(2) - p(ip)%x(2)*ez(1)
            toroidal_vec = toroidal_vec/sqrt(dot_product(toroidal_vec, toroidal_vec))
 
-           magnitude = sqrt((2*16.5/e_mass))
+           magnitude = sqrt((2*0.02/e_mass))
            call random_number(rand_scale)
            rand_scale = 1.0_8
            p(ip)%data%v = -1.0*magnitude*toroidal_vec*rand_scale

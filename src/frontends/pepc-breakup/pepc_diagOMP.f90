@@ -172,7 +172,7 @@ program pepc
 
    ! free tree specific allocations
 !   call pepc_timber_tree()
-   call write_particles(particles)
+!   call write_particles(particles)
 !   call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
 !   call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
    
@@ -198,31 +198,31 @@ program pepc
    start_i = OMP_GET_THREAD_NUM()
    if (start_i == 0) print *, "Total threads: ", dummy
 
-   !$OMP DO SCHEDULE(DYNAMIC,1)
-   do i = 1, np
-     ! call particle_EB_field(particles(i), external_e, B_pol_grid)
-     ! Using local_table2(:,:) as a dummy carrier. Data structure as follows:
-     ! local_table2(1:3,:) = particle's initial coordinate.
-     ! local_table2(4,:)   = connection length
-     ! local_table2(5,:)   = particle's init B_mag
-     ! local_table2(6,:)        = particle's final B_mag
-     ! Using global_table2(:,:) as a global collector.
-     ! neutral_density as a dummy for B_mag.
-     ! local_min_x as a dummy for origin of torus.
-     print *, start_i, i
-     local_min_x = 0.0_kind_physics
-     neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
-     global_table2(1,i) = particles(i)%x(1)
-     global_table2(2,i) = particles(i)%x(2)
-     global_table2(3,i) = particles(i)%x(3)
-     global_table2(5,i) = neutral_density
-     call streakline_integral(particles(i), 0.1/(c*1e-12), 1e-8_kind_physics, 30_kind_particle, major_radius, minor_radius, local_min_x, global_table2(4,i))  
-     neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
-     global_table2(6,i) = neutral_density
-
-     
-     ! print*, init_omp_threads,  global_table2(1,i), global_table2(2,i), global_table2(3,i), global_table2(4,i), global_table2(5,i), global_table2(6,i) 
-   end do
+!   !$OMP DO SCHEDULE(DYNAMIC,1)
+!   do i = 1, np
+!     ! call particle_EB_field(particles(i), external_e, B_pol_grid)
+!     ! Using local_table2(:,:) as a dummy carrier. Data structure as follows:
+!     ! local_table2(1:3,:) = particle's initial coordinate.
+!     ! local_table2(4,:)   = connection length
+!     ! local_table2(5,:)   = particle's init B_mag
+!     ! local_table2(6,:)        = particle's final B_mag
+!     ! Using global_table2(:,:) as a global collector.
+!     ! neutral_density as a dummy for B_mag.
+!     ! local_min_x as a dummy for origin of torus.
+!     print *, start_i, i
+!     local_min_x = 0.0_kind_physics
+!     neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
+!     global_table2(1,i) = particles(i)%x(1)
+!     global_table2(2,i) = particles(i)%x(2)
+!     global_table2(3,i) = particles(i)%x(3)
+!     global_table2(5,i) = neutral_density
+!     call streakline_integral(particles(i), 0.1/(c*1e-12), 1e-8_kind_physics, 30_kind_particle, major_radius, minor_radius, local_min_x, global_table2(4,i))  
+!     neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
+!     global_table2(6,i) = neutral_density
+!
+!     
+!     ! print*, init_omp_threads,  global_table2(1,i), global_table2(2,i), global_table2(3,i), global_table2(4,i), global_table2(5,i), global_table2(6,i) 
+!   end do
    !$OMP END PARALLEL
 
    call calculate_next_E_steps(0.0026944002417373996_kind_physics, last_merge_tnp)
@@ -237,12 +237,13 @@ program pepc
    !                 global_table2, size(local_table2), MPI_KIND_PHYSICS, 0, &
    !                 MPI_COMM_WORLD, ierr)
    if (root) print *, "after GATHER"
-   call connection_length_output(global_table2, 23)
+!   call connection_length_output(global_table2, 23)
   
    if (root) print *, "done output"
    deallocate(global_table2)
 !=============================Writing output files==============================
-!      if (doDiag .and. particle_output) then 
+!      if (doDiag .and. particle_output) then
+   call charge_poloidal_distribution(particles, local_table2, global_table2, tnp, itime_in + step + 1)
 !        call write_particles(particles)
 !        write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
 !        file_name = trim(file_name)
