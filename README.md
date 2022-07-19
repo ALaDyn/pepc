@@ -118,7 +118,7 @@ sourcecode to find out what they are doing.
 # 3. RUNNING THE PROGRAM
 
 Usually, the frontend's source directories contain a sample input deck for the
-frontends. For running pepc-essential it is for example called `params`. It
+frontends. For running `pepc-essential` it is for example called `params`. It
 contains user-adjustable parameters and can be fed to the executable as first
 command line parameter:
 ```sh
@@ -160,8 +160,8 @@ Inside the `./src/` directory, you will find four subdirectories:
 - frontends: different applications that utilize the treecode for their
   respective very specific purpose
 
-In case you want to use pepc for developing an own treecode-based N-body code,
-you might start by copying and modifying the pepc-mini frontend, which is a 
+In case you want to use PEPC for developing an own treecode-based N-body code,
+you might start by copying and modifying the `pepc-mini` frontend, which is a 
 very simple coulomb-MD programme. It uses the coulomb backend, that implements
 an expansion of the plummer potential 1/sqrt(r^2+eps^2) up to quadrupole order.
 
