@@ -1,0 +1,52 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  A massively parallel, multi-disciplinary Barnes–Hut
+  tree code for extreme-scale N-body simulations
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Mathias
+    family-names: Winkel
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich
+      GmbH, 52425 Jülich, Germany
+  - given-names: Robert
+    family-names: Speck
+    affiliation: >-
+      Institute of Computational Science, Faculty of
+      Informatics, University of Lugano, 6900 Lugano,
+      Switzerland
+    orcid: 'https://orcid.org/0000-0002-3879-1210'
+  - given-names: Helge
+    family-names: Hübner
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich
+      GmbH, 52425 Jülich, Germany
+  - given-names: Lukas
+    family-names: Arnold
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich
+      GmbH, 52425 Jülich, Germany
+    orcid: 'https://orcid.org/0000-0002-5939-8995'
+  - given-names: Rolf
+    family-names: Krause
+    affiliation: >-
+      Institute of Computational Science, Faculty of
+      Informatics, University of Lugano, 6900 Lugano,
+      Switzerland
+  - given-names: Paul
+    family-names: Gibbon
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich
+      GmbH, 52425 Jülich, Germany
+    orcid: 'https://orcid.org/0000-0002-5540-9626'
+doi: 10.1016/j.cpc.2011.12.013
