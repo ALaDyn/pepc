@@ -123,7 +123,7 @@ contains user-adjustable parameters and can be fed to the executable as first
 command line parameter:
 ```sh
 cd bin
-mpirun -np 32 pepc-essential ../src/frontneds/pepc/essential/params
+mpirun -np 32 pepc-essential ../src/frontends/pepc/essential/params
 ```
 
 
