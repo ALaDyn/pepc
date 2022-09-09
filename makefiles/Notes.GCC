@@ -10,6 +10,16 @@ years). The latest options for common architectures should be present in the
 provided <makefile.defs>, the README merely provides an overview of optiones
 used in the past.
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!!! NOTE !!!
+The listed options have been used in the past. SOME ARE DANGEROUS AND PRODUCE
+WRONG RESULTS. In particular, -Ofast enables -ffast-math which messes with
+denormals. Similarly, the options enabled by -ffast-math have the same negative
+effect. So do not copy options from below without careful consideration!
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 Note that <ar> and <ranlib> likely has to match the used GCC toolchain.
 
 To instrument with various tools, try any of the following options/extensions
