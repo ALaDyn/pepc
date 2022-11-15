@@ -3,7 +3,7 @@ Contributing to PEPC
 
 All contributions are welcome. PEPC was designed to be flexible and modular as
 far as possible. Adding your own interactions should be straightforward.
-Bugfixes or extenstions to the existing codebase are also more than welcome
+Bugfixes or extensions to the existing codebase are also more than welcome
 though we encourage you to first file an issue for those.
 
 In general, please feel free to submit issues and enhancement requests. Since
@@ -25,10 +25,22 @@ general, we follow the "fork-and-pull" Git workflow.
 
 NOTE: Be sure to merge the latest from "upstream" before making a pull request!
 
+Contributor License Agreement
+-----------------------------
+
+Before we can fully accept and incorporate your changes, please fill in and
+return our 'Contributor License Agreement' (CLA.pdf). This can be done fully
+electronically (filling in the .pdf form with an approriate pdf viewer) adding
+your electronic signature with a x.509 certificate. If signing electronically,
+please make sure a chain of trust can be verified (i.e. use a verifiable,
+official certificate).
+
+In case of any questions, please do not hesitate to get in touch with us.
+
 Coding Style
 ------------
 
-This codebase conforms to a single, consistent coding style (though not formally
+The codebase conforms to a single, consistent coding style (though not formally
 defined yet). New submissions will be rejected if they do not conform to the
 current style.
    * Apart from MPI specifiers and pre-processor macros, PEPC generally
