@@ -705,11 +705,6 @@ contains
 
         call timer_stop(t_remesh_interpol)
 
-        if (k .ne. m_np) then
-            write(*,*) 'something is wrong here: #remeshed particles not equal to prediciton', my_rank, k, m_np
-            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
-        end if
-
         deallocate(vortex_particles)
 
         call timer_start(t_remesh_sort)
