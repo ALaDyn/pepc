@@ -614,7 +614,8 @@ contains
         use mpi
         implicit none
 
-        integer :: mesh_supp, m_np, m_nppm, tmp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn, m_n, omp_thread_num
+        integer :: mesh_supp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn, m_n, omp_thread_num
+        integer(kind_particle) :: m_np, m_nppm, tmp
         real*8 :: frac, xt, yt, zt, axt, ayt, azt, wt
         real*8, allocatable :: mesh_offset(:)
         real*8, dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
@@ -639,7 +640,7 @@ contains
         m_nppm = ceiling(1.05*max(1.0*m_n/n_cpu,1.0*m_np)) ! allow 5% fluctuation, just a safety factor, since we'll kick out particles beforehand
 
         ! TODO: Define global max. #particles (do we need this?)
-        call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER8,MPI_MAX,MPI_COMM_WORLD,ierr)
         m_nppm = tmp
 
         allocate(m_part(m_nppm),STAT=ierr)
@@ -785,8 +786,8 @@ contains
         implicit none
 
         type (t_particle), intent(inout) :: particles(*)
-        integer, intent(inout) :: m_np
-        integer, intent(in) :: m_nppm
+        integer(kind_particle), intent(inout) :: m_np
+        integer(kind_particle), intent(in) :: m_nppm
 
         integer :: i,j,ierr,k
         type (t_particle) :: bound_parts_loc(2), bound_parts(0:2*n_cpu-1), ship_parts(m_np), get_parts(m_nppm)
@@ -796,19 +797,27 @@ contains
         real*8 :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin, thresh2
         integer*8 :: ix(m_np), iy(m_np), iz(m_np), sorted_keys(m_nppm), local_keys(m_nppm)
         integer :: fposts(n_cpu+1),gposts(n_cpu+1),islen(n_cpu),irlen(n_cpu)
-        integer :: npnew, npold
+        integer(kind_particle) :: npnew, npold
         
         integer*8 :: iplace
         
         interface
-            subroutine slsort_keys(nin,nmax,keys,workload,balance_weight,max_imbalance,nout,indxl,irnkl,scounts,rcounts,sdispls,rdispls,keys2,irnkl2,size,rank)
-                integer,intent(in) :: nin,nmax,balance_weight,size,rank
-                real*8,intent(in) :: max_imbalance
-                integer,intent(out) :: nout,indxl(*),irnkl(*),scounts(*),rcounts(*),sdispls(*),rdispls(*),irnkl2(*)
-                integer*8,intent(out) :: keys2(*)
-                integer*8,intent(inout) :: keys(*)
-                real*8,intent(inout) :: workload(*)
-            end subroutine slsort_keys
+           subroutine slsort_keys(nin, nmax, keys, workload, balance_weight, max_imbalance, nout, indxl, &
+                                  irnkl, scounts, rcounts, sdispls, rdispls, keys2, irnkl2, size, rank, comm)
+              use module_pepc_kinds
+              integer(kind_particle), intent(in) :: nin
+              integer(kind_particle), intent(in) :: nmax
+              integer(kind_key), intent(inout) :: keys(*)
+              real*8, intent(inout) :: workload(*)
+              integer(kind_default), intent(in) :: balance_weight
+              real*8, intent(in) :: max_imbalance
+              integer(kind_particle), intent(out) :: nout
+              integer(kind_default), intent(out) :: indxl(*), irnkl(*), scounts(*), rcounts(*), sdispls(*), rdispls(*)
+              integer(kind_key), intent(out) :: keys2(*)
+              integer(kind_default), intent(out) :: irnkl2(*)
+              integer(kind_pe), intent(in) :: size, rank
+              integer(kind_default), intent(in) :: comm
+           end subroutine slsort_keys
         end interface
         
         iplace = 2_8**(idim * maxlevel)
@@ -916,7 +925,8 @@ contains
         local_keys(1:npold) = particles(1:npold)%key
         local_work(1:npold) = particles(1:npold)%work
 
-        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu, my_rank)
+        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, &
+                         sorted_keys, irnkl2, n_cpu, my_rank, MPI_COMM_WORLD)
 
         ! Permute particles according to arrays from slsort
         m_np = npnew
@@ -997,7 +1007,8 @@ contains
         local_keys(1:npold) = particles(1:npold)%key
         local_work(1:npold) = particles(1:npold)%work
 
-        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, sorted_keys, irnkl2, n_cpu, my_rank)
+        call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, &
+                         sorted_keys, irnkl2, n_cpu, my_rank, MPI_COMM_WORLD)
 
         ! Permute particles according to arrays from slsort
         m_np = npnew
