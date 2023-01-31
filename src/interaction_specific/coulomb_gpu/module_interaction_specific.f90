@@ -456,6 +456,7 @@ contains
 
       case (MAX_IACT_PARTNERS) ! compute list and add current partner to empty list
 
+         write(*,*) 'MAX_IACT_PARTNERS exhausted'
          ! compute list, which leaves us we NO list
          call compute_iact_list(particle)
          ! create new list

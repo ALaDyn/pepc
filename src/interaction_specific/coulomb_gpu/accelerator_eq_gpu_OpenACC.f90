@@ -376,7 +376,7 @@ module module_accelerator
       ! when this is called, the accelerator thread is up and running
       ! (we check its status before we continue from calc_force_prepare)
 
-!      write(*,*) 'dispatcher'
+!      write(*,*) 'dispatcher' ! --> this correlates with the number of launched kernels seen by nsys
       do
          if (atomic_fetch_and_decrement_int(acc%q_len) .gt. 1) then
             ! decrease queue indicator and check if we can add in one got
