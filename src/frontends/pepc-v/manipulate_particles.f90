@@ -1024,7 +1024,8 @@ contains
         implicit none
 
         integer :: i, k, ierr
-        real*8 :: thresh2
+        real(kind_physics) :: thresh2
+        type(t_particle), allocatable :: temp_particles(:)
 
         ! kick out particles with vorticity magnitude below threshold
         thresh2 = thresh**2
@@ -1037,6 +1038,11 @@ contains
         end do
         np = k
         call MPI_ALLREDUCE(np,n,1,MPI_KIND_PARTICLE,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+        ! shrink vortex_particles to new size
+        call move_alloc(vortex_particles, temp_particles)
+        if (allocated(vortex_particles)) deallocate(vortex_particles)
+        vortex_particles = temp_particles(1:np)
 
         if (1.25*n/n_cpu .lt. np) then
             write(*,*) 'warning, rank',my_rank,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu)
