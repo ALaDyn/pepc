@@ -3,7 +3,7 @@
 #
 
 ROOTDIR      = $(shell pwd)
-SVNREVISION  = $(shell svnversion)
+REVISION     = $(shell git describe --all --long --dirty)
 
 include tools/build/makefile.paths
 include makefile.defs
@@ -23,7 +23,7 @@ help: info
 info:
 	@printf "======== $(UL)make info$(NC)\n"
 	@printf "==== target architecture : $(BC)$(MACH)$(NC)\n"
-	@printf "==== code version        : $(BC)$(SVNREVISION)$(NC)\n"
+	@printf "==== code version        : $(BC)$(REVISION)$(NC)\n"
 	@printf "==== pepc directory      : $(BC)$(ROOTDIR)$(NC)\n"
 	@printf "==== available frontends : $(BC)$(ALLFRONTENDS)$(NC)\n"
 	@echo ""
@@ -102,7 +102,7 @@ pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a $(LIBDIR)/libopa.a
 	@mkdir -p "$(BUILDDIR)/$(MACH)/$@"
 	@mkdir -p "$(BINDIR)"
 	@-$(RM) "$(BINDIR)/$@"
-	@FRONTEND="$@" ROOTDIR="$(ROOTDIR)" SVNREVISION="$(SVNREVISION)" WORKDIR="$(BUILDDIR)/$(MACH)/$@" $(MAKE) $(MFLAGS) -f "$(MAKEDIR)/makefile.prepare"
+	@FRONTEND="$@" ROOTDIR="$(ROOTDIR)" REVISION="$(REVISION)" WORKDIR="$(BUILDDIR)/$(MACH)/$@" $(MAKE) $(MFLAGS) -f "$(MAKEDIR)/makefile.prepare"
 	@cp -p "$(BUILDDIR)/$(MACH)/$@/$@" "$(BINDIR)"
 	@echo ""
 	@printf "======== $(GREEN)successfully built frontend { $@ } :-)$(NC)\n"

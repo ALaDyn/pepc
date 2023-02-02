@@ -19,6 +19,7 @@
 !
 
 module diagnostics
+   implicit none
 contains
 
 

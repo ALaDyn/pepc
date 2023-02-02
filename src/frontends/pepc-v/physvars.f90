@@ -22,6 +22,7 @@ module physvars
 
   use module_pepc_types
   use module_pepc_kinds
+  implicit none
 
   type(t_particle), allocatable :: vortex_particles(:)
 
