@@ -127,8 +127,8 @@ contains
          write (*, '(a)') "     \ \ \/  \ \ \_L\ \ \/  \ \ \_\ \    Solver             "
          write (*, '(a)') "      \ \_\   \ \____\ \_\   \ \____/                       "
          write (*, '(a)') "       \/_/    \/____/\/_/    \/___/     pepc@fz-juelich.de "
-         write (*, '(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
-            SVNREVISION, frontendname, num_pe
+         write (*, '(/"Starting PEPC, revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
+            REVISION, frontendname, num_pe
          write (*, '("====     MACH = ",a)') MACH
          write (*, '("==== COMPILER = ",a)') COMPILER
          write (*, '("====   FFLAGS = ",a)') FFLAGS

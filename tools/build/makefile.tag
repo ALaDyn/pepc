@@ -11,7 +11,7 @@ CPPFLAGS += -DFFLAGS="\"$(FFLAGS)\""     \
             -DCFLAGS="\"$(CFLAGS)\""     \
             -DLDFLAGS="\"$(LDFLAGS)\""   \
             -DCOMPILER="\"$(COMPILER)\"" \
-            -DSVNREVISION="\"$(SVNREVISION)\"" \
+            -DREVISION="\"$(REVISION)\"" \
             -DMACH="\"$(MACH)\"" \
             -DWALKALGORITHM="\"$(WALK)\""
 

@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -40,25 +40,13 @@ contains
 
         integer :: j, k, ind, ind0, i, m, ierr, l
         real :: par_rand_res
-        real*8 :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3), xt, yt, zt
-        real*8, dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
-        real*8, allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
+        real(kind_physics) :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3), xt, yt, zt
+        real(kind_physics), dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
+        real(kind_physics), allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
 
         ! weird helper variables for sphere setup (ask Holger Dachsel)
         real*8 a,b,c,cth,sth,cphi,sphi,s
-        real*8 zero
-        parameter(zero=0.d0)
-        real*8 one
-        parameter(one=1.d0)
-        real*8 mone
-        parameter(mone=-one)
-        real*8 two
-        parameter(two=2.d0)
-        real*8 five
-        parameter(five=5.d0)
-        real*8 nine
-        parameter(nine=9.d0)
-
+        real(kind_physics), parameter :: zero=0.d0, one=1.d0, mone=-one, two=2.d0, five=5.d0, nine=9.d0
 
         !     interface
         !         subroutine par_rand(res, iseed)
@@ -614,11 +602,12 @@ contains
         use mpi
         implicit none
 
-        integer :: mesh_supp, ierr, k, i, i1, i2, i3, xtn, ytn, ztn, m_n, omp_thread_num
+        integer :: mesh_supp, ierr, k, i1, i2, i3, xtn, ytn, ztn, m_n, omp_thread_num
+        integer(kind_particle) :: i
         integer(kind_particle) :: m_np, m_nppm, tmp
-        real*8 :: frac, xt, yt, zt, axt, ayt, azt, wt
-        real*8, allocatable :: mesh_offset(:)
-        real*8, dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
+        real(kind_physics) :: frac, xt, yt, zt, axt, ayt, azt, wt
+        real(kind_physics), allocatable :: mesh_offset(:)
+        real(kind_physics), dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
         type(t_particle), allocatable :: m_part(:)
         integer, parameter :: t_remesh_interpol = t_userdefined_first + 2
         integer, parameter :: t_remesh_sort = t_userdefined_first + 3
@@ -627,7 +616,7 @@ contains
         do i = 1,np
             total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
         end do
-        call MPI_ALLREDUCE(total_vort,total_vort_full_pre,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(total_vort,total_vort_full_pre,3,MPI_KIND_PHYSICS,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         !! Define mesh structure and support, currently only none or 4 are possible
         mesh_supp = 4 !TODO: make this a parameter (and adapt remeshing itself to it)
@@ -640,7 +629,7 @@ contains
         m_nppm = ceiling(1.05*max(1.0*m_n/n_cpu,1.0*m_np)) ! allow 5% fluctuation, just a safety factor, since we'll kick out particles beforehand
 
         ! TODO: Define global max. #particles (do we need this?)
-        call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_INTEGER8,MPI_MAX,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_KIND_PARTICLE,MPI_MAX,MPI_COMM_WORLD,ierr)
         m_nppm = tmp
 
         allocate(m_part(m_nppm),STAT=ierr)
@@ -722,10 +711,10 @@ contains
         do i = 1,np
             total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
         end do
-        call MPI_ALLREDUCE(total_vort,total_vort_full_mid,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(total_vort,total_vort_full_mid,3,MPI_KIND_PHYSICS,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         !call kick_out_particles()
-        call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(np,n,1,MPI_KIND_PARTICLE,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         if (1.25*n/n_cpu .lt. np) then
             write(*,*) 'warning, rank',my_rank,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu)
@@ -737,7 +726,7 @@ contains
         do i = 1,np
             total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
         end do
-        call MPI_ALLREDUCE(total_vort,total_vort_full_post,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(total_vort,total_vort_full_post,3,MPI_KIND_PHYSICS,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         if (my_rank == 0) then
             write(*,*) '   Vorticity before remeshing (x,y,z,norm2):', total_vort_full_pre, sqrt(dot_product(total_vort_full_pre,total_vort_full_pre))
@@ -754,12 +743,12 @@ contains
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     function ip_kernel(dist,c)
+       use physvars, only: pi
 
         implicit none
 
-        real*8, parameter :: pi=0.3141592654D+01
-        real*8, intent(in) :: dist, c
-        real*8 :: ip_kernel
+        real(kind_physics), intent(in) :: dist, c
+        real(kind_physics) :: ip_kernel
 
         ip_kernel = 0.0D+00
         if (dist .le. 1) then
@@ -792,9 +781,10 @@ contains
         integer :: i,j,ierr,k
         type (t_particle) :: bound_parts_loc(2), bound_parts(0:2*n_cpu-1), ship_parts(m_np), get_parts(m_nppm)
         integer :: prev, next, nbits
+!TODO should this be kind_default or really kind_particle?!?!?
         integer :: irnkl2(m_nppm), indxl(m_np), irnkl(m_nppm)
-        real*8 :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local, s, local_work(m_nppm)
-        real*8 :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin, thresh2
+        real(kind_physics) :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local, s, local_work(m_nppm)
+        real(kind_physics) :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin, thresh2
         integer*8 :: ix(m_np), iy(m_np), iz(m_np), sorted_keys(m_nppm), local_keys(m_nppm)
         integer :: fposts(n_cpu+1),gposts(n_cpu+1),islen(n_cpu),irlen(n_cpu)
         integer(kind_particle) :: npnew, npold
@@ -848,12 +838,12 @@ contains
         zmax_local = maxval(particles(1:m_np)%x(3))
 
         ! Find global limits
-        call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(xmax_local, xmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(ymin_local, ymin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(ymax_local, ymax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(zmin_local, zmin, 1, MPI_REAL8, MPI_MIN,  MPI_COMM_WORLD, ierr )
-        call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_REAL8, MPI_MAX,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_KIND_PHYSICS, MPI_MIN,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(xmax_local, xmax, 1, MPI_KIND_PHYSICS, MPI_MAX,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(ymin_local, ymin, 1, MPI_KIND_PHYSICS, MPI_MIN,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(ymax_local, ymax, 1, MPI_KIND_PHYSICS, MPI_MAX,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(zmin_local, zmin, 1, MPI_KIND_PHYSICS, MPI_MIN,  MPI_COMM_WORLD, ierr )
+        call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_KIND_PHYSICS, MPI_MAX,  MPI_COMM_WORLD, ierr )
 
         xboxsize = xmax-xmin
         yboxsize = ymax-ymin
@@ -931,8 +921,8 @@ contains
         ! Permute particles according to arrays from slsort
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
-        call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle_sca, &
-        get_parts, irlen, gposts, mpi_type_particle_sca, MPI_COMM_WORLD,ierr)
+        call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_sca, &
+        get_parts, irlen, gposts, MPI_TYPE_PARTICLE_sca, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
 
@@ -1013,7 +1003,7 @@ contains
         ! Permute particles according to arrays from slsort
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
-        call MPI_ALLTOALLV(ship_parts, islen, fposts, mpi_type_particle_sca, &
+        call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_sca, &
         get_parts, irlen, gposts, mpi_type_particle_sca, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
@@ -1046,7 +1036,7 @@ contains
             end if
         end do
         np = k
-        call MPI_ALLREDUCE(np,n,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_ALLREDUCE(np,n,1,MPI_KIND_PARTICLE,MPI_SUM,MPI_COMM_WORLD,ierr)
 
         if (1.25*n/n_cpu .lt. np) then
             write(*,*) 'warning, rank',my_rank,' appears to be heavily imbalanced:',1.0*np/(1.0*n/n_cpu)
@@ -1065,11 +1055,12 @@ contains
         use mpi
         implicit none
 
-        integer :: i, ierr, nscan
+        integer(kind_particle) :: i, nscan
+        integer :: ierr
 
         ! Define valid labels for all local particles
         nscan = 0
-        call MPI_SCAN(np,nscan,1,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
+        call MPI_SCAN(np,nscan,1,MPI_KIND_PARTICLE,MPI_SUM,MPI_COMM_WORLD,ierr)
         nscan = nscan-np
         do i=1,np
             vortex_particles(i)%label = nscan+i
@@ -1085,11 +1076,12 @@ contains
         use mpi
         implicit none
 
-        integer, intent(in) :: np_local, my_rank, n_cpu
+        integer(kind_particle), intent(in) :: np_local
+        integer, intent(in) :: my_rank, n_cpu
         type(t_particle), intent(in) :: particles(1:np_local)
         type(t_particle_results), intent(out) :: results(1:np_local)
 
-        integer :: i
+        integer(kind_particle) :: i
         type(t_particle_results), allocatable :: directresults(:)
         integer(kind_particle) :: indices(1:np_local)
 
