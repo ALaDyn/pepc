@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -234,9 +234,10 @@ contains
         integer, intent(out) :: itime
 
         integer :: status(MPI_STATUS_SIZE)
-        integer :: ierr, err, fh, tmp_rem_freq, tmp_i, remain
+        integer :: ierr, err, fh, tmp_rem_freq, tmp_i
+        integer(kind_particle) :: remain
         real ::tmp_dt, tmp_te, tmp_nu, tmp_ts, tmp_h, tmp_m_h
-        real*8 :: tmp_thresh, tmp_eps
+        real(kind_physics) :: tmp_thresh, tmp_eps
 
         write(mpifile,'(a,i6.6,a)') "part_data/particle_", input_itime,".mpi"
         call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)

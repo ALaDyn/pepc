@@ -21,9 +21,7 @@
 module files
   implicit none
 
-
-    public openfiles
-    public closefiles
+  integer :: run_unit, dom_unit, diag_unit
 
   contains
 
@@ -39,9 +37,9 @@ module files
 
       if (my_rank == 0) then
          !  master diagnostics output
-         open(15,file='run.out')
-         open(70,file='domains.dat')
-         open(66,file='linear_diag.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
+         open(newunit=run_unit,file='run.out')
+         open(newunit=dom_unit,file='domains.dat')
+         open(newunit=diag_unit,file='linear_diag.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
      endif
 
      ! for MPI I/O
@@ -59,9 +57,9 @@ module files
       use physvars
 
       if (my_rank == 0) then
-         close(15)
-         close(70)
-         close(66)
+         close(run_unit)
+         close(dom_unit)
+         close(diag_unit)
       endif
 
       !close(20)
@@ -144,18 +142,19 @@ module files
         use physvars
         implicit none
 
-        integer :: i
-        character(50) :: resfile
+        integer                :: io_unit
+        integer(kind_particle) :: i
+        character(50)          :: resfile
 
         write(resfile,'(a,i6.6,a)') "part_data/results_", my_rank,".dat"
 
-        open(11,file=resfile)
+        open(newunit=io_unit,file=resfile)
 
         do i = 1, np
-            write(11,*) my_rank, i, vortex_particles(i)%label, vortex_particles(i)%x(1:3), vortex_particles(i)%data%alpha(1:3)
+            write(io_unit,*) my_rank, i, vortex_particles(i)%label, vortex_particles(i)%x(1:3), vortex_particles(i)%data%alpha(1:3)
         end do
 
-        close(11)
+        close(io_unit)
 
     end subroutine dump_results
 

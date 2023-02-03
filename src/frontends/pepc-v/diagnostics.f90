@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -31,11 +31,13 @@ subroutine error_norms(itime)
 
    real,intent(in) :: itime
 
-   real*8,parameter :: U_norm = 0.1504581298
-   integer :: i, ierr
-   real*8 :: r1, u_err_part, u_err_all, u_err_rel_all, u_err_rel_part, u_err_part_max, u_err_all_max, u_max_part, u_max_all, &
-             w_err_part, w_err_all, w_err_rel_all, w_err_rel_part, w_err_part_max, w_err_all_max, w_max_part, w_max_all
-   real*8 :: ux_ori(1:np), uy_ori(1:np), uz_ori(1:np), wx_ori(1:np), wy_ori(1:np), wz_ori(1:np)
+   real(kind_physics), parameter :: U_norm = 0.1504581298
+   integer :: ierr
+   integer(kind_particle) :: i
+   real(kind_physics) :: r1, u_err_part, u_err_all, u_err_rel_all, u_err_rel_part, u_err_part_max, &
+      u_err_all_max, u_max_part, u_max_all, w_err_part, w_err_all, w_err_rel_all, w_err_rel_part, &
+      w_err_part_max, w_err_all_max, w_max_part, w_max_all
+   real(kind_physics), dimension(1:np) :: ux_ori, uy_ori, uz_ori, wx_ori, wy_ori, wz_ori
 
    u_err_part = 0.
    u_err_all = 0.
@@ -166,14 +168,16 @@ end subroutine error_norms
 subroutine linear_diagnostics(itime,trun)
 
    use physvars
+   use files, only: diag_unit
    use mpi
    implicit none
 
    integer, intent(in) :: itime
-   real, intent(in) :: trun
+   real,    intent(in) :: trun
 
-   real*8 :: omega(3), sendbuf_O(3), linear(3), sendbuf_I(3), angular(3), sendbuf_A(3)
-   integer :: ierr, i
+   real(kind_physics)     :: omega(3), sendbuf_O(3), linear(3), sendbuf_I(3), angular(3), sendbuf_A(3)
+   integer                :: ierr
+   integer(kind_particle) :: i
 
    ! local total vorticity
    sendbuf_O = 0
@@ -219,7 +223,7 @@ subroutine linear_diagnostics(itime,trun)
       write(*,*) 'Linear Impulse:  ', sqrt(linear(1)**2+linear(2)**2+linear(3)**2), linear(1)+linear(2)+linear(3), linear(1), linear(2), linear(3)
       write(*,*) 'Angular Impulse: ', sqrt(angular(1)**2+angular(2)**2+angular(3)**2), angular(1)+angular(2)+angular(3), angular(1), angular(2), angular(3)
       write(*,*) '============================================'
-      write(66,*) itime, trun, sqrt(omega(1)**2+omega(2)**2+omega(3)**2),' ', omega(1)+omega(2)+omega(3),' ', omega(1),' ', omega(2),' ', omega(3) ,' ', &
+      write(diag_unit,*) itime, trun, sqrt(omega(1)**2+omega(2)**2+omega(3)**2),' ', omega(1)+omega(2)+omega(3),' ', omega(1),' ', omega(2),' ', omega(3) ,' ', &
                                sqrt(linear(1)**2+linear(2)**2+linear(3)**2),' ', linear(1)+linear(2)+linear(3),' ', linear(1),' ', linear(2),' ', linear(3),' ', &
                                sqrt(angular(1)**2+angular(2)**2+angular(3)**2),' ', angular(1)+angular(2)+angular(3),' ', angular(1),' ', angular(2),' ', angular(3),' '
    end if
@@ -228,16 +232,15 @@ subroutine linear_diagnostics(itime,trun)
 end subroutine linear_diagnostics
 
 
-subroutine divergence_diag(itime,trun)
+subroutine divergence_diag()
 
    use physvars
    use mpi
    implicit none
 
-   integer, intent(in) :: itime
-   real, intent(in) :: trun
-   integer :: i, ierr
-   real*8 :: div_max_local, div_min_local, div_mean_local, div_max, div_mean, div_min
+   integer :: ierr
+   integer(kind_particle) :: i
+   real(kind_physics) :: div_max_local, div_min_local, div_mean_local, div_max, div_mean, div_min
 
    div_mean_local = 0.
 
@@ -264,13 +267,14 @@ subroutine verify_direct()
     use mpi
     implicit none
 
-    real*8, dimension(np) :: rel_error_u, rel_error_af
+    real(kind_physics), dimension(np) :: rel_error_u, rel_error_af
 
-    integer :: i, ierr
+    integer :: ierr
+    integer(kind_particle) :: i
     type(t_particle_results) :: direct_results(1:np), pepc_results(1:np)
-    real*8 :: diff_u_mean_local, diff_u_mean, diff_af_mean_local, diff_af_mean,  &
-              diff_u_max_local, diff_af_max_local, diff_u_max, diff_af_max, t1, &
-              L2_u_mean_local, L2_u_mean, L2_af_mean_local, L2_af_mean
+    real(kind_physics) :: diff_u_mean_local, diff_u_mean, diff_af_mean_local, diff_af_mean,  &
+       diff_u_max_local, diff_af_max_local, diff_u_max, diff_af_max, t1, &
+       L2_u_mean_local, L2_u_mean, L2_af_mean_local, L2_af_mean
 
     rel_error_u = 0.
     rel_error_af = 0.

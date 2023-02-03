@@ -39,9 +39,10 @@ program pepcv
   use module_pepc_kinds
   use module_pepc_types
   use module_interaction_specific, only: theta2
+  use iso_fortran_env
   implicit none
 
-  integer :: i
+  integer(kind_particle) :: i
   real :: trun                     ! total run time including restarts and offset
   integer :: itime, stage, t_flag
   integer, parameter :: t_remesh = t_userdefined_first + 1
@@ -54,8 +55,8 @@ program pepcv
   call openfiles
 
   ! Time stamp
-  if (my_rank==0) call stamp(6,1)
-  if (my_rank==0) call stamp(15,1)
+  if (my_rank==0) call stamp(output_unit, 1)
+  if (my_rank==0) call stamp(run_unit, 1)
 
   ! Each CPU gets copy of initial data
   call pepc_setup(itime, trun)
@@ -105,7 +106,7 @@ program pepcv
             call timings_GatherAndOutput(itime,stage)
         end if
 
-        flush(6)
+        flush(output_unit)
 
         trun  = trun  + dt/rk_stages
 
@@ -138,7 +139,7 @@ program pepcv
 
      ! Some linear diagnostics
      call linear_diagnostics(itime,trun)
-     call divergence_diag(itime,trun)
+     call divergence_diag()
 
   end do
 
@@ -148,8 +149,8 @@ program pepcv
   call cleanup(my_rank,n_cpu)
   
   ! Time stamp
-  if (my_rank==0) call stamp(6,2)
-  if (my_rank==0) call stamp(15,2)
+  if (my_rank==0) call stamp(output_unit, 2)
+  if (my_rank==0) call stamp(run_unit,2)
 
   ! Tidy up O/P files
   call closefiles

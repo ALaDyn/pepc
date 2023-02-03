@@ -38,14 +38,15 @@ contains
         use mpi
         implicit none
 
-        integer :: j, k, ind, ind0, i, m, ierr, l
+        integer :: ierr
+        integer(kind_particle) :: j, k, ind, ind0, i, m, l
         real :: par_rand_res
         real(kind_physics) :: part_2d, rc, xi1, xi2, xi, part_3d, eta1, eta2, eta, v(3), xt, yt, zt
         real(kind_physics), dimension(3,3) :: D1, D2, D3, D4   !< rotation matrices for ring setup
         real(kind_physics), allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
 
         ! weird helper variables for sphere setup (ask Holger Dachsel)
-        real*8 a,b,c,cth,sth,cphi,sphi,s
+        real(kind_physics) ::  a,b,c,cth,sth,cphi,sphi,s
         real(kind_physics), parameter :: zero=0.d0, one=1.d0, mone=-one, two=2.d0, five=5.d0, nine=9.d0
 
         !     interface
@@ -545,6 +546,17 @@ contains
 
         end select config
 
+        ! shrink vortex_particles to correct size
+        ! reasoning: vortex_particles may have been allocated larger than required
+        ! but may be queried for its size at a later stage
+        if (np .ne. size(vortex_particles)) then
+           block
+              type(t_particle), allocatable :: temp_particles(:)
+              call move_alloc(vortex_particles, temp_particles)
+              vortex_particles = temp_particles(1:np)
+           end block
+        end if
+
         ! initial dump if we did not read in via MPI
         if (ispecial .ne. 99) then
             call dump(0,ts)
@@ -564,7 +576,7 @@ contains
 
       use physvars
       integer, intent(in) :: stage   ! In which RK stage are we?
-      integer :: i
+      integer(kind_particle) :: i
 
       do i=1,np
 
@@ -602,9 +614,9 @@ contains
         use mpi
         implicit none
 
-        integer :: mesh_supp, ierr, k, i1, i2, i3, xtn, ytn, ztn, m_n, omp_thread_num
-        integer(kind_particle) :: i
-        integer(kind_particle) :: m_np, m_nppm, tmp
+        integer :: mesh_supp, ierr, i1, i2, i3, xtn, ytn, ztn, omp_thread_num
+        integer(kind_particle) :: i, k
+        integer(kind_particle) :: m_np, m_nppm, m_n, tmp
         real(kind_physics) :: frac, xt, yt, zt, axt, ayt, azt, wt
         real(kind_physics), allocatable :: mesh_offset(:)
         real(kind_physics), dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
@@ -778,18 +790,20 @@ contains
         integer(kind_particle), intent(inout) :: m_np
         integer(kind_particle), intent(in) :: m_nppm
 
-        integer :: i,j,ierr,k
+        integer :: ierr
+        integer(kind_particle) :: i, j, k
         type (t_particle) :: bound_parts_loc(2), bound_parts(0:2*n_cpu-1), ship_parts(m_np), get_parts(m_nppm)
         integer :: prev, next, nbits
 !TODO should this be kind_default or really kind_particle?!?!?
         integer :: irnkl2(m_nppm), indxl(m_np), irnkl(m_nppm)
         real(kind_physics) :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local, s, local_work(m_nppm)
         real(kind_physics) :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin, thresh2
-        integer*8 :: ix(m_np), iy(m_np), iz(m_np), sorted_keys(m_nppm), local_keys(m_nppm)
+        integer(kind_particle) :: ix(m_np), iy(m_np), iz(m_np)
+        integer(kind_key) :: sorted_keys(m_nppm), local_keys(m_nppm)
         integer :: fposts(n_cpu+1),gposts(n_cpu+1),islen(n_cpu),irlen(n_cpu)
         integer(kind_particle) :: npnew, npold
         
-        integer*8 :: iplace
+        integer(kind_key) :: iplace
         
         interface
            subroutine slsort_keys(nin, nmax, keys, workload, balance_weight, max_imbalance, nout, indxl, &
@@ -1023,7 +1037,8 @@ contains
         use mpi
         implicit none
 
-        integer :: i, k, ierr
+        integer :: ierr
+        integer(kind_particle) :: i, k
         real(kind_physics) :: thresh2
         type(t_particle), allocatable :: temp_particles(:)
 
@@ -1041,7 +1056,6 @@ contains
 
         ! shrink vortex_particles to new size
         call move_alloc(vortex_particles, temp_particles)
-        if (allocated(vortex_particles)) deallocate(vortex_particles)
         vortex_particles = temp_particles(1:np)
 
         if (1.25*n/n_cpu .lt. np) then
