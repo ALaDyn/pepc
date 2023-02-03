@@ -82,7 +82,10 @@ program pepcv
         call pepc_particleresults_clear(vortex_particles)
 
         if (theta2 .gt. 0.0) then
-            call pepc_grow_and_traverse(vortex_particles, itime, .false., .false.)
+            !call pepc_grow_and_traverse(vortex_particles, itime, .false., .false.)
+            call pepc_grow_tree(vortex_particles)
+            call pepc_traverse_tree(vortex_particles)
+            call pepc_timber_tree()
             np = size(vortex_particles, kind=kind(np))
         else
             call direct_sum(np, vortex_particles, vortex_particles%results, my_rank, n_cpu)
