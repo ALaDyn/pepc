@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre, 
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -21,9 +21,7 @@
 module files
   implicit none
 
-
-    public openfiles
-    public closefiles
+  integer :: run_unit, dom_unit, diag_unit
 
   contains
 
@@ -39,9 +37,9 @@ module files
 
       if (my_rank == 0) then
          !  master diagnostics output
-         open(15,file='run.out')
-         open(70,file='domains.dat')
-         open(66,file='linear_diag.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
+         open(newunit=run_unit,file='run.out')
+         open(newunit=dom_unit,file='domains.dat')
+         open(newunit=diag_unit,file='linear_diag.dat',STATUS='UNKNOWN', POSITION = 'APPEND')
      endif
 
      ! for MPI I/O
@@ -59,9 +57,9 @@ module files
       use physvars
 
       if (my_rank == 0) then
-         close(15)
-         close(70)
-         close(66)
+         close(run_unit)
+         close(dom_unit)
+         close(diag_unit)
       endif
 
       !close(20)
@@ -129,7 +127,7 @@ module files
               ! Redefine file view, now with our custom type
               call MPI_FILE_SET_VIEW(fh, header_disp, MPI_TYPE_PARTICLE_sca, MPI_TYPE_PARTICLE_sca, 'native', MPI_INFO_NULL, ierr)
               ! Write particle data
-              call MPI_FILE_WRITE_ORDERED(fh, vortex_particles(1:np), np, MPI_TYPE_PARTICLE_sca, status, ierr)
+              call MPI_FILE_WRITE_ORDERED(fh, vortex_particles(1:np), int(np), MPI_TYPE_PARTICLE_sca, status, ierr)
               ! Take care before closing
               call MPI_FILE_SYNC(fh,ierr)
               call MPI_FILE_CLOSE(fh,ierr)
@@ -144,18 +142,19 @@ module files
         use physvars
         implicit none
 
-        integer :: i
-        character(50) :: resfile
+        integer                :: io_unit
+        integer(kind_particle) :: i
+        character(50)          :: resfile
 
         write(resfile,'(a,i6.6,a)') "part_data/results_", my_rank,".dat"
 
-        open(11,file=resfile)
+        open(newunit=io_unit,file=resfile)
 
         do i = 1, np
-            write(11,*) my_rank, i, vortex_particles(i)%label, vortex_particles(i)%x(1:3), vortex_particles(i)%data%alpha(1:3)
+            write(io_unit,*) my_rank, i, vortex_particles(i)%label, vortex_particles(i)%x(1:3), vortex_particles(i)%data%alpha(1:3)
         end do
 
-        close(11)
+        close(io_unit)
 
     end subroutine dump_results
 
@@ -180,7 +179,7 @@ module files
         ! Redefine file view, now with our custom type
         call MPI_FILE_SET_VIEW(fh, header_disp, MPI_TYPE_PARTICLE_sca, MPI_TYPE_PARTICLE_sca, 'native', MPI_INFO_NULL, ierr)
         ! Read particle data
-        call MPI_FILE_READ_ORDERED(fh, vortex_particles(1:np), np, MPI_TYPE_PARTICLE_sca, status, ierr)
+        call MPI_FILE_READ_ORDERED(fh, vortex_particles(1:np), int(np), MPI_TYPE_PARTICLE_sca, status, ierr)
         call MPI_FILE_CLOSE(fh,ierr)
 
     end subroutine read_in_checkpoint
@@ -194,12 +193,11 @@ module files
     subroutine write_particles_to_vtk(step,time)
 
         use physvars
-        use module_vtk
+        use module_vtk, only: vtkfile_unstructured_grid, VTK_STEP_FIRST, VTK_STEP_LAST, VTK_STEP_NORMAL
         implicit none
 
         real, intent(in) :: time
         integer, intent(in) :: step
-        integer :: i
         type(vtkfile_unstructured_grid) :: vtk
         integer :: vtk_step
 
@@ -212,7 +210,7 @@ module files
         endif
 
         call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01*time, vtk_step)
-        call vtk%write_headers(np,0)
+        call vtk%write_headers(np, 0_kind_particle)
         call vtk%startpoints()
             call vtk%write_data_array("xyz", vortex_particles(1:np)%x(1), vortex_particles(1:np)%x(2), vortex_particles(1:np)%x(3))
         call vtk%finishpoints()
@@ -221,7 +219,11 @@ module files
             call vtk%write_data_array("vorticity", vortex_particles(1:np)%data%alpha(1), vortex_particles(1:np)%data%alpha(2), vortex_particles(1:np)%data%alpha(3))
             call vtk%write_data_array("work", vortex_particles(1:np)%work)
             call vtk%write_data_array("label", vortex_particles(1:np)%label)
-            call vtk%write_data_array("pid", np, my_rank)
+            ! Then next line really was
+            !   call vtk%write_data_array("pid", np, my_rank)
+            ! but I can not find a vtk function to match that, regardless of int-types.
+            ! So I will change it to one I can fine. <np> is provided with the header, so leave it here
+            call vtk%write_data_array("pid", my_rank)
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()

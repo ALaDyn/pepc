@@ -9,3 +9,4 @@ SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_V_U))
 
 BACKEND = vortex
 
+WALK = pthreads

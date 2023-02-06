@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -21,30 +21,32 @@
 module physvars
 
   use module_pepc_types
+  use module_pepc_kinds
+  implicit none
 
   type(t_particle), allocatable :: vortex_particles(:)
 
-  real*8, parameter :: pi=3.141592654
+  real(kind_physics), parameter :: pi=3.141592654d0
     
   !  physics data
-  integer  :: n   ! # vortices
-  integer  :: np  ! # vortices per PE
-  real*8   :: force_const    ! force constant depending on unit system
-  real*8   :: eps            ! potential/force law cutoff
-  real     :: h, m_h         ! initial particle distance and mesh width for remeshing
-  integer  :: rem_freq       ! remeshing frequence
-  real*8   :: kernel_c       ! mod. remeshing kernel parameter
-  real*8   :: thresh         ! vorticity threshold: particles with lower vorticity mag. will be kicked out (mandatory to avoid zero abs_charge)
-  real     :: nu             ! viscosity parameter
-  real     :: rmax    ! radius of torus segment (ispecial=1,2)
-  real     :: rl      ! temp radius of current circle (ispecial=1,2)
-  real     :: r_torus ! radius of torus (ispecial=1,2)
-  integer  :: nc      ! # circles per torus segment (ispecial=1,2)
-  integer  :: nphi    ! # torus segments (ispecial=1,2)
-  integer  :: ns      ! # particles per torus segment (ispecial=1,2)
-  integer  :: n_in    ! # particles on the sphere (ispecial=3)
-  real     :: g       ! # vorticity/smoothing amplifier (ispecial=1,2,3)
-  real, dimension(3) :: torus_offset  ! shifts coords of both tori, one with +, one with - (ispecial=1,2)
+  integer(kind_particle) :: n   ! # vortices
+  integer(kind_particle) :: np  ! # vortices per PE
+  real(kind_physics)     :: force_const    ! force constant depending on unit system
+  real(kind_physics)     :: eps            ! potential/force law cutoff
+  real                   :: h, m_h         ! initial particle distance and mesh width for remeshing
+  integer                :: rem_freq       ! remeshing frequence
+  real(kind_physics)     :: kernel_c       ! mod. remeshing kernel parameter
+  real(kind_physics)     :: thresh         ! vorticity threshold: particles with lower vorticity mag. will be kicked out (mandatory to avoid zero abs_charge)
+  real                   :: nu             ! viscosity parameter
+  real                   :: rmax    ! radius of torus segment (ispecial=1,2)
+  real                   :: rl      ! temp radius of current circle (ispecial=1,2)
+  real                   :: r_torus ! radius of torus (ispecial=1,2)
+  integer                :: nc      ! # circles per torus segment (ispecial=1,2)
+  integer                :: nphi    ! # torus segments (ispecial=1,2)
+  integer                :: ns      ! # particles per torus segment (ispecial=1,2)
+  integer                :: n_in    ! # particles on the sphere (ispecial=3)
+  real                   :: g       ! # vorticity/smoothing amplifier (ispecial=1,2,3)
+  real, dimension(3)     :: torus_offset  ! shifts coords of both tori, one with +, one with - (ispecial=1,2)
 
  ! Variables needing 'copy' for tree routines
   integer :: my_rank       ! Rank of current task
@@ -232,9 +234,10 @@ contains
         integer, intent(out) :: itime
 
         integer :: status(MPI_STATUS_SIZE)
-        integer :: ierr, err, fh, tmp_rem_freq, tmp_i, remain
+        integer :: ierr, err, fh, tmp_rem_freq, tmp_i
+        integer(kind_particle) :: remain
         real ::tmp_dt, tmp_te, tmp_nu, tmp_ts, tmp_h, tmp_m_h
-        real*8 :: tmp_thresh, tmp_eps
+        real(kind_physics) :: tmp_thresh, tmp_eps
 
         write(mpifile,'(a,i6.6,a)') "part_data/particle_", input_itime,".mpi"
         call MPI_FILE_OPEN(MPI_COMM_WORLD,mpifile,IOR(MPI_MODE_RDWR,MPI_MODE_CREATE),MPI_INFO_NULL,fh,ierr)
@@ -245,7 +248,7 @@ contains
 
         ! Set file view to BYTE for header and read
         call MPI_FILE_SET_VIEW(fh,0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
-        call MPI_FILE_READ(fh,n,1,MPI_INTEGER,status,ierr)            ! # particles
+        call MPI_FILE_READ(fh,n,1,MPI_KIND_PARTICLE,status,ierr)      ! # particles
         call MPI_FILE_READ(fh,tmp_dt,1,MPI_REAL,status,ierr)          ! timestep
         call MPI_FILE_READ(fh,tmp_ts,1,MPI_REAL,status,ierr)          ! Starting time
         call MPI_FILE_READ(fh,tmp_i,1,MPI_INTEGER,status,ierr)        ! Last successful timestep (number)
@@ -254,8 +257,8 @@ contains
         call MPI_FILE_READ(fh,tmp_h,1,MPI_REAL,status,ierr)           ! Original particle distance
         call MPI_FILE_READ(fh,tmp_m_h,1,MPI_REAL,status,ierr)         ! Remeshing distance
         call MPI_FILE_READ(fh,tmp_rem_freq,1,MPI_INTEGER,status,ierr) ! Remeshing frequence
-        call MPI_FILE_READ(fh,tmp_thresh,1,MPI_REAL8,status,ierr)     ! threshold for pop. control
-        call MPI_FILE_READ(fh,tmp_eps,1,MPI_REAL8,status,ierr)         ! core size
+        call MPI_FILE_READ(fh,tmp_thresh,1,MPI_KIND_PHYSICS,status,ierr)     ! threshold for pop. control
+        call MPI_FILE_READ(fh,tmp_eps,1,MPI_KIND_PHYSICS,status,ierr)        ! core size
         call MPI_FILE_CLOSE(fh,ierr)
 
         dt = tmp_dt
