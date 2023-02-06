@@ -381,7 +381,8 @@ contains
       logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
       logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
 
-      call pepc_grow_and_traverse_for_others(particles, particles, itime, no_dealloc, no_restore)
+      call pepc_grow_and_traverse_for_others(particles_source=particles, &
+         itime=itime, no_dealloc=no_dealloc, no_restore=no_restore)
 
    end subroutine
 
@@ -396,7 +397,7 @@ contains
       use module_tree_communicator, only: tree_communicator_stop
       implicit none
       type(t_particle), allocatable, intent(inout) :: particles_source(:) !< input particle data (sources for force computation), initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
-      type(t_particle), intent(inout) :: particles_sink(:) !< particles to compute forces onto (sinks for force computation)
+      type(t_particle), allocatable, optional, intent(inout) :: particles_sink(:) !< particles to compute forces onto (sinks for force computation)
       integer, intent(in) :: itime !> current timestep (used as filename suffix for statistics output)
       logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
       logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
@@ -410,7 +411,11 @@ contains
       if (present(no_restore)) restore = .not. no_restore
 
       call pepc_grow_tree(particles_source)
-      call pepc_traverse_tree(particles_sink)
+      if (present(particles_sink)) then
+         call pepc_traverse_tree(particles_sink)
+      else
+         call pepc_traverse_tree(particles_source)
+      end if
 
       if (dbg(DBG_STATS)) call pepc_statistics(itime)
       if (restore) then
