@@ -10,6 +10,11 @@ In general, please feel free to submit issues and enhancement requests. Since
 development is usually done within projects or by students, please do not expect
 an immediate response.
 
+Any **issue**, **commit**, branch, or merge request should indicate the
+frontend if it applies only to a single frontend, i.e. please add `[XXX]` to the
+respective title of an issue, commit, or MR and `_XXX` to the branch name (where
+XXX is the name of the frontend).
+
 Contributing
 ------------
 
