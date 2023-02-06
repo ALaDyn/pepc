@@ -59,11 +59,13 @@ FFIX = -fallow-argument-mismatch
 
 # switch further compiler flags depending on DEBUG setting
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
-    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
-    $(FFEATURES) $(FWARNINGS) $(FARCH)
-  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall $(FARCH)
-  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+  FSANITIZE=-fsanitize=thread # thread sanitizer
+  FSANITIZE=-fsanitize=undefined,address -fsanitize=leak # memory and leak sanitizer
+  FSANITIZE=
+  FFLAGS   = -Og -g -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) $(FWARNINGS) $(FARCH) $(FSANITIZE)
+  CFLAGS   = -Og -g -pthread -Wall $(FARCH) $(FSANITIZE)
+  LDFLAGS  = -Og -g -pthread $(FSANITIZE)
 else
   FFLAGS   = -O3 \
     $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
