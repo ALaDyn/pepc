@@ -220,7 +220,7 @@ module files
             call vtk%write_data_array("vorticity", vortex_particles(1:np)%data%alpha(1), vortex_particles(1:np)%data%alpha(2), vortex_particles(1:np)%data%alpha(3))
             call vtk%write_data_array("work", vortex_particles(1:np)%work)
             call vtk%write_data_array("label", vortex_particles(1:np)%label)
-            call vtk%write_data_array("pid", [(my_rank,i=1,np)]) ! attaching the MPI rank to each particle
+            call vtk%write_data_array("pid", int(np, kind_default), my_rank) ! attaching the MPI rank to each particle
         call vtk%finishpointdata()
         call vtk%dont_write_cells()
         call vtk%write_final()
