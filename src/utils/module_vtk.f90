@@ -934,11 +934,18 @@ contains
    subroutine vtkfile_unstructured_grid_dont_write_cells(vtk)
       implicit none
       class(vtkfile_unstructured_grid) :: vtk
+      character(6) :: format
+
+      if (vtk%binary) then
+         format = "binary"
+      else
+         format = "ascii"
+      end if
 
       call vtk%startcells()
-      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""connectivity"" />")')
-      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""offsets"" />")')
-      write (vtk%filehandle, '("<DataArray type=""UInt8"" Name=""types"" />")')
+      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""connectivity"" format=""", a ,""" />")') trim(format)
+      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""offsets"" format=""", a , """ />")') trim(format)
+      write (vtk%filehandle, '("<DataArray type=""UInt8"" Name=""types"" format=""", a ,""" />")') trim(format)
       call vtk%finishcells()
       call vtk%startcelldata()
       call vtk%finishcelldata()
