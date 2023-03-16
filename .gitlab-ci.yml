@@ -6,7 +6,7 @@ stages:
     #   - deploy   # this could push doxygen to pages
 
 variables:
-  IMAGE: "$CI_REGISTRY/broemmel1/docker-images/pepc-build:3.13"
+  IMAGE: "$CI_REGISTRY/broemmel1/docker-images/pepc-build:3.17"
 
 # build libsl and libOPA ahead of frontends
 build:libs:
