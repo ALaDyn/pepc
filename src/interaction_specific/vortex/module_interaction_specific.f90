@@ -447,7 +447,7 @@ module module_interaction_specific
             dy = d(2)
             dz = d(3)
 
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
@@ -566,7 +566,7 @@ module module_interaction_specific
             dy = d(2)
             dz = d(3)
 
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
@@ -697,7 +697,7 @@ module module_interaction_specific
             dz = d(3)
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
             nom = dist2+sig2
@@ -745,7 +745,7 @@ module module_interaction_specific
             dy = d(2)
             dz = d(3)
 
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
@@ -812,7 +812,7 @@ module module_interaction_specific
             dz = d(3)
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
 
             dist = sqrt(dist2)
@@ -864,7 +864,7 @@ module module_interaction_specific
             dy = d(2)
             dz = d(3)
 
-            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle's vorticity for cross-product here
+            vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
             m0 = [t%chargex,t%chargey,t%chargez]       ! monopole moment tensor
             CP0 = cross_prod(m0,vort)                  ! cross-product for 1st expansion term
