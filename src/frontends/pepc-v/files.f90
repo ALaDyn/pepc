@@ -73,7 +73,7 @@ module files
     !>   Dump VTK or checkpoint
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine dump(i,simtime)
+    subroutine dump(i, simtime)
 
         use physvars
         use mpi
@@ -106,17 +106,17 @@ module files
               ! Set file view to BYTE for header, only rank 0 writes it
               call MPI_FILE_SET_VIEW(fh,0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
               if (my_rank == 0) then
-                 call MPI_FILE_WRITE(fh,n,1,MPI_INTEGER,status,ierr)    ! # particles
-                 call MPI_FILE_WRITE(fh,dt,1,MPI_REAL,status,ierr)          ! timestep
-                 call MPI_FILE_WRITE(fh,ts,1,MPI_REAL,status,ierr)          ! Starting time
-                 call MPI_FILE_WRITE(fh,i,1,MPI_INTEGER,status,ierr)        ! Last successful timestep (number)
-                 call MPI_FILE_WRITE(fh,te,1,MPI_REAL,status,ierr)          ! Final time
-                 call MPI_FILE_WRITE(fh,nu,1,MPI_REAL,status,ierr)          ! Viscousity
-                 call MPI_FILE_WRITE(fh,h,1,MPI_REAL,status,ierr)           ! Original particle distance
-                 call MPI_FILE_WRITE(fh,m_h,1,MPI_REAL,status,ierr)         ! Remeshing distance
-                 call MPI_FILE_WRITE(fh,rem_freq,1,MPI_INTEGER,status,ierr) ! Remeshing frequence
-                 call MPI_FILE_WRITE(fh,thresh,1,MPI_REAL8,status,ierr)     ! threshold for pop. control
-                 call MPI_FILE_WRITE(fh,eps,1,MPI_REAL8,status,ierr)         ! core size
+                 call MPI_FILE_WRITE(fh,n,1,MPI_KIND_PARTICLE,status,ierr)     ! # particles
+                 call MPI_FILE_WRITE(fh,dt,1,MPI_REAL,status,ierr)             ! timestep
+                 call MPI_FILE_WRITE(fh,ts,1,MPI_REAL,status,ierr)             ! Starting time
+                 call MPI_FILE_WRITE(fh,i,1,MPI_INTEGER,status,ierr)           ! Last successful timestep (number)
+                 call MPI_FILE_WRITE(fh,te,1,MPI_REAL,status,ierr)             ! Final time
+                 call MPI_FILE_WRITE(fh,nu,1,MPI_REAL,status,ierr)             ! Viscousity
+                 call MPI_FILE_WRITE(fh,h,1,MPI_REAL,status,ierr)              ! Original particle distance
+                 call MPI_FILE_WRITE(fh,m_h,1,MPI_REAL,status,ierr)            ! Remeshing distance
+                 call MPI_FILE_WRITE(fh,rem_freq,1,MPI_INTEGER,status,ierr)    ! Remeshing frequence
+                 call MPI_FILE_WRITE(fh,thresh,1,MPI_KIND_PHYSICS,status,ierr) ! threshold for pop. control
+                 call MPI_FILE_WRITE(fh,eps,1,MPI_KIND_PHYSICS,status,ierr)    ! core size
                  call MPI_FILE_GET_POSITION(fh, disp, ierr)
                  if (disp .gt. header_disp) then
                     write(*,*) "header_size is too small: ", header_disp, "<", disp
