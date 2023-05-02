@@ -69,12 +69,18 @@ contains
       end if
 
       points(i)%label = 0
-      points(i)%data%q = 0.0_8
-      points(i)%data%m = 1.0_8
+      points(i)%work = 1.0_kind_physics
       points(i)%data%species = 0
-      points(i)%data%age = 0.0_8
-      points(i)%work = 1.0_8
-      points(i)%data%v = 0.0
+      points(i)%data%mp_int1 = 0
+      points(i)%data%age = 0.0_kind_physics
+      points(i)%data%v = 0.0_kind_physics
+      points(i)%data%q = 0.0_kind_physics
+      points(i)%data%m = 1.0_kind_physics
+      points(i)%data%b = 0.0_kind_physics
+      points(i)%data%f_e = 0.0_kind_physics
+      points(i)%data%f_b = 0.0_kind_physics
+      points(i)%results%e = 0.0_kind_physics
+      points(i)%results%pot = 0.0_kind_physics
     end do
   end subroutine torus_diagnostic_xz_grid
 
@@ -113,12 +119,18 @@ contains
       end if
 
       points(i)%label = 0
-      points(i)%data%q = 0.0_8
-      points(i)%data%m = 1.0_8
+      points(i)%work = 0.0_kind_physics
       points(i)%data%species = 5
-      points(i)%data%age = 0.0_8
-      points(i)%work = 1.0_8
-      points(i)%data%v = 0.0
+      points(i)%data%mp_int1 = 0
+      points(i)%data%age = 0.0_kind_physics
+      points(i)%data%v = 0.0_kind_physics
+      points(i)%data%q = 0.0_kind_physics
+      points(i)%data%m = 1.0_kind_physics
+      points(i)%data%b = 0.0_kind_physics
+      points(i)%data%f_e = 0.0_kind_physics
+      points(i)%data%f_b = 0.0_kind_physics
+      points(i)%results%e = 0.0_kind_physics
+      points(i)%results%pot = 0.0_kind_physics
     end do
     !print *, points(1)%x(1), points(1)%x(3), points(size(points))%x(1), points(size(points))%x(3)
   end subroutine torus_diagnostic_xz_breakdown
@@ -1863,12 +1875,55 @@ contains
     particle%data%f_b(1) = conn_length
   end subroutine streakline_integral
 
+  subroutine streakline_integral_timing(particle, major_radius, minor_radius, tok_origin, conn_length, time_start, rate, end_time)
+    implicit none
+    type(t_particle), intent(inout) :: particle
+    integer(kind_particle), intent(in) :: time_start
+    real(kind_physics), intent(in) :: rate, end_time
+    real(kind_physics), intent(in) :: major_radius, minor_radius
+    real(kind_physics), intent(in) :: tok_origin(3)
+    real(kind_physics), intent(out) :: conn_length
+    real(kind_physics) :: B_mag, new_pos(3), B(3), pos_a, elapsed_time
+    real(kind_physics) :: r_xy, r_pos(3), r_pos2(3), dx, total_length
+    integer(kind_particle) :: time_finish
+
+    total_length = particle%data%f_b(1)
+    dx = 0.003335_kind_physics! 0.0001335_kind_physics
+
+    r_pos = particle%x - tok_origin
+    r_pos2 = r_pos**2
+
+    r_xy = sqrt(r_pos2(1) + r_pos2(2)) - major_radius
+    pos_a = sqrt(r_xy**2 + r_pos2(3))
+
+    do while(pos_a < minor_radius .and. elapsed_time < end_time)
+      call particle_EB_field(particle, external_e, B_pol_grid)
+      B_mag = sqrt(dot_product(particle%data%b, particle%data%b))
+      B = 1.0_kind_physics*particle%data%b/B_mag
+
+      new_pos = particle%x + B*dx
+      total_length = total_length + dx
+
+      particle%x = new_pos
+      r_pos = particle%x - tok_origin
+      r_pos2 = r_pos**2
+      r_xy = sqrt(r_pos2(1) + r_pos2(2)) - major_radius
+
+      pos_a = sqrt(r_xy**2 + r_pos2(3))
+      
+      call system_clock(time_finish)
+      elapsed_time = (time_finish - time_start)/rate
+    end do
+    conn_length = total_length
+    particle%data%f_b(1) = conn_length
+  end subroutine streakline_integral_timing
+
   subroutine connection_length_output(global_table, file_ID)!, filename)
     use mpi
     implicit none
     real(kind_physics), allocatable, intent(inout) :: global_table(:,:)
     integer, intent(in) :: file_ID
-    !character(len=255), intent(in) :: filename
+    character(len=255) :: filename
     integer :: N_entries, m
     integer, allocatable :: N_counts(:)    
 
@@ -1883,7 +1938,8 @@ contains
 
     if (root) then
       print *, "N_counts", N_counts
-      open(file_ID, file='test_sce3C', action='WRITE', position='append')
+      write (filename, '(a,"_",i2.2)') "test_sce3C", itime_in
+      open(file_ID, file=filename, action='WRITE', position='append')
       print *, "file opened"
       write(file_ID, *) 'init_x    ', 'init_y   ', 'init_z   ', 'length   ', 'init_Bmag   ', 'final_Bmag   '
       print *, "Start looping"
@@ -1915,6 +1971,7 @@ contains
       particle(l)%x(3) = z_scaled - radius_scaled*sin(delta_theta*(l-1))
 
       particle(l)%data%species = 0
+      particle(l)%data%mp_int1 = 0
       particle(l)%data%age = 0.0_kind_physics
       particle(l)%work = 1.0_Kind_physics
       particle(l)%data%q = 0.0_kind_physics
