@@ -98,8 +98,7 @@ program pepc
      itime_in = 0
      ! call init_particles(particles, sim_type)
      ! call torus_diagnostic_xz_grid(major_radius, minor_radius, 8, particles)
-     ! call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 43, particles)
-     call circle_points(particles, 5.8_kind_physics, 0.0_kind_physics, 1.0_kind_physics, 255)
+     call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 43, particles)
      ! call torus_diagnostic_xy_grid(major_radius, minor_radius, 10, particles, 1.0_8)
    end if
 
@@ -163,85 +162,124 @@ program pepc
 !   call pepc_particleresults_clear(particles)
 !   call pepc_grow_tree(particles)
 
-   E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
-   call poloidal_B_grid(B_pol_grid, 200, 200, 4.05_kind_physics, 1.75_kind_physics, &
-                        3.5_kind_physics, 3.5_kind_physics)
-   do i = 1, size(particles)
-     call particle_EB_field(particles(i), external_e, B_pol_grid)
+!   E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
+!   call poloidal_B_grid(B_pol_grid, 200, 200, 4.05_kind_physics, 1.75_kind_physics, &
+!                        3.5_kind_physics, 3.5_kind_physics)
+!   do i = 1, size(particles)
+!     call particle_EB_field(particles(i), external_e, B_pol_grid)
 !     print *, particles(i)%data%b
-   end do
+!   end do
 
    ! free tree specific allocations
 !   call pepc_timber_tree()
-   call write_particles(particles)
+!   call write_particles(particles)
 !   call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
 !   call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
    
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
+!   np = size(particles)
+!   tnp = 0
+!   call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
+!   if (root) print *, "tnp: ", tnp, np
+!   call write_particles_mpiio(MPI_COMM_WORLD, 1, tnp, particles, checkpoint_file)
+!   allocate(global_table2(6, tnp))
+
+!  NOTE: for internal electric field on a poloidal plane.
+!   if (root) print *, "Creating diagnostic plane..."
+!   if (root) then
+!     call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 43, gathered_new_buffer)
+!     new_particle_cnt = size(gathered_new_buffer)
+!     call extend_particles_swap_inject_omp(particles, gathered_new_buffer, new_particle_cnt, 0, 0)
+!     deallocate(gathered_new_buffer)
+!   end if
+
+!   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+!   call pepc_particleresults_clear(particles)
+!   call pepc_grow_tree(particles)
+!   np = size(particles, kind=kind(np))
+!   if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", timer_read(t_fields_tree)
+!   call pepc_traverse_tree(particles)
+!   if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", timer_read(t_fields_passes)
+!   call pepc_timber_tree()
+!  NOTE: for internal electric field on a poloidal plane.
+
+
+   if (slice_parts) then
+     if (root) print *, 'Sampling particles'
+       call slice_particles(particles, 4.04_kind_physics, 7.56_kind_physics, -0.20_kind_physics, 0.20_kind_physics, slab_particles)
+       ! call torus_cut(particles, 5.8_kind_physics, 0.0_kind_physics, 1.0_kind_physics, slab_particles)
+   end if
+   ! step = 2
+!   call write_particles(particles)
+
    np = size(particles)
    tnp = 0
    call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
-   if (root) print *, "tnp: ", tnp, np
-   if (root) print*, 'init_x    ', 'init_y   ', 'init_z   ', 'length   ', 'init_Bmag   ', 'final_Bmag   '
-!   call write_particles_mpiio(MPI_COMM_WORLD, 1, tnp, particles, checkpoint_file)
-   allocate(global_table2(6, tnp))
-
-   !$OMP PARALLEL  default(none) &
-   !$OMP shared(init_omp_threads, np) &
-   !$OMP shared(external_e, dt, V_loop, d, E_q_dt_m) &
-   !$OMP shared(my_rank, global_table2) &
-   !$OMP shared(abs_max_CS, B0, B_p, major_radius) &
-   !$OMP shared(minor_radius, plasma_dimensions) &
-   !$OMP shared(step, omp_threads) private(dummy, start_i, neutral_density, local_min_x) firstprivate(B_pol_grid, particles)
-   dummy = OMP_GET_NUM_THREADS()
-   start_i = OMP_GET_THREAD_NUM()
-   if (start_i == 0) print *, "Total threads: ", dummy
-
-   !$OMP DO SCHEDULE(DYNAMIC,1)
-   do i = 1, np
-     ! call particle_EB_field(particles(i), external_e, B_pol_grid)
-     ! Using local_table2(:,:) as a dummy carrier. Data structure as follows:
-     ! local_table2(1:3,:) = particle's initial coordinate.
-     ! local_table2(4,:)   = connection length
-     ! local_table2(5,:)   = particle's init B_mag
-     ! local_table2(6,:)        = particle's final B_mag
-     ! Using global_table2(:,:) as a global collector.
-     ! neutral_density as a dummy for B_mag.
-     ! local_min_x as a dummy for origin of torus.
-     ! print *, start_i, i
-     local_min_x = 0.0_kind_physics
-     neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
-     global_table2(1,i) = particles(i)%x(1)
-     global_table2(2,i) = particles(i)%x(2)
-     global_table2(3,i) = particles(i)%x(3)
-     global_table2(5,i) = neutral_density
-     call streakline_integral(particles(i), 0.1/(c*1e-12), 1e-8_kind_physics, 30_kind_particle, major_radius, minor_radius, local_min_x, global_table2(4,i))  
-     neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
-     global_table2(6,i) = neutral_density
-
-     
-     print*, start_i,  global_table2(1,i), global_table2(2,i), global_table2(3,i), global_table2(4,i), global_table2(5,i), global_table2(6,i) 
-   end do
-   !$OMP END PARALLEL
-
-!   call calculate_next_E_steps(0.0026944002417373996_kind_physics, last_merge_tnp)
-!   print *, 'E_steps: ', last_merge_tnp, 1/(last_merge_tnp*dt*1e-12)
-
-   ! call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-   ! step = 2
-!   call write_particles(particles)
+   if (root) print *, "After slice tnp: ", tnp, np
+   if (particle_mpi_output) call write_particles_mpiio(MPI_COMM_WORLD, itime_in+1, tnp, particles, checkpoint_file)
    if (root) print *, "Done Write!"
+
+   !==========Redistribute particles among the MPI Ranks after slice====================
+   call pepc_particleresults_clear(particles)
+   call pepc_grow_tree(particles)
+   call pepc_timber_tree()
+
+   ! NOTE: if density diagnostic is on, do these
+   if (density_output) then
+     if (root) print *, "Density interpolation."
+     call timer_start(t_interpolate)
+     if (mesh_mode == 0) then
+       do i = 1, size(particles)
+         call density_interpolation(particles(i), density_verts)
+         ! call Sum_Vde(particles(i), density_verts)
+       end do
+     elseif (mesh_mode == 1) then
+       do i = 1, size(particles)
+         ! if (MOD(i,10000) == 0) print *, my_rank, i
+         call tet_mesh_interpolation(particles(i), density_verts, connectivity_tets)
+       end do
+     end if
+
+     call MPI_GATHER(density_verts, size(density_verts), MPI_TYPE_density, &
+                     final_density, size(density_verts), MPI_TYPE_density, 0, &
+                     MPI_COMM_WORLD, ierr)
+     if (root) then
+       call clear_density_results(density_verts)
+
+       do ir = 0, n_ranks-1
+         do iv = 1, size(density_verts)
+           cnt = ir*size(density_verts) + iv
+           density_verts(iv)%q_density = final_density(cnt)%q_density + density_verts(iv)%q_density
+           density_verts(iv)%J_density = final_density(cnt)%J_density + density_verts(iv)%J_density
+           final_density(cnt)%q_density = 0.0
+           final_density(cnt)%J_density = 0.0
+         end do
+       end do
+
+       if (mesh_mode == 1) then
+         allocate(connectivity_array(N_element*4))
+         call construct_connectivity_tets(connectivity_array, connectivity_tets)
+       end if
+       print *, "Start writing density"
+       call write_densities(density_verts, mesh_mode)
+     end if
+     call clear_density_results(density_verts)
+     call timer_stop(t_interpolate)
+     if (root) write (*, '(a,es12.4)') " ====== density interpolation [s]:", timer_read(t_interpolate)
+   end if
+
 
    ! call MPI_GATHER(local_table2, size(local_table2), MPI_KIND_PHYSICS, &
    !                 global_table2, size(local_table2), MPI_KIND_PHYSICS, 0, &
    !                 MPI_COMM_WORLD, ierr)
    if (root) print *, "after GATHER"
-   call connection_length_output(global_table2, 23)
+!   call connection_length_output(global_table2, 23)
   
    if (root) print *, "done output"
-   deallocate(global_table2)
+!   deallocate(global_table2)
 !=============================Writing output files==============================
 !      if (doDiag .and. particle_output) then
 !   call charge_poloidal_distribution(particles, local_table2, global_table2, tnp, itime_in + step + 1)
@@ -256,11 +294,14 @@ program pepc
         ! call gather_spherical_angle_tables(local_table2, global_table2, 55, file_name)
         ! call V_mean_phi_distribution(particles, local_table2, 1000)
         ! call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
-!        call V_par_perp_calculation(particles, local_table2)
-!        call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
+   
+   write(file_name, '(A6,I10.10,A4)') 'Vdist_', itime_in + step + 1, '.txt'
+   file_name = trim(file_name)
+!   call V_par_perp_calculation(particles, local_table2)
+!   call V_par_perp_histogram_fix(local_table2, 100, tnp, 55, file_name)
 !      end if
 
-   deallocate(B_pol_grid)
+!   deallocate(B_pol_grid)
 
    deallocate(particles)
    deallocate(slopes)

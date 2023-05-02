@@ -339,7 +339,7 @@ contains
       field_vector = cross_product(particle%x,ez)
       field_vector = field_vector/sqrt(dot_product(field_vector, field_vector))
 
-      Itf = 7.524e7_kind_physics !3.62e7_8 obsolete
+      Itf = 7.524e7_kind_physics !15.048e7_kind_physics !3.62e7_8 obsolete
       R = sqrt(Coord(1)**2 + Coord(2)**2)
       B_field = field_vector * mu_0 * Itf/(2.0_8 * pi *R) ! field_vector*B0*major_radius/R
       B_field = B_field*((1.e-12)*(c**2))/e_mass ! non-dimensionalise

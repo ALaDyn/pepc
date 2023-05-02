@@ -115,7 +115,7 @@ contains
       points(i)%label = 0
       points(i)%data%q = 0.0_8
       points(i)%data%m = 1.0_8
-      points(i)%data%species = 0
+      points(i)%data%species = 5
       points(i)%data%age = 0.0_8
       points(i)%work = 1.0_8
       points(i)%data%v = 0.0
@@ -652,6 +652,133 @@ contains
 
     deallocate(table)
   end subroutine V_par_perp_histogram
+
+  subroutine V_par_perp_histogram_fix(table, N, total_parts, file_ID, filename)
+    use mpi
+    implicit none
+    real(kind_physics), allocatable, intent(inout) :: table(:,:)
+    integer, intent(in) :: N, file_ID
+    integer(kind_particle), intent(in) :: total_parts
+    character(len=255), intent(in) :: filename
+    integer :: rank_size, local_array_size, l, idx
+    integer, allocatable :: receive_cnt(:), offsets(:)
+    real(kind_physics), allocatable :: global_table(:,:), bin_count(:,:)
+    real(kind_physics) :: total_weight, min_limits(4), max_limits(4), Vpar_width, Vperp_width, Vsquared_width
+    real(kind_physics) :: Vpar_diff, Vperp_diff, Vpar_mean, Vperp_mean, total_KE, Vsquared, Vsquared_diff
+
+    ! Structure of bin_counts: Vpar_bin_mid, Vpar_cnt, Vperp_bin_mid, Vperp_cnt, V^2, V^2 cnt
+    ! min_limits and max_limits: Vpar, Vperp, weight, V^2
+    if (root) then
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, rank_size, ierr)
+      allocate(receive_cnt(rank_size))
+      allocate(offsets(rank_size))
+      allocate(global_table(4, total_parts))
+      allocate(bin_count(6, N))
+      receive_cnt = 0
+      offsets = 0
+      global_table = 0.0_kind_physics
+      bin_count = 0.0_kind_physics
+    end if
+
+    if (.not. root) then
+      allocate(receive_cnt(0))
+      allocate(global_table(0,0))
+      allocate(offsets(0))
+    end if
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, rank_size, ierr)
+    local_array_size = size(table)
+    call MPI_GATHER(local_array_size, 1, MPI_INT, receive_cnt, 1, MPI_INT, 0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      do l = 2, rank_size
+        offsets(l) = offsets(l-1) + receive_cnt(l-1)
+      end do
+    end if
+
+    call MPI_GATHERV(table, local_array_size, MPI_KIND_PHYSICS,&
+                     global_table, receive_cnt, offsets, MPI_KIND_PHYSICS, &
+                     0, MPI_COMM_WORLD, ierr)
+
+    if (root) then
+      min_limits = minval(global_table, 2)
+      max_limits = maxval(global_table, 2)
+
+      Vpar_width = (max_limits(1) - min_limits(1))/N
+      Vperp_width = (max_limits(2) - min_limits(2))/N
+      Vsquared_width = 1.9208321467648882E-002_kind_physics/N 
+      print *, max_limits(4), min_limits(4) 
+
+      bin_count(1, 1) = min_limits(1) + Vpar_width*0.5
+      bin_count(3, 1) = min_limits(2) + Vperp_width*0.5
+      bin_count(5, 1) = min_limits(4) + Vsquared_width*0.5
+      do l = 2, N
+        bin_count(1, l) = bin_count(1, l-1) + Vpar_width
+        bin_count(3, l) = bin_count(3, l-1) + Vperp_width
+        bin_count(5, l) = bin_count(5, l-1) + Vsquared_width
+      end do
+
+      Vpar_mean = 0.0_kind_physics
+      Vperp_mean = 0.0_kind_physics
+      total_weight = 0.0_kind_physics
+      total_KE = 0.0_kind_physics
+      do l = 1, total_parts
+        Vpar_diff = global_table(1,l) - min_limits(1)
+        idx = ceiling(Vpar_diff/Vpar_width)
+        if (idx < 1) then
+          idx = 1
+        else if (idx > N) then
+          idx = N - 1
+        end if
+
+        bin_count(2, idx) = bin_count(2, idx) + global_table(3,l)
+
+        Vperp_diff = global_table(2,l) - min_limits(2)
+        idx = ceiling(Vperp_diff/Vperp_width)
+        if (idx < 1) then
+          idx = 1
+        else if (idx > N) then
+          idx = N - 1
+        end if
+
+        Vpar_mean = Vpar_mean + global_table(1,l)*global_table(3,l)
+        Vperp_mean = Vperp_mean + global_table(2,l)*global_table(3,l)
+        bin_count(4, idx) = bin_count(4, idx) + global_table(3,l)
+        total_weight = total_weight + global_table(3,l)
+
+        Vsquared_diff = global_table(4,l)! - min_limits(4)
+        idx = ceiling(Vsquared_diff/Vsquared_width)
+        if (idx < 1) then
+          idx = 1
+        else if (idx > N) then
+          idx = N - 1
+        end if
+
+        bin_count(6, idx) = bin_count(6, idx) + global_table(3,l)
+
+        total_KE = total_KE + global_table(4,l)*global_table(3,l)
+      end do
+      Vpar_mean = Vpar_mean/total_weight
+      Vperp_mean = Vperp_mean/total_weight
+      total_KE = total_KE/total_weight
+
+      open(file_ID, file=filename, action='WRITE', position='append')
+      write(file_ID, *) 'Vpar_mid    ', 'Vpar_cnt   ', 'Vperp_mid    ', 'Vperp_cnt    ', 'Vsquared_mid    ', 'Vsquared_cnt'
+    
+      write(file_ID, *) 'Mean: ', Vpar_mean, Vperp_mean, total_KE
+      do l = 1, N
+        total_weight = total_weight + bin_count(2, l)
+        write(file_ID, *) bin_count(1, l), bin_count(2, l), bin_count(3, l), bin_count(4, l), bin_count(5, l), bin_count(6, l)
+      end do
+      close(file_ID)
+
+      deallocate(bin_count)
+    end if
+    deallocate(global_table)
+    deallocate(offsets)
+    deallocate(receive_cnt)
+
+    deallocate(table)
+  end subroutine V_par_perp_histogram_fix
 
   subroutine V_mean_phi_distribution(particle_list, table, N_phi)
     implicit none
@@ -1594,6 +1721,82 @@ contains
     end if
   end subroutine slice_particles
 
+  subroutine torus_cut(particles_list, torus_r, torus_z, minor_r, remain_particles)
+    implicit none
+    type(t_particle), allocatable, intent(inout) :: particles_list(:)
+    type(linked_list_elem), pointer, intent(inout) :: remain_particles
+    real(kind_physics), intent(in) :: torus_r, torus_z, minor_r
+    type(linked_list_elem), pointer :: slab_guide
+    integer :: n_local_slab, k, l, ll_buffer_size, ll_elem_cnt, remainder, head, tail
+    real(kind_physics) :: s_torus_r, s_torus_z, s_minor_r, particle_r, delta_r, delta_z
+    real(kind_physics) :: delta_radius
+
+    ll_buffer_size = 50
+    n_local_slab = 0
+    l = 0
+
+    s_torus_r = torus_r/(c*1e-12)
+    s_torus_z = torus_z/(c*1e-12)
+    s_minor_r = minor_r/(c*1e-12)
+
+    ! Record all particles whose delta_radius is less than the given minor_r into a linked list element
+    do k = 1, size(particles_list)
+      particle_r = sqrt(particles_list(k)%x(1)**2 + particles_list(k)%x(2)**2)
+      delta_r = particle_r - s_torus_r
+      delta_z = particles_list(k)%x(3) - s_torus_z
+      delta_radius = sqrt(delta_r**2 + delta_z**2)
+
+      if (delta_radius < s_minor_r) then
+        if (n_local_slab == 0) then
+          call allocate_ll_buffer(ll_buffer_size, slab_particles)
+          slab_guide => slab_particles
+          nullify(slab_guide%next)
+        end if
+
+        if ((n_local_slab .ne. 0) .and. (mod(n_local_slab,ll_buffer_size) == 0)) then
+          call allocate_ll_buffer(ll_buffer_size, slab_guide%next)
+          slab_guide => slab_guide%next
+          nullify(slab_guide%next)
+          l = 0
+        end if
+
+        n_local_slab = n_local_slab + 1
+        l = l + 1
+        slab_guide%tmp_particles(l) = particles_list(k)   
+      end if
+    end do
+    
+    deallocate(particles_list)
+    allocate(particles_list(n_local_slab))
+
+    if (n_local_slab .ne. 0) then
+      head = 1
+      
+      ll_elem_cnt = CEILING(real(n_local_slab)/real(ll_buffer_size))
+      remainder = MOD(n_local_slab, ll_buffer_size)
+      tail = ll_buffer_size 
+
+      i = 1
+      slab_guide => slab_particles
+      do while (associated(slab_guide))
+        if (i /= ll_elem_cnt) then
+          particles_list(head:tail) = slab_guide%tmp_particles
+        else if ((i == ll_elem_cnt) .and. (remainder == 0)) then
+          particles_list(head:n_local_slab) = slab_guide%tmp_particles
+        else
+          particles_list(head:n_local_slab) = slab_guide%tmp_particles(1:(remainder))
+        end if
+
+        head = tail + 1
+        tail = tail + ll_buffer_size
+        i = i + 1
+
+        slab_guide => slab_guide%next
+      end do
+      nullify (slab_guide)
+    end if
+  end subroutine torus_cut
+
   subroutine streakline_integral(particle, init_dx, gradB_lim, iters, major_radius, minor_radius, tok_origin, conn_length)
     implicit none
     type(t_particle), intent(inout) :: particle
@@ -1618,13 +1821,13 @@ contains
     dx = init_dx
     pos_a = 0.0
     total_length = 0.0
-    length_lim = 10000./(c*1e-12) 
+    length_lim = 80000./(c*1e-12) 
     i = 0
     dx = 0.003335_kind_physics! 0.0001335_kind_physics
     do while(pos_a < minor_radius .and. total_length < length_lim)
       call particle_EB_field(particle, external_e, B_pol_grid)
       B_mag = sqrt(dot_product(particle%data%b, particle%data%b))
-      B = particle%data%b/B_mag
+      B = 1.0_kind_physics*particle%data%b/B_mag
 
       new_pos = particle%x + B*dx
       particle_tmp%x = new_pos
@@ -1680,7 +1883,7 @@ contains
 
     if (root) then
       print *, "N_counts", N_counts
-      open(file_ID, file='test', action='WRITE', position='append')
+      open(file_ID, file='test_sce3C', action='WRITE', position='append')
       print *, "file opened"
       write(file_ID, *) 'init_x    ', 'init_y   ', 'init_z   ', 'length   ', 'init_Bmag   ', 'final_Bmag   '
       print *, "Start looping"
@@ -1692,4 +1895,52 @@ contains
     deallocate(N_counts)
   end subroutine connection_length_output
 
+  subroutine circle_points(particle, x_offset, z_offset, radius, n_points)
+    implicit none
+    type(t_particle), allocatable, intent(inout) :: particle(:)
+    real(kind_physics), intent(in) :: x_offset, z_offset, radius
+    integer, intent(in) :: n_points
+    real(kind_physics) :: theta, x_scaled, z_scaled, radius_scaled, delta_theta
+    integer :: l
+
+    allocate(particle(n_points))
+    x_scaled = x_offset/(c*1e-12) 
+    z_scaled = z_offset/(c*1e-12) 
+    radius_scaled = radius/(c*1e-12) 
+
+    delta_theta = 2*pi/n_points
+    do l = 1, n_points
+      particle(l)%x(1) = x_scaled - radius_scaled*cos(delta_theta*(l-1))
+      particle(l)%x(2) = 0.0_kind_physics
+      particle(l)%x(3) = z_scaled - radius_scaled*sin(delta_theta*(l-1))
+
+      particle(l)%data%species = 0
+      particle(l)%data%age = 0.0_kind_physics
+      particle(l)%work = 1.0_Kind_physics
+      particle(l)%data%q = 0.0_kind_physics
+      particle(l)%data%v = 0.0_kind_physics
+      particle(l)%data%m = 0.0_kind_physics
+      particle(l)%data%b = 0.0_kind_physics
+      particle(l)%data%f_e = 0.0_kind_physics
+      particle(l)%data%f_b = 0.0_kind_physics
+      particle(l)%results%e = 0.0_kind_physics
+      particle(l)%results%pot = 0.0_kind_physics
+    end do
+!    particle(n_points+1)%x(1) = x_scaled
+!    particle(n_points+1)%x(2) = 0.0_kind_physics
+!    particle(n_points+1)%x(3) = z_scaled
+!    
+!    particle(n_points+1)%data%species = 0
+!    particle(n_points+1)%data%age = 0.0_kind_physics
+!    particle(n_points+1)%work = 1.0_Kind_physics
+!    particle(n_points+1)%data%q = 0.0_kind_physics
+!    particle(n_points+1)%data%v = 0.0_kind_physics
+!    particle(n_points+1)%data%m = 0.0_kind_physics
+!    particle(n_points+1)%data%b = 0.0_kind_physics
+!    particle(n_points+1)%data%f_e = 0.0_kind_physics
+!    particle(n_points+1)%data%f_b = 0.0_kind_physics
+!    particle(n_points+1)%results%e = 0.0_kind_physics
+!    particle(n_points+1)%results%pot = 0.0_kind_physics
+
+  end subroutine circle_points
 end module
