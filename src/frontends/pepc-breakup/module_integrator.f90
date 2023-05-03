@@ -81,6 +81,27 @@ contains
      B_out = B_out*((1.e-12)*(c**2))/e_mass ! non-dimensionalise
    end function current_loop_B
 
+   function recursive_Bpol_calc(filename, part_coords) result(B_out)
+     implicit none
+     character(len=255), intent(in) :: filename
+     real(kind_physics), intent(in) :: part_coords(3)
+     integer :: n_coils 
+     real(kind_physics) :: z, R, current_i, B_out(3), temp_B(3)
+
+     open(53, file=trim(filename), action='READ')
+     read(53, *) n_coils
+     read(53, *) ! Skipping first line 
+
+     B_out = 0.0_kind_physics
+     do i = 1, n_coils
+       read(53, *) z, R, current_i 
+       temp_B = 0.0_kind_physics
+       temp_B = current_loop_B(part_coords, part_coords(1), z, R, current_i)
+       B_out = B_out + temp_B
+     end do
+     close(53)
+   end function recursive_Bpol_calc
+
    subroutine poloidal_B_grid(B_pol_array, ncell_r, ncell_z, start_r, start_z, r_length, z_length)
      !NOTE: start_r, start_z, r_length, z_length are in meters
      implicit none
@@ -122,112 +143,7 @@ contains
        temp_B = 0.0
        final_B = 0.0
 
-       ! Quad: absolute zero at null:
-!       temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
-!       final_B = temp_B
-!
-!       temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
-!       final_B = final_B + temp_B
-!
-!       temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_kind_physics)
-!       final_B = final_B + temp_B
-!
-!       temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 1.5e4_kind_physics)
-!       final_B = final_B + temp_B
-       ! =====================================
-       ! Quad: 3e-5T at null
-       temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
-       final_B = temp_B
-
-       temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
-       final_B = final_B + temp_B
-
-       temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_kind_physics)
-       final_B = final_B + temp_B
-
-       temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 15230.960401449627_kind_physics)
-       final_B = final_B + temp_B
-       ! =====================================
-
-       ! Quad: 1e-8T at null, 8mT at edge
-!      temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
-!      final_B = temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 2357.3662872100125_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 1.0e5_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 14999.921729129723_kind_physics)
-!      final_B = final_B + temp_B
-       !=====================================
-
-       ! Quad: 1e-8T at null, 4mT at edge
-!      temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.8_8, 1178.6831436050063_kind_physics)
-!      final_B = temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.8_8, 1178.6831436050063_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 3.0_8, 5.0e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.3_8, 7499.921729129726_kind_physics)
-!      final_B = final_B + temp_B
-       ! ====================================
-
-       ! Octu: 1e-8T at null, 2.25mT at edge
-!      temp_B = current_loop_B(coords, coords(1), 3.0_8, 5.905_8, 1.994e4_kind_physics)
-!      final_B = temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), -3.0_8, 5.905_8, 1.994e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 2.905_8, 2.11e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 8.905_8, 2.01e4_kind_physics)
-!      final_B = final_B + temp_B
-   
-!      temp_B = current_loop_B(coords, coords(1), 2.1213203435596424_kind_physics, 7.976320343559642_kind_physics, -2e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), -2.1213203435596424_kind_physics, 7.976320343559642_kind_physics, -2e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 2.1213203435596424_kind_physics, 3.8336796564403572_kind_physics, -2e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), -2.1213203435596424_kind_physics, 3.8336796564403572_kind_physics, -2e4_kind_physics)
-!      final_B = final_B + temp_B
-       !=======================================
-
-       ! Octu: 1e-8T at null, 1.125mT at edge
-!      temp_B = current_loop_B(coords, coords(1), 3.625_kind_physics, 6.01_kind_physics, 1.997e4_kind_physics)
-!      final_B = temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), -3.625_kind_physics, 6.01_kind_physics, 1.997e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 2.385_kind_physics, 2.095e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 0.0_8, 9.635_kind_physics, 2.0e4_kind_physics)
-!      final_B = final_B + temp_B
-   
-!      temp_B = current_loop_B(coords, coords(1), 2.561754254920789_kind_physics, 8.484264781706207_kind_physics, -1.99775e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), -2.561754254920789_kind_physics, 8.484264781706207_kind_physics, -1.99775e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), 2.5838537179184247_kind_physics, 3.5568370847154855_kind_physics, -1.99805e4_kind_physics)
-!      final_B = final_B + temp_B
-
-!      temp_B = current_loop_B(coords, coords(1), -2.5838537179184247_kind_physics, 3.5568370847154855_kind_physics, -1.99805e4_kind_physics)
-!      final_B = final_B + temp_B 
-       ! =====================================
+       final_B = recursive_Bpol_calc(coil_data_file, coords)
 
        B_pol_array(l,1) = B_pol_array(l,1)/(c*1e-12)
        B_pol_array(l,2) = B_pol_array(l,2)/(c*1e-12)
@@ -346,21 +262,6 @@ contains
 
       PF_final = 0.0
       Ipf = 3.0e6_8
-
-      ! 4 correction coils surrounding breakdown region, centred around major_radius
-      ! Coils are directly solving Biot-Savart Law
-      ! PF_temp = current_loop_B(Coord, R, 3.0_8, 5.8_8, 2357.3662872100125_8) !(JET-like: 35943.1422902196_8) ! 4.0e4_8) !3.0e6_8) !
-      ! PF_final = PF_final + PF_temp
-      
-      ! PF_temp = current_loop_B(Coord, R, -3.0_8, 5.8_8, 2357.3662872100125_8) !(JET-like: 35943.1422902196_8) !4.0e4_8) ! 3.0e6_8) !
-      ! PF_final = PF_final + PF_temp
-      
-      ! PF_temp = current_loop_B(Coord, R, 0.0_8, 3.0_8, 1.0e5_8)!(JET-like: 1.77e5_8) !1.5e5_8) ! 7.0e6_8) !
-      ! PF_final = PF_final + PF_temp
-      
-      ! PF_temp = current_loop_B(Coord, R, 0.0_8, 8.3_8, 1.5e4_8)!(JET-like: 1.77e4_8)!11467.320098924624_8) ! 115453.38348883369_8) !
-      ! PF_final = PF_final + PF_temp
-
 
       call compute_Bpol_from_grid(B_pol_array, 200, 200, 3.5_kind_physics, 3.5_kind_physics, particle)
       ! PF_final = particle%data%b

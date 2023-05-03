@@ -51,6 +51,9 @@ sim_type = 1
 ! 1 = seeded on a plane
 mode = 0
 
+! txt file that contains the poloidal coil parameters
+coil_data_file = "./4_coil_perturbed_null.txt"
+
 ! Only for Electrode Plates, plate distance (in meters)
 d = 0.0011870845
 
