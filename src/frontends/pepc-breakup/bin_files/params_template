@@ -54,6 +54,9 @@ mode = 0
 ! txt file that contains the poloidal coil parameters
 coil_data_file = "./4_coil_perturbed_null.txt"
 
+! current used to approximate B_tf at R=5.8m
+Itf = 7.524e7 !15.048e7_kind_physics !3.62e7_8 obsolete 
+
 ! Only for Electrode Plates, plate distance (in meters)
 d = 0.0011870845
 

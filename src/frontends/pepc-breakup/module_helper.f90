@@ -144,7 +144,7 @@ module helper
    real(kind_physics), allocatable :: slopes(:)
 
    ! variables describing external fields
-   real(kind_physics) :: d, major_radius, minor_radius, B0, B_p, V_loop
+   real(kind_physics) :: d, major_radius, minor_radius, B0, B_p, V_loop, Itf
    real(kind_physics), allocatable :: B_pol_grid(:,:)
 
    ! checkpoint related variables
@@ -189,7 +189,7 @@ contains
 
       namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, slice_parts, density_output, &
          mesh_mode, mesh_name, x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
-         y_length, z_length, sim_type, mode, coil_data_file, d, electron_num, tnp, H1s, H2s, nt, dt, &
+         y_length, z_length, sim_type, mode, coil_data_file, Itf, d, electron_num, tnp, H1s, H2s, nt, dt, &
          particle_output, domain_output, particle_mpi_output, reflecting_walls, &
          particle_test, diag_interval, plasma_dimensions, init_temperature, &
          pressure, external_e, major_radius, minor_radius, B0, B_p, V_loop
@@ -215,6 +215,7 @@ contains
       sim_type = 0
       mode = 0
       coil_data_file = './'
+      Itf = 0.0
       d = 0.0015
       electron_num = 0
       tnp = 10000
@@ -297,6 +298,7 @@ contains
         V_loop = 0.0
         B0 = 0.0
         B_p = 0.0
+        Itf = 0.0
         flt_geom = 2
       else if (sim_type == 1) then
         external_e = 0.0

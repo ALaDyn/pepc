@@ -243,33 +243,33 @@ contains
       type(t_particle), intent(inout) :: particle
       real(kind_physics), intent(in) :: E_field(3)
       real(kind_physics) :: Coord(3), B_field(3), ez(3), Pol_B_field(3), field_vector(3)
-      real(kind_physics) :: R, PF_final(3), PF_temp(3), Itf, Ipf, PF_unit_vector(3)
+      real(kind_physics) :: R, PF_final(3), PF_temp(3), PF_unit_vector(3)
       real(kind_physics), allocatable, intent(in) :: B_pol_array(:,:)
 
-      ez = 0.0
-      ez(3) = 1.0
-      B_field = 0.0
-      field_vector = 0.0
-      Coord = particle%x*(c*1e-12)
+      if (sim_type == 0) then
+        particle%results%e = particle%results%e + E_field
+        particle%data%b = 0.0_kind_physics
+      else if (sim_type == 1) then
+        ez = 0.0
+        ez(3) = 1.0
+        B_field = 0.0
+        field_vector = 0.0
+        Coord = particle%x*(c*1e-12)
 
-      field_vector = cross_product(particle%x,ez)
-      field_vector = field_vector/sqrt(dot_product(field_vector, field_vector))
+        field_vector = cross_product(particle%x,ez)
+        field_vector = field_vector/sqrt(dot_product(field_vector, field_vector))
 
-      Itf = 7.524e7_kind_physics !15.048e7_kind_physics !3.62e7_8 obsolete
-      R = sqrt(Coord(1)**2 + Coord(2)**2)
-      B_field = field_vector * mu_0 * Itf/(2.0_8 * pi *R) ! field_vector*B0*major_radius/R
-      B_field = B_field*((1.e-12)*(c**2))/e_mass ! non-dimensionalise
+        R = sqrt(Coord(1)**2 + Coord(2)**2)
+        B_field = field_vector * mu_0 * Itf/(2.0_8 * pi *R) ! field_vector*B0*major_radius/R
+        B_field = B_field*((1.e-12)*(c**2))/e_mass ! non-dimensionalise
 
-      PF_final = 0.0
-      Ipf = 3.0e6_8
+        call compute_Bpol_from_grid(B_pol_array, 200, 200, 3.5_kind_physics, 3.5_kind_physics, particle)
+        Pol_B_field = particle%data%b ! PF_final + PF_temp
 
-      call compute_Bpol_from_grid(B_pol_array, 200, 200, 3.5_kind_physics, 3.5_kind_physics, particle)
-      ! PF_final = particle%data%b
-      Pol_B_field = particle%data%b ! PF_final + PF_temp
-
-      R = R/(c*1e-12)
-      particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R) + E_field
-      particle%data%b = Pol_B_field + B_field
+        R = R/(c*1e-12)
+        particle%results%e = particle%results%e + field_vector*V_loop/(2.*pi*R)
+        particle%data%b = Pol_B_field + B_field
+      end if
    end subroutine particle_EB_field
 
    subroutine test_ionization(particle, guide, new_particle, electron_count)
