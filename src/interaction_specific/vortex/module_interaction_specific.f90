@@ -33,8 +33,8 @@ module module_interaction_specific
 
       integer, public :: force_law    = 2      !< 2 = calc_2nd_algebraic_condensed
       integer, public :: mac_select   = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
-      real*8, public  :: theta2       = 0.6**2.  !< square of multipole opening angle
-      real*8, public  :: sig2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
+      real(kind_physics), public  :: theta2       = 0.6**2.  !< square of multipole opening angle
+      real(kind_physics), public  :: sig2         = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
 
       namelist /calc_force_vortex/ force_law, mac_select, theta2, sig2
 
@@ -61,7 +61,7 @@ module module_interaction_specific
       !>
       subroutine multipole_from_particle(particle_pos, particle, multipole)
         implicit none
-        real*8, intent(in) :: particle_pos(3)
+        real(kind_physics), intent(in) :: particle_pos(3)
         type(t_particle_data), intent(in) :: particle
         type(t_tree_node_interaction_data), intent(out) :: multipole
 
@@ -80,7 +80,7 @@ module module_interaction_specific
 
         integer :: nchild, j
 
-        real*8 :: shift(1:3)
+        real(kind_physics) :: shift(1:3)
 
         nchild = size(children)
 
@@ -238,7 +238,7 @@ module module_interaction_specific
         integer(kind_particle), intent(in) :: npart_total !< total number of particles
         integer(kind_node), intent(out) :: nintmax !< maximum number of interactions per particle
 
-        real*8 :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
+        real(kind_physics) :: invnintmax !< inverse of nintmax to avoid division by zero for theta == 0.0
 
         ! Estimate of interaction list length - Hernquist expression
         ! applies for BH-MAC
@@ -265,8 +265,8 @@ module module_interaction_specific
 
             logical :: mac
             type(t_tree_node_interaction_data), intent(in) :: node
-            real*8, intent(in) :: dist2
-            real*8, intent(in) :: boxlength2
+            real(kind_physics), intent(in) :: dist2
+            real(kind_physics), intent(in) :: boxlength2
 
             select case (mac_select)
                 case (0)
@@ -310,7 +310,7 @@ module module_interaction_specific
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_node), intent(in) :: node_idx
           type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
         end subroutine
 
 
@@ -329,10 +329,10 @@ module module_interaction_specific
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_node), intent(in) :: node_idx
           type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
 
           integer :: ierr
-          real*8 :: u(3), af(3), div
+          real(kind_physics) :: u(3), af(3), div
 
           u = 0.
           af = 0.
@@ -373,10 +373,10 @@ module module_interaction_specific
           type(t_tree_node_interaction_data), intent(in) :: node
           integer(kind_node), intent(in) :: node_idx
           type(t_particle), intent(inout) :: particle
-          real*8, intent(in) :: vbox(3), delta(3), dist2
+          real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
 
           integer :: ierr
-          real*8 :: u(3), af(3), div
+          real(kind_physics) :: u(3), af(3), div
 
           u = 0.
           af = 0.
@@ -429,19 +429,19 @@ module module_interaction_specific
 
             type(t_particle), intent(in) :: particle
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-            real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-            real*8, intent(out) ::  u(1:3), af(1:3)
+            real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+            real(kind_physics), intent(out) ::  u(1:3), af(1:3)
 
             integer :: i1, i2, i3 !< helper variables for the tensor structures
 
-            real*8 :: dx, dy, dz !< temp variables for distance
-            real*8 :: Gc25,Gc35,Gc45,Gc55,MPa1,DPa1,DPa2,QPa1,QPa2 !< prefactors for the multipole expansion
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real(kind_physics) :: dx, dy, dz !< temp variables for distance
+            real(kind_physics) :: Gc25,Gc35,Gc45,Gc55,MPa1,DPa1,DPa2,QPa1,QPa2 !< prefactors for the multipole expansion
+            real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             ! tensors allow nice and short code and better comparison with (my!) theory
-            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
-            real*8, dimension(3,3) :: m1, CP1 !< data structures for the dipole moments
-            real*8, dimension(3,3,3) :: m2, CP2 !< data structures for the quadrupole moments
+            real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real(kind_physics), dimension(3,3) :: m1, CP1 !< data structures for the dipole moments
+            real(kind_physics), dimension(3,3,3) :: m2, CP2 !< data structures for the quadrupole moments
 
             dx = d(1)
             dy = d(2)
@@ -547,20 +547,20 @@ module module_interaction_specific
 
             type(t_particle), intent(in) :: particle
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-            real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-            real*8, intent(out) ::  u(1:3), af(1:3)
+            real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+            real(kind_physics), intent(out) ::  u(1:3), af(1:3)
 
             integer :: i1, i2, i3 !< helper variables for the tensor structures
 
-            real*8 :: dx, dy, dz !< temp variables for distance
-            real*8 :: MPa1,DPa1,DPa2,QPa1,QPa2 !< prefactors for the multipole expansion
-            real*8 :: pre1, pre2, pre3, pre4, pre5, pre6
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real(kind_physics) :: dx, dy, dz !< temp variables for distance
+            real(kind_physics) :: MPa1,DPa1,DPa2,QPa1,QPa2 !< prefactors for the multipole expansion
+            real(kind_physics) :: pre1, pre2, pre3, pre4, pre5, pre6
+            real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             ! tensors allow nice and short code and better comparison with (my!) theory
-            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
-            real*8, dimension(3,3) :: m1, CP1 !< data structures for the dipole moments
-            real*8, dimension(3,3,3) :: m2, CP2 !< data structures for the quadrupole moments
+            real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real(kind_physics), dimension(3,3) :: m1, CP1 !< data structures for the dipole moments
+            real(kind_physics), dimension(3,3,3) :: m2, CP2 !< data structures for the quadrupole moments
 
             dx = d(1)
             dy = d(2)
@@ -685,12 +685,12 @@ module module_interaction_specific
 
             type(t_tree_node_interaction_data), intent(in) :: t
             type(t_particle), intent(inout) :: particle
-            real*8, intent(in) :: d(3), dist2
-            real*8, intent(out) :: u(1:3), af(1:3), div
+            real(kind_physics), intent(in) :: d(3), dist2
+            real(kind_physics), intent(out) :: u(1:3), af(1:3), div
 
-            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
-            real*8 :: dx, dy, dz, Gc25, MPa1, nom, nom45, nom35, nom25
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real(kind_physics) :: dx, dy, dz, Gc25, MPa1, nom, nom45, nom35, nom25
+            real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             dx = d(1)
             dy = d(2)
@@ -732,14 +732,14 @@ module module_interaction_specific
 
             type(t_particle), intent(in) :: particle
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-            real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-            real*8, intent(out) ::  u(1:3), af(1:3), div
+            real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+            real(kind_physics), intent(out) ::  u(1:3), af(1:3), div
 
-            real*8 :: dx, dy, dz !< temp variables for distance
-            real*8 :: sig4, sig8, nom, nom25, nom35, nom45, nom55, nom65, nom75, nom85, pre_u, pre_a1, pre_a2, &
+            real(kind_physics) :: dx, dy, dz !< temp variables for distance
+            real(kind_physics) :: sig4, sig8, nom, nom25, nom35, nom45, nom55, nom65, nom75, nom85, pre_u, pre_a1, pre_a2, &
                       D52u, D92u, D132u, D52a, D72a, D92a, D112a, D132a, D152a, D92div, D132div, D152div, D172div
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
-            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
 
             dx = d(1)
             dy = d(2)
@@ -800,12 +800,12 @@ module module_interaction_specific
 
             type(t_tree_node_interaction_data), intent(in) :: t
             type(t_particle), intent(inout) :: particle
-            real*8, intent(in) :: d(3), dist2
-            real*8, intent(out) :: u(1:3), af(1:3), div
+            real(kind_physics), intent(in) :: d(3), dist2
+            real(kind_physics), intent(out) :: u(1:3), af(1:3), div
 
-            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
-            real*8 :: dx, dy, dz, exp3,sig3, dist, dist3, K2, K2div, dK2
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real(kind_physics) :: dx, dy, dz, exp3,sig3, dist, dist3, K2, K2div, dK2
+            real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
             dx = d(1)
             dy = d(2)
@@ -851,14 +851,14 @@ module module_interaction_specific
 
             type(t_particle), intent(in) :: particle
             type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
-            real*8, intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-            real*8, intent(out) ::  u(1:3), af(1:3), div
+            real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
+            real(kind_physics), intent(out) ::  u(1:3), af(1:3), div
 
-            real*8 :: dx, dy, dz !< temp variables for distance
-            real*8 :: dist, dist3, sig3, ds3, exp3, exp83, exp273, K6, dK6, K6div
-            real*8 :: pre1, pre2, MPa1
-            real*8, dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
-            real*8, dimension(3) :: m0, CP0 !< data structures for the monopole moments
+            real(kind_physics) :: dx, dy, dz !< temp variables for distance
+            real(kind_physics) :: dist, dist3, sig3, ds3, exp3, exp83, exp273, K6, dK6, K6div
+            real(kind_physics) :: pre1, pre2, MPa1
+            real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
+            real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
 
             dx = d(1)
             dy = d(2)
@@ -905,8 +905,8 @@ module module_interaction_specific
         function G_core(r,s,factor)
            implicit none
 
-           real*8 :: G_core
-           real*8, intent(in) :: r,s,factor
+           real(kind_physics) :: G_core
+           real(kind_physics), intent(in) :: r,s,factor
 
            G_core = (r+factor*s)/((r+s)**factor)
         end function
@@ -915,8 +915,8 @@ module module_interaction_specific
         function G_decomp(r,s,tau)
            implicit none
 
-           real*8 :: G_decomp
-           real*8, intent(in) :: r,s,tau
+           real(kind_physics) :: G_decomp
+           real(kind_physics), intent(in) :: r,s,tau
 
            G_decomp = 1.0/((r+s)**tau)
         end function
@@ -925,8 +925,8 @@ module module_interaction_specific
         function cross_prod(vec_a, vec_b)
             implicit none
 
-            real*8, dimension(3) :: cross_prod
-            real*8, dimension(3), intent(in) :: vec_a, vec_b
+            real(kind_physics), dimension(3) :: cross_prod
+            real(kind_physics), dimension(3), intent(in) :: vec_a, vec_b
 
             cross_prod(1) = vec_a(2)*vec_b(3) - vec_a(3)*vec_b(2)
             cross_prod(2) = vec_a(3)*vec_b(1) - vec_a(1)*vec_b(3)

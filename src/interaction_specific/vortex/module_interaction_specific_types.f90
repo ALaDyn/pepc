@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 ! 
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre, 
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 ! 
@@ -23,23 +23,24 @@
 !> i.e. shifting along the tree etc.
 !>
 module module_interaction_specific_types
+      use module_pepc_kinds
       implicit none
 
       !> Data structure for storing interaction-specific particle data
       type t_particle_data
-         real*8 :: alpha(3)    ! vorticity or better: alpha = vorticity * volume
-         real*8 :: x_rk(3)     ! position temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
-         real*8 :: alpha_rk(3) ! vorticity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
-         real*8 :: u_rk(3)     ! velocity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
-         real*8 :: af_rk(3)    ! vorticity RHS temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real(kind_physics) :: alpha(3)    ! vorticity or better: alpha = vorticity * volume
+         real(kind_physics) :: x_rk(3)     ! position temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real(kind_physics) :: alpha_rk(3) ! vorticity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real(kind_physics) :: u_rk(3)     ! velocity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+         real(kind_physics) :: af_rk(3)    ! vorticity RHS temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
       end type t_particle_data
       integer, private, parameter :: nprops_particle_data = 5
 
       !> Data structure for shipping results
       type t_particle_results
-         real*8, dimension(3) :: u   ! velocities
-         real*8, dimension(3) :: af  ! RHS for vorticity/alpha ODE
-         real*8 :: div               ! divergence
+         real(kind_physics), dimension(3) :: u   ! velocities
+         real(kind_physics), dimension(3) :: af  ! RHS for vorticity/alpha ODE
+         real(kind_physics) :: div               ! divergence
       end type t_particle_results
       integer, private, parameter :: nprops_particle_results = 3
 
@@ -47,39 +48,39 @@ module module_interaction_specific_types
 
       !> Data structure for storing multiple moments of tree nodes
       type t_tree_node_interaction_data
-        real*8 :: coc(3)     ! centre of charge
-        real*8 :: abs_charge ! absolute charge sum
-        real*8 :: chargex    ! 3D monopole = 3 entries
-        real*8 :: chargey
-        real*8 :: chargez
-        real*8 :: xdip1      ! 3D dipole = 3*3 entries
-        real*8 :: ydip1
-        real*8 :: zdip1
-        real*8 :: xdip2
-        real*8 :: ydip2
-        real*8 :: zdip2
-        real*8 :: xdip3
-        real*8 :: ydip3
-        real*8 :: zdip3
-        real*8 :: xxquad1    ! 3D quadrupole = 3*3*3 entries (minus symmetries)
-        real*8 :: xyquad1
-        real*8 :: xzquad1
-        real*8 :: yzquad1
-        real*8 :: yyquad1
-        real*8 :: zzquad1
-        real*8 :: xxquad2
-        real*8 :: xyquad2
-        real*8 :: xzquad2
-        real*8 :: yzquad2
-        real*8 :: yyquad2
-        real*8 :: zzquad2
-        real*8 :: xxquad3
-        real*8 :: xyquad3
-        real*8 :: xzquad3
-        real*8 :: yzquad3
-        real*8 :: yyquad3
-        real*8 :: zzquad3
-        real*8 :: bmax
+        real(kind_physics) :: coc(3)     ! centre of charge
+        real(kind_physics) :: abs_charge ! absolute charge sum
+        real(kind_physics) :: chargex    ! 3D monopole = 3 entries
+        real(kind_physics) :: chargey
+        real(kind_physics) :: chargez
+        real(kind_physics) :: xdip1      ! 3D dipole = 3*3 entries
+        real(kind_physics) :: ydip1
+        real(kind_physics) :: zdip1
+        real(kind_physics) :: xdip2
+        real(kind_physics) :: ydip2
+        real(kind_physics) :: zdip2
+        real(kind_physics) :: xdip3
+        real(kind_physics) :: ydip3
+        real(kind_physics) :: zdip3
+        real(kind_physics) :: xxquad1    ! 3D quadrupole = 3*3*3 entries (minus symmetries)
+        real(kind_physics) :: xyquad1
+        real(kind_physics) :: xzquad1
+        real(kind_physics) :: yzquad1
+        real(kind_physics) :: yyquad1
+        real(kind_physics) :: zzquad1
+        real(kind_physics) :: xxquad2
+        real(kind_physics) :: xyquad2
+        real(kind_physics) :: xzquad2
+        real(kind_physics) :: yzquad2
+        real(kind_physics) :: yyquad2
+        real(kind_physics) :: zzquad2
+        real(kind_physics) :: xxquad3
+        real(kind_physics) :: xyquad3
+        real(kind_physics) :: xzquad3
+        real(kind_physics) :: yzquad3
+        real(kind_physics) :: yyquad3
+        real(kind_physics) :: zzquad3
+        real(kind_physics) :: bmax
       end type t_tree_node_interaction_data
       integer, private, parameter :: nprops_tree_node_interaction_data = 33
 
