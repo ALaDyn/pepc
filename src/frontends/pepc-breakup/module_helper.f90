@@ -187,12 +187,11 @@ contains
       character(255)     :: para_file
       logical            :: read_para_file
 
-      namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, slice_parts, density_output, &
-         mesh_mode, mesh_name, x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
-         y_length, z_length, sim_type, mode, coil_data_file, Itf, d, electron_num, tnp, H1s, H2s, nt, scatter_mode, &
-         dt, particle_output, domain_output, particle_mpi_output, reflecting_walls, &
-         particle_test, diag_interval, plasma_dimensions, init_temperature, &
-         pressure, external_e, major_radius, minor_radius, B0, B_p, V_loop
+      namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, tnp, H1s, H2s, init_temperature, &
+         pressure, scatter_mode, nt, dt, diag_interval, particle_output, domain_output, particle_mpi_output, &
+         sim_type, major_radius, minor_radius, mode, Itf, coil_data_file, V_loop, d, electron_num, &
+         plasma_dimensions, external_e, slice_parts, density_output, mesh_mode, mesh_name, x_cell, y_cell, z_cell, &
+         minimum_x, minimum_y, minimum_z, x_length, y_length, z_length, reflecting_walls, particle_test
 
       ! set default parameter values
       resume = 0
@@ -270,8 +269,6 @@ contains
          write (*, '(a,3(es12.4))') " == external electric field(V/m)        : ", external_e
          write (*, '(a,es12.4)') " == major radius(m)                     : ", major_radius
          write (*, '(a,es12.4)') " == minor radius(m)                     : ", minor_radius
-         write (*, '(a,es12.4)') " == toroidal magnetic field strength (T): ", B0
-         write (*, '(a,es12.4)') " == poloidal magnetic field strength (T): ", B_p
          write (*, '(a,es12.4)') " == toroidal loop voltage(V)            : ", V_loop
       end if
 
@@ -282,8 +279,6 @@ contains
       !       4. divide length variables with (1.e-12*c)
       external_e = external_e*4.0*pi*eps_0*((c*1e-12)**2)/e
       V_loop = V_loop*4.0*pi*eps_0*((c*1e-12))/e
-      B0 = B0 * ((1.e-12)*(c**2))/e_mass
-      B_p = B_p * ((1.e-12)*(c**2))/e_mass
       plasma_dimensions = plasma_dimensions/(c*1e-12)
       major_radius = major_radius/(c*1e-12)
       minor_radius = minor_radius/(c*1e-12)
@@ -297,8 +292,6 @@ contains
 
       if (sim_type == 0) then
         V_loop = 0.0
-        B0 = 0.0
-        B_p = 0.0
         Itf = 0.0
         flt_geom = 2
       else if (sim_type == 1) then

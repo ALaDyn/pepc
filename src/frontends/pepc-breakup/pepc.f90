@@ -208,7 +208,7 @@ program pepc
       !$OMP shared(init_omp_threads, particles, new_particles_offset, np) &
       !$OMP shared(gathered_new_buffer, external_e, dt, V_loop, d, E_q_dt_m) &
       !$OMP shared(rank_charge_count, thread_charge_count, flt_geom, my_rank) &
-      !$OMP shared(abs_max_CS, neutral_density, CS_tables, B0, B_p, major_radius) &
+      !$OMP shared(abs_max_CS, neutral_density, CS_tables, major_radius) &
       !$OMP shared(minor_radius, plasma_dimensions, generic_array) &
       !$OMP shared(total_cross_sections, step, omp_threads) firstprivate(B_pol_grid)
 

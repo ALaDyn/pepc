@@ -128,7 +128,7 @@ program pepc
    !$OMP shared(init_omp_threads, np) &
    !$OMP shared(V_loop, d, E_q_dt_m) &
    !$OMP shared(my_rank, global_table2) &
-   !$OMP shared(B0, B_p, major_radius) &
+   !$OMP shared(major_radius) &
    !$OMP shared(minor_radius, plasma_dimensions) &
    !$OMP shared(omp_threads, allowed_wall_time) &
    !$OMP private(dummy, start_i, neutral_density, local_min_x) &

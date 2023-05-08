@@ -15,6 +15,74 @@ init_omp_threads = 2
 ! Recommended to use a  lower 'i_wall_time' than requested wall clock in job_script.
 i_wall_time = 23:50:00
 
+! total number of particles
+tnp = REPLACE_TNP
+H1s = REPLACE_VP1
+H2s = REPLACE_VP2
+
+! initial electron temperature (K)
+init_temperature = 373.15
+
+! pressure of vessel (Pa)
+pressure = 0.002 !333.31
+
+! calculation method for electron scattering angle distribution
+!       0: random scatter
+!       1: Vahedi & Surendra 1995
+!       2: Okhrimovvsky 2022
+scatter_mode = 0
+
+! number of time steps
+nt = REPLACE_NSTEP
+
+! time step (in picoseconds)
+dt = 17.5
+
+! diagnostics and output interval
+diag_interval = 1
+
+! turn data and domain output on/off
+particle_output = .true.
+domain_output = .false.
+particle_mpi_output = .true.
+
+! simulation type: 0 = Electrode Plates, 1 = Tokamak Setting
+sim_type = 1
+
+!=============================Tokamak Simulation=================================
+! tokamak torus descriptions (in meters)
+major_radius = 5.8 !2.9
+minor_radius = 1.0 !0.5
+
+! Electron seeding method:
+! 0 = randomly distributed in torus
+! 1 = seeded on a plane
+mode = 0
+
+! current used to approximate B_tf at major_radius
+Itf = 7.524e7 !15.048e7_kind_physics !3.62e7_8 obsolete 
+
+! txt file that contains the poloidal coil parameters
+coil_data_file = "./4_coil_perturbed_null.txt"
+
+! loop voltage along tokamak torus(V/m)
+V_loop = 22.0 !11.0
+
+!==============================Electrode Plates===================================
+! Only for Electrode Plates, plate distance (in meters)
+d = 0.0011870845
+
+! Only for Electrode Plates, injected electrons per step
+electron_num = 0 !20
+
+! size of the simulation box
+plasma_dimensions = 0.05 0.05 0.025 !1.0 1.0 1.0
+
+! external electric field (in V/m)
+external_e = 0.0 0.0 0.0 !100000.0
+
+!==============================Density mesh output================================
+
 ! Record only a slice of the particles
 slice_parts = .false.
 
@@ -43,81 +111,12 @@ x_length = 15.12
 y_length = 15.12
 z_length = 3.52
 
-! simulation type: 0 = Electrode Plates, 1 = Tokamak Setting
-sim_type = 1
-
-! Only for tokamak case, electron seeding method:
-! 0 = randomly distributed in torus
-! 1 = seeded on a plane
-mode = 0
-
-! txt file that contains the poloidal coil parameters
-coil_data_file = "./4_coil_perturbed_null.txt"
-
-! current used to approximate B_tf at R=5.8m
-Itf = 7.524e7 !15.048e7_kind_physics !3.62e7_8 obsolete 
-
-! Only for Electrode Plates, plate distance (in meters)
-d = 0.0011870845
-
-! Only for Electrode Plates, injected electrons per step
-electron_num = 0 !20
-
-! total number of particles
-tnp = REPLACE_TNP
-H1s = REPLACE_VP1
-H2s = REPLACE_VP2
-
-! number of time steps
-nt = REPLACE_NSTEP
-
-! calculation method for electron scattering angle distribution
-!       0: random scatter
-!       1: Vahedi & Surendra 1995
-!       2: Okhrimovvsky 2022
-scatter_mode = 0
-
-! time step (in picoseconds)
-dt = 17.5
-
-! diagnostics and output interval
-diag_interval = 1
-
-! turn data and domain output on/off
-particle_output = .true.
-domain_output = .false.
-particle_mpi_output = .true.
-
 ! turn particle filtering (leaving simulation box) on/off
 reflecting_walls = .false.
 
 ! turn direct summantion test on/off
 particle_test = .false.
 
-! size of the simulation box
-plasma_dimensions = 0.05 0.05 0.025 !1.0 1.0 1.0
-
-! initial electron temperature (K)
-init_temperature = 373.15
-
-! pressure of vessel (Pa)
-pressure = 0.002 !333.31
-
-! external electric field (in V/m)
-external_e = 0.0 0.0 0.0 !100000.0
-
-! tokamak torus descriptions (in meters)
-major_radius = 5.8 !2.9
-minor_radius = 1.0 !0.5
-
-! toroidal magnetic field strength (Tesla)
-B0 = 2.5
-
-! poloidal magnetic field strength (Tesla)
-B_p = 0.024
-
-! loop voltage along tokamak torus(V/m)
-V_loop = 22.0 !11.0
 /
 
 &calc_force_coulomb
