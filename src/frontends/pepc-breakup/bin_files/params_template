@@ -71,6 +71,12 @@ H2s = REPLACE_VP2
 ! number of time steps
 nt = REPLACE_NSTEP
 
+! calculation method for electron scattering angle distribution
+!       0: random scatter
+!       1: Vahedi & Surendra 1995
+!       2: Okhrimovvsky 2022
+scatter_mode = 0
+
 ! time step (in picoseconds)
 dt = 17.5
 

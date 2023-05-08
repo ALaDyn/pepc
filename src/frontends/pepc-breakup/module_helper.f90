@@ -133,7 +133,7 @@ module helper
 
    ! variables related to cross sections and probabilistic collisions
    real(kind_physics), allocatable :: Xi_table(:,:)
-   integer :: total_cross_sections, eirene_cross_sections, coll_type, start_i
+   integer :: total_cross_sections, eirene_cross_sections, coll_type, start_i, scatter_mode
    real(kind_physics) :: abs_max_CS, neutral_density, init_temperature, pressure
    real(kind_physics), allocatable :: eirene_coeffs1(:), eirene_coeffs2(:)
    integer, allocatable :: outcomes(:)
@@ -189,8 +189,8 @@ contains
 
       namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, slice_parts, density_output, &
          mesh_mode, mesh_name, x_cell, y_cell, z_cell, minimum_x, minimum_y, minimum_z, x_length, &
-         y_length, z_length, sim_type, mode, coil_data_file, Itf, d, electron_num, tnp, H1s, H2s, nt, dt, &
-         particle_output, domain_output, particle_mpi_output, reflecting_walls, &
+         y_length, z_length, sim_type, mode, coil_data_file, Itf, d, electron_num, tnp, H1s, H2s, nt, scatter_mode, &
+         dt, particle_output, domain_output, particle_mpi_output, reflecting_walls, &
          particle_test, diag_interval, plasma_dimensions, init_temperature, &
          pressure, external_e, major_radius, minor_radius, B0, B_p, V_loop
 
@@ -222,6 +222,7 @@ contains
       H1s = 0
       H2s = 0
       nt = 25
+      scatter_mode = 0
       dt = 1e-2
       particle_test = .false.
       particle_output = .false.
