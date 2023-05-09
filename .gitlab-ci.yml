@@ -1,20 +1,25 @@
+#### Stages for this pipeline
 stages:
-  - build_libs
-  - build
+  - build_libs     # build libraries
+  - build          # build frontends
     #   - test
     #   - html     # this run doxygen (prefer FORD)
     #   - deploy   # this could push doxygen to pages
 
+#### General variables
 variables:
+  # Default image for building on 'local' runner
   IMAGE: "$CI_REGISTRY/broemmel1/docker-images/pepc-build:3.17"
 
-# build libsl and libOPA ahead of frontends
+#### Build PEPC and it's libraries
+# Build libsl and libOPA ahead of frontends
 build:libs:
   stage: build_libs
   tags:
     - public-docker
   image: $IMAGE
   script:
+    # build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make libsl libopa
   artifacts:
@@ -23,29 +28,56 @@ build:libs:
     paths:
       - lib
 
-# build binary to check compilation, creating MPI binary for a number of frontends
-build:pepc-mini:
+# Template for building frontends (with MPI)
+.build_template: &build_frontend
   stage: build
-  dependencies:
-    - build:libs
   tags:
     - public-docker
   image: $IMAGE
+  needs: ["build:libs"]
+  dependencies:
+    - build:libs
   script:
+    # build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    # avoid building libs again
     - touch lib/*
-    - make pepc-mini
+    - make $TARGET
 
-# build pepc-essential with all available walks to see if any of those fail
+build:pepc-mini:
+  variables:
+    TARGET: "pepc-mini"
+  <<: *build_frontend
+
+build:pepc-benchmark:
+  variables:
+    TARGET: "pepc-benchmark"
+  <<: *build_frontend
+
+build:pepc-breakup:
+  variables:
+    TARGET: "pepc-breakup"
+  <<: *build_frontend
+
+build:pepc-v:
+  variables:
+    TARGET: "pepc-v"
+  <<: *build_frontend
+
+# Build all available frontends to see a list of working ones
+# (ditch others in favour of this step
+build:pepc-all:
+  variables:
+    TARGET: "all"
+  <<: *build_frontend
+
+# Build pepc-essential with all available walks to see if any of those fail
 build:pepc-essential:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
+  <<: *build_frontend
   script:
+    # build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    # avoid building libs again
     - touch lib/*
     - echo "WALK = pthreads" >> src/frontends/pepc-essential/makefile.frontend
     - make pepc-essential
@@ -56,52 +88,3 @@ build:pepc-essential:
     - echo "WALK = simple" >> src/frontends/pepc-essential/makefile.frontend
     - make pepc-essential
 
-build:pepc-benchmark:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
-  script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
-    - make pepc-benchmark
-
-build:pepc-breakup:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
-  script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
-    - make pepc-breakup
-
-build:pepc-kh:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
-  script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
-    - make pepc-kh
-
-# finally build all available frontends to see a list of working ones
-# (ditch others in favour of this step
-build:pepc-all:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
-  script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
-    - make all
