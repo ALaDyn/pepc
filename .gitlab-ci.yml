@@ -1,17 +1,18 @@
 #### Stages for this pipeline
 stages:
-  - build_libs     # build libraries
-  - build          # build frontends
+  - image           # build updated image for runner
+  - build_libs      # build libraries
+  - build_frontends # build frontends
     #   - test
-    #   - html     # this run doxygen (prefer FORD)
-    #   - deploy   # this could push doxygen to pages
+    #   - html      # this run doxygen (prefer FORD)
+    #   - deploy    # this could push doxygen to pages
 
 #### Build PEPC and it's libraries
 # Template for building
 .build_template: &build_template
   tags:
     - public-docker
-  image: "$CI_REGISTRY/broemmel1/docker-images/pepc-build:3.17"
+  image: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest"
 
 # Build libsl and libOPA ahead of frontends
 libraries:
@@ -29,7 +30,7 @@ libraries:
 
 # Build a number of frontends
 frontends:
-  stage: build
+  stage: build_frontends
   parallel:
     matrix:
       - TARGET: "pepc-mini"
@@ -61,3 +62,22 @@ frontends:
          echo "WALK = $WALK" >> src/frontends/$TARGET/makefile.frontend
       fi
     - make $TARGET
+
+#### Create new image from a changed Dockerfile
+build_image:
+  stage: image
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    IMAGE_COMMIT_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:$CI_COMMIT_SHORT_SHA
+    IMAGE_LATEST_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker build --no-cache=true --pull -t $IMAGE_COMMIT_TAG .
+    - docker push $IMAGE_COMMIT_TAG
+    - docker tag $IMAGE_COMMIT_TAG $IMAGE_LATEST_TAG
+    - docker push $IMAGE_LATEST_TAG
+  only:
+    changes:
+      - Dockerfile
