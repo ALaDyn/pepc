@@ -10,7 +10,7 @@ FILES_L_U = module_vtk_helpers.f90 \
 # in addition they have to show up in the usual $(SRC) list one way or another!
 #   (files can be from anywhere in the source tree, thus need to appear in $(SRC)
 #    either from makefile.frontend or globally)
-FILES_I   = module_integrator.f90 random123_func.c
+FILES_I   = 
 
 SRC        += $(FILES_L)
 SRC_COPY   += $(addprefix $(FRONTENDDIR)/$(FRONTEND)/, $(FILES_L))
