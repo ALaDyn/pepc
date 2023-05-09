@@ -72,19 +72,16 @@ build:pepc-all:
   <<: *build_frontend
 
 # Build pepc-essential with all available walks to see if any of those fail
-build:pepc-essential:
+pepc-essential:
   <<: *build_frontend
+  parallel:
+    matrix:
+      - WALK: [pthreads, pthreads_clustered, openmp, simple]
   script:
     # build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     # avoid building libs again
     - touch lib/*
-    - echo "WALK = pthreads" >> src/frontends/pepc-essential/makefile.frontend
-    - make pepc-essential
-    - echo "WALK = pthreads_clustered" >> src/frontends/pepc-essential/makefile.frontend
-    - make pepc-essential
-    - echo "WALK = openmp" >> src/frontends/pepc-essential/makefile.frontend
-    - make pepc-essential
-    - echo "WALK = simple" >> src/frontends/pepc-essential/makefile.frontend
+    - echo "WALK = $WALK" >> src/frontends/pepc-essential/makefile.frontend
     - make pepc-essential
 
