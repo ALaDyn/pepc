@@ -13,7 +13,7 @@ variables:
 
 #### Build PEPC and it's libraries
 # Build libsl and libOPA ahead of frontends
-build:libs:
+libraries:
   stage: build_libs
   tags:
     - public-docker
@@ -34,54 +34,59 @@ build:libs:
   tags:
     - public-docker
   image: $IMAGE
-  needs: ["build:libs"]
+  needs: ["libraries"]
   dependencies:
-    - build:libs
+    - libraries
   script:
+    - echo "Building PEPC with frontend $TARGET and walk $WALK
     # build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     # avoid building libs again
     - touch lib/*
+    # possibly force the walk we want to build for
+    - |
+      if [ -z $WALK ]
+      then
+         echo "using walk from sources"
+      else
+         echo "WALK = $WALK" >> src/frontends/$TARGET/makefile.frontend
+      fi
     - make $TARGET
 
-build:pepc-mini:
+pepc-mini:
   variables:
     TARGET: "pepc-mini"
   <<: *build_frontend
 
-build:pepc-benchmark:
+pepc-benchmark:
   variables:
     TARGET: "pepc-benchmark"
   <<: *build_frontend
 
-build:pepc-breakup:
+pepc-breakup:
   variables:
     TARGET: "pepc-breakup"
   <<: *build_frontend
 
-build:pepc-v:
+pepc-v:
   variables:
     TARGET: "pepc-v"
   <<: *build_frontend
 
 # Build all available frontends to see a list of working ones
 # (ditch others in favour of this step
-build:pepc-all:
+pepc-all:
   variables:
     TARGET: "all"
   <<: *build_frontend
 
 # Build pepc-essential with all available walks to see if any of those fail
-pepc-essential:
-  <<: *build_frontend
+frontends:
   parallel:
     matrix:
-      - WALK: [pthreads, pthreads_clustered, openmp, simple]
-  script:
-    # build for GCC
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    # avoid building libs again
-    - touch lib/*
-    - echo "WALK = $WALK" >> src/frontends/pepc-essential/makefile.frontend
-    - make pepc-essential
-
+      - TARGET: pepc-essential
+        WALK: [pthreads, pthreads_clustered, openmp, simple]
+      - TARGET: pepc-kh
+        WALK: [pthreads]
+      - TARGET: pepc-kh
+  <<: *build_frontend
