@@ -17,7 +17,7 @@ Juelich Supercomputing Centre
 
 This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 
-Copyright (C) 2002-2021  
+Copyright (C) 2002-2023  
 Juelich Supercomputing Centre,   
 Forschungszentrum Juelich GmbH,  
 Germany
@@ -73,12 +73,12 @@ After setting the proper environment (modules, paths) call
 make pepc-mini
 ```
 to build the `pepc-mini` frontend into the `./bin/` directory. Parallel make
-(i.e. `make -j`) should work.
+(i.e. `make -j <n>`) should work.
 
 There are several different frontends available at the moment:
 
 * `pepc-b`:  
-Laser/beam-plasma with magnetic fields  
+laser/beam-plasma with magnetic fields  
 * `pepc-essential`/`pepc-benchmark`:  
 simple setup w/ a Coulomb explosion  
 also used for benchmarking  
@@ -107,7 +107,7 @@ make pepc-benchmark
 
 All frontends can be built using 
 ```sh
-make (-j) all
+make (-j <n>) all
 ```
 
 At the current stage, there is no real documentation available for the different
@@ -139,13 +139,13 @@ from the root directory. A users guide is in preparation.
 # 5. DIRECTORY STRUCTURE / ADDING OWN FUNCTIONALITY
 
 Inside the `./src/` directory, you will find four subdirectories:
-- treecode: PEPC kernel, everything that is necessary for the pure algorithmic
-  part of the treecode
-- interaction_specific: interaction specific backends. The different
-  subdirectories herein (currently: coulomb, vortex, and nearestneighbour)
+- "treecode": PEPC kernel, everything that is necessary for the pure
+  algorithmic part of the treecode
+- "interaction_specific": interaction specific backends. The different
+  subdirectories herein (currently mainly: coulomb, darwin, and vortex)
   provide data structures and functions for the different applications. See
   inline documentation in the sourcecode (especially inside the coulomb-subdir,
-  which should be well documented) to finc out about what the functions should
+  which should be well documented) to find out about what the functions should
   do and which of them are necessary. The only files that must be provided in
   this directory are (names may not be changed, public functions and
   datastructures inside these files are mandatory):
@@ -155,26 +155,32 @@ Inside the `./src/` directory, you will find four subdirectories:
      acceptance criterion etc.
   * `makefile.backend`: backend specific modifications to treecode makefile,
      may be empty
-- utils: source code of utilities (mainly for treecode diagnostics, vtk-output
-  etc.)
-- frontends: different applications that utilize the treecode for their
-  respective very specific purpose
+- "utils": source code of utilities (mainly for treecode diagnostics,
+  vtk-output etc.)
+- "frontends": different applications that utilize the treecode for their
+  respective very specific purpose. The file `makefile.frontend` configures
+  which source files, interaction ("BACKEND" / "BACKENDTYPE"), and tree walk
+  ("WALK") will be included/used.
 
-In case you want to use PEPC for developing an own treecode-based N-body code,
-you might start by copying and modifying the `pepc-mini` frontend, which is a 
-very simple coulomb-MD programme. It uses the coulomb backend, that implements
-an expansion of the plummer potential 1/sqrt(r^2+eps^2) up to quadrupole order.
+In case you want to use PEPC for developing a treecode-based N-body code, you
+might start by copying and modifying the `pepc-mini` frontend, which is a very
+simple coulomb-MD programme. It uses the coulomb backend, that implements an
+expansion of the plummer potential 1/sqrt(r^2+eps^2) up to quadrupole order.
 
 Take care that your frontend-directory is called "pepc-something" with no
 further minus sign ("-") to be automatically recognized in the build system.
 
-If you want to provide an own interaction-specific backend (for using other
+If you want to provide a new interaction-specific backend (for using other
 multipole orders and/or force laws), just copy and modify the coulomb
 subdirectory there. The backends do not have to be registered in some makefile,
-but are selected nside the main makefile by creating a dependency on
-lippepc.backend_directory_name instead of libpepc.coulomb. In case you only need
-to modify the interaction specific types but not the functions that are dealing
-with them (for example for adding velocity, mass, etc.), take a look at the
-coulomb-backend. There, this is done for the pepc-mini frontend, that uses other
-types than for example pepc-b while still using the same force expression. See
-also variable BACKENDTYPE in pepc-mini's `makefile.include`.
+but are selected inside the `makefile.frontend` and later included by the main
+makefile. In case you only need to modify the interaction specific types but
+not the functions that are dealing with them (for example for adding velocity,
+mass, etc.), take a look at the coulomb-backend how to adjust the "type".
+There, this is done for the `pepc-mini` frontend, that uses other types than
+for example `pepc-b` while still using the same force expression. See
+also variable "BACKENDTYPE" in `pepc-mini`'s `makefile.include`.
+
+# 6. CONTRIBUTING
+
+Please refer to the separate file `CONTRIBUTING.md` for more information.
