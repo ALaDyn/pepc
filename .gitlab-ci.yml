@@ -64,7 +64,7 @@ frontends:
     - make $TARGET
 
 #### Create new image from a changed Dockerfile
-build_image:
+docker_image:
   stage: image
   image: docker:latest
   services:
@@ -78,6 +78,17 @@ build_image:
     - docker push $IMAGE_COMMIT_TAG
     - docker tag $IMAGE_COMMIT_TAG $IMAGE_LATEST_TAG
     - docker push $IMAGE_LATEST_TAG
-  only:
-    changes:
-      - Dockerfile
+  rules:
+    # Run when triggered and a varible is set
+    - if: $FORCE_DOCKER_IMAGE == "true"
+      when: manual
+    # Run when committing to a branch and changing Dockerfile
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - Dockerfile
+      when: manual
+    # Run when merging and changing Dockerfile
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - Dockerfile
+      when: manual
