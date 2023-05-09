@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -22,8 +22,8 @@
 !> particles module
 !>
 
-module particles_resize
-   use helper
+module module_particles_resize
+   use module_helper
    use module_pepc_kinds
    use module_pepc_types
    use module_timings

@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -22,12 +22,12 @@
 !> diagnostics module
 !>
 
-module diagnostics
+module module_diagnostics
    use module_pepc_kinds
    use module_pepc_types
    use module_timings
-   use helper
-   use interactions_integrator
+   use module_helper
+   use module_integrator
    implicit none
 
 contains

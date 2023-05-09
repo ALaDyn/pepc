@@ -28,14 +28,14 @@ program pepc
    use module_debug
    use module_checkpoint
    use module_spacefilling
-   use diagnostics
-   use interactions_integrator
+   use module_diagnostics
+   use module_integrator
    use iso_fortran_env
    use rng_wrapper
 
    ! frontend helper routines
-   use helper
-   use particles_resize
+   use module_helper
+   use module_particles_resize
    use mpi
    use omp_lib
    implicit none

@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2017 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -22,11 +22,11 @@
 !> elliptic integrals module
 !>
 
-module elliptic_integrals
+module module_elliptic_integrals
    use module_pepc_kinds
    use module_pepc_types
    use module_timings
-   use helper
+   use module_helper
    implicit none
 
 contains

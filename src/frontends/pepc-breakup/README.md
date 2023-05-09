@@ -8,5 +8,5 @@ Create a copy of `params_template` and `job_template` respectively, adapt the co
 In the case of tokamak simulation with a set of multiple poloidal coils, create your own text file which describes the 
 dimension and the current flowing through each coil. This determines the poloidal magnetic field structure within the tokamak domain.
 
-The relative path to the created coild description file should be given to the `coil_data_file` variable to enable correct computation
+The relative path to the created coil description file should be given to the `coil_data_file` variable to enable correct computation
 of the poloidal magnetic field structure.
