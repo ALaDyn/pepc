@@ -66,13 +66,17 @@ frontends:
 #### Create new image from a changed Dockerfile
 docker_image:
   stage: image
+  tags:
+    - public-docker
   image: docker:latest
   services:
-    - docker:dind
+    - name: docker:dind
+      alias: docker
   variables:
     IMAGE_COMMIT_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:$CI_COMMIT_SHORT_SHA
     IMAGE_LATEST_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest
   script:
+    - echo $CI_REGISTRY
     - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
     - docker build --no-cache=true --pull -t $IMAGE_COMMIT_TAG .
     - docker push $IMAGE_COMMIT_TAG
@@ -81,14 +85,11 @@ docker_image:
   rules:
     # Run when triggered and a varible is set
     - if: $FORCE_DOCKER_IMAGE == "true"
-      when: manual
     # Run when committing to a branch and changing Dockerfile
     - if: $CI_COMMIT_BRANCH
       changes:
         - Dockerfile
-      when: manual
     # Run when merging and changing Dockerfile
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - Dockerfile
-      when: manual
