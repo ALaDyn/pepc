@@ -6,20 +6,19 @@ stages:
     #   - html     # this run doxygen (prefer FORD)
     #   - deploy   # this could push doxygen to pages
 
-#### General variables
-variables:
-  # Default image for building on 'local' runner
-  IMAGE: "$CI_REGISTRY/broemmel1/docker-images/pepc-build:3.17"
-
 #### Build PEPC and it's libraries
+# Template for building
+.build_template: &build_template
+  tags:
+    - public-docker
+  image: "$CI_REGISTRY/broemmel1/docker-images/pepc-build:3.17"
+
 # Build libsl and libOPA ahead of frontends
 libraries:
   stage: build_libs
-  tags:
-    - public-docker
-  image: $IMAGE
+  <<: *build_template
   script:
-    # build for GCC
+    # Build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make libsl libopa
   artifacts:
@@ -28,22 +27,32 @@ libraries:
     paths:
       - lib
 
-# Template for building frontends (with MPI)
-.build_template: &build_frontend
+# Build a number of frontends
+frontends:
   stage: build
-  tags:
-    - public-docker
-  image: $IMAGE
+  parallel:
+    matrix:
+      - TARGET: "pepc-mini"
+      - TARGET: "pepc-benchmark"
+      - TARGET: "pepc-breakup"
+      - TARGET: "pepc-v"
+      # Build pepc-essential with all available walks to see if any of those fail
+      - TARGET: pepc-essential
+        WALK: [pthreads, pthreads_clustered, openmp, simple]
+      # Build all available frontends to see a list of working ones
+      # (ditch others in favour of this step?)
+      - TARGET: "all"
+  <<: *build_template
   needs: ["libraries"]
   dependencies:
     - libraries
   script:
-    - echo "Building PEPC with frontend $TARGET and walk $WALK
-    # build for GCC
+    - echo "Building PEPC with frontend $TARGET and walk $WALK"
+    # Build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
-    # avoid building libs again
+    # Avoid building libs again
     - touch lib/*
-    # possibly force the walk we want to build for
+    # Possibly force the walk we want to build for
     - |
       if [ -z $WALK ]
       then
@@ -52,41 +61,3 @@ libraries:
          echo "WALK = $WALK" >> src/frontends/$TARGET/makefile.frontend
       fi
     - make $TARGET
-
-pepc-mini:
-  variables:
-    TARGET: "pepc-mini"
-  <<: *build_frontend
-
-pepc-benchmark:
-  variables:
-    TARGET: "pepc-benchmark"
-  <<: *build_frontend
-
-pepc-breakup:
-  variables:
-    TARGET: "pepc-breakup"
-  <<: *build_frontend
-
-pepc-v:
-  variables:
-    TARGET: "pepc-v"
-  <<: *build_frontend
-
-# Build all available frontends to see a list of working ones
-# (ditch others in favour of this step
-pepc-all:
-  variables:
-    TARGET: "all"
-  <<: *build_frontend
-
-# Build pepc-essential with all available walks to see if any of those fail
-frontends:
-  parallel:
-    matrix:
-      - TARGET: pepc-essential
-        WALK: [pthreads, pthreads_clustered, openmp, simple]
-      - TARGET: pepc-kh
-        WALK: [pthreads]
-      - TARGET: pepc-kh
-  <<: *build_frontend
