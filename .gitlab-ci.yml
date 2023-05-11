@@ -1,8 +1,7 @@
 #### Stages for this pipeline
 stages:
-  - image           # build updated image for runner
-  - build_libs      # build libraries
-  - build_frontends # build frontends
+  - image      # build updated image for runner
+  - build      # build libraries, frontends, etc...
     #   - test
     #   - html      # this run doxygen (prefer FORD)
     #   - deploy    # this could push doxygen to pages
@@ -16,7 +15,7 @@ stages:
 
 # Build libsl and libOPA ahead of frontends
 libraries:
-  stage: build_libs
+  stage: build
   <<: *build_template
   script:
     # Build for GCC
@@ -30,7 +29,7 @@ libraries:
 
 # Build a number of frontends
 frontends:
-  stage: build_frontends
+  stage: build
   parallel:
     matrix:
       - TARGET: "pepc-mini"
@@ -68,20 +67,20 @@ docker_image:
   stage: image
   tags:
     - public-docker
-  image: docker:latest
-  services:
-    - name: docker:dind
-      alias: docker
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
   variables:
     IMAGE_COMMIT_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:$CI_COMMIT_SHORT_SHA
     IMAGE_LATEST_TAG: $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest
   script:
-    - echo $CI_REGISTRY
-    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
-    - docker build --no-cache=true --pull -t $IMAGE_COMMIT_TAG .
-    - docker push $IMAGE_COMMIT_TAG
-    - docker tag $IMAGE_COMMIT_TAG $IMAGE_LATEST_TAG
-    - docker push $IMAGE_LATEST_TAG
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - |
+      /kaniko/executor --context $CI_PROJECT_DIR
+      --dockerfile $CI_PROJECT_DIR/Dockerfile
+      --destination $IMAGE_COMMIT_TAG
+      --destination $IMAGE_LATEST_TAG
   rules:
     # Run when triggered and a varible is set
     - if: $FORCE_DOCKER_IMAGE == "true"
