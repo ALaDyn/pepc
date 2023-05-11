@@ -249,31 +249,28 @@ contains
        integer, dimension(1:nprops_particle_short) :: blocklengths, types
        integer(KIND=MPI_ADDRESS_KIND), dimension(1:nprops_particle_short) :: displacements
        integer(KIND=MPI_ADDRESS_KIND), dimension(0:nprops_particle_short) :: address
-       integer(KIND=MPI_ADDRESS_KIND) :: extent !< to store the extent to the next type in arrays
        ! dummies for address calculation
        type(t_particle_data_short) :: dummy_particle_data
-       type(t_particle_short)      :: dummy_particle(2)
+       type(t_particle_short)      :: dummy_particle
 
        ! first register the interaction-specific short MPI type
        blocklengths(1:nprops_particle_data_short)  = [3]
        types(1:nprops_particle_data_short)         = [MPI_REAL8]
-       call MPI_GET_ADDRESS( dummy_particle_data,          address(0), ierr )
-       call MPI_GET_ADDRESS( dummy_particle_data%alpha,    address(1), ierr )
+       call MPI_GET_ADDRESS(dummy_particle_data,       address(0), ierr )  !&
+       call MPI_GET_ADDRESS(dummy_particle_data%alpha, address(1), ierr ) !&
        displacements(1:nprops_particle_data_short) = int(address(1:nprops_particle_data_short) - address(0))
-       call MPI_TYPE_STRUCT( nprops_particle_data_short, blocklengths, displacements, types, MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr )
-       call MPI_TYPE_COMMIT( MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr)
+       call MPI_TYPE_CREATE_STRUCT(nprops_particle_data_short, blocklengths, displacements, types, MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr )
+       call MPI_TYPE_COMMIT(MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr)
 
        ! register short particle type
        blocklengths(1:nprops_particle_short) = [3, 1, 1, 1]
        types(1:nprops_particle_short) = [MPI_KIND_PHYSICS, MPI_REAL8, MPI_KIND_KEY, MPI_TYPE_PARTICLE_DATA_SHORT_sca]
-       call MPI_GET_ADDRESS(dummy_particle(2),           extent, ierr)  !&
-       call MPI_GET_ADDRESS(dummy_particle(1),           address(0), ierr)  !&
-       call MPI_GET_ADDRESS(dummy_particle(1)%x,         address(1), ierr)  !&
-       call MPI_GET_ADDRESS(dummy_particle(1)%work,      address(2), ierr)  !&
-       call MPI_GET_ADDRESS(dummy_particle(1)%key,       address(3), ierr)  !&
-       call MPI_GET_ADDRESS(dummy_particle(1)%data,      address(4), ierr)  !&
+       call MPI_GET_ADDRESS(dummy_particle,      address(0), ierr) !&
+       call MPI_GET_ADDRESS(dummy_particle%x,    address(1), ierr) !&
+       call MPI_GET_ADDRESS(dummy_particle%work, address(2), ierr) !&
+       call MPI_GET_ADDRESS(dummy_particle%key,  address(3), ierr) !&
+       call MPI_GET_ADDRESS(dummy_particle%data, address(4), ierr) !&
        displacements(1:nprops_particle_short) = address(1:nprops_particle_short) - address(0)
-       extent = extent - address(0)
        call MPI_TYPE_CREATE_STRUCT(nprops_particle_short, blocklengths, displacements, types, MPI_TYPE_PARTICLE_SHORT_sca, ierr)
        call MPI_TYPE_COMMIT(MPI_TYPE_PARTICLE_SHORT_sca, ierr)
     end subroutine register_short_mpi_types
