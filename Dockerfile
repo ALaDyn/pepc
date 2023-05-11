@@ -24,7 +24,7 @@ RUN apk update && \
     python3 \
     graphviz \
     py3-pip ;\
-    pip3 install http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest
+    pip3 install http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest; \
     pip3 install FORD==6.1.10
 
 # try and have start dir?
