@@ -84,16 +84,16 @@ module physvars
   !   real(kind_physics) :: div               ! divergence
   !end type t_particle_results_short
   !integer, private, parameter :: nprops_particle_results_short = 3
-  type t_particle_short ! 7*8 + 56 + 120 byte = 232 byte -> 80 byte
+  type t_particle_short ! 7*8 + 56 + 120 byte = 232 byte -> 64 byte
      real(kind_physics) :: x(1:3)      !< coordinates
      real*8 :: work        !< work load from force sum, ATTENTION: the sorting library relies on this being a real*8
      integer(kind_key) :: key      !< particle key, i.e. key on highest tree level
-     integer(kind_node) :: node_leaf !< node index of corresponding leaf (tree node)
-     integer(kind_particle) :: label     !< particle label (only for diagnostic purposes, can be used freely by the frontend
+     !integer(kind_node) :: node_leaf !< node index of corresponding leaf (tree node)
+     !integer(kind_particle) :: label     !< particle label (only for diagnostic purposes, can be used freely by the frontend
      type(t_particle_data_short) :: data       !< real physics (charge, etc.)
      !type(t_particle_results_short) :: results !< results of calc_force_etc and companions
   end type t_particle_short
-  integer, private, parameter :: nprops_particle_short = 6 ! 7
+  integer, private, parameter :: nprops_particle_short = 4 ! 7
   integer :: MPI_TYPE_PARTICLE_SHORT_sca
   interface assignment (=)
      module procedure assign_particles
@@ -264,17 +264,14 @@ contains
        call MPI_TYPE_COMMIT( MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr)
 
        ! register short particle type
-       blocklengths(1:nprops_particle_short) = [3, 1, 1, 1, 1, 1]
-       types(1:nprops_particle_short) = [MPI_KIND_PHYSICS, MPI_REAL8, MPI_KIND_KEY, MPI_KIND_NODE, MPI_KIND_PARTICLE, &
-          MPI_TYPE_PARTICLE_DATA_SHORT_sca]
+       blocklengths(1:nprops_particle_short) = [3, 1, 1, 1]
+       types(1:nprops_particle_short) = [MPI_KIND_PHYSICS, MPI_REAL8, MPI_KIND_KEY, MPI_TYPE_PARTICLE_DATA_SHORT_sca]
        call MPI_GET_ADDRESS(dummy_particle(2),           extent, ierr)  !&
        call MPI_GET_ADDRESS(dummy_particle(1),           address(0), ierr)  !&
        call MPI_GET_ADDRESS(dummy_particle(1)%x,         address(1), ierr)  !&
        call MPI_GET_ADDRESS(dummy_particle(1)%work,      address(2), ierr)  !&
        call MPI_GET_ADDRESS(dummy_particle(1)%key,       address(3), ierr)  !&
-       call MPI_GET_ADDRESS(dummy_particle(1)%node_leaf, address(4), ierr)  !&
-       call MPI_GET_ADDRESS(dummy_particle(1)%label,     address(5), ierr)  !&
-       call MPI_GET_ADDRESS(dummy_particle(1)%data,      address(6), ierr)  !&
+       call MPI_GET_ADDRESS(dummy_particle(1)%data,      address(4), ierr)  !&
        displacements(1:nprops_particle_short) = address(1:nprops_particle_short) - address(0)
        extent = extent - address(0)
        call MPI_TYPE_CREATE_STRUCT(nprops_particle_short, blocklengths, displacements, types, MPI_TYPE_PARTICLE_SHORT_sca, ierr)
@@ -292,35 +289,27 @@ contains
        type(t_particle_short), intent(in) :: short_particle
        type(t_particle), intent(out)      :: long_particle
 
-       long_particle%x(1)             = short_particle%x(1)
-       long_particle%x(2)             = short_particle%x(2)
-       long_particle%x(3)             = short_particle%x(3)
-       long_particle%work             = short_particle%work
-       long_particle%key              = short_particle%key
-       long_particle%node_leaf        = short_particle%node_leaf
-       long_particle%label            = short_particle%label
-       long_particle%data%alpha(1)    = short_particle%data%alpha(1)
-       long_particle%data%alpha(2)    = short_particle%data%alpha(2)
-       long_particle%data%alpha(3)    = short_particle%data%alpha(3)
-       long_particle%data%x_rk(1)     = 0._kind_physics
-       long_particle%data%x_rk(2)     = 0._kind_physics
-       long_particle%data%x_rk(3)     = 0._kind_physics
-       long_particle%data%alpha_rk(1) = 0._kind_physics
-       long_particle%data%alpha_rk(2) = 0._kind_physics
-       long_particle%data%alpha_rk(3) = 0._kind_physics
-       long_particle%data%u_rk(1)     = 0._kind_physics
-       long_particle%data%u_rk(2)     = 0._kind_physics
-       long_particle%data%u_rk(3)     = 0._kind_physics
-       long_particle%data%af_rk(1)    = 0._kind_physics
-       long_particle%data%af_rk(2)    = 0._kind_physics
-       long_particle%data%af_rk(3)    = 0._kind_physics
-       long_particle%results%u(1)     = 0._kind_physics
-       long_particle%results%u(2)     = 0._kind_physics
-       long_particle%results%u(3)     = 0._kind_physics
-       long_particle%results%af(1)    = 0._kind_physics
-       long_particle%results%af(2)    = 0._kind_physics
-       long_particle%results%af(3)    = 0._kind_physics
-       long_particle%results%div      = 0._kind_physics
+       long_particle = &
+          t_particle ( &
+             short_particle%x, &
+             short_particle%work, &
+             short_particle%key, &
+             0_kind_node, &
+             0_kind_particle, &
+             t_particle_data ( &
+                short_particle%data%alpha, &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ] &
+             ), &
+             t_particle_results ( &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                0._kind_physics &
+             ) &
+          )
+
     end subroutine assign_particles
 
 
