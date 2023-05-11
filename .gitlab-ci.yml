@@ -63,19 +63,21 @@ frontends:
     - make $TARGET
 
 # If the 'public-docker' builds work, test toolchains on a cluster
-toolchains:jusuf:
+toolchains:
   stage: build
+  parallel:
+    matrix:
+      - SYSTEM: [jusuf]
+        COMPILER: GCC
+        MPI: [OpenMPI, ParaStationMPI]
+      - SYSTEM: [jusuf]
+        COMPILER: Intel
+        MPI: ParaStationMPI
   tags:
-    - jusuf
+    - ${SYSTEM}
     - shell
   when: on_success
   needs: ["frontends"]
-  parallel:
-    matrix:
-      - COMPILER: GCC
-        MPI: [OpenMPI, ParaStationMPI]
-      - COMPILER: Intel
-        MPI: ParaStationMPI
   script:
     - echo "Building PEPC (pepc-essential) on $SYSTEMNAME using $HOSTNAME"
     - echo "Loading modules..."
@@ -94,11 +96,13 @@ docker_image:
     entrypoint: [""]
   script:
     - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}"
+    - |
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" \
       > /kaniko/.docker/config.json
-    - /kaniko/executor --context $CI_PROJECT_DIR
-      --dockerfile $CI_PROJECT_DIR/Dockerfile
-      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:$CI_COMMIT_SHORT_SHA
+    - |
+      /kaniko/executor --context $CI_PROJECT_DIR \
+      --dockerfile $CI_PROJECT_DIR/Dockerfile \
+      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:$CI_COMMIT_SHORT_SHA \
       --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest
   rules:
     # Run when triggered and a varible is set
