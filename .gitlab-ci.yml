@@ -70,14 +70,17 @@ toolchains:
       - SYSTEM: [jusuf]
         COMPILER: GCC
         MPI: [OpenMPI, ParaStationMPI]
-      - SYSTEM: [jusuf]
+      - SYSTEM: [jusuf, juwels]
         COMPILER: Intel
         MPI: ParaStationMPI
+      - SYSTEM: [juwels]
+        COMPILER: Intel
+        MPI: IntelMPI
   tags:
     - ${SYSTEM}
     - shell
   when: on_success
-  needs: ["frontends"]
+  needs: ["frontends: [pepc-essential, pthreads]"]
   script:
     - echo "Building PEPC (pepc-essential) on $SYSTEMNAME using $HOSTNAME"
     - echo "Loading modules..."
