@@ -70,12 +70,12 @@ toolchains:
       - SYSTEM: [jusuf]
         COMPILER: GCC
         MPI: [OpenMPI, ParaStationMPI]
-      - SYSTEM: [jusuf, juwels]
-        COMPILER: Intel
-        MPI: ParaStationMPI
+      - SYSTEM: [juwels]
+        COMPILER: GCC
+        MPI: OpenMPI
       - SYSTEM: [juwels]
         COMPILER: Intel
-        MPI: IntelMPI
+        MPI: [ParaStationMPI, IntelMPI]
   tags:
     - ${SYSTEM}
     - shell
@@ -84,10 +84,18 @@ toolchains:
   script:
     - echo "Building PEPC (pepc-essential) on $SYSTEMNAME using $HOSTNAME"
     - echo "Loading modules..."
+    - env > env.log
+    - set > set.log
     - ml ${COMPILER}
     - ml ${MPI}
+    - ml Autotools
     - ln -s makefiles/makefile.defs.${COMPILER} makefile.defs
     - make pepc-essential
+  artifacts:
+    paths:
+      - env.log
+      - set.log
+
 
 #### Create new image from a changed Dockerfile
 docker_image:
