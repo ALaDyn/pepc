@@ -177,7 +177,8 @@ contains
                 rl = rmax/(2*nc+1)
                 ns = 1+4*nc*(nc+1)
                 n = 2*ns*nphi
-                np = ceiling(1.0*n/n_cpu)
+                np = ceiling(1.0*n/n_cpu) + 10 ! +10 as additional buffer, cleared later
+                                               ! by the array resizing !&
                 kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(3)                           ! Sphere
