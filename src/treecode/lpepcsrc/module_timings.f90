@@ -293,11 +293,11 @@ contains
       open (ifile, file=filename, STATUS='UNKNOWN', POSITION='APPEND')
 
       if (printheader) then
-         write (formatstring, '(a,i5,a)') '(a1,2(1x,a20),', numtimings, '(1x,i20))'
-         write (ifile, formatstring) "#", "timestep", "userflag", [(i, i=1, numtimings)]
+         write (formatstring, '(a,i5,a)') '(2(1x,a20),', numtimings, '(1x,i20))'
+         write (ifile, formatstring) "#timestep", "userflag", [(i, i=1, numtimings)]
       endif
 
-      write (formatstring, '(a,i5,a)') '(x,2(1x,i20),', numtimings, '(1x,e20.5))'
+      write (formatstring, '(a,i5,a)') '(2(1x,i20),', numtimings, '(1x,e20.5))'
       write (ifile, formatstring) itime, iuserflag, tdata
       close (ifile)
    end subroutine timings_ToFile

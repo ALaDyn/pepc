@@ -63,14 +63,13 @@ ifeq ($(DEBUG), 1)
   FSANITIZE=-fsanitize=undefined,address -fsanitize=leak # memory and leak sanitizer
   FSANITIZE=
   FFLAGS   = -Og -g -fcheck=all -frange-check -fbacktrace -fvar-tracking \
-    $(FFEATURES) $(FWARNINGS) $(FARCH) $(FSANITIZE)
+    $(FFEATURES) $(FFIX) $(FARCH) \
+    $(FWARNINGS) $(FSANITIZE)
   CFLAGS   = -Og -g -pthread -Wall $(FARCH) $(FSANITIZE)
   LDFLAGS  = -Og -g -pthread $(FSANITIZE)
 else
-  FFLAGS   = -O3 \
-    $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
-  CFLAGS   = -O3 -pthread \
-    $(FFIX) $(INLINING) $(FARCH)
+  FFLAGS   = -O3 $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
+  CFLAGS   = -O3 -pthread $(INLINING) $(FARCH)
   LDFLAGS  = -O3 -pthread $(FFIX) $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif
