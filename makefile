@@ -44,7 +44,7 @@ buildenv:
 	@echo ""
 
 readme:
-	cat README | less
+	cat README.md | less
 
 all:
 	-$(MAKE) $(MFLAGS) -k $(ALLFRONTENDS)
