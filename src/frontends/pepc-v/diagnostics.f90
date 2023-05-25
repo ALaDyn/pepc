@@ -202,19 +202,19 @@ subroutine linear_diagnostics(itime,trun)
    call MPI_ALLREDUCE(sendbuf_I,linear,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
    ! local angular impulse
-   sendbuf_A = 0
-   do i = 1,np
-      sendbuf_A(1) = sendbuf_A(1) + 0.5*(vortex_particles(i)%x(2)*(vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(2)-vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(1))-&
-           vortex_particles(i)%x(3)*(vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(1)-vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(3))-eps**2*omega(1))
-      sendbuf_A(2) = sendbuf_A(2) + 0.5*(vortex_particles(i)%x(3)*(vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(3)-vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(2))-&
-           vortex_particles(i)%x(1)*(vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(2)-vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(1))-eps**2*omega(2))
-      sendbuf_A(3) = sendbuf_A(3) + 0.5*(vortex_particles(i)%x(1)*(vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(1)-vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(3))-&
-           vortex_particles(i)%x(2)*(vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(3)-vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(2))-eps**2*omega(3))
-   end do
+!~    sendbuf_A = 0
+!~    do i = 1,np
+!~       sendbuf_A(1) = sendbuf_A(1) + 0.5*(vortex_particles(i)%x(2)*(vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(2)-vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(1))-&
+!~            vortex_particles(i)%x(3)*(vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(1)-vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(3))-eps**2*omega(1))
+!~       sendbuf_A(2) = sendbuf_A(2) + 0.5*(vortex_particles(i)%x(3)*(vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(3)-vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(2))-&
+!~            vortex_particles(i)%x(1)*(vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(2)-vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(1))-eps**2*omega(2))
+!~       sendbuf_A(3) = sendbuf_A(3) + 0.5*(vortex_particles(i)%x(1)*(vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(1)-vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(3))-&
+!~            vortex_particles(i)%x(2)*(vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(3)-vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(2))-eps**2*omega(3))
+!~    end do
 
    ! global angular impulse
    angular = 0.
-   call MPI_ALLREDUCE(sendbuf_A,angular,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
+!~    call MPI_ALLREDUCE(sendbuf_A,angular,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,ierr)
 
    ! std and file output
    if (my_rank == 0) then

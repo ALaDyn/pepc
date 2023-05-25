@@ -27,17 +27,24 @@ module physvars
   type(t_particle), allocatable :: vortex_particles(:)
 
   real(kind_physics), parameter :: pi=3.141592654d0
+  integer,            parameter :: nDeltar=3     ! ratio btw Rd and m_h
     
   !  physics data
   integer(kind_particle) :: n   ! # vortices
   integer(kind_particle) :: np  ! # vortices per PE
   real(kind_physics)     :: force_const    ! force constant depending on unit system
-  real(kind_physics)     :: eps            ! potential/force law cutoff
   real                   :: h, m_h         ! initial particle distance and mesh width for remeshing
+  real                   :: Delta_r        ! mesh width for remeshing (m_h and Deltar are the same quantity; m_h should be removed)
+  real                   :: Rd             ! diffusive radius
+  real                   :: Delta_tavv     ! advective time step
+  real                   :: Delta_tdiff    ! diffusive time step
   integer                :: rem_freq       ! remeshing frequence
+  integer                :: nv_on_Lref     ! vortices number on Lref
   real(kind_physics)     :: kernel_c       ! mod. remeshing kernel parameter
   real(kind_physics)     :: thresh         ! vorticity threshold: particles with lower vorticity mag. will be kicked out (mandatory to avoid zero abs_charge)
   real                   :: nu             ! viscosity parameter
+  real                   :: Uref           ! Reference velocity
+  real                   :: Lref           ! Reference length
   real                   :: rmax    ! radius of torus segment (ispecial=1,2)
   real                   :: rl      ! temp radius of current circle (ispecial=1,2)
   real                   :: r_torus ! radius of torus (ispecial=1,2)
@@ -45,6 +52,8 @@ module physvars
   integer                :: nphi    ! # torus segments (ispecial=1,2)
   integer                :: ns      ! # particles per torus segment (ispecial=1,2)
   integer                :: n_in    ! # particles on the sphere (ispecial=3)
+  real                   :: Co      ! # Courant number
+  real                   :: Re      ! # Reynolds number
   real                   :: g       ! # vorticity/smoothing amplifier (ispecial=1,2,3)
   real, dimension(3)     :: torus_offset  ! shifts coords of both tori, one with +, one with - (ispecial=1,2)
 
@@ -61,7 +70,7 @@ module physvars
   ! I/O stuff
   integer :: ifile_cpu            ! O/P stream
   integer :: dump_time, cp_time   ! When to dump, when to do a checkpoint (read-in)
-  integer :: input_itime          ! Which step shpuld we read in?
+  integer :: input_itime          ! Which step should we read in?
   character(50) :: mpifile        ! MPI-IO-file
 
   ! `Clone` the main datatype t_particle
@@ -110,7 +119,6 @@ contains
     subroutine pepc_setup(itime, trun)
 
         use module_pepc
-        use module_interaction_specific, only : sig2
         use mpi
         implicit none
 
@@ -122,9 +130,9 @@ contains
         character(255) :: parameterfile
         logical :: read_param_file
 
-        namelist /pepcv/ n, eps, ispecial, dt, ts, te, &
-                         h, m_h, nu, rem_freq, thresh, &
-                         rmax, r_torus, nc, nphi, g, torus_offset, n_in, &
+        namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref,         &
+                         h, Delta_r, thresh, Uref, Lref,                  &
+                         rmax, r_torus, nc, nphi, g, torus_offset, n_in,  &
                          dump_time, cp_time, input_itime
 
 
@@ -133,18 +141,20 @@ contains
 
         ! physics stuff
         force_const  = 0.25D00/pi  ! 3D prefactor for u and af
-        eps          = 0.01      ! this is my smoothing radius, will adapt it in below
         h            = 0.
-        m_h          = 0.
+        Delta_r      = 0.
+        Co           = 1.
         rem_freq     = 0
-        thresh       = 0.
+        thresh       = 1.E-7
         rmax         = 0.
         r_torus      = 0.
         nc           = 0
         nphi         = 0
         g            = 2
         torus_offset = [0., 0., 0.]
-
+        Uref         = 1.d0
+        Lref         = 1.d0
+                
         ! control
         ts           = 0.
         te           = 0.
@@ -152,9 +162,11 @@ contains
 
         dump_time    = 0
         cp_time      = 0
+        
 
         ! read in first command line argument
         call pepc_get_para_file(read_param_file, parameterfile, my_rank)
+
 
         if (read_param_file) then
 
@@ -167,19 +179,57 @@ contains
             if(my_rank .eq. 0) write(*,*) "##### using default parameter #####"
         end if
 
+        ! New parameters DVH: 0.336 is 0.021 (from DVH) * 16 --> Rd = 4 Dr and fr = 0.021 * Re * Rd^2/L^2 * L/(U Dta)
+        ! Dtd = fr * Dta
+        if(Delta_r.le.0.) Delta_r = Lref/float(nv_on_Lref)
+
+        m_h = Delta_r
+       
+        thresh = thresh * Uref/Lref * Delta_r**3
+
+        Re = Uref * Lref/nu
+        
+        Rd = nDeltar * m_h
+ 
+        Delta_tdiff = 2.1d-2 * Rd*Rd / nu        ! Cfr. formula: 3.1 CiCP Colagrossi 2015
+        Delta_tavv  = Co * Delta_r/Uref          ! Cfr. formula: 16 CMAME Rossi 2022
+        rem_freq = int(Delta_tdiff/Delta_tavv)   ! Cfr. formula: 17 CMAME Rossi 2022
+        
+        if(rem_freq.eq.0) then
+          if(my_rank .eq. 0) write(*,*) 'Diffusive Dt is dominant over advective'
+          if(my_rank .eq. 0) write(*,*) 'Dt_avv/Dt_diff, Dt_diff',Delta_tavv/Delta_tdiff, Delta_tdiff
+          Delta_tavv = Delta_tdiff
+          rem_freq = 1
+        end if
+                            
+        Delta_tdiff = rem_freq * Delta_tavv    ! Recalculation for convenience: not needed without multi-resolution
+        
+        dt = Delta_tavv
+                        
+!       kernel_c = dsqrt(nu * Delta_tdiff) / m_h
+        kernel_c = 4.d0 * nu * Delta_tdiff
+
+        if(my_rank.eq.0) then
+          write(*,*) 'Particle volume',m_h**3
+          write(*,*) 'Remeshing every ',rem_freq
+          write(*,*) 'Diffusive radius ',Rd
+          write(*,*) 'Delta t ',dt
+          write(*,*) 'Circulation threshold ',thresh
+        end if
         ! Setup itime to standard value, may change for ispecial=99 (if not: fine)
         itime = 0
 
         init: select case(ispecial)
 
             case(1,2,4)                         ! Vortex rings/wakes
-
+ 
+                rmax = Lref/2.d0
+                nc = nv_on_Lref/2
                 rl = rmax/(2*nc+1)
                 ns = 1+4*nc*(nc+1)
+                nphi = nint(pi * r_torus/rl)
                 n = 2*ns*nphi
-                np = ceiling(1.0*n/n_cpu) + 10 ! +10 as additional buffer, cleared later
-                                               ! by the array resizing !&
-                kernel_c = sqrt(nu*rem_freq*dt)/m_h
+                np = ceiling(1.0*n/n_cpu)+1
 
             case(3)                           ! Sphere
 
@@ -188,21 +238,28 @@ contains
                 h = sqrt(4.0*pi/n)
                 !force_const = force_const*h**3
                 !eps = g*h
-                kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(5)
                                     ! Vortex wake
                 h = 2*pi/nc
                 n = 2*nc*ceiling(1.0/h)*ceiling(2*pi/h)
                 np = ceiling(1.0*n/n_cpu)+1
-                kernel_c = sqrt(nu*rem_freq*dt)/m_h
+
+            case(6)                         ! Single Vortex ring
+ 
+                rmax = Lref/2.d0
+                nc = nv_on_Lref/2
+                rl = rmax/(2*nc+1)
+                ns = 1+4*nc*(nc+1)
+                nphi = nint(pi * r_torus/rl)
+                n = ns*nphi
+                np = ceiling(1.0*n/n_cpu)+1
 
             case(98)
 
                 n=n_in
                 np = ceiling(1.0*n/n_cpu)
                 h = 1./n
-                kernel_c = sqrt(nu*rem_freq*dt)/m_h
 
             case(99)                          ! Setup MPI checkpoint readin
 
@@ -214,9 +271,6 @@ contains
                 call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
 
         end select init
-
-        ! initialize calc force params
-        sig2 = eps**2
 
         ! Setup time variables
         trun = ts+itime*dt

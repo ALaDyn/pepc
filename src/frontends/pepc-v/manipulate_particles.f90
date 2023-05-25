@@ -46,8 +46,10 @@ contains
         real(kind_physics), allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
 
         ! weird helper variables for sphere setup (ask Holger Dachsel)
-        real(kind_physics) ::  a,b,c,cth,sth,cphi,sphi,s
+        real(kind_physics) ::  a,b,c,cth,sth,cphi,sphi,s,rr,rr1,rr2,expo,stheta
         real(kind_physics), parameter :: zero=0.d0, one=1.d0, mone=-one, two=2.d0, five=5.d0, nine=9.d0
+        real(kind_physics), parameter :: kappa=2.24182**2/4.
+        real(kind_physics), parameter :: r_core = 0.35d0
 
         !     interface
         !         subroutine par_rand(res, iseed)
@@ -182,7 +184,9 @@ contains
                     xp(j) = rc*cos(xi)
                     yp(j) = rc*sin(xi)
                     zp(j) = 0
-                    volp(j) = (2*pi**2*(r_torus+(2*k+1)*rl)*((2*k+1)*rl)**2-2*pi**2*(r_torus+(2*k-1)*rl)*((2*k-1)*rl)**2)/(8*k*Nphi)
+                    volp(j) = ( 2*pi**2*(r_torus+(2*k+1)*rl)*((2*k+1)*rl)**2    &
+                               -2*pi**2*(r_torus+(2*k-1)*rl)*((2*k-1)*rl)**2)   &
+                              / (8*k*Nphi)
                     wxp(j) = 0.
                     wyp(j) = 0.
                     wzp(j) = g*exp(-(rc/rmax)**2)
@@ -503,6 +507,115 @@ contains
             end do
             np = ind
 
+        case(6) ! Single Vortex ring setup
+
+            allocate(xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
+
+            j = 0
+
+            do k = 1, nc
+                part_2d = 2*pi/(8*k)
+                rc = (1+12*k**2)/(6*k)*rl
+
+                do l = 1,8*k
+                    j = j+1
+                    xi1 = part_2d*float(l-1)
+                    xi2 = part_2d*float(l  )
+                    xi  = (xi1 + xi2)*5.d-1 
+                    xp(j) = rc*cos(xi)
+                    yp(j) = rc*sin(xi)
+                    zp(j) = 0
+
+                    rr1 = xp(j) + r_torus
+                    rr2 = yp(j) 
+                    rr  = sqrt(rr1*rr1 + rr2*rr2)
+
+                    volp(j) = ( 2*pi**2*(r_torus+(2*k+1)*rl)*((2*k+1)*rl)**2    &
+                               -2*pi**2*(r_torus+(2*k-1)*rl)*((2*k-1)*rl)**2)   &
+                              / (8*k*Nphi)
+                    wxp(j) = 0.
+                    wyp(j) = 0.
+                    stheta = rr1/rr 
+                    expo = kappa * (r_torus*r_torus + rr*rr - 2.d0*r_torus*rr * stheta)
+                    wzp(j) = kappa/pi * G/r_core/r_core * exp(- expo/r_core/r_core)
+!                   wzp(j) = g*exp(-(rc/rmax)**2)
+                end do
+            end do
+ 
+            xp(ns) = 0.
+            yp(ns) = 0.
+            zp(ns) = 0.
+            wxp(ns) = 0.
+            wyp(ns) = 0.
+!           wzp(ns) = g
+            wzp(ns) = kappa/pi * G/rmax/rmax 
+            volp(ns) = 2*pi**2*(r_torus+rl)*rl**2/Nphi
+
+            j = 0
+            ind0 = 0
+            ind = 0
+            part_3d = 2*pi/Nphi
+            do m = 1, Nphi
+                eta1 = part_3d*(m-1)
+                eta2 = part_3d*m
+                eta = (eta1 + eta2)*5.d-1
+                v(1) = cos(eta2)
+                v(2) = sin(eta2)
+                v(3) = 0
+                D1 = reshape( (/ -1.0+2*v(1)**2, 2*v(2)*v(1), 0.0D0,  2*v(1)*v(2), -1.0+2*v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0 /), (/3,3/) )
+                v(1) = cos(eta)
+                v(2) = sin(eta)
+                v(3) = 0
+                D2 = reshape( (/ v(1)**2, v(2)*v(1), -v(2),  v(1)*v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0 /), (/3,3/) )
+                D3 = reshape( (/ -1.0+2*v(1)**2, 2*v(2)*v(1), 0.0D0,  2*v(1)*v(2), -1.0+2*v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0 /), (/3,3/) )
+                D4 = matmul(D1,D3)
+                do i = 1, Ns
+                    if (m==1) then
+!                       v(1) = xp(i) + (r_torus+rmax)*cos(eta)
+!                       v(2) = yp(i) + (r_torus+rmax)*sin(eta)
+                        v(1) = xp(i) + r_torus*cos(eta)
+                        v(2) = yp(i) + r_torus*sin(eta)
+                        v(3) = zp(i);
+                        xp(i) = dot_product(v,D2(1:3,1))
+                        yp(i) = dot_product(v,D2(1:3,2))
+                        zp(i) = dot_product(v,D2(1:3,3))
+                        v(1) = wxp(i);
+                        v(2) = wyp(i);
+                        v(3) = wzp(i);
+                        wxp(i) = dot_product(v,D2(1:3,1))
+                        wyp(i) = dot_product(v,D2(1:3,2))
+                        wzp(i) = dot_product(v,D2(1:3,3))
+                    else
+                        v(1) = xp(i)
+                        v(2) = yp(i)
+                        v(3) = zp(i)
+                        xp(i) = dot_product(v,D4(1:3,1))
+                        yp(i) = dot_product(v,D4(1:3,2))
+                        zp(i) = dot_product(v,D4(1:3,3))
+                        v(1) = wxp(i)
+                        v(2) = wyp(i)
+                        v(3) = wzp(i)
+                        wxp(i) = dot_product(v,D4(1:3,1))
+                        wyp(i) = dot_product(v,D4(1:3,2))
+                        wzp(i) = dot_product(v,D4(1:3,3))
+                    end if
+                    ind0 = ind0 + 1
+                    if (mod(ind0-1,n_cpu) == my_rank) then
+                        ind = ind + 1
+                        if (ind .gt. np) then
+                            write(*,*) 'something is wrong here: to many particles in init of first ring',my_rank,ind,np,n
+                            call MPI_ABORT(MPI_COMM_WORLD,1,ierr)
+                        end if
+                        vortex_particles(ind)%x(1) = xp(i) + (rmax-(1+12*nc**2)/(6*nc)*rl)/2.0
+                        vortex_particles(ind)%x(2) = yp(i) + (rmax-(1+12*nc**2)/(6*nc)*rl)/2.0
+                        vortex_particles(ind)%x(3) = zp(i) + (rmax-(1+12*nc**2)/(6*nc)*rl)/2.0
+                        vortex_particles(ind)%data%alpha(1) = wxp(i)*volp(i)
+                        vortex_particles(ind)%data%alpha(2) = wyp(i)*volp(i)
+                        vortex_particles(ind)%data%alpha(3) = wzp(i)*volp(i)
+                    end if
+                end do
+            end do
+            np = ind
 
         case(98) ! Random cubic setup (for testing purpose only)
 
@@ -590,8 +703,10 @@ contains
             vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha(1:3) + dt*vortex_particles(i)%results%af(1:3)
         else
             ! Trapezoidal corrector
-            vortex_particles(i)%x(1:3) = vortex_particles(i)%data%x_rk(1:3) + 0.5*dt*(vortex_particles(i)%data%u_rk(1:3)+vortex_particles(i)%results%u(1:3))
-            vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha_rk(1:3) + 0.5*dt*(vortex_particles(i)%data%af_rk(1:3)+vortex_particles(i)%results%af(1:3))
+            vortex_particles(i)%x(1:3) =          vortex_particles(i)%data%x_rk(1:3) &
+                                       + 0.5*dt*( vortex_particles(i)%data%u_rk(1:3)  + vortex_particles(i)%results%u(1:3) )
+            vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha_rk(1:3) &
+                                       + 0.5*dt*( vortex_particles(i)%data%af_rk(1:3) + vortex_particles(i)%results%af(1:3) )
         end if
 
       end do
