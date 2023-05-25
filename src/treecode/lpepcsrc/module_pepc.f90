@@ -164,7 +164,8 @@ contains
       else
          debug_level = 0
       endif
-      np_mult = -45.
+!     np_mult = -45.
+      np_mult = 1.
       weighted = 1
 
       ! create and register mpi types
