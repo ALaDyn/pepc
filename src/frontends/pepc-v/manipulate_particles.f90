@@ -674,7 +674,7 @@ contains
         if (ispecial .ne. 99) then
             call dump(0,ts)
             call kick_out_particles()
-            call reset_labels() ! works on vortex_particles
+            call reset_labels()
             vortex_particles(1:np)%work = 1.
         end if
 
@@ -729,6 +729,7 @@ contains
         use mpi
         implicit none
 
+
         integer :: ierr, xtn, ytn, ztn, m_dim, omp_thread_num, omp_num_threads,my_thr,nth
         integer(kind_particle) :: i1, i2, i3, nm_tot, tmp
         integer(kind_particle) :: i, j, k, kini, kend, l, ll
@@ -743,7 +744,8 @@ contains
         real(kind_physics)     :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin
         real(kind_physics), dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_after
         real(kind_physics), allocatable ::  vort_temp(:,:,:)
-        type(t_particle_short), allocatable :: m_part(:)
+        type(t_particle), allocatable :: m_part(:)
+
         integer, parameter :: t_remesh_interpol = t_userdefined_first + 2
         integer, parameter :: t_remesh_sort = t_userdefined_first + 3
         logical*1, allocatable :: logic_l(:)
@@ -1097,13 +1099,13 @@ contains
         use mpi
         implicit none
 
-        type(t_particle_short), intent(inout) :: particles(*)
+        type (t_particle), intent(inout) :: particles(*)
         integer(kind_particle), intent(inout) :: m_np
         integer(kind_particle), intent(in) :: m_nppm
 
         integer :: ierr
         integer(kind_particle) :: i, j, k
-        type(t_particle_short) :: bound_parts_loc(2), bound_parts(0:2*n_cpu-1), ship_parts(m_np), get_parts(m_nppm)
+        type (t_particle) :: bound_parts_loc(2), bound_parts(0:2*n_cpu-1), ship_parts(m_np), get_parts(m_nppm)
         integer :: prev, next, nbits
 !TODO should this be kind_default or really kind_particle?!?!?
         integer :: irnkl2(m_nppm), indxl(m_np), irnkl(m_nppm)
@@ -1226,9 +1228,10 @@ contains
         ! Permute particles according to arrays from slsort
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
-        call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                           get_parts,  irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                           MPI_COMM_WORLD,ierr)
+
+        call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_sca, &
+        get_parts, irlen, gposts, MPI_TYPE_PARTICLE_sca, MPI_COMM_WORLD,ierr)
+
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
 
@@ -1262,8 +1265,8 @@ contains
 
         bound_parts_loc(1) = particles(1)
         bound_parts_loc(2) = particles(k)
-        call MPI_ALLGATHER(bound_parts_loc, 2, MPI_TYPE_PARTICLE_SHORT_sca, &
-        bound_parts, 2, MPI_TYPE_PARTICLE_SHORT_sca, MPI_COMM_WORLD, ierr)
+        call MPI_ALLGATHER(bound_parts_loc, 2, MPI_TYPE_PARTICLE_sca, &
+        bound_parts, 2, MPI_TYPE_PARTICLE_sca, MPI_COMM_WORLD, ierr)
 
         ! Eliminate right boundary, if doublet with at least on neighbor
         if (bound_parts(2*my_rank+1)%key .eq. bound_parts(2*next)%key) then
@@ -1309,8 +1312,8 @@ contains
         ! Permute particles according to arrays from slsort
         m_np = npnew
         ship_parts(1:npold) = particles(indxl(1:npold))
-        call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-        get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, MPI_COMM_WORLD,ierr)
+        call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_sca, &
+        get_parts, irlen, gposts, mpi_type_particle_sca, MPI_COMM_WORLD,ierr)
         particles(irnkl(1:m_np)) = get_parts(1:m_np)
         particles(1:m_np)%key = sorted_keys(1:m_np)
         particles(1:m_np)%work = 1. !TODO: is this elegant? 
