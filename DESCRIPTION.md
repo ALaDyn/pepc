@@ -4,19 +4,20 @@ This file is automatically included in the Helmholtz Research Software Directory
 
 ## Algorithm
 
-The oct-tree method was originally introduced by Josh Barnes & Piet Hut in the mid 1980s to speed up astrophysical N-body simulations with long range interactions, see [Nature 324, 446 (1986)](http://dx.doi.org/10.1038/324446a0). Their idea was to use successively larger multipole-groupings of distant particles to reduce the computational effort in the force calculation from the usual O(N2) operations needed for brute-force summation to a more amenable O(N log N). Though mathematically less elegant than the Fast Multipole Method, the Barnes-Hut algorithm is well suited to dynamic, nonlinear problems and can be combined with multiple-timestep integrators.
+The oct-tree method was originally introduced by Josh Barnes & Piet Hut in the mid 1980s to speed up astrophysical N-body simulations with long range interactions, see [Nature 324, 446 (1986)](http://dx.doi.org/10.1038/324446a0). Their idea was to use successively larger multipole-groupings of distant particles to reduce the computational effort in the force calculation from the usual O(N2) operations needed for brute-force summation to a more amenable O(N log N). Though mathematically less elegant than the Fast Multipole Method, the Barnes-Hut algorithm is well suited to dynamic, nonlinear problems, can be quickly adapted to numerous interaction kernels and combined with multiple-timestep integrators.
 
 ![image](https://www.fz-juelich.de/en/ias/jsc/about-us/structure/simulation-and-data-labs/sdl-plasma-physics/pepc/pepc_overview.png/@@images/image/preview)
 
 *Simulation of interaction of laser radiation with neutral nanocluster with 3871 ions and electrons. Bottom left: spacefilling Hilbert curve used in the code for domain decomposition; Bottom right: Oct-tree domain decomposition represented by the so-called branch nodes.*
 
-The PEPC project (Pretty Efficient Parallel Coulomb Solver) is a public tree code that has been developed at [Jülich Supercomputing Centre](https://www.fz-juelich.de/en/ias/jsc) since the early 2000s. Our tree code is a non-recursive version of the Barnes-Hut algorithm, using a level-by-level approach to both tree construction and traversals. The parallel version is a hybrid MPI/pthreads implementation of the Warren-Salmon 'Hashed Oct-Tree' scheme, including several variations of the tree traversal routine - the most challenging component in terms of scalability.
+The PEPC project (Pretty Efficient Parallel Coulomb Solver) is a public tree code that has been developed at [Jülich Supercomputing Centre](https://www.fz-juelich.de/en/ias/jsc) since the early 2000s. Our tree code is a non-recursive version of the Barnes-Hut algorithm, using a level-by-level approach to both tree construction and traversals. The parallel version is a hybrid MPI/pthreads implementation of the Warren-Salmon 'Hashed Oct-Tree' scheme, including several refinements of the tree traversal routine - the most challenging component in terms of scalability.
 
 The code is structurally divided into three parts:
   1) **kernel routines** that handle all tree code specific data structures and communication as well as the actual tree traversal.
   2) **interaction-specific modules**, i.e. routines that apply to specific interaction kernels and multipole expansions. Currently, the following interaction kernels are available:
      - Coulomb-interaction/gravitation,
      - algebraic kernels for vortex methods,
+     - Darwin for magnetoinductive plasmas (no EM wave propagation),
      - nearest-neighbour interactions for smooth particle hydrodynamics (SPH).
   3) **'front-end'** applications. For example
      - PEPC-mini, a skeleton molecular dynamics program with different diagnostics including VTK output for convenient visualization,
