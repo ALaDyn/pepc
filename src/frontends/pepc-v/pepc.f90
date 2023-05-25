@@ -133,6 +133,8 @@ program pepcv
 
      end if
 
+     call dump_cp(itime, trun)
+
      call timer_stop(t_tot)   ! total loop time incl. remeshing if requested
      call timings_LocalOutput(itime,t_flag)
      call timings_GatherAndOutput(itime,t_flag)

@@ -70,10 +70,10 @@ module files
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !>   Dump VTK or checkpoint
+    !>   Dump VTK
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine dump(i, simtime)
+    subroutine dump(i,simtime)
 
         use physvars
         use mpi
@@ -93,6 +93,27 @@ module files
 
            end if
         end if
+
+    end subroutine dump
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>   Dump checkpoint
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine dump_cp(i,simtime)
+
+        use physvars
+        use mpi
+        implicit none
+
+        integer, intent(in) :: i
+        real, intent(in) :: simtime
+        integer :: fh, ierr, err, status(MPI_STATUS_SIZE)
+        integer(KIND=MPI_OFFSET_KIND) :: disp, header_disp=1024
+
+        character(50) :: cfile
 
         if (cp_time.ne.0) then
            if (mod(i,cp_time) == 0) then
@@ -116,7 +137,6 @@ module files
                  call MPI_FILE_WRITE(fh,m_h,1,MPI_REAL,status,ierr)            ! Remeshing distance
                  call MPI_FILE_WRITE(fh,rem_freq,1,MPI_INTEGER,status,ierr)    ! Remeshing frequence
                  call MPI_FILE_WRITE(fh,thresh,1,MPI_KIND_PHYSICS,status,ierr) ! threshold for pop. control
-                 call MPI_FILE_WRITE(fh,eps,1,MPI_KIND_PHYSICS,status,ierr)    ! core size
                  call MPI_FILE_GET_POSITION(fh, disp, ierr)
                  if (disp .gt. header_disp) then
                     write(*,*) "header_size is too small: ", header_disp, "<", disp
@@ -134,8 +154,7 @@ module files
            end if
         end if
 
-    end subroutine dump
-
+    end subroutine dump_cp
 
     subroutine dump_results()
 
