@@ -43,6 +43,8 @@ INLINING = -flto -fuse-linker-plugin  -fipa-matrix-reorg
 #`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
 #`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
 INLINING += -u run_communication_loop -u walk_worker_thread
+INLINING += --param early-inlining-insns=20
+
 
 # enable warnings (used for DEBUG builds)
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
