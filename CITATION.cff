@@ -93,7 +93,7 @@ abstract: >-
   construction and traversals.
 keywords:
   - Barnes-Hut
-  - treecode
+  - tree code
   - HPC
 license: LGPL-3.0-or-later
 commit: 6f576e27

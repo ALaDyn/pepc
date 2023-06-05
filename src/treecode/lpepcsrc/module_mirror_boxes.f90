@@ -159,7 +159,7 @@ contains
    !> Initializes transformation matrices between cartesian system and lattice basis
    !>
    subroutine init_movement_constraint
-      use module_math_tools
+      use module_math_tools, only: Inverse3
       implicit none
 
       Lattice(1, :) = t_lattice_1
@@ -177,7 +177,7 @@ contains
    !>
    subroutine constrain_periodic(particles)
       use module_pepc_kinds, only: kind_particle
-      use module_math_tools
+      !use module_math_tools
       use module_pepc_types
 
       implicit none
