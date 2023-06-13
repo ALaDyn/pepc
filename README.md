@@ -8,6 +8,8 @@ Juelich Supercomputing Centre
 
 #### Webpage:  
 [http://www.fz-juelich.de/ias/jsc/pepc](http://www.fz-juelich.de/ias/jsc/pepc)  
+#### DOI:
+[10.5281/zenodo.7965548](https://doi.org/10.5281/zenodo.7965548)
 #### E-Mail:  
 [pepc@fz-juelich.de](mail-to:pepc@fz-juelich.de)  
 #### CI:  

@@ -84,8 +84,6 @@ toolchains:
   script:
     - echo "Building PEPC (pepc-essential) on $SYSTEMNAME using $HOSTNAME"
     - echo "Loading modules..."
-    - env > env.log
-    - set > set.log
     - ml ${COMPILER}
     - ml ${MPI}
     - ml Autotools
@@ -93,9 +91,10 @@ toolchains:
     - make pepc-essential
   artifacts:
     paths:
-      - env.log
-      - set.log
-
+      - bin/*
+  rules:
+    # Only run when on main repository
+    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
 
 #### Create new image from a changed Dockerfile
 docker_image:

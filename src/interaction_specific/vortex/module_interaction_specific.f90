@@ -451,28 +451,34 @@ module module_interaction_specific
 
             vort = [particle%data%alpha(1),particle%data%alpha(2),particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
-            m0 = [t%chargex,t%chargey,t%chargez]           ! monopole moment tensor
-            CP0 = cross_prod(m0,vort)                      ! cross-product for 1st expansion term
+            m0 = [t%chargex,t%chargey,t%chargez]  ! monopole moment tensor
+            CP0 = cross_prod(m0,vort)             ! cross-product for 1st expansion term
 
-            m1 = reshape([t%xdip1,t%xdip2,t%xdip3, &       ! dipole moment tensor
-                          t%ydip1,t%ydip2,t%ydip3, &
-                          t%zdip1,t%zdip2,t%zdip3],[3,3])
-            CP1 = reshape([cross_prod(m1(:,1),vort), &     ! cross-product for 2nd expansion term
-                           cross_prod(m1(:,2),vort), &
-                           cross_prod(m1(:,3),vort)],[3,3])
+            m1(:,1) = [t%xdip1,t%xdip2,t%xdip3]   ! dipole moment tensor
+            m1(:,2) = [t%ydip1,t%ydip2,t%ydip3]
+            m1(:,3) = [t%zdip1,t%zdip2,t%zdip3]
+            CP1(:,1) = cross_prod(m1(:,1),vort)   ! cross-product for 2nd expansion term
+            CP1(:,2) = cross_prod(m1(:,2),vort)
+            CP1(:,3) = cross_prod(m1(:,3),vort)
 
-            m2 = reshape([t%xxquad1,t%xxquad2,t%xxquad3, & ! quadrupole moment tensor
-                          t%xyquad1,t%xyquad2,t%xyquad3, &
-                          t%xzquad1,t%xzquad2,t%xzquad3, &
-                          t%xyquad1,t%xyquad2,t%xyquad3, &
-                          t%yyquad1,t%yyquad2,t%yyquad3, &
-                          t%yzquad1,t%yzquad2,t%yzquad3, &
-                          t%xzquad1,t%xzquad2,t%xzquad3, &
-                          t%yzquad1,t%yzquad2,t%yzquad3, &
-                          t%zzquad1,t%zzquad2,t%zzquad3],[3,3,3])
-            CP2 = reshape([cross_prod(m2(:,1,1),vort),cross_prod(m2(:,2,1),vort),cross_prod(m2(:,3,1),vort), &          ! cross-product for 3rd expansion term
-                           cross_prod(m2(:,1,2),vort),cross_prod(m2(:,2,2),vort),cross_prod(m2(:,3,2),vort), &
-                           cross_prod(m2(:,1,3),vort),cross_prod(m2(:,2,3),vort),cross_prod(m2(:,3,3),vort)],[3,3,3])
+            m2(:,1,1) = [t%xxquad1,t%xxquad2,t%xxquad3] ! quadrupole moment tensor
+            m2(:,2,1) = [t%xyquad1,t%xyquad2,t%xyquad3]
+            m2(:,3,1) = [t%xzquad1,t%xzquad2,t%xzquad3]
+            m2(:,1,2) = [t%xyquad1,t%xyquad2,t%xyquad3]
+            m2(:,2,2) = [t%yyquad1,t%yyquad2,t%yyquad3]
+            m2(:,3,2) = [t%yzquad1,t%yzquad2,t%yzquad3]
+            m2(:,1,3) = [t%xzquad1,t%xzquad2,t%xzquad3]
+            m2(:,2,3) = [t%yzquad1,t%yzquad2,t%yzquad3]
+            m2(:,3,3) = [t%zzquad1,t%zzquad2,t%zzquad3]
+            CP2(:,1,1) = cross_prod(m2(:,1,1),vort)     ! cross-product for 3rd expansion term
+            CP2(:,2,1) = cross_prod(m2(:,2,1),vort)
+            CP2(:,3,1) = cross_prod(m2(:,3,1),vort)
+            CP2(:,1,2) = cross_prod(m2(:,1,2),vort)
+            CP2(:,2,2) = cross_prod(m2(:,2,2),vort)
+            CP2(:,3,2) = cross_prod(m2(:,3,2),vort)
+            CP2(:,1,3) = cross_prod(m2(:,1,3),vort)
+            CP2(:,2,3) = cross_prod(m2(:,2,3),vort)
+            CP2(:,3,3) = cross_prod(m2(:,3,3),vort)
 
             ! precompute kernel function evaluations of various order
             Gc = G_core([dist2, dist2, dist2, dist2], & !&
