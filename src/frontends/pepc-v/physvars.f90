@@ -73,6 +73,41 @@ module physvars
   integer :: input_itime          ! Which step should we read in?
   character(50) :: mpifile        ! MPI-IO-file
 
+  ! `Clone` the main datatype t_particle
+  ! The aim is to save memory during remeshing. This is _not_ nice or clean and does not
+  ! really follow PEPC`s define-centrally-once approach.
+  ! This also requires to register the data type with MPI, so make sure init routines take
+  ! care of that.
+  type t_particle_data_short ! 15*8 byte = 120 byte -> 24 byte
+     real(kind_physics) :: alpha(3)    ! vorticity or better: alpha = vorticity * volume
+     !real(kind_physics) :: x_rk(3)     ! position temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+     !real(kind_physics) :: alpha_rk(3) ! vorticity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+     !real(kind_physics) :: u_rk(3)     ! velocity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+     !real(kind_physics) :: af_rk(3)    ! vorticity RHS temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+  end type t_particle_data_short
+  integer, private, parameter :: nprops_particle_data_short = 1 !5
+  integer :: MPI_TYPE_PARTICLE_DATA_SHORT_sca
+  !type, private t_particle_results_short ! 7*8 byte = 56 byte -> 0 byte
+  !   real(kind_physics), dimension(3) :: u   ! velocities
+  !   real(kind_physics), dimension(3) :: af  ! RHS for vorticity/alpha ODE
+  !   real(kind_physics) :: div               ! divergence
+  !end type t_particle_results_short
+  !integer, private, parameter :: nprops_particle_results_short = 3
+  type t_particle_short ! 7*8 + 56 + 120 byte = 232 byte -> 64 byte
+     real(kind_physics) :: x(1:3)      !< coordinates
+     real*8 :: work        !< work load from force sum, ATTENTION: the sorting library relies on this being a real*8
+     integer(kind_key) :: key      !< particle key, i.e. key on highest tree level
+     !integer(kind_node) :: node_leaf !< node index of corresponding leaf (tree node)
+     !integer(kind_particle) :: label     !< particle label (only for diagnostic purposes, can be used freely by the frontend
+     type(t_particle_data_short) :: data       !< real physics (charge, etc.)
+     !type(t_particle_results_short) :: results !< results of calc_force_etc and companions
+  end type t_particle_short
+  integer, private, parameter :: nprops_particle_short = 4 ! 7
+  integer :: MPI_TYPE_PARTICLE_SHORT_sca
+  interface assignment (=)
+     module procedure assign_particles
+  end interface
+
 contains
 
 
@@ -251,8 +286,83 @@ contains
             !write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
         end if
 
+        ! Now finish by registering smaller datatype with MPI
+        call register_short_mpi_types()
+
     end subroutine pepc_setup
 
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !>   Register shorter datatypes with MPI
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    subroutine register_short_mpi_types()
+       use mpi
+       integer(kind_default) :: ierr
+       ! address calculation
+       integer, dimension(1:nprops_particle_short) :: blocklengths, types
+       integer(KIND=MPI_ADDRESS_KIND), dimension(1:nprops_particle_short) :: displacements
+       integer(KIND=MPI_ADDRESS_KIND), dimension(0:nprops_particle_short) :: address
+       ! dummies for address calculation
+       type(t_particle_data_short) :: dummy_particle_data
+       type(t_particle_short)      :: dummy_particle
+
+       ! first register the interaction-specific short MPI type
+       blocklengths(1:nprops_particle_data_short)  = [3]
+       types(1:nprops_particle_data_short)         = [MPI_REAL8]
+       call MPI_GET_ADDRESS(dummy_particle_data,       address(0), ierr )  !&
+       call MPI_GET_ADDRESS(dummy_particle_data%alpha, address(1), ierr ) !&
+       displacements(1:nprops_particle_data_short) = int(address(1:nprops_particle_data_short) - address(0))
+       call MPI_TYPE_CREATE_STRUCT(nprops_particle_data_short, blocklengths, displacements, types, MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr )
+       call MPI_TYPE_COMMIT(MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr)
+
+       ! register short particle type
+       blocklengths(1:nprops_particle_short) = [3, 1, 1, 1]
+       types(1:nprops_particle_short) = [MPI_KIND_PHYSICS, MPI_REAL8, MPI_KIND_KEY, MPI_TYPE_PARTICLE_DATA_SHORT_sca]
+       call MPI_GET_ADDRESS(dummy_particle,      address(0), ierr) !&
+       call MPI_GET_ADDRESS(dummy_particle%x,    address(1), ierr) !&
+       call MPI_GET_ADDRESS(dummy_particle%work, address(2), ierr) !&
+       call MPI_GET_ADDRESS(dummy_particle%key,  address(3), ierr) !&
+       call MPI_GET_ADDRESS(dummy_particle%data, address(4), ierr) !&
+       displacements(1:nprops_particle_short) = address(1:nprops_particle_short) - address(0)
+       call MPI_TYPE_CREATE_STRUCT(nprops_particle_short, blocklengths, displacements, types, MPI_TYPE_PARTICLE_SHORT_sca, ierr)
+       call MPI_TYPE_COMMIT(MPI_TYPE_PARTICLE_SHORT_sca, ierr)
+    end subroutine register_short_mpi_types
+
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !>
+    !> Function to assign short t_particle to the full version
+    !>
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !elemental function assign_particles(short_particle) result (long_particle)
+    elemental subroutine assign_particles(long_particle, short_particle)
+       type(t_particle_short), intent(in) :: short_particle
+       type(t_particle), intent(out)      :: long_particle
+
+       long_particle = &
+          t_particle ( &
+             short_particle%x, &
+             short_particle%work, &
+             short_particle%key, &
+             0_kind_node, &
+             0_kind_particle, &
+             t_particle_data ( &
+                short_particle%data%alpha, &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ] &
+             ), &
+             t_particle_results ( &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                [ 0._kind_physics, 0._kind_physics, 0._kind_physics ], &
+                0._kind_physics &
+             ) &
+          )
+
+    end subroutine assign_particles
 
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
