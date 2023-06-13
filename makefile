@@ -53,7 +53,7 @@ all:
 
 allresult:
 	@printf "======== $(UL)build all results$(NC)\n"
-	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s $(GREEN)OK$(NC)\n" $$f ; else printf "== %-20s $(RED)FAILED$(NC)\n" $$f; fi; done
+	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s $(GREEN)OK$(NC)\n" $$f ; else printf "== %-20s $(RED)FAILED$(NC)\n" $$f; E="FAILED"; fi; done; if [ "x$$E" = "xFAILED" ] ; then exit 127; fi
 	@echo ""
 
 libsl: $(LIBDIR)/libsl.a
