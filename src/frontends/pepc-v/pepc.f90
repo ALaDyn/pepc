@@ -39,6 +39,7 @@ program pepcv
   use module_pepc_kinds
   use module_pepc_types
   use module_interaction_specific, only: theta2
+  use treevars, only: np_mult
   use iso_fortran_env
   implicit none
 
@@ -49,6 +50,8 @@ program pepcv
 
   ! Allocate array space for tree
   call pepc_initialize("pepc-v", my_rank, n_cpu, .true.)
+  np_mult = 1. ! Set default tuning parameter that controls PEPC`s memory consumption.    !&
+               ! This value does not try to be smart, but works more reliable for pepc-v. !&
   call pepc_read_parameters_from_first_argument()
 
   ! Set up O/P files
@@ -133,7 +136,7 @@ program pepcv
 
      end if
 
-     call dump_cp(itime, trun)
+     call write_checkpoint(itime, trun)
 
      call timer_stop(t_tot)   ! total loop time incl. remeshing if requested
      call timings_LocalOutput(itime,t_flag)

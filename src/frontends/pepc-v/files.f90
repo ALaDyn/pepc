@@ -102,7 +102,7 @@ module files
     !>   Dump checkpoint
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    subroutine dump_cp(i,simtime)
+    subroutine write_checkpoint(i,simtime)
 
         use physvars
         use mpi
@@ -154,7 +154,7 @@ module files
            end if
         end if
 
-    end subroutine dump_cp
+    end subroutine write_checkpoint
 
     subroutine dump_results()
 
