@@ -736,9 +736,9 @@ contains
         integer(kind_particle) :: m_np, m_nppm, m_n(3)
         integer(kind_particle), allocatable :: lg(:), rev_lg(:), pos_temp(:,:)
         real(kind_physics)     :: x, y, z, deno
-        real(kind_physics)     :: dist2, summ_axt, summ_ayt, summ_azt
+        real(kind_physics)     :: dist2, alpha_sum
         real(kind_physics)     :: vort_mod, total_vort_mod_pre, total_vort_mod_mid, total_vort_mod_after
-        real(kind_physics)     :: frac, pos(3), axt, ayt, azt, wt
+        real(kind_physics)     :: frac, pos(3), alpha(3), work
         real(kind_physics)     :: local_grid_min(3), local_grid_max(3)
         real(kind_physics)     :: boxsize, global_grid_max(3), global_grid_min(3)
         real(kind_physics), dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_after
@@ -789,28 +789,26 @@ contains
         call timer_start(t_remesh_interpol)
 
         omp_num_threads = 1
-
-        ! Set number of openmp threads to the same number as pthreads used in the walk
-        !$ call omp_set_num_threads(num_threads)
+        ! Set number of OpenMP threads to the same number as pthreads used in the walk +1
+        ! We use `+1` here since the walk and communication thread are not active here, so can use
+        ! all available threads.
+        !$ call omp_set_num_threads(num_threads + 1)
 
         ! Inform the user that OpenMP is used, and with how many threads
-        !$OMP PARALLEL PRIVATE(omp_thread_num)
-        !$ omp_thread_num = OMP_GET_THREAD_NUM()
-        !$ omp_num_threads = OMP_GET_NUM_THREADS()
-        !$ if( (my_rank .eq. 0) .and. (omp_thread_num .eq. 0) ) write(*,*) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
-        !$OMP END PARALLEL
+        !$ omp_num_threads = num_threads + 1
+        !$ if(my_rank .eq. 0) write(*,*) 'Using OpenMP with', omp_num_threads, 'threads.'
 
         logic_l = .false.
 
         if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of logic_l',real(STORAGE_SIZE(logic_l)*nm_tot)/(8*1024*1024)
 
-        !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(xtn,ytn,ztn,l,i1,i2,i3,        &
-        !$OMP                                      axt,ayt,azt,summ_axt,summ_ayt,summ_azt, &
-        !$OMP                                      wt,k,frac,dist2,proximity)   &
+        !$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(NONE) &
+        !$OMP SHARED(vortex_particles, global_grid_min, m_h, m_n, np) &
+        !$OMP PRIVATE(l, i1, i2, i3, k, proximity) &
         !$OMP REDUCTION(.or.:logic_l)
         do k = 1, np
 
-! Find i,j,k indexes of nearest global grid point
+          ! Find indexes of nearest global grid point
           proximity = nint((vortex_particles(k)%x-global_grid_min)/m_h) + 1
 
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
@@ -827,54 +825,52 @@ contains
         end do
         !$OMP END PARALLEL DO
 
-        !$OMP PARALLEL
-        !$OMP WORKSHARE
-             sum_true = count(logic_l)
-        !$OMP END WORKSHARE
-        !$OMP END PARALLEL
+        ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
+        ! Would `sum_true` be in a reduction clause? Which one?
+        sum_true = count(logic_l)
+        ! $OMP END PARALLEL WORKSHARE 
 
         allocate(lg(sum_true),rev_lg(size(logic_l)))
 
         rev_lg = 0
-        !$OMP PARALLEL
-        !$OMP WORKSHARE
-             lg = (/ (i,i=1,sum_true) /)
-             rev_lg = unpack(lg, logic_l, rev_lg)
-        !$OMP END WORKSHARE
-        !$OMP END PARALLEL
+        ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
+        ! Would rev_lg be in a reduction clause?
+        lg = (/ (i,i=1,sum_true) /)
+        rev_lg = unpack(lg, logic_l, rev_lg)
+        ! $OMP END PARALLEL WORKSHARE
 
         if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of rev_lg',real(STORAGE_SIZE(rev_lg)*nm_tot)/(8*1024*1024)
 
         my_thr =1
 
-        allocate(vort_temp(4,sum_true,omp_num_threads),pos_temp(3,sum_true))
+        allocate(vort_temp(4, sum_true, omp_num_threads), pos_temp(3, sum_true))
 
         if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of vort_temp',real(STORAGE_SIZE(vort_temp)*4*sum_true*omp_num_threads)/(8*1024*1024)
 
 
         vort_temp = 0.
 
-        !$OMP PARALLEL PRIVATE(pos,x,y,z,l,i1,i2,i3,ll,my_thr,    &
-        !$OMP                  axt,ayt,azt,summ_axt,summ_ayt,summ_azt, &
-        !$OMP                  wt,k,frac,dist2,proximity)
+        !$OMP PARALLEL DEFAULT(NONE) &
+        !$OMP SHARED(vortex_particles, np, m_h, global_grid_min, kernel_c, deno, m_n, rev_lg, vort_temp, pos_temp) &
+        !$OMP PRIVATE(pos,x,y,z,l,i1,i2,i3,ll,my_thr, &
+        !$OMP         alpha,alpha_sum,&
+        !$OMP         work,k,frac,dist2,proximity)
+
+        !TODO: make vort_temp and pos_temp properly thread private and extend the parallel region accordingly
         !$    my_thr = OMP_GET_THREAD_NUM()+1
+
         !$OMP DO SCHEDULE(STATIC)
         do k = 1, np
           pos = vortex_particles(k)%x
 
-! Find i,j,k indexes of nearest global grid point
+          ! Find indexes of nearest global grid point
           proximity = nint((pos-global_grid_min)/m_h) + 1
 
-          axt = vortex_particles(k)%data%alpha(1)
-          ayt = vortex_particles(k)%data%alpha(2)
-          azt = vortex_particles(k)%data%alpha(3)
-          wt  = vortex_particles(k)%work
+          alpha = vortex_particles(k)%data%alpha
+          work  = vortex_particles(k)%work
+          alpha_sum = 0.d0
 
-          summ_axt = 0.d0
-          summ_ayt = 0.d0
-          summ_azt = 0.d0
-
-! Compute kernel sum for circulation renormalization component-wise
+          ! Compute kernel sum for circulation renormalization component-wise
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
             z = global_grid_min(3) + m_h * (i3-1)
             do i2 = proximity(2)-nDeltar, proximity(2)+nDeltar
@@ -883,19 +879,15 @@ contains
                 x = global_grid_min(1) + m_h * (i1-1)
 
                 dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
-
                 frac = ip_kernel(dist2, kernel_c, deno)
-
-                summ_axt = summ_axt + frac
-                summ_ayt = summ_ayt + frac
-                summ_azt = summ_azt + frac
+                alpha_sum = alpha_sum + frac
 
               end do
             end do
           end do
 
-! Redistribute vortex circulation on new mesh points.
-! Total circulation is conserved after remeshing.
+          ! Redistribute vortex circulation on new mesh points.
+          ! Total circulation is conserved after remeshing.
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
             z = global_grid_min(3) + m_h * (i3-1)
             do i2 = proximity(2)-nDeltar, proximity(2)+nDeltar
@@ -907,14 +899,10 @@ contains
                 ll = rev_lg(l)
 
                 dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
-
                 frac = ip_kernel(dist2, kernel_c, deno)
 
-                vort_temp(1,ll,my_thr) = vort_temp(1,ll,my_thr) + frac*axt / summ_axt
-                vort_temp(2,ll,my_thr) = vort_temp(2,ll,my_thr) + frac*ayt / summ_ayt
-                vort_temp(3,ll,my_thr) = vort_temp(3,ll,my_thr) + frac*azt / summ_azt
-
-                vort_temp(4,ll,my_thr) = vort_temp(4,ll,my_thr) + frac*wt
+                vort_temp([1,2,3],ll,my_thr) = vort_temp([1,2,3],ll,my_thr) + frac*alpha / alpha_sum
+                vort_temp(4,ll,my_thr) = vort_temp(4,ll,my_thr) + frac*work
 
                 pos_temp(1,ll) = i1
                 pos_temp(2,ll) = i2
@@ -940,7 +928,9 @@ contains
 
 !       call MPI_ALLREDUCE(m_nppm,tmp,1,MPI_KIND_PARTICLE,MPI_MAX,MPI_COMM_WORLD,ierr)
 
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO DEFAULT(NONE) &
+        !$OMP SHARED(m_np, m_part, global_grid_min, m_h, pos_temp) &
+        !$OMP PRIVATE(l)
         do l = 1, m_np
           m_part(l)%x = global_grid_min + m_h * (pos_temp(:, l) - 1)
           m_part(l)%data%alpha(1:3) = 0.
@@ -967,8 +957,8 @@ contains
         call MPI_ALLREDUCE(total_vort,total_vort_full_mid,3,MPI_KIND_PHYSICS,MPI_SUM,MPI_COMM_WORLD,ierr)
 !       call MPI_ALLREDUCE(vort_mod,total_vort_mod_mid,1,MPI_KIND_PHYSICS,MPI_SUM,MPI_COMM_WORLD,ierr)
 
-        ! Reset the number of openmp threads to 1.
-        !$ call omp_set_num_threads(1)
+        ! Reset the number of OpenMP threads to num_threads, the number of WORK threads.
+        !$ call omp_set_num_threads(num_threads)
 
         call timer_stop(t_remesh_interpol)
 
