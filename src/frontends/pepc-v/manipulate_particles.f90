@@ -734,7 +734,7 @@ contains
         integer(kind_particle) :: i, j, k, kini, kend, l, ll
         integer(kind_particle) :: proximity(3), sum_true
         integer(kind_particle) :: m_np, m_nppm, m_n(3)
-        integer(kind_particle), allocatable :: lg(:), rev_lg(:), pos_temp(:,:)
+        integer(kind_particle), allocatable :: lg(:), rev_lg(:,:,:), pos_temp(:,:)
         real(kind_physics)     :: x, y, z, deno
         real(kind_physics)     :: dist2, alpha_sum
         real(kind_physics)     :: vort_mod, total_vort_mod_pre, total_vort_mod_mid, total_vort_mod_after
@@ -746,7 +746,7 @@ contains
         type(t_particle_short), allocatable :: m_part(:)
         integer, parameter :: t_remesh_interpol = t_userdefined_first + 2
         integer, parameter :: t_remesh_sort = t_userdefined_first + 3
-        logical(1), allocatable :: logic_l(:)
+        logical(1), allocatable :: logic_l(:,:,:)
 
         total_vort = 0.
 !       vort_mod = 0.
@@ -780,11 +780,14 @@ contains
 
 !       boxsize = max(global_grid_max-global_grid_min)
 
-        m_n = nint((global_grid_max-global_grid_min)/m_h) + 1
+        !1D3D!m_n = nint((global_grid_max-global_grid_min)/m_h) + 1
 
-        nm_tot = m_n(1)*m_n(2)*m_n(3)
+        !1D3D!nm_tot = m_n(1)*m_n(2)*m_n(3)
 
-        allocate(logic_l(nm_tot))
+        !1D3D!allocate(logic_l(nm_tot))
+        allocate(logic_l(nint(global_grid_min(1)/m_h):nint(global_grid_max(1)/m_h), &
+                         nint(global_grid_min(2)/m_h):nint(global_grid_max(2)/m_h), &
+                         nint(global_grid_min(3)/m_h):nint(global_grid_max(3)/m_h) ))
 
         call timer_start(t_remesh_interpol)
 
@@ -800,7 +803,7 @@ contains
 
         logic_l = .false.
 
-        if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of logic_l',real(STORAGE_SIZE(logic_l)*nm_tot)/(8*1024*1024)
+        if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of logic_l',real(STORAGE_SIZE(logic_l)*size(logic_l))/(8*1024*1024)
 
         !$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(NONE) &
         !$OMP SHARED(vortex_particles, global_grid_min, m_h, m_n, np) &
@@ -809,14 +812,16 @@ contains
         do k = 1, np
 
           ! Find indexes of nearest global grid point
-          proximity = nint((vortex_particles(k)%x-global_grid_min)/m_h) + 1
+          !1D3D!proximity = nint((vortex_particles(k)%x-global_grid_min)/m_h) + 1
+          proximity = nint((vortex_particles(k)%x)/m_h) !TODO CHECK: does this need +1 in this case? Similarly below!
 
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
             do i2 = proximity(2)-nDeltar, proximity(2)+nDeltar
               do i1 = proximity(1)-nDeltar, proximity(1)+nDeltar
 
-                l = oned_number(i1,i2,i3,m_n(1),m_n(2))
-                logic_l(l) = .true.
+                !1D3D!l = oned_number(i1,i2,i3,m_n(1),m_n(2))
+                !1D3D!logic_l(l) = .true.
+                logic_l(i1, i2, i3) = .true.
 
               end do
             end do
@@ -830,7 +835,11 @@ contains
         sum_true = count(logic_l)
         ! $OMP END PARALLEL WORKSHARE 
 
-        allocate(lg(sum_true),rev_lg(size(logic_l)))
+        !1D3D!allocate(lg(sum_true),rev_lg(size(logic_l)))
+        allocate(lg(sum_true))
+        allocate(rev_lg(nint(global_grid_min(1)/m_h):nint(global_grid_max(1)/m_h), &
+                        nint(global_grid_min(2)/m_h):nint(global_grid_max(2)/m_h), &
+                        nint(global_grid_min(3)/m_h):nint(global_grid_max(3)/m_h) ))
 
         rev_lg = 0
         ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
@@ -839,13 +848,13 @@ contains
         rev_lg = unpack(lg, logic_l, rev_lg)
         ! $OMP END PARALLEL WORKSHARE
 
-        if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of rev_lg',real(STORAGE_SIZE(rev_lg)*nm_tot)/(8*1024*1024)
+        if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of rev_lg',real(STORAGE_SIZE(rev_lg)*size(rev_lg))/(8*1024*1024)
 
         my_thr =1
 
         allocate(vort_temp(4, sum_true, omp_num_threads), pos_temp(3, sum_true))
 
-        if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of vort_temp',real(STORAGE_SIZE(vort_temp)*4*sum_true*omp_num_threads)/(8*1024*1024)
+        if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of vort_temp',real(STORAGE_SIZE(vort_temp)*size(vort_temp))/(8*1024*1024)
 
 
         vort_temp = 0.
@@ -864,7 +873,8 @@ contains
           pos = vortex_particles(k)%x
 
           ! Find indexes of nearest global grid point
-          proximity = nint((pos-global_grid_min)/m_h) + 1
+          !1D3D!proximity = nint((pos-global_grid_min)/m_h) + 1
+          proximity = nint((pos)/m_h)
 
           alpha = vortex_particles(k)%data%alpha
           work  = vortex_particles(k)%work
@@ -872,11 +882,14 @@ contains
 
           ! Compute kernel sum for circulation renormalization component-wise
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
-            z = global_grid_min(3) + m_h * (i3-1)
+            !1D3D!z = global_grid_min(3) + m_h * (i3-1)
+            z = m_h * i3
             do i2 = proximity(2)-nDeltar, proximity(2)+nDeltar
-              y = global_grid_min(2) + m_h * (i2-1)
+              !1D3D!y = global_grid_min(2) + m_h * (i2-1)
+              y = m_h * i2
               do i1 = proximity(1)-nDeltar, proximity(1)+nDeltar
-                x = global_grid_min(1) + m_h * (i1-1)
+                !1D3D!x = global_grid_min(1) + m_h * (i1-1)
+                x = m_h * i1
 
                 dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
                 frac = ip_kernel(dist2, kernel_c, deno)
@@ -889,14 +902,18 @@ contains
           ! Redistribute vortex circulation on new mesh points.
           ! Total circulation is conserved after remeshing.
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
-            z = global_grid_min(3) + m_h * (i3-1)
+            !1D3D!z = global_grid_min(3) + m_h * (i3-1)
+            z = m_h * i3
             do i2 = proximity(2)-nDeltar, proximity(2)+nDeltar
-              y = global_grid_min(2) + m_h * (i2-1)
+              !1D3D!y = global_grid_min(2) + m_h * (i2-1)
+              y = m_h * i2
               do i1 = proximity(1)-nDeltar, proximity(1)+nDeltar
-                x = global_grid_min(1) + m_h * (i1-1)
+                !1D3D!x = global_grid_min(1) + m_h * (i1-1)
+                x = m_h * i1
 
-                l = oned_number(i1,i2,i3,m_n(1),m_n(2))
-                ll = rev_lg(l)
+                !1D3D!l = oned_number(i1,i2,i3,m_n(1),m_n(2))
+                !1D3D!ll = rev_lg(l)
+                ll = rev_lg(i1, i2, i3)
 
                 dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
                 frac = ip_kernel(dist2, kernel_c, deno)
@@ -932,7 +949,8 @@ contains
         !$OMP SHARED(m_np, m_part, global_grid_min, m_h, pos_temp) &
         !$OMP PRIVATE(l)
         do l = 1, m_np
-          m_part(l)%x = global_grid_min + m_h * (pos_temp(:, l) - 1)
+          !1D3D!m_part(l)%x = global_grid_min + m_h * (pos_temp(:, l) - 1)
+          m_part(l)%x = m_h * (pos_temp(:, l))
           m_part(l)%data%alpha(1:3) = 0.
         end do
         !$OMP END PARALLEL DO
@@ -1034,9 +1052,9 @@ contains
         real(kind_physics), intent(in) :: dist2, c, d
         real(kind_physics) :: ip_kernel
 
-        ip_kernel = 0.0D+00
+        ip_kernel = 0.D0
         if (dist2.le.Rd*Rd) then
-          ip_kernel = dexp(-dist2 / c)/d
+          ip_kernel = exp(-dist2 / c)/d
         end if
 
     end function ip_kernel
