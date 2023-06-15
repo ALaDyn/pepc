@@ -785,9 +785,12 @@ contains
         !1D3D!nm_tot = m_n(1)*m_n(2)*m_n(3)
 
         !1D3D!allocate(logic_l(nm_tot))
-        allocate(logic_l(nint(global_grid_min(1)/m_h):nint(global_grid_max(1)/m_h), &
-                         nint(global_grid_min(2)/m_h):nint(global_grid_max(2)/m_h), &
-                         nint(global_grid_min(3)/m_h):nint(global_grid_max(3)/m_h) ))
+        !3D!allocate(logic_l(nint(global_grid_min(1)/m_h):nint(global_grid_max(1)/m_h), &
+        !3D!                 nint(global_grid_min(2)/m_h):nint(global_grid_max(2)/m_h), &
+        !3D!                 nint(global_grid_min(3)/m_h):nint(global_grid_max(3)/m_h) ))
+        allocate(logic_l(1:nint((global_grid_max(1)-global_grid_min(1))/m_h+1), &
+                         1:nint((global_grid_max(2)-global_grid_min(2))/m_h+1), &
+                         1:nint((global_grid_max(3)-global_grid_min(3))/m_h+1) ))
 
         call timer_start(t_remesh_interpol)
 
@@ -813,7 +816,8 @@ contains
 
           ! Find indexes of nearest global grid point
           !1D3D!proximity = nint((vortex_particles(k)%x-global_grid_min)/m_h) + 1
-          proximity = nint((vortex_particles(k)%x)/m_h) !TODO CHECK: does this need +1 in this case? Similarly below!
+          !3D!proximity = nint((vortex_particles(k)%x)/m_h) !TODO CHECK: does this need +1 in this case? Similarly below!
+          proximity = nint((vortex_particles(k)%x-global_grid_min)/m_h) + 1
 
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
             do i2 = proximity(2)-nDeltar, proximity(2)+nDeltar
@@ -837,9 +841,9 @@ contains
 
         !1D3D!allocate(lg(sum_true),rev_lg(size(logic_l)))
         allocate(lg(sum_true))
-        allocate(rev_lg(nint(global_grid_min(1)/m_h):nint(global_grid_max(1)/m_h), &
-                        nint(global_grid_min(2)/m_h):nint(global_grid_max(2)/m_h), &
-                        nint(global_grid_min(3)/m_h):nint(global_grid_max(3)/m_h) ))
+        allocate(rev_lg(lbound(logic_l, 1):ubound(logic_l, 1), &
+                        lbound(logic_l, 2):ubound(logic_l, 2), &
+                        lbound(logic_l, 3):ubound(logic_l, 3) ))
 
         rev_lg = 0
         ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
@@ -874,7 +878,8 @@ contains
 
           ! Find indexes of nearest global grid point
           !1D3D!proximity = nint((pos-global_grid_min)/m_h) + 1
-          proximity = nint((pos)/m_h)
+          !3D!proximity = nint((pos)/m_h)
+          proximity = nint((pos-global_grid_min)/m_h) + 1
 
           alpha = vortex_particles(k)%data%alpha
           work  = vortex_particles(k)%work
@@ -883,13 +888,16 @@ contains
           ! Compute kernel sum for circulation renormalization component-wise
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
             !1D3D!z = global_grid_min(3) + m_h * (i3-1)
-            z = m_h * i3
+            !3D!z = m_h * i3
+            z = global_grid_min(3) + m_h * (i3-1)
             do i2 = proximity(2)-nDeltar, proximity(2)+nDeltar
               !1D3D!y = global_grid_min(2) + m_h * (i2-1)
-              y = m_h * i2
+              !3D!y = m_h * i2
+              y = global_grid_min(2) + m_h * (i2-1)
               do i1 = proximity(1)-nDeltar, proximity(1)+nDeltar
                 !1D3D!x = global_grid_min(1) + m_h * (i1-1)
-                x = m_h * i1
+                !3D!x = m_h * i1
+                x = global_grid_min(1) + m_h * (i1-1)
 
                 dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
                 frac = ip_kernel(dist2, kernel_c, deno)
@@ -903,13 +911,16 @@ contains
           ! Total circulation is conserved after remeshing.
           do i3 = proximity(3)-nDeltar, proximity(3)+nDeltar
             !1D3D!z = global_grid_min(3) + m_h * (i3-1)
-            z = m_h * i3
+            !3D!z = m_h * i3
+            z = global_grid_min(3) + m_h * (i3-1)
             do i2 = proximity(2)-nDeltar, proximity(2)+nDeltar
               !1D3D!y = global_grid_min(2) + m_h * (i2-1)
-              y = m_h * i2
+              !3D!y = m_h * i2
+              y = global_grid_min(2) + m_h * (i2-1)
               do i1 = proximity(1)-nDeltar, proximity(1)+nDeltar
                 !1D3D!x = global_grid_min(1) + m_h * (i1-1)
-                x = m_h * i1
+                !3D!x = m_h * i1
+                x = global_grid_min(1) + m_h * (i1-1)
 
                 !1D3D!l = oned_number(i1,i2,i3,m_n(1),m_n(2))
                 !1D3D!ll = rev_lg(l)
@@ -950,7 +961,8 @@ contains
         !$OMP PRIVATE(l)
         do l = 1, m_np
           !1D3D!m_part(l)%x = global_grid_min + m_h * (pos_temp(:, l) - 1)
-          m_part(l)%x = m_h * (pos_temp(:, l))
+          !3D!m_part(l)%x = m_h * (pos_temp(:, l))
+          m_part(l)%x = global_grid_min + m_h * (pos_temp(:, l) - 1)
           m_part(l)%data%alpha(1:3) = 0.
         end do
         !$OMP END PARALLEL DO
