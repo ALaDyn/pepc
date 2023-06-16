@@ -1,0 +1,70 @@
+# this is an example makefile for NVHPC
+HELP = "\
+\# Makefile for PEPC\n\
+\# (NVHPC)\n\
+"
+
+# among other things, pathname within build directory
+MACH     = linux_nvhpc
+
+# enable (1)/disable (0) debugging
+DEBUG    = 0
+
+# enable (1)/disable (0) OpenMP
+OMP      = 1
+
+# define commands, compilers, and flags
+MAKE     = make
+
+CPP      = cpp
+CPPFLAGS = -P -C $(DEFS) --freestanding -DSVNREVISION="\"$(SVNREVISION)\"" -D__PGI
+
+CCPRE    = 
+CC       = mpicc
+FCPRE    = 
+FC       = mpif90
+LDPRE    = 
+LD       = mpif90
+LDLIBS   = 
+
+RANLIB   = ranlib
+
+AR       = ar
+ARFLAGS  = -rs
+
+RM       = rm -rf
+
+# define inlining flags, inlining is key
+INLINING = -Minline #-Mipa=inline -Mipa=libinline
+                    # those two flags currently do not work
+                    # libinline does not work bc. of mpi
+                    # inline breaks directsum.f90
+
+# enable warnings (used for DEBUG builds)
+FWARNINGS = -Minform=warn
+
+FFEATURES = -Mbackslash -frecursive -Mcache_align -Mflushz -Mvect=simd -Mfma
+
+FARCH = -tp host
+
+ifeq ($(DEBUG), 1)
+   FFLAGS   = -g -pg -O0 $(FEATURES) $(FARCH) -Minfo=all -traceback -C -Mbounds
+   CFLAGS   = -g -pg -O0 $(FEATURES) $(FARCH)
+   LDFLAGS  = -g -pg -O0 $(FEATURES) $(FARCH) -Minfo=all -traceback
+else
+   FFLAGS   = -O3 $(FARCH) $(FEATURES) $(INLINING)
+   CFLAGS   = -O3 $(FARCH) $(FEATURES)
+   LDFLAGS  = -O3 $(FARCH) $(FEATURES) $(INLINING)
+   CPPFLAGS += -DNDEBUG
+endif
+
+# switch further compiler flags depending on OMP setting
+ifeq ($(OMP), 1)
+   FFLAGS   += -mp
+   LDFLAGS  += -mp
+   CPPFLAGS += -D_OPENMP
+endif
+
+# save compiler (version) string for PEPC's stdout message
+COMPILER = $(shell $(FC) --version | head -n 1)
+

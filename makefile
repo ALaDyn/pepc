@@ -95,6 +95,7 @@ cleanall: cleanlib cleandoc clean
 allclean: cleanall
 
 pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a $(LIBDIR)/libopa.a
+	@if [ "$(MACH)" = "linux_nvhpc" ]; then if [ "$@" = "pepc-v" ]; then printf "======== $(RED)Frontend $@ broken with NVHPC, c.f. #18. Aborting.$(NC)\n"; false; fi; fi
 	@if [ ! -d "$(FRONTENDDIR)/$@" ]; then printf "======== $(RED)Frontend $@ does not exist. Aborting.$(NC)\n"; false; fi
 	@printf "======== start building frontend $(BC){ $@ }$(NC)\n"
 	@printf "==== date: $(BC)$(shell "date")$(NC)\n"
