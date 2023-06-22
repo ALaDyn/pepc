@@ -107,6 +107,14 @@ module physvars
    interface assignment(=)
       module procedure assign_particles
    end interface
+#ifdef USER_REDUCTION
+   interface operator(+)
+      module procedure omp_reduction_add
+   end interface
+
+   !$OMP DECLARE REDUCTION (+ : t_particle_short : omp_out = omp_in + omp_out) &
+   !$OMP INITIALIZER (omp_priv = omp_orig)
+#endif
 
 contains
 
@@ -330,7 +338,7 @@ contains
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
-   !> Function to assign short t_particle to the full version
+   !> Subroutine to assign short t_particle to the full version
    !>
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    elemental subroutine assign_particles(long_particle, short_particle)
@@ -359,6 +367,24 @@ contains
          )                                                                      !&
 
    end subroutine assign_particles
+
+#ifdef USER_REDUCTION
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !>
+   !> Function to add two short t_particles FOR AN OpenMP REDUCTION CLAUSE
+   !>  This assumes/requires the position of the particles to be indentical
+   !>
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   elemental function omp_reduction_add(omp_in1, omp_in2)
+      type(t_particle_short), intent(in) :: omp_in1, omp_in2
+      type(t_particle_short)             :: omp_reduction_add
+
+      omp_reduction_add%x          =                      omp_in1%x             !&
+      omp_reduction_add%work       = omp_in2%work       + omp_in1%work          !&
+      omp_reduction_add%data%alpha = omp_in2%data%alpha + omp_in1%data%alpha    !&
+
+   end function omp_reduction_add
+#endif
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
