@@ -898,8 +898,8 @@ contains
                    dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
                    frac = ip_kernel(dist2, kernel_c, deno)
 
-#ifdef USER_REDUCTION
                    m_part(l)%x = [x, y, z]
+#ifdef USER_REDUCTION
                    m_part(l)%data%alpha = m_part(l)%data%alpha + frac * alpha / alpha_sum
                    m_part(l)%work       = m_part(l)%work + frac * work          !&
 #else
