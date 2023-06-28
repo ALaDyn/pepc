@@ -109,11 +109,11 @@ fprettify:
       sed -e 's/^+/\\\e[0;32m+/' -e 's/^-/\\\e[0;31m-/' -e 's/$/\\\e[0m/' | \
       tee > fprettify.diff
     # generate exit code
-    - exit `wc -l f.diff | awk '{print $1}'`
+    - exit `wc -l fprettify.diff | awk '{print $1}'`
   allow_failure: true
   artifacts:
     paths:
-      - fprettify.diff
+      - src/fprettify.diff
 
 #### Create new image from a changed Dockerfile
 docker_image:
