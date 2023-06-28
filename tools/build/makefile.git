@@ -1,0 +1,17 @@
+#
+#  makefile for pepc to support git actions globally
+#
+RED=\e[0;31m
+GREEN=\e[0;32m
+BC=\e[1m# bold
+UL=\e[4m# underline
+NC=\e[0m# No Color, default font
+
+ALL: .git/hooks/prepare-commit-msg
+
+# This is a bit shaky: if this hook exists (it could be user-supplied), we do not
+# replace it. If the file does not exist, we link to the git-tracked version.
+.git/hooks/prepare-commit-msg:
+	@if test -d .git; then \
+	   ln -sr .githooks/prepare-commit-msg $@ ;\
+	fi

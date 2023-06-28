@@ -1,0 +1,89 @@
+#!/bin/bash
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+ORANGE='\033[0;33m'
+NC='\033[0m' # No Color
+
+ROOT=`git rev-parse --show-toplevel`
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA1=$3
+
+# Check if this is the initial commit
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+   #echo "pre-commit: About to create a new commit..."
+   against=HEAD
+else
+   #echo "pre-commit: About to create the first commit..."
+   # The commit string is a pre-defined value
+   against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+# Use git diff-index to check for whitespace errors
+echo "pre-commit: Testing for whitespace errors..."
+echo "... via 'git diff-index --check --cached $against'"
+if ! git diff-index --check --cached $against
+then
+   echo -e "pre-commit: ${RED}Aborting commit due to whitespace errors.${NC}"
+   ext=1
+else
+   echo -e "pre-commit: No whitespace errors ${GREEN}:)${NC}"
+   ext=0
+fi
+
+
+# Check if we have a working `fprettify`
+FPRETTY=`which fprettify`
+if test ! -n "${FPRETTY}"
+then
+   echo -e "${ORANGE}Please install 'fprettify' (e.g. via pip) and check syntax format.${NC}"
+   sleep 1s
+else
+   # Checking staged files for compliance with fprettify
+   for staged_file in `git diff --name-only --cached`
+   do
+      file=`basename ${staged_file}`
+      if `echo ${file} | grep -qE '.*.[fF]90$'`
+      then
+         echo "Checking syntax of file ${staged_file}"
+         # get diff (if any)
+         DIFF=`fprettify -c ${ROOT}/src/.fprettify.rc -d ${staged_file}`
+         # count lines, we aim for '0'
+         LN=`echo "${DIFF}" | grep -E '^\+|^\-' | wc -l`
+         # colourise diff, at least a bit
+         CDIFF=`echo "${DIFF}" | sed -e "s/^+++/\\\\${GREEN}+++\\\\${NC}/" -e "s/^---/\\\\${RED}---\\\\${NC}/" -e "s/^+/\\\\${GREEN}+\\\\${NC}/" -e "s/^-/\\\\${RED}-\\\\${NC}/"`
+         echo -e "${CDIFF}"
+         if test ${LN} -gt 0
+         then
+            echo -e "pre-commit: ${RED}Aborting commit due to style errors.${NC}"
+            ((ext++))
+         fi
+      fi
+   done
+fi
+
+# Now amend comments to the commit message, hoping to streamline those as well
+AMEND_COMMIT_MSG="#\n\
+# Title: Start with an uppercase imperative verb, such as Add, Drop, Fix,\n\
+# Refactor, Bump. Think of your title as akin to an email subject, don't\n\
+# end with a period. Instead, end with [frontend name] if specific to a\n\
+# frontend, e.g. [pepc-essential].\n\
+# No more than 50 chars. #### 50 chars is here:  #\n\
+#\n\
+# Remember blank line between title and body.\n\
+#\n\
+# Body: Explain *what* and *why*. If in relation to an issue, include the\n\
+# issue number via #xxx, or close/fix it with the commit.\n\
+# Wrap at 72 chars. ################################## which is here:  #\n\
+#\n\
+# At the end: Include Co-authored-by for all contributors.\n\
+# Include at least one empty line before it. Format:\n\
+# Co-authored-by: name <a.user@nowhere.net>"
+sed -i "4 i $AMEND_COMMIT_MSG" $COMMIT_MSG_FILE
+cat "$COMMIT_MSG_FILE"
+
+exit $ext
+
+# vim: set ts=8 sw=3 tw=0 et :
