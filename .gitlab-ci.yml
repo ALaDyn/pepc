@@ -1,6 +1,7 @@
 #### Stages for this pipeline
 stages:
   - image      # build updated image for runner
+  - lint       # do basic lint'ing to nudge towards common formatting
   - build      # build libraries, frontends, etc...
     #   - test
     #   - html      # this run doxygen (prefer FORD)
@@ -95,6 +96,20 @@ toolchains:
   rules:
     # Only run when on main repository
     - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+
+#### Lint source Fortran source files
+fprettify:
+  stage: lint
+  <<: *build_template
+  script:
+    - echo "Running fprettify for all Fortran source files (all frontends)"
+    - cd src
+    - fprettify -r -c .fprettify.rc *
+    - git diff --stat=132 --color
+    - COUNT=`git diff --shortstat | awk '{print $1}'`
+    # generate exit code
+    - exit $COUNT
+  allow_failure: true
 
 #### Create new image from a changed Dockerfile
 docker_image:
