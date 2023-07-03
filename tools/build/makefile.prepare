@@ -43,7 +43,7 @@ prepare: $(SRC)
 	@echo ""
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.tag
-	@$(MAKE) -f makefile.git
+	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.git
 
 %.c: 
 	@echo "== preparing C file, origin   : $@, $(filter %/$@, $(SRC_COPY))" 
