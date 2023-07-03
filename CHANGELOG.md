@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unpublished
 
+### Added
+
+- CI extended to include fprettify check
+
 ### Fixed
 
 - Speedup interaction backend [pepc-v]

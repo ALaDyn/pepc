@@ -104,16 +104,12 @@ fprettify:
   script:
     - echo "Running fprettify for all Fortran source files (all frontends)"
     - cd src
-    - |
-      fprettify -r -d -c .fprettify.rc * | \
-      sed -e 's/^+/\\\e[0;32m+/' -e 's/^-/\\\e[0;31m-/' -e 's/$/\\\e[0m/' | \
-      tee > fprettify.diff
+    - fprettify -r -c .fprettify.rc *
+    - git diff --stat=132 --color
+    - COUNT=`git diff --shortstat | awk '{print $1}'`
     # generate exit code
-    - exit `wc -l fprettify.diff | awk '{print $1}'`
+    - exit $COUNT
   allow_failure: true
-  artifacts:
-    paths:
-      - src/fprettify.diff
 
 #### Create new image from a changed Dockerfile
 docker_image:
