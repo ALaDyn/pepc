@@ -717,7 +717,7 @@ contains
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !>
-    !>   4th order remeshing using parallel sorting
+    !>  Remeshing with a Gaussian diffusion process using local grids and parallel sorting
     !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     subroutine remeshing()
@@ -738,7 +738,6 @@ contains
         real(kind_physics)     :: dist2, alpha_sum
         real(kind_physics)     :: frac, pos(3), alpha(3), work
         real(kind_physics)     :: local_extent_min(3), local_extent_max(3)
-        real(kind_physics)     :: global_extent_max(3), global_extent_min(3)
         real(kind_physics), dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_after
         type(t_particle_short), allocatable :: m_part(:)
         real(kind_physics), allocatable :: m_part_reduction(:, :)
@@ -767,18 +766,14 @@ contains
         local_extent_min(3) = minval(vortex_particles(1:np)%x(3))
         local_extent_max(3) = maxval(vortex_particles(1:np)%x(3))
 
-        ! Find global limits
-        call MPI_ALLREDUCE(local_extent_min, global_extent_min, 3, MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
-        call MPI_ALLREDUCE(local_extent_max, global_extent_max, 3, MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
-
         ! Safety margin - put buffer region around particles
-        global_extent_max = global_extent_max + (nDeltar+1) * m_h
-        global_extent_min = global_extent_min - (nDeltar+1) * m_h
+        local_extent_max = local_extent_max + (nDeltar+1) * m_h
+        local_extent_min = local_extent_min - (nDeltar+1) * m_h
 
+        allocate(grid_mask(nint(local_extent_min(1)/m_h):nint(local_extent_max(1)/m_h), & !&
+                           nint(local_extent_min(2)/m_h):nint(local_extent_max(2)/m_h), & !&
+                           nint(local_extent_min(3)/m_h):nint(local_extent_max(3)/m_h) )) !&
 
-        allocate(grid_mask(1:nint((global_extent_max(1)-global_extent_min(1))/m_h+1), & !&
-                           1:nint((global_extent_max(2)-global_extent_min(2))/m_h+1), & !&
-                           1:nint((global_extent_max(3)-global_extent_min(3))/m_h+1) )) !&
         if(my_rank.eq.0) write(*,*) 'Storage size (Mbytes) of grid_mask',real(STORAGE_SIZE(grid_mask))*size(grid_mask)/(8*1024*1024)
         grid_mask = .false.
 
@@ -794,13 +789,13 @@ contains
 
         ! Identify grid points that support the remeshing with new particles
         !$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(NONE) &
-        !$OMP SHARED(vortex_particles, global_extent_min, m_h, np) &
+        !$OMP SHARED(vortex_particles, m_h, np) &
         !$OMP PRIVATE(i1, i2, i3, k, proximity) &
         !$OMP REDUCTION(.or.:grid_mask)
         do k = 1, np
 
           ! Find indices of nearest global grid point
-          proximity = nint((vortex_particles(k)%x-global_extent_min)/m_h) + 1
+          proximity = nint(vortex_particles(k)%x/m_h)
 
           do i3 = proximity(3) - nDeltar, proximity(3) + nDeltar
              do i2 = proximity(2) - nDeltar, proximity(2) + nDeltar
@@ -818,7 +813,7 @@ contains
         ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
         ! Would `n_remesh_points` be in a reduction clause? Which one?
         n_remesh_points = count(grid_mask)
-        ! $OMP END PARALLEL WORKSHARE 
+        ! $OMP END PARALLEL WORKSHARE
 
         allocate(mapping_indices(n_remesh_points))
         allocate(index_map(lbound(grid_mask, 1):ubound(grid_mask, 1), & !&
@@ -850,10 +845,10 @@ contains
         !$OMP PARALLEL DEFAULT(NONE) &
         !$OMP PRIVATE(pos, x, y, z, i1, i2, i3, l, alpha ,alpha_sum, work, k, frac, dist2, proximity) &
 #ifdef USER_REDUCTION
-        !$OMP SHARED(vortex_particles, np, m_h, global_extent_min, kernel_c, deno, index_map) &
+        !$OMP SHARED(vortex_particles, np, m_h, kernel_c, deno, index_map) &
         !$OMP REDUCTION(+: m_part)
 #else
-        !$OMP SHARED(vortex_particles, np, m_h, global_extent_min, kernel_c, deno, index_map, m_part) &
+        !$OMP SHARED(vortex_particles, np, m_h, kernel_c, deno, index_map, m_part) &
         !$OMP REDUCTION(+: m_part_reduction)
 #endif
 
@@ -862,7 +857,7 @@ contains
           pos = vortex_particles(k)%x
 
           ! Find indexes of nearest global grid point
-          proximity = nint((pos-global_extent_min)/m_h) + 1
+          proximity = nint(pos/m_h)
 
           alpha = vortex_particles(k)%data%alpha
           work  = vortex_particles(k)%work
@@ -870,11 +865,11 @@ contains
 
           ! Compute kernel sum for circulation renormalization component-wise
           do i3 = proximity(3) - nDeltar, proximity(3) + nDeltar
-             z = global_extent_min(3) + m_h * (i3 - 1)
+             z = m_h * i3
              do i2 = proximity(2) - nDeltar, proximity(2) + nDeltar
-                y = global_extent_min(2) + m_h * (i2 - 1)
+                y = m_h * i2
                 do i1 = proximity(1) - nDeltar, proximity(1) + nDeltar
-                   x = global_extent_min(1) + m_h * (i1 - 1)
+                   x = m_h * i1
 
                    dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
                    frac = ip_kernel(dist2, kernel_c, deno)
@@ -887,11 +882,11 @@ contains
           ! Redistribute vortex circulation on new mesh points.
           ! Total circulation is conserved after remeshing.
           do i3 = proximity(3) - nDeltar, proximity(3) + nDeltar
-             z = global_extent_min(3) + m_h * (i3 - 1)
+             z = m_h * i3
              do i2 = proximity(2) - nDeltar, proximity(2) + nDeltar
-                y = global_extent_min(2) + m_h * (i2 - 1)
+                y = m_h * i2
                 do i1 = proximity(1) - nDeltar, proximity(1) + nDeltar
-                   x = global_extent_min(1) + m_h * (i1 - 1)
+                   x = m_h * i1
 
                    l = index_map(i1, i2, i3)
 
