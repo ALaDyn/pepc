@@ -216,10 +216,14 @@ module files
         implicit none
 
         real, intent(in) :: time
+        real(kind_physics) :: vorticity_x(np), vorticity_y(np), vorticity_z(np)
+        real(kind_physics) :: vol
         integer, intent(in) :: step
         type(vtkfile_unstructured_grid) :: vtk
         integer :: vtk_step
         integer(kind_particle) :: i
+
+        vol = m_h**3
 
         if (step .eq. 0) then
             vtk_step = VTK_STEP_FIRST
@@ -229,6 +233,10 @@ module files
             vtk_step = VTK_STEP_NORMAL
         endif
 
+        vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1) / vol
+        vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2) / vol
+        vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3) / vol
+
         call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01*time, vtk_step)
         call vtk%write_headers(np, 0_kind_particle)
         call vtk%startpoints()
@@ -236,7 +244,7 @@ module files
         call vtk%finishpoints()
         call vtk%startpointdata()
             call vtk%write_data_array("velocity", vortex_particles(1:np)%results%u(1), vortex_particles(1:np)%results%u(2), vortex_particles(1:np)%results%u(3))
-            call vtk%write_data_array("vorticity", vortex_particles(1:np)%data%alpha(1), vortex_particles(1:np)%data%alpha(2), vortex_particles(1:np)%data%alpha(3))
+            call vtk%write_data_array("vorticity", vorticity_x(1:np), vorticity_y(1:np), vorticity_z(1:np))
             call vtk%write_data_array("work", vortex_particles(1:np)%work)
             call vtk%write_data_array("label", vortex_particles(1:np)%label)
             call vtk%write_data_array("pid", int(np, kind_default), my_rank) ! attaching the MPI rank to each particle
