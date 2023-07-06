@@ -186,11 +186,11 @@ contains
 
    end subroutine init_particles
 
-  !< Read particles from an inputfile
-  !! The file is a binary file, storing tnp particles sequentially.
-  !! For each particle, it stores info in the order : 3D position,
-  !! 3D velocity, and mass, all in double precision.
-  !! So a particle takes 56 bytes.
+   !< Read particles from an inputfile
+   !! The file is a binary file, storing tnp particles sequentially.
+   !! For each particle, it stores info in the order : 3D position,
+   !! 3D velocity, and mass, all in double precision.
+   !! So a particle takes 56 bytes.
    subroutine read_particles(p)
       implicit none
 

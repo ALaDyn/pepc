@@ -101,7 +101,7 @@ contains
             reschars(i) = finalchar
          end do
          write (base64%istream, '(4a)', advance='no') reschars(1:4)
-      endif
+      end if
 
       base64%bits = 0
       base64%buffer = 0_8

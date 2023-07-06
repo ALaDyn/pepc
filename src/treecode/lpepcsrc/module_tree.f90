@@ -398,7 +398,7 @@ contains
 
       if (tree_traverse_to_key) then
          DEBUG_ASSERT_MSG(k .eq. t%nodes(n)%key, '(" : requested key=",o18, " but found key=", o18)', k, t%nodes(n)%key)
-      endif
+      end if
    end function tree_traverse_to_key
 
    !>
@@ -592,7 +592,7 @@ contains
       do i = 1, t%nodes_nentries
          if (.not. tree_node_is_leaf(t%nodes(i))) then
             write (debug_ipefile, *) t%nodes(i)%interaction_data
-         endif
+         end if
       end do
 
       write (debug_ipefile, '(//a/,x,a,/,179("-"))') 'Leaves from node-list', 'data (see module_interaction_specific::t_tree_node_interaction_data for meaning of the columns)'
@@ -600,7 +600,7 @@ contains
       do i = 1, t%nodes_nentries
          if (tree_node_is_leaf(t%nodes(i))) then
             write (debug_ipefile, *) t%nodes(i)%interaction_data
-         endif
+         end if
       end do
 
       if (present(particles)) then

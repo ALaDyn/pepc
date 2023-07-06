@@ -84,7 +84,7 @@ contains
             call debug_print_timestamp(output_unit)
             write (*, '(" LPEPC | ", a)') stat
          end if
-      endif
+      end if
    end subroutine
 
    !>

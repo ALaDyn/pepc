@@ -108,7 +108,7 @@ contains
       if (allocated(neighbour_boxes)) deallocate (neighbour_boxes)
 
       where (periodicity(:))
-      periodicity_switches = mirror_box_layers
+         periodicity_switches = mirror_box_layers
       end where
 
       idx = 0

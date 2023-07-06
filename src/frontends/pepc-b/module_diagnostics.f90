@@ -306,15 +306,15 @@ contains
          end if
 
          if (pelabel(p) .le. ne) then
-         !  Sum local plasma electron kinetic energy
+            !  Sum local plasma electron kinetic energy
             sum_plas_e = sum_plas_e + dUk
 
-         !  Sum beam energy - assumed to be protons
+            !  Sum beam energy - assumed to be protons
          else if (nproton .gt. 0 .and. pelabel(p) .ge. proton_label .and. pelabel(p) .le. proton_label + nproton) then
             sum_beam = sum_beam + dUk
             ebm_local = max(ebm_local, dUk)
 
-         !  Plasma ion energies
+            !  Plasma ion energies
          else if (pelabel(p) .le. ne + ni) then
             sum_plas_i = sum_plas_i + dUk
          end if

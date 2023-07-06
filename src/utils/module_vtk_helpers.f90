@@ -109,7 +109,7 @@ contains
       ! no cell data here as cells correspond to points anyway, in case of problems use PointDataToCellData Filter in Paraview
       call vtk%finishcelldata()
       call vtk%write_final()
-      call vtk%close ()
+      call vtk%close()
    end subroutine vtk_write_particles
 
    !>
@@ -221,7 +221,7 @@ contains
       ! no cell data here as cells correspond to points anyway, in case of problems use PointDataToCellData Filter in Paraview
       call vtk%finishcelldata()
       call vtk%write_final()
-      call vtk%close ()
+      call vtk%close()
 
       deallocate (bcocx, bcocy, bcocz, bowner, blevel, mirror_level, mirror_indices)
       deallocate (bleaves, bdescendants, bdata)
@@ -364,7 +364,7 @@ contains
       end if
       call vtk%finishcelldata()
       call vtk%write_final()
-      call vtk%close ()
+      call vtk%close()
 
       deallocate (bcornersx, bcornersy, bcornersz)
       deallocate (bcornersidx)
@@ -482,7 +482,7 @@ contains
       end if
       call vtk%finishcelldata()
       call vtk%write_final()
-      call vtk%close ()
+      call vtk%close()
 
       deallocate (bcornersx, bcornersy, bcornersz)
       deallocate (bcornersidx, bcornersoffsets)
@@ -609,7 +609,7 @@ contains
          s = NODE_INVALID
          ns = NODE_INVALID
 
-         associate (n=>t%nodes(nidx))
+         associate (n => t%nodes(nidx))
             if (btest(n%flags_local, TREE_NODE_FLAG_LOCAL_HAS_LOCAL_CONTRIBUTIONS)) then
                if (tree_node_is_leaf(n)) then
                   i = i + 1
@@ -699,7 +699,7 @@ contains
          s = NODE_INVALID
          ns = NODE_INVALID
 
-         associate (n=>t%nodes(nidx))
+         associate (n => t%nodes(nidx))
             if (btest(n%flags_global, TREE_NODE_FLAG_GLOBAL_IS_BRANCH_NODE)) then
                i = i + 1
                branch_nodes(i) = nidx
@@ -760,7 +760,7 @@ contains
       call vtk%write_data_array("processor", mpi_rank)
       call vtk%finishcelldata()
       call vtk%write_final()
-      call vtk%close ()
+      call vtk%close()
    end subroutine
 
    !>
@@ -804,7 +804,7 @@ contains
       ! no cell data here
       call vtk%finishcelldata()
       call vtk%write_final()
-      call vtk%close ()
+      call vtk%close()
    end subroutine
 
    !>
@@ -850,7 +850,7 @@ contains
       call vtk%write_data_array(name2, dens2)
       call vtk%finishcelldata()
       call vtk%write_final()
-      call vtk%close ()
+      call vtk%close()
    end subroutine
 
 end module module_vtk_helpers

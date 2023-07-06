@@ -313,7 +313,7 @@ contains
       local_queue_bottom = atomic_mod_increment_and_fetch_int(t%communicator%req_queue_bottom, TREE_COMM_REQUEST_QUEUE_LENGTH)
 
       if (local_queue_bottom .eq. atomic_load_int(t%communicator%req_queue_top)) then
-      call atomic_read_barrier() ! ensure all information is compared correctly (queue_top and entry_valid)
+         call atomic_read_barrier() ! ensure all information is compared correctly (queue_top and entry_valid)
          DEBUG_ERROR(*, "Issue with request sending queue: TREE_COMM_REQUEST_QUEUE_LENGTH is too small: ", TREE_COMM_REQUEST_QUEUE_LENGTH)
       end if
 
@@ -343,7 +343,7 @@ contains
 #endif
 
 #ifdef MPI_MULTIPLE
-   ! we double the function for the moment being, simpler than changing the module structure
+      ! we double the function for the moment being, simpler than changing the module structure
    contains
 
       function send_request(req, comm_env)
@@ -372,7 +372,7 @@ contains
                req_simple(2) = req%request%parent
                call MPI_BSEND(req_simple, 2, MPI_KIND_NODE, req%node%owner, TREE_COMM_TAG_REQUEST_KEY, &
                               comm_env%comm, ierr)
-            endif
+            end if
 
             req%node%flags_local = ibset(req%node%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
             send_request = .true.
@@ -508,7 +508,7 @@ contains
          DEBUG_WARNING_ALL('("Received request with node == NODE_INVALID from pe ", I0, ", Its tree data might be damaged. Dumping all trees and aborting.")', ipe_sender)
          call broadcast_dump_tree_and_abort(t)
          return
-      endif
+      end if
 
       nchild = 0
       n = req(1)
@@ -576,7 +576,7 @@ contains
          call send_data(t, children_to_send, nchild, ipe_sender)
 
          deallocate (children_to_send)
-      endif
+      end if
 
       deallocate (child_nodes)
 
@@ -700,9 +700,9 @@ contains
                if (tree_comm_debug) then
                   DEBUG_INFO('("PE", I6, " received answer. parent_key=", O22, ",  sender=", I6, ",  owner=", I6, ",  kchild=", O22)', t%comm_env%rank, parent%key, ipe_sender, t%nodes(newnode)%owner, t%nodes(newnode)%key)
                end if
-            endif
+            end if
 
-            if (ic .gt. num_children) then; exit; endif
+            if (ic .gt. num_children) then; exit; end if
          end do
 
          call tree_node_connect_children(t, parent_idx, child_nodes(1:nchild))
@@ -712,7 +712,7 @@ contains
             ! in fact, this is only relevant for the topmost parent node as the others cannot be traversed
             ! before its direct children are present
             call atomic_write_barrier()
-         endif
+         end if
          ! set 'children-here'-flag for all parent addresses
          ! may only be done *after inserting all* children, hence not(!) during the loop above
          parent%flags_local = ibset(parent%flags_local, TREE_NODE_FLAG_LOCAL_CHILDREN_AVAILABLE) ! Set children_HERE flag for parent node
@@ -797,7 +797,7 @@ contains
                req_simple(2) = req%request%parent
                call MPI_BSEND(req_simple, 2, MPI_KIND_NODE, req%node%owner, TREE_COMM_TAG_REQUEST_KEY, &
                               comm_env%comm, ierr)
-            endif
+            end if
 
             req%node%flags_local = ibset(req%node%flags_local, TREE_NODE_FLAG_LOCAL_REQUEST_SENT)
             send_request = .true.

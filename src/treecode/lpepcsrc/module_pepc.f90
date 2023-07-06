@@ -104,8 +104,8 @@ contains
             call MPI_COMM_DUP(comm, MPI_COMM_lpepc, ierr)
          else
             call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_lpepc, ierr)
-         endif
-      endif
+         end if
+      end if
 
       call MPI_IN_PLACE_test(MPI_COMM_lpepc)
 
@@ -136,7 +136,7 @@ contains
          write (*, '("====  LDFLAGS = ",a)') LDFLAGS
          write (*, '("====     WALK = ",a)') WALKALGORITHM
          write (*, '(//)')
-      endif
+      end if
 
       if (me .eq. 0 .and. provided .lt. MPI_THREAD_LEVEL) then
          !inform the user about possible issues concerning MPI thread safety
@@ -152,7 +152,7 @@ contains
          else
             write (*, '("Frontend application did not call to MPI_INIT_THREAD correctly. Needed/provided level of multithreading:", I2, "/" ,I2)') &
                MPI_THREAD_LEVEL, provided
-         endif
+         end if
          DEBUG_ERROR(*, 'Not trying to run with provided level of multithreading. This would lead to incorrect results or crashes.')
       end if
 
@@ -163,7 +163,7 @@ contains
          debug_level = db_level_in
       else
          debug_level = 0
-      endif
+      end if
       np_mult = -45.
       weighted = 1
 
@@ -382,7 +382,7 @@ contains
       logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
 
       call pepc_grow_and_traverse_for_others(particles_source=particles, &
-         itime=itime, no_dealloc=no_dealloc, no_restore=no_restore)
+                                             itime=itime, no_dealloc=no_dealloc, no_restore=no_restore)
 
    end subroutine
 
@@ -422,7 +422,7 @@ contains
          ! for better thread-safety we have to kill the communicator thread before trying to perform any other mpi stuff
          call tree_communicator_stop(global_tree)
          call pepc_restore_particles(particles_source)
-      endif
+      end if
 
       if (dealloc) call pepc_timber_tree()
 

@@ -75,7 +75,7 @@ subroutine mac_choose(p, p_ex_p, p_ey_p, p_ez_p, walk_node, walk_key, walk_abs_c
       iy = int(SUM((/(2**i * ibits(walk_key, 3 * i + 1, 1), i=0, nbits - 1)/)))
       iz = int(SUM((/(2**i * ibits(walk_key, 3 * i + 2, 1), i=0, nbits - 1)/)))
 
-   endif
+   end if
 
    select case (mac)
    case (0)                               ! BH-MAC
@@ -235,10 +235,10 @@ subroutine mac_choose(p, p_ex_p, p_ey_p, p_ez_p, walk_node, walk_key, walk_abs_c
                b_temp = e_dx * e_dx + e_dy * e_dy + e_dz * e_dz
                if (b_max2 .le. b_temp) then
                   b_max2 = b_temp
-               endif
-            enddo
-         enddo
-      enddo
+               end if
+            end do
+         end do
+      end do
 
       B2 = b_max2 * tree_nodes(walk_node)%abs_charge
       rc = sqrt(b_max2) / 2 + sqrt(sqrt(3 * B2 / alpha) + (b_max2 / 4))
