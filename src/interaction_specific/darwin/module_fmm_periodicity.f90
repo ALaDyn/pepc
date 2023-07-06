@@ -737,7 +737,7 @@ module module_fmm_framework
 
           j = 0
 
-          ! sum over all boxes within FF' (cells in the far field of the central cell but in the near field of the central supercell 3x3x3 that embeds cell {0,0,0} in the center)
+          ! sum over all boxes within FF` (cells in the far field of the central cell but in the near field of the central supercell 3x3x3 that embeds cell {0,0,0} in the center)
           do i = 1,num_neighbour_boxes-1 ! central box is being omitted in this loop
             do ii = 1,num_neighbour_boxes
               x0  = (2*ws+1)*lattice_vect(neighbour_boxes(:,i)) + lattice_vect(neighbour_boxes(:,ii))

@@ -26,7 +26,7 @@ RUN apk update && \
     py3-pip ;\
     pip3 install http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest; \
     pip3 install FORD==6.1.10; \
-    pip3 install --upgrade fprettify
+    pip3 install --upgrade git+https://github.com/dbroemmel/fprettify.git@fixed_relations_and_case
 
 # try and have start dir?
 WORKDIR /tmp

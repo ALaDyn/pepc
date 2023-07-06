@@ -33,12 +33,12 @@
 !> (the physical potential corresponds only to the real part of Phi) and a
 !> force field:
 !>
-!> E(z) = - grad Phi(z) = - (Re { Phi'(z) }, - Im { Phi'(z) })
+!> E(z) = - grad Phi(z) = - (Re { Phi`(z) }, - Im { Phi`(z) })
 !>
 !> For |z| > max_i |z_i|, the potential can be expanded as follows:
 !>
 !> Phi(z)  ~= - [ Q log(z) + Sum_k=1^p omega_k M_k(z) ]
-!> Phi'(z) ~= - [ Q M_1(z) + Sum_k=1^p omega_k M'_k(z) ]
+!> Phi`(z) ~= - [ Q M_1(z) + Sum_k=1^p omega_k M`_k(z) ]
 !>
 !> with the total charge Q = Sum_i q_i and the multipole moments:
 !>
@@ -75,7 +75,7 @@ module module_multipole
   !end function OMultipole
 
   !>
-  !> Monomial: O'_k(z) = k z^(k - 1)
+  !> Monomial: O`_k(z) = k z^(k - 1)
   !>
   !complex(kind_physics) function OMultipolePrime(k, z)
   !  implicit none
@@ -97,7 +97,7 @@ module module_multipole
   !end function MTaylor
 
   !>
-  !> Monomial: M'_k(z) = -k z^(-k - 1)
+  !> Monomial: M`_k(z) = -k z^(-k - 1)
   !>
   !> Used to compute the force field.
   !>
@@ -113,9 +113,9 @@ module module_multipole
   !> A is the higher order part of the M2M operator that shifts higher order
   !> multipole moments:
   !>
-  !> Q' = Q
+  !> Q` = Q
   !>
-  !> omega_k' = A_Q,k(z0) Q + Sum_l=1^k A_k,l(z0) omega_l
+  !> omega_k` = A_Q,k(z0) Q + Sum_l=1^k A_k,l(z0) omega_l
   !>                                    ^^^^^^^^^
   !>
   complex(kind_physics) function ATranslate(k, l, z0)

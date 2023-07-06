@@ -20,63 +20,60 @@
 
 program pepc
 
-  ! pepc modules
-  use module_pepc
-  use module_pepc_types
-  use module_timings
-  use module_debug
-  use newton_krylov
+   ! pepc modules
+   use module_pepc
+   use module_pepc_types
+   use module_timings
+   use module_debug
+   use newton_krylov
 
-  ! frontend helper routines
-  use helper
-  implicit none
+   ! frontend helper routines
+   use helper
+   implicit none
 
+   ! timing variables
 
-  ! timing variables
+   real*8 :: timer(5)
+   real*8 :: t1, t2, errtol
+   integer*8 :: itsub, iter, rc, ierr, i
+   type(t_particle), allocatable :: particles0(:), particles1(:)
 
-  real*8 :: timer(5)
-  real*8 :: t1, t2,errtol
-  integer*8 :: itsub,iter,rc,ierr,i
-  type(t_particle), allocatable :: particles0(:),particles1(:)
+   ! control variable
+   logical :: doDiag
+   itsub = 100
+   errtol = 1.0d-8
+   !allocate(particles0(10), stat=rc )
+   !!! initialize pepc library and MPI
+   call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true.)
 
-  ! control variable
-  logical :: doDiag
-  itsub = 100
-  errtol = 1.0d-8
-  !allocate(particles0(10), stat=rc )
-  !!! initialize pepc library and MPI
-  call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true.)
+   root = my_rank .eq. 0
 
-  root = my_rank.eq.0
+   call set_parameter()
+   call init_particles_square(particles)
 
-  call set_parameter()
-  call init_particles_square(particles)
+   call pepc_particleresults_clear(particles)
 
+   call pepc_grow_tree(particles)
 
-  call pepc_particleresults_clear(particles)
+   call pepc_traverse_tree(particles)
+   call pepc_timber_tree()
 
-  call pepc_grow_tree(particles)
+   !  call linear(particles(1),particles0(1))
+   !  call gmres( particles(1), linear, particles(2), &
+   !         errtol,itsub,particles0(3),iter)
 
-  call pepc_traverse_tree(particles)
-  call pepc_timber_tree()
+   call nsolgm(np, particles, linear, errtol, errtol, itsub, itsub, errtol, particles0)
+   !  call dirder(np,particles,particles,linear,particles,particles1)
+   !  deallocate(particles)
+   !deallocate(particles0)
+   !deallocate(particles1)
+   do i = 1, np
+      write (*, *) particles0(i)%x
+      write (*, *) particles0(i)%data%v
+      write (*, *)
+   end do
 
-!  call linear(particles(1),particles0(1))
-!  call gmres( particles(1), linear, particles(2), &
-!         errtol,itsub,particles0(3),iter)
-
-  call nsolgm(np,particles,linear,errtol, errtol,itsub,itsub,errtol, particles0)
-!  call dirder(np,particles,particles,linear,particles,particles1)
-!  deallocate(particles)
-  !deallocate(particles0)
-  !deallocate(particles1)
-  do i = 1,np
-    write(*,*) particles0(i)%x
-    write(*,*) particles0(i)%data%v
-    write(*,*)
- enddo
-
-
-  call pepc_finalize()
+   call pepc_finalize()
 
 end program pepc
 

@@ -135,7 +135,7 @@ contains
          write (fid, *) "! io_interval          : number of timesteps between I/O [1] <module_helper>"
          write (fid, *) "! plasma_dimensions(3) : size of the simulation box [1.0, 1.0, 1.0] <module_helper>"
          write (fid, *) "!"
-         write(fid, NML=pepcbenchmark)
+         write (fid, NML=pepcbenchmark)
          call pepc_write_parameters(fid)
          close (fid)
 
@@ -205,7 +205,7 @@ contains
             phi = rnd(1) * 2 * pi
             theta = acos(rnd(2) * 2 - 1)
 
-            ! compute a radial coordinate from distribution Eq.(9) in Kaplan's paper, \mu = 1
+            ! compute a radial coordinate from distribution Eq.(9) in Kaplan`s paper, \mu = 1
             s = (1./(1 - real(p(ip)%label) / tnp) - 1)**(1./3.)
 
             ! fill cartesian coordinates
@@ -346,8 +346,8 @@ contains
       do ip = 1, np
          ! check radial position
 #ifdef __PGI
-         if (sqrt(dot_product(p(ip)%x,p(ip)%x)) .ge. r_bin_min .and. sqrt(dot_product(p(ip)%x,p(ip)%x)) .le. r_bin_max) then
-            v_pos = int(sqrt(dot_product(p(ip)%data%v,p(ip)%data%v)) / v_bin)
+         if (sqrt(dot_product(p(ip)%x, p(ip)%x)) .ge. r_bin_min .and. sqrt(dot_product(p(ip)%x, p(ip)%x)) .le. r_bin_max) then
+            v_pos = int(sqrt(dot_product(p(ip)%data%v, p(ip)%data%v)) / v_bin)
             velocity_histo(v_pos) = velocity_histo(v_pos) + 1
          end if
 #else
@@ -458,18 +458,18 @@ contains
       else
          tn = particle_direct / n_ranks
          if (my_rank .eq. (n_ranks - 1)) tn = tn + MOD(particle_direct, n_ranks)
-      endif
+      end if
 
       allocate (tindx(tn), trnd(tn), trslt(tn))
 
       if (particle_direct .eq. -1) then
          do ti = 1, tn
             tindx(ti) = ti
-         enddo
+         end do
       else
          call random(trnd(1:tn), rng_state)
          tindx(1:tn) = int(trnd(1:tn) * (np - 1)) + 1
-      endif
+      end if
 
       call directforce(particles, tindx, tn, trslt, MPI_COMM_WORLD)
 
@@ -513,7 +513,7 @@ contains
          vtk_step = VTK_STEP_LAST
       else
          vtk_step = VTK_STEP_NORMAL
-      endif
+      end if
    end function vtk_step_of_step
 
    subroutine write_particles(p)
