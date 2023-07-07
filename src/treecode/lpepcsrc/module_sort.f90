@@ -87,7 +87,7 @@ contains
             b = map(l)
          else
             b = 0
-         endif
+         end if
 
          jold = l
          j = l + l
@@ -95,7 +95,7 @@ contains
             if (j .gt. r) exit
             if (j .lt. r) then
                if (iarr(j) .lt. iarr(j + 1)) j = j + 1
-            endif
+            end if
             if (a .ge. iarr(j)) exit      ! Found a`s level, so terminate sift-down
             iarr(jold) = iarr(j)
 
@@ -160,7 +160,7 @@ contains
             if (j .gt. r) exit
             if (j .lt. r) then
                if (iarr(j) .lt. iarr(j + 1)) j = j + 1
-            endif
+            end if
             if (a .ge. iarr(j)) exit     ! Found a`s level, so terminate sift-down
             iarr(jold) = iarr(j)
 
@@ -223,7 +223,7 @@ contains
             b = map(l)
          else
             b = 0
-         endif
+         end if
 
          jold = l
          j = l + l
@@ -231,7 +231,7 @@ contains
             if (j .gt. r) exit
             if (j .lt. r) then
                if (iarr(j) .lt. iarr(j + 1)) j = j + 1
-            endif
+            end if
             if (a .ge. iarr(j)) exit       ! Found a`s level, so terminate sift-down
             iarr(jold) = iarr(j)
 

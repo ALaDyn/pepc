@@ -20,54 +20,53 @@
 
 !!!!!!!!!!!  SHORTCUT
 
-
 module module_shortcut
-  use module_pepc_kinds
-  use module_pepc_types
-  implicit none
-  save
+   use module_pepc_kinds
+   use module_pepc_types
+   implicit none
+   save
 
-    real(kind_physics), parameter :: dotnine          =  0.9_kind_physics
-    real(kind_physics), parameter :: dotone           =  0.1_kind_physics
-    real(kind_physics), parameter :: half             =  0.5_kind_physics
-    real(kind_physics), parameter :: quarter          =  0.25_kind_physics
-    real(kind_physics), parameter :: tentominustwo    =  1.E-2_kind_physics
-    real(kind_physics), parameter :: tentominusthree  =  1.E-3_kind_physics
-    real(kind_physics), parameter :: tentominusfive   =  1.E-5_kind_physics
-    real(kind_physics), parameter :: tentominusseven  =  1.E-7_kind_physics
-    real(kind_physics), parameter :: tentominuseight  =  1.E-8_kind_physics
-    real(kind_physics), parameter :: tentominusnine   =  1.E-9_kind_physics
-    real(kind_physics), parameter :: tentominusten    =  1.E-10_kind_physics
-    real(kind_physics), parameter :: zero             =  0._kind_physics
-    real(kind_physics), parameter :: one              =  1._kind_physics
-    real(kind_physics), parameter :: two              =  2._kind_physics
-    real(kind_physics), parameter :: three            =  3._kind_physics
-    real(kind_physics), parameter :: four             =  4._kind_physics
-    real(kind_physics), parameter :: five             =  5._kind_physics
-    real(kind_physics), parameter :: six              =  6._kind_physics
-    real(kind_physics), parameter :: seven            =  7._kind_physics
-    real(kind_physics), parameter :: eight            =  8._kind_physics
-    real(kind_physics), parameter :: nine             =  9._kind_physics
-    real(kind_physics), parameter :: ten              =  10._kind_physics
-    real(kind_physics), parameter :: twelve           =  12._kind_physics
-    real(kind_physics), parameter :: thirteen         =  13._kind_physics
-    real(kind_physics), parameter :: fifteen          =  15._kind_physics
-    real(kind_physics), parameter :: sixteen          =  16._kind_physics
-    real(kind_physics), parameter :: twenty           =  20._kind_physics
-    real(kind_physics), parameter :: twentyfour       =  24._kind_physics
-    real(kind_physics), parameter :: thirtytwo        =  32._kind_physics
-    real(kind_physics), parameter :: thirtyfive       =  35._kind_physics
-    real(kind_physics), parameter :: forty            =  40._kind_physics
-    real(kind_physics), parameter :: fortyfive        =  45._kind_physics
-    real(kind_physics), parameter :: fortyeight       =  48._kind_physics
-    real(kind_physics), parameter :: ninety           =  90._kind_physics
-    real(kind_physics), parameter :: ninetysix        =  96._kind_physics
-    real(kind_physics), parameter :: hundred          =  100._kind_physics
-    real(kind_physics), parameter :: hundredfive      =  105._kind_physics
-    real(kind_physics), parameter :: hundredfifty     =  150._kind_physics
-    real(kind_physics), parameter :: pi               =  two*acos(zero)
-    real(kind_physics), parameter :: oneoverpi        =  one/pi
-    real(kind_physics), parameter :: oneoverfourpi    =  quarter/pi
-    real(kind_physics), parameter :: prec             =  1.E-16_kind_physics
+   real(kind_physics), parameter :: dotnine          =  0.9_kind_physics        !&
+   real(kind_physics), parameter :: dotone           =  0.1_kind_physics        !&
+   real(kind_physics), parameter :: half             =  0.5_kind_physics        !&
+   real(kind_physics), parameter :: quarter          =  0.25_kind_physics       !&
+   real(kind_physics), parameter :: tentominustwo    =  1.E-2_kind_physics      !&
+   real(kind_physics), parameter :: tentominusthree  =  1.E-3_kind_physics      !&
+   real(kind_physics), parameter :: tentominusfive   =  1.E-5_kind_physics      !&
+   real(kind_physics), parameter :: tentominusseven  =  1.E-7_kind_physics      !&
+   real(kind_physics), parameter :: tentominuseight  =  1.E-8_kind_physics      !&
+   real(kind_physics), parameter :: tentominusnine   =  1.E-9_kind_physics      !&
+   real(kind_physics), parameter :: tentominusten    =  1.E-10_kind_physics     !&
+   real(kind_physics), parameter :: zero             =  0._kind_physics         !&
+   real(kind_physics), parameter :: one              =  1._kind_physics         !&
+   real(kind_physics), parameter :: two              =  2._kind_physics         !&
+   real(kind_physics), parameter :: three            =  3._kind_physics         !&
+   real(kind_physics), parameter :: four             =  4._kind_physics         !&
+   real(kind_physics), parameter :: five             =  5._kind_physics         !&
+   real(kind_physics), parameter :: six              =  6._kind_physics         !&
+   real(kind_physics), parameter :: seven            =  7._kind_physics         !&
+   real(kind_physics), parameter :: eight            =  8._kind_physics         !&
+   real(kind_physics), parameter :: nine             =  9._kind_physics         !&
+   real(kind_physics), parameter :: ten              =  10._kind_physics        !&
+   real(kind_physics), parameter :: twelve           =  12._kind_physics        !&
+   real(kind_physics), parameter :: thirteen         =  13._kind_physics        !&
+   real(kind_physics), parameter :: fifteen          =  15._kind_physics        !&
+   real(kind_physics), parameter :: sixteen          =  16._kind_physics        !&
+   real(kind_physics), parameter :: twenty           =  20._kind_physics        !&
+   real(kind_physics), parameter :: twentyfour       =  24._kind_physics        !&
+   real(kind_physics), parameter :: thirtytwo        =  32._kind_physics        !&
+   real(kind_physics), parameter :: thirtyfive       =  35._kind_physics        !&
+   real(kind_physics), parameter :: forty            =  40._kind_physics        !&
+   real(kind_physics), parameter :: fortyfive        =  45._kind_physics        !&
+   real(kind_physics), parameter :: fortyeight       =  48._kind_physics        !&
+   real(kind_physics), parameter :: ninety           =  90._kind_physics        !&
+   real(kind_physics), parameter :: ninetysix        =  96._kind_physics        !&
+   real(kind_physics), parameter :: hundred          =  100._kind_physics       !&
+   real(kind_physics), parameter :: hundredfive      =  105._kind_physics       !&
+   real(kind_physics), parameter :: hundredfifty     =  150._kind_physics       !&
+   real(kind_physics), parameter :: pi               =  two*acos(zero)          !&
+   real(kind_physics), parameter :: oneoverpi        =  one/pi                  !&
+   real(kind_physics), parameter :: oneoverfourpi    =  quarter/pi              !&
+   real(kind_physics), parameter :: prec             =  1.E-16_kind_physics     !&
 
 end module module_shortcut

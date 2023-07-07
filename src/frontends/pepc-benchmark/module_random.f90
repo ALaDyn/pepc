@@ -46,7 +46,7 @@ module module_random
    integer, parameter :: IR2 = 3791                     !&
    integer, parameter :: NTAB = 32                      !&
    integer, parameter :: NDIV = 1 + IMM1 / NTAB         !&
-   real,    parameter :: eps_ = 1.2e-7 ! epsilon(eps_)  !&
+   real, parameter    :: eps_ = 1.2e-7 !&  epsilon(eps_)  !&
    real,    parameter :: RNMX = 1.0 - eps_              !&
 
    type, public :: random_state_t
@@ -141,14 +141,14 @@ contains
 
       integer :: j, k
 
-      associate (idum=>iseed%idum, idum2=>iseed%idum2, iy=>iseed%iy, iv=>iseed%iv)
+      associate (idum => iseed%idum, idum2 => iseed%idum2, iy => iseed%iy, iv => iseed%iv)
 
          if (idum .le. 0) then
             if (-idum .lt. 1) then
                idum = 1
             else
                idum = -idum
-            endif
+            end if
 
             idum2 = idum
 

@@ -112,17 +112,17 @@ module physvars
       module procedure omp_reduction_add
    end interface
 
-   !$OMP DECLARE REDUCTION (+ : t_particle_short : omp_out = omp_in + omp_out) &
-   !$OMP INITIALIZER (omp_priv = omp_orig)
+!$OMP DECLARE REDUCTION (+ : t_particle_short : omp_out = omp_in + omp_out) &
+!$OMP INITIALIZER (omp_priv = omp_orig)
 #endif
 
 contains
 
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Initialize physvars variables, allocate frontend arrays, read-in parameters
    !>
-   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine pepc_setup(itime, trun)
 
       use module_pepc
@@ -223,7 +223,7 @@ contains
 
       select case (ispecial)
 
-      ! #### Vortex rings/wakes
+         ! #### Vortex rings/wakes
       case (1, 2, 4)
 
          rmax = Lref / 2.d0
@@ -234,7 +234,7 @@ contains
          n = 2 * ns * nphi
          np = ceiling(1.0 * n / n_cpu) + 1
 
-      ! #### Sphere
+         ! #### Sphere
       case (3)
 
          n = n_in
@@ -243,14 +243,14 @@ contains
          !force_const = force_const*h**3
          !eps = g*h
 
-      ! #### Vortex wake
+         ! #### Vortex wake
       case (5)
 
          h = 2 * pi / nc
          n = 2 * nc * ceiling(1.0 / h) * ceiling(2 * pi / h)
          np = ceiling(1.0 * n / n_cpu) + 1
 
-      ! #### Single Vortex ring
+         ! #### Single Vortex ring
       case (6)
 
          rmax = Lref / 2.d0
@@ -267,7 +267,7 @@ contains
          np = ceiling(1.0 * n / n_cpu)
          h = 1./n
 
-      ! #### Setup MPI checkpoint readin
+         ! #### Setup MPI checkpoint readin
       case (99)
 
          call setup_MPI_IO_readin(itime)

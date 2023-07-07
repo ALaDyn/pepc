@@ -295,7 +295,7 @@ contains
       if (printheader) then
          write (formatstring, '(a,i5,a)') '(2(1x,a20),', numtimings, '(1x,i20))'
          write (ifile, formatstring) "#timestep", "userflag", [(i, i=1, numtimings)]
-      endif
+      end if
 
       write (formatstring, '(a,i5,a)') '(2(1x,i20),', numtimings, '(1x,e20.5))'
       write (ifile, formatstring) itime, iuserflag, tdata
@@ -322,7 +322,7 @@ contains
          flag = iuserflag
       else
          flag = 0
-      endif
+      end if
 
       if (dbg(DBG_TIMINGFILE)) then
          if (firstcall) then
@@ -365,7 +365,7 @@ contains
          flag = iuserflag
       else
          flag = 0
-      endif
+      end if
 
       if (present(printheader)) then
          do_printheader = printheader
@@ -392,7 +392,7 @@ contains
 
          write (*, '(a20,f16.10," s")') "t_all = ", tim(t_all)
          write (*, '(a20,f16.10," s")') "t_tot = ", tim(t_tot)
-      endif
+      end if
    end subroutine timings_GatherAndOutput
 
 end module module_timings

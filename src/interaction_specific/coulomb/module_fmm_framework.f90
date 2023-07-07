@@ -41,11 +41,11 @@ module module_fmm_framework
    !&<
    integer, public, parameter :: FMM_EXTRINSIC_CORRECTION_NONE        = 0 !< no extrinsic-to-intrinsic correction
    integer, public, parameter :: FMM_EXTRINSIC_CORRECTION_REDLACK     = 1 !< correction expression as given by Redlack and Grindlay (only for cubic boxes)
-                                                                          !< (see [J.Chem.Phys. 107, 10131, eqn.(19,20)] for details, inside this publication, the volume factor is missing;
-                                                                          !<      [J. Chem. Phys. 101, 5024, eqn (5)] contains it) -- this is the method that was used if do_extrinsic_correction=.true. before
+   !                                                                      !< (see [J.Chem.Phys. 107, 10131, eqn.(19,20)] for details, inside this publication, the volume factor is missing;
+   !                                                                      !<      [J. Chem. Phys. 101, 5024, eqn (5)] contains it) -- this is the method that was used if do_extrinsic_correction=.true. before
    integer, public, parameter :: FMM_EXTRINSIC_CORRECTION_FICTCHARGE  = 2 !< fictitious charges as given by Kudin (should work for all unit chell shapes) [Kudin 1998, eq. (2.8)]
    integer, public, parameter :: FMM_EXTRINSIC_CORRECTION_MEASUREMENT = 3 !< measurement of correction value [Kudin 1998, eq. (2.6,, 2.7)], FIXME: currently not implemented
-   !> type of dipole correction, see [J.Chem.Phys. 107, 10131, eq. (19,20)]
+   !                                                                      !< type of dipole correction, see [J.Chem.Phys. 107, 10131, eq. (19,20)]
    integer, public :: fmm_extrinsic_correction = FMM_EXTRINSIC_CORRECTION_FICTCHARGE
    !$>
 
@@ -115,10 +115,10 @@ contains
          call load_lattice_coefficients(MLattice)
          if (use_pretabulated_lattice_coefficients) then
             DEBUG_WARNING('(a)', "Using pretabulated lattice coefficients. These are only valid for 3D-periodic unit-box simulations regions.")
-         endif
+         end if
       else
          call calc_lattice_coefficients(MLattice)
-      endif
+      end if
 
       if ((myrank .eq. 0) .and. dbg(DBG_PERIODIC)) then
          call WriteTableToFile('MLattice.tab', MLattice, Lmax_taylor)
@@ -138,12 +138,12 @@ contains
 
       if (.not. check_lattice_boundaries(particles)) then
          DEBUG_ERROR(*, 'Lattice contribution will be wrong. Aborting.')
-      endif
+      end if
 
       if ((fmm_extrinsic_correction .eq. FMM_EXTRINSIC_CORRECTION_REDLACK) &
           .or. (fmm_extrinsic_correction .eq. FMM_EXTRINSIC_CORRECTION_FICTCHARGE)) then
          call calc_box_dipole(particles)
-      endif
+      end if
       call calc_omega_tilde(particles)
       call calc_mu_cent(omega_tilde, mu_cent)
    end subroutine fmm_framework_timestep
@@ -203,7 +203,7 @@ contains
          if ((myrank .eq. 0) .and. dbg(DBG_PERIODIC)) then
             write (fn, '("MLattice.", I2.2, ".tab")') iter
             call WriteTableToFile(trim(fn), ML, Lmax_taylor)
-         endif
+         end if
       end do
 
       call chop(ML)
@@ -228,7 +228,7 @@ contains
          ! only for 3D-periodic case
          M(tblinv(1, 0, Lmax_taylor)) = (zero, zero)
          M(tblinv(1, 1, Lmax_taylor)) = (zero, zero)
-      endif
+      end if
    end subroutine
 
    !>
@@ -247,7 +247,7 @@ contains
          ! only for 3D-periodic case
          O(tblinv(1, 0, Lmax_multipole)) = (zero, zero)
          O(tblinv(1, 1, Lmax_multipole)) = (zero, zero)
-      endif
+      end if
    end subroutine
 
    !>
@@ -266,243 +266,243 @@ contains
       call pepc_status('LATTICE COEFFICIENTS: Loading')
 
       if (Lmax_taylor .ge. 0) then
-         M(tblinv(0, 0, Lmax_taylor)) = 0.66196708399502771246378770654822400E+33_kind_physics
-      endif
+         M(tblinv( 0,  0, Lmax_taylor)) =  0.66196708399502771246378770654822400E+33_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 2) then
-         M(tblinv(2, 0, Lmax_taylor)) = 0.29501109556337144811408208229350297E-13_kind_physics
-      endif
+         M(tblinv( 2,  0, Lmax_taylor)) =  0.29501109556337144811408208229350297E-13_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 4) then
-         M(tblinv(4, 0, Lmax_taylor)) = 0.28119304871888664010270986182149500E+01_kind_physics
-         M(tblinv(4, 4, Lmax_taylor)) = 0.14059652435944322235172876389697194E+02_kind_physics
-      endif
+         M(tblinv( 4,  0, Lmax_taylor)) =  0.28119304871888664010270986182149500E+01_kind_physics !&
+         M(tblinv( 4,  4, Lmax_taylor)) =  0.14059652435944322235172876389697194E+02_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 6) then
-         M(tblinv(6, 0, Lmax_taylor)) = 0.54795908739322285452288952001254074E+00_kind_physics
-         M(tblinv(6, 4, Lmax_taylor)) = -0.38357136117525469920508385257562622E+01_kind_physics
-      endif
+         M(tblinv( 6,  0, Lmax_taylor)) =  0.54795908739322285452288952001254074E+00_kind_physics !&
+         M(tblinv( 6,  4, Lmax_taylor)) = -0.38357136117525469920508385257562622E+01_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 8) then
-         M(tblinv(8, 0, Lmax_taylor)) = 0.12156157302097911099281191127374768E+03_kind_physics
-         M(tblinv(8, 4, Lmax_taylor)) = 0.12156157302097928152306849369779229E+03_kind_physics
-         M(tblinv(8, 8, Lmax_taylor)) = 0.79015022463636523752938956022262573E+04_kind_physics
-      endif
+         M(tblinv( 8,  0, Lmax_taylor)) =  0.12156157302097911099281191127374768E+03_kind_physics !&
+         M(tblinv( 8,  4, Lmax_taylor)) =  0.12156157302097928152306849369779229E+03_kind_physics !&
+         M(tblinv( 8,  8, Lmax_taylor)) =  0.79015022463636523752938956022262573E+04_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 10) then
-         M(tblinv(10, 0, Lmax_taylor)) = 0.31179916736109191788273165002465248E+03_kind_physics
-         M(tblinv(10, 4, Lmax_taylor)) = -0.68595816819440403833141317591071129E+03_kind_physics
-         M(tblinv(10, 8, Lmax_taylor)) = -0.11661288859304897414403967559337616E+05_kind_physics
-      endif
+         M(tblinv(10,  0, Lmax_taylor)) =  0.31179916736109191788273165002465248E+03_kind_physics !&
+         M(tblinv(10,  4, Lmax_taylor)) = -0.68595816819440403833141317591071129E+03_kind_physics !&
+         M(tblinv(10,  8, Lmax_taylor)) = -0.11661288859304897414403967559337616E+05_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 12) then
-         M(tblinv(12, 0, Lmax_taylor)) = 0.24245612747359092463739216327667236E+06_kind_physics
-         M(tblinv(12, 4, Lmax_taylor)) = 0.20375858264140240498818457126617432E+06_kind_physics
-         M(tblinv(12, 8, Lmax_taylor)) = 0.70682666545985033735632896423339844E+06_kind_physics
-         M(tblinv(12, 12, Lmax_taylor)) = 0.23702435984527084231376647949218750E+09_kind_physics
-      endif
+         M(tblinv(12,  0, Lmax_taylor)) =  0.24245612747359092463739216327667236E+06_kind_physics !&
+         M(tblinv(12,  4, Lmax_taylor)) =  0.20375858264140240498818457126617432E+06_kind_physics !&
+         M(tblinv(12,  8, Lmax_taylor)) =  0.70682666545985033735632896423339844E+06_kind_physics !&
+         M(tblinv(12, 12, Lmax_taylor)) =  0.23702435984527084231376647949218750E+09_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 14) then
-         M(tblinv(14, 0, Lmax_taylor)) = 0.20954087119885545689612627029418945E+07_kind_physics
-         M(tblinv(14, 4, Lmax_taylor)) = -0.26940969154138588346540927886962891E+07_kind_physics
-         M(tblinv(14, 8, Lmax_taylor)) = -0.17062613797621075063943862915039063E+08_kind_physics
-         M(tblinv(14, 12, Lmax_taylor)) = -0.65406686224214184284210205078125000E+09_kind_physics
-      endif
+         M(tblinv(14,  0, Lmax_taylor)) =  0.20954087119885545689612627029418945E+07_kind_physics !&
+         M(tblinv(14,  4, Lmax_taylor)) = -0.26940969154138588346540927886962891E+07_kind_physics !&
+         M(tblinv(14,  8, Lmax_taylor)) = -0.17062613797621075063943862915039063E+08_kind_physics !&
+         M(tblinv(14, 12, Lmax_taylor)) = -0.65406686224214184284210205078125000E+09_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 16) then
-         M(tblinv(16, 0, Lmax_taylor)) = 0.54279858299650156497955322265625000E+09_kind_physics
-         M(tblinv(16, 4, Lmax_taylor)) = 0.22841041529105401039123535156250000E+09_kind_physics
-         M(tblinv(16, 8, Lmax_taylor)) = 0.12973301854895758628845214843750000E+10_kind_physics
-         M(tblinv(16, 12, Lmax_taylor)) = 0.25882484900055580139160156250000000E+11_kind_physics
-         M(tblinv(16, 16, Lmax_taylor)) = 0.69973653547984179687500000000000000E+13_kind_physics
-      endif
+         M(tblinv(16,  0, Lmax_taylor)) =  0.54279858299650156497955322265625000E+09_kind_physics !&
+         M(tblinv(16,  4, Lmax_taylor)) =  0.22841041529105401039123535156250000E+09_kind_physics !&
+         M(tblinv(16,  8, Lmax_taylor)) =  0.12973301854895758628845214843750000E+10_kind_physics !&
+         M(tblinv(16, 12, Lmax_taylor)) =  0.25882484900055580139160156250000000E+11_kind_physics !&
+         M(tblinv(16, 16, Lmax_taylor)) =  0.69973653547984179687500000000000000E+13_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 18) then
-         M(tblinv(18, 0, Lmax_taylor)) = 0.14686049951258449554443359375000000E+11_kind_physics
-         M(tblinv(18, 4, Lmax_taylor)) = -0.15376346487994709014892578125000000E+11_kind_physics
-         M(tblinv(18, 8, Lmax_taylor)) = -0.24226921558569625854492187500000000E+11_kind_physics
-         M(tblinv(18, 12, Lmax_taylor)) = -0.10692416604738659667968750000000000E+13_kind_physics
-         M(tblinv(18, 16, Lmax_taylor)) = -0.39585194668444328125000000000000000E+14_kind_physics
-      endif
+         M(tblinv(18,  0, Lmax_taylor)) =  0.14686049951258449554443359375000000E+11_kind_physics !&
+         M(tblinv(18,  4, Lmax_taylor)) = -0.15376346487994709014892578125000000E+11_kind_physics !&
+         M(tblinv(18,  8, Lmax_taylor)) = -0.24226921558569625854492187500000000E+11_kind_physics !&
+         M(tblinv(18, 12, Lmax_taylor)) = -0.10692416604738659667968750000000000E+13_kind_physics !&
+         M(tblinv(18, 16, Lmax_taylor)) = -0.39585194668444328125000000000000000E+14_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 20) then
-         M(tblinv(20, 0, Lmax_taylor)) = 0.29414124910043237304687500000000000E+13_kind_physics
-         M(tblinv(20, 4, Lmax_taylor)) = 0.50799363324581787109375000000000000E+12_kind_physics
-         M(tblinv(20, 8, Lmax_taylor)) = 0.43319375525806137695312500000000000E+13_kind_physics
-         M(tblinv(20, 12, Lmax_taylor)) = 0.47785845726839648437500000000000000E+14_kind_physics
-         M(tblinv(20, 16, Lmax_taylor)) = 0.16103883836731942500000000000000000E+16_kind_physics
-         M(tblinv(20, 20, Lmax_taylor)) = 0.50103139602723200000000000000000000E+18_kind_physics
-      endif
+         M(tblinv(20,  0, Lmax_taylor)) =  0.29414124910043237304687500000000000E+13_kind_physics !&
+         M(tblinv(20,  4, Lmax_taylor)) =  0.50799363324581787109375000000000000E+12_kind_physics !&
+         M(tblinv(20,  8, Lmax_taylor)) =  0.43319375525806137695312500000000000E+13_kind_physics !&
+         M(tblinv(20, 12, Lmax_taylor)) =  0.47785845726839648437500000000000000E+14_kind_physics !&
+         M(tblinv(20, 16, Lmax_taylor)) =  0.16103883836731942500000000000000000E+16_kind_physics !&
+         M(tblinv(20, 20, Lmax_taylor)) =  0.50103139602723200000000000000000000E+18_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 22) then
-         M(tblinv(22, 0, Lmax_taylor)) = 0.15704492101503415625000000000000000E+15_kind_physics
-         M(tblinv(22, 4, Lmax_taylor)) = -0.13167755327760200000000000000000000E+15_kind_physics
-         M(tblinv(22, 8, Lmax_taylor)) = -0.19393166587859906250000000000000000E+15_kind_physics
-         M(tblinv(22, 12, Lmax_taylor)) = -0.27630226717294555000000000000000000E+16_kind_physics
-         M(tblinv(22, 16, Lmax_taylor)) = -0.70704971434484640000000000000000000E+17_kind_physics
-         M(tblinv(22, 20, Lmax_taylor)) = -0.47508773151765964800000000000000000E+19_kind_physics
-      endif
+         M(tblinv(22,  0, Lmax_taylor)) =  0.15704492101503415625000000000000000E+15_kind_physics !&
+         M(tblinv(22,  4, Lmax_taylor)) = -0.13167755327760200000000000000000000E+15_kind_physics !&
+         M(tblinv(22,  8, Lmax_taylor)) = -0.19393166587859906250000000000000000E+15_kind_physics !&
+         M(tblinv(22, 12, Lmax_taylor)) = -0.27630226717294555000000000000000000E+16_kind_physics !&
+         M(tblinv(22, 16, Lmax_taylor)) = -0.70704971434484640000000000000000000E+17_kind_physics !&
+         M(tblinv(22, 20, Lmax_taylor)) = -0.47508773151765964800000000000000000E+19_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 24) then
-         M(tblinv(24, 0, Lmax_taylor)) = 0.49787311095229424000000000000000000E+17_kind_physics
-         M(tblinv(24, 4, Lmax_taylor)) = 0.17493021689018656000000000000000000E+17_kind_physics
-         M(tblinv(24, 8, Lmax_taylor)) = 0.47119084871278656000000000000000000E+17_kind_physics
-         M(tblinv(24, 12, Lmax_taylor)) = 0.27781944545203244800000000000000000E+18_kind_physics
-         M(tblinv(24, 16, Lmax_taylor)) = 0.39862401037549358080000000000000000E+19_kind_physics
-         M(tblinv(24, 20, Lmax_taylor)) = 0.20240160016231468236800000000000000E+21_kind_physics
-         M(tblinv(24, 24, Lmax_taylor)) = 0.14575287885847205406310400000000000E+24_kind_physics
-      endif
+         M(tblinv(24,  0, Lmax_taylor)) =  0.49787311095229424000000000000000000E+17_kind_physics !&
+         M(tblinv(24,  4, Lmax_taylor)) =  0.17493021689018656000000000000000000E+17_kind_physics !&
+         M(tblinv(24,  8, Lmax_taylor)) =  0.47119084871278656000000000000000000E+17_kind_physics !&
+         M(tblinv(24, 12, Lmax_taylor)) =  0.27781944545203244800000000000000000E+18_kind_physics !&
+         M(tblinv(24, 16, Lmax_taylor)) =  0.39862401037549358080000000000000000E+19_kind_physics !&
+         M(tblinv(24, 20, Lmax_taylor)) =  0.20240160016231468236800000000000000E+21_kind_physics !&
+         M(tblinv(24, 24, Lmax_taylor)) =  0.14575287885847205406310400000000000E+24_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 26) then
-         M(tblinv(26, 0, Lmax_taylor)) = 0.38825844842441052160000000000000000E+19_kind_physics
-         M(tblinv(26, 4, Lmax_taylor)) = -0.23376165598727029760000000000000000E+19_kind_physics
-         M(tblinv(26, 8, Lmax_taylor)) = -0.63197488917431695360000000000000000E+19_kind_physics
-         M(tblinv(26, 12, Lmax_taylor)) = -0.31129980912121520128000000000000000E+20_kind_physics
-         M(tblinv(26, 16, Lmax_taylor)) = -0.33888386262957850624000000000000000E+21_kind_physics
-         M(tblinv(26, 20, Lmax_taylor)) = -0.10355256572352317620224000000000000E+23_kind_physics
-         M(tblinv(26, 24, Lmax_taylor)) = -0.16526385068628147039109120000000000E+25_kind_physics
-      endif
+         M(tblinv(26,  0, Lmax_taylor)) =  0.38825844842441052160000000000000000E+19_kind_physics !&
+         M(tblinv(26,  4, Lmax_taylor)) = -0.23376165598727029760000000000000000E+19_kind_physics !&
+         M(tblinv(26,  8, Lmax_taylor)) = -0.63197488917431695360000000000000000E+19_kind_physics !&
+         M(tblinv(26, 12, Lmax_taylor)) = -0.31129980912121520128000000000000000E+20_kind_physics !&
+         M(tblinv(26, 16, Lmax_taylor)) = -0.33888386262957850624000000000000000E+21_kind_physics !&
+         M(tblinv(26, 20, Lmax_taylor)) = -0.10355256572352317620224000000000000E+23_kind_physics !&
+         M(tblinv(26, 24, Lmax_taylor)) = -0.16526385068628147039109120000000000E+25_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 28) then
-         M(tblinv(28, 0, Lmax_taylor)) = 0.15660190510982260326400000000000000E+22_kind_physics
-         M(tblinv(28, 4, Lmax_taylor)) = 0.52389541759563156684800000000000000E+21_kind_physics
-         M(tblinv(28, 8, Lmax_taylor)) = 0.10189364356236629770240000000000000E+22_kind_physics
-         M(tblinv(28, 12, Lmax_taylor)) = 0.60516507919279487713280000000000000E+22_kind_physics
-         M(tblinv(28, 16, Lmax_taylor)) = 0.44738315975593851617280000000000000E+23_kind_physics
-         M(tblinv(28, 20, Lmax_taylor)) = 0.78725443506303414147481600000000000E+24_kind_physics
-         M(tblinv(28, 24, Lmax_taylor)) = 0.74143442402174531771826176000000000E+26_kind_physics
-         M(tblinv(28, 28, Lmax_taylor)) = 0.69657271111833057487556182016000000E+29_kind_physics
-      endif
+         M(tblinv(28,  0, Lmax_taylor)) =  0.15660190510982260326400000000000000E+22_kind_physics !&
+         M(tblinv(28,  4, Lmax_taylor)) =  0.52389541759563156684800000000000000E+21_kind_physics !&
+         M(tblinv(28,  8, Lmax_taylor)) =  0.10189364356236629770240000000000000E+22_kind_physics !&
+         M(tblinv(28, 12, Lmax_taylor)) =  0.60516507919279487713280000000000000E+22_kind_physics !&
+         M(tblinv(28, 16, Lmax_taylor)) =  0.44738315975593851617280000000000000E+23_kind_physics !&
+         M(tblinv(28, 20, Lmax_taylor)) =  0.78725443506303414147481600000000000E+24_kind_physics !&
+         M(tblinv(28, 24, Lmax_taylor)) =  0.74143442402174531771826176000000000E+26_kind_physics !&
+         M(tblinv(28, 28, Lmax_taylor)) =  0.69657271111833057487556182016000000E+29_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 30) then
-         M(tblinv(30, 0, Lmax_taylor)) = 0.17565213196687985606656000000000000E+24_kind_physics
-         M(tblinv(30, 4, Lmax_taylor)) = -0.90284881313281234436096000000000000E+23_kind_physics
-         M(tblinv(30, 8, Lmax_taylor)) = -0.22493547031100229523865600000000000E+24_kind_physics
-         M(tblinv(30, 12, Lmax_taylor)) = -0.83171156039264345522176000000000000E+24_kind_physics
-         M(tblinv(30, 16, Lmax_taylor)) = -0.67252085460554353821614080000000000E+25_kind_physics
-         M(tblinv(30, 20, Lmax_taylor)) = -0.93070427828784211593003008000000000E+26_kind_physics
-         M(tblinv(30, 24, Lmax_taylor)) = -0.43512348030325508745734389760000000E+28_kind_physics
-         M(tblinv(30, 28, Lmax_taylor)) = -0.94353504240103762217068081971200000E+30_kind_physics
-      endif
+         M(tblinv(30,  0, Lmax_taylor)) =  0.17565213196687985606656000000000000E+24_kind_physics !&
+         M(tblinv(30,  4, Lmax_taylor)) = -0.90284881313281234436096000000000000E+23_kind_physics !&
+         M(tblinv(30,  8, Lmax_taylor)) = -0.22493547031100229523865600000000000E+24_kind_physics !&
+         M(tblinv(30, 12, Lmax_taylor)) = -0.83171156039264345522176000000000000E+24_kind_physics !&
+         M(tblinv(30, 16, Lmax_taylor)) = -0.67252085460554353821614080000000000E+25_kind_physics !&
+         M(tblinv(30, 20, Lmax_taylor)) = -0.93070427828784211593003008000000000E+26_kind_physics !&
+         M(tblinv(30, 24, Lmax_taylor)) = -0.43512348030325508745734389760000000E+28_kind_physics !&
+         M(tblinv(30, 28, Lmax_taylor)) = -0.94353504240103762217068081971200000E+30_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 32) then
-         M(tblinv(32, 0, Lmax_taylor)) = 0.78458227133695181778321408000000000E+26_kind_physics
-         M(tblinv(32, 4, Lmax_taylor)) = 0.19800659318770194003787776000000000E+26_kind_physics
-         M(tblinv(32, 8, Lmax_taylor)) = 0.40707502807452171343233024000000000E+26_kind_physics
-         M(tblinv(32, 12, Lmax_taylor)) = 0.19735657821534461612995379200000000E+27_kind_physics
-         M(tblinv(32, 16, Lmax_taylor)) = 0.12450909829876972207619440640000000E+28_kind_physics
-         M(tblinv(32, 20, Lmax_taylor)) = 0.14182362308984682793708552192000000E+29_kind_physics
-         M(tblinv(32, 24, Lmax_taylor)) = 0.40345092874684789236447995494400000E+30_kind_physics
-         M(tblinv(32, 28, Lmax_taylor)) = 0.45444444205682558857562241892352000E+32_kind_physics
-         M(tblinv(32, 32, Lmax_taylor)) = 0.50653072148998691431842768333307904E+35_kind_physics
-      endif
+         M(tblinv(32,  0, Lmax_taylor)) =  0.78458227133695181778321408000000000E+26_kind_physics !&
+         M(tblinv(32,  4, Lmax_taylor)) =  0.19800659318770194003787776000000000E+26_kind_physics !&
+         M(tblinv(32,  8, Lmax_taylor)) =  0.40707502807452171343233024000000000E+26_kind_physics !&
+         M(tblinv(32, 12, Lmax_taylor)) =  0.19735657821534461612995379200000000E+27_kind_physics !&
+         M(tblinv(32, 16, Lmax_taylor)) =  0.12450909829876972207619440640000000E+28_kind_physics !&
+         M(tblinv(32, 20, Lmax_taylor)) =  0.14182362308984682793708552192000000E+29_kind_physics !&
+         M(tblinv(32, 24, Lmax_taylor)) =  0.40345092874684789236447995494400000E+30_kind_physics !&
+         M(tblinv(32, 28, Lmax_taylor)) =  0.45444444205682558857562241892352000E+32_kind_physics !&
+         M(tblinv(32, 32, Lmax_taylor)) =  0.50653072148998691431842768333307904E+35_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 34) then
-         M(tblinv(34, 0, Lmax_taylor)) = 0.12278316702141080761339478016000000E+29_kind_physics
-         M(tblinv(34, 4, Lmax_taylor)) = -0.59526574797376592337887559680000000E+28_kind_physics
-         M(tblinv(34, 8, Lmax_taylor)) = -0.11302400297437305963909480448000000E+29_kind_physics
-         M(tblinv(34, 12, Lmax_taylor)) = -0.38755995239471066353042980864000000E+29_kind_physics
-         M(tblinv(34, 16, Lmax_taylor)) = -0.23039296235918866510876613017600000E+30_kind_physics
-         M(tblinv(34, 20, Lmax_taylor)) = -0.24872491441724127447545492275200000E+31_kind_physics
-         M(tblinv(34, 24, Lmax_taylor)) = -0.54905190027187592671741710696448000E+32_kind_physics
-         M(tblinv(34, 28, Lmax_taylor)) = -0.31190929147945806824910150623559680E+34_kind_physics
-         M(tblinv(34, 32, Lmax_taylor)) = -0.81660979692832048923194261235983974E+36_kind_physics
-      endif
+         M(tblinv(34,  0, Lmax_taylor)) =  0.12278316702141080761339478016000000E+29_kind_physics !&
+         M(tblinv(34,  4, Lmax_taylor)) = -0.59526574797376592337887559680000000E+28_kind_physics !&
+         M(tblinv(34,  8, Lmax_taylor)) = -0.11302400297437305963909480448000000E+29_kind_physics !&
+         M(tblinv(34, 12, Lmax_taylor)) = -0.38755995239471066353042980864000000E+29_kind_physics !&
+         M(tblinv(34, 16, Lmax_taylor)) = -0.23039296235918866510876613017600000E+30_kind_physics !&
+         M(tblinv(34, 20, Lmax_taylor)) = -0.24872491441724127447545492275200000E+31_kind_physics !&
+         M(tblinv(34, 24, Lmax_taylor)) = -0.54905190027187592671741710696448000E+32_kind_physics !&
+         M(tblinv(34, 28, Lmax_taylor)) = -0.31190929147945806824910150623559680E+34_kind_physics !&
+         M(tblinv(34, 32, Lmax_taylor)) = -0.81660979692832048923194261235983974E+36_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 36) then
-         M(tblinv(36, 0, Lmax_taylor)) = 0.68042610132272997473266475991040000E+31_kind_physics
-         M(tblinv(36, 4, Lmax_taylor)) = 0.16899043765958400366236600893440000E+31_kind_physics
-         M(tblinv(36, 8, Lmax_taylor)) = 0.34324695002843274371624075264000000E+31_kind_physics
-         M(tblinv(36, 12, Lmax_taylor)) = 0.10891961584200954183772928999424000E+32_kind_physics
-         M(tblinv(36, 16, Lmax_taylor)) = 0.58629472355230521588913774002176000E+32_kind_physics
-         M(tblinv(36, 20, Lmax_taylor)) = 0.49998188032652907531537992594227200E+33_kind_physics
-         M(tblinv(36, 24, Lmax_taylor)) = 0.91906783013472935407104169837854720E+34_kind_physics
-         M(tblinv(36, 28, Lmax_taylor)) = 0.34340831446128471752777543275302093E+36_kind_physics
-         M(tblinv(36, 32, Lmax_taylor)) = 0.43228808611207350488871067804720169E+38_kind_physics
-         M(tblinv(36, 36, Lmax_taylor)) = 0.68507719909013291704154043991494769E+41_kind_physics
-      endif
+         M(tblinv(36,  0, Lmax_taylor)) =  0.68042610132272997473266475991040000E+31_kind_physics !&
+         M(tblinv(36,  4, Lmax_taylor)) =  0.16899043765958400366236600893440000E+31_kind_physics !&
+         M(tblinv(36,  8, Lmax_taylor)) =  0.34324695002843274371624075264000000E+31_kind_physics !&
+         M(tblinv(36, 12, Lmax_taylor)) =  0.10891961584200954183772928999424000E+32_kind_physics !&
+         M(tblinv(36, 16, Lmax_taylor)) =  0.58629472355230521588913774002176000E+32_kind_physics !&
+         M(tblinv(36, 20, Lmax_taylor)) =  0.49998188032652907531537992594227200E+33_kind_physics !&
+         M(tblinv(36, 24, Lmax_taylor)) =  0.91906783013472935407104169837854720E+34_kind_physics !&
+         M(tblinv(36, 28, Lmax_taylor)) =  0.34340831446128471752777543275302093E+36_kind_physics !&
+         M(tblinv(36, 32, Lmax_taylor)) =  0.43228808611207350488871067804720169E+38_kind_physics !&
+         M(tblinv(36, 36, Lmax_taylor)) =  0.68507719909013291704154043991494769E+41_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 38) then
-         M(tblinv(38, 0, Lmax_taylor)) = 0.13898229629288749146802627217981440E+34_kind_physics
-         M(tblinv(38, 4, Lmax_taylor)) = -0.60270926668898774338105280928153600E+33_kind_physics
-         M(tblinv(38, 8, Lmax_taylor)) = -0.10775625047577013971523006848040960E+34_kind_physics
-         M(tblinv(38, 12, Lmax_taylor)) = -0.34766229802879845205641022637342720E+34_kind_physics
-         M(tblinv(38, 16, Lmax_taylor)) = -0.14823209389154711189182603646205952E+35_kind_physics
-         M(tblinv(38, 20, Lmax_taylor)) = -0.11752399281934163140926597781625242E+36_kind_physics
-         M(tblinv(38, 24, Lmax_taylor)) = -0.17828636580470227178141304832036700E+37_kind_physics
-         M(tblinv(38, 28, Lmax_taylor)) = -0.52302605673609923514633048016233169E+38_kind_physics
-         M(tblinv(38, 32, Lmax_taylor)) = -0.35118870041597762879848563642386361E+40_kind_physics
-         M(tblinv(38, 36, Lmax_taylor)) = -0.12463088506162654718653256758114972E+43_kind_physics
-      endif
+         M(tblinv(38,  0, Lmax_taylor)) =  0.13898229629288749146802627217981440E+34_kind_physics !&
+         M(tblinv(38,  4, Lmax_taylor)) = -0.60270926668898774338105280928153600E+33_kind_physics !&
+         M(tblinv(38,  8, Lmax_taylor)) = -0.10775625047577013971523006848040960E+34_kind_physics !&
+         M(tblinv(38, 12, Lmax_taylor)) = -0.34766229802879845205641022637342720E+34_kind_physics !&
+         M(tblinv(38, 16, Lmax_taylor)) = -0.14823209389154711189182603646205952E+35_kind_physics !&
+         M(tblinv(38, 20, Lmax_taylor)) = -0.11752399281934163140926597781625242E+36_kind_physics !&
+         M(tblinv(38, 24, Lmax_taylor)) = -0.17828636580470227178141304832036700E+37_kind_physics !&
+         M(tblinv(38, 28, Lmax_taylor)) = -0.52302605673609923514633048016233169E+38_kind_physics !&
+         M(tblinv(38, 32, Lmax_taylor)) = -0.35118870041597762879848563642386361E+40_kind_physics !&
+         M(tblinv(38, 36, Lmax_taylor)) = -0.12463088506162654718653256758114972E+43_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 40) then
-         M(tblinv(40, 0, Lmax_taylor)) = 0.93977144756954277273979168067944448E+36_kind_physics
-         M(tblinv(40, 4, Lmax_taylor)) = 0.23714015731391362877925506034119475E+36_kind_physics
-         M(tblinv(40, 8, Lmax_taylor)) = 0.42743502595313863625949324121630310E+36_kind_physics
-         M(tblinv(40, 12, Lmax_taylor)) = 0.11495283403223308187177106969334907E+37_kind_physics
-         M(tblinv(40, 16, Lmax_taylor)) = 0.52276986864725787950760775438271775E+37_kind_physics
-         M(tblinv(40, 20, Lmax_taylor)) = 0.33727766809055668839809403273932177E+38_kind_physics
-         M(tblinv(40, 24, Lmax_taylor)) = 0.40969785140672314541232018394122394E+39_kind_physics
-         M(tblinv(40, 28, Lmax_taylor)) = 0.96152785881824123788054152991004573E+40_kind_physics
-         M(tblinv(40, 32, Lmax_taylor)) = 0.44874401799468575928849907858428924E+42_kind_physics
-         M(tblinv(40, 36, Lmax_taylor)) = 0.72067379047599356261543581978928705E+44_kind_physics
-         M(tblinv(40, 40, Lmax_taylor)) = 0.14800934278189952376201098541279335E+48_kind_physics
-      endif
+         M(tblinv(40,  0, Lmax_taylor)) =  0.93977144756954277273979168067944448E+36_kind_physics !&
+         M(tblinv(40,  4, Lmax_taylor)) =  0.23714015731391362877925506034119475E+36_kind_physics !&
+         M(tblinv(40,  8, Lmax_taylor)) =  0.42743502595313863625949324121630310E+36_kind_physics !&
+         M(tblinv(40, 12, Lmax_taylor)) =  0.11495283403223308187177106969334907E+37_kind_physics !&
+         M(tblinv(40, 16, Lmax_taylor)) =  0.52276986864725787950760775438271775E+37_kind_physics !&
+         M(tblinv(40, 20, Lmax_taylor)) =  0.33727766809055668839809403273932177E+38_kind_physics !&
+         M(tblinv(40, 24, Lmax_taylor)) =  0.40969785140672314541232018394122394E+39_kind_physics !&
+         M(tblinv(40, 28, Lmax_taylor)) =  0.96152785881824123788054152991004573E+40_kind_physics !&
+         M(tblinv(40, 32, Lmax_taylor)) =  0.44874401799468575928849907858428924E+42_kind_physics !&
+         M(tblinv(40, 36, Lmax_taylor)) =  0.72067379047599356261543581978928705E+44_kind_physics !&
+         M(tblinv(40, 40, Lmax_taylor)) =  0.14800934278189952376201098541279335E+48_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 42) then
-         M(tblinv(42, 0, Lmax_taylor)) = 0.24101076028312310966209393434722042E+39_kind_physics
-         M(tblinv(42, 4, Lmax_taylor)) = -0.93281129758571302744991251804222128E+38_kind_physics
-         M(tblinv(42, 8, Lmax_taylor)) = -0.16863712622021360123396968923689019E+39_kind_physics
-         M(tblinv(42, 12, Lmax_taylor)) = -0.46853042206730476424367486564414836E+39_kind_physics
-         M(tblinv(42, 16, Lmax_taylor)) = -0.17641892567348816407157155646613016E+40_kind_physics
-         M(tblinv(42, 20, Lmax_taylor)) = -0.10797655474740776079434477868503980E+41_kind_physics
-         M(tblinv(42, 24, Lmax_taylor)) = -0.11246877236296608016299482503228058E+42_kind_physics
-         M(tblinv(42, 28, Lmax_taylor)) = -0.20969526317812940926745387753660932E+43_kind_physics
-         M(tblinv(42, 32, Lmax_taylor)) = -0.75724665322139793932309232476273515E+44_kind_physics
-         M(tblinv(42, 36, Lmax_taylor)) = -0.66768070679697744883455851575286634E+46_kind_physics
-         M(tblinv(42, 40, Lmax_taylor)) = -0.29755158895080900545179527774736656E+49_kind_physics
-      endif
+         M(tblinv(42,  0, Lmax_taylor)) =  0.24101076028312310966209393434722042E+39_kind_physics !&
+         M(tblinv(42,  4, Lmax_taylor)) = -0.93281129758571302744991251804222128E+38_kind_physics !&
+         M(tblinv(42,  8, Lmax_taylor)) = -0.16863712622021360123396968923689019E+39_kind_physics !&
+         M(tblinv(42, 12, Lmax_taylor)) = -0.46853042206730476424367486564414836E+39_kind_physics !&
+         M(tblinv(42, 16, Lmax_taylor)) = -0.17641892567348816407157155646613016E+40_kind_physics !&
+         M(tblinv(42, 20, Lmax_taylor)) = -0.10797655474740776079434477868503980E+41_kind_physics !&
+         M(tblinv(42, 24, Lmax_taylor)) = -0.11246877236296608016299482503228058E+42_kind_physics !&
+         M(tblinv(42, 28, Lmax_taylor)) = -0.20969526317812940926745387753660932E+43_kind_physics !&
+         M(tblinv(42, 32, Lmax_taylor)) = -0.75724665322139793932309232476273515E+44_kind_physics !&
+         M(tblinv(42, 36, Lmax_taylor)) = -0.66768070679697744883455851575286634E+46_kind_physics !&
+         M(tblinv(42, 40, Lmax_taylor)) = -0.29755158895080900545179527774736656E+49_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 44) then
-         M(tblinv(44, 0, Lmax_taylor)) = 0.18802895551242673459138461852530244E+42_kind_physics
-         M(tblinv(44, 4, Lmax_taylor)) = 0.43311029073565793748509578220261652E+41_kind_physics
-         M(tblinv(44, 8, Lmax_taylor)) = 0.73183638551002990062234712155205585E+41_kind_physics
-         M(tblinv(44, 12, Lmax_taylor)) = 0.19166034402485976735982481534810537E+42_kind_physics
-         M(tblinv(44, 16, Lmax_taylor)) = 0.73232212910142631303132939886618574E+42_kind_physics
-         M(tblinv(44, 20, Lmax_taylor)) = 0.41012643572849966900066752483471331E+43_kind_physics
-         M(tblinv(44, 24, Lmax_taylor)) = 0.36428462773419336183953301342681366E+44_kind_physics
-         M(tblinv(44, 28, Lmax_taylor)) = 0.55060498466948680359498813385646596E+45_kind_physics
-         M(tblinv(44, 32, Lmax_taylor)) = 0.15457075645609170865398960598067162E+47_kind_physics
-         M(tblinv(44, 36, Lmax_taylor)) = 0.94835735621465907545197009937397149E+48_kind_physics
-         M(tblinv(44, 40, Lmax_taylor)) = 0.18713883520362201373510777806841623E+51_kind_physics
-         M(tblinv(44, 44, Lmax_taylor)) = 0.45107670269567111253033410002734787E+54_kind_physics
-      endif
+         M(tblinv(44,  0, Lmax_taylor)) =  0.18802895551242673459138461852530244E+42_kind_physics !&
+         M(tblinv(44,  4, Lmax_taylor)) =  0.43311029073565793748509578220261652E+41_kind_physics !&
+         M(tblinv(44,  8, Lmax_taylor)) =  0.73183638551002990062234712155205585E+41_kind_physics !&
+         M(tblinv(44, 12, Lmax_taylor)) =  0.19166034402485976735982481534810537E+42_kind_physics !&
+         M(tblinv(44, 16, Lmax_taylor)) =  0.73232212910142631303132939886618574E+42_kind_physics !&
+         M(tblinv(44, 20, Lmax_taylor)) =  0.41012643572849966900066752483471331E+43_kind_physics !&
+         M(tblinv(44, 24, Lmax_taylor)) =  0.36428462773419336183953301342681366E+44_kind_physics !&
+         M(tblinv(44, 28, Lmax_taylor)) =  0.55060498466948680359498813385646596E+45_kind_physics !&
+         M(tblinv(44, 32, Lmax_taylor)) =  0.15457075645609170865398960598067162E+47_kind_physics !&
+         M(tblinv(44, 36, Lmax_taylor)) =  0.94835735621465907545197009937397149E+48_kind_physics !&
+         M(tblinv(44, 40, Lmax_taylor)) =  0.18713883520362201373510777806841623E+51_kind_physics !&
+         M(tblinv(44, 44, Lmax_taylor)) =  0.45107670269567111253033410002734787E+54_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 46) then
-         M(tblinv(46, 0, Lmax_taylor)) = 0.59784640964094988095060157708745782E+44_kind_physics
-         M(tblinv(46, 4, Lmax_taylor)) = -0.21718732499012689597368020389604494E+44_kind_physics
-         M(tblinv(46, 8, Lmax_taylor)) = -0.36782514431632691178151233050748931E+44_kind_physics
-         M(tblinv(46, 12, Lmax_taylor)) = -0.88873556144958931198450002034029892E+44_kind_physics
-         M(tblinv(46, 16, Lmax_taylor)) = -0.31603183651814223604291954933692593E+45_kind_physics
-         M(tblinv(46, 20, Lmax_taylor)) = -0.16091883309137843277165046271290753E+46_kind_physics
-         M(tblinv(46, 24, Lmax_taylor)) = -0.13287100221864350079915775281789533E+47_kind_physics
-         M(tblinv(46, 28, Lmax_taylor)) = -0.17200569376295918617028117347212389E+48_kind_physics
-         M(tblinv(46, 32, Lmax_taylor)) = -0.38146081679001297318366488451434897E+49_kind_physics
-         M(tblinv(46, 36, Lmax_taylor)) = -0.17463078833474928188216353940559520E+51_kind_physics
-         M(tblinv(46, 40, Lmax_taylor)) = -0.19348009546647245429748014166800000E+53_kind_physics
-         M(tblinv(46, 44, Lmax_taylor)) = -0.10021492491483168007613903982234254E+56_kind_physics
-      endif
+         M(tblinv(46,  0, Lmax_taylor)) =  0.59784640964094988095060157708745782E+44_kind_physics !&
+         M(tblinv(46,  4, Lmax_taylor)) = -0.21718732499012689597368020389604494E+44_kind_physics !&
+         M(tblinv(46,  8, Lmax_taylor)) = -0.36782514431632691178151233050748931E+44_kind_physics !&
+         M(tblinv(46, 12, Lmax_taylor)) = -0.88873556144958931198450002034029892E+44_kind_physics !&
+         M(tblinv(46, 16, Lmax_taylor)) = -0.31603183651814223604291954933692593E+45_kind_physics !&
+         M(tblinv(46, 20, Lmax_taylor)) = -0.16091883309137843277165046271290753E+46_kind_physics !&
+         M(tblinv(46, 24, Lmax_taylor)) = -0.13287100221864350079915775281789533E+47_kind_physics !&
+         M(tblinv(46, 28, Lmax_taylor)) = -0.17200569376295918617028117347212389E+48_kind_physics !&
+         M(tblinv(46, 32, Lmax_taylor)) = -0.38146081679001297318366488451434897E+49_kind_physics !&
+         M(tblinv(46, 36, Lmax_taylor)) = -0.17463078833474928188216353940559520E+51_kind_physics !&
+         M(tblinv(46, 40, Lmax_taylor)) = -0.19348009546647245429748014166800000E+53_kind_physics !&
+         M(tblinv(46, 44, Lmax_taylor)) = -0.10021492491483168007613903982234254E+56_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 48) then
-         M(tblinv(48, 0, Lmax_taylor)) = 0.54091590625627984312694298022521638E+47_kind_physics
-         M(tblinv(48, 4, Lmax_taylor)) = 0.11663289142002507285726138558407866E+47_kind_physics
-         M(tblinv(48, 8, Lmax_taylor)) = 0.19297849313251926818093115443991633E+47_kind_physics
-         M(tblinv(48, 12, Lmax_taylor)) = 0.46489785748709634074809721449710401E+47_kind_physics
-         M(tblinv(48, 16, Lmax_taylor)) = 0.15135360353073524771531329454490740E+48_kind_physics
-         M(tblinv(48, 20, Lmax_taylor)) = 0.74875422886287882154503340453273852E+48_kind_physics
-         M(tblinv(48, 24, Lmax_taylor)) = 0.54529024679443529183710127100291682E+49_kind_physics
-         M(tblinv(48, 28, Lmax_taylor)) = 0.61848643203375079716184234543977896E+50_kind_physics
-         M(tblinv(48, 32, Lmax_taylor)) = 0.11344260412736385826599342396561789E+52_kind_physics
-         M(tblinv(48, 36, Lmax_taylor)) = 0.39355623229229834367370697954204835E+53_kind_physics
-         M(tblinv(48, 40, Lmax_taylor)) = 0.30004515203011408745525386533152145E+55_kind_physics
-         M(tblinv(48, 44, Lmax_taylor)) = 0.68834213748584856263825356451645833E+57_kind_physics
-         M(tblinv(48, 48, Lmax_taylor)) = 0.20001957436429808127412432998753191E+61_kind_physics
-      endif
+         M(tblinv(48,  0, Lmax_taylor)) =  0.54091590625627984312694298022521638E+47_kind_physics !&
+         M(tblinv(48,  4, Lmax_taylor)) =  0.11663289142002507285726138558407866E+47_kind_physics !&
+         M(tblinv(48,  8, Lmax_taylor)) =  0.19297849313251926818093115443991633E+47_kind_physics !&
+         M(tblinv(48, 12, Lmax_taylor)) =  0.46489785748709634074809721449710401E+47_kind_physics !&
+         M(tblinv(48, 16, Lmax_taylor)) =  0.15135360353073524771531329454490740E+48_kind_physics !&
+         M(tblinv(48, 20, Lmax_taylor)) =  0.74875422886287882154503340453273852E+48_kind_physics !&
+         M(tblinv(48, 24, Lmax_taylor)) =  0.54529024679443529183710127100291682E+49_kind_physics !&
+         M(tblinv(48, 28, Lmax_taylor)) =  0.61848643203375079716184234543977896E+50_kind_physics !&
+         M(tblinv(48, 32, Lmax_taylor)) =  0.11344260412736385826599342396561789E+52_kind_physics !&
+         M(tblinv(48, 36, Lmax_taylor)) =  0.39355623229229834367370697954204835E+53_kind_physics !&
+         M(tblinv(48, 40, Lmax_taylor)) =  0.30004515203011408745525386533152145E+55_kind_physics !&
+         M(tblinv(48, 44, Lmax_taylor)) =  0.68834213748584856263825356451645833E+57_kind_physics !&
+         M(tblinv(48, 48, Lmax_taylor)) =  0.20001957436429808127412432998753191E+61_kind_physics !&
+      end if
       if (Lmax_taylor .ge. 50) then
-         M(tblinv(50, 0, Lmax_taylor)) = 0.20864059126219213229101827182756468E+50_kind_physics
-         M(tblinv(50, 4, Lmax_taylor)) = -0.71371462465877191246460694120821817E+49_kind_physics
-         M(tblinv(50, 8, Lmax_taylor)) = -0.11390675800486528205469614339919759E+50_kind_physics
-         M(tblinv(50, 12, Lmax_taylor)) = -0.25698108938627681912829253813380236E+50_kind_physics
-         M(tblinv(50, 16, Lmax_taylor)) = -0.82682295714696801394294513691512288E+50_kind_physics
-         M(tblinv(50, 20, Lmax_taylor)) = -0.36119437965220962693352871174498619E+51_kind_physics
-         M(tblinv(50, 24, Lmax_taylor)) = -0.24469060499208437710499965690675910E+52_kind_physics
-         M(tblinv(50, 28, Lmax_taylor)) = -0.24985831554220241753398146184375358E+53_kind_physics
-         M(tblinv(50, 32, Lmax_taylor)) = -0.39487363485332672405775590478159064E+54_kind_physics
-         M(tblinv(50, 36, Lmax_taylor)) = -0.10818721669463859115111182196995084E+56_kind_physics
-         M(tblinv(50, 40, Lmax_taylor)) = -0.60006392362363866029775125016277996E+57_kind_physics
-         M(tblinv(50, 44, Lmax_taylor)) = -0.78921187860113696431951889503631055E+59_kind_physics
-         M(tblinv(50, 48, Lmax_taylor)) = -0.48554519650961009793033053599894219E+62_kind_physics
-      endif
+         M(tblinv(50,  0, Lmax_taylor)) =  0.20864059126219213229101827182756468E+50_kind_physics !&
+         M(tblinv(50,  4, Lmax_taylor)) = -0.71371462465877191246460694120821817E+49_kind_physics !&
+         M(tblinv(50,  8, Lmax_taylor)) = -0.11390675800486528205469614339919759E+50_kind_physics !&
+         M(tblinv(50, 12, Lmax_taylor)) = -0.25698108938627681912829253813380236E+50_kind_physics !&
+         M(tblinv(50, 16, Lmax_taylor)) = -0.82682295714696801394294513691512288E+50_kind_physics !&
+         M(tblinv(50, 20, Lmax_taylor)) = -0.36119437965220962693352871174498619E+51_kind_physics !&
+         M(tblinv(50, 24, Lmax_taylor)) = -0.24469060499208437710499965690675910E+52_kind_physics !&
+         M(tblinv(50, 28, Lmax_taylor)) = -0.24985831554220241753398146184375358E+53_kind_physics !&
+         M(tblinv(50, 32, Lmax_taylor)) = -0.39487363485332672405775590478159064E+54_kind_physics !&
+         M(tblinv(50, 36, Lmax_taylor)) = -0.10818721669463859115111182196995084E+56_kind_physics !&
+         M(tblinv(50, 40, Lmax_taylor)) = -0.60006392362363866029775125016277996E+57_kind_physics !&
+         M(tblinv(50, 44, Lmax_taylor)) = -0.78921187860113696431951889503631055E+59_kind_physics !&
+         M(tblinv(50, 48, Lmax_taylor)) = -0.48554519650961009793033053599894219E+62_kind_physics !&
+      end if
 
       if (Lmax_taylor .gt. 50) then
-         DEBUG_WARNING(*, 'load_lattice_coefficients(): Lmax_taylor.gt.50')
-      endif
+         DEBUG_WARNING(*, 'load_lattice_coefficients(): Lmax_taylor > 50')
+      end if
 
       call pepc_status('LATTICE COEFFICIENTS: finished')
    end subroutine load_lattice_coefficients
@@ -542,21 +542,21 @@ contains
          do p = 1, 3
             if (periodicity(p)) then
                nfictcharge = nfictcharge + 1
-               fictcharge(nfictcharge)%coc(1:3) = LatticeOrigin + Lattice(p, :)                                ! position
+               fictcharge(nfictcharge)%coc(1:3) = LatticeOrigin + Lattice(p, :) ! position
                fictcharge(nfictcharge)%charge = -box_dipole(p) / sqrt(dot_product(Lattice(p, :), Lattice(p, :))) ! charge
             end if
          end do
 
          nfictcharge = nfictcharge + 1
-         fictcharge(nfictcharge)%coc(1:3) = LatticeOrigin                                                 ! position
-         fictcharge(nfictcharge)%charge = -sum(fictcharge(1:nfictcharge - 1)%charge)                       ! charge
+         fictcharge(nfictcharge)%coc(1:3) = LatticeOrigin ! position
+         fictcharge(nfictcharge)%charge = -sum(fictcharge(1:nfictcharge - 1)%charge) ! charge
 
          if (myrank .eq. 0) then
             do p = 1, nfictcharge
                call addparticle(omega_tilde, fictcharge(p)%coc, fictcharge(p)%charge)
             end do
          end if
-      endif
+      end if
 
       call chop(omega_tilde)
 
@@ -665,7 +665,7 @@ contains
          Pt = LegendreP(l, m, x) / factorial(l + m)
       else
          Pt = (-one)**m * Ptilda(l, abs(m), x)
-      endif
+      end if
    end function Ptilda
 
    !>
@@ -685,7 +685,7 @@ contains
          P2t = LegendreP(l, m, x) * factorial(l - m)
       else
          P2t = (-one)**abs(m) * P2tilda(l, abs(m), x)
-      endif
+      end if
    end function P2tilda
 
    !>
@@ -708,9 +708,9 @@ contains
          else
             ! avoid having to compute 0^0 = 1 since some runtimes do not like that
             OMultipole = Ptilda(l, m, s(2)) * exp(-i * real(m, kind=kind_physics) * s(3))
-         endif
+         end if
 
-      endif
+      end if
    end function OMultipole
 
    !>
@@ -729,7 +729,7 @@ contains
       else
          MTaylor = one / (s(1)**real(l + 1, kind=kind_physics)) * &
                    P2tilda(l, m, s(2)) * exp(i * real(m, kind=kind_physics) * s(3))
-      endif
+      end if
    end function MTaylor
 
    !>
@@ -842,7 +842,7 @@ contains
 
       if ((l .lt. 0)) then
          DEBUG_ERROR('("tbl(A,l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
-      endif
+      end if
 
       if ((l .gt. Lmax) .or. (abs(m) .gt. l)) then
          tbl = 0
@@ -869,7 +869,7 @@ contains
 
       if ((l .lt. 0) .or. (m .lt. 0) .or. (m .gt. l) .or. (l .gt. Lmax)) then
          DEBUG_ERROR('("tblinv(l,m) - invalid arguments. l=", I0, " m=", I0)', l, m)
-      endif
+      end if
 
       tblinv = l * (l + 1) / 2 + 1 + m
    end function tblinv
@@ -955,7 +955,7 @@ contains
          maxl = max_l
       else
          maxl = Lmax_taylor
-      endif
+      end if
 
       do l = 0, maxl
          do m = 0, l
@@ -1206,7 +1206,7 @@ contains
 
       if ((m .lt. 0) .or. (m .gt. l) .or. (abs(x) .gt. 1) .or. (l .lt. 0)) then
          DEBUG_ERROR(*, 'Invalid arguments for LegendreP(', l, m, x, ')')
-      endif
+      end if
 
       pmm = one     ! Compute P_m^m
 
@@ -1217,8 +1217,8 @@ contains
          do i = 1, m
             pmm = -pmm * fact * somx2
             fact = fact + two
-         enddo
-      endif
+         end do
+      end if
 
       if (l .eq. m) then
          LegendreP = pmm
@@ -1232,11 +1232,11 @@ contains
                pll = (x * (two * ll - one) * pmmp1 - (ll + m - one) * pmm) / real(ll - m, kind=kind_physics)
                pmm = pmmp1
                pmmp1 = pll
-            enddo
+            end do
 
             LegendreP = pll
-         endif
-      endif
+         end if
+      end if
 
       LegendreP = (-one)**m * LegendreP
    end function LegendreP
@@ -1254,60 +1254,60 @@ contains
       end if
 
       if (n .gt. 170) then
-         DEBUG_ERROR(*, "Tried to calculate factorial with n.gt.170. This would lead to numeric overflow.")
+         DEBUG_ERROR(*, "Tried to calculate factorial with n>170. This would lead to numeric overflow.")
       end if
 
       select case (n)
       case (0)
-         factorial = one
+         factorial =                      one                                   !&
       case (1)
-         factorial = one
+         factorial =                      one                                   !&
       case (2)
-         factorial = two
+         factorial =                      two                                   !&
       case (3)
-         factorial = 6._kind_physics
+         factorial =                        6._kind_physics                     !&
       case (4)
-         factorial = 24._kind_physics
+         factorial =                       24._kind_physics                     !&
       case (5)
-         factorial = 120._kind_physics
+         factorial =                      120._kind_physics                     !&
       case (6)
-         factorial = 720._kind_physics
+         factorial =                      720._kind_physics                     !&
       case (7)
-         factorial = 5040._kind_physics
+         factorial =                     5040._kind_physics                     !&
       case (8)
-         factorial = 40320._kind_physics
+         factorial =                    40320._kind_physics                     !&
       case (9)
-         factorial = 362880._kind_physics
+         factorial =                   362880._kind_physics                     !&
       case (10)
-         factorial = 3628800._kind_physics
+         factorial =                  3628800._kind_physics                     !&
       case (11)
-         factorial = 39916800._kind_physics
+         factorial =                 39916800._kind_physics                     !&
       case (12)
-         factorial = 479001600._kind_physics
+         factorial =                479001600._kind_physics                     !&
       case (13)
-         factorial = 6227020800._kind_physics
+         factorial =               6227020800._kind_physics                     !&
       case (14)
-         factorial = 87178291200._kind_physics
+         factorial =              87178291200._kind_physics                     !&
       case (15)
-         factorial = 1307674368000._kind_physics
+         factorial =            1307674368000._kind_physics                     !&
       case (16)
-         factorial = 20922789888000._kind_physics
+         factorial =           20922789888000._kind_physics                     !&
       case (17)
-         factorial = 355687428096000._kind_physics
+         factorial =          355687428096000._kind_physics                     !&
       case (18)
-         factorial = 6402373705728000._kind_physics
+         factorial =         6402373705728000._kind_physics                     !&
       case (19)
-         factorial = 121645100408832000._kind_physics
+         factorial =       121645100408832000._kind_physics                     !&
       case (20)
-         factorial = 2432902008176640000._kind_physics
+         factorial =      2432902008176640000._kind_physics                     !&
       case (21)
-         factorial = 51090942171709440000._kind_physics
+         factorial =     51090942171709440000._kind_physics                     !&
       case (22)
-         factorial = 1124000727777607680000._kind_physics
+         factorial =   1124000727777607680000._kind_physics                     !&
       case (23)
-         factorial = 25852016738884976640000._kind_physics
+         factorial =  25852016738884976640000._kind_physics                     !&
       case (24)
-         factorial = 620448401733239439360000._kind_physics
+         factorial = 620448401733239439360000._kind_physics                     !&
       case default
          factorial = gamma(real(n + 1, kind_physics))
       end select
@@ -1325,11 +1325,11 @@ contains
 
       n = size(arr)
 
-      do i = n / 2, 1, -1                      ! Left range - hiring phase (heap creation)
+      do i = n / 2, 1, -1               ! Left range - hiring phase (heap creation)
          call sift_down(i, n)
       end do
 
-      do i = n, 2, -1                        ! Right range of sift-down is decr. from n-1 ->1
+      do i = n, 2, -1                   ! Right range of sift-down is decr. from n-1 ->1
          ! during retirement/promotion (heap selection) phase.
          call swap(arr(1), arr(i))      ! Clear space at end of array and retire top of heap into it
          call sift_down(1, i - 1)
@@ -1337,8 +1337,8 @@ contains
 
    contains
       subroutine sift_down(l, r)        ! Carry out the sift-down on element arr(l) to maintain
-         integer, intent(in) :: l, r     ! the heap structure
-         integer :: j, jold    ! index
+         integer, intent(in) :: l, r    ! the heap structure
+         integer :: j, jold             ! index
          real(kind_physics) :: a
 
          a = arr(l)
@@ -1348,7 +1348,7 @@ contains
             if (j .gt. r) exit
             if (j .lt. r) then
                if (abs(arr(j)) .lt. abs(arr(j + 1))) j = j + 1
-            endif
+            end if
             if (abs(a) .ge. abs(arr(j))) exit       ! Found a`s level, so terminate sift-down
 
             arr(jold) = arr(j)
