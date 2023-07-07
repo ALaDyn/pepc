@@ -76,13 +76,13 @@ contains
       allocate (particles(1:np_local))
 
       do i = 1, np_local
-         particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  !& position
-                                           max(p_w(i), 1._8),       &  !& workload from last step
-                                                        -1_8,       &  !& key - will be assigned later
-                                                        -1_8,       &  !& leaf key - will be assigned later
-                                                  p_label(i),       &  !& particle label for tracking purposes
-                                    t_particle_data( p_q(i)),       &  !& charge etc
-                                    EMPTY_PARTICLE_RESULTS )           !&
+         particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)], &       !& position
+                                           max(p_w(i), 1._8), &       !& workload from last step
+                                                        -1_8, &       !& key - will be assigned later
+                                                        -1_8, &       !& leaf key - will be assigned later
+                                                  p_label(i), &       !& particle label for tracking purposes
+                                    t_particle_data( p_q(i)), &       !& charge etc
+                                    EMPTY_PARTICLE_RESULTS )          !&
       end do
 
       call pepc_particleresults_clear(particles)
@@ -121,13 +121,13 @@ contains
       allocate (grid_particles(ngp))
 
       do i = 1, ngp
-         grid_particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)],       &  !& position
-                                                               1.,       &  !& workload from last step
-                                                             -1_8,       &  !& key - will be assigned later
-                                                             -1_8,       &  !& leaf key - will be assigned later
-                                                       p_label(i),       &  !& particle label for tracking purposes
-                                           t_particle_data( 0.0 ),       &  !& charge etc
-                                        EMPTY_PARTICLE_RESULTS )            !&
+         grid_particles(i) = t_particle( [p_x(i), p_y(i), p_z(i)], &  !& position
+                                                               1., &  !& workload from last step
+                                                             -1_8, &  !& key - will be assigned later
+                                                             -1_8, &  !& leaf key - will be assigned later
+                                                       p_label(i), &  !& particle label for tracking purposes
+                                           t_particle_data( 0.0 ), &  !& charge etc
+                                        EMPTY_PARTICLE_RESULTS )      !&
       end do
 
       call pepc_particleresults_clear(grid_particles)
