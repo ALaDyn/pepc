@@ -176,7 +176,7 @@ contains
       ! register multipole data type
       blocklengths(1:nprops_tree_node_interaction_data) = [3, 1, 1, pMultipole, 1]
       types(1:nprops_tree_node_interaction_data)        = [MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, MPI_KIND_PHYSICS, & !&
-                                                           MPI_KIND_PHYSICS_COMPLEX, MPI_KIND_PHYSICS !&]
+                                                           MPI_KIND_PHYSICS_COMPLEX, MPI_KIND_PHYSICS ] !&
       call MPI_GET_ADDRESS(dummy_tree_node_interaction_data,            address(0), ierr) !&
       call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%coc,        address(1), ierr) !&
       call MPI_GET_ADDRESS(dummy_tree_node_interaction_data%charge,     address(2), ierr) !&
