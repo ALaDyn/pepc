@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CI extended to include fprettify check
 - included hook to check src style and suggest commit message
+- New frontend pepc-dvh
 
 ### Fixed
 
