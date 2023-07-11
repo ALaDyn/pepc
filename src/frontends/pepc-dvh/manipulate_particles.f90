@@ -115,13 +115,13 @@ contains
                if (m .eq. 1) then
                   v(1) = xp(i) + (r_torus + rmax) * cos(eta)
                   v(2) = yp(i) + (r_torus + rmax) * sin(eta)
-                  v(3) = zp(i); 
+                  v(3) = zp(i)
                   xp(i) = dot_product(v, D2(1:3, 1))
                   yp(i) = dot_product(v, D2(1:3, 2))
                   zp(i) = dot_product(v, D2(1:3, 3))
-                  v(1) = wxp(i); 
-                  v(2) = wyp(i); 
-                  v(3) = wzp(i); 
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
                   wxp(i) = dot_product(v, D2(1:3, 1))
                   wyp(i) = dot_product(v, D2(1:3, 2))
                   wzp(i) = dot_product(v, D2(1:3, 3))
@@ -220,13 +220,13 @@ contains
                if (m .eq. 1) then
                   v(1) = xp(i) + (r_torus + rmax) * cos(eta)
                   v(2) = yp(i) + (r_torus + rmax) * sin(eta)
-                  v(3) = zp(i); 
+                  v(3) = zp(i)
                   xp(i) = dot_product(v, D2(1:3, 1))
                   yp(i) = dot_product(v, D2(1:3, 2))
                   zp(i) = dot_product(v, D2(1:3, 3))
-                  v(1) = wxp(i); 
-                  v(2) = wyp(i); 
-                  v(3) = wzp(i); 
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
                   wxp(i) = dot_product(v, D2(1:3, 1))
                   wyp(i) = dot_product(v, D2(1:3, 2))
                   wzp(i) = dot_product(v, D2(1:3, 3))
@@ -311,13 +311,13 @@ contains
                if (m .eq. 1) then
                   v(1) = xp(i) + (r_torus + rmax) * cos(eta)
                   v(2) = yp(i) + (r_torus + rmax) * sin(eta)
-                  v(3) = zp(i); 
+                  v(3) = zp(i)
                   xp(i) = dot_product(v, D2(1:3, 1))
                   yp(i) = dot_product(v, D2(1:3, 2))
                   zp(i) = dot_product(v, D2(1:3, 3))
-                  v(1) = wxp(i); 
-                  v(2) = wyp(i); 
-                  v(3) = -wzp(i); 
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = -wzp(i)
                   wxp(i) = dot_product(v, D2(1:3, 1))
                   wyp(i) = dot_product(v, D2(1:3, 2))
                   wzp(i) = dot_product(v, D2(1:3, 3))
@@ -572,13 +572,13 @@ contains
 !                       v(2) = yp(i) + (r_torus+rmax)*sin(eta)
                   v(1) = xp(i) + r_torus * cos(eta)
                   v(2) = yp(i) + r_torus * sin(eta)
-                  v(3) = zp(i); 
+                  v(3) = zp(i)
                   xp(i) = dot_product(v, D2(1:3, 1))
                   yp(i) = dot_product(v, D2(1:3, 2))
                   zp(i) = dot_product(v, D2(1:3, 3))
-                  v(1) = wxp(i); 
-                  v(2) = wyp(i); 
-                  v(3) = wzp(i); 
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
                   wxp(i) = dot_product(v, D2(1:3, 1))
                   wyp(i) = dot_product(v, D2(1:3, 2))
                   wzp(i) = dot_product(v, D2(1:3, 3))
@@ -693,20 +693,20 @@ contains
          !&<
          if (stage .eq. 1) then
             ! Euler predictor
-            vortex_particles(i)%data%x_rk(1:3)      = vortex_particles(i)%x(1:3)
-            vortex_particles(i)%data%alpha_rk(1:3)  = vortex_particles(i)%data%alpha(1:3)
-            vortex_particles(i)%data%u_rk(1:3)      = vortex_particles(i)%results%u(1:3)
-            vortex_particles(i)%data%af_rk(1:3)     = vortex_particles(i)%results%af(1:3)
-            vortex_particles(i)%x(1:3)              = vortex_particles(i)%x(1:3) &
-                                                    + dt * vortex_particles(i)%results%u(1:3)
-            vortex_particles(i)%data%alpha(1:3)     = vortex_particles(i)%data%alpha(1:3) &
-                                                    + dt * vortex_particles(i)%results%af(1:3)
+            vortex_particles(i)%data%x_rk(1:3)     = vortex_particles(i)%x(1:3)
+            vortex_particles(i)%data%alpha_rk(1:3) = vortex_particles(i)%data%alpha(1:3)
+            vortex_particles(i)%data%u_rk(1:3)     = vortex_particles(i)%results%u(1:3)
+            vortex_particles(i)%data%af_rk(1:3)    = vortex_particles(i)%results%af(1:3)
+            vortex_particles(i)%x(1:3)             = vortex_particles(i)%x(1:3) &
+                                                   + dt * vortex_particles(i)%results%u(1:3)
+            vortex_particles(i)%data%alpha(1:3)    = vortex_particles(i)%data%alpha(1:3) &
+                                                   + dt * vortex_particles(i)%results%af(1:3)
          else
             ! Trapezoidal corrector
-            vortex_particles(i)%x(1:3) =          vortex_particles(i)%data%x_rk(1:3) &
-                                       + 0.5*dt*( vortex_particles(i)%data%u_rk(1:3)  + vortex_particles(i)%results%u(1:3) )
-            vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha_rk(1:3) &
-                                       + 0.5*dt*( vortex_particles(i)%data%af_rk(1:3) + vortex_particles(i)%results%af(1:3) )
+            vortex_particles(i)%x(1:3)             = vortex_particles(i)%data%x_rk(1:3) &
+                                                   + 0.5 * dt * (vortex_particles(i)%data%u_rk(1:3) + vortex_particles(i)%results%u(1:3))
+            vortex_particles(i)%data%alpha(1:3)    = vortex_particles(i)%data%alpha_rk(1:3) &
+                                                   + 0.5 * dt * (vortex_particles(i)%data%af_rk(1:3) + vortex_particles(i)%results%af(1:3))
          end if
          !&>
 
