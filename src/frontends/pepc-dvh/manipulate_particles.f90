@@ -793,7 +793,7 @@ contains
 
       ! Identify grid points that support the remeshing with new particles
 !$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(NONE) &
-!$OMP SHARED(vortex_particles, m_h, np) &
+!$OMP SHARED(vortex_particles, m_h, np, nDeltar) &
 !$OMP PRIVATE(i1, i2, i3, k, proximity) &
 !$OMP REDUCTION(.or.:grid_mask)
       do k = 1, np
@@ -849,10 +849,10 @@ contains
 !$OMP PARALLEL DEFAULT(NONE) &
 !$OMP PRIVATE(pos, x, y, z, i1, i2, i3, l, alpha ,alpha_sum, work, k, frac, dist2, proximity) &
 #ifdef USER_REDUCTION
-!$OMP SHARED(vortex_particles, np, m_h, kernel_c, deno, index_map) &
+!$OMP SHARED(vortex_particles, np, m_h, kernel_c, deno, index_map, nDeltar) &
 !$OMP REDUCTION(+: m_part)
 #else
-!$OMP SHARED(vortex_particles, np, m_h, kernel_c, deno, index_map, m_part) &
+!$OMP SHARED(vortex_particles, np, m_h, kernel_c, deno, index_map, m_part, nDeltar) &
 !$OMP REDUCTION(+: m_part_reduction)
 #endif
 

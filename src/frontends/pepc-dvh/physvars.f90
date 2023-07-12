@@ -27,11 +27,11 @@ module physvars
    type(t_particle), allocatable :: vortex_particles(:)
 
    real(kind_physics), parameter :: pi = 3.141592654d0
-   integer, parameter :: nDeltar = 3 ! ratio btw Rd and m_h
 
    ! Physics data
    integer(kind_particle) :: n              ! # vortices
    integer(kind_particle) :: np             ! # vortices per PE
+   integer(kind_particle) :: nDeltar        ! ratio btw Rd and m_h
    real(kind_physics)     :: force_const    ! force constant depending on unit system
    real                   :: h, m_h         ! initial particle distance and mesh width for remeshing
    real                   :: Delta_r        ! mesh width for remeshing (m_h and Deltar are the same quantity; m_h should be removed)
@@ -140,7 +140,7 @@ contains
       namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref, &               !&
                        h, Delta_r, thresh, Uref, Lref, &                        !&
                        rmax, r_torus, nc, nphi, g, torus_offset, n_in, &        !&
-                       dump_time, cp_time, input_itime                          !&
+                       dump_time, cp_time, input_itime, nDeltar                 !&
 
       !  Default input set
       ispecial     = 1                                                          !&
@@ -151,6 +151,7 @@ contains
       Delta_r      = 0.                                                         !&
       Co           = 1.                                                         !&
       rem_freq     = 0                                                          !&
+      nDeltar      = 3                                                          !&
       thresh       = 1.d-7                                                      !&
       rmax         = 0.                                                         !&
       r_torus      = 0.                                                         !&
