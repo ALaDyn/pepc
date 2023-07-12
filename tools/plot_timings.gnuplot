@@ -2,18 +2,19 @@
 #
 # For this to work, it needs to be called from PEPC's root directory (the one
 # containing 'src' and have timings in 'timings'.
-# There should also be a frontend built that possibly contains user_timers
+# There should also be a frontend built that possibly contains user_timers.
 
-# If you want to compare two timers (on different axes), set the following
+# If you want to compare two timers (on different axes, ax=1), set the following
 # to non-zero (the timer's id)
 comparison_timer = 0
+ax=0
 
 set term x11
 
 set xlabel 'time/iterations'
 set ylabel 'time / a.u.'
 
-if (comparison_timer > 0) {
+if (ax > 0) {
    set y2label 'time / a.u.'
    set ytics nomirror
    set y2tics nomirror
@@ -36,8 +37,13 @@ do for [col = 1:90] {
       print 'column ',col, timers[col]
       set title 'column '.col.': '.timers[col] noenhanced
       if (comparison_timer > 0) {
-         plot 'timing/timing_avg.dat' u colpt w lp lc 1 t timers[col] noenhanced, \
-              '' u compt axis x1y2 t timers[comparison_timer] noenhanced
+         if (ax > 0) {
+            plot 'timing/timing_avg.dat' u colpt w lp lc 1 t timers[col] noenhanced, \
+                 '' u compt axis x1y2 t timers[comparison_timer] noenhanced
+         } else {
+            plot 'timing/timing_avg.dat' u colpt w lp lc 1 t timers[col] noenhanced, \
+                 '' u compt t timers[comparison_timer] noenhanced
+         }
       } else {
          plot 'timing/timing_avg.dat' u colpt w lp lc 1 t timers[col] noenhanced
       }
