@@ -665,16 +665,12 @@ contains
       real(kind_physics), intent(out) :: u(1:3), af(1:3), div
 
       real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
-      real(kind_physics) :: dx, dy, dz, Gc25, MPa1, nom, nom45, nom35, nom25
+      real(kind_physics) :: Gc25, MPa1, nom, nom45, nom35, nom25
       real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
-      dx = d(1)
-      dy = d(2)
-      dz = d(3)
-
-      m0 = [t%chargex, t%chargey, t%chargez]       ! monopole moment tensor
+      m0 = [t%chargex, t%chargey, t%chargez]    ! monopole moment tensor
       vort = [particle%data%alpha(1), particle%data%alpha(2), particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
-      CP0 = cross_prod(m0, vort)                  ! cross-product for 1st expansion term
+      CP0 = cross_prod(m0, vort)                ! cross-product for 1st expansion term
 
       nom = dist2 + sig2
       nom45 = nom**(-4.5)
@@ -684,13 +680,9 @@ contains
       Gc25 = (dist2 + 2.5 * sig2) * nom25
       MPa1 = 3.0 * (dist2 + 3.5 * sig2) * nom35 * dot_product(d, CP0)
 
-      u(1) = Gc25 * (dy * m0(3) - dz * m0(2))
-      u(2) = Gc25 * (dz * m0(1) - dx * m0(3))
-      u(3) = Gc25 * (dx * m0(2) - dy * m0(1))
+      u = Gc25 * cross_prod(d, m0) ! monopole
 
-      af(1) = Mpa1 * dx - Gc25 * CP0(1)
-      af(2) = Mpa1 * dy - Gc25 * CP0(2)
-      af(3) = Mpa1 * dz - Gc25 * CP0(3)
+      af = Mpa1 * d - Gc25 * CP0   ! monopole
 
       div = -52.5 * nom45 * sig2**2 * dot_product(d, m0)
    end subroutine calc_2nd_algebraic_transposed_direct
@@ -710,15 +702,10 @@ contains
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  u(1:3), af(1:3), div
 
-      real(kind_physics) :: dx, dy, dz !< temp variables for distance
       real(kind_physics) :: sig4, sig8, nom, nom25, nom35, nom45, nom55, nom65, nom75, nom85, pre_u, pre_a1, pre_a2, &
                             D52u, D92u, D132u, D52a, D72a, D92a, D112a, D132a, D152a, D92div, D132div, D152div, D172div
       real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
       real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
-
-      dx = d(1)
-      dy = d(2)
-      dz = d(3)
 
       vort = [particle%data%alpha(1), particle%data%alpha(2), particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
@@ -753,13 +740,9 @@ contains
       D152div = 4222.96875 * (sig2**5) * nom75
       D172div = 5278.7109375 * (sig2**6) * nom85
 
-      u(1) = pre_u * (dy * m0(3) - dz * m0(2))  ! MONOPOLE
-      u(2) = pre_u * (dz * m0(1) - dx * m0(3))  ! MONOPOLE
-      u(3) = pre_u * (dx * m0(2) - dy * m0(1))  ! MONOPOLE
+      u = pre_u * cross_prod(d, m0) ! monopole
 
-      af(1) = pre_a2 * dx - pre_u * CP0(1)  ! MONOPOLE
-      af(2) = pre_a2 * dy - pre_u * CP0(2)  ! MONOPOLE
-      af(3) = pre_a2 * dz - pre_u * CP0(3)  ! MONOPOLE
+      af = pre_a2 * d - pre_u * CP0 ! monopole
 
       div = -(D132div - D152div + D172div) * dot_product(d, m0)
    end subroutine calc_6th_algebraic_transposed_direct
@@ -778,16 +761,12 @@ contains
       real(kind_physics), intent(out) :: u(1:3), af(1:3), div
 
       real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
-      real(kind_physics) :: dx, dy, dz, exp3, sig3, dist, dist3, K2, K2div, dK2
+      real(kind_physics) :: exp3, sig3, dist, dist3, K2, K2div, dK2
       real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
-      dx = d(1)
-      dy = d(2)
-      dz = d(3)
-
-      m0 = [t%chargex, t%chargey, t%chargez]       ! monopole moment tensor
+      m0 = [t%chargex, t%chargey, t%chargez]  ! monopole moment tensor
       vort = [particle%data%alpha(1), particle%data%alpha(2), particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
-      CP0 = cross_prod(m0, vort)                  ! cross-product for 1st expansion term
+      CP0 = cross_prod(m0, vort)              ! cross-product for 1st expansion term
 
       dist = sqrt(dist2)
       dist3 = dist2 * dist
@@ -801,13 +780,9 @@ contains
 
       K2div = 9.0 * dist * sig3 * exp3
 
-      u(1) = K2 * (dy * m0(3) - dz * m0(2))  ! MONOPOLE
-      u(2) = K2 * (dz * m0(1) - dx * m0(3))  ! MONOPOLE
-      u(3) = K2 * (dx * m0(2) - dy * m0(1))
+      u = K2 * cross_prod(d, m0) ! monopole
 
-      af(1) = -dK2 * dx - K2 * CP0(1)
-      af(2) = -dK2 * dy - K2 * CP0(2)
-      af(3) = -dK2 * dz - K2 * CP0(3)
+      af = -dK2 * d - K2 * CP0
 
       div = -K2div * dot_product(d, m0)
    end subroutine calc_2nd_gaussian_transposed_direct
@@ -827,15 +802,10 @@ contains
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
       real(kind_physics), intent(out) ::  u(1:3), af(1:3), div
 
-      real(kind_physics) :: dx, dy, dz !< temp variables for distance
       real(kind_physics) :: dist, dist3, sig3, ds3, exp3, exp83, exp273, K6, dK6, K6div
       real(kind_physics) :: pre1, pre2, MPa1
       real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
       real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
-
-      dx = d(1)
-      dy = d(2)
-      dz = d(3)
 
       vort = [particle%data%alpha(1), particle%data%alpha(2), particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
@@ -858,13 +828,9 @@ contains
 
       K6div = 0.075 * dist * (sig3**2) * (5.0 * exp3 - 8192.0 * exp83 + 177147.0 * exp273)
 
-      u(1) = K6 * (dy * m0(3) - dz * m0(2))  ! MONOPOLE
-      u(2) = K6 * (dz * m0(1) - dx * m0(3))  ! MONOPOLE
-      u(3) = K6 * (dx * m0(2) - dy * m0(1))  ! MONOPOLE
+      u = K6 * cross_prod(d, m0) ! monopole
 
-      af(1) = -dK6 * dx - K6 * CP0(1)    ! MONOPOLE
-      af(2) = -dK6 * dy - K6 * CP0(2)    ! MONOPOLE
-      af(3) = -dK6 * dz - K6 * CP0(3)    ! MONOPOLE
+      af = -dK6 * d - K6 * CP0   ! monopolt
 
       div = -K6div * dot_product(d, m0)
    end subroutine calc_6th_gaussian_transposed_direct
