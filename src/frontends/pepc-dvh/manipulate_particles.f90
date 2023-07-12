@@ -724,7 +724,7 @@ contains
    subroutine remeshing()
 
       use physvars
-      use module_timings
+      use module_user_timings
       use omp_lib
       use treevars, only: num_threads
       use mpi
@@ -743,8 +743,6 @@ contains
       real(kind_physics)               :: total_vortmod, total_vortmod_full_pre, total_vortmod_full_mid, total_vortmod_full_after
       type(t_particle_short), allocatable :: m_part(:)
       real(kind_physics), allocatable :: m_part_reduction(:, :)
-      integer, parameter :: t_remesh_interpol = t_userdefined_first + 2
-      integer, parameter :: t_remesh_sort = t_userdefined_first + 3
       logical(1), allocatable :: grid_mask(:, :, :)
 
       total_vort = 0.

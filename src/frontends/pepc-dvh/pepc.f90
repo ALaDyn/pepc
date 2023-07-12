@@ -32,7 +32,7 @@ program pepcv
    use physvars
    use manipulate_particles
    use module_pepc
-   use module_timings
+   use module_user_timings
    use files
    use diagnostics
    use module_pepc_kinds
@@ -45,7 +45,6 @@ program pepcv
    integer(kind_particle) :: i
    real :: trun                     ! total run time including restarts and offset
    integer :: itime, stage, t_flag
-   integer, parameter :: t_remesh = t_userdefined_first + 1
 
    ! Allocate array space for tree
    call pepc_initialize("pepc-v", my_rank, n_cpu, .true.)
@@ -70,6 +69,8 @@ program pepcv
 
    ! Loop over all timesteps
    do while (itime .lt. nt)
+
+      call timer_reset(t_io)
 
       itime = itime + 1
       if (my_rank .eq. 0) write (*, '(a5,i8,a3,i8,a7,i8,a)') 'Step', itime, ' of', nt, ', using', n, ' particles -------------'
@@ -140,6 +141,10 @@ program pepcv
       call timer_stop(t_tot)   ! total loop time incl. remeshing if requested
       call timings_LocalOutput(itime, t_flag)
       call timings_GatherAndOutput(itime, t_flag)
+
+      ! Store particle number within a timer
+      call timer_reset(t_particle_count)
+      call timer_add(t_particle_count, real(n, 8))
 
       ! Some linear diagnostics
       call linear_diagnostics(itime, trun)

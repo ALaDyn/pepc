@@ -12,6 +12,7 @@ ALL: .git/hooks/prepare-commit-msg
 # This is a bit shaky: if this hook exists (it could be user-supplied), we do not
 # replace it. If the file does not exist, we link to the git-tracked version.
 .git/hooks/prepare-commit-msg:
+	@echo "Setting up git hook"
 	@if test -d .git; then \
-	   ln -sr .githooks/prepare-commit-msg $@ ;\
+	   ln -sr .githooks/prepare-commit-msg $@ ; \
 	fi

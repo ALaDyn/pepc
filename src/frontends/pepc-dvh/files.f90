@@ -74,6 +74,7 @@ contains
 
       use physvars
       use mpi
+      use module_user_timings
       implicit none
 
       integer, intent(in) :: i
@@ -83,6 +84,9 @@ contains
 
       character(50) :: cfile
 
+      call timer_resume(t_io)
+      call timer_start(t_dump)
+
       if (dump_time .ne. 0) then
          if (mod(i, dump_time) .eq. 0) then
 
@@ -90,6 +94,9 @@ contains
 
          end if
       end if
+
+      call timer_stop(t_dump)
+      call timer_stop(t_io)
 
    end subroutine dump
 
@@ -102,6 +109,7 @@ contains
 
       use physvars
       use mpi
+      use module_user_timings
       implicit none
 
       integer, intent(in) :: i
@@ -110,6 +118,9 @@ contains
       integer(KIND=MPI_OFFSET_KIND) :: disp, header_disp = 1024
 
       character(50) :: cfile
+
+      call timer_resume(t_io)
+      call timer_start(t_checkpoint)
 
       if (cp_time .ne. 0) then
          if (mod(i, cp_time) .eq. 0) then
@@ -150,11 +161,15 @@ contains
          end if
       end if
 
+      call timer_stop(t_checkpoint)
+      call timer_stop(t_io)
+
    end subroutine write_checkpoint
 
    subroutine dump_results()
 
       use physvars
+      use module_user_timings
       implicit none
 
       integer                :: io_unit
@@ -162,6 +177,8 @@ contains
       character(50)          :: resfile
 
       write (resfile, '(a,i6.6,a)') "part_data/results_", my_rank, ".dat"
+      call timer_resume(t_io)
+      call timer_start(t_dump_results)
 
       open (newunit=io_unit, file=resfile)
 
@@ -170,6 +187,9 @@ contains
       end do
 
       close (io_unit)
+
+      call timer_stop(t_dump_results)
+      call timer_stop(t_io)
 
    end subroutine dump_results
 
