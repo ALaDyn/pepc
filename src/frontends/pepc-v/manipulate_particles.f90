@@ -46,10 +46,8 @@ contains
       real(kind_physics), allocatable :: xp(:), yp(:), zp(:), volp(:), wxp(:), wyp(:), wzp(:)  !< helper arrays for ring setups
 
       ! weird helper variables for sphere setup (ask Holger Dachsel)
-      real(kind_physics) ::  a, b, c, cth, sth, cphi, sphi, s, rr, rr1, rr2, expo, stheta
+      real(kind_physics) ::  a, b, c, cth, sth, cphi, sphi, s
       real(kind_physics), parameter :: zero = 0.d0, one = 1.d0, mone = -one, two = 2.d0, five = 5.d0, nine = 9.d0
-      real(kind_physics), parameter :: kappa = 2.24182**2 / 4.
-      real(kind_physics), parameter :: r_core = 0.35d0
 
       !     interface
       !         subroutine par_rand(res, iseed)
@@ -504,116 +502,6 @@ contains
          end do
          np = ind
 
-      case (6) ! Single Vortex ring setup
-
-         allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
-
-         j = 0
-
-         do k = 1, nc
-            part_2d = 2 * pi / (8 * k)
-            rc = (1 + 12 * k**2) / (6 * k) * rl
-
-            do l = 1, 8 * k
-               j = j + 1
-               xi1 = part_2d * (l - 1)
-               xi2 = part_2d * l
-               xi = (xi1 + xi2) * 5.d-1
-               xp(j) = rc * cos(xi)
-               yp(j) = rc * sin(xi)
-               zp(j) = 0
-
-               rr1 = xp(j) + r_torus
-               rr2 = yp(j)
-               rr = sqrt(rr1 * rr1 + rr2 * rr2)
-
-               volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 &
-                          - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) &
-                         / (8 * k * Nphi)
-               wxp(j) = 0.
-               wyp(j) = 0.
-               stheta = rr1 / rr
-               expo = kappa * (r_torus * r_torus + rr * rr - 2.d0 * r_torus * rr * stheta)
-               wzp(j) = kappa / pi * G / r_core / r_core * exp(-expo / r_core / r_core)
-!                   wzp(j) = g*exp(-(rc/rmax)**2)
-            end do
-         end do
-
-         xp(ns) = 0.
-         yp(ns) = 0.
-         zp(ns) = 0.
-         wxp(ns) = 0.
-         wyp(ns) = 0.
-!           wzp(ns) = g
-         wzp(ns) = kappa / pi * G / rmax / rmax
-         volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
-
-         j = 0
-         ind0 = 0
-         ind = 0
-         part_3d = 2 * pi / Nphi
-         do m = 1, Nphi
-            eta1 = part_3d * (m - 1)
-            eta2 = part_3d * m
-            eta = (eta1 + eta2) * 5.d-1
-            v(1) = cos(eta2)
-            v(2) = sin(eta2)
-            v(3) = 0
-            D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-            v(1) = cos(eta)
-            v(2) = sin(eta)
-            v(3) = 0
-            D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
-            D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-            D4 = matmul(D1, D3)
-            do i = 1, Ns
-               if (m .eq. 1) then
-!                       v(1) = xp(i) + (r_torus+rmax)*cos(eta)
-!                       v(2) = yp(i) + (r_torus+rmax)*sin(eta)
-                  v(1) = xp(i) + r_torus * cos(eta)
-                  v(2) = yp(i) + r_torus * sin(eta)
-                  v(3) = zp(i); 
-                  xp(i) = dot_product(v, D2(1:3, 1))
-                  yp(i) = dot_product(v, D2(1:3, 2))
-                  zp(i) = dot_product(v, D2(1:3, 3))
-                  v(1) = wxp(i); 
-                  v(2) = wyp(i); 
-                  v(3) = wzp(i); 
-                  wxp(i) = dot_product(v, D2(1:3, 1))
-                  wyp(i) = dot_product(v, D2(1:3, 2))
-                  wzp(i) = dot_product(v, D2(1:3, 3))
-               else
-                  v(1) = xp(i)
-                  v(2) = yp(i)
-                  v(3) = zp(i)
-                  xp(i) = dot_product(v, D4(1:3, 1))
-                  yp(i) = dot_product(v, D4(1:3, 2))
-                  zp(i) = dot_product(v, D4(1:3, 3))
-                  v(1) = wxp(i)
-                  v(2) = wyp(i)
-                  v(3) = wzp(i)
-                  wxp(i) = dot_product(v, D4(1:3, 1))
-                  wyp(i) = dot_product(v, D4(1:3, 2))
-                  wzp(i) = dot_product(v, D4(1:3, 3))
-               end if
-               ind0 = ind0 + 1
-               if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
-                  ind = ind + 1
-                  if (ind .gt. np) then
-                     write (*, *) 'something is wrong here: to many particles in init of first ring', my_rank, ind, np, n
-                     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-                  end if
-                  vortex_particles(ind)%x(1) = xp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
-                  vortex_particles(ind)%x(2) = yp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
-                  vortex_particles(ind)%x(3) = zp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
-                  vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
-                  vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
-                  vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-               end if
-            end do
-         end do
-         np = ind
-
       case (98) ! Random cubic setup (for testing purpose only)
 
          j = 0
@@ -703,10 +591,12 @@ contains
                                                     + dt * vortex_particles(i)%results%af(1:3)
          else
             ! Trapezoidal corrector
-            vortex_particles(i)%x(1:3) =          vortex_particles(i)%data%x_rk(1:3) &
-                                       + 0.5*dt*( vortex_particles(i)%data%u_rk(1:3)  + vortex_particles(i)%results%u(1:3) )
-            vortex_particles(i)%data%alpha(1:3) = vortex_particles(i)%data%alpha_rk(1:3) &
-                                       + 0.5*dt*( vortex_particles(i)%data%af_rk(1:3) + vortex_particles(i)%results%af(1:3) )
+            vortex_particles(i)%x(1:3)              = vortex_particles(i)%data%x_rk(1:3) &
+                                                    + 0.5 * dt * (vortex_particles(i)%data%u_rk(1:3) &
+                                                    + vortex_particles(i)%results%u(1:3))
+            vortex_particles(i)%data%alpha(1:3)     = vortex_particles(i)%data%alpha_rk(1:3) &
+                                                    + 0.5 * dt * (vortex_particles(i)%data%af_rk(1:3) &
+                                                    + vortex_particles(i)%results%af(1:3))
          end if
          !&>
 
@@ -718,7 +608,7 @@ contains
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
-   !>  Remeshing with a Gaussian diffusion process using local grids and parallel sorting
+   !>   4th order remeshing using parallel sorting
    !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine remeshing()
@@ -730,262 +620,137 @@ contains
       use mpi
       implicit none
 
-      integer :: ierr, m_dim, omp_num_threads
-      integer(kind_particle) :: i1, i2, i3
-      integer(kind_particle) :: i, k, l
-      integer(kind_particle) :: proximity(3), n_remesh_points, n_max_remesh_points
-      integer(kind_particle), allocatable :: mapping_indices(:), index_map(:, :, :)
-      real(kind_physics)     :: x, y, z, deno
-      real(kind_physics)     :: dist2, alpha_sum
-      real(kind_physics)     :: frac, pos(3), alpha(3), work
-      real(kind_physics)     :: local_extent_min(3), local_extent_max(3)
-      real(kind_physics), dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_after
-      real(kind_physics)               :: total_vortmod, total_vortmod_full_pre, total_vortmod_full_mid, total_vortmod_full_after
+      integer :: mesh_supp, ierr, i1, i2, i3, xtn, ytn, ztn, omp_thread_num
+      integer(kind_particle) :: i, k
+      integer(kind_particle) :: m_np, m_nppm, m_n, tmp
+      real(kind_physics) :: frac, xt, yt, zt, axt, ayt, azt, wt
+      real(kind_physics), allocatable :: mesh_offset(:)
+      real(kind_physics), dimension(3) :: total_vort, total_vort_full_pre, total_vort_full_mid, total_vort_full_post
       type(t_particle_short), allocatable :: m_part(:)
-      real(kind_physics), allocatable :: m_part_reduction(:, :)
       integer, parameter :: t_remesh_interpol = t_userdefined_first + 2
       integer, parameter :: t_remesh_sort = t_userdefined_first + 3
-      logical(1), allocatable :: grid_mask(:, :, :)
 
       total_vort = 0.
-      total_vortmod = 0.
       do i = 1, np
          total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
       end do
-      total_vortmod = sqrt(total_vortmod)
-
       call MPI_ALLREDUCE(total_vort, total_vort_full_pre, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_pre, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-      deno = (pi * kernel_c)**1.5
+        !! Define mesh structure and support, currently only none or 4 are possible
+      mesh_supp = 4 !TODO: make this a parameter (and adapt remeshing itself to it)
+      allocate (mesh_offset(mesh_supp))
+      mesh_offset = (/-0.15D+01, -0.5D+00, 0.5D+00, 0.15D+01/)
 
-      !DANILO: PARADIGM SHIFT. WITH CLASSIC POPULATION CONTROL THE ALLOCATION OF TEMP PARTICLES MAY INDUCE STRONG PAGINATION.
-      !        WE USE SOMETHING SIMILAR TO DVH 2D: DEFINE A MESH CONTAINING WHOLE PARTICLES AND CYLCING OVER MESH POINTS.
+      ! Define array limits for new particles on the mesh
+      m_np = np * mesh_supp**3
+      m_n = n * mesh_supp**3
+      m_nppm = ceiling(1.05 * max(1.0 * m_n / n_cpu, 1.0 * m_np)) ! allow 5% fluctuation, just a safety factor, since we`ll kick out particles beforehand
+
+      ! TODO: Define global max. #particles (do we need this?)
+      call MPI_ALLREDUCE(m_nppm, tmp, 1, MPI_KIND_PARTICLE, MPI_MAX, MPI_COMM_WORLD, ierr)
+      m_nppm = tmp
+
+      allocate (m_part(m_nppm), STAT=ierr)
+
+      if (ierr .ne. 0) then
+         write (*, *) 'something is wrong here: remeshing allocation failed', my_rank, ierr
+         call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+      end if
 
       call timer_start(t_remesh_interpol)
 
-      local_extent_min(1) = minval(vortex_particles(1:np)%x(1))
-      local_extent_max(1) = maxval(vortex_particles(1:np)%x(1))
-      local_extent_min(2) = minval(vortex_particles(1:np)%x(2))
-      local_extent_max(2) = maxval(vortex_particles(1:np)%x(2))
-      local_extent_min(3) = minval(vortex_particles(1:np)%x(3))
-      local_extent_max(3) = maxval(vortex_particles(1:np)%x(3))
+      ! Set number of openmp threads to the same number as pthreads used in the walk
+!$    call omp_set_num_threads(num_threads)
 
-      ! Safety margin - put buffer region around particles
-      local_extent_max = local_extent_max + (nDeltar + 1) * m_h
-      local_extent_min = local_extent_min - (nDeltar + 1) * m_h
+      ! Inform the user that openmp is used, and with how many threads
+!$OMP PARALLEL PRIVATE(omp_thread_num)
+!$    omp_thread_num = OMP_GET_THREAD_NUM()
+!$    if ((my_rank .eq. 0) .and. (omp_thread_num .eq. 0)) write (*, *) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads.'
+!$OMP END PARALLEL
 
-      allocate(grid_mask(nint(local_extent_min(1)/m_h):nint(local_extent_max(1)/m_h), & !&
-                         nint(local_extent_min(2)/m_h):nint(local_extent_max(2)/m_h), & !&
-                         nint(local_extent_min(3)/m_h):nint(local_extent_max(3)/m_h) )) !&
-
-      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of grid_mask', real(STORAGE_SIZE(grid_mask)) * size(grid_mask) / (8 * 1024 * 1024)
-      grid_mask = .false.
-
-      omp_num_threads = 1
-      ! Set number of OpenMP threads to the same number as pthreads used in the walk +1
-      ! We use `+1` here since the walk and communication thread are not active here, so can use
-      ! all available threads.
-!$    call omp_set_num_threads(num_threads + 1)
-
-      ! Inform the user that OpenMP is used, and with how many threads
-!$    omp_num_threads = num_threads + 1
-!$    if (my_rank .eq. 0) write (*, *) 'Using OpenMP with', omp_num_threads, 'threads.'
-
-      ! Identify grid points that support the remeshing with new particles
-!$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(NONE) &
-!$OMP SHARED(vortex_particles, m_h, np) &
-!$OMP PRIVATE(i1, i2, i3, k, proximity) &
-!$OMP REDUCTION(.or.:grid_mask)
-      do k = 1, np
-
-         ! Find indices of nearest global grid point
-         proximity = nint(vortex_particles(k)%x / m_h)
-
-         do i3 = proximity(3) - nDeltar, proximity(3) + nDeltar
-            do i2 = proximity(2) - nDeltar, proximity(2) + nDeltar
-               do i1 = proximity(1) - nDeltar, proximity(1) + nDeltar
-
-                  grid_mask(i1, i2, i3) = .true.
-
+!$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(i,xt,yt,zt,xtn,ytn,ztn,axt,ayt,azt,wt,k,frac)
+      do i = 1, np
+         xt = vortex_particles(i)%x(1)
+         yt = vortex_particles(i)%x(2)
+         zt = vortex_particles(i)%x(3)
+         xtn = nint(xt / m_h)
+         ytn = nint(yt / m_h)
+         ztn = nint(zt / m_h)
+         axt = vortex_particles(i)%data%alpha(1)
+         ayt = vortex_particles(i)%data%alpha(2)
+         azt = vortex_particles(i)%data%alpha(3)
+         wt = vortex_particles(i)%work
+         ! For each particle i define its neighbor mesh points and project onto them
+         k = (i - 1) * mesh_supp**3
+         do i1 = 1, mesh_supp
+            do i2 = 1, mesh_supp
+               do i3 = 1, mesh_supp
+                  k = k + 1
+                  m_part(k)%x(1) = m_h * (xtn + mesh_offset(i1))
+                  m_part(k)%x(2) = m_h * (ytn + mesh_offset(i2))
+                  m_part(k)%x(3) = m_h * (ztn + mesh_offset(i3))
+                  frac = ip_kernel(dabs(xt - m_part(k)%x(1)) / m_h, kernel_c) * &
+                         ip_kernel(dabs(yt - m_part(k)%x(2)) / m_h, kernel_c) * &
+                         ip_kernel(dabs(zt - m_part(k)%x(3)) / m_h, kernel_c)
+                  m_part(k)%data%alpha(1) = frac * axt
+                  m_part(k)%data%alpha(2) = frac * ayt
+                  m_part(k)%data%alpha(3) = frac * azt
+                  m_part(k)%work = frac * wt
+                  !m_part(k)%data%x_rk = 0.
+                  !m_part(k)%data%alpha_rk = 0.
+                  !m_part(k)%data%u_rk(1:3) = 0.
+                  !m_part(k)%data%af_rk(1:3) = 0.
+                  !m_part(k)%results%u(1:3) = 0.
+                  !m_part(k)%results%af(1:3) = 0.
                end do
             end do
          end do
-
       end do
 !$OMP END PARALLEL DO
 
-      ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
-      ! Would `n_remesh_points` be in a reduction clause? Which one?
-      n_remesh_points = count(grid_mask)
-      ! $OMP END PARALLEL WORKSHARE
-
-      allocate (mapping_indices(n_remesh_points))
-      allocate(index_map(lbound(grid_mask, 1):ubound(grid_mask, 1), & !&
-                         lbound(grid_mask, 2):ubound(grid_mask, 2), & !&
-                         lbound(grid_mask, 3):ubound(grid_mask, 3) )) !&
-      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of index_map', real(STORAGE_SIZE(index_map)) * size(index_map) / (8 * 1024 * 1024)
-
-      index_map = 0
-      ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
-      ! Would rev_lg be in a reduction clause?
-      mapping_indices = (/(i, i=1, n_remesh_points)/)
-      index_map = unpack(mapping_indices, grid_mask, index_map)
-      ! $OMP END PARALLEL WORKSHARE
-      deallocate (mapping_indices)
-
-      ! Find new (guessed) maximum number of particles after load-balancing
-      ! The guess assumes the local number will NOT be higher than the current max number of local particles
-      ! across all ranks, while allowing for a 5% increase.
-      call MPI_ALLREDUCE(n_remesh_points, n_max_remesh_points, 1, MPI_KIND_PARTICLE, MPI_MAX, MPI_COMM_WORLD, ierr)
-      n_max_remesh_points = ceiling(1.05 * n_max_remesh_points)
-      allocate (m_part(n_max_remesh_points))
-      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of m_part', real(STORAGE_SIZE(m_part)) * size(m_part) / (8 * 1024 * 1024)
-      m_part(:)%data = t_particle_data_short([0.d0, 0.d0, 0.d0])
-      m_part(:)%work = 0.d0
-      allocate (m_part_reduction(1:4, 1:n_max_remesh_points))
-      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of m_part_reduction', real(STORAGE_SIZE(m_part_reduction)) * size(m_part_reduction) / (8 * 1024 * 1024)
-      m_part_reduction = 0.d0
-
-!$OMP PARALLEL DEFAULT(NONE) &
-!$OMP PRIVATE(pos, x, y, z, i1, i2, i3, l, alpha ,alpha_sum, work, k, frac, dist2, proximity) &
-#ifdef USER_REDUCTION
-!$OMP SHARED(vortex_particles, np, m_h, kernel_c, deno, index_map) &
-!$OMP REDUCTION(+: m_part)
-#else
-!$OMP SHARED(vortex_particles, np, m_h, kernel_c, deno, index_map, m_part) &
-!$OMP REDUCTION(+: m_part_reduction)
-#endif
-
-!$OMP DO SCHEDULE(STATIC)
-      do k = 1, np
-         pos = vortex_particles(k)%x
-
-         ! Find indexes of nearest global grid point
-         proximity = nint(pos / m_h)
-
-         alpha = vortex_particles(k)%data%alpha
-         work = vortex_particles(k)%work
-         alpha_sum = 0.d0
-
-         ! Compute kernel sum for circulation renormalization component-wise
-         do i3 = proximity(3) - nDeltar, proximity(3) + nDeltar
-            z = m_h * i3
-            do i2 = proximity(2) - nDeltar, proximity(2) + nDeltar
-               y = m_h * i2
-               do i1 = proximity(1) - nDeltar, proximity(1) + nDeltar
-                  x = m_h * i1
-
-                  dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
-                  frac = ip_kernel(dist2, kernel_c, deno)
-                  alpha_sum = alpha_sum + frac
-
-               end do
-            end do
-         end do
-
-         ! Redistribute vortex circulation on new mesh points.
-         ! Total circulation is conserved after remeshing.
-         do i3 = proximity(3) - nDeltar, proximity(3) + nDeltar
-            z = m_h * i3
-            do i2 = proximity(2) - nDeltar, proximity(2) + nDeltar
-               y = m_h * i2
-               do i1 = proximity(1) - nDeltar, proximity(1) + nDeltar
-                  x = m_h * i1
-
-                  l = index_map(i1, i2, i3)
-
-                  dist2 = (pos(1) - x)**2 + (pos(2) - y)**2 + (pos(3) - z)**2
-                  frac = ip_kernel(dist2, kernel_c, deno)
-
-                  m_part(l)%x = [x, y, z]
-#ifdef USER_REDUCTION
-                  m_part(l)%data%alpha = m_part(l)%data%alpha + frac * alpha / alpha_sum
-                  m_part(l)%work       = m_part(l)%work + frac * work          !&
-#else
-                  m_part_reduction(1, l) = m_part_reduction(1, l) + frac * alpha(1) / alpha_sum
-                  m_part_reduction(2, l) = m_part_reduction(2, l) + frac * alpha(2) / alpha_sum
-                  m_part_reduction(3, l) = m_part_reduction(3, l) + frac * alpha(3) / alpha_sum
-                  m_part_reduction(4, l) = m_part_reduction(4, l) + frac * work
-#endif
-
-               end do
-            end do
-         end do
-
-      end do
-!$OMP END DO
-!$OMP END PARALLEL
-
-#ifndef USER_REDUCTION
-      m_part(:)%data%alpha(1) = m_part_reduction(1, :)                        !&
-      m_part(:)%data%alpha(2) = m_part_reduction(2, :)                        !&
-      m_part(:)%data%alpha(3) = m_part_reduction(3, :)                        !&
-      m_part(:)%work          = m_part_reduction(4, :)                        !&
-#endif
-
-      deallocate (grid_mask, index_map, vortex_particles, m_part_reduction)
-
-      ! Sum vorticity of remeshed points
-      total_vort = 0.
-      total_vortmod = 0.
-      do i = 1, n_remesh_points
-         total_vort(1:3) = total_vort(1:3) + m_part(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(m_part(i)%data%alpha, m_part(i)%data%alpha)
-      end do
-      total_vortmod = sqrt(total_vortmod)
-
-      ! Sum net vorticity of remeshed points
-      call MPI_ALLREDUCE(total_vort, total_vort_full_mid, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_mid, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-
-      ! Reset the number of OpenMP threads to num_threads, the number of WORK threads.
-!$    call omp_set_num_threads(num_threads)
+      ! Reset the number of openmp threads to 1.
+!$    call omp_set_num_threads(1)
 
       call timer_stop(t_remesh_interpol)
-      if (my_rank .eq. 0) write (*, '("PEPC-V | ", a,f12.8,a)') 'Finished interpolation for remeshing after ', timer_read(t_remesh_interpol), ' seconds'
+
+      deallocate (vortex_particles)
 
       call timer_start(t_remesh_sort)
-      call sort_remesh(m_part, n_remesh_points, n_max_remesh_points) ! may change n_remesh_points to updated, balanced number
+      call sort_remesh(m_part, m_np, m_nppm)
       call timer_stop(t_remesh_sort)
 
-      ! Update module variable that stores number of vortices
-      np = n_remesh_points
-      if (my_rank .eq. 0) write (*, *) 'New total number of vortices ', np
-
-      ! Copy remeshed points back onto module variable, free working space
+      np = m_np
       allocate (vortex_particles(np))
-      vortex_particles(1:np) = m_part(1:n_remesh_points)
-      deallocate (m_part)
+      vortex_particles(1:np) = m_part(1:m_np)
 
-      ! Sum local vorticity after balancing and filtering
+      deallocate (mesh_offset, m_part)
+
       total_vort = 0.
-      total_vortmod = 0.
       do i = 1, np
          total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
       end do
-      total_vortmod = sqrt(total_vortmod)
+      call MPI_ALLREDUCE(total_vort, total_vort_full_mid, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-      ! Sum net vorticity after balancing and filtering
-      call MPI_ALLREDUCE(total_vort, total_vort_full_after, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_after, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-
-      ! Output stats to check vorticity
-      if (my_rank .eq. 0) then
-         write (*, *) '   Gamma before remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_pre, total_vort_full_pre)), total_vortmod_full_pre
-         write (*, *) ' Gamma after pop. control (norm,sum_mod):', sqrt(dot_product(total_vort_full_mid, total_vort_full_mid)), total_vortmod_full_mid
-         write (*, *) '    Gamma after remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_after, total_vort_full_after)), total_vortmod_full_after
-      end if
-
-      ! Check load-balance
+      !call kick_out_particles()
       call MPI_ALLREDUCE(np, n, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
+
       if (1.25 * n / n_cpu .lt. np) then
          write (*, *) 'warning, rank', my_rank, ' appears to be heavily imbalanced:', 1.0 * np / (1.0 * n / n_cpu)
       end if
 
-      call reset_labels()
+      call reset_labels() ! works on vortex_particles
+
+      total_vort = 0.
+      do i = 1, np
+         total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
+      end do
+      call MPI_ALLREDUCE(total_vort, total_vort_full_post, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+      if (my_rank .eq. 0) then
+         write (*, *) '   Vorticity before remeshing (x,y,z,norm2):', total_vort_full_pre, sqrt(dot_product(total_vort_full_pre, total_vort_full_pre))
+         write (*, *) 'Vorticity before pop. control (x,y,z,norm2):', total_vort_full_mid, sqrt(dot_product(total_vort_full_mid, total_vort_full_mid))
+         write (*, *) '    Vorticity after remeshing (x,y,z,norm2):', total_vort_full_post, sqrt(dot_product(total_vort_full_post, total_vort_full_post))
+      end if
 
    end subroutine remeshing
 
@@ -994,17 +759,20 @@ contains
    !>   Interpolation function for remeshing
    !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   elemental function ip_kernel(dist2, c, d)
-      use physvars, only: pi, Rd
+   function ip_kernel(dist, c)
+      use physvars, only: pi
 
       implicit none
 
-      real(kind_physics), intent(in) :: dist2, c, d
+      real(kind_physics), intent(in) :: dist, c
       real(kind_physics) :: ip_kernel
 
-      ip_kernel = 0.D0
-      if (dist2 .le. Rd * Rd) then
-         ip_kernel = exp(-dist2 / c) / d
+      ip_kernel = 0.0D+00
+      if (dist .le. 1) then
+         ip_kernel = 0.1D01 - (0.25D+01) * dist**2 + (0.15D+01) * dist**3 - c**2 * (0.2D+01 - (0.9D+01) * dist**2 + (0.6D+01) * dist**3)
+      end if
+      if ((dist .gt. 1) .and. (dist .le. 2)) then
+         ip_kernel = (0.5D+00) * ((0.1D+01) - dist - (0.2D+01) * c**2 + (0.4D+01) * c**2 * dist) * ((0.2D+01) - dist)**2
       end if
 
    end function ip_kernel
@@ -1032,16 +800,14 @@ contains
       integer :: prev, next, nbits
 !TODO should this be kind_default or really kind_particle?!?!?
       integer :: irnkl2(m_nppm), indxl(m_np), irnkl(m_nppm)
-      real(kind_physics) :: local_extent_min(3), local_extent_max(3), s, local_work(m_nppm)
-      real(kind_physics) :: global_extent_max(3), global_extent_min(3), boxsize(3), boxsize_max
-      real(kind_physics) :: thresh2
+      real(kind_physics) :: xmin_local, xmax_local, ymin_local, ymax_local, zmin_local, zmax_local, s, local_work(m_nppm)
+      real(kind_physics) :: xboxsize, yboxsize, zboxsize, boxsize, xmax, xmin, ymax, ymin, zmax, zmin, thresh2
       integer(kind_particle) :: ix(m_np), iy(m_np), iz(m_np)
       integer(kind_key) :: sorted_keys(m_nppm), local_keys(m_nppm)
       integer :: fposts(n_cpu + 1), gposts(n_cpu + 1), islen(n_cpu), irlen(n_cpu)
       integer(kind_particle) :: npnew, npold
 
       integer(kind_key) :: iplace
-      real(kind_physics), dimension(3) :: total_vort, total_vort_full_after
 
       interface
          subroutine slsort_keys(nin, nmax, keys, workload, balance_weight, max_imbalance, nout, indxl, &
@@ -1082,34 +848,44 @@ contains
          next = my_rank + 1
       end if
 
-      local_extent_min(1) = minval(particles(1:m_np)%x(1))
-      local_extent_max(1) = maxval(particles(1:m_np)%x(1))
-      local_extent_min(2) = minval(particles(1:m_np)%x(2))
-      local_extent_max(2) = maxval(particles(1:m_np)%x(2))
-      local_extent_min(3) = minval(particles(1:m_np)%x(3))
-      local_extent_max(3) = maxval(particles(1:m_np)%x(3))
+      xmin_local = minval(particles(1:m_np)%x(1))
+      xmax_local = maxval(particles(1:m_np)%x(1))
+      ymin_local = minval(particles(1:m_np)%x(2))
+      ymax_local = maxval(particles(1:m_np)%x(2))
+      zmin_local = minval(particles(1:m_np)%x(3))
+      zmax_local = maxval(particles(1:m_np)%x(3))
 
       ! Find global limits
-      call MPI_ALLREDUCE(local_extent_min, global_extent_min, 3, MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(local_extent_max, global_extent_max, 3, MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(xmin_local, xmin, 1, MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(xmax_local, xmax, 1, MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(ymin_local, ymin, 1, MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(ymax_local, ymax, 1, MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(zmin_local, zmin, 1, MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
+      call MPI_ALLREDUCE(zmax_local, zmax, 1, MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
 
-      boxsize = global_extent_max - global_extent_min
+      xboxsize = xmax - xmin
+      yboxsize = ymax - ymin
+      zboxsize = zmax - zmin
 
       ! Safety margin - put buffer region around particles
-      global_extent_max = global_extent_max + boxsize / 10000
-      global_extent_min = global_extent_min - boxsize / 10000
+      xmax = xmax + xboxsize / 10000
+      xmin = xmin - xboxsize / 10000
+      ymax = ymax + yboxsize / 10000
+      ymin = ymin - yboxsize / 10000
+      zmax = zmax + zboxsize / 10000
+      zmin = zmin - zboxsize / 10000
 
-      boxsize_max = maxval(global_extent_max - global_extent_min)
+      boxsize = max(xmax - xmin, ymax - ymin, zmax - zmin)
 
-      s = boxsize_max / 2**maxlevel       ! refinement length
+      s = boxsize / 2**maxlevel       ! refinement length
 
         !! Start key generation
       ! TODO: Use module_spacefilling here, problem: this module uses treevars variables, but we do not (e.g. npp vs. m_np)
 
-      ! ( global_extent_min ) is the translation vector from the tree box to the simulation region (in 1st octant)
-      ix(1:m_np) = (particles(1:m_np)%x(1) - global_extent_min(1)) / s           ! partial keys
-      iy(1:m_np) = (particles(1:m_np)%x(2) - global_extent_min(2)) / s           !
-      iz(1:m_np) = (particles(1:m_np)%x(3) - global_extent_min(3)) / s
+      ! (xmin, ymin, zmin) is the translation vector from the tree box to the simulation region (in 1st octant)
+      ix(1:m_np) = (particles(1:m_np)%x(1) - xmin) / s           ! partial keys
+      iy(1:m_np) = (particles(1:m_np)%x(2) - ymin) / s           !
+      iz(1:m_np) = (particles(1:m_np)%x(3) - zmin) / s
 
       ! construct keys by interleaving coord bits and add placeholder bit
       ! - note use of 64-bit constants to ensure correct arithmetic
@@ -1128,6 +904,28 @@ contains
       ship_parts(1:m_np) = particles(indxl(1:m_np))
       particles(1:m_np) = ship_parts(1:m_np)
 
+      ! Check if sort finished locally and find inner doublets
+      k = 0
+      do i = 2, m_np
+         if (particles(i)%key .lt. particles(i - 1)%key) then
+            write (*, '(a,i5,2z20)') 'Sorting locally failed: i,particles(i)%key,particles(i-1)%key=', i, particles(i)%key, particles(i - 1)%key
+            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+         else if (particles(i)%key .eq. particles(i - 1)%key) then
+            particles(i)%data%alpha(1) = particles(i)%data%alpha(1) + particles(i - 1)%data%alpha(1)
+            particles(i)%data%alpha(2) = particles(i)%data%alpha(2) + particles(i - 1)%data%alpha(2)
+            particles(i)%data%alpha(3) = particles(i)%data%alpha(3) + particles(i - 1)%data%alpha(3)
+            particles(i)%work = particles(i)%work + particles(i - 1)%work
+         else
+            k = k + 1
+            particles(k) = particles(i - 1)
+         end if
+      end do
+      ! Last original particle will always be transfered to next/final active particle
+      k = k + 1
+      particles(k) = particles(m_np)
+
+      m_np = k
+
       ! Use Parallel Sort by Parallel Search (SLSORT by M. Hofmann, Chemnitz)
       indxl = 0
       npold = m_np
@@ -1142,8 +940,7 @@ contains
       m_np = npnew
       ship_parts(1:npold) = particles(indxl(1:npold))
       call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                         get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                         MPI_COMM_WORLD, ierr)
+                         get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, MPI_COMM_WORLD, ierr)
       particles(irnkl(1:m_np)) = get_parts(1:m_np)
       particles(1:m_np)%key = sorted_keys(1:m_np)
 
