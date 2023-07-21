@@ -27,6 +27,7 @@
 !
 !  ==============================================================
 
+#ifndef TEST_INTERACTION
 program pepcv
 
    use physvars
@@ -168,3 +169,4 @@ program pepcv
    call pepc_finalize()
 
 end program pepcv
+#endif
