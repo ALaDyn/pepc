@@ -262,6 +262,7 @@ contains
       call vtk%startpointdata()
       call vtk%write_data_array("velocity", vortex_particles(1:np)%results%u(1), vortex_particles(1:np)%results%u(2), vortex_particles(1:np)%results%u(3))
       call vtk%write_data_array("vorticity", vorticity_x(1:np), vorticity_y(1:np), vorticity_z(1:np))
+      call vtk%write_data_array("stream_function", vortex_particles(1:np)%results%psi(1), vortex_particles(1:np)%results%psi(2), vortex_particles(1:np)%results%psi(3))
       call vtk%write_data_array("work", vortex_particles(1:np)%work)
       call vtk%write_data_array("label", vortex_particles(1:np)%label)
       call vtk%write_data_array("pid", int(np, kind_default), my_rank) ! attaching the MPI rank to each particle

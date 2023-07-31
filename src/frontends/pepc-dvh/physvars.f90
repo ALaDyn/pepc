@@ -365,6 +365,7 @@ contains
             t_particle_results( &                                               !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
+               [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                0._kind_physics &                                                !&
             ) &                                                                 !&
          )                                                                      !&

@@ -94,6 +94,7 @@ contains
       do j = 1, nchild
          parent%coc(1:3) = parent%coc(1:3) + (children(j)%coc(1:3) * children(j)%abs_charge)
       end do
+      ! parent%coc is ^X_{V_d} at page 80 of Speck Ph.D. Thesis
       parent%coc(1:3) = parent%coc(1:3) / parent%abs_charge
 
       !&<
@@ -180,6 +181,7 @@ contains
 
       res1%u = res1%u + res2%u
       res1%af = res1%af + res2%af
+      res1%psi = res1%psi + res2%psi
       res1%div = res1%div + res2%div
    end subroutine
 
@@ -326,17 +328,18 @@ contains
       real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
 
       integer :: ierr
-      real(kind_physics) :: u(3), af(3), div
+      real(kind_physics) :: u(3), af(3), psi(3), div
 
       u = 0.
       af = 0.
+      psi = 0.
       div = 0.
 
       select case (force_law)
       case (21)  !  use 2nd order Gaussian kernel, transposed scheme
          call calc_2nd_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div)
       case (22)  !  use 2nd order algebraic kernel, transposed scheme
-         call calc_2nd_algebraic_transposed_direct(particle, node, delta, dist2, u, af, div)
+         call calc_2nd_algebraic_transposed_direct(particle, node, delta, dist2, u, af, psi, div)
       case (61)  ! use 6th order algebraic kernel, classical scheme
          call calc_6th_gaussian_transposed_direct(particle, node, delta, dist2, u, af, div) !TODO: 6xth order direct summation
       case (62)  ! use 6th order algebraic kernel, transposed scheme
@@ -348,6 +351,7 @@ contains
 
       particle%results%u(1:3) = particle%results%u(1:3) - u(1:3)
       particle%results%af(1:3) = particle%results%af(1:3) + af(1:3)
+      particle%results%psi(1:3) = particle%results%psi(1:3) + psi(1:3)
       particle%results%div = particle%results%div + div
    end subroutine
 
@@ -369,10 +373,11 @@ contains
       real(kind_physics), intent(in) :: vbox(3), delta(3), dist2
 
       integer :: ierr
-      real(kind_physics) :: u(3), af(3), div
+      real(kind_physics) :: u(3), af(3), psi(3), div
 
       u = 0.
       af = 0.
+      psi = 0.
       div = 0.
 
       select case (force_law)
@@ -381,7 +386,7 @@ contains
          write (*, *) 'ME not implemented for Gaussian kernels, aborting ...'
          call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
       case (22)  !  use 2nd order algebraic kernel, transposed scheme
-         call calc_2nd_algebraic_transposed(particle, node, delta, dist2, u, af)
+         call calc_2nd_algebraic_transposed(particle, node, delta, dist2, u, af, psi)
       case (61)  ! use 6th order algebraic kernel, classical scheme
          ! TODO: ME 6th order classical scheme
          write (*, *) 'ME not implemented for Gaussian kernels, aborting ...'
@@ -394,9 +399,10 @@ contains
       end select
 
       !&<
-      particle%results%u(1:3)  = particle%results%u(1:3)  -   u(1:3)
-      particle%results%af(1:3) = particle%results%af(1:3) +  af(1:3)
-      particle%results%div     = particle%results%div     + div
+      particle%results%u(1:3)   = particle%results%u(1:3)   -   u(1:3)
+      particle%results%af(1:3)  = particle%results%af(1:3)  +  af(1:3)
+      particle%results%psi(1:3) = particle%results%psi(1:3) + psi(1:3)
+      particle%results%div      = particle%results%div      + div
       !&>
    end subroutine
 
@@ -415,7 +421,7 @@ contains
    !> Calculates 3D 2nd order condensed algebraic kernel interaction
    !> of particle p with tree node t, results are returned in u and af
    !>
-   subroutine calc_2nd_algebraic_transposed(particle, t, d, dist2, u, af)
+   subroutine calc_2nd_algebraic_transposed(particle, t, d, dist2, u, af, psi)
       use module_pepc_types
       use module_interaction_specific_types
       implicit none
@@ -423,13 +429,13 @@ contains
       type(t_particle), intent(in) :: particle
       type(t_tree_node_interaction_data), intent(in) :: t !< index of particle to interact with
       real(kind_physics), intent(in) :: d(3), dist2 !< separation vector and magnitude**2 precomputed in walk_single_particle
-      real(kind_physics), intent(out) ::  u(1:3), af(1:3)
+      real(kind_physics), intent(out) ::  u(1:3), af(1:3), psi(1:3)
 
       integer :: i1, i2, i3 !< helper variables for the tensor structures
 
       real(kind_physics) :: dx, dy, dz !< temp variables for distance
-      real(kind_physics) :: Gc25, Gc35, Gc45, Gc55, MPa1, DPa1, DPa2, QPa1, QPa2 !< prefactors for the multipole expansion
-      real(kind_physics) :: Gc(4)
+      real(kind_physics) :: Gc15, Gc25, Gc35, Gc45, Gc55, MPa1, DPa1, DPa2, QPa1, QPa2 !< prefactors for the multipole expansion
+      real(kind_physics) :: Gc(0:4)
       real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
       ! tensors allow nice and short code and better comparison with (my!) theory
@@ -473,9 +479,10 @@ contains
       CP2(:, 3, 3) = cross_prod(m2(:, 3, 3), vort)
 
       ! precompute kernel function evaluations of various order
-      Gc = G_core([dist2, dist2, dist2, dist2], & !&
-                  [sig2, sig2, sig2, sig2], & !&
-                  [2.5D0, 3.5D0, 4.5D0, 5.5d0])   !&
+      Gc = G_core([dist2, dist2, dist2, dist2, dist2], & !&
+                  [sig2,  sig2, sig2, sig2, sig2], & !&
+                  [1.5D0, 2.5D0, 3.5D0, 4.5D0, 5.5d0])   !&
+      Gc15 = Gc(0)
       Gc25 = Gc(1)
       Gc35 = Gc(2)
       Gc45 = Gc(3)
@@ -519,6 +526,22 @@ contains
               + QPa1 * dz &
               - 7.5D00 * Gc45 * (sum((/(sum((/((CP2(i2, i1, 3) + CP2(i2, 3, i1) + CP2(3, i2, i1)) * d(i2), i2=1, 3)/)) * d(i1), i1=1, 3)/)) + dz * QPa2) &
               + 1.5D00 * Gc35 * (CP2(1, 1, 3) + CP2(2, 2, 3) + CP2(3, 3, 3) + CP2(1, 3, 1) + CP2(2, 3, 2) + CP2(3, 3, 3) + CP2(3, 1, 1) + CP2(3, 2, 2) + CP2(3, 3, 3)) ! QUADRUPOLE
+
+      psi(1) = Gc15 * m0(1) & ! MONOPOLE
+               + Gc25 * m1(1, 1) * dx + Gc25 * m1(1, 2) * dy + Gc25 * m1(1, 3) * dz & ! DIPOLE
+               + 1.5D0 * Gc35 * (sum((/(sum((/(m2(1, i2, i1) * d(i1), i1=1, 3)/)) * d(i2), i2=1, 3)/))) &
+               - 0.5d0 * Gc25 * (sum((/(m2(1, i1, i1), i1=1, 3)/)))                                         ! QUADRUPOLE
+
+      psi(2) = Gc15 * m0(2) & ! MONOPOLE
+               + Gc25 * m1(2, 1) * dx + Gc25 * m1(2, 2) * dy + Gc25 * m1(2, 3) * dz & ! DIPOLE
+               + 1.5D0 * Gc35 * (sum((/(sum((/(m2(2, i2, i1) * d(i1), i1=1, 3)/)) * d(i2), i2=1, 3)/))) &
+               - 0.5d0 * Gc25 * (sum((/(m2(2, i1, i1), i1=1, 3)/)))                                         ! QUADRUPOLE
+
+      psi(3) = Gc15 * m0(3) & ! MONOPOLE
+               + Gc25 * m1(3, 1) * dx + Gc25 * m1(3, 2) * dy + Gc25 * m1(3, 3) * dz & ! DIPOLE
+               + 1.5D0 * Gc35 * (sum((/(sum((/(m2(3, i2, i1) * d(i1), i1=1, 3)/)) * d(i2), i2=1, 3)/))) &
+               - 0.5d0 * Gc25 * (sum((/(m2(3, i1, i1), i1=1, 3)/)))                                         ! QUADRUPOLE
+
    end subroutine calc_2nd_algebraic_transposed
 
    !>
@@ -653,19 +676,19 @@ contains
 
    !>
    !> Calculates 3D 2nd order algebraic kernel interaction, transposed scheme
-   !> of particle p with tree *particle*, results are returned in u and af
+   !> of particle p with tree *particle*, results are returned in u, psi and af
    !>
-   subroutine calc_2nd_algebraic_transposed_direct(particle, t, d, dist2, u, af, div)
+   subroutine calc_2nd_algebraic_transposed_direct(particle, t, d, dist2, u, af, psi, div)
       use module_pepc_types
       implicit none
 
       type(t_tree_node_interaction_data), intent(in) :: t
       type(t_particle), intent(inout) :: particle
       real(kind_physics), intent(in) :: d(3), dist2
-      real(kind_physics), intent(out) :: u(1:3), af(1:3), div
+      real(kind_physics), intent(out) :: u(1:3), af(1:3), psi(1:3), div
 
       real(kind_physics), dimension(3) :: m0, CP0 !< data structures for the monopole moments
-      real(kind_physics) :: Gc25, MPa1, nom, nom45, nom35, nom25
+      real(kind_physics) :: Gc15, Gc25, MPa1, nom, nom45, nom35, nom25, nom15
       real(kind_physics), dimension(3) :: vort !< temp variables for vorticity (or better: alpha)
 
       m0 = [t%chargex, t%chargey, t%chargez]    ! monopole moment tensor
@@ -676,14 +699,22 @@ contains
       nom45 = nom**(-4.5)
       nom35 = nom45 * nom
       nom25 = nom35 * nom
+      nom15 = nom25 * nom
 
       Gc25 = (dist2 + 2.5 * sig2) * nom25
+      Gc15 = (dist2 + 1.5 * sig2) * nom15
+
       MPa1 = 3.0 * (dist2 + 3.5 * sig2) * nom35 * dot_product(d, CP0)
 
       u = Gc25 * cross_prod(d, m0) ! monopole
 
       af = Mpa1 * d - Gc25 * CP0   ! monopole
 
+      ! Stream function = sum_p G( d ) alpha_p(t)
+      psi = Gc15 * m0
+
+      !The divergence of omega = div ( sum_p Zeta( d ) alpha_p(t) )
+      !                        = sum_p alpha_p(t) \dot grad_Zeta( d )
       div = -52.5 * nom45 * sig2**2 * dot_product(d, m0)
    end subroutine calc_2nd_algebraic_transposed_direct
 
@@ -784,6 +815,8 @@ contains
 
       af = -dK2 * d - K2 * CP0
 
+      !The divergence of omega = sum_p Zeta( d ) alpha_p(t) : 1/4pi Sum_p 3 Div( exp( - dist/sig^3 ) alpha_p )
+      !                        = 1/4pi Sum_p 9 dist/sig^3 exp(-dist/sig^3) d * alpha_p
       div = -K2div * dot_product(d, m0)
    end subroutine calc_2nd_gaussian_transposed_direct
 
