@@ -120,6 +120,8 @@ program pepcv
 
       ! if remeshing is requested at all and if it is time right now, do it!
       if ((rem_freq .gt. 0) .and. (mod(itime, rem_freq) .eq. 0)) then
+         call divergence_diag()
+         call energy_diag(trun)
 
          if (my_rank .eq. 0) write (*, '("PEPC-V | ", a)') 'Starting remeshing...'
          call timer_start(t_remesh)
@@ -148,8 +150,6 @@ program pepcv
 
       ! Some linear diagnostics
       call linear_diagnostics(itime, trun)
-      call divergence_diag()
-
    end do
 
    call dump_results()

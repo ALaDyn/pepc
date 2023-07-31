@@ -21,7 +21,7 @@
 module files
    implicit none
 
-   integer :: run_unit, dom_unit, diag_unit
+   integer :: run_unit, dom_unit, diag_unit, ener_unit
 
 contains
 
@@ -38,7 +38,8 @@ contains
          !  master diagnostics output
          open (newunit=run_unit, file='run.out')
          open (newunit=dom_unit, file='domains.dat')
-         open (newunit=diag_unit, file='linear_diag.dat', STATUS='UNKNOWN', POSITION='APPEND')
+         open (newunit=diag_unit, file='linear_diag.dat', STATUS='UNKNOWN')
+         open (newunit=ener_unit, file='ener_enstro.dat', STATUS='UNKNOWN')
       end if
 
       ! for MPI I/O
@@ -58,6 +59,7 @@ contains
          close (run_unit)
          close (dom_unit)
          close (diag_unit)
+         close (ener_unit)
       end if
 
       !close(20)
@@ -227,14 +229,15 @@ contains
 
       use physvars
       use module_vtk, only: vtkfile_unstructured_grid, VTK_STEP_FIRST, VTK_STEP_LAST, VTK_STEP_NORMAL
+      use mpi
       implicit none
 
       real, intent(in) :: time
       real(kind_physics) :: vorticity_x(np), vorticity_y(np), vorticity_z(np)
-      real(kind_physics) :: vol
+      real(kind_physics) :: vol, enstro_loc, enstro
       integer, intent(in) :: step
       type(vtkfile_unstructured_grid) :: vtk
-      integer :: vtk_step
+      integer :: vtk_step, ierr
       integer(kind_particle) :: i
 
       vol = m_h**3
