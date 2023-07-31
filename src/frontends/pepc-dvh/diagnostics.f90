@@ -166,20 +166,33 @@ contains
 
       use physvars
       use files, only: diag_unit
+      use module_interaction_specific, only: sig2
       use mpi
       implicit none
 
       integer, intent(in) :: itime
       real, intent(in) :: trun
 
-      real(kind_physics)     :: omega(3), sendbuf_O(3), linear(3), sendbuf_I(3), angular(3), sendbuf_A(3)
+      real(kind_physics)     :: sendbuf_O(3), omega(3), sendbuf_I(3), linear(3), sendbuf_A(3), angular(3)
+      real(kind_physics)     :: vorticity(np, 3), pos(np, 3)
+      real(kind_physics)     :: us3
       integer                :: ierr
       integer(kind_particle) :: i
 
+      us3 = 1.d0 / 3.d0
+
+      vorticity(1:np, 1) = vortex_particles(1:np)%data%alpha(1)
+      vorticity(1:np, 2) = vortex_particles(1:np)%data%alpha(2)
+      vorticity(1:np, 3) = vortex_particles(1:np)%data%alpha(3)
+      pos(1:np, 1) = vortex_particles(1:np)%x(1)
+      pos(1:np, 2) = vortex_particles(1:np)%x(2)
+      pos(1:np, 3) = vortex_particles(1:np)%x(3)
+
       ! local total vorticity
-      sendbuf_O = 0
+      sendbuf_O = 0.d0
       do i = 1, np
-         sendbuf_O(1:3) = sendbuf_O(1:3) + vortex_particles(i)%data%alpha(1:3)
+!        sendbuf_O(1:3) = sendbuf_O(1:3) + vortex_particles(i)%data%alpha(1:3)
+         sendbuf_O(1:3) = sendbuf_O(1:3) + vorticity(i, 1:3)
       end do
 
       ! global total vortiticy
@@ -187,31 +200,39 @@ contains
       call MPI_ALLREDUCE(sendbuf_O, omega, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
       ! local linear impulse
-      sendbuf_I = 0
+      sendbuf_I = 0.d0
       do i = 1, np
-         sendbuf_I(1) = sendbuf_I(1) + 0.5 * vortex_particles(i)%x(2) * vortex_particles(i)%data%alpha(3) - vortex_particles(i)%x(3) * vortex_particles(i)%data%alpha(2)
-         sendbuf_I(2) = sendbuf_I(2) + 0.5 * vortex_particles(i)%x(3) * vortex_particles(i)%data%alpha(1) - vortex_particles(i)%x(1) * vortex_particles(i)%data%alpha(3)
-         sendbuf_I(3) = sendbuf_I(3) + 0.5 * vortex_particles(i)%x(1) * vortex_particles(i)%data%alpha(2) - vortex_particles(i)%x(2) * vortex_particles(i)%data%alpha(1)
+         sendbuf_I(1) = sendbuf_I(1) + 0.5 * (pos(i, 2) * vorticity(i, 3) - pos(i, 3) * vorticity(i, 2))
+         sendbuf_I(2) = sendbuf_I(2) + 0.5 * (pos(i, 3) * vorticity(i, 1) - pos(i, 1) * vorticity(i, 3))
+         sendbuf_I(3) = sendbuf_I(3) + 0.5 * (pos(i, 1) * vorticity(i, 2) - pos(i, 2) * vorticity(i, 1))
       end do
 
       ! global linear impulse
-      linear = 0.
+      linear = 0.d0
       call MPI_ALLREDUCE(sendbuf_I, linear, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
       ! local angular impulse
-!~    sendbuf_A = 0
-!~    do i = 1,np
-!~       sendbuf_A(1) = sendbuf_A(1) + 0.5*(vortex_particles(i)%x(2)*(vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(2)-vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(1))-&
-!~            vortex_particles(i)%x(3)*(vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(1)-vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(3))-eps**2*omega(1))
-!~       sendbuf_A(2) = sendbuf_A(2) + 0.5*(vortex_particles(i)%x(3)*(vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(3)-vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(2))-&
-!~            vortex_particles(i)%x(1)*(vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(2)-vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(1))-eps**2*omega(2))
-!~       sendbuf_A(3) = sendbuf_A(3) + 0.5*(vortex_particles(i)%x(1)*(vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(1)-vortex_particles(i)%x(1)*vortex_particles(i)%data%alpha(3))-&
-!~            vortex_particles(i)%x(2)*(vortex_particles(i)%x(2)*vortex_particles(i)%data%alpha(3)-vortex_particles(i)%x(3)*vortex_particles(i)%data%alpha(2))-eps**2*omega(3))
-!~    end do
+      ! ATTENTION: The factor that multiplies sig^2 * omega is 1/3 if second-order algebraic smoothing function is used.
+      ! In general it is equal to 2/9 * C where C is = 4*pi * INT_0^inf dr Zeta(r) r^4
+      ! See for details: pag 263 of Winckelmans and Leonard JCP 109, 247-273, 1993
+      sendbuf_A = 0.d0
+      do i = 1, np
+         sendbuf_A(1) = sendbuf_A(1) + us3 * (pos(i, 2) * (pos(i, 1) * vorticity(i, 2) - pos(i, 2) * vorticity(i, 1)) &
+                                              - pos(i, 3) * (pos(i, 3) * vorticity(i, 1) - pos(i, 1) * vorticity(i, 3)))
+         sendbuf_A(1) = sendbuf_A(1) - us3 * sig2 * omega(1)
+
+         sendbuf_A(2) = sendbuf_A(2) + us3 * (pos(i, 3) * (pos(i, 2) * vorticity(i, 3) - pos(i, 3) * vorticity(i, 2)) &
+                                              - pos(i, 1) * (pos(i, 1) * vorticity(i, 2) - pos(i, 2) * vorticity(i, 1)))
+         sendbuf_A(2) = sendbuf_A(2) - us3 * sig2 * omega(2)
+
+         sendbuf_A(3) = sendbuf_A(3) + us3 * (pos(i, 1) * (pos(i, 3) * vorticity(i, 1) - pos(i, 1) * vorticity(i, 3)) &
+                                              - pos(i, 2) * (pos(i, 2) * vorticity(i, 3) - pos(i, 3) * vorticity(i, 2)))
+         sendbuf_A(3) = sendbuf_A(3) - us3 * sig2 * omega(3)
+      end do
 
       ! global angular impulse
-      angular = 0.
-!~      call MPI_ALLREDUCE(sendbuf_A, angular, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+      angular = 0.d0
+      call MPI_ALLREDUCE(sendbuf_A, angular, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
       ! std and file output
       if (my_rank .eq. 0) then
@@ -220,9 +241,9 @@ contains
          write (*, *) 'Linear Impulse:  ', sqrt(linear(1)**2 + linear(2)**2 + linear(3)**2), linear(1) + linear(2) + linear(3), linear(1), linear(2), linear(3)
          write (*, *) 'Angular Impulse: ', sqrt(angular(1)**2 + angular(2)**2 + angular(3)**2), angular(1) + angular(2) + angular(3), angular(1), angular(2), angular(3)
          write (*, *) '============================================'
-         write (diag_unit, *) itime, trun, sqrt(omega(1)**2 + omega(2)**2 + omega(3)**2), ' ', omega(1) + omega(2) + omega(3), ' ', omega(1), ' ', omega(2), ' ', omega(3), ' ', &
-            sqrt(linear(1)**2 + linear(2)**2 + linear(3)**2), ' ', linear(1) + linear(2) + linear(3), ' ', linear(1), ' ', linear(2), ' ', linear(3), ' ', &
-            sqrt(angular(1)**2 + angular(2)**2 + angular(3)**2), ' ', angular(1) + angular(2) + angular(3), ' ', angular(1), ' ', angular(2), ' ', angular(3), ' '
+         write (diag_unit, '(10(E15.7,2X))') trun, omega(1),   omega(2),   omega(3), &
+                                                  linear(1),  linear(2),  linear(3), &
+                                                 angular(1), angular(2), angular(3)  
       end if
 
    end subroutine linear_diagnostics
@@ -253,6 +274,38 @@ contains
       if (my_rank .eq. 0) write (*, *) 'Divergence (max/min/mean/denorm):', div_max, div_min, div_mean, div_mean * n
 
    end subroutine divergence_diag
+
+   subroutine energy_diag(trun)
+
+      use physvars
+      use mpi
+      use files, only: ener_unit
+      implicit none
+
+      real, intent(in) :: trun
+
+      integer :: ierr
+      integer(kind_particle) :: i
+      real(kind_physics) :: energy_local, energy_tot, enstrophy_local, enstrophy_tot
+
+      energy_local = 0.
+      do i = 1, np
+         energy_local = energy_local + 0.5 * DOT_PRODUCT(vortex_particles(i)%results%psi, vortex_particles(i)%data%alpha)
+      end do
+
+      call MPI_ALLREDUCE(energy_local, energy_tot, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+      enstrophy_local = 0.
+      do i = 1, np
+         enstrophy_local = enstrophy_local + DOT_PRODUCT(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
+      end do
+      enstrophy_local = enstrophy_local * ivol
+
+      call MPI_ALLREDUCE(enstrophy_local, enstrophy_tot, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+      if (my_rank .eq. 0) write (ener_unit, *) trun, energy_tot, enstrophy_tot
+
+   end subroutine energy_diag
 
    subroutine verify_direct()
 
