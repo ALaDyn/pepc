@@ -126,6 +126,7 @@ contains
    subroutine pepc_setup(itime, trun)
 
       use module_pepc
+      use module_interaction_specific, only: sig2
       use mpi
       implicit none
 
@@ -187,7 +188,8 @@ contains
       if (Delta_r .le. 0.) Delta_r = Lref / float(nv_on_Lref)
 
       m_h = Delta_r
-
+      sig2 = m_h**2 ! size of the smoothing length set equal to the vortex size
+                    ! one could also set it equal to zero to represent singular vortex distribution
       thresh = thresh * Uref / Lref * Delta_r**3
 
       Re = Uref * Lref / nu

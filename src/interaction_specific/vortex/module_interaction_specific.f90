@@ -33,7 +33,7 @@ module module_interaction_specific
    integer, public :: force_law = 2               !< 2 = calc_2nd_algebraic_condensed !&
    integer, public :: mac_select = 0              !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut !&
    real(kind_physics), public :: theta2 = 0.6**2. !< square of multipole opening angle !&
-   real(kind_physics), public :: sig2 = 0.0       !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb) !&
+   real(kind_physics), public :: sig2             !< sigma^2 in R.Speck Ph.D. Thesis !&
    namelist /calc_force_vortex/ force_law, mac_select, theta2, sig2
 
    public multipole_from_particle
