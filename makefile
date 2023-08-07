@@ -26,6 +26,7 @@ info:
 	@printf "==== code version        : $(BC)$(REVISION)$(NC)\n"
 	@printf "==== pepc directory      : $(BC)$(ROOTDIR)$(NC)\n"
 	@printf "==== available frontends : $(BC)$(ALLFRONTENDS)$(NC)\n"
+	@if [ "$(MACH)" = "linux_intel" ]; then printf "$(RED)If you experience memory or threading issues with Intel's compiler or OpenMP runtime, look into the OMP_STACKSIZE environment variable (and increase it).$(NC)\n"; fi
 	@echo ""
 
 buildenv:
