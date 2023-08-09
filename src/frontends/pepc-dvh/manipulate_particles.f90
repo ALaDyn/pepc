@@ -950,7 +950,8 @@ contains
       if (my_rank .eq. 0) write (*, '("PEPC-V | ", a,f12.8,a)') 'Finished interpolation for remeshing after ', timer_read(t_remesh_interpol), ' seconds'
 
       call timer_start(t_remesh_sort)
-      call sort_remesh(m_part, n_remesh_points, n_max_remesh_points) ! may change n_remesh_points to updated, balanced number
+      call sort_remesh(m_part, local_extent_min, local_extent_max, &
+                       n_remesh_points, n_max_remesh_points) ! may change n_remesh_points to updated, balanced number
       call timer_stop(t_remesh_sort)
 
       ! Update module variable that stores number of vortices
@@ -1019,7 +1020,7 @@ contains
    !>   Sorting function for remeshing
    !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine sort_remesh(particles, m_np, m_nppm)
+   subroutine sort_remesh(particles, local_extent_min, local_extent_max, m_np, m_nppm)
 
       use physvars
       use treevars, only: maxlevel, idim
@@ -1087,22 +1088,11 @@ contains
          next = my_rank + 1
       end if
 
-      local_extent_min(1) = minval(particles(1:m_np)%x(1))
-      local_extent_max(1) = maxval(particles(1:m_np)%x(1))
-      local_extent_min(2) = minval(particles(1:m_np)%x(2))
-      local_extent_max(2) = maxval(particles(1:m_np)%x(2))
-      local_extent_min(3) = minval(particles(1:m_np)%x(3))
-      local_extent_max(3) = maxval(particles(1:m_np)%x(3))
-
       ! Find global limits
       call MPI_ALLREDUCE(local_extent_min, global_extent_min, 3, MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
       call MPI_ALLREDUCE(local_extent_max, global_extent_max, 3, MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
 
       boxsize = global_extent_max - global_extent_min
-
-      ! Safety margin - put buffer region around particles
-      global_extent_max = global_extent_max + boxsize / 10000
-      global_extent_min = global_extent_min - boxsize / 10000
 
       boxsize_max = maxval(global_extent_max - global_extent_min)
 
@@ -1147,11 +1137,11 @@ contains
       m_np = npnew
       ship_parts(1:npold) = particles(indxl(1:npold))
       call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                         get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                         MPI_COMM_WORLD, ierr)
+                          get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, MPI_COMM_WORLD, ierr)
       particles(irnkl(1:m_np)) = get_parts(1:m_np)
       particles(1:m_np)%key = sorted_keys(1:m_np)
 
+      ! TODO: MAYBE THIS ROUTINE IS USELESS. WE ARE NOW WORKING ON A SINGLE GLOBAL UNIFORM MESH
       ! Check if sort finished and find inner doublets
       k = 0
       do i = 2, m_np
