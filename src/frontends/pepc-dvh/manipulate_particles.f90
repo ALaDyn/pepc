@@ -641,11 +641,11 @@ contains
                vortex_particles(j)%x(2) = yt
                vortex_particles(j)%x(3) = zt
                call par_rand(par_rand_res)
-               vortex_particles(j)%data%alpha(1) = par_rand_res * h**3
+               vortex_particles(j)%data%alpha(1) =  par_rand_res * h**3
                call par_rand(par_rand_res)
                vortex_particles(j)%data%alpha(2) = -par_rand_res * h**3
                call par_rand(par_rand_res)
-               vortex_particles(j)%data%alpha(3) = par_rand_res * h**3
+               vortex_particles(j)%data%alpha(3) =  par_rand_res * h**3
             end if
          end do
          np = j
@@ -826,11 +826,13 @@ contains
       if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of index_map', real(STORAGE_SIZE(index_map)) * size(index_map) / (8 * 1024 * 1024)
 
       index_map = 0
+
       ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
       ! Would rev_lg be in a reduction clause?
       mapping_indices = (/(i, i=1, n_remesh_points)/)
       index_map = unpack(mapping_indices, grid_mask, index_map)
       ! $OMP END PARALLEL WORKSHARE
+
       deallocate (mapping_indices)
 
       ! Find new (guessed) maximum number of particles after load-balancing
@@ -1032,7 +1034,7 @@ contains
       integer :: irnkl2(m_nppm), indxl(m_np), irnkl(m_nppm)
       real(kind_physics) :: local_extent_min(3), local_extent_max(3), s, local_work(m_nppm)
       real(kind_physics) :: global_extent_max(3), global_extent_min(3), boxsize(3), boxsize_max
-      real(kind_physics) :: thresh2
+      real(kind_physics) :: omega, maxome, minome
       integer(kind_particle) :: ix(m_np), iy(m_np), iz(m_np)
       integer(kind_key) :: sorted_keys(m_nppm), local_keys(m_nppm)
       integer :: fposts(n_cpu + 1), gposts(n_cpu + 1), islen(n_cpu), irlen(n_cpu)
@@ -1198,15 +1200,26 @@ contains
 
       m_np = k
 
+      ! KICK OUT CRITERION MUST BE ENFORCED ON vorticity (omega), not on circulation (alpha)
       ! Kick out particles (cannot use subroutinee here, since we work on a temp-array)
-      thresh2 = thresh**2
       k = 0
+      maxome =-1.d2
+      minome = 1.d2
       do i = 1, m_np
-         if (dot_product(particles(i)%data%alpha, particles(i)%data%alpha) .gt. thresh2) then
+         omega = norm2(particles(i)%data%alpha) * ivol
+         if (omega .gt. thresh) then
             k = k + 1
             particles(k) = particles(i)
+         else
+            maxome = max(maxome,omega)
+            minome = min(minome,omega)
          end if
       end do
+
+      ! How many particles are kicked out? Write for check on threshold limit
+      ! if(my_rank.eq.0) write(kout_unit,*) 'diffusive kick-out',m_np - k
+      if(my_rank.eq.0) write(*,*) 'in sort remesh',m_np - k,' max k-out',maxome,' min k-out',minome
+
       m_np = k
 
       ! Rebalance: Use Parallel Sort by Parallel Search (SLSORT by M. Hofmann, Chemnitz)
@@ -1223,7 +1236,7 @@ contains
       m_np = npnew
       ship_parts(1:npold) = particles(indxl(1:npold))
       call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                         get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, MPI_COMM_WORLD, ierr)
+                          get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, MPI_COMM_WORLD, ierr)
       particles(irnkl(1:m_np)) = get_parts(1:m_np)
       particles(1:m_np)%key = sorted_keys(1:m_np)
       particles(1:m_np)%work = 1. !TODO: is this elegant?
@@ -1243,14 +1256,14 @@ contains
 
       integer :: ierr
       integer(kind_particle) :: i, k
-      real(kind_physics) :: thresh2
+      real(kind_physics) :: omega
       type(t_particle), allocatable :: temp_particles(:)
 
       ! kick out particles with vorticity magnitude below threshold
-      thresh2 = thresh**2
       k = 0
       do i = 1, np
-         if (dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha) .gt. thresh2) then
+         omega = norm2(vortex_particles(i)%data%alpha) * ivol
+         if (omega .gt. thresh) then
             k = k + 1
             vortex_particles(k) = vortex_particles(i)
          end if
