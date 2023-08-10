@@ -1,5 +1,5 @@
 # Avoid user-changes to hooks to be added by accident
-.githooks
+.githooks/
 
 # Object files
 *.o
