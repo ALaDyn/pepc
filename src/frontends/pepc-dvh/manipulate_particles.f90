@@ -745,16 +745,18 @@ contains
       real(kind_physics), allocatable :: m_part_reduction(:, :)
       logical(1), allocatable :: grid_mask(:, :, :)
 
-      total_vort = 0.
-      total_vortmod = 0.
-      do i = 1, np
-         total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
-      end do
-      total_vortmod = sqrt(total_vortmod)
+      if (vort_check) then
+         total_vort = 0.
+         total_vortmod = 0.
+         do i = 1, np
+            total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
+            total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
+         end do
+         total_vortmod = sqrt(total_vortmod)
 
-      call MPI_ALLREDUCE(total_vort, total_vort_full_pre, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_pre, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         call MPI_ALLREDUCE(total_vort, total_vort_full_pre, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_pre, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+      end if
 
       deno = (pi * kernel_c)**1.5
 
@@ -909,7 +911,6 @@ contains
                   m_part_reduction(3, l) = m_part_reduction(3, l) + frac * alpha(3) / alpha_sum
                   m_part_reduction(4, l) = m_part_reduction(4, l) + frac * work
 #endif
-
                end do
             end do
          end do
@@ -919,26 +920,28 @@ contains
 !$OMP END PARALLEL
 
 #ifndef USER_REDUCTION
-      m_part(:)%data%alpha(1) = m_part_reduction(1, :)                        !&
-      m_part(:)%data%alpha(2) = m_part_reduction(2, :)                        !&
-      m_part(:)%data%alpha(3) = m_part_reduction(3, :)                        !&
-      m_part(:)%work          = m_part_reduction(4, :)                        !&
+      m_part(:)%data%alpha(1) = m_part_reduction(1, :)      !&
+      m_part(:)%data%alpha(2) = m_part_reduction(2, :)      !&
+      m_part(:)%data%alpha(3) = m_part_reduction(3, :)      !&
+      m_part(:)%work          = m_part_reduction(4, :)      !&
 #endif
 
       deallocate (grid_mask, index_map, vortex_particles, m_part_reduction)
 
-      ! Sum vorticity of remeshed points
-      total_vort = 0.
-      total_vortmod = 0.
-      do i = 1, n_remesh_points
-         total_vort(1:3) = total_vort(1:3) + m_part(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(m_part(i)%data%alpha, m_part(i)%data%alpha)
-      end do
-      total_vortmod = sqrt(total_vortmod)
+      if (vort_check) then
+         ! Sum vorticity of remeshed points
+         total_vort = 0.
+         total_vortmod = 0.
+         do i = 1, n_remesh_points
+            total_vort(1:3) = total_vort(1:3) + m_part(i)%data%alpha(1:3)
+            total_vortmod = total_vortmod + dot_product(m_part(i)%data%alpha, m_part(i)%data%alpha)
+         end do
+         total_vortmod = sqrt(total_vortmod)
 
-      ! Sum net vorticity of remeshed points
-      call MPI_ALLREDUCE(total_vort, total_vort_full_mid, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_mid, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         ! Sum net vorticity of remeshed points
+         call MPI_ALLREDUCE(total_vort, total_vort_full_mid, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_mid, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+      end if
 
       ! Reset the number of OpenMP threads to num_threads, the number of WORK threads.
 !$    call omp_set_num_threads(num_threads)
@@ -959,24 +962,26 @@ contains
       vortex_particles(1:np) = m_part(1:n_remesh_points)
       deallocate (m_part)
 
-      ! Sum local vorticity after balancing and filtering
-      total_vort = 0.
-      total_vortmod = 0.
-      do i = 1, np
-         total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
-      end do
-      total_vortmod = sqrt(total_vortmod)
+      if (vort_check) then
+         ! Sum local vorticity after balancing and filtering
+         total_vort = 0.
+         total_vortmod = 0.
+         do i = 1, np
+            total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
+            total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
+         end do
+         total_vortmod = sqrt(total_vortmod)
 
-      ! Sum net vorticity after balancing and filtering
-      call MPI_ALLREDUCE(total_vort, total_vort_full_after, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_after, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         ! Sum net vorticity after balancing and filtering
+         call MPI_ALLREDUCE(total_vort, total_vort_full_after, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_after, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-      ! Output stats to check vorticity
-      if (my_rank .eq. 0) then
-         write (*, *) '   Gamma before remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_pre, total_vort_full_pre)), total_vortmod_full_pre
-         write (*, *) ' Gamma after pop. control (norm,sum_mod):', sqrt(dot_product(total_vort_full_mid, total_vort_full_mid)), total_vortmod_full_mid
-         write (*, *) '    Gamma after remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_after, total_vort_full_after)), total_vortmod_full_after
+         ! Output stats to check vorticity
+         if (my_rank .eq. 0) then
+            write (*, *) '   Gamma before remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_pre, total_vort_full_pre)), total_vortmod_full_pre
+            write (*, *) ' Gamma after pop. control (norm,sum_mod):', sqrt(dot_product(total_vort_full_mid, total_vort_full_mid)), total_vortmod_full_mid
+            write (*, *) '    Gamma after remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_after, total_vort_full_after)), total_vortmod_full_after
+         end if
       end if
 
       ! Check load-balance

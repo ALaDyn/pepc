@@ -234,13 +234,10 @@ contains
 
       real, intent(in) :: time
       real(kind_physics) :: vorticity_x(np), vorticity_y(np), vorticity_z(np)
-      real(kind_physics) :: vol, enstro_loc, enstro
       integer, intent(in) :: step
       type(vtkfile_unstructured_grid) :: vtk
       integer :: vtk_step, ierr
       integer(kind_particle) :: i
-
-      vol = m_h**3
 
       if (step .eq. 0) then
          vtk_step = VTK_STEP_FIRST
@@ -250,9 +247,9 @@ contains
          vtk_step = VTK_STEP_NORMAL
       end if
 
-      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1) / vol
-      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2) / vol
-      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3) / vol
+      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1) * ivol
+      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2) * ivol
+      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3) * ivol
 
       call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01 * time, vtk_step)
       call vtk%write_headers(np, 0_kind_particle)

@@ -35,6 +35,7 @@ module physvars
    real(kind_physics)     :: force_const    ! force constant depending on unit system
    real                   :: h, m_h         ! initial particle distance and mesh width for remeshing
    real                   :: Delta_r        ! mesh width for remeshing (m_h and Deltar are the same quantity; m_h should be removed)
+   real                   :: ivol           ! inverse of vortex particle volume (1/Delta_r^3)
    real                   :: Rd             ! diffusive radius
    real                   :: Delta_tavv     ! advective time step
    real                   :: Delta_tdiff    ! diffusive time step
@@ -66,6 +67,7 @@ module physvars
    real    :: dt, ts, te           ! timestep, start-time, end-time
    integer :: nt                   ! # timesteps and current timestep
    integer :: rk_stages            ! # Runge-Kutta stages
+   logical :: vort_check           ! Control of total vorticity during remeshing
 
    ! I/O stuff
    integer :: ifile_cpu            ! O/P stream
@@ -138,16 +140,16 @@ contains
       character(255) :: parameterfile
       logical :: read_param_file
 
-      namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref, &               !&
-                       h, Delta_r, thresh, Uref, Lref, &                        !&
-                       rmax, r_torus, nc, nphi, g, torus_offset, n_in, &        !&
-                       dump_time, cp_time, input_itime, nDeltar                 !&
+      namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref,                &!&
+                       h, Delta_r, thresh, Uref, Lref,                         &!&
+                       rmax, r_torus, nc, nphi, g, torus_offset, n_in,         &!&
+                       dump_time, cp_time, input_itime, nDeltar, vort_check     !&
 
       !  Default input set
       ispecial     = 1                                                          !&
 
       ! Physics stuff
-      force_const = 0.25d0 / pi ! 3D prefactor for u and af                     !&
+      force_const  = 0.25d0 / pi ! 3D prefactor for u and af                    !&
       h            = 0.                                                         !&
       Delta_r      = 0.                                                         !&
       Co           = 1.                                                         !&
@@ -171,6 +173,9 @@ contains
       dump_time    = 0                                                          !&
       cp_time      = 0                                                          !&
 
+      ! Check total vorticity
+      vort_check   = .true.                                                     !&
+
       ! read in first command line argument
       call pepc_get_para_file(read_param_file, parameterfile, my_rank)
 
@@ -187,9 +192,13 @@ contains
       ! Dtd = fr * Dta
       if (Delta_r .le. 0.) Delta_r = Lref / float(nv_on_Lref)
 
-      m_h = Delta_r
-      sig2 = m_h**2 ! size of the smoothing length set equal to the vortex size
+       m_h = Delta_r
+
+      ivol = 1.d0/(m_h*m_h*m_h)
+
+      sig2 = 0.d0 ! m_h**2 ! size of the smoothing length set equal to the vortex size
                     ! one could also set it equal to zero to represent singular vortex distribution
+
       thresh = thresh * Uref / Lref * Delta_r**3
 
       Re = Uref * Lref / nu
