@@ -30,6 +30,8 @@ general, we follow the "fork-and-pull" Git workflow.
 
 NOTE: Be sure to merge the latest from "upstream" before making a pull request!
 
+Run existing tests and add new tests for new features or encountered errors.
+
 Contributor License Agreement
 -----------------------------
 
@@ -45,21 +47,25 @@ In case of any questions, please do not hesitate to get in touch with us.
 Coding Style
 ------------
 
-The codebase conforms to a single, consistent coding style (though not formally
-defined yet). New submissions will be rejected if they do not conform to the
-current style.
+The codebase conforms to a single, consistent coding style. New submissions will
+be rejected if they do not conform to the current style.
    * Apart from MPI specifiers and pre-processor macros, PEPC generally
      makes use of lower case syntax.
    * Instead of `enddo` and `endif` including the additional space is
      preferred, i.e. `end do` and `end if`
    * Subroutines and functions should contain comments documenting their
      purpose and interface.
-   * Expect the use of `fprettyfy` and `doxygen` or `FORD` in the future, so
-     write comments accordingly and 'guard' comments if necessary.
+   * Expect the use of `doxygen` or `FORD` in the future, so write comments
+     accordingly and 'guard' comments if necessary.
+   * `git hooks` are in place to check the style of source files before any
+     commit. Those checks are two-fold:
+
+       1. a whitespace check via `git diff-index --check`
+       2. running `fprettify` on changed files
+
+     If either check fails, the commit will be aborted.
 
 Comment your code if not self-describing.
-
-Run existing tests and add new tests for new features or encountered errors.
 
 Please also follow the standard commit-message format. The first line is the
 subject, and should generally be less than 50 characters. The second line must
@@ -67,3 +73,19 @@ be blank. The subsequent lines are the message body, and should generally be
 concise but describe the changes that have been made. Commit often and do not
 mix different changes (e.g. fixes for more than one issue or changes that are of
 a different nature) on one commit.
+
+fprettify
+---------
+
+PEPC's source files are best formatted with the help of
+[`fprettify`](https://github.com/pseewald/fprettify). Please make sure to use a
+recent, bug fixed version to not introduce errors. You can check the
+`Dockerfile` for the version used for CI. All settings for `fprettify`
+are provided in a configuration file found under `src/.fprettify.rc`. To run a
+check without changing anything, perform a
+```sh
+fprettify -c src/.fprettify.rc -d src/<path_to_file>/<file>
+```
+from PEPC's root directory. Dropping the `-d` will apply changes.
+
+<!-- vim: set ts=4 sw=4 tw=80 et :-->
