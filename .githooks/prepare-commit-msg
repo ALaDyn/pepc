@@ -12,7 +12,7 @@ SHA1=$3
 
 BRANCH_NAME=$(git branch | grep '*' | sed 's/* //')
 
-if [ $BRANCH_NAME != '(no branch)' ]
+if ! `echo $BRANCH_NAME | grep -q 'no branch'`
 then
   # A regularly scheduled hook
 
