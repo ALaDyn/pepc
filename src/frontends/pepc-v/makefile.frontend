@@ -16,5 +16,6 @@ SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_V_U))
 ISRC       += $(FILES_I)
 
 BACKEND = vortex
+# default BACKENDTYPE
 
 WALK = pthreads

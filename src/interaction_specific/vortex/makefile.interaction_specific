@@ -1,4 +1,14 @@
-FILES_INT   = module_interaction_specific_types.f90 module_interaction_specific.f90 
+# default files to be included
+FILES_INT   = module_interaction_specific_types.f90 module_interaction_specific.f90 module_interaction_specific_force.f90
+
+# there may be different sub-types of backends to be more specific
+# the general interaction will be for the vortex frontends, but we allow for more memory
+# consuming particle types or more compute intensive extra operations w/ the interaction
+
+ifeq ($(BACKENDTYPE), PSI)
+# include diagnostic for psi in data type and interaction
+FILES_INT   = module_interaction_specific_types_PSI.f90 module_interaction_specific.f90 module_interaction_specific_force_PSI.f90
+endif
 
 SRC        += $(FILES_INT)
 SRC_COPY   += $(addprefix $(INTSPECDIR)/vortex/, $(FILES_INT))
