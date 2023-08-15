@@ -140,16 +140,16 @@ contains
       character(255) :: parameterfile
       logical :: read_param_file
 
-      namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref,                &!&
-                       h, Delta_r, thresh, Uref, Lref,                         &!&
-                       rmax, r_torus, nc, nphi, g, torus_offset, n_in,         &!&
+      namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref, &               !&
+                       h, Delta_r, thresh, Uref, Lref, &                        !&
+                       rmax, r_torus, nc, nphi, g, torus_offset, n_in, &        !&
                        dump_time, cp_time, input_itime, nDeltar, vort_check     !&
 
       !  Default input set
       ispecial     = 1                                                          !&
 
       ! Physics stuff
-      force_const  = 0.25d0 / pi ! 3D prefactor for u and af                    !&
+      force_const  = 0.25d0 / pi !& 3D prefactor for u and af                   !&
       h            = 0.                                                         !&
       Delta_r      = 0.                                                         !&
       Co           = 1.                                                         !&
@@ -192,12 +192,12 @@ contains
       ! Dtd = fr * Dta
       if (Delta_r .le. 0.) Delta_r = Lref / float(nv_on_Lref)
 
-       m_h = Delta_r
+      m_h = Delta_r
 
-      ivol = 1.d0/(m_h*m_h*m_h)
+      ivol = 1.d0 / (m_h * m_h * m_h)
 
-      sig2 = 0.d0 ! m_h**2 ! size of the smoothing length set equal to the vortex size
-                    ! one could also set it equal to zero to represent singular vortex distribution
+      sig2 = 0.d0 !&  m_h**2 ! size of the smoothing length set equal to the vortex size
+      !           !&  one could also set it equal to zero to represent singular vortex distribution
 
       thresh = thresh * Uref / Lref * Delta_r**3
 
@@ -299,7 +299,7 @@ contains
       allocate (vortex_particles(np))
 
       if (my_rank .eq. 0) then
-         write (*, *) "Starting PEPC-V with", n_cpu, " Processors, simulating", np, &
+         write (*, *) "Starting PEPC-DVH with", n_cpu, " Processors, simulating", np, &
             " Particles on each Processor in", nt, "timesteps..."
          !write(*,*) "Using",num_threads,"worker-threads and 1 communication thread in treewalk on each processor (i.e. per MPI rank)"
          !write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
