@@ -21,7 +21,7 @@
 module files
    implicit none
 
-   integer :: run_unit, dom_unit, diag_unit
+   integer :: run_unit, dom_unit, diag_unit, ener_unit
 
 contains
 
@@ -38,7 +38,8 @@ contains
          !  master diagnostics output
          open (newunit=run_unit, file='run.out')
          open (newunit=dom_unit, file='domains.dat')
-         open (newunit=diag_unit, file='linear_diag.dat', STATUS='UNKNOWN', POSITION='APPEND')
+         open (newunit=diag_unit, file='linear_diag.dat', STATUS='UNKNOWN')
+         open (newunit=ener_unit, file='ener_enstro.dat', STATUS='UNKNOWN')
       end if
 
       ! for MPI I/O
@@ -58,6 +59,7 @@ contains
          close (run_unit)
          close (dom_unit)
          close (diag_unit)
+         close (ener_unit)
       end if
 
       !close(20)
@@ -227,17 +229,15 @@ contains
 
       use physvars
       use module_vtk, only: vtkfile_unstructured_grid, VTK_STEP_FIRST, VTK_STEP_LAST, VTK_STEP_NORMAL
+      use mpi
       implicit none
 
       real, intent(in) :: time
       real(kind_physics) :: vorticity_x(np), vorticity_y(np), vorticity_z(np)
-      real(kind_physics) :: vol
       integer, intent(in) :: step
       type(vtkfile_unstructured_grid) :: vtk
-      integer :: vtk_step
+      integer :: vtk_step, ierr
       integer(kind_particle) :: i
-
-      vol = m_h**3
 
       if (step .eq. 0) then
          vtk_step = VTK_STEP_FIRST
@@ -247,9 +247,9 @@ contains
          vtk_step = VTK_STEP_NORMAL
       end if
 
-      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1) / vol
-      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2) / vol
-      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3) / vol
+      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1) * ivol
+      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2) * ivol
+      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3) * ivol
 
       call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01 * time, vtk_step)
       call vtk%write_headers(np, 0_kind_particle)
@@ -259,6 +259,7 @@ contains
       call vtk%startpointdata()
       call vtk%write_data_array("velocity", vortex_particles(1:np)%results%u(1), vortex_particles(1:np)%results%u(2), vortex_particles(1:np)%results%u(3))
       call vtk%write_data_array("vorticity", vorticity_x(1:np), vorticity_y(1:np), vorticity_z(1:np))
+      call vtk%write_data_array("stream_function", vortex_particles(1:np)%results%psi(1), vortex_particles(1:np)%results%psi(2), vortex_particles(1:np)%results%psi(3))
       call vtk%write_data_array("work", vortex_particles(1:np)%work)
       call vtk%write_data_array("label", vortex_particles(1:np)%label)
       call vtk%write_data_array("pid", int(np, kind_default), my_rank) ! attaching the MPI rank to each particle

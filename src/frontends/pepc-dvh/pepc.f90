@@ -21,7 +21,7 @@
 ! ==============================================================
 !
 !
-!                  PEPC-V
+!                  PEPC-DVH
 !
 !    Parallel Efficient Parallel Coulomb-solver: Vortex particles
 !
@@ -48,9 +48,9 @@ program pepcv
    integer :: itime, stage, t_flag
 
    ! Allocate array space for tree
-   call pepc_initialize("pepc-v", my_rank, n_cpu, .true.)
+   call pepc_initialize("pepc-dvh", my_rank, n_cpu, .true.)
    np_mult = 1. ! Set default tuning parameter that controls PEPC`s memory consumption.    !&
-   ! This value does not try to be smart, but works more reliable for pepc-v. !&
+   ! This value does not try to be smart, but works more reliable for pepc-dvh. !&
    call pepc_read_parameters_from_first_argument()
 
    ! Set up O/P files
@@ -92,11 +92,14 @@ program pepcv
             call direct_sum(np, vortex_particles, vortex_particles%results, my_rank, n_cpu)
          end if
 
+         !&<
          do i = 1, np
-            vortex_particles(i)%results%u(1:3) = vortex_particles(i)%results%u(1:3) * force_const
-            vortex_particles(i)%results%af(1:3) = vortex_particles(i)%results%af(1:3) * force_const
-            vortex_particles(i)%results%div = vortex_particles(i)%results%div * force_const
+            vortex_particles(i)%results%u(1:3)   = vortex_particles(i)%results%u(1:3)   * force_const
+            vortex_particles(i)%results%af(1:3)  = vortex_particles(i)%results%af(1:3)  * force_const
+            vortex_particles(i)%results%psi(1:3) = vortex_particles(i)%results%psi(1:3) * force_const
+            vortex_particles(i)%results%div      = vortex_particles(i)%results%div      * force_const
          end do
+         !&>
 
          !call verify_direct()
 
@@ -121,14 +124,16 @@ program pepcv
 
       ! if remeshing is requested at all and if it is time right now, do it!
       if ((rem_freq .gt. 0) .and. (mod(itime, rem_freq) .eq. 0)) then
+         call divergence_diag()
+         call energy_diag(trun)
 
-         if (my_rank .eq. 0) write (*, '("PEPC-V | ", a)') 'Starting remeshing...'
+         if (my_rank .eq. 0) write (*, '("PEPC-DVH | ", a)') 'Starting remeshing...'
          call timer_start(t_remesh)
 
          call remeshing()
 
          call timer_stop(t_remesh)
-         if (my_rank .eq. 0) write (*, '("PEPC-V | ", a,f12.8,a)') 'Finished remeshing after ', timer_read(t_remesh), ' seconds'
+         if (my_rank .eq. 0) write (*, '("PEPC-DVH | ", a,f12.8,a)') 'Finished remeshing after ', timer_read(t_remesh), ' seconds'
          t_flag = -rk_stages
 
       else
@@ -149,8 +154,6 @@ program pepcv
 
       ! Some linear diagnostics
       call linear_diagnostics(itime, trun)
-      call divergence_diag()
-
    end do
 
    call dump_results()

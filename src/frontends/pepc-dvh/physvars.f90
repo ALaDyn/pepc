@@ -35,6 +35,7 @@ module physvars
    real(kind_physics)     :: force_const    ! force constant depending on unit system
    real                   :: h, m_h         ! initial particle distance and mesh width for remeshing
    real                   :: Delta_r        ! mesh width for remeshing (m_h and Deltar are the same quantity; m_h should be removed)
+   real                   :: ivol           ! inverse of vortex particle volume (1/Delta_r^3)
    real                   :: Rd             ! diffusive radius
    real                   :: Delta_tavv     ! advective time step
    real                   :: Delta_tdiff    ! diffusive time step
@@ -66,6 +67,7 @@ module physvars
    real    :: dt, ts, te           ! timestep, start-time, end-time
    integer :: nt                   ! # timesteps and current timestep
    integer :: rk_stages            ! # Runge-Kutta stages
+   logical :: vort_check           ! Control of total vorticity during remeshing
 
    ! I/O stuff
    integer :: ifile_cpu            ! O/P stream
@@ -126,6 +128,7 @@ contains
    subroutine pepc_setup(itime, trun)
 
       use module_pepc
+      use module_interaction_specific, only: sig2
       use mpi
       implicit none
 
@@ -140,13 +143,13 @@ contains
       namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref, &               !&
                        h, Delta_r, thresh, Uref, Lref, &                        !&
                        rmax, r_torus, nc, nphi, g, torus_offset, n_in, &        !&
-                       dump_time, cp_time, input_itime, nDeltar                 !&
+                       dump_time, cp_time, input_itime, nDeltar, vort_check     !&
 
       !  Default input set
       ispecial     = 1                                                          !&
 
       ! Physics stuff
-      force_const = 0.25d0 / pi ! 3D prefactor for u and af                     !&
+      force_const  = 0.25d0 / pi !& 3D prefactor for u and af                   !&
       h            = 0.                                                         !&
       Delta_r      = 0.                                                         !&
       Co           = 1.                                                         !&
@@ -170,6 +173,9 @@ contains
       dump_time    = 0                                                          !&
       cp_time      = 0                                                          !&
 
+      ! Check total vorticity
+      vort_check   = .true.                                                     !&
+
       ! read in first command line argument
       call pepc_get_para_file(read_param_file, parameterfile, my_rank)
 
@@ -187,6 +193,11 @@ contains
       if (Delta_r .le. 0.) Delta_r = Lref / float(nv_on_Lref)
 
       m_h = Delta_r
+
+      ivol = 1.d0 / (m_h * m_h * m_h)
+
+      sig2 = 0.d0 !&  m_h**2 ! size of the smoothing length set equal to the vortex size
+      !           !&  one could also set it equal to zero to represent singular vortex distribution
 
       thresh = thresh * Uref / Lref * Delta_r**3
 
@@ -288,7 +299,7 @@ contains
       allocate (vortex_particles(np))
 
       if (my_rank .eq. 0) then
-         write (*, *) "Starting PEPC-V with", n_cpu, " Processors, simulating", np, &
+         write (*, *) "Starting PEPC-DVH with", n_cpu, " Processors, simulating", np, &
             " Particles on each Processor in", nt, "timesteps..."
          !write(*,*) "Using",num_threads,"worker-threads and 1 communication thread in treewalk on each processor (i.e. per MPI rank)"
          !write(*,*) "Maximum number of particles per work_thread = ", max_particles_per_thread
@@ -361,6 +372,7 @@ contains
                [0._kind_physics, 0._kind_physics, 0._kind_physics] &            !&
             ), &                                                                !&
             t_particle_results( &                                               !&
+               [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                0._kind_physics &                                                !&

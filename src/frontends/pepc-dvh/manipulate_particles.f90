@@ -745,16 +745,18 @@ contains
       real(kind_physics), allocatable :: m_part_reduction(:, :)
       logical(1), allocatable :: grid_mask(:, :, :)
 
-      total_vort = 0.
-      total_vortmod = 0.
-      do i = 1, np
-         total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
-      end do
-      total_vortmod = sqrt(total_vortmod)
+      if (vort_check) then
+         total_vort = 0.
+         total_vortmod = 0.
+         do i = 1, np
+            total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
+            total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
+         end do
+         total_vortmod = sqrt(total_vortmod)
 
-      call MPI_ALLREDUCE(total_vort, total_vort_full_pre, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_pre, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         call MPI_ALLREDUCE(total_vort, total_vort_full_pre, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_pre, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+      end if
 
       deno = (pi * kernel_c)**1.5
 
@@ -826,11 +828,13 @@ contains
       if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of index_map', real(STORAGE_SIZE(index_map)) * size(index_map) / (8 * 1024 * 1024)
 
       index_map = 0
+
       ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
       ! Would rev_lg be in a reduction clause?
       mapping_indices = (/(i, i=1, n_remesh_points)/)
       index_map = unpack(mapping_indices, grid_mask, index_map)
       ! $OMP END PARALLEL WORKSHARE
+
       deallocate (mapping_indices)
 
       ! Find new (guessed) maximum number of particles after load-balancing
@@ -907,7 +911,6 @@ contains
                   m_part_reduction(3, l) = m_part_reduction(3, l) + frac * alpha(3) / alpha_sum
                   m_part_reduction(4, l) = m_part_reduction(4, l) + frac * work
 #endif
-
                end do
             end do
          end do
@@ -917,35 +920,38 @@ contains
 !$OMP END PARALLEL
 
 #ifndef USER_REDUCTION
-      m_part(:)%data%alpha(1) = m_part_reduction(1, :)                        !&
-      m_part(:)%data%alpha(2) = m_part_reduction(2, :)                        !&
-      m_part(:)%data%alpha(3) = m_part_reduction(3, :)                        !&
-      m_part(:)%work          = m_part_reduction(4, :)                        !&
+      m_part(:)%data%alpha(1) = m_part_reduction(1, :)      !&
+      m_part(:)%data%alpha(2) = m_part_reduction(2, :)      !&
+      m_part(:)%data%alpha(3) = m_part_reduction(3, :)      !&
+      m_part(:)%work          = m_part_reduction(4, :)      !&
 #endif
 
       deallocate (grid_mask, index_map, vortex_particles, m_part_reduction)
 
-      ! Sum vorticity of remeshed points
-      total_vort = 0.
-      total_vortmod = 0.
-      do i = 1, n_remesh_points
-         total_vort(1:3) = total_vort(1:3) + m_part(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(m_part(i)%data%alpha, m_part(i)%data%alpha)
-      end do
-      total_vortmod = sqrt(total_vortmod)
+      if (vort_check) then
+         ! Sum vorticity of remeshed points
+         total_vort = 0.
+         total_vortmod = 0.
+         do i = 1, n_remesh_points
+            total_vort(1:3) = total_vort(1:3) + m_part(i)%data%alpha(1:3)
+            total_vortmod = total_vortmod + dot_product(m_part(i)%data%alpha, m_part(i)%data%alpha)
+         end do
+         total_vortmod = sqrt(total_vortmod)
 
-      ! Sum net vorticity of remeshed points
-      call MPI_ALLREDUCE(total_vort, total_vort_full_mid, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_mid, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         ! Sum net vorticity of remeshed points
+         call MPI_ALLREDUCE(total_vort, total_vort_full_mid, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_mid, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+      end if
 
       ! Reset the number of OpenMP threads to num_threads, the number of WORK threads.
 !$    call omp_set_num_threads(num_threads)
 
       call timer_stop(t_remesh_interpol)
-      if (my_rank .eq. 0) write (*, '("PEPC-V | ", a,f12.8,a)') 'Finished interpolation for remeshing after ', timer_read(t_remesh_interpol), ' seconds'
+      if (my_rank .eq. 0) write (*, '("PEPC-DVH | ", a,f12.8,a)') 'Finished interpolation for remeshing after ', timer_read(t_remesh_interpol), ' seconds'
 
       call timer_start(t_remesh_sort)
-      call sort_remesh(m_part, n_remesh_points, n_max_remesh_points) ! may change n_remesh_points to updated, balanced number
+      call sort_remesh(m_part, local_extent_min, local_extent_max, &
+                       n_remesh_points, n_max_remesh_points) ! may change n_remesh_points to updated, balanced number
       call timer_stop(t_remesh_sort)
 
       ! Update module variable that stores number of vortices
@@ -957,24 +963,26 @@ contains
       vortex_particles(1:np) = m_part(1:n_remesh_points)
       deallocate (m_part)
 
-      ! Sum local vorticity after balancing and filtering
-      total_vort = 0.
-      total_vortmod = 0.
-      do i = 1, np
-         total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
-         total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
-      end do
-      total_vortmod = sqrt(total_vortmod)
+      if (vort_check) then
+         ! Sum local vorticity after balancing and filtering
+         total_vort = 0.
+         total_vortmod = 0.
+         do i = 1, np
+            total_vort(1:3) = total_vort(1:3) + vortex_particles(i)%data%alpha(1:3)
+            total_vortmod = total_vortmod + dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
+         end do
+         total_vortmod = sqrt(total_vortmod)
 
-      ! Sum net vorticity after balancing and filtering
-      call MPI_ALLREDUCE(total_vort, total_vort_full_after, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
-      call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_after, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         ! Sum net vorticity after balancing and filtering
+         call MPI_ALLREDUCE(total_vort, total_vort_full_after, 3, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
+         call MPI_ALLREDUCE(total_vortmod, total_vortmod_full_after, 1, MPI_KIND_PHYSICS, MPI_SUM, MPI_COMM_WORLD, ierr)
 
-      ! Output stats to check vorticity
-      if (my_rank .eq. 0) then
-         write (*, *) '   Gamma before remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_pre, total_vort_full_pre)), total_vortmod_full_pre
-         write (*, *) ' Gamma after pop. control (norm,sum_mod):', sqrt(dot_product(total_vort_full_mid, total_vort_full_mid)), total_vortmod_full_mid
-         write (*, *) '    Gamma after remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_after, total_vort_full_after)), total_vortmod_full_after
+         ! Output stats to check vorticity
+         if (my_rank .eq. 0) then
+            write (*, *) '   Gamma before remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_pre, total_vort_full_pre)), total_vortmod_full_pre
+            write (*, *) ' Gamma after pop. control (norm,sum_mod):', sqrt(dot_product(total_vort_full_mid, total_vort_full_mid)), total_vortmod_full_mid
+            write (*, *) '    Gamma after remeshing (norm,sum_mod):', sqrt(dot_product(total_vort_full_after, total_vort_full_after)), total_vortmod_full_after
+         end if
       end if
 
       ! Check load-balance
@@ -1012,7 +1020,7 @@ contains
    !>   Sorting function for remeshing
    !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine sort_remesh(particles, m_np, m_nppm)
+   subroutine sort_remesh(particles, local_extent_min, local_extent_max, m_np, m_nppm)
 
       use physvars
       use treevars, only: maxlevel, idim
@@ -1032,7 +1040,7 @@ contains
       integer :: irnkl2(m_nppm), indxl(m_np), irnkl(m_nppm)
       real(kind_physics) :: local_extent_min(3), local_extent_max(3), s, local_work(m_nppm)
       real(kind_physics) :: global_extent_max(3), global_extent_min(3), boxsize(3), boxsize_max
-      real(kind_physics) :: thresh2
+      real(kind_physics) :: omega, maxome, minome
       integer(kind_particle) :: ix(m_np), iy(m_np), iz(m_np)
       integer(kind_key) :: sorted_keys(m_nppm), local_keys(m_nppm)
       integer :: fposts(n_cpu + 1), gposts(n_cpu + 1), islen(n_cpu), irlen(n_cpu)
@@ -1080,22 +1088,11 @@ contains
          next = my_rank + 1
       end if
 
-      local_extent_min(1) = minval(particles(1:m_np)%x(1))
-      local_extent_max(1) = maxval(particles(1:m_np)%x(1))
-      local_extent_min(2) = minval(particles(1:m_np)%x(2))
-      local_extent_max(2) = maxval(particles(1:m_np)%x(2))
-      local_extent_min(3) = minval(particles(1:m_np)%x(3))
-      local_extent_max(3) = maxval(particles(1:m_np)%x(3))
-
       ! Find global limits
       call MPI_ALLREDUCE(local_extent_min, global_extent_min, 3, MPI_KIND_PHYSICS, MPI_MIN, MPI_COMM_WORLD, ierr)
       call MPI_ALLREDUCE(local_extent_max, global_extent_max, 3, MPI_KIND_PHYSICS, MPI_MAX, MPI_COMM_WORLD, ierr)
 
       boxsize = global_extent_max - global_extent_min
-
-      ! Safety margin - put buffer region around particles
-      global_extent_max = global_extent_max + boxsize / 10000
-      global_extent_min = global_extent_min - boxsize / 10000
 
       boxsize_max = maxval(global_extent_max - global_extent_min)
 
@@ -1140,11 +1137,11 @@ contains
       m_np = npnew
       ship_parts(1:npold) = particles(indxl(1:npold))
       call MPI_ALLTOALLV(ship_parts, islen, fposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                         get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, &
-                         MPI_COMM_WORLD, ierr)
+                         get_parts, irlen, gposts, MPI_TYPE_PARTICLE_SHORT_sca, MPI_COMM_WORLD, ierr)
       particles(irnkl(1:m_np)) = get_parts(1:m_np)
       particles(1:m_np)%key = sorted_keys(1:m_np)
 
+      ! TODO: MAYBE THIS ROUTINE IS USELESS. WE ARE NOW WORKING ON A SINGLE GLOBAL UNIFORM MESH
       ! Check if sort finished and find inner doublets
       k = 0
       do i = 2, m_np
@@ -1198,15 +1195,26 @@ contains
 
       m_np = k
 
+      ! KICK OUT CRITERION MUST BE ENFORCED ON vorticity (omega), not on circulation (alpha)
       ! Kick out particles (cannot use subroutinee here, since we work on a temp-array)
-      thresh2 = thresh**2
       k = 0
+      maxome = -1.d2
+      minome = 1.d2
       do i = 1, m_np
-         if (dot_product(particles(i)%data%alpha, particles(i)%data%alpha) .gt. thresh2) then
+         omega = norm2(particles(i)%data%alpha) * ivol
+         if (omega .gt. thresh) then
             k = k + 1
             particles(k) = particles(i)
+         else
+            maxome = max(maxome, omega)
+            minome = min(minome, omega)
          end if
       end do
+
+      ! How many particles are kicked out? Write for check on threshold limit
+      ! if(my_rank.eq.0) write(kout_unit,*) 'diffusive kick-out',m_np - k
+      if (my_rank .eq. 0) write (*, *) 'in sort remesh', m_np - k, ' max k-out', maxome, ' min k-out', minome
+
       m_np = k
 
       ! Rebalance: Use Parallel Sort by Parallel Search (SLSORT by M. Hofmann, Chemnitz)
@@ -1243,14 +1251,14 @@ contains
 
       integer :: ierr
       integer(kind_particle) :: i, k
-      real(kind_physics) :: thresh2
+      real(kind_physics) :: omega
       type(t_particle), allocatable :: temp_particles(:)
 
       ! kick out particles with vorticity magnitude below threshold
-      thresh2 = thresh**2
       k = 0
       do i = 1, np
-         if (dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha) .gt. thresh2) then
+         omega = norm2(vortex_particles(i)%data%alpha) * ivol
+         if (omega .gt. thresh) then
             k = k + 1
             vortex_particles(k) = vortex_particles(i)
          end if
@@ -1309,7 +1317,7 @@ contains
       type(t_particle_results), allocatable :: directresults(:)
       integer(kind_particle) :: indices(1:np_local)
 
-      if (my_rank .eq. 0) write (*, '("PEPC-V | ", a)') 'Starting direct summation ...'
+      if (my_rank .eq. 0) write (*, '("PEPC-DVH | ", a)') 'Starting direct summation ...'
 
       do i = 1, np_local
          indices(i) = i
@@ -1321,7 +1329,7 @@ contains
 
       deallocate (directresults)
 
-      if (my_rank .eq. 0) write (*, '("PEPC-V | ", a)') '                          ... done!'
+      if (my_rank .eq. 0) write (*, '("PEPC-DVH | ", a)') '                          ... done!'
 
    end subroutine direct_sum
 
