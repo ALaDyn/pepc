@@ -34,7 +34,7 @@ module module_interaction_specific_types
    type t_particle_data
       real*8 :: q               !< charge (equals mass in case of gravity)
       real*8 :: v(3)            !< velocity (same time as x)
-      real*8 :: v_minus_half(3  !< velocity (1/2 time step after x (t-1/2), for leap frog integrator)
+      real*8 :: v_minus_half(3) !< velocity (1/2 time step after x (t-1/2), for leap frog integrator)
       real*8 :: temperature
       integer :: type           !< a bitfield for storing particle properties
    end type t_particle_data
