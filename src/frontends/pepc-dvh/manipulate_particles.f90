@@ -59,600 +59,600 @@ contains
       !     end interface
 
       ! Set up particle data
-      config:select case(ispecial)
+      config: select case (ispecial)
       case (1)                               ! Vortex ring setup, side-by-side
 
-      allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
+         allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
 
-      j = 0
+         j = 0
 
-      do k = 1, nc
-         part_2d = 2 * pi / (8 * k)
-         rc = (1 + 12 * k**2) / (6 * k) * rl
+         do k = 1, nc
+            part_2d = 2 * pi / (8 * k)
+            rc = (1 + 12 * k**2) / (6 * k) * rl
 
-         do l = 1, 8 * k
-            j = j + 1
-            xi1 = part_2d * (l - 1)
-            xi2 = part_2d * l
-            xi = (xi2 - xi1) / 2 + xi1
-            xp(j) = rc * cos(xi)
-            yp(j) = rc * sin(xi)
-            zp(j) = 0
-            volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) / (8 * k * Nphi)
-            wxp(j) = 0.
-            wyp(j) = 0.
-            wzp(j) = g * exp(-(rc / rmax)**2)
+            do l = 1, 8 * k
+               j = j + 1
+               xi1 = part_2d * (l - 1)
+               xi2 = part_2d * l
+               xi = (xi2 - xi1) / 2 + xi1
+               xp(j) = rc * cos(xi)
+               yp(j) = rc * sin(xi)
+               zp(j) = 0
+               volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) / (8 * k * Nphi)
+               wxp(j) = 0.
+               wyp(j) = 0.
+               wzp(j) = g * exp(-(rc / rmax)**2)
+            end do
          end do
-      end do
 
-      xp(ns) = 0.
-      yp(ns) = 0.
-      zp(ns) = 0.
-      wxp(ns) = 0.
-      wyp(ns) = 0.
-      wzp(ns) = g
-      volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
+         xp(ns) = 0.
+         yp(ns) = 0.
+         zp(ns) = 0.
+         wxp(ns) = 0.
+         wyp(ns) = 0.
+         wzp(ns) = g
+         volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
 
-      j = 0
-      ind0 = 0
-      ind = 0
-      part_3d = 2 * pi / Nphi
-      do m = 1, Nphi
-         eta1 = part_3d * (m - 1)
-         eta2 = part_3d * m
-         eta = (eta2 - eta1) / 2 + eta1
-         v(1) = cos(eta2)
-         v(2) = sin(eta2)
-         v(3) = 0
-         D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-         v(1) = cos(eta)
-         v(2) = sin(eta)
-         v(3) = 0
-         D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
-         D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-         D4 = matmul(D1, D3)
-         do i = 1, Ns
-            if (m .eq. 1) then
-               v(1) = xp(i) + (r_torus + rmax) * cos(eta)
-               v(2) = yp(i) + (r_torus + rmax) * sin(eta)
-               v(3) = zp(i)
-               xp(i) = dot_product(v, D2(1:3, 1))
-               yp(i) = dot_product(v, D2(1:3, 2))
-               zp(i) = dot_product(v, D2(1:3, 3))
-               v(1) = wxp(i)
-               v(2) = wyp(i)
-               v(3) = wzp(i)
-               wxp(i) = dot_product(v, D2(1:3, 1))
-               wyp(i) = dot_product(v, D2(1:3, 2))
-               wzp(i) = dot_product(v, D2(1:3, 3))
-            else
-               v(1) = xp(i)
-               v(2) = yp(i)
-               v(3) = zp(i)
-               xp(i) = dot_product(v, D4(1:3, 1))
-               yp(i) = dot_product(v, D4(1:3, 2))
-               zp(i) = dot_product(v, D4(1:3, 3))
-               v(1) = wxp(i)
-               v(2) = wyp(i)
-               v(3) = wzp(i)
-               wxp(i) = dot_product(v, D4(1:3, 1))
-               wyp(i) = dot_product(v, D4(1:3, 2))
-               wzp(i) = dot_product(v, D4(1:3, 3))
-            end if
-            ind0 = ind0 + 1
-            if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
-               ind = ind + 1
-               if (ind .gt. np) then
-                  write (*, *) 'something is wrong here: to many particles in init', my_rank, ind, np, n
-                  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+         j = 0
+         ind0 = 0
+         ind = 0
+         part_3d = 2 * pi / Nphi
+         do m = 1, Nphi
+            eta1 = part_3d * (m - 1)
+            eta2 = part_3d * m
+            eta = (eta2 - eta1) / 2 + eta1
+            v(1) = cos(eta2)
+            v(2) = sin(eta2)
+            v(3) = 0
+            D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
+            v(1) = cos(eta)
+            v(2) = sin(eta)
+            v(3) = 0
+            D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
+            D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
+            D4 = matmul(D1, D3)
+            do i = 1, Ns
+               if (m .eq. 1) then
+                  v(1) = xp(i) + (r_torus + rmax) * cos(eta)
+                  v(2) = yp(i) + (r_torus + rmax) * sin(eta)
+                  v(3) = zp(i)
+                  xp(i) = dot_product(v, D2(1:3, 1))
+                  yp(i) = dot_product(v, D2(1:3, 2))
+                  zp(i) = dot_product(v, D2(1:3, 3))
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
+                  wxp(i) = dot_product(v, D2(1:3, 1))
+                  wyp(i) = dot_product(v, D2(1:3, 2))
+                  wzp(i) = dot_product(v, D2(1:3, 3))
+               else
+                  v(1) = xp(i)
+                  v(2) = yp(i)
+                  v(3) = zp(i)
+                  xp(i) = dot_product(v, D4(1:3, 1))
+                  yp(i) = dot_product(v, D4(1:3, 2))
+                  zp(i) = dot_product(v, D4(1:3, 3))
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
+                  wxp(i) = dot_product(v, D4(1:3, 1))
+                  wyp(i) = dot_product(v, D4(1:3, 2))
+                  wzp(i) = dot_product(v, D4(1:3, 3))
                end if
-               vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
-               vortex_particles(ind)%x(2) = yp(i)
-               vortex_particles(ind)%x(3) = zp(i)
-               vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-               ind = ind + 1
-               vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
-               vortex_particles(ind)%x(2) = yp(i)
-               vortex_particles(ind)%x(3) = zp(i)
-               vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-            end if
-         end do
-      end do
-      np = ind
-      deallocate (xp, yp, zp, volp, wxp, wyp, wzp)
-
-      case (2) ! Vortex ring setup, offset collision
-
-      allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
-
-      j = 0
-
-      do k = 1, nc
-         part_2d = 2 * pi / (8 * k)
-         rc = (1 + 12 * k**2) / (6 * k) * rl
-
-         do l = 1, 8 * k
-            j = j + 1
-            xi1 = part_2d * (l - 1)
-            xi2 = part_2d * l
-            xi = (xi2 - xi1) / 2 + xi1
-            xp(j) = rc * cos(xi)
-            yp(j) = rc * sin(xi)
-            zp(j) = 0
-            volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) / (8 * k * Nphi)
-            wxp(j) = 0.
-            wyp(j) = 0.
-            wzp(j) = g * exp(-(rc / rmax)**2)
-         end do
-      end do
-
-      xp(ns) = 0.
-      yp(ns) = 0.
-      zp(ns) = 0.
-      wxp(ns) = 0.
-      wyp(ns) = 0.
-      wzp(ns) = g
-      volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
-
-      j = 0
-      ind0 = 0
-      ind = 0
-      part_3d = 2 * pi / Nphi
-      do m = 1, Nphi
-         eta1 = part_3d * (m - 1)
-         eta2 = part_3d * m
-         eta = (eta2 - eta1) / 2 + eta1
-         v(1) = cos(eta2)
-         v(2) = sin(eta2)
-         v(3) = 0
-         D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-         v(1) = cos(eta)
-         v(2) = sin(eta)
-         v(3) = 0
-         D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
-         D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-         D4 = matmul(D1, D3)
-         do i = 1, Ns
-            if (m .eq. 1) then
-               v(1) = xp(i) + (r_torus + rmax) * cos(eta)
-               v(2) = yp(i) + (r_torus + rmax) * sin(eta)
-               v(3) = zp(i)
-               xp(i) = dot_product(v, D2(1:3, 1))
-               yp(i) = dot_product(v, D2(1:3, 2))
-               zp(i) = dot_product(v, D2(1:3, 3))
-               v(1) = wxp(i)
-               v(2) = wyp(i)
-               v(3) = wzp(i)
-               wxp(i) = dot_product(v, D2(1:3, 1))
-               wyp(i) = dot_product(v, D2(1:3, 2))
-               wzp(i) = dot_product(v, D2(1:3, 3))
-            else
-               v(1) = xp(i)
-               v(2) = yp(i)
-               v(3) = zp(i)
-               xp(i) = dot_product(v, D4(1:3, 1))
-               yp(i) = dot_product(v, D4(1:3, 2))
-               zp(i) = dot_product(v, D4(1:3, 3))
-               v(1) = wxp(i)
-               v(2) = wyp(i)
-               v(3) = wzp(i)
-               wxp(i) = dot_product(v, D4(1:3, 1))
-               wyp(i) = dot_product(v, D4(1:3, 2))
-               wzp(i) = dot_product(v, D4(1:3, 3))
-            end if
-            ind0 = ind0 + 1
-            if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
-               ind = ind + 1
-               if (ind .gt. np) then
-                  write (*, *) 'something is wrong here: to many particles in init of first ring', my_rank, ind, np, n
-                  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-               end if
-               vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
-               vortex_particles(ind)%x(2) = yp(i) - (torus_offset(2) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
-               vortex_particles(ind)%x(3) = zp(i) - (torus_offset(3) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
-               vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-            end if
-         end do
-      end do
-
-      j = 0
-
-      do k = 1, nc
-         part_2d = 2 * pi / (8 * k)
-         rc = (1 + 12 * k**2) / (6 * k) * rl
-
-         do l = 1, 8 * k
-            j = j + 1
-            xi1 = part_2d * (l - 1)
-            xi2 = part_2d * l
-            xi = (xi2 - xi1) / 2 + xi1
-            xp(j) = rc * cos(xi)
-            yp(j) = rc * sin(xi)
-            zp(j) = 0
-            volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) / (8 * k * Nphi)
-            wxp(j) = 0.
-            wyp(j) = 0.
-            wzp(j) = G * exp(-(rc / rmax)**2)
-         end do
-      end do
-
-      xp(ns) = 0.
-      yp(ns) = 0.
-      zp(ns) = 0.
-      wxp(ns) = 0.
-      wyp(ns) = 0.
-      wzp(ns) = g
-      volp(Ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
-
-      j = 0
-      ind0 = 0
-      part_3d = 2 * pi / Nphi
-      do m = 1, Nphi
-         eta1 = part_3d * (m - 1)
-         eta2 = part_3d * m
-         eta = (eta2 - eta1) / 2 + eta1
-         v(1) = cos(eta2)
-         v(2) = sin(eta2)
-         v(3) = 0
-         D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-         v(1) = cos(eta)
-         v(2) = sin(eta)
-         v(3) = 0
-         D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
-         D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-         D4 = matmul(D1, D3)
-         do i = 1, Ns
-            if (m .eq. 1) then
-               v(1) = xp(i) + (r_torus + rmax) * cos(eta)
-               v(2) = yp(i) + (r_torus + rmax) * sin(eta)
-               v(3) = zp(i)
-               xp(i) = dot_product(v, D2(1:3, 1))
-               yp(i) = dot_product(v, D2(1:3, 2))
-               zp(i) = dot_product(v, D2(1:3, 3))
-               v(1) = wxp(i)
-               v(2) = wyp(i)
-               v(3) = -wzp(i)
-               wxp(i) = dot_product(v, D2(1:3, 1))
-               wyp(i) = dot_product(v, D2(1:3, 2))
-               wzp(i) = dot_product(v, D2(1:3, 3))
-            else
-               v(1) = xp(i)
-               v(2) = yp(i)
-               v(3) = zp(i)
-               xp(i) = dot_product(v, D4(1:3, 1))
-               yp(i) = dot_product(v, D4(1:3, 2))
-               zp(i) = dot_product(v, D4(1:3, 3))
-               v(1) = wxp(i)
-               v(2) = wyp(i)
-               v(3) = -wzp(i)
-               wxp(i) = dot_product(v, D4(1:3, 1))
-               wyp(i) = dot_product(v, D4(1:3, 2))
-               wzp(i) = dot_product(v, D4(1:3, 3))
-            end if
-            ind0 = ind0 + 1
-            if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
-               ind = ind + 1
-               if (ind .gt. np) then
-                  write (*, *) 'something is wrong here: to many particles in init of second ring', my_rank, ind, np, n
-                  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-               end if
-               vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
-               vortex_particles(ind)%x(2) = yp(i) + (torus_offset(2) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
-               vortex_particles(ind)%x(3) = zp(i) + (torus_offset(3) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
-               vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-            end if
-         end do
-      end do
-      np = ind
-
-      deallocate (xp, yp, zp, volp, wxp, wyp, wzp)
-
-      case (3)  ! Sphere setup
-
-      a = nine / five * sqrt(dble(n - 1) / dble(n))
-      j = 0
-      do i = 1, n
-
-         if (i .eq. 1) then
-            cth = mone
-            sth = zero
-            cphi = one
-            sphi = zero
-            b = cphi
-            c = sphi
-         elseif (i .eq. n) then
-            cth = one
-            sth = zero
-            cphi = one
-            sphi = zero
-         else
-            cth = dble(2 * i - n - 1) / dble(n - 1)
-            sth = two * (sqrt(dble(i - 1) / dble(n - 1)) * sqrt(dble(n - i) / dble(n - 1)))
-            s = a * sqrt(dble(n - 1) / (dble(i - 1) * dble(n - i)))
-            cphi = b * cos(s) - c * sin(s)
-            sphi = c * cos(s) + b * sin(s)
-            b = cphi
-            c = sphi
-         end if
-         if (mod(i + my_rank, n_cpu) .eq. 0) then
-            if (j .gt. np - 1) then
-               write (*, *) 'something is wrong here: to many particles in init', my_rank, j, np, i
-               call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-            end if
-            j = j + 1
-            vortex_particles(j)%x(1) = sth * cphi
-            vortex_particles(j)%x(2) = sth * sphi
-            vortex_particles(j)%x(3) = cth
-            vortex_particles(j)%data%alpha(1) = 0.3D01 / (0.8D01 * pi) * sth * sphi * h**2
-            vortex_particles(j)%data%alpha(2) = 0.3D01 / (0.8D01 * pi) * sth * (-cphi) * h**2
-            vortex_particles(j)%data%alpha(3) = 0.
-         end if
-      end do
-      np = j
-
-      case (4) ! Vortex wakes
-
-      allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
-
-      j = 0
-
-      do k = 1, nc
-         part_2d = 2 * pi / (8 * k)
-         rc = (1 + 12 * k**2) / (6 * k) * rl
-
-         do l = 1, 8 * k
-            j = j + 1
-            xi1 = part_2d * (l - 1)
-            xi2 = part_2d * l
-            xi = (xi2 - xi1) / 2 + xi1
-            xp(j) = rc * cos(xi)
-            yp(j) = rc * sin(xi)
-            zp(j) = 0
-            volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) / (8 * k * Nphi)
-            wxp(j) = 0.
-            wyp(j) = 0.
-            wzp(j) = g * exp(-(rc / rmax)**2)
-         end do
-      end do
-
-      xp(ns) = 0.
-      yp(ns) = 0.
-      zp(ns) = 0.
-      wxp(ns) = 0.
-      wyp(ns) = 0.
-      wzp(ns) = g
-      volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
-
-      part_3d = 4 * pi / nphi
-      ind0 = 0
-      ind = 0
-      zp(1:ns) = zp(1:ns) - 2 * pi - part_3d
-      do k = 1, nphi
-
-         zp(1:ns) = zp(1:ns) + part_3d
-
-         do i = 1, ns
-            ind0 = ind0 + 1
-            if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
-               ind = ind + 1
-               if (ind .gt. np) then
-                  write (*, *) 'something is wrong here: to many particles in init', my_rank, ind, np, n
-                  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
-               end if
-               vortex_particles(ind)%x(1) = xp(i)
-               vortex_particles(ind)%x(2) = yp(i) - torus_offset(2)
-               vortex_particles(ind)%x(3) = zp(i)
-               vortex_particles(ind)%data%alpha(1) = 0.
-               vortex_particles(ind)%data%alpha(2) = 0.
-               vortex_particles(ind)%data%alpha(3) = -(exp(-(zp(i) - pi)**2) + exp(-(zp(i) + pi)**2)) * wzp(i) * volp(i)
-               ind = ind + 1
-               vortex_particles(ind)%x(1) = xp(i)
-               vortex_particles(ind)%x(2) = yp(i) + torus_offset(2)
-               vortex_particles(ind)%x(3) = zp(i)
-               vortex_particles(ind)%data%alpha(1) = 0.
-               vortex_particles(ind)%data%alpha(2) = 0.
-               vortex_particles(ind)%data%alpha(3) = +(exp(-(zp(i) - pi)**2) + exp(-zp(i)**2) + exp(-(zp(i) + pi)**2)) * wzp(i) * volp(i)
-            end if
-         end do
-
-      end do
-
-      np = ind
-
-      case (5)  ! Different wakes
-
-      ind0 = 0
-      ind = 0
-      do i = 1, ceiling(1.0 / h)
-         do j = 1, ceiling(2 * pi / h)
-            do k = 1, nc
                ind0 = ind0 + 1
-               if (mod(ind0 + my_rank, n_cpu) .eq. 0) then
+               if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
                   ind = ind + 1
-                  if (ind .gt. np - 1) then
-                     write (*, *) 'something is wrong here: to many particles in init', my_rank, ind, np, n, n_cpu
+                  if (ind .gt. np) then
+                     write (*, *) 'something is wrong here: to many particles in init', my_rank, ind, np, n
                      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
                   end if
-                  xt = (i - 1) * h !+ h/2
-                  yt = -pi + (j - 1) * h !+ h/2
-                  zt = -pi + (k - 1) * h
-
-                  vortex_particles(ind)%x(1) = xt + torus_offset(1)
-                  vortex_particles(ind)%x(2) = yt + torus_offset(2)
-                  vortex_particles(ind)%x(3) = zt + torus_offset(3)
-                  vortex_particles(ind)%data%alpha(1) = 0.
-                  vortex_particles(ind)%data%alpha(2) = 0.
-                  vortex_particles(ind)%data%alpha(3) = -g / 2 * (1 - tanh(yt)**2) * h**3 !* (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
+                  vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
+                  vortex_particles(ind)%x(2) = yp(i)
+                  vortex_particles(ind)%x(3) = zp(i)
+                  vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
                   ind = ind + 1
-                  vortex_particles(ind)%x(1) = xt - torus_offset(1)
-                  vortex_particles(ind)%x(2) = yt - torus_offset(2)
-                  vortex_particles(ind)%x(3) = zt - torus_offset(3)
-                  vortex_particles(ind)%data%alpha(1) = 0.
-                  vortex_particles(ind)%data%alpha(2) = 0.
-                  vortex_particles(ind)%data%alpha(3) = +g / 2 * (1 - tanh(yt)**2) * h**3 !* (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
+                  vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
+                  vortex_particles(ind)%x(2) = yp(i)
+                  vortex_particles(ind)%x(3) = zp(i)
+                  vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
                end if
             end do
          end do
-      end do
-      np = ind
+         np = ind
+         deallocate (xp, yp, zp, volp, wxp, wyp, wzp)
+
+      case (2) ! Vortex ring setup, offset collision
+
+         allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
+
+         j = 0
+
+         do k = 1, nc
+            part_2d = 2 * pi / (8 * k)
+            rc = (1 + 12 * k**2) / (6 * k) * rl
+
+            do l = 1, 8 * k
+               j = j + 1
+               xi1 = part_2d * (l - 1)
+               xi2 = part_2d * l
+               xi = (xi2 - xi1) / 2 + xi1
+               xp(j) = rc * cos(xi)
+               yp(j) = rc * sin(xi)
+               zp(j) = 0
+               volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) / (8 * k * Nphi)
+               wxp(j) = 0.
+               wyp(j) = 0.
+               wzp(j) = g * exp(-(rc / rmax)**2)
+            end do
+         end do
+
+         xp(ns) = 0.
+         yp(ns) = 0.
+         zp(ns) = 0.
+         wxp(ns) = 0.
+         wyp(ns) = 0.
+         wzp(ns) = g
+         volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
+
+         j = 0
+         ind0 = 0
+         ind = 0
+         part_3d = 2 * pi / Nphi
+         do m = 1, Nphi
+            eta1 = part_3d * (m - 1)
+            eta2 = part_3d * m
+            eta = (eta2 - eta1) / 2 + eta1
+            v(1) = cos(eta2)
+            v(2) = sin(eta2)
+            v(3) = 0
+            D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
+            v(1) = cos(eta)
+            v(2) = sin(eta)
+            v(3) = 0
+            D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
+            D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
+            D4 = matmul(D1, D3)
+            do i = 1, Ns
+               if (m .eq. 1) then
+                  v(1) = xp(i) + (r_torus + rmax) * cos(eta)
+                  v(2) = yp(i) + (r_torus + rmax) * sin(eta)
+                  v(3) = zp(i)
+                  xp(i) = dot_product(v, D2(1:3, 1))
+                  yp(i) = dot_product(v, D2(1:3, 2))
+                  zp(i) = dot_product(v, D2(1:3, 3))
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
+                  wxp(i) = dot_product(v, D2(1:3, 1))
+                  wyp(i) = dot_product(v, D2(1:3, 2))
+                  wzp(i) = dot_product(v, D2(1:3, 3))
+               else
+                  v(1) = xp(i)
+                  v(2) = yp(i)
+                  v(3) = zp(i)
+                  xp(i) = dot_product(v, D4(1:3, 1))
+                  yp(i) = dot_product(v, D4(1:3, 2))
+                  zp(i) = dot_product(v, D4(1:3, 3))
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
+                  wxp(i) = dot_product(v, D4(1:3, 1))
+                  wyp(i) = dot_product(v, D4(1:3, 2))
+                  wzp(i) = dot_product(v, D4(1:3, 3))
+               end if
+               ind0 = ind0 + 1
+               if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
+                  ind = ind + 1
+                  if (ind .gt. np) then
+                     write (*, *) 'something is wrong here: to many particles in init of first ring', my_rank, ind, np, n
+                     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+                  end if
+                  vortex_particles(ind)%x(1) = xp(i) - (torus_offset(1) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
+                  vortex_particles(ind)%x(2) = yp(i) - (torus_offset(2) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
+                  vortex_particles(ind)%x(3) = zp(i) - (torus_offset(3) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
+                  vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
+               end if
+            end do
+         end do
+
+         j = 0
+
+         do k = 1, nc
+            part_2d = 2 * pi / (8 * k)
+            rc = (1 + 12 * k**2) / (6 * k) * rl
+
+            do l = 1, 8 * k
+               j = j + 1
+               xi1 = part_2d * (l - 1)
+               xi2 = part_2d * l
+               xi = (xi2 - xi1) / 2 + xi1
+               xp(j) = rc * cos(xi)
+               yp(j) = rc * sin(xi)
+               zp(j) = 0
+               volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) / (8 * k * Nphi)
+               wxp(j) = 0.
+               wyp(j) = 0.
+               wzp(j) = G * exp(-(rc / rmax)**2)
+            end do
+         end do
+
+         xp(ns) = 0.
+         yp(ns) = 0.
+         zp(ns) = 0.
+         wxp(ns) = 0.
+         wyp(ns) = 0.
+         wzp(ns) = g
+         volp(Ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
+
+         j = 0
+         ind0 = 0
+         part_3d = 2 * pi / Nphi
+         do m = 1, Nphi
+            eta1 = part_3d * (m - 1)
+            eta2 = part_3d * m
+            eta = (eta2 - eta1) / 2 + eta1
+            v(1) = cos(eta2)
+            v(2) = sin(eta2)
+            v(3) = 0
+            D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
+            v(1) = cos(eta)
+            v(2) = sin(eta)
+            v(3) = 0
+            D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
+            D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
+            D4 = matmul(D1, D3)
+            do i = 1, Ns
+               if (m .eq. 1) then
+                  v(1) = xp(i) + (r_torus + rmax) * cos(eta)
+                  v(2) = yp(i) + (r_torus + rmax) * sin(eta)
+                  v(3) = zp(i)
+                  xp(i) = dot_product(v, D2(1:3, 1))
+                  yp(i) = dot_product(v, D2(1:3, 2))
+                  zp(i) = dot_product(v, D2(1:3, 3))
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = -wzp(i)
+                  wxp(i) = dot_product(v, D2(1:3, 1))
+                  wyp(i) = dot_product(v, D2(1:3, 2))
+                  wzp(i) = dot_product(v, D2(1:3, 3))
+               else
+                  v(1) = xp(i)
+                  v(2) = yp(i)
+                  v(3) = zp(i)
+                  xp(i) = dot_product(v, D4(1:3, 1))
+                  yp(i) = dot_product(v, D4(1:3, 2))
+                  zp(i) = dot_product(v, D4(1:3, 3))
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = -wzp(i)
+                  wxp(i) = dot_product(v, D4(1:3, 1))
+                  wyp(i) = dot_product(v, D4(1:3, 2))
+                  wzp(i) = dot_product(v, D4(1:3, 3))
+               end if
+               ind0 = ind0 + 1
+               if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
+                  ind = ind + 1
+                  if (ind .gt. np) then
+                     write (*, *) 'something is wrong here: to many particles in init of second ring', my_rank, ind, np, n
+                     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+                  end if
+                  vortex_particles(ind)%x(1) = xp(i) + (torus_offset(1) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
+                  vortex_particles(ind)%x(2) = yp(i) + (torus_offset(2) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
+                  vortex_particles(ind)%x(3) = zp(i) + (torus_offset(3) - (rmax - (1 + 12 * nc**2) / (6 * nc) * rl)) / 2.0
+                  vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
+               end if
+            end do
+         end do
+         np = ind
+
+         deallocate (xp, yp, zp, volp, wxp, wyp, wzp)
+
+      case (3)  ! Sphere setup
+
+         a = nine / five * sqrt(dble(n - 1) / dble(n))
+         j = 0
+         do i = 1, n
+
+            if (i .eq. 1) then
+               cth = mone
+               sth = zero
+               cphi = one
+               sphi = zero
+               b = cphi
+               c = sphi
+            elseif (i .eq. n) then
+               cth = one
+               sth = zero
+               cphi = one
+               sphi = zero
+            else
+               cth = dble(2 * i - n - 1) / dble(n - 1)
+               sth = two * (sqrt(dble(i - 1) / dble(n - 1)) * sqrt(dble(n - i) / dble(n - 1)))
+               s = a * sqrt(dble(n - 1) / (dble(i - 1) * dble(n - i)))
+               cphi = b * cos(s) - c * sin(s)
+               sphi = c * cos(s) + b * sin(s)
+               b = cphi
+               c = sphi
+            end if
+            if (mod(i + my_rank, n_cpu) .eq. 0) then
+               if (j .gt. np - 1) then
+                  write (*, *) 'something is wrong here: to many particles in init', my_rank, j, np, i
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+               end if
+               j = j + 1
+               vortex_particles(j)%x(1) = sth * cphi
+               vortex_particles(j)%x(2) = sth * sphi
+               vortex_particles(j)%x(3) = cth
+               vortex_particles(j)%data%alpha(1) = 0.3D01 / (0.8D01 * pi) * sth * sphi * h**2
+               vortex_particles(j)%data%alpha(2) = 0.3D01 / (0.8D01 * pi) * sth * (-cphi) * h**2
+               vortex_particles(j)%data%alpha(3) = 0.
+            end if
+         end do
+         np = j
+
+      case (4) ! Vortex wakes
+
+         allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
+
+         j = 0
+
+         do k = 1, nc
+            part_2d = 2 * pi / (8 * k)
+            rc = (1 + 12 * k**2) / (6 * k) * rl
+
+            do l = 1, 8 * k
+               j = j + 1
+               xi1 = part_2d * (l - 1)
+               xi2 = part_2d * l
+               xi = (xi2 - xi1) / 2 + xi1
+               xp(j) = rc * cos(xi)
+               yp(j) = rc * sin(xi)
+               zp(j) = 0
+               volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) / (8 * k * Nphi)
+               wxp(j) = 0.
+               wyp(j) = 0.
+               wzp(j) = g * exp(-(rc / rmax)**2)
+            end do
+         end do
+
+         xp(ns) = 0.
+         yp(ns) = 0.
+         zp(ns) = 0.
+         wxp(ns) = 0.
+         wyp(ns) = 0.
+         wzp(ns) = g
+         volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
+
+         part_3d = 4 * pi / nphi
+         ind0 = 0
+         ind = 0
+         zp(1:ns) = zp(1:ns) - 2 * pi - part_3d
+         do k = 1, nphi
+
+            zp(1:ns) = zp(1:ns) + part_3d
+
+            do i = 1, ns
+               ind0 = ind0 + 1
+               if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
+                  ind = ind + 1
+                  if (ind .gt. np) then
+                     write (*, *) 'something is wrong here: to many particles in init', my_rank, ind, np, n
+                     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+                  end if
+                  vortex_particles(ind)%x(1) = xp(i)
+                  vortex_particles(ind)%x(2) = yp(i) - torus_offset(2)
+                  vortex_particles(ind)%x(3) = zp(i)
+                  vortex_particles(ind)%data%alpha(1) = 0.
+                  vortex_particles(ind)%data%alpha(2) = 0.
+                  vortex_particles(ind)%data%alpha(3) = -(exp(-(zp(i) - pi)**2) + exp(-(zp(i) + pi)**2)) * wzp(i) * volp(i)
+                  ind = ind + 1
+                  vortex_particles(ind)%x(1) = xp(i)
+                  vortex_particles(ind)%x(2) = yp(i) + torus_offset(2)
+                  vortex_particles(ind)%x(3) = zp(i)
+                  vortex_particles(ind)%data%alpha(1) = 0.
+                  vortex_particles(ind)%data%alpha(2) = 0.
+                  vortex_particles(ind)%data%alpha(3) = +(exp(-(zp(i) - pi)**2) + exp(-zp(i)**2) + exp(-(zp(i) + pi)**2)) * wzp(i) * volp(i)
+               end if
+            end do
+
+         end do
+
+         np = ind
+
+      case (5)  ! Different wakes
+
+         ind0 = 0
+         ind = 0
+         do i = 1, ceiling(1.0 / h)
+            do j = 1, ceiling(2 * pi / h)
+               do k = 1, nc
+                  ind0 = ind0 + 1
+                  if (mod(ind0 + my_rank, n_cpu) .eq. 0) then
+                     ind = ind + 1
+                     if (ind .gt. np - 1) then
+                        write (*, *) 'something is wrong here: to many particles in init', my_rank, ind, np, n, n_cpu
+                        call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+                     end if
+                     xt = (i - 1) * h !+ h/2
+                     yt = -pi + (j - 1) * h !+ h/2
+                     zt = -pi + (k - 1) * h
+
+                     vortex_particles(ind)%x(1) = xt + torus_offset(1)
+                     vortex_particles(ind)%x(2) = yt + torus_offset(2)
+                     vortex_particles(ind)%x(3) = zt + torus_offset(3)
+                     vortex_particles(ind)%data%alpha(1) = 0.
+                     vortex_particles(ind)%data%alpha(2) = 0.
+                     vortex_particles(ind)%data%alpha(3) = -g / 2 * (1 - tanh(yt)**2) * h**3 !* (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
+                     ind = ind + 1
+                     vortex_particles(ind)%x(1) = xt - torus_offset(1)
+                     vortex_particles(ind)%x(2) = yt - torus_offset(2)
+                     vortex_particles(ind)%x(3) = zt - torus_offset(3)
+                     vortex_particles(ind)%data%alpha(1) = 0.
+                     vortex_particles(ind)%data%alpha(2) = 0.
+                     vortex_particles(ind)%data%alpha(3) = +g / 2 * (1 - tanh(yt)**2) * h**3 !* (exp(-zt**2/2)+exp(-(zt-pi/2)**2/2)+exp(-(zt+pi/2)**2/2))
+                  end if
+               end do
+            end do
+         end do
+         np = ind
 
       case (6) ! Single Vortex ring setup
 
-      allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
+         allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
 
-      j = 0
+         j = 0
 
-      do k = 1, nc
-         part_2d = 2 * pi / (8 * k)
-         rc = (1 + 12 * k**2) / (6 * k) * rl
+         do k = 1, nc
+            part_2d = 2 * pi / (8 * k)
+            rc = (1 + 12 * k**2) / (6 * k) * rl
 
-         do l = 1, 8 * k
-            j = j + 1
-            xi1 = part_2d * (l - 1)
-            xi2 = part_2d * l
-            xi = (xi1 + xi2) * 5.d-1
-            xp(j) = rc * cos(xi)
-            yp(j) = rc * sin(xi)
-            zp(j) = 0
+            do l = 1, 8 * k
+               j = j + 1
+               xi1 = part_2d * (l - 1)
+               xi2 = part_2d * l
+               xi = (xi1 + xi2) * 5.d-1
+               xp(j) = rc * cos(xi)
+               yp(j) = rc * sin(xi)
+               zp(j) = 0
 
-            rr1 = xp(j) + r_torus
-            rr2 = yp(j)
-            rr = sqrt(rr1 * rr1 + rr2 * rr2)
+               rr1 = xp(j) + r_torus
+               rr2 = yp(j)
+               rr = sqrt(rr1 * rr1 + rr2 * rr2)
 
-            volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 &
-                       - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) &
-                      / (8 * k * Nphi)
-            wxp(j) = 0.
-            wyp(j) = 0.
-            stheta = rr1 / rr
-            expo = kappa * (r_torus * r_torus + rr * rr - 2.d0 * r_torus * rr * stheta)
-            wzp(j) = kappa / pi * G / r_core / r_core * exp(-expo / r_core / r_core)
+               volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 &
+                          - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) &
+                         / (8 * k * Nphi)
+               wxp(j) = 0.
+               wyp(j) = 0.
+               stheta = rr1 / rr
+               expo = kappa * (r_torus * r_torus + rr * rr - 2.d0 * r_torus * rr * stheta)
+               wzp(j) = kappa / pi * G / r_core / r_core * exp(-expo / r_core / r_core)
 !                   wzp(j) = g*exp(-(rc/rmax)**2)
+            end do
          end do
-      end do
 
-      xp(ns) = 0.
-      yp(ns) = 0.
-      zp(ns) = 0.
-      wxp(ns) = 0.
-      wyp(ns) = 0.
+         xp(ns) = 0.
+         yp(ns) = 0.
+         zp(ns) = 0.
+         wxp(ns) = 0.
+         wyp(ns) = 0.
 !           wzp(ns) = g
-      wzp(ns) = kappa / pi * G / rmax / rmax
-      volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
+         wzp(ns) = kappa / pi * G / rmax / rmax
+         volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
 
-      j = 0
-      ind0 = 0
-      ind = 0
-      part_3d = 2 * pi / Nphi
-      do m = 1, Nphi
-         eta1 = part_3d * (m - 1)
-         eta2 = part_3d * m
-         eta = (eta1 + eta2) * 5.d-1
-         v(1) = cos(eta2)
-         v(2) = sin(eta2)
-         v(3) = 0
-         D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-         v(1) = cos(eta)
-         v(2) = sin(eta)
-         v(3) = 0
-         D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
-         D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
-         D4 = matmul(D1, D3)
-         do i = 1, Ns
-            if (m .eq. 1) then
+         j = 0
+         ind0 = 0
+         ind = 0
+         part_3d = 2 * pi / Nphi
+         do m = 1, Nphi
+            eta1 = part_3d * (m - 1)
+            eta2 = part_3d * m
+            eta = (eta1 + eta2) * 5.d-1
+            v(1) = cos(eta2)
+            v(2) = sin(eta2)
+            v(3) = 0
+            D1 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
+            v(1) = cos(eta)
+            v(2) = sin(eta)
+            v(3) = 0
+            D2 = reshape((/v(1)**2, v(2) * v(1), -v(2), v(1) * v(2), v(2)**2, v(1), v(2), -v(1), 0.0D0/), (/3, 3/))
+            D3 = reshape((/-1.0 + 2 * v(1)**2, 2 * v(2) * v(1), 0.0D0, 2 * v(1) * v(2), -1.0 + 2 * v(2)**2, 0.0D0, 0.0D0, 0.0D0, -1.0D0/), (/3, 3/))
+            D4 = matmul(D1, D3)
+            do i = 1, Ns
+               if (m .eq. 1) then
 !                       v(1) = xp(i) + (r_torus+rmax)*cos(eta)
 !                       v(2) = yp(i) + (r_torus+rmax)*sin(eta)
-               v(1) = xp(i) + r_torus * cos(eta)
-               v(2) = yp(i) + r_torus * sin(eta)
-               v(3) = zp(i)
-               xp(i) = dot_product(v, D2(1:3, 1))
-               yp(i) = dot_product(v, D2(1:3, 2))
-               zp(i) = dot_product(v, D2(1:3, 3))
-               v(1) = wxp(i)
-               v(2) = wyp(i)
-               v(3) = wzp(i)
-               wxp(i) = dot_product(v, D2(1:3, 1))
-               wyp(i) = dot_product(v, D2(1:3, 2))
-               wzp(i) = dot_product(v, D2(1:3, 3))
-            else
-               v(1) = xp(i)
-               v(2) = yp(i)
-               v(3) = zp(i)
-               xp(i) = dot_product(v, D4(1:3, 1))
-               yp(i) = dot_product(v, D4(1:3, 2))
-               zp(i) = dot_product(v, D4(1:3, 3))
-               v(1) = wxp(i)
-               v(2) = wyp(i)
-               v(3) = wzp(i)
-               wxp(i) = dot_product(v, D4(1:3, 1))
-               wyp(i) = dot_product(v, D4(1:3, 2))
-               wzp(i) = dot_product(v, D4(1:3, 3))
-            end if
-            ind0 = ind0 + 1
-            if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
-               ind = ind + 1
-               if (ind .gt. np) then
-                  write (*, *) 'something is wrong here: to many particles in init of first ring', my_rank, ind, np, n
-                  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+                  v(1) = xp(i) + r_torus * cos(eta)
+                  v(2) = yp(i) + r_torus * sin(eta)
+                  v(3) = zp(i)
+                  xp(i) = dot_product(v, D2(1:3, 1))
+                  yp(i) = dot_product(v, D2(1:3, 2))
+                  zp(i) = dot_product(v, D2(1:3, 3))
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
+                  wxp(i) = dot_product(v, D2(1:3, 1))
+                  wyp(i) = dot_product(v, D2(1:3, 2))
+                  wzp(i) = dot_product(v, D2(1:3, 3))
+               else
+                  v(1) = xp(i)
+                  v(2) = yp(i)
+                  v(3) = zp(i)
+                  xp(i) = dot_product(v, D4(1:3, 1))
+                  yp(i) = dot_product(v, D4(1:3, 2))
+                  zp(i) = dot_product(v, D4(1:3, 3))
+                  v(1) = wxp(i)
+                  v(2) = wyp(i)
+                  v(3) = wzp(i)
+                  wxp(i) = dot_product(v, D4(1:3, 1))
+                  wyp(i) = dot_product(v, D4(1:3, 2))
+                  wzp(i) = dot_product(v, D4(1:3, 3))
                end if
-               vortex_particles(ind)%x(1) = xp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
-               vortex_particles(ind)%x(2) = yp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
-               vortex_particles(ind)%x(3) = zp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
-               vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
-               vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-            end if
+               ind0 = ind0 + 1
+               if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
+                  ind = ind + 1
+                  if (ind .gt. np) then
+                     write (*, *) 'something is wrong here: to many particles in init of first ring', my_rank, ind, np, n
+                     call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+                  end if
+                  vortex_particles(ind)%x(1) = xp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
+                  vortex_particles(ind)%x(2) = yp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
+                  vortex_particles(ind)%x(3) = zp(i) + (rmax - (1 + 12 * nc**2) / (6 * nc) * rl) / 2.0
+                  vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
+                  vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
+               end if
+            end do
          end do
-      end do
-      np = ind
+         np = ind
 
       case (98) ! Random cubic setup (for testing purpose only)
 
-      j = 0
+         j = 0
 
-      do i = 1, n
+         do i = 1, n
 
-         xt = 0.
-         yt = 0.
-         zt = 0.
+            xt = 0.
+            yt = 0.
+            zt = 0.
 
-         call par_rand(par_rand_res)
-         xt = par_rand_res
-         call par_rand(par_rand_res)
-         yt = par_rand_res
-         call par_rand(par_rand_res)
-         zt = par_rand_res
+            call par_rand(par_rand_res)
+            xt = par_rand_res
+            call par_rand(par_rand_res)
+            yt = par_rand_res
+            call par_rand(par_rand_res)
+            zt = par_rand_res
 
-         if (mod(i + my_rank, n_cpu) .eq. 0) then
-            j = j + 1
-            if (j .gt. np) then
-               write (*, *) 'something is wrong here: to many particles in init', my_rank, j, n
-               call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+            if (mod(i + my_rank, n_cpu) .eq. 0) then
+               j = j + 1
+               if (j .gt. np) then
+                  write (*, *) 'something is wrong here: to many particles in init', my_rank, j, n
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+               end if
+               vortex_particles(j)%x(1) = xt
+               vortex_particles(j)%x(2) = yt
+               vortex_particles(j)%x(3) = zt
+               call par_rand(par_rand_res)
+               vortex_particles(j)%data%alpha(1) = par_rand_res * h**3
+               call par_rand(par_rand_res)
+               vortex_particles(j)%data%alpha(2) = -par_rand_res * h**3
+               call par_rand(par_rand_res)
+               vortex_particles(j)%data%alpha(3) = par_rand_res * h**3
             end if
-            vortex_particles(j)%x(1) = xt
-            vortex_particles(j)%x(2) = yt
-            vortex_particles(j)%x(3) = zt
-            call par_rand(par_rand_res)
-            vortex_particles(j)%data%alpha(1) = par_rand_res * h**3
-            call par_rand(par_rand_res)
-            vortex_particles(j)%data%alpha(2) = -par_rand_res * h**3
-            call par_rand(par_rand_res)
-            vortex_particles(j)%data%alpha(3) = par_rand_res * h**3
-         end if
-      end do
-      np = j
+         end do
+         np = j
 
       case (99) ! Read-in MPI checkpoints
 
-      call read_in_checkpoint()
+         call read_in_checkpoint()
 
       end select config
 
