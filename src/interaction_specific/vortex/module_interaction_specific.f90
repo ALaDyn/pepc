@@ -374,8 +374,8 @@ contains
 
       vort = [particle%data%alpha(1), particle%data%alpha(2), particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
-      m0 = [t%chargex, t%chargey, t%chargez]       ! monopole moment tensor
-      CP0 = cross_prod(m0, vort)                  ! cross-product for 1st expansion term
+      m0 = [t%chargex, t%chargey, t%chargez]          ! monopole moment tensor
+      CP0 = cross_prod(m0, vort)                      ! cross-product for 1st expansion term
 
       m1(:, 1) = [t%xdip1, t%xdip2, t%xdip3]          ! dipole moment tensor
       m1(:, 2) = [t%ydip1, t%ydip2, t%ydip3]
@@ -437,36 +437,38 @@ contains
       QPa1 = pre6 * sum((/(sum((/(sum((/(CP2(i3, i2, i1) * d(i3), i3=1, 3)/)) * d(i2), i2=1, 3)/)) * d(i1), i1=1, 3)/)) ! quadrupole prefactors for af
       QPa2 = dot_product(d, CP2(1, 1, :) + CP2(2, 2, :) + CP2(3, 3, :) + CP2(1, :, 1) + CP2(2, :, 2) + CP2(3, :, 3) + CP2(:, 1, 1) + CP2(:, 2, 2) + CP2(:, 3, 3))
 
-      u(1) = pre1 * (dy * m0(3) - dz * m0(2)) &                                                                                ! MONOPOLE
+      u = pre1 * cross_prod(d, m0)                                                                                             ! MONOPOLE
+
+      u(1) = u(1) &                                                                                                            ! MONOPOLE
              + pre2 * sum((/((m1(3, i1) * dy - m1(2, i1) * dz) * d(i1), i1=1, 3)/)) - pre1 * (m1(3, 2) - m1(2, 3)) &           ! DIPOLE
              - pre3 * (sum((/(m2(3, i1, i1) * dy - m2(2, i1, i1) * dz, i1=1, 3)/)) + 2.0 * sum((/((m2(3, i1, 2) - m2(2, i1, 3)) * d(i1), i1=1, 3)/))) &
              + pre4 * sum((/(sum((/((dy * m2(3, i2, i1) - dz * m2(2, i2, i1)) * d(i2), i2=1, 3)/)) * d(i1), i1=1, 3)/))        ! QUADRUPOLE
 
-      u(2) = pre1 * (dz * m0(1) - dx * m0(3)) &                                                                                ! MONOPOLE
+      u(2) = u(2) &                                                                                                            ! MONOPOLE
              + pre2 * sum((/((m1(1, i1) * dz - m1(3, i1) * dx) * d(i1), i1=1, 3)/)) - pre1 * (m1(1, 3) - m1(3, 1)) &           ! DIPOLE
              - pre3 * (sum((/(m2(1, i1, i1) * dz - m2(3, i1, i1) * dx, i1=1, 3)/)) + 2.0 * sum((/((m2(1, i1, 3) - m2(3, i1, 1)) * d(i1), i1=1, 3)/))) &
              + pre4 * sum((/(sum((/((dz * m2(1, i2, i1) - dx * m2(3, i2, i1)) * d(i2), i2=1, 3)/)) * d(i1), i1=1, 3)/))        ! QUADRUPOLE
 
-      u(3) = pre1 * (dx * m0(2) - dy * m0(1)) &                                                                                ! MONOPOLE
+      u(3) = u(3) &                                                                                                            ! MONOPOLE
              + pre2 * sum((/((m1(2, i1) * dx - m1(1, i1) * dy) * d(i1), i1=1, 3)/)) - pre1 * (m1(2, 1) - m1(1, 2)) &           ! DIPOLE
              - pre3 * (sum((/(m2(2, i1, i1) * dx - m2(1, i1, i1) * dy, i1=1, 3)/)) + 2.0 * sum((/((m2(2, i1, 1) - m2(1, i1, 2)) * d(i1), i1=1, 3)/))) &
              + pre4 * sum((/(sum((/((dx * m2(2, i2, i1) - dy * m2(1, i2, i1)) * d(i2), i2=1, 3)/)) * d(i1), i1=1, 3)/))        ! QUADRUPOLE
 
-      af(1) = Mpa1 * dx - pre1 * CP0(1) &                                                                                      ! MONOPOLE
-              + DPa1 * dx - pre2 * (dot_product(CP1(:, 1) + CP1(1, :), d) + dx * DPa2) &                                       ! DIPOLE
-              + QPa1 * dx &
+      af = -pre1 * CP0 &                                                                                                       ! MONOPOLE
+           + (Mpa1 + DPa1 + QPa1 - pre2 * DPa2) * d
+
+      af(1) = af(1) &                                                                                                          ! MONOPOLE
+              - pre2 * (dot_product(CP1(:, 1) + CP1(1, :), d)) &                                                               ! DIPOLE
               - pre4 * (sum((/(sum((/((CP2(i2, i1, 1) + CP2(i2, 1, i1) + CP2(1, i2, i1)) * d(i2), i2=1, 3)/)) * d(i1), i1=1, 3)/)) + dx * QPa2) &
               + pre3 * (CP2(1, 1, 1) + CP2(2, 2, 1) + CP2(3, 3, 1) + CP2(1, 1, 1) + CP2(2, 1, 2) + CP2(3, 1, 3) + CP2(1, 1, 1) + CP2(1, 2, 2) + CP2(1, 3, 3)) ! QUADRUPOLE
 
-      af(2) = Mpa1 * dy - pre1 * CP0(2) &                                                                                      ! MONOPOLE
-              + DPa1 * dy - pre2 * (dot_product(CP1(:, 2) + CP1(2, :), d) + dy * DPa2) &                                       ! DIPOLE
-              + QPa1 * dy &
+      af(2) = af(2) &                                                                                                          ! MONOPOLE
+              - pre2 * (dot_product(CP1(:, 2) + CP1(2, :), d)) &                                                               ! DIPOLE
               - pre4 * (sum((/(sum((/((CP2(i2, i1, 2) + CP2(i2, 2, i1) + CP2(2, i2, i1)) * d(i2), i2=1, 3)/)) * d(i1), i1=1, 3)/)) + dy * QPa2) &
               + pre3 * (CP2(1, 1, 2) + CP2(2, 2, 2) + CP2(3, 3, 2) + CP2(1, 2, 1) + CP2(2, 2, 2) + CP2(3, 2, 3) + CP2(2, 1, 1) + CP2(2, 2, 2) + CP2(2, 3, 3)) ! QUADRUPOLE
 
-      af(3) = Mpa1 * dz - pre1 * CP0(3) &                                                                                      ! MONOPOLE
-              + DPa1 * dz - pre2 * (dot_product(CP1(:, 3) + CP1(3, :), d) + dz * DPa2) &                                       ! DIPOLE
-              + QPa1 * dz &
+      af(3) = af(3) &                                                                                                          ! MONOPOLE
+              - pre2 * (dot_product(CP1(:, 3) + CP1(3, :), d)) &                                                               ! DIPOLE
               - pre4 * (sum((/(sum((/((CP2(i2, i1, 3) + CP2(i2, 3, i1) + CP2(3, i2, i1)) * d(i2), i2=1, 3)/)) * d(i1), i1=1, 3)/)) + dz * QPa2) &
               + pre3 * (CP2(1, 1, 3) + CP2(2, 2, 3) + CP2(3, 3, 3) + CP2(1, 3, 1) + CP2(2, 3, 2) + CP2(3, 3, 3) + CP2(3, 1, 1) + CP2(3, 2, 2) + CP2(3, 3, 3)) ! QUADRUPOLE
    end subroutine calc_6th_algebraic_transposed
@@ -596,7 +598,7 @@ contains
       vort = [particle%data%alpha(1), particle%data%alpha(2), particle%data%alpha(3)]  ! need particle`s vorticity for cross-product here
 
       m0 = [t%chargex, t%chargey, t%chargez]       ! monopole moment tensor
-      CP0 = cross_prod(m0, vort)                  ! cross-product for 1st expansion term
+      CP0 = cross_prod(m0, vort)                   ! cross-product for 1st expansion term
 
       ! precompute kernel function evaluations of various order
       dist = sqrt(dist2)

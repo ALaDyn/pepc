@@ -1,3 +1,6 @@
+# Avoid user-changes to hooks to be added by accident
+.githooks/
+
 # Object files
 *.o
 *.mod

@@ -67,7 +67,7 @@ contains
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
-   !>   Dump VTK
+   !>   Dump VTK or checkpoint
    !>
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine dump(i, simtime)
@@ -91,26 +91,6 @@ contains
          end if
       end if
 
-   end subroutine dump
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   !>
-   !>   Dump checkpoint
-   !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine write_checkpoint(i, simtime)
-
-      use physvars
-      use mpi
-      implicit none
-
-      integer, intent(in) :: i
-      real, intent(in) :: simtime
-      integer :: fh, ierr, err, status(MPI_STATUS_SIZE)
-      integer(KIND=MPI_OFFSET_KIND) :: disp, header_disp = 1024
-
-      character(50) :: cfile
-
       if (cp_time .ne. 0) then
          if (mod(i, cp_time) .eq. 0) then
             ! Open new file for i-th timestep
@@ -123,16 +103,17 @@ contains
             ! Set file view to BYTE for header, only rank 0 writes it
             call MPI_FILE_SET_VIEW(fh, 0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
             if (my_rank .eq. 0) then
-               call MPI_FILE_WRITE(fh, n, 1, MPI_KIND_PARTICLE, status, ierr)     ! # particles
-               call MPI_FILE_WRITE(fh, dt, 1, MPI_REAL, status, ierr)             ! timestep
-               call MPI_FILE_WRITE(fh, ts, 1, MPI_REAL, status, ierr)             ! Starting time
-               call MPI_FILE_WRITE(fh, i, 1, MPI_INTEGER, status, ierr)           ! Last successful timestep (number)
-               call MPI_FILE_WRITE(fh, te, 1, MPI_REAL, status, ierr)             ! Final time
-               call MPI_FILE_WRITE(fh, nu, 1, MPI_REAL, status, ierr)             ! Viscousity
-               call MPI_FILE_WRITE(fh, h, 1, MPI_REAL, status, ierr)              ! Original particle distance
-               call MPI_FILE_WRITE(fh, m_h, 1, MPI_REAL, status, ierr)            ! Remeshing distance
-               call MPI_FILE_WRITE(fh, rem_freq, 1, MPI_INTEGER, status, ierr)    ! Remeshing frequence
-               call MPI_FILE_WRITE(fh, thresh, 1, MPI_KIND_PHYSICS, status, ierr) ! threshold for pop. control
+               call MPI_FILE_WRITE(fh,n,1,MPI_KIND_PARTICLE,status,ierr)     !& # particles
+               call MPI_FILE_WRITE(fh,dt,1,MPI_REAL,status,ierr)             !& timestep
+               call MPI_FILE_WRITE(fh,ts,1,MPI_REAL,status,ierr)             !& Starting time
+               call MPI_FILE_WRITE(fh,i,1,MPI_INTEGER,status,ierr)           !& Last successful timestep (number)
+               call MPI_FILE_WRITE(fh,te,1,MPI_REAL,status,ierr)             !& Final time
+               call MPI_FILE_WRITE(fh,nu,1,MPI_REAL,status,ierr)             !& Viscousity
+               call MPI_FILE_WRITE(fh,h,1,MPI_REAL,status,ierr)              !& Original particle distance
+               call MPI_FILE_WRITE(fh,m_h,1,MPI_REAL,status,ierr)            !& Remeshing distance
+               call MPI_FILE_WRITE(fh,rem_freq,1,MPI_INTEGER,status,ierr)    !& Remeshing frequence
+               call MPI_FILE_WRITE(fh,thresh,1,MPI_KIND_PHYSICS,status,ierr) !& threshold for pop. control
+               call MPI_FILE_WRITE(fh,eps,1,MPI_KIND_PHYSICS,status,ierr)    !& core size
                call MPI_FILE_GET_POSITION(fh, disp, ierr)
                if (disp .gt. header_disp) then
                   write (*, *) "header_size is too small: ", header_disp, "<", disp
@@ -150,7 +131,7 @@ contains
          end if
       end if
 
-   end subroutine write_checkpoint
+   end subroutine dump
 
    subroutine dump_results()
 
@@ -210,14 +191,10 @@ contains
       implicit none
 
       real, intent(in) :: time
-      real(kind_physics) :: vorticity_x(np), vorticity_y(np), vorticity_z(np)
-      real(kind_physics) :: vol
       integer, intent(in) :: step
       type(vtkfile_unstructured_grid) :: vtk
       integer :: vtk_step
       integer(kind_particle) :: i
-
-      vol = m_h**3
 
       if (step .eq. 0) then
          vtk_step = VTK_STEP_FIRST
@@ -227,10 +204,6 @@ contains
          vtk_step = VTK_STEP_NORMAL
       end if
 
-      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1) / vol
-      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2) / vol
-      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3) / vol
-
       call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01 * time, vtk_step)
       call vtk%write_headers(np, 0_kind_particle)
       call vtk%startpoints()
@@ -238,7 +211,7 @@ contains
       call vtk%finishpoints()
       call vtk%startpointdata()
       call vtk%write_data_array("velocity", vortex_particles(1:np)%results%u(1), vortex_particles(1:np)%results%u(2), vortex_particles(1:np)%results%u(3))
-      call vtk%write_data_array("vorticity", vorticity_x(1:np), vorticity_y(1:np), vorticity_z(1:np))
+      call vtk%write_data_array("vorticity", vortex_particles(1:np)%data%alpha(1), vortex_particles(1:np)%data%alpha(2), vortex_particles(1:np)%data%alpha(3))
       call vtk%write_data_array("work", vortex_particles(1:np)%work)
       call vtk%write_data_array("label", vortex_particles(1:np)%label)
       call vtk%write_data_array("pid", int(np, kind_default), my_rank) ! attaching the MPI rank to each particle

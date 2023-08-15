@@ -12,3 +12,10 @@ endif
 
 SRC        += $(FILES_INT)
 SRC_COPY   += $(addprefix $(INTSPECDIR)/vortex/, $(FILES_INT))
+
+# compiler test for interaction kernels
+TEST     = 0
+
+ifeq ($(TEST), 1)
+   CPPFLAGS_BACKEND = -DTEST_INTERACTION
+endif
