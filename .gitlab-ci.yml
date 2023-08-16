@@ -7,6 +7,14 @@ stages:
     #   - html      # this run doxygen (prefer FORD)
     #   - deploy    # this could push doxygen to pages
 
+variables:
+  FORCE_DOCKER_IMAGE:
+    value: "false"
+    options:
+      - "false"
+      - "true"
+    description: "Force the creation of a new Docker image for this branch."
+
 #### Build PEPC and it's libraries
 # Template for building
 .build_template: &build_template
