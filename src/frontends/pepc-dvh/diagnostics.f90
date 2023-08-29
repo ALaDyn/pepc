@@ -186,7 +186,7 @@ contains
             )
             ! local total vorticity
             sendbuffer(1:3) = sendbuffer(1:3) + vorticity(1:3)
-            ! global total vortiticy
+            ! local linear impulse
             sendbuffer(4:6) = sendbuffer(4:6) + cross_prod(pos, vorticity)
          end associate
       end do
@@ -218,15 +218,16 @@ contains
                                              - pos(2) * (pos(2) * vorticity(3) - pos(3) * vorticity(2)))   !&
          end associate
       end do
-      ! ATTENTION: The factor that multiplies sig^2 * omega is 1/3 if second-order algebraic smoothing function is used.
-      ! In general it is equal to 2/9 * C where C is = 4*pi * INT_0^inf dr Zeta(r) r^4
-      ! See for details: pag 263 of Winckelmans and Leonard JCP 109, 247-273, 1993
-      us3 = 1.d0 / 3.d0
-      sendbuffer(1:3) = (sendbuffer(1:3) - np * sig2 * omega) * us3
 
       ! global angular impulse
       angular = 0.d0
       call MPI_ALLREDUCE(sendbuffer, angular, 3, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
+
+      ! ATTENTION: The factor that multiplies sig^2 * omega is 1/3 if second-order algebraic smoothing function is used.
+      ! In general it is equal to 2/9 * C where C is = 4*pi * INT_0^inf dr Zeta(r) r^4
+      ! See for details: pag 263 of Winckelmans and Leonard JCP 109, 247-273, 1993
+      us3 = 1.d0 / 3.d0
+      angular = (angular - sig2 * omega) * us3
 
       ! std and file output
       if (my_rank .eq. 0) then
