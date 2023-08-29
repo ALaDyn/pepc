@@ -93,9 +93,6 @@ toolchains:
   artifacts:
     paths:
       - bin/*
-  rules:
-    # Only run when on main repository
-    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
 
 #### Lint source Fortran source files
 fprettify:
