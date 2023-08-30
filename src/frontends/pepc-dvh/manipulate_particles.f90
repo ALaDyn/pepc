@@ -50,6 +50,7 @@ contains
       real(kind_physics), parameter :: zero = 0.d0, one = 1.d0, mone = -one, two = 2.d0, five = 5.d0, nine = 9.d0
       real(kind_physics), parameter :: kappa = 2.24182**2 / 4.
       real(kind_physics), parameter :: r_core = 0.35d0
+      real(kind_physics) :: sumvol, rrmax, rrmin
 
       !     interface
       !         subroutine par_rand(res, iseed)
@@ -509,11 +510,13 @@ contains
          allocate (xp(ns), yp(ns), zp(ns), volp(ns), wxp(ns), wyp(ns), wzp(ns))
 
          j = 0
+         sumvol = 0.d0
 
          do k = 1, nc
             part_2d = 2 * pi / (8 * k)
-            rc = (1 + 12 * k**2) / (6 * k) * rl
-
+            rc = float(1 + 12 * k**2) / float(6 * k) * rl
+            rrmax = rl * (2 * k + 1)
+            rrmin = rl * (2 * k - 1)
             do l = 1, 8 * k
                j = j + 1
                xi1 = part_2d * (l - 1)
@@ -527,15 +530,13 @@ contains
                rr2 = yp(j)
                rr = sqrt(rr1 * rr1 + rr2 * rr2)
 
-               volp(j) = (2 * pi**2 * (r_torus + (2 * k + 1) * rl) * ((2 * k + 1) * rl)**2 &
-                          - 2 * pi**2 * (r_torus + (2 * k - 1) * rl) * ((2 * k - 1) * rl)**2) &
-                         / (8 * k * Nphi)
+               volp(j) = (xi2 - xi1)*0.5d0 * ( rrmax**2 - rrmin**2 ) * 2.d0*pi * rr1/float(Nphi)
                wxp(j) = 0.
                wyp(j) = 0.
                stheta = rr1 / rr
                expo = kappa * (r_torus * r_torus + rr * rr - 2.d0 * r_torus * rr * stheta)
                wzp(j) = kappa / pi * G / r_core / r_core * exp(-expo / r_core / r_core)
-!                   wzp(j) = g*exp(-(rc/rmax)**2)
+               sumvol = sumvol + volp(j)
             end do
          end do
 
@@ -544,9 +545,11 @@ contains
          zp(ns) = 0.
          wxp(ns) = 0.
          wyp(ns) = 0.
-!           wzp(ns) = g
-         wzp(ns) = kappa / pi * G / rmax / rmax
-         volp(ns) = 2 * pi**2 * (r_torus + rl) * rl**2 / Nphi
+         wzp(ns) = kappa / pi * G / r_core / r_core
+         volp(ns) = pi*rl**2 * 2.d0*pi * r_torus/float(Nphi)
+         sumvol = sumvol + volp(ns)
+
+         if(my_rank.eq.0) write(*,*) 'Total discretized volume ',sumvol*float(Nphi),' - theoretical', 2.d0*pi*r_torus* pi*rmax*rmax
 
          j = 0
          ind0 = 0
