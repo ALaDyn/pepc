@@ -29,7 +29,7 @@ contains
    !>
    !> adds res2 to res1
    !>
-   subroutine results_add(res1, res2)
+   module subroutine results_add(res1, res2)
       implicit none
       type(t_particle_results), intent(inout) :: res1
       type(t_particle_results), intent(in) :: res2
@@ -46,7 +46,7 @@ contains
    !> calculated fields, and for being able to call several
    !> (different) force calculation routines
    !>
-   subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
+   module subroutine calc_force_per_interaction_with_leaf(particle, node, node_idx, delta, dist2, vbox)
       use module_pepc_types
       use treevars
       use mpi
@@ -91,7 +91,7 @@ contains
    !> calculated fields, and for being able to call several
    !> (different) force calculation routines
    !>
-   subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
+   module subroutine calc_force_per_interaction_with_twig(particle, node, node_idx, delta, dist2, vbox)
       use module_pepc_types
       use treevars
       use mpi

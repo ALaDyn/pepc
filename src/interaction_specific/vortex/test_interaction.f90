@@ -54,6 +54,9 @@ program test_interaction
                  t_particle_results( &                                                       !&
                     [0._kind_physics, 0._kind_physics, 0._kind_physics], &                   !&
                     [0._kind_physics, 0._kind_physics, 0._kind_physics], &                   !&
+#ifdef PSI_BACKENDTYPE
+                    [0._kind_physics, 0._kind_physics, 0._kind_physics], &                   !&
+#endif
                     0._kind_physics &                                                        !&
                  ) &                                                                         !&
                  )
