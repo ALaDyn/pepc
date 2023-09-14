@@ -273,6 +273,21 @@ contains
          n = ns * nphi
          np = ceiling(1.0 * n / n_cpu) + 1
 
+      case (7)
+
+         rmax = Lref / 2.d0
+         block
+            integer(kind_particle) :: ngrid(3)
+
+            ngrid(1)= NINT((r_torus + rmax)/m_h) + 1
+            ngrid(2)= NINT((r_torus + rmax)/m_h) + 1
+            ngrid(3)= NINT(           rmax /m_h) + 1
+
+            n = (2*ngrid(1) +1) * (2*ngrid(2) +1) * (2*ngrid(3) +1)
+         end block
+
+         np = ceiling(1.0 * n / n_cpu) + 1
+
       case (98)
 
          n = n_in

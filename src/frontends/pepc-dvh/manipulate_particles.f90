@@ -617,6 +617,73 @@ contains
          end do
          np = ind
 
+      case (7)
+
+         block
+
+            real(kind_physics)     :: vecp(3), volp, wxp, wyp, wzp, unit_vec(3), mod_w, r_loc
+            integer(kind_particle) :: ngrid(3)
+
+            ngrid(1)= NINT((r_torus + rmax)/m_h) + 1
+            ngrid(2)= NINT((r_torus + rmax)/m_h) + 1
+            ngrid(3)= NINT(           rmax /m_h) + 1
+
+            ind = 0
+            ind0 = 0
+            volp = m_h**3
+            do i=-ngrid(1),ngrid(1)
+               do j=-ngrid(2),ngrid(2)
+                  do k=-ngrid(3),ngrid(3)
+
+                     ind0 = ind0+1
+                     vecp(1) = i*m_h
+                     vecp(2) = j*m_h
+                     vecp(3) = k*m_h
+                     rr  = sqrt(dot_product(vecp,vecp))
+                     rr1 = sqrt(vecp(1)**2 + vecp(2)**2)
+
+                     if (rr > 0.d0) then
+                        stheta = rr1 / rr
+                     else
+                        stheta = 0.d0
+                     endif
+
+                     r_loc = sqrt((rr1-r_torus)**2+vecp(3)**2)
+
+                     if (rr > (r_torus - rmax) .and. r_loc < rmax) then
+                        expo  = kappa * (r_torus * r_torus + rr * rr - 2.d0 * r_torus * rr * stheta)
+                        mod_w = kappa / pi * G / r_core / r_core * exp(-expo / r_core / r_core)
+                     else
+                        mod_w = 0.d0
+                     endif
+                     if (rr > 0.d0) then
+                        unit_vec = vecp/rr
+                     else
+                        unit_vec = vecp
+                     endif
+
+                     wxp = -unit_vec(2)*mod_w
+                     wyp =  unit_vec(1)*mod_w
+                     wzp =  0.d0
+                     if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
+                        ind = ind + 1
+                        if (ind .gt. np) then
+                           write (*, *) 'something is wrong here: to many particles in init of first ring', my_rank, ind, np, n
+                           call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+                        end if
+                        vortex_particles(ind)%x             = vecp
+                        vortex_particles(ind)%data%alpha(1) = wxp * volp
+                        vortex_particles(ind)%data%alpha(2) = wyp * volp
+                        vortex_particles(ind)%data%alpha(3) = wzp * volp
+                     end if
+                  enddo
+               enddo
+            enddo
+
+         end block
+
+         np = ind
+
       case (98) ! Random cubic setup (for testing purpose only)
 
          j = 0
@@ -672,9 +739,9 @@ contains
 
       ! initial dump if we did not read in via MPI
       if (ispecial .ne. 99) then
-         call dump(0, ts)
          call kick_out_particles()
          call reset_labels() ! works on vortex_particles
+         call dump(0, ts)
          vortex_particles(1:np)%work = 1.
       end if
 
