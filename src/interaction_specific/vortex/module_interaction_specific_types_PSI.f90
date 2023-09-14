@@ -33,8 +33,9 @@ module module_interaction_specific_types
       real(kind_physics) :: alpha_rk(3) ! vorticity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
       real(kind_physics) :: u_rk(3)     ! velocity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
       real(kind_physics) :: af_rk(3)    ! vorticity RHS temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
+      real(kind_physics) :: vol
    end type t_particle_data
-   integer, private, parameter :: nprops_particle_data = 5
+   integer, private, parameter :: nprops_particle_data = 6
 
    !> Data structure for shipping results
    type t_particle_results
@@ -109,14 +110,15 @@ contains
       type(t_tree_node_interaction_data)   :: dummy_tree_node_interaction_data
 
       ! register particle data type
-      blocklengths(1:nprops_particle_data) = [3,3,3,3,3]  !&
-      types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]  !&
+      blocklengths(1:nprops_particle_data) = [3,3,3,3,3,1]  !&
+      types(1:nprops_particle_data)        = [MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8, MPI_REAL8]  !&
       call MPI_GET_ADDRESS(dummy_particle_data,          address(0), ierr)  !&
       call MPI_GET_ADDRESS(dummy_particle_data%alpha,    address(1), ierr)  !&
       call MPI_GET_ADDRESS(dummy_particle_data%x_rk,     address(2), ierr)  !&
       call MPI_GET_ADDRESS(dummy_particle_data%alpha_rk, address(3), ierr)  !&
       call MPI_GET_ADDRESS(dummy_particle_data%u_rk,     address(4), ierr)  !&
       call MPI_GET_ADDRESS(dummy_particle_data%af_rk,    address(5), ierr)  !&
+      call MPI_GET_ADDRESS(dummy_particle_data%vol,      address(6), ierr)  !&
       displacements(1:nprops_particle_data) = int(address(1:nprops_particle_data) - address(0))
       call MPI_TYPE_CREATE_STRUCT(nprops_particle_data, blocklengths, displacements, types, mpi_type_particle_data, ierr)
       call MPI_TYPE_COMMIT(mpi_type_particle_data, ierr)

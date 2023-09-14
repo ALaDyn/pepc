@@ -247,9 +247,9 @@ contains
          vtk_step = VTK_STEP_NORMAL
       end if
 
-      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1) * ivol
-      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2) * ivol
-      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3) * ivol
+      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1)  / vortex_particles(1:np)%data%vol
+      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2)  / vortex_particles(1:np)%data%vol
+      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3)  / vortex_particles(1:np)%data%vol
 
       call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01 * time, vtk_step)
       call vtk%write_headers(np, 0_kind_particle)
@@ -263,6 +263,7 @@ contains
       call vtk%write_data_array("work", vortex_particles(1:np)%work)
       call vtk%write_data_array("label", vortex_particles(1:np)%label)
       call vtk%write_data_array("pid", int(np, kind_default), my_rank) ! attaching the MPI rank to each particle
+      call vtk%write_data_array("volume", vortex_particles(1:np)%data%vol) !
       call vtk%finishpointdata()
       call vtk%dont_write_cells()
       call vtk%write_final()

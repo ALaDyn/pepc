@@ -160,6 +160,7 @@ contains
                   vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
+                  vortex_particles(ind)%data%vol      = volp(i)
                end if
             end do
          end do
@@ -258,6 +259,7 @@ contains
                   vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
+                  vortex_particles(ind)%data%vol      = volp(i)
                end if
             end do
          end do
@@ -349,6 +351,7 @@ contains
                   vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
+                  vortex_particles(ind)%data%vol      = volp(i)
                end if
             end do
          end do
@@ -612,6 +615,7 @@ contains
                   vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
+                  vortex_particles(ind)%data%vol      = volp(i)
                end if
             end do
          end do
@@ -675,6 +679,7 @@ contains
                         vortex_particles(ind)%data%alpha(1) = wxp * volp
                         vortex_particles(ind)%data%alpha(2) = wyp * volp
                         vortex_particles(ind)%data%alpha(3) = wzp * volp
+                        vortex_particles(ind)%data%vol      = volp
                      end if
                   enddo
                enddo
@@ -914,7 +919,7 @@ contains
       n_max_remesh_points = ceiling(1.05 * n_max_remesh_points)
       allocate (m_part(n_max_remesh_points))
       if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of m_part', real(STORAGE_SIZE(m_part)) * size(m_part) / (8 * 1024 * 1024)
-      m_part(:)%data = t_particle_data_short([0.d0, 0.d0, 0.d0])
+      m_part(:)%data = t_particle_data_short([0.d0, 0.d0, 0.d0], 0.d0)
       m_part(:)%work = 0.d0
       allocate (m_part_reduction(1:4, 1:n_max_remesh_points))
       if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of m_part_reduction', real(STORAGE_SIZE(m_part_reduction)) * size(m_part_reduction) / (8 * 1024 * 1024)
@@ -995,6 +1000,7 @@ contains
       m_part(:)%data%alpha(3) = m_part_reduction(3, :)      !&
       m_part(:)%work          = m_part_reduction(4, :)      !&
 #endif
+      m_part(:)%data%vol      = m_h**3
 
       deallocate (grid_mask, index_map, vortex_particles, m_part_reduction)
 
@@ -1271,7 +1277,7 @@ contains
       maxome = -1.d2
       minome = 1.d2
       do i = 1, m_np
-         omega = norm2(particles(i)%data%alpha) * ivol
+         omega = norm2(particles(i)%data%alpha) / particles(i)%data%vol
          if (omega .gt. thresh) then
             k = k + 1
             particles(k) = particles(i)
@@ -1327,7 +1333,7 @@ contains
       ! kick out particles with vorticity magnitude below threshold
       k = 0
       do i = 1, np
-         omega = norm2(vortex_particles(i)%data%alpha) * ivol
+         omega = norm2(vortex_particles(i)%data%alpha)  / vortex_particles(i)%data%vol
          if (omega .gt. thresh) then
             k = k + 1
             vortex_particles(k) = vortex_particles(i)

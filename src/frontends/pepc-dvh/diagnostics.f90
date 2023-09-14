@@ -292,9 +292,9 @@ contains
 
       enstrophy_local = 0.
       do i = 1, np
-         enstrophy_local = enstrophy_local + DOT_PRODUCT(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)
+         enstrophy_local = enstrophy_local + (DOT_PRODUCT(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)) &
+                                             / vortex_particles(i)%data%vol
       end do
-      enstrophy_local = enstrophy_local * ivol
 
       call MPI_ALLREDUCE(enstrophy_local, enstrophy_tot, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 

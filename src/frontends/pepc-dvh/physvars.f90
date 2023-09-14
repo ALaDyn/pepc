@@ -35,7 +35,6 @@ module physvars
    real(kind_physics)     :: force_const    ! force constant depending on unit system
    real                   :: h, m_h         ! initial particle distance and mesh width for remeshing
    real                   :: Delta_r        ! mesh width for remeshing (m_h and Deltar are the same quantity; m_h should be removed)
-   real                   :: ivol           ! inverse of vortex particle volume (1/Delta_r^3)
    real                   :: Rd             ! diffusive radius
    real                   :: Delta_tavv     ! advective time step
    real                   :: Delta_tdiff    ! diffusive time step
@@ -82,12 +81,13 @@ module physvars
    ! care of that.
    type t_particle_data_short ! 15*8 byte = 120 byte -> 24 byte
       real(kind_physics) :: alpha(3)    ! vorticity or better: alpha = vorticity * volume
+      real(kind_physics) :: vol
       !real(kind_physics) :: x_rk(3)     ! position temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
       !real(kind_physics) :: alpha_rk(3) ! vorticity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
       !real(kind_physics) :: u_rk(3)     ! velocity temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
       !real(kind_physics) :: af_rk(3)    ! vorticity RHS temp array for Runge-Kutta time integration (required since particles get redistributed between substeps)
    end type t_particle_data_short
-   integer, private, parameter :: nprops_particle_data_short = 1 !5
+   integer, private, parameter :: nprops_particle_data_short = 2 !5
    integer :: MPI_TYPE_PARTICLE_DATA_SHORT_sca
    !type, private t_particle_results_short ! 7*8 byte = 56 byte -> 0 byte
    !   real(kind_physics), dimension(3) :: u   ! velocities
@@ -193,8 +193,6 @@ contains
       if (Delta_r .le. 0.) Delta_r = Lref / float(nv_on_Lref)
 
       m_h = Delta_r
-
-      ivol = 1.d0 / (m_h * m_h * m_h)
 
       sig2 = 0.d0 !&  m_h**2 ! size of the smoothing length set equal to the vortex size
       !           !&  one could also set it equal to zero to represent singular vortex distribution
@@ -342,10 +340,11 @@ contains
       type(t_particle_short)      :: dummy_particle
 
       ! first register the interaction-specific short MPI type
-      blocklengths(1:nprops_particle_data_short) = [3]
-      types(1:nprops_particle_data_short) = [MPI_REAL8]
+      blocklengths(1:nprops_particle_data_short) = [3,1]
+      types(1:nprops_particle_data_short) = [MPI_REAL8, MPI_REAL8]
       call MPI_GET_ADDRESS(dummy_particle_data,       address(0), ierr )        !&
       call MPI_GET_ADDRESS(dummy_particle_data%alpha, address(1), ierr )        !&
+      call MPI_GET_ADDRESS(dummy_particle_data%vol  , address(2), ierr )        !&
       displacements(1:nprops_particle_data_short) = int(address(1:nprops_particle_data_short) - address(0))
       call MPI_TYPE_CREATE_STRUCT(nprops_particle_data_short, blocklengths, displacements, types, MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr)
       call MPI_TYPE_COMMIT(MPI_TYPE_PARTICLE_DATA_SHORT_sca, ierr)
@@ -384,7 +383,8 @@ contains
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
-               [0._kind_physics, 0._kind_physics, 0._kind_physics] &            !&
+               [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
+               short_particle%data%vol    &                                     !&
             ), &                                                                !&
             t_particle_results( &                                               !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
