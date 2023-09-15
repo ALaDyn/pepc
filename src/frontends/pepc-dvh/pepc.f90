@@ -31,6 +31,8 @@
 program pepcv
 
    use physvars
+   use time_integration
+   use init_particles
    use manipulate_particles
    use module_pepc
    use module_user_timings
