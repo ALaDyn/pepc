@@ -77,11 +77,12 @@ program pepcv
 
       itime = itime + 1
       if (my_rank .eq. 0) write (*, '(a5,i8,a3,i8,a7,i8,a)') 'Step', itime, ' of', nt, ', using', n, ' particles -------------'
+      if (my_rank .eq. 0) write (*, *) 'Time:', trun, '/', te
 
       ! Runge-Kutta time integration
       do stage = 1, rk_stages
 
-         if (my_rank .eq. 0) write (*, *) 'Time:', trun, '/', te
+         if (my_rank .eq. 0) write (*, *) 'RK-stage:', stage, '/', rk_stages
 
          call timer_start(t_tot)
 
@@ -107,7 +108,7 @@ program pepcv
 
          !if (stage == rk_stages)  call dump(itime, trun)
 
-         call push_rk2(stage)
+         call update_rk(stage, trun)
 
          if (stage .lt. rk_stages) then
             call timer_stop(t_tot)   ! total loop time without diags
@@ -116,8 +117,6 @@ program pepcv
          end if
 
          flush (output_unit)
-
-         trun = trun + dt / rk_stages
 
       end do
 

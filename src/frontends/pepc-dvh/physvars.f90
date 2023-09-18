@@ -65,7 +65,7 @@ module physvars
    integer :: ispecial             ! Switch to select special electron configs
    real    :: dt, ts, te           ! timestep, start-time, end-time
    integer :: nt                   ! # timesteps and current timestep
-   integer :: rk_stages            ! # Runge-Kutta stages
+   integer :: rk_stages            ! order of the Runge-Kutta time integration scheme
    logical :: vort_check           ! Control of total vorticity during remeshing
 
    ! I/O stuff
@@ -140,7 +140,7 @@ contains
       character(255) :: parameterfile
       logical :: read_param_file
 
-      namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref, &               !&
+      namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref, rk_stages, &    !&
                        h, Delta_r, thresh, Uref, Lref, &                        !&
                        rmax, r_torus, nc, nphi, g, torus_offset, n_in, &        !&
                        dump_time, cp_time, input_itime, nDeltar, vort_check     !&
@@ -155,6 +155,7 @@ contains
       Co           = 1.                                                         !&
       rem_freq     = 0                                                          !&
       nDeltar      = 3                                                          !&
+      rk_stages    = 4                                                          !&
       thresh       = 1.d-7                                                      !&
       rmax         = 0.                                                         !&
       r_torus      = 0.                                                         !&
@@ -307,7 +308,6 @@ contains
       ! Setup time variables
       trun = ts + itime * dt
       nt = ceiling((te - ts) / dt) ! Number of timesteps
-      rk_stages = 2   ! TODO: inflexible RK time integration scheme, hard-wired so far
 
       allocate (vortex_particles(np))
 
