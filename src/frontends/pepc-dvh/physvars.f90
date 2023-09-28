@@ -134,6 +134,7 @@ contains
 
       integer, intent(out) :: itime
       real, intent(out) :: trun
+      real*8            :: diff_error, eps_diff, alpha
 
       integer :: ierr, f_unit
 
@@ -165,6 +166,7 @@ contains
       torus_offset = [0., 0., 0.]                                               !&
       Uref         = 1.d0                                                       !&
       Lref         = 1.d0                                                       !&
+      eps_diff     = 1.d-5                                                      !&
 
       ! Control
       ts           = 0.                                                         !&
@@ -204,18 +206,38 @@ contains
 
       Rd = nDeltar * m_h
 
-      Delta_tdiff = 2.1d-2 * Rd * Rd / nu        ! Cfr. formula: 3.1 CiCP Colagrossi 2015
-      Delta_tavv = Co * Delta_r / Uref           ! Cfr. formula: 16 CMAME Rossi 2022
-      rem_freq = int(Delta_tdiff / Delta_tavv)   ! Cfr. formula: 17 CMAME Rossi 2022
+!     Delta_tdiff = 2.1d-2 * Rd * Rd / nu        ! Cfr. formula: 3.1 CiCP Colagrossi 2015
 
-      if (rem_freq .eq. 0) then
-         if (my_rank .eq. 0) write (*, *) 'Diffusive Dt is dominant over advective'
-         if (my_rank .eq. 0) write (*, *) 'Dt_avv/Dt_diff, Dt_diff', Delta_tavv / Delta_tdiff, Delta_tdiff
-         Delta_tavv = Delta_tdiff
-         rem_freq = 1
+! Diffusive Delta_t in 3D has nonlinear expression. Trying the 2D evaluation and correct.
+      ! 3D correction
+      alpha = 1.d0
+
+100   continue
+      diff_error = erfc(1.d0/sqrt(alpha)) + 2.d0 * dexp(-1.d0/alpha)/dsqrt(alpha*pi)
+
+      if(diff_error.gt.eps_diff) then
+        alpha = 0.95d0 * alpha
+        goto 100
       end if
+      if(my_rank.eq.0) write(*,*) 'Diffusion error (csi) ', diff_error, alpha, alpha * Rd*Rd/4.d0/nu
 
-      Delta_tdiff = rem_freq * Delta_tavv    ! Recalculation for convenience: not needed without multi-resolution
+      Delta_tdiff = alpha * Rd * Rd / 4.d0 / nu
+
+      Delta_tavv = Co * Delta_r / Uref              ! Cfr. formula: 16 CMAME Rossi 2022
+      if(my_rank.eq.0) write(*,*) 'first evaluation of Dt avv', Delta_tavv
+
+      rem_freq = int(Delta_tdiff / Delta_tavv) + 1  ! Cfr. formula: 17 CMAME Rossi 2022
+
+!     if (rem_freq .eq. 0) then
+!        if (my_rank .eq. 0) write (*, *) 'Diffusive Dt is dominant over advective'
+!        if (my_rank .eq. 0) write (*, *) 'Dt_avv/Dt_diff, Dt_diff', Delta_tavv / Delta_tdiff, Delta_tdiff
+!        Delta_tavv = Delta_tdiff
+!        rem_freq = 1
+!     end if
+
+!     Delta_tdiff = rem_freq * Delta_tavv         ! Recalculation for convenience: not needed without multi-resolution
+      Delta_tavv = Delta_tdiff / float(rem_freq)   ! Recalculation for convenience: not needed without multi-resolution
+      if(my_rank.eq.0) write(*,*) 'Modified evaluation of Dt avv', Delta_tavv
 
       dt = Delta_tavv
 
