@@ -206,8 +206,6 @@ contains
 
       Rd = nDeltar * m_h
 
-!     Delta_tdiff = 2.1d-2 * Rd * Rd / nu        ! Cfr. formula: 3.1 CiCP Colagrossi 2015
-
 ! Diffusive Delta_t in 3D has nonlinear expression. Trying the 2D evaluation and correct.
       ! 3D correction
       alpha = 1.d0
@@ -228,20 +226,16 @@ contains
 
       rem_freq = int(Delta_tdiff / Delta_tavv) + 1  ! Cfr. formula: 17 CMAME Rossi 2022
 
-!     if (rem_freq .eq. 0) then
-!        if (my_rank .eq. 0) write (*, *) 'Diffusive Dt is dominant over advective'
-!        if (my_rank .eq. 0) write (*, *) 'Dt_avv/Dt_diff, Dt_diff', Delta_tavv / Delta_tdiff, Delta_tdiff
-!        Delta_tavv = Delta_tdiff
-!        rem_freq = 1
-!     end if
+      if (rem_freq .eq. 1) then
+         if (my_rank .eq. 0) write (*, *) 'Diffusive Dt is dominant over advective'
+         if (my_rank .eq. 0) write (*, *) 'Dt_avv/Dt_diff, Dt_diff', Delta_tavv / Delta_tdiff, Delta_tdiff
+      end if
 
-!     Delta_tdiff = rem_freq * Delta_tavv         ! Recalculation for convenience: not needed without multi-resolution
       Delta_tavv = Delta_tdiff / float(rem_freq)   ! Recalculation for convenience: not needed without multi-resolution
       if(my_rank.eq.0) write(*,*) 'Modified evaluation of Dt avv', Delta_tavv
 
       dt = Delta_tavv
 
-      ! kernel_c = dsqrt(nu * Delta_tdiff) / m_h
       kernel_c = 4.d0 * nu * Delta_tdiff
 
       if (my_rank .eq. 0) then
@@ -308,6 +302,7 @@ contains
          end block
 
          np = ceiling(1.0 * n / n_cpu) + 1
+         if(norm2(torus_offset).gt.0.d0) np = 2 * np
 
       case (98)
 
