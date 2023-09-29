@@ -476,7 +476,7 @@ contains
       integer, intent(out) :: itime
 
       integer :: status(MPI_STATUS_SIZE)
-      integer :: ierr, err, fh, tmp_rem_freq, tmp_i
+      integer :: ierr, err, fh, tmp_rem_freq, tmp_i, tmp_n_out
       integer(kind_particle) :: remain
       real ::tmp_dt, tmp_te, tmp_nu, tmp_ts, tmp_h, tmp_m_h
       real(kind_physics) :: tmp_thresh
@@ -490,16 +490,17 @@ contains
 
       ! Set file view to BYTE for header and read
       call MPI_FILE_SET_VIEW(fh, 0_MPI_OFFSET_KIND, MPI_BYTE, MPI_BYTE, 'native', MPI_INFO_NULL, ierr)
-      call MPI_FILE_READ(fh, n, 1, MPI_KIND_PARTICLE, status, ierr)             ! # particles
-      call MPI_FILE_READ(fh, tmp_dt, 1, MPI_REAL, status, ierr)                 ! timestep
-      call MPI_FILE_READ(fh, tmp_ts, 1, MPI_REAL, status, ierr)                 ! Starting time
-      call MPI_FILE_READ(fh, tmp_i, 1, MPI_INTEGER, status, ierr)               ! Last successful timestep (number)
-      call MPI_FILE_READ(fh, tmp_te, 1, MPI_REAL, status, ierr)                 ! Final time
-      call MPI_FILE_READ(fh, tmp_nu, 1, MPI_REAL, status, ierr)                 ! Viscousity
-      call MPI_FILE_READ(fh, tmp_h, 1, MPI_REAL, status, ierr)                  ! Original particle distance
-      call MPI_FILE_READ(fh, tmp_m_h, 1, MPI_REAL, status, ierr)                ! Remeshing distance
-      call MPI_FILE_READ(fh, tmp_rem_freq, 1, MPI_INTEGER, status, ierr)        ! Remeshing frequence
-      call MPI_FILE_READ(fh, tmp_thresh, 1, MPI_KIND_PHYSICS, status, ierr)     ! threshold for pop. control
+      call MPI_FILE_READ(fh, n, 1, MPI_KIND_PARTICLE, status, ierr)           ! # particles
+      call MPI_FILE_READ(fh, tmp_dt, 1, MPI_REAL, status, ierr)               ! timestep
+      call MPI_FILE_READ(fh, tmp_ts, 1, MPI_REAL, status, ierr)               ! Starting time
+      call MPI_FILE_READ(fh, tmp_i, 1, MPI_INTEGER, status, ierr)             ! Last successful timestep (number)
+      call MPI_FILE_READ(fh, tmp_n_out, 1, MPI_INTEGER, status, ierr)         ! Last successful time output (number)
+      call MPI_FILE_READ(fh, tmp_te, 1, MPI_REAL, status, ierr)               ! Final time
+      call MPI_FILE_READ(fh, tmp_nu, 1, MPI_REAL, status, ierr)               ! Viscousity
+      call MPI_FILE_READ(fh, tmp_h, 1, MPI_REAL, status, ierr)                ! Original particle distance
+      call MPI_FILE_READ(fh, tmp_m_h, 1, MPI_REAL, status, ierr)              ! Remeshing distance
+      call MPI_FILE_READ(fh, tmp_rem_freq, 1, MPI_INTEGER, status, ierr)      ! Remeshing frequence
+      call MPI_FILE_READ(fh, tmp_thresh, 1, MPI_KIND_PHYSICS, status, ierr)   ! threshold for pop. control
       call MPI_FILE_CLOSE(fh, ierr)
 
       dt = tmp_dt
@@ -508,6 +509,7 @@ contains
       h = tmp_h
       m_h = tmp_m_h
       itime = tmp_i
+      n_out = tmp_n_out
       rem_freq = tmp_rem_freq
       thresh = tmp_thresh
 
