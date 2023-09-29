@@ -70,8 +70,9 @@ module physvars
 
    ! I/O stuff
    integer :: ifile_cpu            ! O/P stream
-   integer :: dump_time, cp_time   ! When to dump, when to do a checkpoint (read-in)
-   integer :: input_itime          ! Which step should we read in?
+   integer :: dump_time, cp_time   ! How many outputs in the simulations; when to do a checkpoint (read-in)
+   real    :: t_out, dt_out        ! output time and output timestep
+   integer :: input_itime, n_out   ! Which step should we read in? Number of printed time instants
    character(50) :: mpifile        ! MPI-IO-file
 
    ! `Clone` the main datatype t_particle
@@ -173,8 +174,10 @@ contains
       te           = 0.                                                         !&
       dt           = 0.01                                                       !&
 
-      dump_time    = 0                                                          !&
+      dump_time    = 1                                                          !&
       cp_time      = 0                                                          !&
+       t_out       = 0.                                                         !&
+      dt_out       = 0.                                                         !&
 
       ! Check total vorticity
       vort_check   = .true.                                                     !&
@@ -191,8 +194,8 @@ contains
          if (my_rank .eq. 0) write (*, *) "##### using default parameter #####"
       end if
 
-      ! New parameters DVH: 0.336 is 0.021 (from DVH) * 16 --> Rd = 4 Dr and fr = 0.021 * Re * Rd^2/L^2 * L/(U Dta)
-      ! Dtd = fr * Dta
+      dt_out = (te - ts)/dfloat(max(dump_time,1))
+
       if (Delta_r .le. 0.) Delta_r = Lref / float(nv_on_Lref)
 
       m_h = Delta_r
@@ -235,6 +238,12 @@ contains
       if(my_rank.eq.0) write(*,*) 'Modified evaluation of Dt avv', Delta_tavv
 
       dt = Delta_tavv
+      if (dt >= dt_out) then
+         if(my_rank.eq.0) write(*,*) 'Time step is larger than print time!!!'
+         if(my_rank.eq.0) write(*,*) 'dt', dt,'>= dt_out',dt_out
+         if(my_rank.eq.0) write(*,*) 'Either decrease the Courant number or decrease dump_time!'
+         stop
+      endif
 
       kernel_c = 4.d0 * nu * Delta_tdiff
 

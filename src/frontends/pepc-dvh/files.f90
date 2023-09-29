@@ -89,10 +89,13 @@ contains
       call timer_resume(t_io)
       call timer_start(t_dump)
 
-      if (dump_time .ne. 0) then
-         if (mod(i, dump_time) .eq. 0) then
 
-            call write_particles_to_vtk(i, simtime)
+      if (dump_time .ne. 0) then
+         if (simtime.ge.t_out) then
+
+            call write_particles_to_vtk(n_out, simtime)
+            n_out = n_out + 1
+            t_out = n_out * dt_out
 
          end if
       end if
@@ -140,6 +143,7 @@ contains
                call MPI_FILE_WRITE(fh, dt, 1, MPI_REAL, status, ierr)             ! timestep
                call MPI_FILE_WRITE(fh, ts, 1, MPI_REAL, status, ierr)             ! Starting time
                call MPI_FILE_WRITE(fh, i, 1, MPI_INTEGER, status, ierr)           ! Last successful timestep (number)
+               call MPI_FILE_WRITE(fh, n_out, 1, MPI_INTEGER, status, ierr)       ! Last successful time output (number)
                call MPI_FILE_WRITE(fh, te, 1, MPI_REAL, status, ierr)             ! Final time
                call MPI_FILE_WRITE(fh, nu, 1, MPI_REAL, status, ierr)             ! Viscousity
                call MPI_FILE_WRITE(fh, h, 1, MPI_REAL, status, ierr)              ! Original particle distance

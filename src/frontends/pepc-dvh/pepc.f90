@@ -70,6 +70,8 @@ program pepcv
 
    call pepc_prepare(3_kind_dim)
 
+   t_out = ts + n_out * dt_out
+
    ! Loop over all timesteps
    do while (itime .lt. nt)
 

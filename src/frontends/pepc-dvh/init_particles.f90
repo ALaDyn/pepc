@@ -757,10 +757,12 @@ contains
 
       ! initial dump if we did not read in via MPI
       if (ispecial .ne. 99) then
+         n_out = 0
          call kick_out_particles()
          call reset_labels() ! works on vortex_particles
          call dump(0, ts)
          vortex_particles(1:np)%work = 1.
+         n_out = 1
       end if
 
    end subroutine special_start
