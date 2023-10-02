@@ -689,15 +689,16 @@ contains
             np = ind
 
             if(norm2(torus_offset).gt.0.d0) then
-              do i = 1, np
-                vortex_particles(i+np)%x             = vortex_particles(i)%x + torus_offset
-                vortex_particles(i+np)%data%alpha(1) =-vortex_particles(i)%data%alpha(1)
-                vortex_particles(i+np)%data%alpha(2) =-vortex_particles(i)%data%alpha(2)
-                vortex_particles(i+np)%data%alpha(3) = vortex_particles(i)%data%alpha(3)
-              end do
+               do i = 1, np
+                  vortex_particles(i+np)%x             = vortex_particles(i)%x + torus_offset
+                  vortex_particles(i+np)%data%alpha(1) =-vortex_particles(i)%data%alpha(1)
+                  vortex_particles(i+np)%data%alpha(2) =-vortex_particles(i)%data%alpha(2)
+                  vortex_particles(i+np)%data%alpha(3) = vortex_particles(i)%data%alpha(3)
+               end do
+
+               np = 2 * np
             end if
 
-            np = 2 * np
 
          end block
 
