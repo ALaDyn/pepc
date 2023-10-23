@@ -33,19 +33,97 @@ contains
    subroutine openfiles
       use physvars
       use module_utils
+      use mpi
+      integer :: linenum_e, linenum_d, ierr, ierr1, ierr2
+      Character*2 :: restart_num
+      Character*99 :: dum_en, dum_di
+
+      ierr1 = 0
+      ierr2 = 0
 
       if (my_rank .eq. 0) then
+
          !  master diagnostics output
          open (newunit=run_unit, file='run.out')
          open (newunit=dom_unit, file='domains.dat')
-         open (newunit=diag_unit, file='linear_diag.dat', STATUS='UNKNOWN')
-         open (newunit=ener_unit, file='ener_enstro.dat', STATUS='UNKNOWN')
+
+         if(file_exists('ener_enstro.dat')) then
+
+            call system("ls *enstro.dat > TMP_list")
+            call read_line_num('TMP_list',dum_en,linenum_e)
+
+            call system("ls *linear_diag.dat > TMP_list")
+            call read_line_num('TMP_list',dum_di,linenum_d)
+
+            call system("rm -fr TMP_list")
+
+            if(linenum_e.eq.linenum_d) then
+              write(restart_num,'(I2.2)') linenum_e
+            else
+              call graceful_abort('Number of energy files differs from number of diagnostics files'  // achar(13) // achar(10) //  &
+                                  'Check files ener_enstro.dat and linear_diag.dat in the working directory and restart')
+            end if
+
+            write(*,'(A)') 'Last energy diagnostic file found: ',dum_en
+            write(*,'(A)') 'Attempting to create new file: R'//trim(restart_num)//'_ener_enstro.dat'
+            open (newunit=ener_unit, file='R'//trim(restart_num)//'_ener_enstro.dat', STATUS='NEW',IOSTAT=ierr1)
+            write(*,'(A)')
+            write(*,'(A)') 'Last linear diagnostic file found: ',dum_di
+            write(*,'(A)') 'Attempting to create new file: R'//trim(restart_num)//'_linear_diag.dat'
+            open (newunit=diag_unit, file='R'//trim(restart_num)//'_linear_diag.dat', STATUS='NEW',IOSTAT=ierr2)
+         else
+            open (newunit=ener_unit, file='ener_enstro.dat', STATUS='NEW')
+            open (newunit=diag_unit, file='linear_diag.dat', STATUS='NEW')
+         end if
+
+      end if
+
+      if(ierr1.ne.0) then
+        call graceful_abort('Error creating file R'//trim(restart_num)//'_ener_enstro.dat'  // achar(13) // achar(10) //  &
+                            'File already exists. Change name or delete it.')
+      else if(ierr2.ne.0) then
+        call graceful_abort('Error creating file R'//trim(restart_num)//'_linear_diag.dat'  // achar(13) // achar(10) //  &
+                            'File already exists. Change name or delete it.')
       end if
 
       ! for MPI I/O
       call create_directory("part_data")
 
    end subroutine openfiles
+
+
+   subroutine graceful_abort(message)
+      use mpi
+      character(*),   intent(in)  :: message
+      integer                     :: ierr
+
+      write(*,'(A)') '#############################################################'
+      write(*,'(A)')
+      write(*,'(A)') message
+      write(*,'(A)')
+      write(*,'(A)') '#############################################################'
+
+      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+   end subroutine graceful_abort
+
+
+   subroutine read_line_num(file_name,dum,linenum)
+      integer,      intent(out) :: linenum
+      character(*), intent(in)  :: file_name
+      character*99, intent(out) :: dum
+
+      linenum = 0
+
+      Open(1,file=file_name)
+10      continue
+          read(1,*,ERR=20,END=20) dum
+          linenum = linenum + 1
+          goto 10
+20    continue
+      close(1)
+
+   end subroutine read_line_num
+
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
