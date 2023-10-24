@@ -28,7 +28,7 @@
 !  ==============================================================
 
 #ifndef TEST_INTERACTION
-program pepcv
+program pepcdvh
 
    use physvars
    use time_integration
@@ -48,6 +48,11 @@ program pepcv
    integer(kind_particle) :: i
    real :: trun                     ! total run time including restarts and offset
    integer :: itime, stage, t_flag
+   logical :: signal_caught
+
+   ! Register signal handler for signal SIGUSR1 (10)
+   call signal (10, handle_wallclock)
+   signal_caught = .false.
 
    ! Allocate array space for tree
    call pepc_initialize("pepc-dvh", my_rank, n_cpu, .true.)
@@ -72,8 +77,8 @@ program pepcv
 
    t_out = ts + n_out * dt_out
 
-   ! Loop over all timesteps
-   do while (itime .lt. nt)
+   ! Loop over all timesteps unless we caught a signal
+   do while (itime .lt. nt .and. .not. signal_caught)
 
       call timer_reset(t_io)
 
@@ -174,5 +179,21 @@ program pepcv
    ! cleanup of lpepc static data
    call pepc_finalize()
 
-end program pepcv
+contains
+   subroutine handle_wallclock()
+      ! Exit gracefully in case SLURM signals the wallclock limit is close.
+      ! To achieve this, we toggle a flag when we see signal 10 (SIGUSR1).
+
+      if (my_rank .eq. 0) then
+         write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+         write(*,*) '!!! CAUGHT SIGNAL FROM SLURM, WILL BE STOPPING... !!!'
+         write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+
+      end if
+
+      signal_caught = .true.
+      return
+
+      end subroutine handle_wallclock
+end program pepcdvh
 #endif
