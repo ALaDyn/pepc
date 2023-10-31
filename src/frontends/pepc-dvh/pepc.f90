@@ -51,7 +51,7 @@ program pepcdvh
    logical :: signal_caught
 
    ! Register signal handler for signal SIGUSR1 (10)
-   call signal (10, handle_wallclock)
+   call signal(10, handle_wallclock)
    signal_caught = .false.
 
    ! Allocate array space for tree
@@ -185,15 +185,15 @@ contains
       ! To achieve this, we toggle a flag when we see signal 10 (SIGUSR1).
 
       if (my_rank .eq. 0) then
-         write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-         write(*,*) '!!! CAUGHT SIGNAL FROM SLURM, WILL BE STOPPING... !!!'
-         write(*,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+         write (*, *) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+         write (*, *) '!!! CAUGHT SIGNAL FROM SLURM, WILL BE STOPPING... !!!'
+         write (*, *) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
 
       end if
 
       signal_caught = .true.
       return
 
-      end subroutine handle_wallclock
+   end subroutine handle_wallclock
 end program pepcdvh
 #endif

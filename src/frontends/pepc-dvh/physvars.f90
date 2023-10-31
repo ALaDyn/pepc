@@ -176,7 +176,7 @@ contains
 
       dump_time    = 1                                                          !&
       cp_time      = 0                                                          !&
-       t_out       = 0.                                                         !&
+      t_out       = 0.                                                          !&
       dt_out       = 0.                                                         !&
 
       ! Check total vorticity
@@ -194,9 +194,9 @@ contains
          if (my_rank .eq. 0) write (*, *) "##### using default parameter #####"
       end if
 
-      dt_out = (te - ts)/dfloat(max(dump_time,1))
+      dt_out = (te - ts) / real(max(dump_time, 1), kind(dt_out))
 
-      if (Delta_r .le. 0.) Delta_r = Lref / float(nv_on_Lref)
+      if (Delta_r .le. 0.) Delta_r = Lref / real(nv_on_Lref, kind(Delta_r))
 
       m_h = Delta_r
 
@@ -214,18 +214,18 @@ contains
       alpha = 1.d0
 
 100   continue
-      diff_error = erfc(1.d0/sqrt(alpha)) + 2.d0 * dexp(-1.d0/alpha)/dsqrt(alpha*pi)
+      diff_error = erfc(1.d0 / sqrt(alpha)) + 2.d0 * exp(-1.d0 / alpha) / sqrt(alpha * pi)
 
-      if(diff_error.gt.eps_diff) then
-        alpha = 0.95d0 * alpha
-        goto 100
+      if (diff_error .gt. eps_diff) then
+         alpha = 0.95d0 * alpha
+         goto 100
       end if
-      if(my_rank.eq.0) write(*,*) 'Diffusion error (csi) ', diff_error, alpha, alpha * Rd*Rd/4.d0/nu
+      if (my_rank .eq. 0) write (*, *) 'Diffusion error (csi) ', diff_error, alpha, alpha * Rd * Rd / 4.d0 / nu
 
       Delta_tdiff = alpha * Rd * Rd / 4.d0 / nu
 
       Delta_tavv = Co * Delta_r / Uref              ! Cfr. formula: 16 CMAME Rossi 2022
-      if(my_rank.eq.0) write(*,*) 'first evaluation of Dt avv', Delta_tavv
+      if (my_rank .eq. 0) write (*, *) 'first evaluation of Dt avv', Delta_tavv
 
       rem_freq = int(Delta_tdiff / Delta_tavv) + 1  ! Cfr. formula: 17 CMAME Rossi 2022
 
@@ -234,16 +234,16 @@ contains
          if (my_rank .eq. 0) write (*, *) 'Dt_avv/Dt_diff, Dt_diff', Delta_tavv / Delta_tdiff, Delta_tdiff
       end if
 
-      Delta_tavv = Delta_tdiff / float(rem_freq)   ! Recalculation for convenience: not needed without multi-resolution
-      if(my_rank.eq.0) write(*,*) 'Modified evaluation of Dt avv', Delta_tavv
+      Delta_tavv = Delta_tdiff / real(rem_freq, kind(Delta_tavv))   ! Recalculation for convenience: not needed without multi-resolution
+      if (my_rank .eq. 0) write (*, *) 'Modified evaluation of Dt avv', Delta_tavv
 
       dt = Delta_tavv
-      if (dt >= dt_out) then
-         if(my_rank.eq.0) write(*,*) 'Time step is larger than print time!!!'
-         if(my_rank.eq.0) write(*,*) 'dt', dt,'>= dt_out',dt_out
-         if(my_rank.eq.0) write(*,*) 'Either decrease the Courant number or decrease dump_time!'
+      if (dt .ge. dt_out) then
+         if (my_rank .eq. 0) write (*, *) 'Time step is larger than print time!!!'
+         if (my_rank .eq. 0) write (*, *) 'dt', dt, '>= dt_out', dt_out
+         if (my_rank .eq. 0) write (*, *) 'Either decrease the Courant number or decrease dump_time!'
          stop
-      endif
+      end if
 
       kernel_c = 4.d0 * nu * Delta_tdiff
 
@@ -303,15 +303,17 @@ contains
          block
             integer(kind_particle) :: ngrid(3)
 
-            ngrid(1)= NINT((r_torus + rmax)/m_h) + 1
-            ngrid(2)= NINT((r_torus + rmax)/m_h) + 1
-            ngrid(3)= NINT(           rmax /m_h) + 1
+            !&<
+            ngrid(1) = nint((r_torus + rmax) / m_h) + 1
+            ngrid(2) = nint((r_torus + rmax) / m_h) + 1
+            ngrid(3) = nint(           rmax  / m_h) + 1
+            !&>
 
-            n = (2*ngrid(1) +1) * (2*ngrid(2) +1) * (2*ngrid(3) +1)
+            n = (2 * ngrid(1) + 1) * (2 * ngrid(2) + 1) * (2 * ngrid(3) + 1)
          end block
 
          np = ceiling(1.0 * n / n_cpu) + 1
-         if(norm2(torus_offset).gt.0.d0) np = 2 * np
+         if (norm2(torus_offset) .gt. 0.d0) np = 2 * np
 
       case (98)
 
@@ -366,7 +368,7 @@ contains
       type(t_particle_short)      :: dummy_particle
 
       ! first register the interaction-specific short MPI type
-      blocklengths(1:nprops_particle_data_short) = [3,1]
+      blocklengths(1:nprops_particle_data_short) = [3, 1]
       types(1:nprops_particle_data_short) = [MPI_REAL8, MPI_REAL8]
       call MPI_GET_ADDRESS(dummy_particle_data,       address(0), ierr )        !&
       call MPI_GET_ADDRESS(dummy_particle_data%alpha, address(1), ierr )        !&
@@ -410,7 +412,7 @@ contains
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
-               short_particle%data%vol    &                                     !&
+               short_particle%data%vol &                                     !&
             ), &                                                                !&
             t_particle_results( &                                               !&
                [0._kind_physics, 0._kind_physics, 0._kind_physics], &           !&
@@ -482,7 +484,7 @@ contains
       real(kind_physics) :: tmp_thresh
 
       write (mpifile, '(a,i6.6,a)') "part_data/particle_", input_itime, ".mpi"
-      call MPI_FILE_OPEN(MPI_COMM_WORLD, mpifile, IOR(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, ierr)
+      call MPI_FILE_OPEN(MPI_COMM_WORLD, mpifile, ior(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, ierr)
       if (ierr .ne. MPI_SUCCESS) then
          write (*, *) 'something is wrong here: file open failed', my_rank, ierr, mpifile
          call MPI_ABORT(MPI_COMM_WORLD, err, ierr)
@@ -529,7 +531,7 @@ contains
       integer, intent(in) :: istream, ibegin
       character :: cdate * 8, ctime * 10, czone * 5
 
-      call DATE_AND_TIME(cdate, ctime, czone)
+      call date_and_time(cdate, ctime, czone)
 
       if (ibegin .eq. 1) then
          write (istream, '(//a20,a12/a20,a12/a20,a12//)') 'PEPC run on ' &

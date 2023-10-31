@@ -50,7 +50,7 @@ readme:
 all:
 	-$(MAKE) $(MFLAGS) -k $(ALLFRONTENDS)
 	@echo ""
-	-$(MAKE) $(MFLAGS) allresult
+	$(MAKE) $(MFLAGS) allresult
 
 allresult:
 	@printf "======== $(UL)build all results$(NC)\n"

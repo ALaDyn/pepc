@@ -89,7 +89,7 @@ contains
                          nint(local_extent_min(2)/m_h):nint(local_extent_max(2)/m_h), & !&
                          nint(local_extent_min(3)/m_h):nint(local_extent_max(3)/m_h) )) !&
 
-      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of grid_mask', real(STORAGE_SIZE(grid_mask)) * size(grid_mask) / (8 * 1024 * 1024)
+      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of grid_mask', real(storage_size(grid_mask)) * size(grid_mask) / (8 * 1024 * 1024)
       grid_mask = .false.
 
       omp_num_threads = 1
@@ -134,7 +134,7 @@ contains
       allocate(index_map(lbound(grid_mask, 1):ubound(grid_mask, 1), & !&
                          lbound(grid_mask, 2):ubound(grid_mask, 2), & !&
                          lbound(grid_mask, 3):ubound(grid_mask, 3) )) !&
-      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of index_map', real(STORAGE_SIZE(index_map)) * size(index_map) / (8 * 1024 * 1024)
+      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of index_map', real(storage_size(index_map)) * size(index_map) / (8 * 1024 * 1024)
 
       index_map = 0
 
@@ -152,11 +152,11 @@ contains
       call MPI_ALLREDUCE(n_remesh_points, n_max_remesh_points, 1, MPI_KIND_PARTICLE, MPI_MAX, MPI_COMM_WORLD, ierr)
       n_max_remesh_points = ceiling(1.05 * n_max_remesh_points)
       allocate (m_part(n_max_remesh_points))
-      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of m_part', real(STORAGE_SIZE(m_part)) * size(m_part) / (8 * 1024 * 1024)
+      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of m_part', real(storage_size(m_part)) * size(m_part) / (8 * 1024 * 1024)
       m_part(:)%data = t_particle_data_short([0.d0, 0.d0, 0.d0], 0.d0)
       m_part(:)%work = 0.d0
       allocate (m_part_reduction(1:4, 1:n_max_remesh_points))
-      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of m_part_reduction', real(STORAGE_SIZE(m_part_reduction)) * size(m_part_reduction) / (8 * 1024 * 1024)
+      if (my_rank .eq. 0) write (*, *) 'Storage size (Mbytes) of m_part_reduction', real(storage_size(m_part_reduction)) * size(m_part_reduction) / (8 * 1024 * 1024)
       m_part_reduction = 0.d0
 
 !$OMP PARALLEL DEFAULT(NONE) &
@@ -234,7 +234,7 @@ contains
       m_part(:)%data%alpha(3) = m_part_reduction(3, :)      !&
       m_part(:)%work          = m_part_reduction(4, :)      !&
 #endif
-      m_part(:)%data%vol      = m_h**3
+      m_part(:)%data%vol      = m_h**3                      !&
 
       deallocate (grid_mask, index_map, vortex_particles, m_part_reduction)
 
@@ -567,7 +567,7 @@ contains
       ! kick out particles with vorticity magnitude below threshold
       k = 0
       do i = 1, np
-         omega = norm2(vortex_particles(i)%data%alpha)  / vortex_particles(i)%data%vol
+         omega = norm2(vortex_particles(i)%data%alpha) / vortex_particles(i)%data%vol
          if (omega .gt. thresh) then
             k = k + 1
             vortex_particles(k) = vortex_particles(i)

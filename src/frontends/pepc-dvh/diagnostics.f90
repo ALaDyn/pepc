@@ -62,12 +62,12 @@ contains
             r1 = sqrt(dot_product(vortex_particles(i)%x, vortex_particles(i)%x))
             if (r1 .gt. 0) then
                if (r1 .lt. 1) then
-                  ux_ori(i) = -1.0 / (8.0 * r1) * (1.0 - (1.0 - r1)**4) * vortex_particles(i)%x(2)
-                  uy_ori(i) = 1.0 / (8.0 * r1) * (1.0 - (1.0 - r1)**4) * vortex_particles(i)%x(1)
+                  ux_ori(i) = -1 / (8 * r1) * (1 - (1 - r1)**4) * vortex_particles(i)%x(2)
+                  uy_ori(i) = 1 / (8 * r1) * (1 - (1 - r1)**4) * vortex_particles(i)%x(1)
                   uz_ori(i) = 0.
                else
-                  ux_ori(i) = -1.0 / (8.0 * r1) * vortex_particles(i)%x(2)
-                  uy_ori(i) = 1.0 / (8.0 * r1) * vortex_particles(i)%x(1)
+                  ux_ori(i) = -1 / (8 * r1) * vortex_particles(i)%x(2)
+                  uy_ori(i) = 1 / (8 * r1) * vortex_particles(i)%x(1)
                   uz_ori(i) = 0.
                end if
                u_err_part_max = max(u_err_part_max, sqrt((ux_ori(i) - vortex_particles(i)%results%u(1))**2 + (uy_ori(i) - vortex_particles(i)%results%u(2))**2))
@@ -80,10 +80,8 @@ contains
          if (ispecial .eq. 11) then
             r1 = sqrt(dot_product(vortex_particles(i)%x, vortex_particles(i)%x))
             if (r1 .gt. 0) then
-               ux_ori(i) = -(0.1D01) / ((0.24D02) * (r1**2)) * (0.1D01 - &
-                                                                exp(-0.12D02 * (r1**2))) * vortex_particles(i)%x(2)
-               uy_ori(i) = (0.1D01) / ((0.24D02) * (r1**2)) * (0.1D01 - &
-                                                               exp(-0.12D02 * (r1**2))) * vortex_particles(i)%x(1)
+               ux_ori(i) = -1 / (24 * (r1**2)) * (1 - exp(-12 * (r1**2))) * vortex_particles(i)%x(2)
+               uy_ori(i) = 1 / (24 * (r1**2)) * (1 - exp(-12 * (r1**2))) * vortex_particles(i)%x(1)
                uz_ori(i) = 0.
                u_err_part_max = max(u_err_part_max, sqrt((ux_ori(i) - vortex_particles(i)%results%u(1))**2 + (uy_ori(i) - vortex_particles(i)%results%u(2))**2))
                u_max_part = max(u_max_part, sqrt(ux_ori(i)**2 + uy_ori(i)**2))
@@ -97,7 +95,7 @@ contains
             r1 = sqrt(dot_product(vortex_particles(i)%x, vortex_particles(i)%x))
             wx_ori(i) = 0.
             wy_ori(i) = 0.
-            wz_ori(i) = 0.1D01 / (0.4D01 * pi * nu * itime) * exp(-r1**2 / (0.4D01 * nu * itime))
+            wz_ori(i) = 1 / (4 * pi * nu * itime) * exp(-r1**2 / (4 * nu * itime))
             !vortex_particles(i)%az = wz_ori(i)
             !wz_ori(i) = 0.1D01/(0.4D01*pi*nu*(itime-(vortex_particles(i)%sigma**2)/(2*nu)))*exp(-r1**2/(0.4D01*nu*(itime-(vortex_particles(i)%sigma**2)/(2*nu))))
             w_err_part_max = max(w_err_part_max, sqrt((wx_ori(i) - vortex_particles(i)%data%alpha(1))**2 + (wy_ori(i) - vortex_particles(i)%data%alpha(2))**2 + (wz_ori(i) - vortex_particles(i)%data%alpha(3))**2))
@@ -285,15 +283,15 @@ contains
 
       energy_local = 0.
       do i = 1, np
-         energy_local = energy_local + 0.5 * DOT_PRODUCT(vortex_particles(i)%results%psi, vortex_particles(i)%data%alpha)
+         energy_local = energy_local + 0.5 * dot_product(vortex_particles(i)%results%psi, vortex_particles(i)%data%alpha)
       end do
 
       call MPI_ALLREDUCE(energy_local, energy_tot, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)
 
       enstrophy_local = 0.
       do i = 1, np
-         enstrophy_local = enstrophy_local + (DOT_PRODUCT(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)) &
-                                             / vortex_particles(i)%data%vol
+         enstrophy_local = enstrophy_local + (dot_product(vortex_particles(i)%data%alpha, vortex_particles(i)%data%alpha)) &
+                                             / vortex_particles(i)%data%vol     !&
       end do
 
       call MPI_ALLREDUCE(enstrophy_local, enstrophy_tot, 1, MPI_REAL8, MPI_SUM, MPI_COMM_WORLD, ierr)

@@ -47,30 +47,30 @@ contains
          open (newunit=run_unit, file='run.out')
          open (newunit=dom_unit, file='domains.dat')
 
-         if(file_exists('ener_enstro.dat')) then
+         if (file_exists('ener_enstro.dat')) then
 
             call system("ls *enstro.dat > TMP_list")
-            call read_line_num('TMP_list',dum_en,linenum_e)
+            call read_line_num('TMP_list', dum_en, linenum_e)
 
             call system("ls *linear_diag.dat > TMP_list")
-            call read_line_num('TMP_list',dum_di,linenum_d)
+            call read_line_num('TMP_list', dum_di, linenum_d)
 
             call system("rm -fr TMP_list")
 
-            if(linenum_e.eq.linenum_d) then
-              write(restart_num,'(I2.2)') linenum_e
+            if (linenum_e .eq. linenum_d) then
+               write (restart_num, '(I2.2)') linenum_e
             else
-              call graceful_abort('Number of energy files differs from number of diagnostics files'  // achar(13) // achar(10) //  &
-                                  'Check files ener_enstro.dat and linear_diag.dat in the working directory and restart')
+               call graceful_abort('Number of energy files differs from number of diagnostics files'//achar(13)//achar(10)// &
+                                   'Check files ener_enstro.dat and linear_diag.dat in the working directory and restart')
             end if
 
-            write(*,'(A)') 'Last energy diagnostic file found: ',dum_en
-            write(*,'(A)') 'Attempting to create new file: R'//trim(restart_num)//'_ener_enstro.dat'
-            open (newunit=ener_unit, file='R'//trim(restart_num)//'_ener_enstro.dat', STATUS='NEW',IOSTAT=ierr1)
-            write(*,'(A)')
-            write(*,'(A)') 'Last linear diagnostic file found: ',dum_di
-            write(*,'(A)') 'Attempting to create new file: R'//trim(restart_num)//'_linear_diag.dat'
-            open (newunit=diag_unit, file='R'//trim(restart_num)//'_linear_diag.dat', STATUS='NEW',IOSTAT=ierr2)
+            write (*, '(A)') 'Last energy diagnostic file found: ', dum_en
+            write (*, '(A)') 'Attempting to create new file: R'//trim(restart_num)//'_ener_enstro.dat'
+            open (newunit=ener_unit, file='R'//trim(restart_num)//'_ener_enstro.dat', STATUS='NEW', IOSTAT=ierr1)
+            write (*, '(A)')
+            write (*, '(A)') 'Last linear diagnostic file found: ', dum_di
+            write (*, '(A)') 'Attempting to create new file: R'//trim(restart_num)//'_linear_diag.dat'
+            open (newunit=diag_unit, file='R'//trim(restart_num)//'_linear_diag.dat', STATUS='NEW', IOSTAT=ierr2)
          else
             open (newunit=ener_unit, file='ener_enstro.dat', STATUS='NEW')
             open (newunit=diag_unit, file='linear_diag.dat', STATUS='NEW')
@@ -78,12 +78,12 @@ contains
 
       end if
 
-      if(ierr1.ne.0) then
-        call graceful_abort('Error creating file R'//trim(restart_num)//'_ener_enstro.dat'  // achar(13) // achar(10) //  &
-                            'File already exists. Change name or delete it.')
-      else if(ierr2.ne.0) then
-        call graceful_abort('Error creating file R'//trim(restart_num)//'_linear_diag.dat'  // achar(13) // achar(10) //  &
-                            'File already exists. Change name or delete it.')
+      if (ierr1 .ne. 0) then
+         call graceful_abort('Error creating file R'//trim(restart_num)//'_ener_enstro.dat'//achar(13)//achar(10)// &
+                             'File already exists. Change name or delete it.')
+      else if (ierr2 .ne. 0) then
+         call graceful_abort('Error creating file R'//trim(restart_num)//'_linear_diag.dat'//achar(13)//achar(10)// &
+                             'File already exists. Change name or delete it.')
       end if
 
       ! for MPI I/O
@@ -91,39 +91,36 @@ contains
 
    end subroutine openfiles
 
-
    subroutine graceful_abort(message)
       use mpi
-      character(*),   intent(in)  :: message
+      character(*), intent(in)  :: message
       integer                     :: ierr
 
-      write(*,'(A)') '#############################################################'
-      write(*,'(A)')
-      write(*,'(A)') message
-      write(*,'(A)')
-      write(*,'(A)') '#############################################################'
+      write (*, '(A)') '#############################################################'
+      write (*, '(A)')
+      write (*, '(A)') message
+      write (*, '(A)')
+      write (*, '(A)') '#############################################################'
 
       call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
    end subroutine graceful_abort
 
-
-   subroutine read_line_num(file_name,dum,linenum)
-      integer,      intent(out) :: linenum
+   subroutine read_line_num(file_name, dum, linenum)
+      integer, intent(out) :: linenum
       character(*), intent(in)  :: file_name
       character*99, intent(out) :: dum
 
       linenum = 0
 
-      Open(1,file=file_name)
-10      continue
-          read(1,*,ERR=20,END=20) dum
-          linenum = linenum + 1
-          goto 10
+      Open (1, file=file_name)
+10    continue
+      read (1, *, err=20, end=20) dum
+      linenum = linenum + 1
+      goto 10
 20    continue
-      close(1)
+      close (1)
 
    end subroutine read_line_num
-
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
@@ -167,9 +164,8 @@ contains
       call timer_resume(t_io)
       call timer_start(t_dump)
 
-
       if (dump_time .ne. 0) then
-         if (simtime.ge.t_out) then
+         if (simtime .ge. t_out) then
 
             call write_particles_to_vtk(n_out, simtime)
             n_out = n_out + 1
@@ -329,9 +325,9 @@ contains
          vtk_step = VTK_STEP_NORMAL
       end if
 
-      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1)  / vortex_particles(1:np)%data%vol
-      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2)  / vortex_particles(1:np)%data%vol
-      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3)  / vortex_particles(1:np)%data%vol
+      vorticity_x(1:np) = vortex_particles(1:np)%data%alpha(1) / vortex_particles(1:np)%data%vol
+      vorticity_y(1:np) = vortex_particles(1:np)%data%alpha(2) / vortex_particles(1:np)%data%vol
+      vorticity_z(1:np) = vortex_particles(1:np)%data%alpha(3) / vortex_particles(1:np)%data%vol
 
       call vtk%create_parallel("particles", step, my_rank, n_cpu, 0.1D01 * time, vtk_step)
       call vtk%write_headers(np, 0_kind_particle)

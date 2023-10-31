@@ -34,19 +34,19 @@ contains
 
       use physvars
       integer, intent(in)    :: stage   ! In which RK stage are we?
-      real,    intent(inout) :: trun
+      real, intent(inout)    :: trun    !&
 
-      if (rk_stages == 2) then
+      if (rk_stages .eq. 2) then
 
          trun = trun + dt / rk_stages
          call push_rk2(stage)
 
-      elseif (rk_stages == 4) then
+      elseif (rk_stages .eq. 4) then
 
-         if (stage == 4) trun = trun + dt
+         if (stage .eq. 4) trun = trun + dt
          call push_rk4(stage)
 
-      endif
+      end if
 
    end subroutine update_rk
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -97,13 +97,13 @@ contains
       use physvars
       integer, intent(in) :: stage   ! In which RK stage are we?
       integer(kind_particle) :: i
-      real(kind_physics), parameter :: rk_d(4) = [1./6.,1./3.,1./3.,1./6.]
-      real(kind_physics), parameter :: rk_s(3) = [0.5,0.5,1.0]
+      real(kind_physics), parameter :: rk_d(4) = [1./6., 1./3., 1./3., 1./6.]
+      real(kind_physics), parameter :: rk_s(3) = [0.5, 0.5, 1.0]
 
       do i = 1, np
 
          !&<
-         if (stage == 1) then
+         if (stage .eq. 1) then
             ! store initial status and initialize derivatives
             vortex_particles(i)%data%x_rk     = vortex_particles(i)%x
             vortex_particles(i)%data%alpha_rk = vortex_particles(i)%data%alpha
@@ -116,7 +116,7 @@ contains
          vortex_particles(i)%data%af_rk = vortex_particles(i)%data%af_rk + rk_d(stage) * vortex_particles(i)%results%af
 
          ! update status
-         if (stage /= 4) then
+         if (stage .ne. 4) then
             vortex_particles(i)%x          = vortex_particles(i)%data%x_rk     + rk_s(stage) * dt * vortex_particles(i)%results%u
             vortex_particles(i)%data%alpha = vortex_particles(i)%data%alpha_rk + rk_s(stage) * dt * vortex_particles(i)%results%af
          else

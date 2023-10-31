@@ -161,7 +161,7 @@ contains
                   vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-                  vortex_particles(ind)%data%vol      = volp(i)
+                  vortex_particles(ind)%data%vol = volp(i)
                end if
             end do
          end do
@@ -260,7 +260,7 @@ contains
                   vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-                  vortex_particles(ind)%data%vol      = volp(i)
+                  vortex_particles(ind)%data%vol = volp(i)
                end if
             end do
          end do
@@ -352,7 +352,7 @@ contains
                   vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-                  vortex_particles(ind)%data%vol      = volp(i)
+                  vortex_particles(ind)%data%vol = volp(i)
                end if
             end do
          end do
@@ -518,7 +518,7 @@ contains
 
          do k = 1, nc
             part_2d = 2 * pi / (8 * k)
-            rc = float(1 + 12 * k**2) / float(6 * k) * rl
+            rc = real(1 + 12 * k**2, kind(rc)) / real(6 * k, kind(rc)) * rl
             rrmax = rl * (2 * k + 1)
             rrmin = rl * (2 * k - 1)
             do l = 1, 8 * k
@@ -534,7 +534,8 @@ contains
                rr2 = yp(j)
                rr = sqrt(rr1 * rr1 + rr2 * rr2)
 
-               volp(j) = (xi2 - xi1)*0.5d0 * ( rrmax**2 - rrmin**2 ) * 2.d0*pi * rr1/float(Nphi)
+               !volp(j) = (xi2 - xi1) * 0.5d0 * (rrmax**2 - rrmin**2) * 2.d0 * pi * rr1 / real(Nphi, kind(volp))
+               volp(j) = (xi2 - xi1) * (rrmax**2 - rrmin**2) * pi * rr1 / real(Nphi, kind(volp))
                wxp(j) = 0.
                wyp(j) = 0.
                stheta = rr1 / rr
@@ -550,10 +551,10 @@ contains
          wxp(ns) = 0.
          wyp(ns) = 0.
          wzp(ns) = kappa / pi * G / r_core / r_core
-         volp(ns) = pi*rl**2 * 2.d0*pi * r_torus/float(Nphi)
+         volp(ns) = pi * rl**2 * 2.d0 * pi * r_torus / real(Nphi, kind(volp))
          sumvol = sumvol + volp(ns)
 
-         if(my_rank.eq.0) write(*,*) 'Total discretized volume ',sumvol*float(Nphi),' - theoretical', 2.d0*pi*r_torus* pi*rmax*rmax
+         if (my_rank .eq. 0) write (*, *) 'Total discretized volume ', sumvol * real(Nphi), ' - theoretical', 2.d0 * pi * r_torus * pi * rmax * rmax
 
          j = 0
          ind0 = 0
@@ -616,7 +617,7 @@ contains
                   vortex_particles(ind)%data%alpha(1) = wxp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(2) = wyp(i) * volp(i)
                   vortex_particles(ind)%data%alpha(3) = wzp(i) * volp(i)
-                  vortex_particles(ind)%data%vol      = volp(i)
+                  vortex_particles(ind)%data%vol = volp(i)
                end if
             end do
          end do
@@ -629,79 +630,83 @@ contains
             real(kind_physics)     :: vecp(3), volp, wxp, wyp, wzp, unit_vec(3), mod_w, r_loc
             integer(kind_particle) :: ngrid(3)
 
-            ngrid(1)= NINT((r_torus + rmax)/m_h) + 1
-            ngrid(2)= NINT((r_torus + rmax)/m_h) + 1
-            ngrid(3)= NINT(           rmax /m_h) + 1
+            !&<
+            ngrid(1) = nint((r_torus + rmax) / m_h) + 1
+            ngrid(2) = nint((r_torus + rmax) / m_h) + 1
+            ngrid(3) = nint(           rmax  / m_h) + 1
+            !&>
 
             ind = 0
             ind0 = 0
             volp = m_h**3
-            do i=-ngrid(1),ngrid(1)
-               do j=-ngrid(2),ngrid(2)
-                  do k=-ngrid(3),ngrid(3)
+            do i = -ngrid(1), ngrid(1)
+               do j = -ngrid(2), ngrid(2)
+                  do k = -ngrid(3), ngrid(3)
 
-                     ind0 = ind0+1
-                     vecp(1) = i*m_h
-                     vecp(2) = j*m_h
-                     vecp(3) = k*m_h
-                     rr  = sqrt(dot_product(vecp,vecp))
+                     ind0 = ind0 + 1
+                     vecp(1) = i * m_h
+                     vecp(2) = j * m_h
+                     vecp(3) = k * m_h
+                     rr = sqrt(dot_product(vecp, vecp))
                      rr1 = sqrt(vecp(1)**2 + vecp(2)**2)
 
-                     if (rr > 0.d0) then
+                     if (rr .gt. 0.d0) then
                         stheta = rr1 / rr
                      else
                         stheta = 0.d0
-                     endif
+                     end if
 
-                     r_loc = sqrt((rr1-r_torus)**2+vecp(3)**2)
+                     r_loc = sqrt((rr1 - r_torus)**2 + vecp(3)**2)
 
-                     if (rr > (r_torus - rmax) .and. r_loc < rmax) then
-                        expo  = kappa * (r_torus * r_torus + rr * rr - 2.d0 * r_torus * rr * stheta)
+                     if (rr .gt. (r_torus - rmax) .and. r_loc .lt. rmax) then
+                        expo = kappa * (r_torus * r_torus + rr * rr - 2.d0 * r_torus * rr * stheta)
                         mod_w = kappa / pi * G / r_core / r_core * exp(-expo / r_core / r_core)
                      else
                         mod_w = 0.d0
-                     endif
-                     if (rr > 0.d0) then
-                        unit_vec = vecp/rr
+                     end if
+                     if (rr .gt. 0.d0) then
+                        unit_vec = vecp / rr
                      else
                         unit_vec = vecp
-                     endif
+                     end if
 
-                     wxp = -unit_vec(2)*mod_w
-                     wyp =  unit_vec(1)*mod_w
-                     wzp =  0.d0
+                     wxp = -unit_vec(2) * mod_w
+                     wyp = unit_vec(1) * mod_w
+                     wzp = 0.d0
                      if (mod(ind0 - 1, n_cpu) .eq. my_rank) then
                         ind = ind + 1
                         if (ind .gt. np) then
                            write (*, *) 'something is wrong here: to many particles in init of first ring', my_rank, ind, np, n
                            call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
                         end if
+                        !&<
                         vortex_particles(ind)%x             = vecp
                         vortex_particles(ind)%data%alpha(1) = wxp * volp
                         vortex_particles(ind)%data%alpha(2) = wyp * volp
                         vortex_particles(ind)%data%alpha(3) = wzp * volp
                         vortex_particles(ind)%data%vol      = volp
+                        !&>
                      end if
-                  enddo
-               enddo
-            enddo
+                  end do
+               end do
+            end do
 
             np = ind
 
-            if(norm2(torus_offset).gt.0.d0) then
+            if (norm2(torus_offset) .gt. 0.d0) then
                do i = 1, np
-                  vortex_particles(i+np)%x             = vortex_particles(i)%x + torus_offset
-                  vortex_particles(i+np)%data%alpha(1) =-vortex_particles(i)%data%alpha(1)
-                  vortex_particles(i+np)%data%alpha(2) =-vortex_particles(i)%data%alpha(2)
-                  vortex_particles(i+np)%data%alpha(3) = vortex_particles(i)%data%alpha(3)
+                  !&<
+                  vortex_particles(i + np)%x             = vortex_particles(i)%x + torus_offset
+                  vortex_particles(i + np)%data%alpha(1) = -vortex_particles(i)%data%alpha(1)
+                  vortex_particles(i + np)%data%alpha(2) = -vortex_particles(i)%data%alpha(2)
+                  vortex_particles(i + np)%data%alpha(3) = vortex_particles(i)%data%alpha(3)
+                  !&>
                end do
 
                np = 2 * np
             end if
 
-
          end block
-
 
       case (98) ! Random cubic setup (for testing purpose only)
 
