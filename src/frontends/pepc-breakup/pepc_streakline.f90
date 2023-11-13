@@ -41,6 +41,8 @@ program pepc
    implicit none
    ! control variable
    logical :: doDiag
+   integer(kind_particle) :: time_start
+   real(kind_physics) :: rate
 
    ! initialize pepc library and MPI
    call pepc_initialize("pepc-breakup", my_rank, n_ranks, .true.)
