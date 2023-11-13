@@ -1064,7 +1064,7 @@ contains
    subroutine age_elastic_merging(direction, directional_buffer, direction_cnt, merged_guide, merged_cnt, species, parent_key)
      !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
      !       most direct way of doing it is to copy the particles into respective directional buffer.
-     !       don't sum them up yet! information will be lost if done so.
+     !       don`t sum them up yet! information will be lost if done so.
      implicit none
      integer, intent(in) :: direction, direction_cnt, species, parent_key
      type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
@@ -1086,7 +1086,7 @@ contains
      if (direction_cnt > 2) then
        ! variables used to count number of filled buffer. Sort to old or new particles.
        !NOTE: any new particles generated from ionisation events is marked with label = -1.0
-       !      don't merge this with older particles.
+       !      don`t merge this with older particles.
        filled = 0
        filled_ion = 0
        do i = 1, direction_cnt
@@ -1171,7 +1171,7 @@ contains
                                      species, parent_key, energy_threshold)
      !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
      !       most direct way of doing it is to copy the particles into respective directional buffer.
-     !       don't sum them up yet! information will be lost if done so.
+     !       don`t sum them up yet! information will be lost if done so.
      implicit none
      integer, intent(in) :: direction, direction_cnt, species, parent_key
      type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
@@ -1255,7 +1255,7 @@ contains
            max_weight(f_i) = weight
          end if
 
-         ! Don't merge the particles with less than 10.0eV, copied directly to merged_buffer.
+         ! Don`t merge the particles with less than 10.0eV, copied directly to merged_buffer.
 !          if (species .eq. 0) then
 !            if (f_i .eq. 1) then
 !              m_i = m_i + 1
@@ -1404,7 +1404,7 @@ contains
                                      species, parent_key, energy_threshold)
      !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
      !       most direct way of doing it is to copy the particles into respective directional buffer.
-     !       don't sum them up yet! information will be lost if done so.
+     !       don`t sum them up yet! information will be lost if done so.
      implicit none
      integer, intent(in) :: direction, direction_cnt, species, parent_key
      type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
@@ -1413,7 +1413,7 @@ contains
      real(kind_physics), allocatable, intent(in) :: energy_threshold(:)
      integer :: i, j, k, l, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
                 merge_instance, merge_collector_size, IStart, IStop, j_start, progenitor_cnt, min_weight, &
-                iter_i, iter_j
+                iter_i, iter_j, weight_indexing
      integer, allocatable :: grouped_count(:), weight_counts(:)
      real(kind_physics) :: kin_e, weight, vel(3)
      real(kind_physics), allocatable :: max_weight(:)
@@ -1488,7 +1488,7 @@ contains
            max_weight(f_i) = weight
          end if
 
-         ! Don't merge the particles with less than 10.0eV, copied directly to merged_buffer.
+         ! Don`t merge the particles with less than 10.0eV, copied directly to merged_buffer.
 !          if (species .eq. 0) then
 !            if (f_i .eq. 1) then
 !              m_i = m_i + 1
@@ -1530,7 +1530,8 @@ contains
                deallocate(pass_buffer)
 
                ! count the numbers of particle at each weight
-               allocate(weight_counts(max_weight(j)))
+               weight_indexing = max_weight(j)
+               allocate(weight_counts(weight_indexing))
                weight_counts = 0
                min_weight = int(abs(energy_collector(j,1)%data%q))
                do k = 1, grouped_count(j)
@@ -1687,7 +1688,7 @@ contains
                                      species, parent_key, energy_threshold)
      !NOTE: in order to not merge particles that are .le. 2 particles lying in the same momentum partition,
      !       most direct way of doing it is to copy the particles into respective directional buffer.
-     !       don't sum them up yet! information will be lost if done so.
+     !       dont sum them up yet! information will be lost if done so.
      implicit none
      integer, intent(in) :: direction, direction_cnt, species, parent_key
      type(t_particle), allocatable, intent(in) :: directional_buffer(:,:)
@@ -1696,7 +1697,7 @@ contains
      real(kind_physics), allocatable, intent(in) :: energy_threshold(:)
      integer :: i, j, k, l, buffer_pos, ll_elem_gen, m_i, remainder, extent, filtered_instance, f_i, &
                 merge_instance, merge_collector_size, IStart, IStop, j_start, progenitor_cnt, min_weight, &
-                iter_i, iter_j
+                iter_i, iter_j, weight_indexing 
      integer, allocatable :: grouped_count(:), weight_counts(:)
      real(kind_physics) :: kin_e, weight, vel(3)
      real(kind_physics), allocatable :: max_weight(:)
@@ -1771,7 +1772,7 @@ contains
            max_weight(f_i) = weight
          end if
 
-         ! Don't merge the particles with less than 10.0eV, copied directly to merged_buffer.
+         ! Don`t merge the particles with less than 10.0eV, copied directly to merged_buffer.
 !          if (species .eq. 0) then
 !            if (f_i .eq. 1) then
 !              m_i = m_i + 1
@@ -1813,7 +1814,8 @@ contains
                deallocate(pass_buffer)
 
                ! count the numbers of particle at each weight
-               allocate(weight_counts(max_weight(j)))
+               weight_indexing = max_weight(j)
+               allocate(weight_counts(weight_indexing))
                weight_counts = 0
                min_weight = int(abs(energy_collector(j,1)%data%q))
                do k = 1, grouped_count(j)
@@ -1821,9 +1823,9 @@ contains
                  weight_counts(l) = weight_counts(l) + 1
                end do
 
-               if (weight_counts(max_weight(j)) <= 5) then
-                 progenitor_cnt = grouped_count(j) - weight_counts(max_weight(j))
-                 remainder = weight_counts(max_weight(j))
+               if (weight_counts(weight_indexing) <= 5) then
+                 progenitor_cnt = grouped_count(j) - weight_counts(weight_indexing)
+                 remainder = weight_counts(weight_indexing)
                else
                  progenitor_cnt = grouped_count(j)
                  remainder = 0

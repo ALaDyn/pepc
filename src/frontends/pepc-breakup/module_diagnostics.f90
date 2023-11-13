@@ -1927,10 +1927,10 @@ contains
     integer :: N_entries, m
     integer, allocatable :: N_counts(:)    
 
-    ! local_table2(1:3,:) = particle's initial coordinate.
+    ! local_table2(1:3,:) = particle`s initial coordinate.
     ! local_table2(4,:)   = connection length
-    ! local_table2(5,:)   = particle's init B_mag
-    ! local_table2(6,:)   = particle's final B_mag
+    ! local_table2(5,:)   = particle`s init B_mag
+    ! local_table2(6,:)   = particle`s final B_mag
 
     allocate(N_counts(size(shape(global_table))))
     N_counts = shape(global_table)

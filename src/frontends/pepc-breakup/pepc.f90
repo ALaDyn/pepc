@@ -463,7 +463,7 @@ program pepc
 !        particle_guide => buffer
 !        new_particle_cnt = 0
 !        do i = 1, unique_parents
-!          !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don't merge!
+!          !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don`t merge!
 !          ! print *, "Merging ", i, "of ", unique_parents, " unique parents."
 !          ! call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
 !          !                                     i, particle_guide, new_particle_cnt)
