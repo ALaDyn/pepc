@@ -104,8 +104,8 @@ contains
             call MPI_COMM_DUP(comm, MPI_COMM_lpepc, ierr)
          else
             call MPI_COMM_DUP(MPI_COMM_WORLD, MPI_COMM_lpepc, ierr)
-         endif
-      endif
+         end if
+      end if
 
       call MPI_IN_PLACE_test(MPI_COMM_lpepc)
 
@@ -127,8 +127,8 @@ contains
          write (*, '(a)') "     \ \ \/  \ \ \_L\ \ \/  \ \ \_\ \    Solver             "
          write (*, '(a)') "      \ \_\   \ \____\ \_\   \ \____/                       "
          write (*, '(a)') "       \/_/    \/____/\/_/    \/___/     pepc@fz-juelich.de "
-         write (*, '(/"Starting PEPC, svn revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
-            SVNREVISION, frontendname, num_pe
+         write (*, '(/"Starting PEPC, revision [",a,"] with frontend {", a, "} on ", I0, " MPI ranks."/)') &
+            REVISION, frontendname, num_pe
          write (*, '("====     MACH = ",a)') MACH
          write (*, '("==== COMPILER = ",a)') COMPILER
          write (*, '("====   FFLAGS = ",a)') FFLAGS
@@ -136,7 +136,7 @@ contains
          write (*, '("====  LDFLAGS = ",a)') LDFLAGS
          write (*, '("====     WALK = ",a)') WALKALGORITHM
          write (*, '(//)')
-      endif
+      end if
 
       if (me .eq. 0 .and. provided .lt. MPI_THREAD_LEVEL) then
          !inform the user about possible issues concerning MPI thread safety
@@ -152,7 +152,7 @@ contains
          else
             write (*, '("Frontend application did not call to MPI_INIT_THREAD correctly. Needed/provided level of multithreading:", I2, "/" ,I2)') &
                MPI_THREAD_LEVEL, provided
-         endif
+         end if
          DEBUG_ERROR(*, 'Not trying to run with provided level of multithreading. This would lead to incorrect results or crashes.')
       end if
 
@@ -163,7 +163,7 @@ contains
          debug_level = db_level_in
       else
          debug_level = 0
-      endif
+      end if
       np_mult = -45.
       weighted = 1
 
@@ -381,7 +381,8 @@ contains
       logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
       logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
 
-      call pepc_grow_and_traverse_for_others(particles, particles, itime, no_dealloc, no_restore)
+      call pepc_grow_and_traverse_for_others(particles_source=particles, &
+                                             itime=itime, no_dealloc=no_dealloc, no_restore=no_restore)
 
    end subroutine
 
@@ -396,7 +397,7 @@ contains
       use module_tree_communicator, only: tree_communicator_stop
       implicit none
       type(t_particle), allocatable, intent(inout) :: particles_source(:) !< input particle data (sources for force computation), initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
-      type(t_particle), intent(inout) :: particles_sink(:) !< particles to compute forces onto (sinks for force computation)
+      type(t_particle), allocatable, optional, intent(inout) :: particles_sink(:) !< particles to compute forces onto (sinks for force computation)
       integer, intent(in) :: itime !> current timestep (used as filename suffix for statistics output)
       logical, optional, intent(in) :: no_dealloc ! if .true., the internal data structures are not deallocated (e.g. for a-posteriori diagnostics)
       logical, optional, intent(in) :: no_restore ! if .true., the particles are not backsorted to their pre-domain-decomposition order
@@ -410,14 +411,18 @@ contains
       if (present(no_restore)) restore = .not. no_restore
 
       call pepc_grow_tree(particles_source)
-      call pepc_traverse_tree(particles_sink)
+      if (present(particles_sink)) then
+         call pepc_traverse_tree(particles_sink)
+      else
+         call pepc_traverse_tree(particles_source)
+      end if
 
       if (dbg(DBG_STATS)) call pepc_statistics(itime)
       if (restore) then
          ! for better thread-safety we have to kill the communicator thread before trying to perform any other mpi stuff
          call tree_communicator_stop(global_tree)
          call pepc_restore_particles(particles_source)
-      endif
+      end if
 
       if (dealloc) call pepc_timber_tree()
 

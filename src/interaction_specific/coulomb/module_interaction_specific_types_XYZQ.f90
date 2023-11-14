@@ -28,7 +28,7 @@ module module_interaction_specific_types
 
    !> Data structure for storing interaction-specific particle data
    type t_particle_data
-      real(kind_physics) :: q
+      real(kind_physics) :: q            !< electric charge
    end type t_particle_data
    integer, private, parameter :: nprops_particle_data = 1
 
@@ -43,12 +43,12 @@ module module_interaction_specific_types
 
    !> Data structure for storing multiple moments of tree nodes
    type t_tree_node_interaction_data
-      real(kind_physics) :: coc(3)     ! centre of charge
-      real(kind_physics) :: charge     ! net charge sum
-      real(kind_physics) :: abs_charge ! absolute charge sum
-      real(kind_physics) :: dip(3)     ! dipole moment
-      real(kind_physics) :: quad(3)    ! diagonal quadrupole moments
-      real(kind_physics) :: xyquad     ! other quadrupole moments
+      real(kind_physics) :: coc(3)       !< centre of charge
+      real(kind_physics) :: charge       !< net charge sum
+      real(kind_physics) :: abs_charge   !< absolute charge sum
+      real(kind_physics) :: dip(3)       !< dipole moment
+      real(kind_physics) :: quad(3)      !< diagonal quadrupole moments
+      real(kind_physics) :: xyquad       !< other quadrupole moments
       real(kind_physics) :: yzquad
       real(kind_physics) :: zxquad
       real(kind_physics) :: bmax

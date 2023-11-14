@@ -3,7 +3,7 @@
 #
 
 ROOTDIR      = $(shell pwd)
-SVNREVISION  = $(shell svnversion)
+REVISION     = $(shell git describe --all --long --dirty)
 
 include tools/build/makefile.paths
 include makefile.defs
@@ -23,9 +23,10 @@ help: info
 info:
 	@printf "======== $(UL)make info$(NC)\n"
 	@printf "==== target architecture : $(BC)$(MACH)$(NC)\n"
-	@printf "==== code version        : $(BC)$(SVNREVISION)$(NC)\n"
+	@printf "==== code version        : $(BC)$(REVISION)$(NC)\n"
 	@printf "==== pepc directory      : $(BC)$(ROOTDIR)$(NC)\n"
 	@printf "==== available frontends : $(BC)$(ALLFRONTENDS)$(NC)\n"
+	@if [ "$(MACH)" = "linux_intel" ]; then printf "$(RED)If you experience memory or threading issues with Intel's compiler or OpenMP runtime, look into the OMP_STACKSIZE environment variable (and increase it).$(NC)\n"; fi
 	@echo ""
 
 buildenv:
@@ -44,16 +45,16 @@ buildenv:
 	@echo ""
 
 readme:
-	cat README | less
+	cat README.md | less
 
 all:
 	-$(MAKE) $(MFLAGS) -k $(ALLFRONTENDS)
 	@echo ""
-	-$(MAKE) $(MFLAGS) allresult
+	$(MAKE) $(MFLAGS) allresult
 
 allresult:
 	@printf "======== $(UL)build all results$(NC)\n"
-	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s $(GREEN)OK$(NC)\n" $$f ; else printf "== %-20s $(RED)FAILED$(NC)\n" $$f; fi; done
+	@for f in $(ALLFRONTENDS); do if [ -e ${BINDIR}/$$f ]; then printf "== %-20s $(GREEN)OK$(NC)\n" $$f ; else printf "== %-20s $(RED)FAILED$(NC)\n" $$f; E="FAILED"; fi; done; if [ "x$$E" = "xFAILED" ] ; then exit 127; fi
 	@echo ""
 
 libsl: $(LIBDIR)/libsl.a
@@ -95,6 +96,7 @@ cleanall: cleanlib cleandoc clean
 allclean: cleanall
 
 pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a $(LIBDIR)/libopa.a
+	@if [ "$(MACH)" = "linux_nvhpc" ]; then if [ "$@" = "pepc-v" ]; then printf "======== $(RED)Frontend $@ broken with NVHPC, c.f. #18. Aborting.$(NC)\n"; false; fi; fi
 	@if [ ! -d "$(FRONTENDDIR)/$@" ]; then printf "======== $(RED)Frontend $@ does not exist. Aborting.$(NC)\n"; false; fi
 	@printf "======== start building frontend $(BC){ $@ }$(NC)\n"
 	@printf "==== date: $(BC)$(shell "date")$(NC)\n"
@@ -102,7 +104,7 @@ pepc-%: pepclogo info buildenv $(LIBDIR)/libsl.a $(LIBDIR)/libopa.a
 	@mkdir -p "$(BUILDDIR)/$(MACH)/$@"
 	@mkdir -p "$(BINDIR)"
 	@-$(RM) "$(BINDIR)/$@"
-	@FRONTEND="$@" ROOTDIR="$(ROOTDIR)" SVNREVISION="$(SVNREVISION)" WORKDIR="$(BUILDDIR)/$(MACH)/$@" $(MAKE) $(MFLAGS) -f "$(MAKEDIR)/makefile.prepare"
+	@FRONTEND="$@" ROOTDIR="$(ROOTDIR)" REVISION="$(REVISION)" WORKDIR="$(BUILDDIR)/$(MACH)/$@" $(MAKE) $(MFLAGS) -f "$(MAKEDIR)/makefile.prepare"
 	@cp -p "$(BUILDDIR)/$(MACH)/$@/$@" "$(BINDIR)"
 	@echo ""
 	@printf "======== $(GREEN)successfully built frontend { $@ } :-)$(NC)\n"

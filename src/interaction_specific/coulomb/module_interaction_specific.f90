@@ -31,12 +31,14 @@ module module_interaction_specific
    save
    private
 
-   integer, public :: force_law = 3      !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
-   integer, public :: mac_select = 0      !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
+   !&<
+   integer, public :: force_law = 3                          !< 3 = 3D-Coulomb, 2 = 2D-Coulomb
+   integer, public :: mac_select = 0                         !< selector for multipole acceptance criterion, mac_select==0: Barnes-Hut
    logical, public :: include_far_field_if_periodic = .true. !< if set to false, the far-field contribution to periodic boundaries is ignored (aka 'minimum-image-mode')
-   real(kind_physics), public  :: theta2 = 0.36  !< square of multipole opening angle
-   real(kind_physics), public  :: eps2 = 0.0    !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
-   real(kind_physics), public  :: kelbg_invsqrttemp = 0.0 !< inverse square root of temperature for kelbg potential
+   real(kind_physics), public :: theta2 = 0.36               !< square of multipole opening angle
+   real(kind_physics), public :: eps2 = 0.0                  !< square of short-distance cutoff parameter for plummer potential (0.0 corresponds to classical Coulomb)
+   real(kind_physics), public :: kelbg_invsqrttemp = 0.0     !< inverse square root of temperature for kelbg potential
+   !&>
 
    namelist /calc_force_coulomb/ force_law, mac_select, include_far_field_if_periodic, theta2, eps2, kelbg_invsqrttemp
 
@@ -111,7 +113,7 @@ contains
          end do
 
          parent%coc(1:3) = parent%coc(1:3) / nchild
-      endif
+      end if
 
       ! multipole properties
       parent%dip = [0., 0., 0.]

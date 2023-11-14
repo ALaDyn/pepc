@@ -1,0 +1,177 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  A massively parallel, multi-disciplinary Barnes–Hut tree
+  code for extreme-scale N-body simulations
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Paul
+    family-names: Gibbon
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich GmbH,
+      52425 Jülich, Germany
+    orcid: 'https://orcid.org/0000-0002-5540-9626'
+  - given-names: Lukas
+    family-names: Arnold
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich GmbH,
+      52425 Jülich, Germany
+    orcid: 'https://orcid.org/0000-0002-5939-8995'
+  - given-names: Andreas
+    family-names: Breslau
+  - given-names: Dirk
+    family-names: Brömmel
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich GmbH,
+      52425 Jülich, Germany
+  - given-names: Junxian
+    family-names: Chew
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich GmbH,
+      52425 Jülich, Germany
+    orcid: 'https://orcid.org/0000-0003-2562-4218'
+  - given-names: Marvin-Lucas
+    family-names: Henkel
+  - given-names: Michael
+    family-names: Hofmann
+    affiliation: >-
+      Technische Universität Chemnitz, Department of
+      Computer Science, Str. der Nationen 62, 09111 Chemnitz
+  - given-names: Helge
+    family-names: Hübner
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich GmbH,
+      52425 Jülich, Germany
+  - given-names: Marc
+    family-names: Keldenich
+  - given-names: Christian
+    family-names: Salmagne
+  - family-names: Siddi
+    given-names: Lorenzo
+  - given-names: Robert
+    family-names: Speck
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich GmbH,
+      52425 Jülich, Germany
+    orcid: 'https://orcid.org/0000-0002-3879-1210'
+  - given-names: Benedikt
+    family-names: Steinbusch
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich GmbH,
+      52425 Jülich, Germany
+    orcid: 'https://orcid.org/0000-0002-3634-6818'
+  - given-names: Mathias
+    family-names: Winkel
+    affiliation: >-
+      Institute for Advanced Simulation, Jülich
+      Supercomputing Centre, Forschungszentrum Jülich GmbH,
+      52425 Jülich, Germany
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.7965548
+    description: This DOI represents all versions, and will always resolve to the latest one.
+repository-code: 'https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc'
+url: 'https://www.fz-juelich.de/ias/jsc/pepc'
+abstract: >-
+  The PEPC project (Pretty Efficient Parallel Coulomb
+  Solver) is a public tree code that has been developed at
+  Jülich Supercomputing Centre since the early 2000s. Our
+  tree code is a non-recursive version of the Barnes-Hut
+  algorithm, using a level-by-level approach to both tree
+  construction and traversals.
+keywords:
+  - Barnes-Hut
+  - tree code
+  - HPC
+license: LGPL-3.0-or-later
+commit: 6f576e27
+version: 2.0.0
+date-released: '2023-01-24'
+doi: 10.5281/zenodo.5171937
+references:
+  - authors:
+    - given-names: Mathias
+      family-names: Winkel
+      affiliation: >-
+        Institute for Advanced Simulation,
+        Jülich Supercomputing Centre,
+        Forschungszentrum Jülich GmbH,
+        52425 Jülich,
+        Germany
+    - given-names: Robert
+      family-names: Speck
+      affiliation: >-
+        Institute of Computational Science,
+        Faculty of Informatics,
+        University of Lugano,
+        6900 Lugano,
+        Switzerland
+      orcid: 'https://orcid.org/0000-0002-3879-1210'
+    - given-names: Helge
+      family-names: Hübner
+      affiliation: >-
+        Institute for Advanced Simulation,
+        Jülich Supercomputing Centre,
+        Forschungszentrum Jülich GmbH,
+        52425 Jülich,
+        Germany
+    - given-names: Lukas
+      family-names: Arnold
+      affiliation: >-
+        Institute for Advanced Simulation,
+        Jülich Supercomputing Centre,
+        Forschungszentrum Jülich GmbH,
+        52425 Jülich,
+        Germany
+      orcid: 'https://orcid.org/0000-0002-5939-8995'
+    - given-names: Rolf
+      family-names: Krause
+      affiliation: >-
+        Institute of Computational Science,
+        Faculty of Informatics,
+        University of Lugano,
+        6900 Lugano,
+        Switzerland
+    - given-names: Paul
+      family-names: Gibbon
+      affiliation: >-
+        Institute for Advanced Simulation,
+        Jülich Supercomputing Centre,
+        Forschungszentrum Jülich GmbH,
+        52425 Jülich,
+        Germany
+      orcid: 'https://orcid.org/0000-0002-5540-9626'
+    doi: 10.1016/j.cpc.2011.12.013
+    title: 'A massively parallel, multi-disciplinary Barnes–Hut tree code for extreme-scale N-body simulations'
+    type: article
+    journal: 'Computer Physics Communications'
+    volume: 183
+    issue: 4
+    year: 2012
+    month: 4
+  - authors:
+    - given-names: Paul
+      family-names: Gibbon
+      affiliation: >-
+        Institute for Advanced Simulation,
+        Jülich Supercomputing Centre,
+        Forschungszentrum Jülich GmbH,
+        52425 Jülich,
+        Germany
+      orcid: 'https://orcid.org/0000-0002-5540-9626'
+    title: 'PEPC: Pretty Efficient Parallel Coulomb-solver'
+    type: article
+    year: 2003
+    url: 'http://hdl.handle.net/2128/12002'

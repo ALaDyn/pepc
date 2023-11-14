@@ -53,7 +53,7 @@ module module_atomic_ops
 
    interface
       ! libOPA init
-      subroutine c_opa_init() bind (C, name='_opa_init')
+      subroutine c_opa_init() bind(C, name='_opa_init')
          use iso_c_binding
          implicit none
       end subroutine c_opa_init

@@ -20,126 +20,125 @@
 
 program pepc
 
-  ! pepc modules
-  use module_pepc
-  use module_pepc_types
-  use module_pepc_kinds
-  use module_timings
-  use module_debug
+   ! pepc modules
+   use module_pepc
+   use module_pepc_types
+   use module_pepc_kinds
+   use module_timings
+   use module_debug
 
-  ! frontend helper routines
-  use module_globals
-  use module_math
-  use helper
-  use encap
-  use field_helper, only: compute_field,setup_field_grid,pepc_setup
-  !use module_diagnostic
+   ! frontend helper routines
+   use module_globals
+   use module_math
+   use helper
+   use encap
+   use field_helper, only: compute_field, setup_field_grid, pepc_setup
+   !use module_diagnostic
 
-  implicit none
+   implicit none
 
-  ! timing variables
-  real*8 :: timer(5)
-  real*8 :: t1, t2!,t
-  type(t_particle), allocatable   :: q(:),r(:)
-  type(physics_pars_t)            :: physics_pars
-  type(field_grid_t)              :: field_grid
-  type(pepc_pars_t)               :: pepc_pars
-  integer(kind_particle)          :: ii
-  ! control variable
-  logical :: doDiag!
+   ! timing variables
+   real*8 :: timer(5)
+   real*8 :: t1, t2!,t
+   type(t_particle), allocatable   :: q(:), r(:)
+   type(physics_pars_t)            :: physics_pars
+   type(field_grid_t)              :: field_grid
+   type(pepc_pars_t)               :: pepc_pars
+   integer(kind_particle)          :: ii
+   ! control variable
+   logical :: doDiag!
 
-  !!! initialize pepc library and MPI
-  call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true., comm=communicator)
-  !call pepc_initialize('pepc-darwin-2d', init_mpi=.false., db_level_in=DBG_STATUS, comm=communicator)
+   !!! initialize pepc library and MPI
+   call pepc_initialize("pepc-darwin-2d", my_rank, n_ranks, .true., comm=communicator)
+   !call pepc_initialize('pepc-darwin-2d', init_mpi=.false., db_level_in=DBG_STATUS, comm=communicator)
 
-  root = my_rank.eq.0
+   root = my_rank .eq. 0
 
-  timer(1) = get_time()
+   timer(1) = get_time()
 
-  call set_parameter()
+   call set_parameter()
 
-  select case (initial_setup)
-          case (2)  !  Default initial setup - 2D random particles with thermal velocity
-              call init_particles(particles)
-          case (3)  !  2D random particles in a square
-              call init_particles_square(particles)
-          case (4)  ! 2D random particles in a ring
-              call init_particles_ring_2D(particles)
-          case (5)  ! wire random distribution
-              call init_particles_wire(particles)
-          case (6)  ! stripe random distribution
-              call init_particles_stripe(particles)
-          case (7)  ! disc random distribution
-              call init_particles_disc(particles)
-          case (8)  ! Solenoidal distribution
-              call init_particles_two_wires(particles)
-          case (9)  ! SDefault initial setup - 3D random particles with thermal velocity
-              call init_particles3D(particles)
-          case (10)  ! 3D Solenoid
-              call init_particles_solenoid(particles)
+   select case (initial_setup)
+   case (2)  !  Default initial setup - 2D random particles with thermal velocity
+      call init_particles(particles)
+   case (3)  !  2D random particles in a square
+      call init_particles_square(particles)
+   case (4)  ! 2D random particles in a ring
+      call init_particles_ring_2D(particles)
+   case (5)  ! wire random distribution
+      call init_particles_wire(particles)
+   case (6)  ! stripe random distribution
+      call init_particles_stripe(particles)
+   case (7)  ! disc random distribution
+      call init_particles_disc(particles)
+   case (8)  ! Solenoidal distribution
+      call init_particles_two_wires(particles)
+   case (9)  ! SDefault initial setup - 3D random particles with thermal velocity
+      call init_particles3D(particles)
+   case (10)  ! 3D Solenoid
+      call init_particles_solenoid(particles)
 
-          case default
+   case default
 
-              call init_particles(particles)
+      call init_particles(particles)
 
-  end select
+   end select
 
-  call pepc_setup(pepc_pars)
-  call setup_field_grid(field_grid, pepc_pars%pepc_comm)
+   call pepc_setup(pepc_pars)
+   call setup_field_grid(field_grid, pepc_pars%pepc_comm)
 
-  timer(2) = get_time()
+   timer(2) = get_time()
 
-  if(root) write(*,'(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
+   if (root) write (*, '(a,es12.4)') " === init time [s]: ", timer(2) - timer(1)
 
-  do step=0, nt
-    if(root) then
-      write(*,*) " "
-      write(*,'(a,i12)')    " ====== computing step  :", step
-      write(*,'(a,es12.4)') " ====== simulation time :", step * dt
-    end if
+   do step = 0, nt
+      if (root) then
+         write (*, *) " "
+         write (*, '(a,i12)') " ====== computing step  :", step
+         write (*, '(a,es12.4)') " ====== simulation time :", step * dt
+      end if
 
-    timer(3) = get_time()
+      timer(3) = get_time()
 
-    call pepc_particleresults_clear(particles)
-    timer(1) = get_time()
-    t1 = get_time()
+      call pepc_particleresults_clear(particles)
+      timer(1) = get_time()
+      t1 = get_time()
 
-    call pepc_grow_tree(particles)
+      call pepc_grow_tree(particles)
 
-    !print *, global_tree%nodes(global_tree%node_root)%interaction_data
+      !print *, global_tree%nodes(global_tree%node_root)%interaction_data
 
-    np = size(particles, kind=kind(np))
-    t2 = get_time()
-    if(root) write(*,'(a,es12.4)') " ====== tree grow time  :", t2-t1
-    t1 = get_time()
+      np = size(particles, kind=kind(np))
+      t2 = get_time()
+      if (root) write (*, '(a,es12.4)') " ====== tree grow time  :", t2 - t1
+      t1 = get_time()
 
-    call pepc_traverse_tree(particles)
-    t2 = get_time()
-    if(root) write(*,'(a,es12.4)') " ====== tree walk time  :", t2-t1
+      call pepc_traverse_tree(particles)
+      t2 = get_time()
+      if (root) write (*, '(a,es12.4)') " ====== tree walk time  :", t2 - t1
 
-    call pepc_timber_tree()
-    call test_particles()
+      call pepc_timber_tree()
+      call test_particles()
 
-    timer(4) = get_time()
-    if(root) write(*,'(a,es12.4)') " == time in step [s]                              : ", timer(4) - timer(3)
+      timer(4) = get_time()
+      if (root) write (*, '(a,es12.4)') " == time in step [s]                              : ", timer(4) - timer(3)
 
-    call timings_GatherAndOutput(step, 0)
+      call timings_GatherAndOutput(step, 0)
 
-  end do
+   end do
 
+   deallocate (particles)
 
-  deallocate(particles)
+   timer(5) = get_time()
 
-  timer(5) = get_time()
+   if (root) then
+      write (*, *) " "
+      write (*, '(a)') " ===== finished pepc simulation"
+      write (*, '(a,es12.4)') " ===== total run time [s]: ", timer(5) - timer(1)
+   end if
 
-  if(root) then
-    write(*,*)            " "
-    write(*,'(a)')        " ===== finished pepc simulation"
-    write(*,'(a,es12.4)') " ===== total run time [s]: ",timer(5) - timer(1)
-  end if
-
-  !!! cleanup pepc and MPI
-  call pepc_finalize()
+   !!! cleanup pepc and MPI
+   call pepc_finalize()
 
 end program pepc
 

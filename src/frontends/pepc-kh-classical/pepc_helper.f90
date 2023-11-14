@@ -10,10 +10,9 @@ module pepc_helper
    end type pepc_nml_t
 
    logical :: para_file_available
-   character(len = 255) :: para_file_name
+   character(len=255) :: para_file_name
 
 contains
-
 
    subroutine pepc_setup(pepc_pars)
       use constants
@@ -27,7 +26,7 @@ contains
       type(pepc_nml_t) :: pepc_nml
 
       call pepc_initialize(FRONTEND_NAME, pepc_pars%pepc_comm%mpi_rank, &
-        pepc_pars%pepc_comm%mpi_size, .true., comm = pepc_pars%pepc_comm%mpi_comm)
+                           pepc_pars%pepc_comm%mpi_size, .true., comm=pepc_pars%pepc_comm%mpi_comm)
 
       call pepc_read_parameters_from_first_argument(para_file_available, para_file_name)
       call read_in_params(pepc_nml, para_file_available, para_file_name)
@@ -41,7 +40,6 @@ contains
 
    end subroutine pepc_setup
 
-
    subroutine read_in_params(pepc_namelist, file_available, file_name)
       use encap
       use module_mirror_boxes, only: mirror_box_layers
@@ -50,7 +48,7 @@ contains
 
       type(pepc_nml_t), intent(out) :: pepc_namelist
       logical, intent(in) :: file_available
-      character(len = 255), intent(in) :: file_name
+      character(len=255), intent(in) :: file_name
 
       integer, parameter :: para_file_id = 10
 
@@ -63,10 +61,10 @@ contains
       namelist /pepc_nml/ np, pdump, fdump, cdump, mirror_box_layers, do_extrinsic_correction
 
       if (file_available) then
-        open(para_file_id,file=trim(file_name),action='read')
-        rewind(para_file_id)
-        read(para_file_id, NML=pepc_nml)
-        close(para_file_id)
+         open (para_file_id, file=trim(file_name), action='read')
+         rewind (para_file_id)
+         read (para_file_id, NML=pepc_nml)
+         close (para_file_id)
       end if
 
       pepc_namelist%np = np
@@ -76,7 +74,6 @@ contains
 
    end subroutine read_in_params
 
-
    subroutine write_params(pepc_pars, file_name)
       use encap
       use module_mirror_boxes, only: mirror_box_layers
@@ -84,7 +81,7 @@ contains
       implicit none
 
       type(pepc_pars_t), intent(in) :: pepc_pars
-      character(len = 255), intent(in) :: file_name
+      character(len=255), intent(in) :: file_name
 
       integer, parameter :: para_file_id = 10
 
@@ -101,89 +98,86 @@ contains
       fdump = pepc_pars%fdump
       cdump = pepc_pars%cdump
 
-      open(para_file_id, file = trim(file_name), status = 'old', position = &
-        'append', action = 'write')
-      write(para_file_id, NML=pepc_nml)
-      close(para_file_id)
+      open (para_file_id, file=trim(file_name), status='old', position= &
+            'append', action='write')
+      write (para_file_id, NML=pepc_nml)
+      close (para_file_id)
 
    end subroutine write_params
 
+   function get_time()
+      use mpi
+      implicit none
 
-  function get_time()
-    use mpi
-    implicit none
+      real(kind=8) :: get_time
 
-    real(kind = 8) :: get_time
+      get_time = MPI_WTIME()
+   end function
 
-    get_time = MPI_WTIME()
-  end function
+   subroutine write_particles(pepc_pars, time_pars, step, p)
+      use module_pepc_types
+      use module_vtk
+      use module_vtk_helpers
+      use encap
+      implicit none
 
+      type(pepc_pars_t), intent(in) :: pepc_pars
+      type(time_pars_t), intent(in) :: time_pars
+      type(t_particle), allocatable, intent(in) :: p(:)
+      integer, intent(in) :: step
 
-  subroutine write_particles(pepc_pars, time_pars, step, p)
-    use module_pepc_types
-    use module_vtk
-    use module_vtk_helpers
-    use encap
-    implicit none
+      integer :: vtk_step
+      real*8 :: time
+      real*8 :: ta, tb
 
-    type(pepc_pars_t), intent(in) :: pepc_pars
-    type(time_pars_t), intent(in) :: time_pars
-    type(t_particle), allocatable, intent(in) :: p(:)
-    integer, intent(in) :: step
+      ta = get_time()
 
-    integer :: vtk_step
-    real*8 :: time
-    real*8 :: ta, tb
+      time = real(time_pars%dt * step, kind=8)
 
-    ta = get_time()
+      if (step .eq. 0) then
+         vtk_step = VTK_STEP_FIRST
+      else if (step .eq. time_pars%nsteps) then
+         vtk_step = VTK_STEP_LAST
+      else
+         vtk_step = VTK_STEP_NORMAL
+      end if
 
-    time = real(time_pars%dt * step, kind = 8)
+      call vtk_write_particles("particles", pepc_pars%pepc_comm%mpi_comm, step, time, vtk_step, p)
 
-    if (step .eq. 0) then
-      vtk_step = VTK_STEP_FIRST
-    else if (step .eq. time_pars%nsteps) then
-      vtk_step = VTK_STEP_LAST
-    else
-      vtk_step = VTK_STEP_NORMAL
-    endif
+      tb = get_time()
 
-    call vtk_write_particles("particles", pepc_pars%pepc_comm%mpi_comm, step, time, vtk_step, p)
+      if (pepc_pars%pepc_comm%mpi_rank .eq. 0) write (*, '(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
 
-    tb = get_time()
+   end subroutine write_particles
 
-    if(pepc_pars%pepc_comm%mpi_rank == 0) write(*,'(a,es12.4)') " == [write particles] time in vtk output [s]      : ", tb - ta
+   subroutine write_domain(time_pars, step, p)
+      use module_pepc_types
+      use module_vtk
+      use module_vtk_helpers
+      use module_pepc, only: global_tree
 
-  end subroutine write_particles
+      use encap
+      implicit none
 
+      type(time_pars_t), intent(in) :: time_pars
+      integer, intent(in) :: step
+      type(t_particle), allocatable, intent(in) :: p(:)
 
-  subroutine write_domain(time_pars, step, p)
-    use module_pepc_types
-    use module_vtk
-    use module_vtk_helpers
-    use module_pepc, only : global_tree
+      integer :: vtk_step
 
-    use encap
-    implicit none
+      ! output of tree diagnostics
+      if (step .eq. 0) then
+         vtk_step = VTK_STEP_FIRST
+      else if (step .eq. time_pars%nsteps) then
+         vtk_step = VTK_STEP_LAST
+      else
+         vtk_step = VTK_STEP_NORMAL
+      end if
 
-    type(time_pars_t), intent(in) :: time_pars
-    integer, intent(in) :: step
-    type(t_particle), allocatable, intent(in) :: p(:)
+      call vtk_write_branches(step, real(time_pars%dt * step, kind=8), vtk_step, global_tree)
+      call vtk_write_leaves(step, real(time_pars%dt * step, kind=8), vtk_step, global_tree)
+      call vtk_write_spacecurve(step, real(time_pars%dt * step, kind=8), vtk_step, p)
 
-    integer :: vtk_step
-
-    ! output of tree diagnostics
-    if (step .eq. 0) then
-      vtk_step = VTK_STEP_FIRST
-    else if (step .eq. time_pars%nsteps) then
-      vtk_step = VTK_STEP_LAST
-    else
-      vtk_step = VTK_STEP_NORMAL
-    endif
-
-    call vtk_write_branches(step,  real(time_pars%dt * step, kind = 8), vtk_step, global_tree)
-    call vtk_write_leaves(step, real(time_pars%dt * step, kind = 8), vtk_step, global_tree)
-    call vtk_write_spacecurve(step, real(time_pars%dt * step, kind = 8), vtk_step, p)
-
-  end subroutine write_domain
+   end subroutine write_domain
 
 end module pepc_helper

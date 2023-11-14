@@ -4,7 +4,7 @@ module encap
    use iso_c_binding
    implicit none
 
-    ! variables for MPI within pepc
+   ! variables for MPI within pepc
    type, bind(c) :: pepc_comm_t
       integer(c_int) :: mpi_size, mpi_rank, mpi_comm
    end type pepc_comm_t
@@ -15,22 +15,22 @@ module encap
       type(pepc_comm_t) :: pepc_comm
    end type pepc_pars_t
 
-  type :: physics_pars_t
-    real(kind_physics) :: B0, vte, vti, qe, qi, me, mi
-    real(kind_physics), dimension(3) :: l_plasma
-  end type physics_pars_t
+   type :: physics_pars_t
+      real(kind_physics) :: B0, vte, vti, qe, qi, me, mi
+      real(kind_physics), dimension(3) :: l_plasma
+   end type physics_pars_t
 
    type :: time_pars_t
       real(kind_physics) :: te, dt
       integer :: nsteps, nresume
    end type time_pars_t
 
-  type field_grid_t
-    integer(kind = kind_particle), dimension(2) :: n
-    integer(kind = kind_particle) :: ntot, nl
-    real(kind_physics), dimension(2) :: offset, extent, dx
-    type(t_particle), dimension(:), allocatable :: p
-    real(kind_physics), dimension(:,:), allocatable :: ne, ni, vex, vey, vix, viy, ne_from_left, ni_from_left
-  end type field_grid_t
+   type field_grid_t
+      integer(kind=kind_particle), dimension(2) :: n
+      integer(kind=kind_particle) :: ntot, nl
+      real(kind_physics), dimension(2) :: offset, extent, dx
+      type(t_particle), dimension(:), allocatable :: p
+      real(kind_physics), dimension(:, :), allocatable :: ne, ni, vex, vey, vix, viy, ne_from_left, ni_from_left
+   end type field_grid_t
 
 end module encap

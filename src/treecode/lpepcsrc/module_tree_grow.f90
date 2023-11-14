@@ -131,7 +131,7 @@ contains
       if (root%leaves .ne. t%npart) then
          call tree_dump(t, p)
          DEBUG_ERROR(*, 'did not find all particles inside the htable after global tree buildup: root_node%leaves =', root%leaves, ' but npart_total =', t%npart)
-      endif
+      end if
 
       call timer_stop(t_fields_tree)
       call pepc_status('TREE GROWN')

@@ -63,7 +63,7 @@ contains
          call create_directory(trim(directory))
          call create_directory(trim(dir))
          firstcall = .false.
-      endif
+      end if
 
       open (filehandle, file=trim(filename), STATUS='REPLACE')
       do i = 1, size(dp, kind=kind(i))
@@ -76,11 +76,11 @@ contains
          open (filehandle, file=trim(filename), STATUS='UNKNOWN', POSITION='REWIND')
          call pepc_write_parameters(filehandle)
          close (filehandle)
-      endif
+      end if
 
       if (present(filename_out)) then
          filename_out = trim(filename)
-      endif
+      end if
    end subroutine
 
    subroutine write_particles_binary(my_rank, itime, dp, filename)
@@ -105,7 +105,7 @@ contains
          call create_directory(trim(directory))
          call create_directory(trim(dir))
          firstcall = .false.
-      endif
+      end if
 
       open (filehandle, file=trim(filename), STATUS='REPLACE', ACCESS="STREAM")
       write (filehandle) dp(1:size(dp))
@@ -116,7 +116,7 @@ contains
          open (filehandle, file=trim(filename), STATUS='UNKNOWN', POSITION='REWIND')
          call pepc_write_parameters(filehandle)
          close (filehandle)
-      endif
+      end if
    end subroutine
 
    subroutine write_particles_mpiio(comm, itime, n_total, dp, filename)
@@ -147,13 +147,13 @@ contains
          call create_directory(trim(directory))
          call create_directory(trim(dir))
          firstcall = .false.
-      endif
+      end if
 
       n_totsum = size(dp, kind=kind(n_totsum))
       call MPI_ALLREDUCE(MPI_IN_PLACE, n_totsum, 1, MPI_KIND_PARTICLE, MPI_SUM, comm, ierr)
       if (n_totsum .ne. n_total) then
          DEBUG_ERROR('("Invalid total particle number: sum(nparticles_local) = ", I0, " but n_total = ", I0)', n_totsum, n_total)
-      endif
+      end if
 
       call MPI_FILE_OPEN(comm, filename, IOR(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, ierr)
 
@@ -186,7 +186,7 @@ contains
          open (filehandle, file=trim(filename), STATUS='UNKNOWN', POSITION='REWIND')
          call pepc_write_parameters(filehandle)
          close (filehandle)
-      endif
+      end if
    end subroutine
 
    subroutine read_particles_mpiio(itime_in, comm, itime, n_total, dp, filename, nparticles_local, file_exists, noparams)
@@ -267,12 +267,12 @@ contains
 
             if (n_totsum .ne. n_total) then
                DEBUG_ERROR('("Invalid total particle number: sum(nparticles_local) = ", I0, " but the data file says n_total = ", I0)', n_totsum, n_total)
-            endif
+            end if
          else
             np_local = int(n_total / n_cpu, kind(np_local))
             remain = n_total - np_local * n_cpu
             if ((remain .gt. 0) .and. (my_rank .lt. remain)) np_local = np_local + 1
-         endif
+         end if
 
          if (allocated(dp)) deallocate (dp)
          allocate (dp(1:np_local))
@@ -289,13 +289,13 @@ contains
             open (filehandle, file=trim(filename2), action='read')
             call pepc_read_parameters(filehandle)
             close (filehandle)
-         endif
+         end if
       else
          if (present(file_exists)) then
             file_exists = .false.
          else
             DEBUG_ERROR('("read_particles_mpiio_from_filename(filename=", a, ") - file does not exist")', trim(filename))
-         endif
-      endif
+         end if
+      end if
    end subroutine
 end module module_checkpoint

@@ -96,13 +96,13 @@ contains
             cntr = cntr + 1
             ip1 = ip1 - 1
             ip2 = ip2 + 1
-         endif
+         end if
       end do
 
       !  odd one out
       if (mod(n, 2_kind_particle) .eq. 1) then
          u(n) = 0.
-      endif
+      end if
    end subroutine maxwell1
 
    !>
@@ -176,7 +176,7 @@ contains
          n1 = n - 1
       else
          n1 = n
-      endif
+      end if
 
       !  scramble indices to remove correlation between ux,uy,uz
       do i = 1, n1
@@ -243,7 +243,7 @@ contains
             v(j) = genran(dseed)
          end do
          y = genran(dseed)
-      endif
+      end if
 
       !  next index - make sure we don`t overstep array bounds if
       !  generator returns a 0.0 or 1.0
@@ -257,7 +257,7 @@ contains
          write (6, 100) (i, v(i), i=1, 97)
 100      format(i4, f10.6)
          stop
-      endif
+      end if
       !  get next variate and generate new one to fill gap
 
       y = v(j)

@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -21,7 +21,7 @@
 !>
 !>  Perform tree walk for all local particles
 !>  in a hybrid parallelization scheme using
-!>  linux pthreads
+!>  linux pthreads.
 !>
 !>  Algorithm follows the implementation of
 !>  Warren & Salmon`s 'latency-hiding' concept,
@@ -301,6 +301,7 @@ contains
       use module_atomic_ops, only: atomic_allocate_int, atomic_store_int
       use module_debug
       implicit none
+
       type(t_tree), target, intent(inout) :: t !< a B-H tree
       type(t_particle), target, intent(in) :: p(:) !< a list of particles
       integer, intent(in) :: num_threads !< number of traversal threads to be used
@@ -340,6 +341,7 @@ contains
       use module_atomic_ops, only: atomic_deallocate_int
       use module_debug
       implicit none
+
       type(t_tree), target, intent(inout) :: t !< a B-H tree
       type(t_particle), target, intent(inout) :: p(:) !< a list of particles
 
@@ -595,7 +597,7 @@ contains
       ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
       ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
       ! that the node has to be resolved
-      ! if the defer_list is empty, the call reutrns without doing anything
+      ! if the defer_list is empty, the call returns without doing anything
       call defer_list_parse_and_compact()
 
       ! read all todo_list-entries and start further traversals there
@@ -614,6 +616,7 @@ contains
 
          if (is_leaf) then
             partner_leaves = partner_leaves + 1
+            particle%work = particle%work + 1._8
 
 #ifndef NO_SPATIAL_INTERACTION_CUTOFF
             if (any(abs(delta) .ge. spatial_interaction_cutoff)) cycle
@@ -626,7 +629,6 @@ contains
             end if
 
             num_interactions = num_interactions + 1
-            particle%work = particle%work + 1._8
          else ! not a leaf, evaluate MAC
             num_mac_evaluations = num_mac_evaluations + 1
 

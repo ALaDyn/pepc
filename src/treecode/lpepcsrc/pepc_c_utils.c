@@ -44,7 +44,7 @@
 void create_directory_c(char dirname[])
 {
   char cwd[MYPATH_MAX];
-  char fullpath[MYPATH_MAX];
+  char fullpath[2*MYPATH_MAX + 1];
 
   getcwd(cwd, MYPATH_MAX);
   sprintf(fullpath, "%s/%s", cwd, dirname);

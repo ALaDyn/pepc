@@ -43,6 +43,8 @@ INLINING = -flto -fuse-linker-plugin  -fipa-matrix-reorg
 #`walk_worker_thread' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_walk_pthreads.o (symbol from plugin)
 #`run_communication_loop' referenced in section `.rodata' of /tmp/ccB14zE9.lto.o: defined in discarded section `.text' of module_tree_communicator.o (symbol from plugin)
 INLINING += -u run_communication_loop -u walk_worker_thread
+INLINING += --param early-inlining-insns=20
+
 
 # enable warnings (used for DEBUG builds)
 FWARNINGS = -Wall -Wsurprising -Wintrinsic-shadow -Wfunction-elimination -Wconversion -Warray-temporaries -Wcharacter-truncation -Wline-truncation -Wrealloc-lhs-all
@@ -54,20 +56,22 @@ FFEATURES = -frecursive -fimplicit-none -ffree-line-length-none -fcoarray=none -
 FARCH = -malign-data=cacheline -mtune=native -march=native
 
 # have extra flags to fix compiler problems
-FFIX =
+# -fallow-argument-mismatch allows non-conforming MPI modules to work
+FFIX = -fallow-argument-mismatch
 
 # switch further compiler flags depending on DEBUG setting
 ifeq ($(DEBUG), 1)
-  FFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf \
-    -fcheck=all -frange-check -fbacktrace -fvar-tracking \
-    $(FFEATURES) $(FWARNINGS) $(FARCH)
-  CFLAGS   = -Og -g -gdwarf-3 -gstrict-dwarf -pthread -Wall $(FARCH)
-  LDFLAGS  = -Og -g -gdwarf-3 -gstrict-dwarf -pthread
+  FSANITIZE=-fsanitize=thread # thread sanitizer
+  FSANITIZE=-fsanitize=undefined,address -fsanitize=leak # memory and leak sanitizer
+  FSANITIZE=
+  FFLAGS   = -Og -g -fcheck=all -frange-check -fbacktrace -fvar-tracking \
+    $(FFEATURES) $(FFIX) $(FARCH) \
+    $(FWARNINGS) $(FSANITIZE)
+  CFLAGS   = -Og -g -pthread -Wall $(FARCH) $(FSANITIZE)
+  LDFLAGS  = -Og -g -pthread $(FSANITIZE)
 else
-  FFLAGS   = -O3 -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
-    $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
-  CFLAGS   = -O3 -pthread -ffinite-math-only -fno-signaling-nans -fcx-limited-range -fno-signed-zeros \
-    $(FFIX) $(INLINING) $(FARCH)
+  FFLAGS   = -O3 $(FFIX) $(INLINING) $(FARCH) $(FFEATURES)
+  CFLAGS   = -O3 -pthread $(INLINING) $(FARCH)
   LDFLAGS  = -O3 -pthread $(FFIX) $(INLINING)
   CPPFLAGS += -DNDEBUG
 endif

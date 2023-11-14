@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -21,7 +21,7 @@
 !>
 !>  Perform tree walk for all local particles
 !>  in a hybrid parallelization scheme using
-!>  linux pthreads
+!>  OpenMP. (analogous to walk_pthreads)
 !>
 !>  Algorithm follows the implementation of
 !>  Warren & Salmon`s 'latency-hiding' concept,
@@ -53,7 +53,7 @@
 !>
 !>        particles_active = .false.
 !>
-!>        do i=1,max_particles_per_thread
+!>        do i=1,particles_per_thread
 !>
 !>          if ( (my_particles(i) == -1) .and. (particles_available)) then         ! i.e. the place for a particle is unassigned
 !>            my_particles(i) = get_first_unassigned_particle()
@@ -112,15 +112,16 @@ module module_tree_walk
    type :: t_threaddata
       integer :: id !< just a running number to distinguish the threads, currently unused
       logical :: is_on_shared_core !< thread output value: is set to true if the thread detects that it shares its processor with the communicator thread
-      integer :: coreid !< thread output value: id of thread's processor
+      integer :: coreid !< thread output value: id of thread`s processor
       integer(kind_node) :: counters(NUM_THREAD_COUNTERS)
    end type t_threaddata
 
    type(t_threaddata), allocatable, target :: threaddata(:)
    integer :: num_walk_threads = -1 !< number of worker threads, value is set in tree_walk_init()
-   real, parameter :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing max_particles_per_thread for thread which share their processor with the communicator
-   ! variables for adjusting the thread's workload
+   real, parameter :: work_on_communicator_particle_number_factor = 0.1 !< factor for reducing particles_per_thread for thread which share their processor with the communicator
+   ! variables for adjusting the thread`s workload
    integer, public :: max_particles_per_thread = 2000 !< maximum number of particles that will in parallel be processed by one workthread
+   integer :: particles_per_thread
 
    real(kind_physics) :: vbox(3)
    integer :: todo_list_length, defer_list_length, num_particles
@@ -189,7 +190,7 @@ contains
          write (u, '(a50,3e12.4)') 'total/ave/max_local # mac evaluations: ', total_mac_evaluations, average_mac_evaluations, max_mac_evaluations
          write (u, '(a50,3f12.3)') 'Load imbalance percent,min,max: ', work_imbal, work_imbal_min, work_imbal_max
          write (u, *) '######## TREE TRAVERSAL MODULE ############################################################'
-         write (u, '(a50,2i12)') 'walk_threads, max_nparticles_per_thread: ', num_walk_threads, max_particles_per_thread
+         write (u, '(a50,2i12)') 'walk_threads, particles_per_thread: ', num_walk_threads, particles_per_thread
          write (u, *) '######## DETAILED DATA ####################################################################'
          write (u, '(a)') '        PE  #interactions     #mac_evals    #posted_req  rel.work'
          do i = 1, num_pe
@@ -241,7 +242,7 @@ contains
    !>
    subroutine tree_walk_finalize()
       implicit none
-      deallocate (threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
+      if (allocated(threaddata)) deallocate (threaddata) ! this cannot be deallocated in tree_walk_uninit since tree_walk_statistics might want to access the data
    end subroutine tree_walk_finalize
 
    !>
@@ -249,12 +250,12 @@ contains
    !> `p` by performing a B-H tree traversal
    !>
    subroutine tree_walk_run(vbox_)
-      use module_atomic_ops, only: atomic_store_int
       use, intrinsic :: iso_c_binding
+      use omp_lib
+      use module_atomic_ops, only: atomic_store_int
       use module_pepc_types
       use module_timings
       use module_debug
-      use omp_lib
       use mpi
       implicit none
 
@@ -312,7 +313,7 @@ contains
       particle_data => p
       walk_tree => t
 
-      ! defer-list per particle (estimations) - will set total_defer_list_length = defer_list_length*my_max_particles_per_thread later
+      ! defer-list per particle (estimations) - will set total_defer_list_length = defer_list_length*my_particles_per_thread later
       defer_list_length = max(int(t%nintmax), 10)
       ! in worst case, each entry in the defer list can spawn 8 children in the todo_list
       todo_list_length = 8 * defer_list_length
@@ -325,7 +326,7 @@ contains
       end if
 
       ! evenly balance particles to threads if there are less than the maximum
-      max_particles_per_thread = max(min(num_particles / num_walk_threads, max_particles_per_thread), 1)
+      particles_per_thread = max(min(num_particles / num_walk_threads, max_particles_per_thread), 1)
    end subroutine tree_walk_init
 
    subroutine tree_walk_uninit(t, p)
@@ -342,12 +343,12 @@ contains
    end subroutine tree_walk_uninit
 
    subroutine walk_worker_thread(my_threaddata)
+      use pthreads_stuff, only: get_my_core, pthreads_sched_yield
       use module_interaction_specific
       use module_debug
       use module_atomic_ops
       use module_pepc_types
       use treevars, only: main_thread_processor_id
-      use pthreads_stuff, only: get_my_core, pthreads_sched_yield
       use mpi
       implicit none
 
@@ -365,7 +366,7 @@ contains
       logical :: particles_available
       logical :: particles_active
       logical :: shared_core
-      integer :: my_max_particles_per_thread
+      integer :: my_particles_per_thread
       integer :: my_processor_id
       logical :: particle_has_finished
 
@@ -377,22 +378,22 @@ contains
                     (my_processor_id .eq. main_thread_processor_id)
 
       if ((shared_core) .and. (num_walk_threads .gt. 1)) then
-         my_max_particles_per_thread = max(int(work_on_communicator_particle_number_factor * max_particles_per_thread), 1)
+         my_particles_per_thread = max(int(work_on_communicator_particle_number_factor * particles_per_thread), 1)
       else
-         my_max_particles_per_thread = max_particles_per_thread
+         my_particles_per_thread = particles_per_thread
       end if
 
       my_threaddata%is_on_shared_core = shared_core
       my_threaddata%coreid = my_processor_id
       my_threaddata%counters = 0
 
-      if (my_max_particles_per_thread .gt. 0) then
-         total_defer_list_length = defer_list_length * my_max_particles_per_thread
+      if (my_particles_per_thread .gt. 0) then
+         total_defer_list_length = defer_list_length * my_particles_per_thread
 
-         allocate (thread_particle_indices(my_max_particles_per_thread), &
-                   thread_particle_data(my_max_particles_per_thread), &
-                   defer_list_start_pos(my_max_particles_per_thread + 1), &
-                   partner_leaves(my_max_particles_per_thread))
+         allocate (thread_particle_indices(my_particles_per_thread), &
+                   thread_particle_data(my_particles_per_thread), &
+                   defer_list_start_pos(my_particles_per_thread + 1), &
+                   partner_leaves(my_particles_per_thread))
          allocate (defer_list_old(1:total_defer_list_length), &
                    defer_list_new(1:total_defer_list_length))
          allocate (todo_list(0:todo_list_length - 1))
@@ -413,7 +414,7 @@ contains
                ERROR_ON_FAIL(pthreads_sched_yield())
             end if
 
-            do i = 1, my_max_particles_per_thread
+            do i = 1, my_particles_per_thread
 
                if (contains_particle(i)) then
                   call setup_defer_list(i)
@@ -464,9 +465,9 @@ contains
                   ! there is no particle to process at position i, set the corresponding defer list to size 0
                   defer_list_start_pos(i) = defer_list_new_tail
                end if
-            end do ! i=1,my_max_particles_per_thread
+            end do ! i=1,my_particles_per_thread
 
-            defer_list_start_pos(my_max_particles_per_thread + 1) = defer_list_new_tail ! this entry is needed to store the length of the (max_particles_per_thread)th particles defer_list
+            defer_list_start_pos(my_particles_per_thread + 1) = defer_list_new_tail ! this entry is needed to store the length of the (particles_per_thread)th particles defer_list
          end do
 
          deallocate (thread_particle_indices, thread_particle_data, defer_list_start_pos, partner_leaves)
@@ -582,7 +583,7 @@ contains
       ! for each entry on the defer list, we check, whether children are already available and put them onto the todo_list
       ! another mac-check for each entry is not necessary here, since due to having requested the children, we already know,
       ! that the node has to be resolved
-      ! if the defer_list is empty, the call reurns without doing anything
+      ! if the defer_list is empty, the call returns without doing anything
       call defer_list_parse_and_compact()
 
       ! read all todo_list-entries and start further traversals there

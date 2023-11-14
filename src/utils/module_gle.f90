@@ -191,7 +191,7 @@ contains
          write (60, '(a/a)') 'end translate', 'end scale'
          close (60)
 
-      endif
+      end if
 
       !  Now do particles and boxes belonging to each processor domain
 
@@ -235,7 +235,7 @@ contains
       if (me .ne. num_pe - 1) then
          write (60, '(a)') 'set lstyle 2'
          write (60, '(a,2f13.4)') 'aline ', particles(npp + 1)%x(1), particles(npp + 1)%x(2)
-      endif
+      end if
 
       close (60)
 
@@ -303,7 +303,7 @@ contains
          write (60, '(a/a)') 'end translate', 'end scale'
          close (60)
 
-      endif
+      end if
 
       !  Now do particles and boxes belonging to each processor domain
 
@@ -329,7 +329,7 @@ contains
             write (60, '(a,2f13.4)') 'box ', boxsize(1) / 2**(level_twig(j)), boxsize(2) / 2**(level_twig(j))
          else
             write (60, '(a,2f13.4,2a)') 'box ', boxsize(1) / 2**(level_twig(j)), boxsize(2) / 2**(level_twig(j)), ' fill ', colors(mod(owner_twig(j), 10))
-         endif
+         end if
 
          !        write (60,'(a,2f13.4)') 'amove ',tree_nodes( node_twig(j) )%coc(1),tree_nodes( node_twig(j) )%coc(2)    ! Centre of charge of twig node
          !         write (60,'(a,f10.5,a)') 'circle ',.005*sqrt(tree_nodes( node_twig(j) )%abs_charge),' fill grey'
@@ -365,7 +365,7 @@ contains
             write (60, '(a,2f13.4,2a)') 'box ', boxsize(1) / 2**(level_leaf(j)), boxsize(2) / 2**(level_leaf(j)), ' fill ', colors(mod(owner_leaf(j), 10))
             !       write (60,'(a,2f13.4)') 'amove ',xt+s/2,yt+s/2
             !        write (60,'(a,i6)') 'text ',key_leaf(j)
-         endif
+         end if
          !     write (60,'(a/a)') 'set color green','set lwidth .002'
          !     write (60,'(a,2f13.4)') 'amove ',xt,yt
          !     write (60,'(a,2f13.4)') 'circle .02'
@@ -408,7 +408,7 @@ contains
       if (me .ne. num_pe - 1) then
          !     write (60,'(a)') 'set color grey50'
          !     write (60,'(a,2f13.4)') 'aline ',particles(npp+1)%x(1),particles(npp+1)%x(2)
-      endif
+      end if
 
       close (60)
 
@@ -543,7 +543,7 @@ contains
             write (60, '(a)') 'circle .005 fill red'
          else
             write (60, '(a)') 'circle .005 fill green'
-         endif
+         end if
 
       end do
 
@@ -737,7 +737,7 @@ contains
          write (61, '(a/a)') 'end translate', 'end scale'
          close (61)
 
-      endif
+      end if
 
       !  Now do particles and boxes belonging to each processor domain
 
@@ -780,7 +780,7 @@ contains
             write (60, '(a,2f13.4,a,a15)') 'box ', boxsize(1) / 2**(ilev), boxsize(2) / 2**(ilev), ' fill ', colors(mod(me, 10))
          else
             !        write (60,'(a,2f13.4,a)') 'box ',s,s,' fill grey5'
-         endif
+         end if
 
          if (me .eq. 0) write (61, '(4f15.5,i6,2f15.5)') xt, yt, zt, maxval(boxsize) / 2**(ilev), branch_owner(j), boxsize(1) / 2**(ilev), boxsize(2) / 2**(ilev)
 
@@ -835,7 +835,7 @@ contains
       if (me .ne. num_pe - 1) then
          !     write (60,'(a)') 'set color grey50'
          !     write (60,'(a,2f13.4)') 'aline ',particles(npp+1)%x(1),particles(npp+1)%x(2)
-      endif
+      end if
 
       close (60)
       close (61)

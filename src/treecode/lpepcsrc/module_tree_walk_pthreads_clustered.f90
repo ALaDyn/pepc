@@ -681,7 +681,7 @@ contains
                if (.not. mac(walk_node%interaction_data, dist2, walk_tree%boxlength2(walk_node%level))) then ! MAC negative, resolve
                   call resolve(particle_data(p))
                   cycle todo_list_loop ! we do not have to evaluate the MAC for any other particles in this cluster
-               endif
+               end if
 
             end do
 
@@ -720,7 +720,7 @@ contains
                call calc_force(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
             else ! self, count as interaction partner, otherwise ignore
                call calc_force_self(particle_data(ipart), walk_node%interaction_data, walk_node_idx, pdelta, pdist2, vbox)
-            endif
+            end if
             num_interactions = num_interactions + 1
             particle_data(ipart)%work = particle_data(ipart)%work + 1._8
          end do

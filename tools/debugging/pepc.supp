@@ -1,0 +1,83 @@
+# Suppressions file for PEPC to be used w/ Valgrind's Memcheck
+# valgrind <options> --suppressions=<PATH_TO_FILE>/pepc.supp <pepc-frontend> <args>
+#
+# The base64 encoding uses transfer() a lot which causes undefined data
+# but should be safe. We ignore anything from base64 encoding here. It
+# will in any case only affect I/O?
+{
+   base64encoder1
+   Memcheck:Cond
+   fun:__module_base64_MOD_base64_encoder_flushbuffer
+   fun:__module_base64_MOD_base64_encoder_encode_int4
+   fun:__module_base64_MOD_base64_encoder_encode_int8
+   fun:__module_base64_MOD_base64_encoder_encode_real8
+   fun:__module_vtk_MOD_vtkfile_write_data_array_*
+   fun:__files_MOD_write_particles_to_vtk
+   fun:__files_MOD_dump
+}
+#   fun:__manipulate_particles_MOD_special_start
+#   fun:MAIN__
+#   fun:main
+{
+   bsase64encoder2
+   Memcheck:Value8
+   fun:__module_base64_MOD_base64_encoder_flushbuffer
+   fun:__module_base64_MOD_base64_encoder_encode_int4
+   fun:__module_base64_MOD_base64_encoder_encode_int8
+   fun:__module_base64_MOD_base64_encoder_encode_real8
+   fun:__module_vtk_MOD_vtkfile_write_data_array_*
+   fun:__files_MOD_write_particles_to_vtk
+   fun:__files_MOD_dump
+}
+{
+   base64encoder3
+   Memcheck:Cond
+   fun:__module_base64_MOD_base64_encoder_finish
+   fun:__module_vtk_MOD_vtkfile_write_data_array_real*
+   fun:__files_MOD_write_particles_to_vtk
+   fun:__files_MOD_dump
+}
+{
+   base64encoder4
+   Memcheck:Cond
+   fun:__module_base64_MOD_base64_encoder_flushbuffer
+   fun:__module_base64_MOD_base64_encoder_encode_int4
+   fun:__module_base64_MOD_base64_encoder_encode_int8
+   fun:__module_vtk_MOD_vtkfile_write_data_array_int*
+   fun:__files_MOD_write_particles_to_vtk
+   fun:__files_MOD_dump
+}
+{
+   bsase64encoder5
+   Memcheck:Value8
+   fun:__module_base64_MOD_base64_encoder_flushbuffer
+   fun:__module_base64_MOD_base64_encoder_encode_int4
+   fun:__module_base64_MOD_base64_encoder_encode_int8
+   fun:__module_vtk_MOD_vtkfile_write_data_array_int*
+   fun:__files_MOD_write_particles_to_vtk
+   fun:__files_MOD_dump
+}
+{
+   bsase64encoder6
+   Memcheck:Cond
+   fun:__module_base64_MOD_base64_encoder_finish
+   fun:__module_vtk_MOD_vtkfile_write_data_array_int*
+   fun:__files_MOD_write_particles_to_vtk
+   fun:__files_MOD_dump
+}
+{
+   base64encoder7
+   Memcheck:Value8
+   fun:__module_base64_MOD_base64_encoder_finish
+   fun:__module_vtk_MOD_vtkfile_write_data_array_real*
+   fun:__files_MOD_write_particles_to_vtk
+   fun:__files_MOD_dump
+}
+{
+   base64encoder8
+   Memcheck:Value8
+   fun:__module_base64_MOD_base64_encoder_finish
+   fun:__module_vtk_MOD_vtkfile_write_data_array_int*
+   fun:__files_MOD_write_particles_to_vtk
+   fun:__files_MOD_dump
+}

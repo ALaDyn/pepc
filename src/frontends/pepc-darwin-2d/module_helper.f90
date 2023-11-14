@@ -23,12 +23,12 @@
 
 module helper
 
-  use module_pepc_kinds
-  use module_pepc_types
-  use module_interaction_Specific_types
-  use module_globals
-  use module_shortcut
-  implicit none
+   use module_pepc_kinds
+   use module_pepc_types
+   use module_interaction_Specific_types
+   use module_globals
+   use module_shortcut
+   implicit none
 
 !  ! MPI variables
 !  integer :: my_rank, n_ranks
@@ -48,1144 +48,1087 @@ module helper
 !  logical :: particle_test    ! turn direct summation on/off
 !  integer :: diag_interval    ! number of timesteps between all diagnostics and IO
 
-  integer, parameter :: particle_direct = 10000 ! number of particle for direct summation
+   integer, parameter :: particle_direct = 10000 ! number of particle for direct summation
 
-  type(t_particle), allocatable :: particles(:)
-  real*8, allocatable           :: direct_L2(:)
-  real*8, allocatable           :: direct_EL2Pot(:)
-  real*8, allocatable           :: direct_EL2rho(:)
-  real*8, allocatable           :: direct_EL2A(:)
-  real*8, allocatable           :: direct_EL2B(:)
+   type(t_particle), allocatable :: particles(:)
+   real*8, allocatable           :: direct_L2(:)
+   real*8, allocatable           :: direct_EL2Pot(:)
+   real*8, allocatable           :: direct_EL2rho(:)
+   real*8, allocatable           :: direct_EL2A(:)
+   real*8, allocatable           :: direct_EL2B(:)
 
-  integer(kind_particle)        :: next_label
+   integer(kind_particle)        :: next_label
 
+contains
 
-  contains
+   subroutine set_parameter()
 
-  subroutine set_parameter()
+      use module_pepc
+      use module_interaction_specific, only: theta2, eps2, include_far_field_if_periodic
+      use module_mirror_boxes, only: periodicity, spatial_interaction_cutoff
+      use module_shortcut, only: half, pi
+      use module_utils, only: create_directory
+      implicit none
 
-    use module_pepc
-    use module_interaction_specific , only : theta2, eps2, include_far_field_if_periodic
-    use module_mirror_boxes         , only : periodicity, spatial_interaction_cutoff
-    use module_shortcut             , only : half,pi   
-    use module_utils                , only: create_directory
-    implicit none
+      integer, parameter :: fid = 12
+      character(255)     :: para_file
+      logical            :: read_para_file, bool_exp, bool_nk, bool_pic, firstcall = .true.
+      character(12), parameter                        :: part_dir = 'particles/'
+      character(12), parameter                        :: field_dir = 'fields/'
 
-    integer, parameter :: fid = 12
-    character(255)     :: para_file
-    logical            :: read_para_file,bool_exp, bool_nk,bool_pic,firstcall  = .true.
-    character(12), parameter                        :: part_dir  = 'particles/'
-    character(12), parameter                        :: field_dir = 'fields/'
+      namelist /pepc2dd/ tnp, nt, dt, particle_output, domain_output, unique_species, &
+         diag_interval, periodicity_particles, spatial_interaction_cutoff, x_distribution, ischeme, &
+         restart_file, restart_step, normal, nsp, vth, vdrift, uth, udrift, wth, wdrift, folder, we, vmax, x_pert, y_pert, z_pert, u_pert, &
+         v_pert, w_pert, charge_init, mass_init, percentages, tracks, radius, newmark_x, newmark_v, newmark_Es, newmark_Ei, newmark_B, &
+         newmark_g, dA_1, dA__1, dA_0, B0, load
 
-    namelist /pepc2dd/ tnp, nt, dt, particle_output, domain_output, unique_species, &
-       diag_interval, periodicity_particles,  spatial_interaction_cutoff,x_distribution,ischeme,&
-       restart_file,restart_step,normal,nsp,vth,vdrift,uth,udrift,wth,wdrift,folder,we,vmax,x_pert,y_pert,z_pert,u_pert, &
-       v_pert,w_pert,charge_init,mass_init,percentages,tracks,radius,newmark_x,newmark_v,newmark_Es,newmark_Ei,newmark_B, &
-       newmark_g,dA_1,dA__1,dA_0,B0,load
+      ! set default parameter values
+      load = .false.
+      x_distribution = 2
+      v_distribution = 1
+      tnp = 1441
+      nt = 20
+      dt = 1e-3
+      particle_output = .true.
+      ischeme = "leapfrog"
+      folder = "data"
+      periodicity_particles = .false.
+      restart_file = ""
+      restart_step = 1
 
+      diag_interval = 2
+      nsp = 1
+      unique_species = 1
+      tracks = 0
+      normal = 0
 
-    ! set default parameter values
-    load            = .false.   
-    x_distribution  = 2
-    v_distribution  = 1
-    tnp             = 1441
-    nt              = 20
-    dt              = 1e-3
-    particle_output = .true.
-    ischeme         = "leapfrog"
-    folder          = "data"
-    periodicity_particles     = .false.
-    restart_file    = ""
-    restart_step    = 1
-
-    diag_interval   = 2
-    nsp             = 1
-    unique_species  = 1
-    tracks          = 0
-    normal          = 0
-    
-    uth             = one
-    vth             = zero
-    wth             = zero
-    udrift          = zero
-    vdrift          = zero
-    wdrift          = zero
-    x_pert          = zero
-    y_pert          = zero
-    z_pert          = zero
-    u_pert          = zero
-    v_pert          = zero
-    w_pert          = zero
+      uth = one
+      vth = zero
+      wth = zero
+      udrift = zero
+      vdrift = zero
+      wdrift = zero
+      x_pert = zero
+      y_pert = zero
+      z_pert = zero
+      u_pert = zero
+      v_pert = zero
+      w_pert = zero
     !!! Assuming Trapezoidal-Rule
-    newmark_x       = one
-    newmark_v       = one
-    newmark_Es      = one
-    newmark_Ei      = half
-    newmark_B       = half
-    newmark_g       = half
+      newmark_x = one
+      newmark_v = one
+      newmark_Es = one
+      newmark_Ei = half
+      newmark_B = half
+      newmark_g = half
     !! Total Derivative of A
-    dA_1            = one 
-    dA__1           = zero
-    dA_0            = one
-    B0              = zero
-       
-    percentages     = (/ 1,0,0,0,0,1/)
-    charge_init     = (/-one,zero,zero,zero,zero  /)
-    mass_init       = (/ one,zero,zero,zero,zero  /)
-    
-    radius          = one
-    
-    
-    etilde          =  one
-    phitilde        =  one
-    btilde          =  one
-    atilde          =  one
-    jtilde          =  one
-    rhotilde        =  one
-    lorentz_tilde   =  one
-    vtilde          =  one
-    we              =  one
-    vmax            =  one
-    
+      dA_1 = one
+      dA__1 = zero
+      dA_0 = one
+      B0 = zero
 
-    ! read in namelist file
-    call pepc_read_parameters_from_first_argument(read_para_file, para_file)
+      percentages = (/1, 0, 0, 0, 0, 1/)
+      charge_init = (/-one, zero, zero, zero, zero/)
+      mass_init = (/one, zero, zero, zero, zero/)
 
-    if (read_para_file) then
-      if(root) write(*,'(a)') " == reading parameter file, section pepc-darwin-2d : ", para_file
-      open(fid,file=para_file)
-      read(fid,NML=pepc2dd)
-      close(fid)
-    else
-      if(root) write(*,*) " == no param file, using default parameter "
-    end if
+      radius = one
 
-    periodicity = [ .false., .false., .false.]
-    if (periodicity_particles) periodicity = [ .true., .true., .false.]
-    tnp = tnp
+      etilde = one
+      phitilde = one
+      btilde = one
+      atilde = one
+      jtilde = one
+      rhotilde = one
+      lorentz_tilde = one
+      vtilde = one
+      we = one
+      vmax = one
 
-            
-    if (firstcall) then
-        call create_directory(trim(folder))
-        call create_directory(trim(folder)//trim(part_dir))
-        call create_directory(trim(folder)//trim(field_dir))
-        firstcall = .false.        
-    endif
-            
-            
-            
-    if(root) then
-      write(*,'(a,i12)')    " == total number of particles : ", tnp
-      write(*,'(a,i12)')    " == number of time steps      : ", nt
-      write(*,'(a,es12.4)') " == time step                 : ", dt
-      write(*,*)            "== time integration scheme   : ",  ischeme
-      write(*,'(a,es12.4)') " == theta2                    : ", theta2
-      write(*,'(a,es12.4)') " == epsilon2                  : ", eps2
-      write(*,'(a,l12)')    " == periodicity               : ", periodicity!
-      write(*,'(a,i12)')    " == diag & IO interval        : ", diag_interval
-      write(*,'(a,l12)')    " == particle output           : ", particle_output
-      write(*,'(a,l12)')    " == domain output             : ", domain_output
-      write(*,*) ""
+      ! read in namelist file
+      call pepc_read_parameters_from_first_argument(read_para_file, para_file)
 
-    end if
+      if (read_para_file) then
+         if (root) write (*, '(a)') " == reading parameter file, section pepc-darwin-2d : ", para_file
+         open (fid, file=para_file)
+         read (fid, NML=pepc2dd)
+         close (fid)
+      else
+         if (root) write (*, *) " == no param file, using default parameter "
+      end if
 
+      periodicity = [.false., .false., .false.]
+      if (periodicity_particles) periodicity = [.true., .true., .false.]
+      tnp = tnp
 
-    bool_exp = ischeme .eq. "leapfrog" .or. ischeme .eq. "explicit" .or. ischeme .eq."euler_method".or. ischeme .eq."euler_method_electrostatic"&
-    .or. ischeme .eq. "explicit_verlet".or. ischeme .eq. "euler_method3d"
-    bool_pic = ischeme .eq. "trapezoidal_picard" .or.ischeme .eq."trapezoidal_picard_electrostatic" 
+      if (firstcall) then
+         call create_directory(trim(folder))
+         call create_directory(trim(folder)//trim(part_dir))
+         call create_directory(trim(folder)//trim(field_dir))
+         firstcall = .false.
+      end if
 
-    adv = -1
+      if (root) then
+         write (*, '(a,i12)') " == total number of particles : ", tnp
+         write (*, '(a,i12)') " == number of time steps      : ", nt
+         write (*, '(a,es12.4)') " == time step                 : ", dt
+         write (*, *) "== time integration scheme   : ", ischeme
+         write (*, '(a,es12.4)') " == theta2                    : ", theta2
+         write (*, '(a,es12.4)') " == epsilon2                  : ", eps2
+         write (*, '(a,l12)') " == periodicity               : ", periodicity!
+         write (*, '(a,i12)') " == diag & IO interval        : ", diag_interval
+         write (*, '(a,l12)') " == particle output           : ", particle_output
+         write (*, '(a,l12)') " == domain output             : ", domain_output
+         write (*, *) ""
 
-    if (bool_exp) then
-        adv = 0
-    elseif (bool_pic) then
-        adv = 1
-    elseif (bool_nk) then
-        adv = 2
-    endif
+      end if
 
+      bool_exp = ischeme .eq. "leapfrog" .or. ischeme .eq. "explicit" .or. ischeme .eq. "euler_method" .or. ischeme .eq. "euler_method_electrostatic" &
+                 .or. ischeme .eq. "explicit_verlet" .or. ischeme .eq. "euler_method3d"
+      bool_pic = ischeme .eq. "trapezoidal_picard" .or. ischeme .eq. "trapezoidal_picard_electrostatic"
 
-  end subroutine
+      adv = -1
 
-  subroutine write_restart(p)
-    use mpi
-    implicit none
-    type(t_particle), allocatable, intent(in)    :: p(:)
-    integer(kind_particle)                       :: np
-    integer                                      :: rc
-    character(255)                               :: filename
-    character(*), parameter                      :: part_dir = "particles/"
-    integer(kind = MPI_OFFSET_KIND)              :: mpi_disp,my_offset
-    integer                                      :: fh, mpi_err
-    integer         , dimension(MPI_STATUS_SIZE) :: mpi_stat
+      if (bool_exp) then
+         adv = 0
+      elseif (bool_pic) then
+         adv = 1
+      elseif (bool_nk) then
+         adv = 2
+      end if
+
+   end subroutine
+
+   subroutine write_restart(p)
+      use mpi
+      implicit none
+      type(t_particle), allocatable, intent(in)    :: p(:)
+      integer(kind_particle)                       :: np
+      integer                                      :: rc
+      character(255)                               :: filename
+      character(*), parameter                      :: part_dir = "particles/"
+      integer(kind=MPI_OFFSET_KIND)              :: mpi_disp, my_offset
+      integer                                      :: fh, mpi_err
+      integer, dimension(MPI_STATUS_SIZE) :: mpi_stat
 !    real(kind = 8)   , dimension(:), allocatable :: real8_buf
-    
-    
-    
+
 !    if (root)  then
-    
-        np    = size(particles, kind=kind_particle)
+
+      np = size(particles, kind=kind_particle)
 !        if ( allocated(real8_buf) ) deallocate(real8_buf)
 !        allocate( real8_buf( np ) )
-        my_offset = 0 
-      
-        write(filename,'(a,"restart_label","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_int(filename,p(:)%label)
-        write(filename,'(a,"restart_q","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_real(filename,p(:)%data%q)
-        write(filename,'(a,"restart_m","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_real(filename,p(:)%data%m)
-        write(filename,'(a,"restart_x","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_real(filename,p(:)%x(1))
-        write(filename,'(a,"restart_y","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_real(filename,p(:)%x(2))
-        write(filename,'(a,"restart_z","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_real(filename,p(:)%x(3))
-        write(filename,'(a,"restart_vx","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_real(filename,p(:)%data%v(1))
-        write(filename,'(a,"restart_vy","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_real(filename,p(:)%data%v(2))
-        write(filename,'(a,"restart_vz","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank 
-        call write_mpi_real(filename,p(:)%data%v(3))
-        
-        contains
-        
-        subroutine write_mpi_real(filename,p)
-        implicit none
+      my_offset = 0
 
-        character(*)                    , intent(in) :: filename
-        real(kind_physics), dimension(:), intent(in) :: p
-     
-        real(kind = 8)   , dimension(:), allocatable :: real8_buf
-        
-        
-        if ( allocated(real8_buf) ) deallocate(real8_buf)
-        allocate( real8_buf( np ) )
-        
-        real8_buf(:) = real(p(:), kind = 8)
-            
-             
-        call mpi_file_open(MPI_COMM_WORLD, filename, ior(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, mpi_err)
-      
+      write (filename, '(a,"restart_label","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_int(filename, p(:)%label)
+      write (filename, '(a,"restart_q","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_real(filename, p(:)%data%q)
+      write (filename, '(a,"restart_m","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_real(filename, p(:)%data%m)
+      write (filename, '(a,"restart_x","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_real(filename, p(:)%x(1))
+      write (filename, '(a,"restart_y","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_real(filename, p(:)%x(2))
+      write (filename, '(a,"restart_z","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_real(filename, p(:)%x(3))
+      write (filename, '(a,"restart_vx","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_real(filename, p(:)%data%v(1))
+      write (filename, '(a,"restart_vy","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_real(filename, p(:)%data%v(2))
+      write (filename, '(a,"restart_vz","_",i6.6,".dat")') trim(folder)//trim(part_dir), my_rank
+      call write_mpi_real(filename, p(:)%data%v(3))
+
+   contains
+
+      subroutine write_mpi_real(filename, p)
+         implicit none
+
+         character(*), intent(in) :: filename
+         real(kind_physics), dimension(:), intent(in) :: p
+
+         real(kind=8), dimension(:), allocatable :: real8_buf
+
+         if (allocated(real8_buf)) deallocate (real8_buf)
+         allocate (real8_buf(np))
+
+         real8_buf(:) = real(p(:), kind=8)
+
+         call mpi_file_open(MPI_COMM_WORLD, filename, ior(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, mpi_err)
+
 !        if (mpi_err .ne. MPI_SUCCESS) DEBUG_ERROR(*, 'write_restart(): I/O error for ', filename)
-        
-        real8_buf(:) = real(p(:), kind = 8)
-        
-        call mpi_file_set_view(    fh, 0_MPI_OFFSET_KIND, MPI_DOUBLE_PRECISION , MPI_DOUBLE_PRECISION,'native'           , MPI_INFO_NULL      , mpi_err)  
-        call mpi_file_write_at_all(fh, my_offset        , real8_buf, int(np, kind = kind_default), MPI_DOUBLE_PRECISION, mpi_stat, mpi_err)
-        call mpi_file_sync(fh, mpi_err)
-        call mpi_file_close(fh, mpi_err)
 
-        deallocate(real8_buf)
-        
-            
-        end subroutine write_mpi_real
-        
-        
-        subroutine write_mpi_int(filename,p)
-        implicit none
+         real8_buf(:) = real(p(:), kind=8)
 
-        character(*)                       , intent(in) :: filename
-        integer(kind_physics), dimension(:), intent(in) :: p
-                
-        integer(kind = 8)   , dimension(:), allocatable :: real8_buf
-        
-        
-        if ( allocated(real8_buf) ) deallocate(real8_buf)
-        allocate( real8_buf( np ) )
-                    
-             
-        call mpi_file_open(MPI_COMM_WORLD, filename, ior(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, mpi_err)
-      
+         call mpi_file_set_view(fh, 0_MPI_OFFSET_KIND, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, 'native', MPI_INFO_NULL, mpi_err)
+         call mpi_file_write_at_all(fh, my_offset, real8_buf, int(np, kind=kind_default), MPI_DOUBLE_PRECISION, mpi_stat, mpi_err)
+         call mpi_file_sync(fh, mpi_err)
+         call mpi_file_close(fh, mpi_err)
+
+         deallocate (real8_buf)
+
+      end subroutine write_mpi_real
+
+      subroutine write_mpi_int(filename, p)
+         implicit none
+
+         character(*), intent(in) :: filename
+         integer(kind_physics), dimension(:), intent(in) :: p
+
+         integer(kind=8), dimension(:), allocatable :: real8_buf
+
+         if (allocated(real8_buf)) deallocate (real8_buf)
+         allocate (real8_buf(np))
+
+         call mpi_file_open(MPI_COMM_WORLD, filename, ior(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, mpi_err)
+
 !        if (mpi_err .ne. MPI_SUCCESS) DEBUG_ERROR(*, 'write_restart(): I/O error for ', filename)
-        
-        real8_buf(:) = int(p(:), kind = 8)
-        
-        call mpi_file_set_view(    fh, 0_MPI_OFFSET_KIND, MPI_INTEGER8 , MPI_INTEGER8,'native'           , MPI_INFO_NULL      , mpi_err)  
-        call mpi_file_write_at_all(fh, my_offset        , real8_buf, int(np, kind = kind_default), MPI_INTEGER8, mpi_stat, mpi_err)
-        call mpi_file_sync(fh, mpi_err)
-        call mpi_file_close(fh, mpi_err)
 
-        deallocate(real8_buf)
-        
-            
-        end subroutine write_mpi_int
-        
-  end subroutine write_restart
+         real8_buf(:) = int(p(:), kind=8)
 
+         call mpi_file_set_view(fh, 0_MPI_OFFSET_KIND, MPI_INTEGER8, MPI_INTEGER8, 'native', MPI_INFO_NULL, mpi_err)
+         call mpi_file_write_at_all(fh, my_offset, real8_buf, int(np, kind=kind_default), MPI_INTEGER8, mpi_stat, mpi_err)
+         call mpi_file_sync(fh, mpi_err)
+         call mpi_file_close(fh, mpi_err)
 
+         deallocate (real8_buf)
 
-subroutine init_particles(p,field_grid)
-    use module_interaction_specific, only : force_law
-    use module_pepc
-    use module_pepc_kinds
-    use module_init
-    use module_mirror_boxes, only:t_lattice_1,t_lattice_2,t_lattice_3,LatticeOrigin
-    use module_tool        , only:par_rand,copy_particle,scramble_particles,icopy_particle
-    use module_shortcut    , only:half,pi,oneoverfourpi,oneoverpi
-    use module_utils       , only: create_directory
-    use module_globals     , only: extent,pold,poldold
-    use encap
-    use mpi
-    
-    implicit none
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    type(field_grid_t)           , intent(in)    :: field_grid
-    integer(kind_particle)                       :: ip,jp
-    integer                                      :: rc
-    real(kind_particle)                          :: dummy,nd,lambda,rtnp,gl
-    
-    character(100)                               :: filename_i
+      end subroutine write_mpi_int
+
+   end subroutine write_restart
+
+   subroutine init_particles(p, field_grid)
+      use module_interaction_specific, only: force_law
+      use module_pepc
+      use module_pepc_kinds
+      use module_init
+      use module_mirror_boxes, only: t_lattice_1, t_lattice_2, t_lattice_3, LatticeOrigin
+      use module_tool, only: par_rand, copy_particle, scramble_particles, icopy_particle
+      use module_shortcut, only: half, pi, oneoverfourpi, oneoverpi
+      use module_utils, only: create_directory
+      use module_globals, only: extent, pold, poldold
+      use encap
+      use mpi
+
+      implicit none
+      type(t_particle), allocatable, intent(inout) :: p(:)
+      type(field_grid_t), intent(in)    :: field_grid
+      integer(kind_particle)                       :: ip, jp
+      integer                                      :: rc
+      real(kind_particle)                          :: dummy, nd, lambda, rtnp, gl
+
+      character(100)                               :: filename_i
 !    character(12), parameter                     :: part_dir = 'prova/'
 
-    if(my_rank.eq.0) write(*,'(a)') " == [init] init particles "
+      if (my_rank .eq. 0) write (*, '(a)') " == [init] init particles "
 
-    ! set initially number of local particles
-    np = tnp / n_ranks
+      ! set initially number of local particles
+      np = tnp / n_ranks
 !    write(*,*) "Info== ", my_rank, n_ranks,np, tnp
-    if(my_rank.eq.(n_ranks-1)) np = np + MOD(tnp, int(n_ranks, kind=kind_particle))
+      if (my_rank .eq. (n_ranks - 1)) np = np + MOD(tnp, int(n_ranks, kind=kind_particle))
 
-    if (allocated(particles) ) deallocate(particles)
-    allocate(particles(np), stat=rc)
-    if(rc.ne.0) write(*,*) " === particle allocation error!"
-    
-    if (allocated(pold) ) deallocate(pold)
-    allocate(pold(np), stat=rc)
-    if(rc.ne.0) write(*,*) " === particle allocation error!"
-    
-    if (allocated(poldold) ) deallocate(poldold)
-    allocate(poldold(np), stat=rc)
-    if(rc.ne.0) write(*,*) " === particle allocation error!"
+      if (allocated(particles)) deallocate (particles)
+      allocate (particles(np), stat=rc)
+      if (rc .ne. 0) write (*, *) " === particle allocation error!"
 
-    allocate(direct_L2(np), stat=rc)
-    if(rc.ne.0) write(*,*) " === direct_L2 allocation error!"
-    direct_L2 = -1.0_8
+      if (allocated(pold)) deallocate (pold)
+      allocate (pold(np), stat=rc)
+      if (rc .ne. 0) write (*, *) " === particle allocation error!"
 
+      if (allocated(poldold)) deallocate (poldold)
+      allocate (poldold(np), stat=rc)
+      if (rc .ne. 0) write (*, *) " === particle allocation error!"
 
+      allocate (direct_L2(np), stat=rc)
+      if (rc .ne. 0) write (*, *) " === direct_L2 allocation error!"
+      direct_L2 = -1.0_8
 
-    if ( extent(3) .eq. zero ) then
-        ixdim                = int( 2, kind = kind_dim )
-        force_law            = 2   
-    else if ( extent(3) .gt. zero ) then
-        ixdim                = int( 3, kind = kind_dim )
-        force_law            = 3   
-    endif
+      if (extent(3) .eq. zero) then
+         ixdim = int(2, kind=kind_dim)
+         force_law = 2
+      else if (extent(3) .gt. zero) then
+         ixdim = int(3, kind=kind_dim)
+         force_law = 3
+      end if
 
-    call pepc_prepare(ixdim)
-    call create_directory(trim(folder))
+      call pepc_prepare(ixdim)
+      call create_directory(trim(folder))
 
-    ! set random seed
-    dummy = par_rand(my_rank)
-    
-    
-    
-    t_lattice_1(1)      = extent(1)
-    t_lattice_2(2)      = extent(2)
-    LatticeOrigin(1:3)  = offset(1:3)
+      ! set random seed
+      dummy = par_rand(my_rank)
 
-    if ( extent(3).gt. zero )   t_lattice_3(3)      = extent(3)
-    
-    
-    
-    Volume          = extent(1)*extent(2)
-    if ( extent(3).gt. zero )  Volume          = extent(3)*Volume
-    if ( ( x_distribution .eq.2).or.( x_distribution .eq. 3) )  Volume          = radius**2*pi 
-    if ( ( x_distribution .eq.5)                             )  Volume          = radius**2*pi*(extent(3) - offset(3)) 
+      t_lattice_1(1) = extent(1)
+      t_lattice_2(2) = extent(2)
+      LatticeOrigin(1:3) = offset(1:3)
 
-    
-    
-    rtnp            = real(tnp, kind=kind_particle)         ! total nomber of particles - doubleprecision
-    nd              = rtnp/Volume                           ! number density
-    
-   
-    select case (normal)
-          case (0)  !
-            
-            
-            qtilde          =  unique_species*we/nd
-            mtilde          =  unique_species*we/nd
-            
-            vtilde          =  one    
-            lambda          =  one
-         
-            rhotilde        =  lambda*two
-            jtilde          =  lambda*two
-            etilde          =  lambda*half*oneoverpi
-            phitilde        =  lambda*half*oneoverpi
-            btilde          =  lambda*half*oneoverpi
-            atilde          =  lambda*half*oneoverpi
-            lorentz_tilde   =  vtilde
-            wpe             =  one
+      if (extent(3) .gt. zero) t_lattice_3(3) = extent(3)
 
-          case (1)  !
-            
-            qtilde          =  unique_species*we/nd
-            mtilde          =  unique_species*we/nd
-            
-            vtilde          =  vmax    
-            lambda          =  one
-            
-            rhotilde        =  lambda*two
-            jtilde          =  lambda*two
+      Volume = extent(1) * extent(2)
+      if (extent(3) .gt. zero) Volume = extent(3) * Volume
+      if ((x_distribution .eq. 2) .or. (x_distribution .eq. 3)) Volume = radius**2 * pi
+      if ((x_distribution .eq. 5)) Volume = radius**2 * pi * (extent(3) - offset(3))
 
-            etilde          =  lambda*half*oneoverpi
-            phitilde        =  lambda*half*oneoverpi
-            btilde          =  lambda*half*oneoverpi
-            atilde          =  lambda*half*oneoverpi
-            lorentz_tilde   =  vtilde
-            wpe             =  one
-            
-          case (2)  !
+      rtnp = real(tnp, kind=kind_particle)         ! total nomber of particles - doubleprecision
+      nd = rtnp / Volume                           ! number density
 
-            qtilde          =  unique_species*we/nd
-            mtilde          =  unique_species*we/nd
-            
-            lambda          =  one
-            vtilde          =  one  
-            rhotilde        =  one
-            jtilde          =  one
+      select case (normal)
+      case (0)  !
 
-            etilde          =  lambda
-            phitilde        =  lambda
-            btilde          =  lambda
-            atilde          =  lambda
-            lorentz_tilde   =  vtilde
-            wpe             =  one
-    
-          case (3)  ! CGS System
+         qtilde = unique_species * we / nd
+         mtilde = unique_species * we / nd
 
-            qtilde          =  qe
-            mtilde          =  me
-            if ( unique_species .eq. 2 ) mtilde          =  mi
-            
-            vtilde          =  c
-            
-            lambda          =  two
-            
-            rhotilde        =  lambda
-            jtilde          =  lambda
+         vtilde = one
+         lambda = one
 
-            etilde          =  lambda
-            phitilde        =  lambda
-            btilde          =  lambda
-            atilde          =  lambda
-            lorentz_tilde   =  vtilde
-            wpe             =  sqrt( four*pi*qtilde**2*nd/me  )           ! electron plasma frequency
-            
-         case (4)  ! From CGS TO SI
-             
-            qtilde          =  qe
-            mtilde          =  me 
-            if ( unique_species .eq. 2 ) mtilde          =  mi
+         rhotilde = lambda * two
+         jtilde = lambda * two
+         etilde = lambda * half * oneoverpi
+         phitilde = lambda * half * oneoverpi
+         btilde = lambda * half * oneoverpi
+         atilde = lambda * half * oneoverpi
+         lorentz_tilde = vtilde
+         wpe = one
 
-            qtilde          =  qtilde/sqrt( alpha*beta*oneoverfourpi/epsilon0 )
-            mtilde          =  mtilde/( beta/alpha**2 )
-            vtilde          =  c / alpha             
-            lambda          =  two
-            
-            rhotilde        =  lambda
-            jtilde          =  lambda
+      case (1)  !
 
-            etilde          =  lambda*oneoverfourpi/epsilon0 
-            phitilde        =  lambda*oneoverfourpi/epsilon0 
-            btilde          =  lambda*vtilde*oneoverfourpi*mu0
-            atilde          =  lambda*vtilde*oneoverfourpi*mu0
-            lorentz_tilde   =  one
-            wpe             =  sqrt( qtilde**2*nd/(me*epsilon0) )           ! electron plasma frequency
+         qtilde = unique_species * we / nd
+         mtilde = unique_species * we / nd
 
-          case default
-              ! CGS System
-              
-            qtilde          =  qe
-            mtilde          =  me
-            if ( unique_species .eq. 2 ) mtilde          =  mi
+         vtilde = vmax
+         lambda = one
 
-            vtilde          =  c
-            
-            lambda          =  two
-            
-            rhotilde        =  lambda
-            jtilde          =  lambda
+         rhotilde = lambda * two
+         jtilde = lambda * two
 
-            etilde          =  lambda
-            phitilde        =  lambda
-            btilde          =  lambda
-            atilde          =  lambda
-            lorentz_tilde   =  vtilde
-            wpe             =  sqrt( four*pi*qtilde**2*nd/me  )           ! electron plasma frequency
+         etilde = lambda * half * oneoverpi
+         phitilde = lambda * half * oneoverpi
+         btilde = lambda * half * oneoverpi
+         atilde = lambda * half * oneoverpi
+         lorentz_tilde = vtilde
+         wpe = one
 
-    end select
+      case (2)  !
 
-    dt = dt/wpe
-    
-    
-    if ( .not.load ) then
-        
-        call charge_mass_label(p)
+         qtilde = unique_species * we / nd
+         mtilde = unique_species * we / nd
 
-        select case (x_distribution) 
-              case (1)  !  Rectangle/Square
-                  call rect(p)
-              case (2)  ! Disc
-                  call disk(p)
-              case (3)  ! Disc
-                  call uniform_disk(p)
-              case (4) ! Random Cube
-                  call cube(p)   
-              case (5) ! Random Cylinder with axes in z
-                  call cylinder(p)   
-              case default
-                  call rect(p)
+         lambda = one
+         vtilde = one
+         rhotilde = one
+         jtilde = one
 
-        end select
-    
-        
-        call velocity_profile(p)
-        call scramble_particles(p)
+         etilde = lambda
+         phitilde = lambda
+         btilde = lambda
+         atilde = lambda
+         lorentz_tilde = vtilde
+         wpe = one
+
+      case (3)  ! CGS System
+
+         qtilde = qe
+         mtilde = me
+         if (unique_species .eq. 2) mtilde = mi
+
+         vtilde = c
+
+         lambda = two
+
+         rhotilde = lambda
+         jtilde = lambda
+
+         etilde = lambda
+         phitilde = lambda
+         btilde = lambda
+         atilde = lambda
+         lorentz_tilde = vtilde
+         wpe = sqrt(four * pi * qtilde**2 * nd / me)           ! electron plasma frequency
+
+      case (4)  ! From CGS TO SI
+
+         qtilde = qe
+         mtilde = me
+         if (unique_species .eq. 2) mtilde = mi
+
+         qtilde = qtilde / sqrt(alpha * beta * oneoverfourpi / epsilon0)
+         mtilde = mtilde / (beta / alpha**2)
+         vtilde = c / alpha
+         lambda = two
+
+         rhotilde = lambda
+         jtilde = lambda
+
+         etilde = lambda * oneoverfourpi / epsilon0
+         phitilde = lambda * oneoverfourpi / epsilon0
+         btilde = lambda * vtilde * oneoverfourpi * mu0
+         atilde = lambda * vtilde * oneoverfourpi * mu0
+         lorentz_tilde = one
+         wpe = sqrt(qtilde**2 * nd / (me * epsilon0))           ! electron plasma frequency
+
+      case default
+         ! CGS System
+
+         qtilde = qe
+         mtilde = me
+         if (unique_species .eq. 2) mtilde = mi
+
+         vtilde = c
+
+         lambda = two
+
+         rhotilde = lambda
+         jtilde = lambda
+
+         etilde = lambda
+         phitilde = lambda
+         btilde = lambda
+         atilde = lambda
+         lorentz_tilde = vtilde
+         wpe = sqrt(four * pi * qtilde**2 * nd / me)           ! electron plasma frequency
+
+      end select
+
+      dt = dt / wpe
+
+      if (.not. load) then
+
+         call charge_mass_label(p)
+
+         select case (x_distribution)
+         case (1)  !  Rectangle/Square
+            call rect(p)
+         case (2)  ! Disc
+            call disk(p)
+         case (3)  ! Disc
+            call uniform_disk(p)
+         case (4) ! Random Cube
+            call cube(p)
+         case (5) ! Random Cylinder with axes in z
+            call cylinder(p)
+         case default
+            call rect(p)
+
+         end select
+
+         call velocity_profile(p)
+         call scramble_particles(p)
 !        call perturbations(p)
-        
-        
-        
-    else 
-        
-        call load_file(p)
-        
-   endif
 
-    
+      else
+
+         call load_file(p)
+
+      end if
 
 !    call copy_particle(p,pold,np)
 !    call copy_particle(p,poldold,np)
-!    
+!
 !    call clean_fields(pold)
-    call clean_fields(p)
+      call clean_fields(p)
 !    call clean_fields(poldold)
-!    
-    
-    
-    do ip = 1,np
-        
-        call icopy_particle(p(ip),pold(ip))
-        pold(ip)%x(1:2)         = p(ip)%x(1:2) - dt*p(ip)%data%v(1:2)
-        pold(ip)%x(3)           = p(ip)%x(3)
+!
+
+      do ip = 1, np
+
+         call icopy_particle(p(ip), pold(ip))
+         pold(ip)%x(1:2) = p(ip)%x(1:2) - dt * p(ip)%data%v(1:2)
+         pold(ip)%x(3) = p(ip)%x(3)
 !        poldold(ip)%x(1:2)      = p(ip)%x(1:2) - two*dt*p(ip)%data%v(1:2)
-                
-    enddo
-!     
+
+      end do
+!
 ! !    call write_particles_vtk(p, 0, 0.0_8)
 ! !    call write_particles_vtk(pold, 10, 10.0_8)
-!     
-    call pepc_particleresults_clear(pold)
-    call pepc_grow_tree(pold)
-    call pepc_traverse_tree(pold)
-    call pepc_restore_particles(pold)
-    call pepc_timber_tree()
-    call normalize(np, pold)
-    
-    
+!
+      call pepc_particleresults_clear(pold)
+      call pepc_grow_tree(pold)
+      call pepc_traverse_tree(pold)
+      call pepc_restore_particles(pold)
+      call pepc_timber_tree()
+      call normalize(np, pold)
+
 !    call exit(1)
-!    
+!
 !    call pepc_particleresults_clear(poldold)
 !    call pepc_grow_tree(poldold)
 !    call pepc_traverse_tree(poldold)
 !    call pepc_restore_particles(poldold)
 !    call pepc_timber_tree()
 !    call normalize(np, poldold)
-    
-    
-     next_label = tnp+1
 
-  end subroutine init_particles
+      next_label = tnp + 1
 
-  subroutine time_step(p)
-  use module_shortcut, only: zero,one
-  use mpi
-  implicit none
-    type(t_particle), allocatable, intent(in)    :: p(:)
-    integer(kind_particle)                       :: ip,np
-    integer                                      :: rc
-    real(kind_particle)                          :: wpe,wgf,alpha
-    logical                                      :: flag
-    
-    wpe = zero
-    wgf = zero
-    
-    np = size(p, kind=kind_particle)
-    
-    do ip = 1,np
-        
-        wpe     = wpe + p(ip)%data%q**2/p(ip)%data%m 
-        wgf     = wgf + dot_product( p(ip)%results%B , p(ip)%results%B ) 
-                
-    enddo
-    
-    call MPI_ALLREDUCE(MPI_IN_PLACE, wpe, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-    call MPI_ALLREDUCE(MPI_IN_PLACE, wgf, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        
+   end subroutine init_particles
+
+   subroutine time_step(p)
+      use module_shortcut, only: zero, one
+      use mpi
+      implicit none
+      type(t_particle), allocatable, intent(in)    :: p(:)
+      integer(kind_particle)                       :: ip, np
+      integer                                      :: rc
+      real(kind_particle)                          :: wpe, wgf, alpha
+      logical                                      :: flag
+
+      wpe = zero
+      wgf = zero
+
+      np = size(p, kind=kind_particle)
+
+      do ip = 1, np
+
+         wpe = wpe + p(ip)%data%q**2 / p(ip)%data%m
+         wgf = wgf + dot_product(p(ip)%results%B, p(ip)%results%B)
+
+      end do
+
+      call MPI_ALLREDUCE(MPI_IN_PLACE, wpe, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, wgf, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+
 !    wpe       = abs( wpe/real(tnp, kind=kind_particle) )!sqrt(wpe)
-    wgf       = sqrt(wgf)!/real(tnp, kind=kind_particle)
-    
-    ip      = 1
-    flag    = .true.
-    alpha   = abs( p(ip)%data%q/p(ip)%data%m )
-    
-    
-    do  while ( flag .and. ( ip .lt. np ) )
-        
-        if ( p(ip)%data%q .lt. zero ) then 
+      wgf = sqrt(wgf)!/real(tnp, kind=kind_particle)
+
+      ip = 1
+      flag = .true.
+      alpha = abs(p(ip)%data%q / p(ip)%data%m)
+
+      do while (flag .and. (ip .lt. np))
+
+         if (p(ip)%data%q .lt. zero) then
             flag = .false.
-            alpha   = abs( p(1)%data%q/p(1)%data%m )
-        endif
-        ip  =  ip + 1
-                
-    enddo
+            alpha = abs(p(1)%data%q / p(1)%data%m)
+         end if
+         ip = ip + 1
 
-    wgf =  alpha*wgf
+      end do
 
-    
-    if (root) write(*,*) "electron/magnetic frequency =  ", wpe,wgf
-    
-    if ( wpe .gt. zero )  then 
-        wpe = one/wpe
-    else
-        wpe = zero
-    endif
-    
-    if ( wgf .gt. zero ) then 
-        wgf = one/wgf
-    else
-        wgf = zero
-    endif 
-    
-        
-    if (root) write(*,*) "electron/magnetic period = ", wpe,wgf
-    
-  end subroutine time_step
-  
-  subroutine periodic_particles(np,p)
+      wgf = alpha * wgf
+
+      if (root) write (*, *) "electron/magnetic frequency =  ", wpe, wgf
+
+      if (wpe .gt. zero) then
+         wpe = one / wpe
+      else
+         wpe = zero
+      end if
+
+      if (wgf .gt. zero) then
+         wgf = one / wgf
+      else
+         wgf = zero
+      end if
+
+      if (root) write (*, *) "electron/magnetic period = ", wpe, wgf
+
+   end subroutine time_step
+
+   subroutine periodic_particles(np, p)
 !    use module_mirror_boxes
-    implicit none
+      implicit none
 
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)       , intent(in)    :: np
-    integer(kind_particle)                       :: ip,jp
+      type(t_particle), allocatable, intent(inout) :: p(:)
+      integer(kind_particle), intent(in)    :: np
+      integer(kind_particle)                       :: ip, jp
 
-    if(root) write(*,'(a)') " ======  periodicity on particles "
-    do ip=1, np
-        do jp = 1,3
-            if ( p(ip)%x(jp) .lt. offset(jp) )              p(ip)%x(jp) = p(ip)%x(jp) + extent(jp)
-            if ( p(ip)%x(jp) .gt. offset(jp) + extent(jp) ) p(ip)%x(jp) = mod( p(ip)%x(jp) , extent(jp) )
-        enddo
-    end do
-  end subroutine periodic_particles
-  
-  subroutine iperiodic_particles(p)
+      if (root) write (*, '(a)') " ======  periodicity on particles "
+      do ip = 1, np
+         do jp = 1, 3
+            if (p(ip)%x(jp) .lt. offset(jp)) p(ip)%x(jp) = p(ip)%x(jp) + extent(jp)
+            if (p(ip)%x(jp) .gt. offset(jp) + extent(jp)) p(ip)%x(jp) = mod(p(ip)%x(jp), extent(jp))
+         end do
+      end do
+   end subroutine periodic_particles
+
+   subroutine iperiodic_particles(p)
 !    use module_mirror_boxes
-    implicit none
+      implicit none
 
-    type(t_particle)             , intent(inout) :: p
-    integer(kind_particle)                       :: jp
+      type(t_particle), intent(inout) :: p
+      integer(kind_particle)                       :: jp
 
-        do jp = 1,3
-            if ( p%x(jp) .lt. offset(jp) )              p%x(jp) = p%x(jp) + extent(jp)
-            if ( p%x(jp) .gt. offset(jp) + extent(jp) ) p%x(jp) = mod( p%x(jp) , extent(jp) )
-        enddo
-        
-  end subroutine iperiodic_particles
+      do jp = 1, 3
+         if (p%x(jp) .lt. offset(jp)) p%x(jp) = p%x(jp) + extent(jp)
+         if (p%x(jp) .gt. offset(jp) + extent(jp)) p%x(jp) = mod(p%x(jp), extent(jp))
+      end do
 
+   end subroutine iperiodic_particles
 
-  real*8 function get_time()
+   real * 8 function get_time()
       use mpi
       implicit none
 
       get_time = MPI_WTIME()
 
-  end function get_time
+   end function get_time
 
-  subroutine normalize(np,p)
-    implicit none
+   subroutine normalize(np, p)
+      implicit none
 
-    type(t_particle), allocatable, intent(inout) :: p(:)
-    integer(kind_particle)       , intent(in)    :: np
+      type(t_particle), allocatable, intent(inout) :: p(:)
+      integer(kind_particle), intent(in)    :: np
 
-    integer(kind_particle)                       :: ip
+      integer(kind_particle)                       :: ip
 !    real(kind_particle) ::err= zero
 
-    do ip = 1,np
+      do ip = 1, np
 
-        p(ip)%results%E(1:3)    = p(ip)%results%E(1:3)      *etilde
-        p(ip)%results%B(1:3)    = p(ip)%results%B(1:3)      *btilde/vtilde
-        p(ip)%results%A(1:3)    = p(ip)%results%A(1:3)      *atilde/vtilde
-        p(ip)%results%dxA(1:3)  = p(ip)%results%dxA(1:3)    *atilde/vtilde
-        p(ip)%results%dyA(1:3)  = p(ip)%results%dyA(1:3)    *atilde/vtilde
-        p(ip)%results%dzA(1:3)  = p(ip)%results%dzA(1:3)    *atilde/vtilde
-        p(ip)%results%J(1:3)    = p(ip)%results%J(1:3)      *jtilde
-        p(ip)%results%Jirr(1:3) = p(ip)%results%Jirr(1:3)   *jtilde
-        p(ip)%results%pot       = p(ip)%results%pot         *phitilde
+         p(ip)%results%E(1:3) = p(ip)%results%E(1:3) * etilde
+         p(ip)%results%B(1:3) = p(ip)%results%B(1:3) * btilde / vtilde
+         p(ip)%results%A(1:3) = p(ip)%results%A(1:3) * atilde / vtilde
+         p(ip)%results%dxA(1:3) = p(ip)%results%dxA(1:3) * atilde / vtilde
+         p(ip)%results%dyA(1:3) = p(ip)%results%dyA(1:3) * atilde / vtilde
+         p(ip)%results%dzA(1:3) = p(ip)%results%dzA(1:3) * atilde / vtilde
+         p(ip)%results%J(1:3) = p(ip)%results%J(1:3) * jtilde
+         p(ip)%results%Jirr(1:3) = p(ip)%results%Jirr(1:3) * jtilde
+         p(ip)%results%pot = p(ip)%results%pot * phitilde
 !        p(ip)%results%rho       = p(ip)%results%rho         *rhotilde
-        
+
 !        err = err + ( p(ip)%data%v(1)/p(ip)%data%g*p(ip)%results%pot-p(ip)%results%A(1) )**2
 
-    enddo
+      end do
 !    write(*,*) "errore2: ",err
-  end subroutine normalize
-  
-  subroutine inormalize(p)
-    implicit none
+   end subroutine normalize
 
-    type(t_particle), intent(inout) :: p
+   subroutine inormalize(p)
+      implicit none
 
-        p%results%E(1:3)    = p%results%E(1:3)      *etilde
-        p%results%B(1:3)    = p%results%B(1:3)      *btilde/vtilde
-        p%results%A(1:3)    = p%results%A(1:3)      *atilde/vtilde
-        p%results%dxA(1:3)  = p%results%dxA(1:3)    *atilde/vtilde
-        p%results%dyA(1:3)  = p%results%dyA(1:3)    *atilde/vtilde
-        p%results%dzA(1:3)  = p%results%dzA(1:3)    *atilde/vtilde
-        p%results%J(1:3)    = p%results%J(1:3)      *jtilde
-        p%results%Jirr(1:3) = p%results%Jirr(1:3)   *jtilde
-        p%results%pot       = p%results%pot         *phitilde
+      type(t_particle), intent(inout) :: p
+
+      p%results%E(1:3) = p%results%E(1:3) * etilde
+      p%results%B(1:3) = p%results%B(1:3) * btilde / vtilde
+      p%results%A(1:3) = p%results%A(1:3) * atilde / vtilde
+      p%results%dxA(1:3) = p%results%dxA(1:3) * atilde / vtilde
+      p%results%dyA(1:3) = p%results%dyA(1:3) * atilde / vtilde
+      p%results%dzA(1:3) = p%results%dzA(1:3) * atilde / vtilde
+      p%results%J(1:3) = p%results%J(1:3) * jtilde
+      p%results%Jirr(1:3) = p%results%Jirr(1:3) * jtilde
+      p%results%pot = p%results%pot * phitilde
 !        p(ip)%results%rho       = p(ip)%results%rho         *rhotilde
 
-  end subroutine inormalize
-  
-  
-  subroutine test_particles()
-        use module_pepc_types
-        use module_directsum
-        use module_globals             , only : folder
-        use module_interaction_specific, only : theta2
-        use module_tool                , only : random,cross_product
-        use mpi
-        implicit none
+   end subroutine inormalize
 
-        integer(kind_particle), allocatable   :: tindx(:)
-        real(kind_particle), allocatable      :: trnd(:)
-        type(t_particle_results), allocatable :: trslt(:)
-        integer(kind_particle)                :: tn, tn_global, ti,ii
-        integer                               :: rc
-        
-        real(kind_particle)                   :: phipp      ,phitree      ,phi_err ,phi_norm
-        real(kind_particle)                   :: Epp(1:3)   ,Etree(1:3)   ,E_err   ,E_norm
-        real(kind_particle)                   :: Expp(1:3)  ,Extree(1:3)  ,Ex_err  ,Ex_norm
-        real(kind_particle)                   :: Eypp(1:3)  ,Eytree(1:3)  ,Ey_err  ,Ey_norm
-        real(kind_particle)                   :: Bpp(1:3)   ,Btree(1:3)   ,B_err   ,B_norm
-        real(kind_particle)                   :: Jpp(1:3)   ,Jtree(1:3)   ,J_err   ,J_norm
-        real(kind_particle)                   :: Jirpp(1:3) ,Jirtree(1:3) ,Jir_err ,Jir_norm
-        real(kind_particle)                   :: App(1:3)   ,Atree(1:3)   ,A_err   ,A_norm
-        real(kind_particle)                   :: Axpp(1:3)  ,Axtree(1:3)  ,Ax_err  ,Ax_norm
-        real(kind_particle)                   :: Aypp(1:3)  ,Aytree(1:3)  ,Ay_err  ,Ay_norm
-        real(kind_particle)                   :: Azpp(1:3)  ,Aztree(1:3)  ,Az_err  ,Az_norm
-        real(kind_particle)                   :: Axxpp(1:3) ,Axxtree(1:3) ,Axx_err ,Axx_norm
-        real(kind_particle)                   :: Axypp(1:3) ,Axytree(1:3) ,Axy_err ,Axy_norm
-        real(kind_particle)                   :: Ayypp(1:3) ,Ayytree(1:3) ,Ayy_err ,Ayy_norm
-        real(kind_particle)                   :: Fdarpp(1:3),Fdartree(1:3),Fdar_err,Fdar_norm
-        real(kind_particle)                   :: FElpp(1:3) ,FEltree(1:3) ,FEl_err ,FEl_norm
-        real(kind_particle)                   :: v(1:3)     ,m,q,ta,tb,gradpp(1:3),gradtree(1:3)
-        
+   subroutine test_particles()
+      use module_pepc_types
+      use module_directsum
+      use module_globals, only: folder
+      use module_interaction_specific, only: theta2
+      use module_tool, only: random, cross_product
+      use mpi
+      implicit none
 
-        ta = get_time()
+      integer(kind_particle), allocatable   :: tindx(:)
+      real(kind_particle), allocatable      :: trnd(:)
+      type(t_particle_results), allocatable :: trslt(:)
+      integer(kind_particle)                :: tn, tn_global, ti, ii
+      integer                               :: rc
 
-        phi_err     = zero
-        E_err       = zero
-        B_err       = zero
-        J_err       = zero
-        Jir_err     = zero
-        A_err       = zero
-        Ax_err      = zero
-        Ay_err      = zero
-        Az_err      = zero
-        Axx_err     = zero
-        Ayy_err     = zero
-        Axy_err     = zero
-        Fdar_err    = zero
-        FEl_err     = zero
-        
-        phi_norm    = zero
-        E_norm      = zero
-        B_norm      = zero
-        J_norm      = zero
-        Jir_norm    = zero
-        A_norm      = zero
-        Ax_norm     = zero
-        Ay_norm     = zero
-        Az_norm     = zero
-        Axx_norm    = zero
-        Ayy_norm    = zero
-        Axy_norm    = zero
-        Fdar_norm   = zero
-        FEl_norm    = zero
-        
+      real(kind_particle)                   :: phipp, phitree, phi_err, phi_norm
+      real(kind_particle)                   :: Epp(1:3), Etree(1:3), E_err, E_norm
+      real(kind_particle)                   :: Expp(1:3), Extree(1:3), Ex_err, Ex_norm
+      real(kind_particle)                   :: Eypp(1:3), Eytree(1:3), Ey_err, Ey_norm
+      real(kind_particle)                   :: Bpp(1:3), Btree(1:3), B_err, B_norm
+      real(kind_particle)                   :: Jpp(1:3), Jtree(1:3), J_err, J_norm
+      real(kind_particle)                   :: Jirpp(1:3), Jirtree(1:3), Jir_err, Jir_norm
+      real(kind_particle)                   :: App(1:3), Atree(1:3), A_err, A_norm
+      real(kind_particle)                   :: Axpp(1:3), Axtree(1:3), Ax_err, Ax_norm
+      real(kind_particle)                   :: Aypp(1:3), Aytree(1:3), Ay_err, Ay_norm
+      real(kind_particle)                   :: Azpp(1:3), Aztree(1:3), Az_err, Az_norm
+      real(kind_particle)                   :: Axxpp(1:3), Axxtree(1:3), Axx_err, Axx_norm
+      real(kind_particle)                   :: Axypp(1:3), Axytree(1:3), Axy_err, Axy_norm
+      real(kind_particle)                   :: Ayypp(1:3), Ayytree(1:3), Ayy_err, Ayy_norm
+      real(kind_particle)                   :: Fdarpp(1:3), Fdartree(1:3), Fdar_err, Fdar_norm
+      real(kind_particle)                   :: FElpp(1:3), FEltree(1:3), FEl_err, FEl_norm
+      real(kind_particle)                   :: v(1:3), m, q, ta, tb, gradpp(1:3), gradtree(1:3)
 
-        tn = tnp!particle_direct / n_ranks
-        if(my_rank.eq.(n_ranks-1)) tn = tn + MOD(particle_direct, n_ranks)
+      ta = get_time()
 
-        allocate(tindx(tn), trnd(tn), trslt(tn))
+      phi_err = zero
+      E_err = zero
+      B_err = zero
+      J_err = zero
+      Jir_err = zero
+      A_err = zero
+      Ax_err = zero
+      Ay_err = zero
+      Az_err = zero
+      Axx_err = zero
+      Ayy_err = zero
+      Axy_err = zero
+      Fdar_err = zero
+      FEl_err = zero
 
-        call random(trnd)
+      phi_norm = zero
+      E_norm = zero
+      B_norm = zero
+      J_norm = zero
+      Jir_norm = zero
+      A_norm = zero
+      Ax_norm = zero
+      Ay_norm = zero
+      Az_norm = zero
+      Axx_norm = zero
+      Ayy_norm = zero
+      Axy_norm = zero
+      Fdar_norm = zero
+      FEl_norm = zero
 
-        tindx(1:tn) = int(trnd(1:tn) * (np-1)) + 1
+      tn = tnp!particle_direct / n_ranks
+      if (my_rank .eq. (n_ranks - 1)) tn = tn + MOD(particle_direct, n_ranks)
 
-        call directforce(particles, tindx, tn, trslt, MPI_COMM_WORLD)
+      allocate (tindx(tn), trnd(tn), trslt(tn))
 
-        do ti = 1, tn
+      call random(trnd)
 
-            do ii = 1,3
-                v(ii)        = particles(tindx(ti))%data%v(ii)
-                Epp(ii)      = trslt(ti)%e(ii)
-                Etree(ii)    = particles(tindx(ti))%results%e(ii)
-                App(ii)      = trslt(ti)%A(ii)
-                Atree(ii)    = particles(tindx(ti))%results%A(ii)
-                Axpp(ii)     = trslt(ti)%dxA(ii)
-                Axtree(ii)   = particles(tindx(ti))%results%dxA(ii)
-                Aypp(ii)     = trslt(ti)%dyA(ii)
-                Aytree(ii)   = particles(tindx(ti))%results%dyA(ii)
-                Azpp(ii)     = trslt(ti)%dzA(ii)
-                Aztree(ii)   = particles(tindx(ti))%results%dzA(ii)
-                !          Axytree(ii)   = particles(tindx(ti))%results%dxyA(ii)
-                !          Ayypp(ii)     = trslt(ti)%dyyA(ii)
-                !
-                !          Ayytree(ii)   = particles(tindx(ti))%results%dyyA(ii)
-                Jirpp(ii)    = trslt(ti)%Jirr(ii)
-                Jirtree(ii)  = particles(tindx(ti))%results%Jirr(ii)
-                Jpp(ii)       = trslt(ti)%J(ii)
-                Jtree(ii)     = particles(tindx(ti))%results%J(ii)
-                Bpp(ii)       = trslt(ti)%B(ii)
-                Btree(ii)     = particles(tindx(ti))%results%B(ii)
-            enddo
-          
+      tindx(1:tn) = int(trnd(1:tn) * (np - 1)) + 1
 
-          m           = particles(tindx(ti))%data%m
-          q           = particles(tindx(ti))%data%q
+      call directforce(particles, tindx, tn, trslt, MPI_COMM_WORLD)
 
-          phipp       = trslt(ti)%pot
-          phitree     = particles(tindx(ti))%results%pot
+      do ti = 1, tn
 
-          E_err     = E_err  + dot_product( Epp - Etree  , Epp - Etree )
-          E_norm    = E_norm + dot_product( Epp          , Epp )
-          
-          phi_err   =  phi_err    +  ( phipp - phitree )**2
-          phi_norm  =  phi_norm   +    phipp**2
+         do ii = 1, 3
+            v(ii) = particles(tindx(ti))%data%v(ii)
+            Epp(ii) = trslt(ti)%e(ii)
+            Etree(ii) = particles(tindx(ti))%results%e(ii)
+            App(ii) = trslt(ti)%A(ii)
+            Atree(ii) = particles(tindx(ti))%results%A(ii)
+            Axpp(ii) = trslt(ti)%dxA(ii)
+            Axtree(ii) = particles(tindx(ti))%results%dxA(ii)
+            Aypp(ii) = trslt(ti)%dyA(ii)
+            Aytree(ii) = particles(tindx(ti))%results%dyA(ii)
+            Azpp(ii) = trslt(ti)%dzA(ii)
+            Aztree(ii) = particles(tindx(ti))%results%dzA(ii)
+            !          Axytree(ii)   = particles(tindx(ti))%results%dxyA(ii)
+            !          Ayypp(ii)     = trslt(ti)%dyyA(ii)
+            !
+            !          Ayytree(ii)   = particles(tindx(ti))%results%dyyA(ii)
+            Jirpp(ii) = trslt(ti)%Jirr(ii)
+            Jirtree(ii) = particles(tindx(ti))%results%Jirr(ii)
+            Jpp(ii) = trslt(ti)%J(ii)
+            Jtree(ii) = particles(tindx(ti))%results%J(ii)
+            Bpp(ii) = trslt(ti)%B(ii)
+            Btree(ii) = particles(tindx(ti))%results%B(ii)
+         end do
 
+         m = particles(tindx(ti))%data%m
+         q = particles(tindx(ti))%data%q
 
-          A_err     = A_err  + dot_product( App - Atree        , App - Atree )
-          A_norm    = A_norm + dot_product( App          , App )
-          
-          Ax_err    = Ax_err  + dot_product( Axpp - Axtree     , Axpp - Axtree )
-          Ax_norm   = Ax_norm + dot_product( Axpp , Axpp )
-          
-          Ay_err    = Ay_err  + dot_product( Aypp - Aytree     , Aypp - Aytree )
-          Ay_norm   = Ay_norm + dot_product( Aypp , Aypp )
-          
-          Az_err    = Az_err  + dot_product( Azpp - Aztree     , Azpp - Aztree )
-          Az_norm   = Az_norm + dot_product( Azpp , Azpp )
-          
+         phipp = trslt(ti)%pot
+         phitree = particles(tindx(ti))%results%pot
+
+         E_err = E_err + dot_product(Epp - Etree, Epp - Etree)
+         E_norm = E_norm + dot_product(Epp, Epp)
+
+         phi_err = phi_err + (phipp - phitree)**2
+         phi_norm = phi_norm + phipp**2
+
+         A_err = A_err + dot_product(App - Atree, App - Atree)
+         A_norm = A_norm + dot_product(App, App)
+
+         Ax_err = Ax_err + dot_product(Axpp - Axtree, Axpp - Axtree)
+         Ax_norm = Ax_norm + dot_product(Axpp, Axpp)
+
+         Ay_err = Ay_err + dot_product(Aypp - Aytree, Aypp - Aytree)
+         Ay_norm = Ay_norm + dot_product(Aypp, Aypp)
+
+         Az_err = Az_err + dot_product(Azpp - Aztree, Azpp - Aztree)
+         Az_norm = Az_norm + dot_product(Azpp, Azpp)
+
 !          Axx_err    = Axx_err  + dot_product( Axxpp - Axxtree , Axxpp - Axxtree ) !( Axxpp(2) - Axxtree(2) )**2!
 !          Axx_norm   = Axx_norm + dot_product( Axxpp , Axxpp ) !( Axxpp(2)              )**2!
-!          
+!
 !          Axy_err    = Axy_err  + dot_product( Axypp - Axytree , Axypp - Axytree ) !( Axypp(2) - Axytree(2) )**2!
 !          Axy_norm   = Axy_norm + dot_product( Axypp , Axypp ) !( Axypp(2)              )**2!
-!          
+!
 !          Ayy_err    = Ayy_err  + dot_product( Ayypp - Ayytree , Ayypp - Ayytree ) !( Ayypp(2) - Ayytree(2) )**2!
 !          Ayy_norm   = Ayy_norm + dot_product( Ayypp , Ayypp ) !( Ayypp(2)              )**2!
-          
-          B_err     = B_err  + dot_product( Bpp - Btree , Bpp - Btree )
-          B_norm    = B_norm + dot_product( Bpp , Bpp )
 
+         B_err = B_err + dot_product(Bpp - Btree, Bpp - Btree)
+         B_norm = B_norm + dot_product(Bpp, Bpp)
 
-          J_err     = J_err  + dot_product( Jpp - Jtree , Jpp - Jtree )
-          J_norm    = J_norm + dot_product( Jpp , Jpp )
+         J_err = J_err + dot_product(Jpp - Jtree, Jpp - Jtree)
+         J_norm = J_norm + dot_product(Jpp, Jpp)
 
-          Jir_err   = Jir_err  + dot_product( Jirpp - Jirtree , Jirpp - Jirtree )
-          Jir_norm  = Jir_norm + dot_product( Jirpp , Jirpp )
+         Jir_err = Jir_err + dot_product(Jirpp - Jirtree, Jirpp - Jirtree)
+         Jir_norm = Jir_norm + dot_product(Jirpp, Jirpp)
 
-          gradpp    = zero   
-          gradpp(1) = v(1)*Axpp(1) + v(2)*Axpp(2)  + v(3)*Axpp(3)
-          gradpp(2) = v(1)*Aypp(1) + v(2)*Aypp(2)  + v(3)*Aypp(3)
-          gradpp(3) = v(1)*Azpp(1) + v(2)*Azpp(2)  + v(3)*Azpp(3)
-          gradpp    = gradpp/lorentz_tilde
+         gradpp = zero
+         gradpp(1) = v(1) * Axpp(1) + v(2) * Axpp(2) + v(3) * Axpp(3)
+         gradpp(2) = v(1) * Aypp(1) + v(2) * Aypp(2) + v(3) * Aypp(3)
+         gradpp(3) = v(1) * Azpp(1) + v(2) * Azpp(2) + v(3) * Azpp(3)
+         gradpp = gradpp / lorentz_tilde
 
-          gradtree      = zero   
-          gradtree(1)   = v(1)*Axtree(1) + v(2)*Axtree(2) + v(3)*Axtree(3)
-          gradtree(2)   = v(1)*Aytree(1) + v(2)*Aytree(2) + v(3)*Aytree(3)
-          gradtree(2)   = v(1)*Aztree(1) + v(2)*Aztree(2) + v(3)*Aztree(3)
-          gradtree      = gradtree/lorentz_tilde
+         gradtree = zero
+         gradtree(1) = v(1) * Axtree(1) + v(2) * Axtree(2) + v(3) * Axtree(3)
+         gradtree(2) = v(1) * Aytree(1) + v(2) * Aytree(2) + v(3) * Aytree(3)
+         gradtree(2) = v(1) * Aztree(1) + v(2) * Aztree(2) + v(3) * Aztree(3)
+         gradtree = gradtree / lorentz_tilde
 
-          Fdar_err  = Fdar_err  + (q)**2*( dot_product( Epp - Etree + gradpp - gradtree , Epp - Etree + gradpp - gradtree ) )
+         Fdar_err = Fdar_err + (q)**2 * (dot_product(Epp - Etree + gradpp - gradtree, Epp - Etree + gradpp - gradtree))
 
-          Fdar_norm = Fdar_norm + (q)**2*( dot_product( Epp         + gradpp            , Epp         + gradpp ) )
+         Fdar_norm = Fdar_norm + (q)**2 * (dot_product(Epp + gradpp, Epp + gradpp))
 
-          FEl_err  = FEl_err    + (q)**2*( dot_product( Epp - Etree                     , Epp - Etree ) )
+         FEl_err = FEl_err + (q)**2 * (dot_product(Epp - Etree, Epp - Etree))
 
-          FEl_norm = FEl_norm   + (q)**2*( dot_product( Epp                            , Epp          ) )
+         FEl_norm = FEl_norm + (q)**2 * (dot_product(Epp, Epp))
 
+      end do
 
-        end do
-
-        call MPI_ALLREDUCE(MPI_IN_PLACE , phi_err   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , phi_norm  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , E_err     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , E_norm    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, phi_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, phi_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, E_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, E_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Ex_err    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Ex_norm   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Ey_err    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Ey_norm   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , B_err     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , B_norm    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , J_err     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , J_norm    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Jir_err   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Jir_norm  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , A_err     , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , A_norm    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Ax_err    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Ax_norm   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Ay_err    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Ay_norm   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Az_err    , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Az_norm   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, B_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, B_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, J_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, J_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Jir_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Jir_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, A_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, A_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Ax_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Ax_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Ay_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Ay_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Az_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Az_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Axx_err   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Axx_norm  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Axy_err   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Axy_norm  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Ayy_err   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
 !        call MPI_ALLREDUCE(MPI_IN_PLACE , Ayy_norm  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Fdar_err  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , Fdar_norm , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , FEl_err   , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        call MPI_ALLREDUCE(MPI_IN_PLACE , FEl_norm  , 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
-        
-        if ( phi_norm .eq. zero ) phi_norm  = one
-        if ( E_norm   .eq. zero ) E_norm    = one
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Fdar_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, Fdar_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, FEl_err, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+      call MPI_ALLREDUCE(MPI_IN_PLACE, FEl_norm, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, rc)
+
+      if (phi_norm .eq. zero) phi_norm = one
+      if (E_norm .eq. zero) E_norm = one
 !        if ( Ex_norm  .eq. zero ) Ex_norm   = one
 !        if ( Ey_norm  .eq. zero ) Ey_norm   = one
-        if ( A_norm   .eq. zero ) A_norm    = one
-        if ( Ax_norm  .eq. zero ) Ax_norm   = one
-        if ( Ay_norm  .eq. zero ) Ay_norm   = one
-        if ( Az_norm  .eq. zero ) Az_norm   = one
+      if (A_norm .eq. zero) A_norm = one
+      if (Ax_norm .eq. zero) Ax_norm = one
+      if (Ay_norm .eq. zero) Ay_norm = one
+      if (Az_norm .eq. zero) Az_norm = one
 !        if ( Axx_norm .eq. zero ) Axx_norm  = one
 !        if ( Axy_norm .eq. zero ) Axy_norm  = one
 !        if ( Ayy_norm .eq. zero ) Ayy_norm  = one
-        if ( B_norm   .eq. zero ) B_norm    = one
-        if ( J_norm   .eq. zero ) J_norm    = one
-        if ( Jir_norm .eq. zero ) Jir_norm  = one
-        if ( Fdar_norm.eq. zero ) Fdar_norm = one
-        if ( FEl_norm .eq. zero ) FEl_norm  = one
-        
-        
-        phi_err   = sqrt(phi_err / phi_norm )
-        E_err     = sqrt(E_err   / E_norm   )
+      if (B_norm .eq. zero) B_norm = one
+      if (J_norm .eq. zero) J_norm = one
+      if (Jir_norm .eq. zero) Jir_norm = one
+      if (Fdar_norm .eq. zero) Fdar_norm = one
+      if (FEl_norm .eq. zero) FEl_norm = one
+
+      phi_err = sqrt(phi_err / phi_norm)
+      E_err = sqrt(E_err / E_norm)
 !        Ex_err    = sqrt(Ex_err  / Ex_norm  )
 !        Ey_err    = sqrt(Ey_err  / Ey_norm  )
-        A_err     = sqrt(A_err   / A_norm   )
-        Ax_err    = sqrt(Ax_err  / Ax_norm  )
-        Ay_err    = sqrt(Ay_err  / Ay_norm  )
-        Az_err    = sqrt(Az_err  / Az_norm  )
+      A_err = sqrt(A_err / A_norm)
+      Ax_err = sqrt(Ax_err / Ax_norm)
+      Ay_err = sqrt(Ay_err / Ay_norm)
+      Az_err = sqrt(Az_err / Az_norm)
 !        Axx_err   = sqrt(Axx_err / Axx_norm )
 !        Axy_err   = sqrt(Axy_err / Axy_norm )
 !        Ayy_err   = sqrt(Ayy_err / Ayy_norm )
-        B_err     = sqrt(B_err   / B_norm   )
-        J_err     = sqrt(J_err   / J_norm   )
-        Jir_err   = sqrt(Jir_err / Jir_norm )
-        Fdar_err  = sqrt(Fdar_err/ Fdar_norm)
-        FEl_err   = sqrt(FEl_err / FEl_norm )
+      B_err = sqrt(B_err / B_norm)
+      J_err = sqrt(J_err / J_norm)
+      Jir_err = sqrt(Jir_err / Jir_norm)
+      Fdar_err = sqrt(Fdar_err / Fdar_norm)
+      FEl_err = sqrt(FEl_err / FEl_norm)
 
-        tb = get_time()
-        if(root) then
+      tb = get_time()
+      if (root) then
 !          write(*,'(a,i12)')    " == [direct test] number tested particles         : ", tn
-          write(*,'(a,es12.4)') " == [direct test] Relative error in Pot           : ", phi_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in Eirr          : ", E_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in Pot           : ", phi_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in Eirr          : ", E_err
 !          write(*,'(a,es12.4)') " == [direct test] Relative error in dxEirr        : ", Ex_err
 !          write(*,'(a,es12.4)') " == [direct test] Relative error in dyEirr        : ", Ey_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in A             : ", A_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in dxA           : ", Ax_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in dyA           : ", Ay_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in dzA           : ", Az_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in A             : ", A_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in dxA           : ", Ax_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in dyA           : ", Ay_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in dzA           : ", Az_err
 !          write(*,'(a,es12.4)') " == [direct test] Relative error in Axx           : ", Axx_err
 !          write(*,'(a,es12.4)') " == [direct test] Relative error in Axy           : ", Axy_err
 !          write(*,'(a,es12.4)') " == [direct test] Relative error in Ayy           : ", Ayy_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in B             : ", B_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in J             : ", J_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in Jirr          : ", Jir_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in F dar         : ", Fdar_err
-          write(*,'(a,es12.4)') " == [direct test] Relative error in F el          : ", FEl_err
-          write(*,'(a,es12.4)') " == [direct test] time in test [s]                : ", tb - ta
+         write (*, '(a,es12.4)') " == [direct test] Relative error in B             : ", B_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in J             : ", J_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in Jirr          : ", Jir_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in F dar         : ", Fdar_err
+         write (*, '(a,es12.4)') " == [direct test] Relative error in F el          : ", FEl_err
+         write (*, '(a,es12.4)') " == [direct test] time in test [s]                : ", tb - ta
 
 !          open(unit=rc,file=trim(folder)//trim("monopole3d.dat"),form='formatted',status='unknown',access='append')
 !          open(unit=rc,file=trim(folder)//trim("dipole3d.dat"),form='formatted',status='unknown',position='append')
-          open(newunit=rc,file=trim(folder)//trim("quadrupole3d.dat"),form='formatted',status='unknown',position='append')
-          write(rc,*) sqrt(theta2), phi_err, E_err, A_err, Ax_err, Ay_err, Az_err, B_err, J_err, Jir_err, Fdar_err, FEl_err
+         open (newunit=rc, file=trim(folder)//trim("quadrupole3d.dat"), form='formatted', status='unknown', position='append')
+         write (rc, *) sqrt(theta2), phi_err, E_err, A_err, Ax_err, Ay_err, Az_err, B_err, J_err, Jir_err, Fdar_err, FEl_err
 !          write(rc,*) sqrt(theta2), phi_err, E_err, Ex_err, Ey_err, A_err, Ax_err, Ay_err, Axx_err, Axy_err, Ayy_err,B_err, J_err, Jir_err, Fdar_err, FEl_err
-          close(rc)
+         close (rc)
 
-        end if
+      end if
 
-        deallocate(tindx)
-        deallocate(trnd)
-        deallocate(trslt)
+      deallocate (tindx)
+      deallocate (trnd)
+      deallocate (trslt)
 
-      end subroutine test_particles
+   end subroutine test_particles
 
-
-      subroutine write_field_on_grid_ascii(itime,field_grid)    
-            use module_pepc_types
-            use module_utils
-            use encap
-            use module_globals, only: folder
-            implicit none
+   subroutine write_field_on_grid_ascii(itime, field_grid)
+      use module_pepc_types
+      use module_utils
+      use encap
+      use module_globals, only: folder
+      implicit none
 !            integer(kind_pe), intent(in) :: my_rank
-            integer(kind_default), intent(in)               :: itime
-            type(field_grid_t), intent(in)                  :: field_grid
-            character(100)                                  :: filename_i
-            integer(kind_particle)                          :: ip,nl
-            
-            character(12), parameter                        :: part_dir = 'fields/'
-            integer, parameter :: filehandle_i = 40
-            integer, parameter :: filehandle_e = 41
-            integer, parameter :: filehandle_b = 42
+      integer(kind_default), intent(in)               :: itime
+      type(field_grid_t), intent(in)                  :: field_grid
+      character(100)                                  :: filename_i
+      integer(kind_particle)                          :: ip, nl
 
-                        
-            write(filename_i,'(a,"field_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
-            open(filehandle_i, file=trim(filename_i), STATUS='REPLACE')
-            
-            nl = field_grid%nl
-            
-            do ip=1, nl
-                write(filehandle_i,'(20(f8.3,x) )') field_grid%p(ip)%x(1:2), field_grid%p(ip)%results%E(1:2),    &
-                field_grid%p(ip)%results%A(1:3), field_grid%p(ip)%results%B(1:3), field_grid%p(ip)%results%J(1:3),  &
-                field_grid%p(ip)%results%dxA(1:3),field_grid%p(ip)%results%dyA(1:3),field_grid%p(ip)%results%pot
+      character(12), parameter                        :: part_dir = 'fields/'
+      integer, parameter :: filehandle_i = 40
+      integer, parameter :: filehandle_e = 41
+      integer, parameter :: filehandle_b = 42
 
-            end do
-            close(filehandle_i)
+      write (filename_i, '(a,"field_",i6.6,"_",i6.6,".dat")') trim(folder)//trim(part_dir), itime, my_rank
+      open (filehandle_i, file=trim(filename_i), STATUS='REPLACE')
 
-        end subroutine
+      nl = field_grid%nl
+
+      do ip = 1, nl
+         write (filehandle_i, '(20(f8.3,x) )') field_grid%p(ip)%x(1:2), field_grid%p(ip)%results%E(1:2), &
+            field_grid%p(ip)%results%A(1:3), field_grid%p(ip)%results%B(1:3), field_grid%p(ip)%results%J(1:3), &
+            field_grid%p(ip)%results%dxA(1:3), field_grid%p(ip)%results%dyA(1:3), field_grid%p(ip)%results%pot
+
+      end do
+      close (filehandle_i)
+
+   end subroutine
 !
 
-      integer function vtk_step_of_step(step) result(vtk_step)
-        use module_vtk
+   integer function vtk_step_of_step(step) result(vtk_step)
+      use module_vtk
 !        use pepca_helper
-        implicit none
+      implicit none
 
-        integer, intent(in) :: step
+      integer, intent(in) :: step
 
-        if (step .eq. 0) then
-          vtk_step = VTK_STEP_FIRST
-        else if (step == nt - 1) then
-          vtk_step = VTK_STEP_LAST
-        else
-          vtk_step = VTK_STEP_NORMAL
-        endif
-      end function vtk_step_of_step
+      if (step .eq. 0) then
+         vtk_step = VTK_STEP_FIRST
+      else if (step .eq. nt - 1) then
+         vtk_step = VTK_STEP_LAST
+      else
+         vtk_step = VTK_STEP_NORMAL
+      end if
+   end function vtk_step_of_step
 
-      
-      subroutine write_particles_vtk(p, step, realtime)
-        use module_vtk_helpers
-        use module_pepc_types
+   subroutine write_particles_vtk(p, step, realtime)
+      use module_vtk_helpers
+      use module_pepc_types
 !        use pepca_units
-        use mpi
-        implicit none
+      use mpi
+      implicit none
 
-        type(t_particle), intent(in) :: p(:)
-        real*8, intent(in) :: realtime
-        integer, intent(in) :: step
+      type(t_particle), intent(in) :: p(:)
+      real*8, intent(in) :: realtime
+      integer, intent(in) :: step
 
-        integer :: vtk_step
+      integer :: vtk_step
 
-        vtk_step = vtk_step_of_step(step)
-        call vtk_write_particles("particles", MPI_COMM_WORLD, step, realtime, vtk_step, p, vtk_results)
+      vtk_step = vtk_step_of_step(step)
+      call vtk_write_particles("particles", MPI_COMM_WORLD, step, realtime, vtk_step, p, vtk_results)
 
-        contains
+   contains
 
-            subroutine vtk_results(d, r, vtkf)
-              use module_vtk
-              use module_interaction_specific_types
-              implicit none
+      subroutine vtk_results(d, r, vtkf)
+         use module_vtk
+         use module_interaction_specific_types
+         implicit none
 
-              type(t_particle_data), intent(in) :: d(:)
-              type(t_particle_results), intent(in) :: r(:)
-              type(vtkfile_unstructured_grid), intent(inout) :: vtkf
+         type(t_particle_data), intent(in) :: d(:)
+         type(t_particle_results), intent(in) :: r(:)
+         type(vtkfile_unstructured_grid), intent(inout) :: vtkf
 
-              call vtk_write_particle_data_results(d, r, vtkf)
-            end subroutine
-            
-        end subroutine write_particles_vtk
-        
-        
-        subroutine write_particles_ascii(itime, p)    
-            use module_pepc_types
-            use module_utils
-            use module_globals, only: folder,lorentz_tilde
-            implicit none
+         call vtk_write_particle_data_results(d, r, vtkf)
+      end subroutine
+
+   end subroutine write_particles_vtk
+
+   subroutine write_particles_ascii(itime, p)
+      use module_pepc_types
+      use module_utils
+      use module_globals, only: folder, lorentz_tilde
+      implicit none
 !            integer(kind_pe), intent(in) :: my_rank
-            integer(kind_default), intent(in)               :: itime
-            type(t_particle)     , intent(in), dimension(:) :: p
-            character(100)                                  :: filename_i
-            integer(kind_particle)                          :: ip,i
-            
-            character(12), parameter                        :: part_dir = 'particles/'
-            Character (len=1)                               :: Xlabel(1:3)
-            Character (len=2)                               :: Vlabel(1:3),Elabel(1:3),Alabel(1:3),Blabel(1:3),Jlabel(1:3)
-            Character (len=3)                               :: Plabel
-            Character (len=4)                               :: DxAlabel(1:3),DyAlabel(1:3)
-            Character (len=5)                               :: Glabel,Llabel
+      integer(kind_default), intent(in)               :: itime
+      type(t_particle), intent(in), dimension(:) :: p
+      character(100)                                  :: filename_i
+      integer(kind_particle)                          :: ip, i
 
-            integer, parameter :: filehandle_i = 40
-            
+      character(12), parameter                        :: part_dir = 'particles/'
+      Character(len=1)                               :: Xlabel(1:3)
+      Character(len=2)                               :: Vlabel(1:3), Elabel(1:3), Alabel(1:3), Blabel(1:3), Jlabel(1:3)
+      Character(len=3)                               :: Plabel
+      Character(len=4)                               :: DxAlabel(1:3), DyAlabel(1:3)
+      Character(len=5)                               :: Glabel, Llabel
 
-            write(filename_i,'(a,"particle_",i6.6,".dat")') trim(folder)//trim(part_dir), itime
-            open(filehandle_i, file=trim(filename_i), STATUS='REPLACE') 
+      integer, parameter :: filehandle_i = 40
 
-            Xlabel = (/"x","y","z"/)
-            Vlabel = (/"vx","vy","vz"/)
-            Elabel = (/"Ex","Ey","Ez"/)
-            Alabel = (/"Ax","Ay","Az"/)
-            Blabel = (/"Bx","By","Bz"/)
-            Jlabel = (/"Jx","Jy","Jz"/)
-            Plabel = "Pot"
-            Glabel = "Gamma"
-            Llabel = "Label"
-            DxAlabel= (/"DxAx","DxAy","DxAz"/)
-            DyAlabel= (/"DyAx","DyAy","DyAz"/)
+      write (filename_i, '(a,"particle_",i6.6,".dat")') trim(folder)//trim(part_dir), itime
+      open (filehandle_i, file=trim(filename_i), STATUS='REPLACE')
 
-            write(filehandle_i,'(27(a,a))') (Xlabel(i),",",i=1,3),(Vlabel(i),",",i=1,3),&
-             (Elabel(i),",",i=1,3),(Alabel(i),",",i=1,3),(Blabel(i),",",i=1,3),&
-             (Jlabel(i),",",i=1,3),Plabel,",",Glabel,",",Llabel,",",&
-             (DxAlabel(i),",",i=1,3),(DyAlabel(i),",",i=1,2),DyAlabel(3)
+      Xlabel = (/"x", "y", "z"/)
+      Vlabel = (/"vx", "vy", "vz"/)
+      Elabel = (/"Ex", "Ey", "Ez"/)
+      Alabel = (/"Ax", "Ay", "Az"/)
+      Blabel = (/"Bx", "By", "Bz"/)
+      Jlabel = (/"Jx", "Jy", "Jz"/)
+      Plabel = "Pot"
+      Glabel = "Gamma"
+      Llabel = "Label"
+      DxAlabel = (/"DxAx", "DxAy", "DxAz"/)
+      DyAlabel = (/"DyAx", "DyAy", "DyAz"/)
 
-            do ip=1, size(p,kind=kind(ip))
-              
-                write(filehandle_i,'(27(f8.3,a))') (p(ip)%x(i),",",i=1,3),(p(ip)%data%v(i),",",i=1,3),&
-             (p(ip)%results%E(i),",",i=1,3),(p(ip)%results%A(i),",",i=1,3),(p(ip)%results%B(i),",",i=1,3),&
-             (p(ip)%results%J(i),",",i=1,3),p(ip)%results%pot,",",p(ip)%data%g,",",real(p(ip)%label, kind=kind_particle),",",&
-             (p(ip)%results%dxA(i),",",i=1,3),(p(ip)%results%dyA(i),",",i=1,2),p(ip)%results%dyA(3)
-              
-            end do
-            close(filehandle_i)
+      write (filehandle_i, '(27(a,a))') (Xlabel(i), ",", i=1, 3), (Vlabel(i), ",", i=1, 3), &
+         (Elabel(i), ",", i=1, 3), (Alabel(i), ",", i=1, 3), (Blabel(i), ",", i=1, 3), &
+         (Jlabel(i), ",", i=1, 3), Plabel, ",", Glabel, ",", Llabel, ",", &
+         (DxAlabel(i), ",", i=1, 3), (DyAlabel(i), ",", i=1, 2), DyAlabel(3)
 
-        end subroutine write_particles_ascii
+      do ip = 1, size(p, kind=kind(ip))
 
+         write (filehandle_i, '(27(f8.3,a))') (p(ip)%x(i), ",", i=1, 3), (p(ip)%data%v(i), ",", i=1, 3), &
+            (p(ip)%results%E(i), ",", i=1, 3), (p(ip)%results%A(i), ",", i=1, 3), (p(ip)%results%B(i), ",", i=1, 3), &
+            (p(ip)%results%J(i), ",", i=1, 3), p(ip)%results%pot, ",", p(ip)%data%g, ",", real(p(ip)%label, kind=kind_particle), ",", &
+            (p(ip)%results%dxA(i), ",", i=1, 3), (p(ip)%results%dyA(i), ",", i=1, 2), p(ip)%results%dyA(3)
 
-      subroutine write_domain(p)
+      end do
+      close (filehandle_i)
 
-        use module_vtk
-        use module_vtk_helpers
-        use module_pepc, only: global_tree
-        implicit none
+   end subroutine write_particles_ascii
 
-        type(t_particle), allocatable, intent(in) :: p(:)
+   subroutine write_domain(p)
 
-        integer :: vtk_step
+      use module_vtk
+      use module_vtk_helpers
+      use module_pepc, only: global_tree
+      implicit none
 
-        ! output of tree diagnostics
-        if (step .eq. 0) then
-          vtk_step = VTK_STEP_FIRST
-        else if (step .eq. nt) then
-          vtk_step = VTK_STEP_LAST
-        else
-          vtk_step = VTK_STEP_NORMAL
-        endif
-        call vtk_write_branches(step,  dt * step, vtk_step, global_tree)
-        call vtk_write_spacecurve(step, dt * step, vtk_step, p)
+      type(t_particle), allocatable, intent(in) :: p(:)
 
-      end subroutine write_domain
+      integer :: vtk_step
+
+      ! output of tree diagnostics
+      if (step .eq. 0) then
+         vtk_step = VTK_STEP_FIRST
+      else if (step .eq. nt) then
+         vtk_step = VTK_STEP_LAST
+      else
+         vtk_step = VTK_STEP_NORMAL
+      end if
+      call vtk_write_branches(step, dt * step, vtk_step, global_tree)
+      call vtk_write_spacecurve(step, dt * step, vtk_step, p)
+
+   end subroutine write_domain
 
 end module

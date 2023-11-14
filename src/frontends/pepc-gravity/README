@@ -3,7 +3,7 @@ The initial particles can be read from an input file or can be generated
 by the Plummer model provided herein. See comments of read_particles() for file
 format description if you want to use your own data file.
 
-The frontend is adapted from pepc-mini, which does Coulombic froce simulation.
+The frontend is adapted from pepc-mini, which does Coulombic force simulation.
 To make the code change minimal, I use charge(i.e., the q field) of particles 
 in pepc-mini to represent mass of particles in pepc-gravity. 
 

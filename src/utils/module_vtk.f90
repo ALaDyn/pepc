@@ -216,8 +216,8 @@ contains
          else
             open (vtk%filehandle_visit, file=trim(subfolder_collections)//trim(filename_)//"."//visitfilename, STATUS='UNKNOWN', POSITION='APPEND')
             open (vtk%filehandle_paraview, file=trim(subfolder_collections)//trim(filename_)//"."//paraviewfilename, STATUS='UNKNOWN', POSITION='APPEND')
-         endif
-      endif
+         end if
+      end if
    end subroutine vtkfile_create_parallel
 
    subroutine vtkfile_close(vtk)
@@ -228,12 +228,12 @@ contains
       if (vtk%my_rank .eq. 0) then
          if (vtk%vtk_step .eq. VTK_STEP_LAST) then
             write (vtk%filehandle_paraview, '("</Collection>", / , "</VTKFile>")')
-         endif
+         end if
 
          close (vtk%filehandle_par)
          close (vtk%filehandle_visit)
          close (vtk%filehandle_paraview)
-      endif
+      end if
    end subroutine vtkfile_close
 
    subroutine vtkfile_set_communicator(vtk, comm)
@@ -289,7 +289,7 @@ contains
          do i = 1, ndata
             write (vtk%filehandle, '(G14.6)') data(i)
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real4_1
 
@@ -321,7 +321,7 @@ contains
          do i = 1, ndata
             write (vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real4_3
 
@@ -363,8 +363,8 @@ contains
             do i = 1, ndata
                write (vtk%filehandle, '(G14.6)') data(i)
             end do
-         endif
-      endif
+         end if
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_1
 
@@ -395,7 +395,7 @@ contains
          do i = 1, ndata
             write (vtk%filehandle, '(3G14.6)') data1(i), data2(i)
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_2
 
@@ -430,7 +430,7 @@ contains
                call base64%encode(data2(i))
                call base64%encode(data3(i))
             end do
-         endif
+         end if
          call base64%finish()
       else
          if (present(scale)) then
@@ -441,8 +441,8 @@ contains
             do i = 1, ndata
                write (vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
             end do
-         endif
-      endif
+         end if
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_3
 
@@ -484,8 +484,8 @@ contains
             do i = 1, ndata
                write (vtk%filehandle, '(G14.6)') data(i)
             end do
-         endif
-      endif
+         end if
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real16_1
 
@@ -516,7 +516,7 @@ contains
          do i = 1, ndata
             write (vtk%filehandle, '(3G14.6)') data1(i), data2(i)
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real16_2
 
@@ -551,7 +551,7 @@ contains
                call base64%encode(data2(i))
                call base64%encode(data3(i))
             end do
-         endif
+         end if
          call base64%finish()
       else
          if (present(scale)) then
@@ -562,8 +562,8 @@ contains
             do i = 1, ndata
                write (vtk%filehandle, '(3G14.6)') data1(i), data2(i), data3(i)
             end do
-         endif
-      endif
+         end if
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real16_3
 
@@ -601,7 +601,7 @@ contains
                end do
             end do
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_1_field3
 
@@ -641,7 +641,7 @@ contains
                end do
             end do
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Real8_3_field3
 
@@ -671,7 +671,7 @@ contains
          do i = 1, ndata
             write (vtk%filehandle, '(I20)') data(i)
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Int4_1
 
@@ -721,7 +721,7 @@ contains
          do i = 1, ndata
             write (vtk%filehandle, '(3I20)') data1(i), data2(i), data3(i)
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Int4_3
 
@@ -751,7 +751,7 @@ contains
          do i = 1, ndata
             write (vtk%filehandle, '(I20)') data(i)
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Int8_1
 
@@ -783,7 +783,7 @@ contains
          do i = 1, ndata
             write (vtk%filehandle, '(3I20)') data1(i), data2(i), data3(i)
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_array_Int8_3
 
@@ -811,7 +811,7 @@ contains
          do i = 1, n
             write (vtk%filehandle, '(I20)') v
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_repeat_Int4_1
 
@@ -839,7 +839,7 @@ contains
          do i = 1, n
             write (vtk%filehandle, '(I20)') v
          end do
-      endif
+      end if
       write (vtk%filehandle, '("</DataArray>")')
    end subroutine vtkfile_write_data_repeat_Int8_1
 
@@ -913,7 +913,7 @@ contains
       if (vtk%my_rank .eq. 0) then
          write (vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
          write (vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
-      endif
+      end if
    end subroutine vtkfile_unstructured_grid_write_headers
 
    subroutine vtkfile_unstructured_grid_write_headers8(vtk, npart, ncell)
@@ -928,17 +928,24 @@ contains
       if (vtk%my_rank .eq. 0) then
          write (vtk%filehandle_par, '("<VTKFile type=""PUnstructuredGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
          write (vtk%filehandle_par, '("<PUnstructuredGrid GhostLevel=""0"">")')
-      endif
+      end if
    end subroutine vtkfile_unstructured_grid_write_headers8
 
    subroutine vtkfile_unstructured_grid_dont_write_cells(vtk)
       implicit none
       class(vtkfile_unstructured_grid) :: vtk
+      character(6) :: format
+
+      if (vtk%binary) then
+         format = "binary"
+      else
+         format = "ascii"
+      end if
 
       call vtk%startcells()
-      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""connectivity"" />")')
-      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""offsets"" />")')
-      write (vtk%filehandle, '("<DataArray type=""UInt8"" Name=""types"" />")')
+      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""connectivity"" format=""", a ,""" />")') trim(format)
+      write (vtk%filehandle, '("<DataArray type=""Int32"" Name=""offsets"" format=""", a , """ />")') trim(format)
+      write (vtk%filehandle, '("<DataArray type=""UInt8"" Name=""types"" format=""", a ,""" />")') trim(format)
       call vtk%finishcells()
       call vtk%startcelldata()
       call vtk%finishcelldata()
@@ -970,7 +977,7 @@ contains
          write (vtk%filehandle_par, '("</VTKFile>")')
 
          write (vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(subfolder)//trim(trim(vtk%filename)//".p"//vtk%filesuffix)
-      endif
+      end if
    end subroutine vtkfile_unstructured_grid_write_final
 
    subroutine vtkfile_unstructured_grid_startpoints(vtk)
@@ -1046,7 +1053,7 @@ contains
       if (vtk%my_rank .eq. 0) then
          write (vtk%filehandle_par, '("<VTKFile type=""PRectilinearGrid"" version=""", a, """ byte_order=""", a, """>")') vtk%version, trim(vtk%byte_order)
          write (vtk%filehandle_par, '("<PRectilinearGrid WholeExtent=""", 6(" ",I0), """ GhostLevel=""1"">")') vtk%globaldims
-      endif
+      end if
    end subroutine vtkfile_rectilinear_grid_write_headers
 
    subroutine vtkfile_rectilinear_grid_write_final(vtk)
@@ -1082,7 +1089,7 @@ contains
          write (vtk%filehandle_par, '("</VTKFile>")')
 
          write (vtk%filehandle_paraview, '("<DataSet timestep=""", f0.5,""" file=""", a, """/>")') vtk%simtime, trim(subfolder)//trim(vtk%filename)//".p"//trim(vtk%filesuffix)
-      endif
+      end if
 
       deallocate (localdims)
 

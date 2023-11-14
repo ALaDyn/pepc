@@ -1,20 +1,33 @@
+#### Stages for this pipeline
 stages:
-  - build_libs
-  - build
+  - image      # build updated image for runner
+  - lint       # do basic lint'ing to nudge towards common formatting
+  - build      # build libraries, frontends, etc...
     #   - test
-    #   - html     # this run doxygen (prefer FORD)
-    #   - deploy   # this could push doxygen to pages
+    #   - html      # this run doxygen (prefer FORD)
+    #   - deploy    # this could push doxygen to pages
 
 variables:
-  IMAGE: "$CI_REGISTRY/broemmel1/docker-images/pepc-build:3.13"
+  FORCE_DOCKER_IMAGE:
+    value: "false"
+    options:
+      - "false"
+      - "true"
+    description: "Force the creation of a new Docker image for this branch."
 
-# build libsl and libOPA ahead of frontends
-build:libs:
-  stage: build_libs
+#### Build PEPC and it's libraries
+# Template for building
+.build_template: &build_template
   tags:
     - public-docker
-  image: $IMAGE
+  image: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest"
+
+# Build libsl and libOPA ahead of frontends
+libraries:
+  stage: build
+  <<: *build_template
   script:
+    # Build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
     - make libsl libopa
   artifacts:
@@ -23,85 +36,115 @@ build:libs:
     paths:
       - lib
 
-# build binary to check compilation, creating MPI binary for a number of frontends
-build:pepc-mini:
+# Build a number of frontends
+frontends:
   stage: build
+  parallel:
+    matrix:
+      - TARGET: "pepc-mini"
+      - TARGET: "pepc-benchmark"
+      - TARGET: "pepc-breakup"
+      - TARGET: "pepc-v"
+      # Build pepc-essential with all available walks to see if any of those fail
+      - TARGET: pepc-essential
+        WALK: [pthreads, pthreads_clustered, openmp, simple]
+      # Build all available frontends to see a list of working ones
+      # (ditch others in favour of this step?)
+      - TARGET: "all"
+  <<: *build_template
+  needs: ["libraries"]
   dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
+    - libraries
   script:
+    - echo "Building PEPC with frontend $TARGET and walk $WALK"
+    # Build for GCC
     - ln -s makefiles/makefile.defs.GCC makefile.defs
+    # Avoid building libs again
     - touch lib/*
-    - make pepc-mini
+    # Possibly force the walk we want to build for
+    - |
+      if [ -z $WALK ]
+      then
+         echo "using walk from sources"
+      else
+         echo "WALK = $WALK" >> src/frontends/$TARGET/makefile.frontend
+      fi
+    - make $TARGET
 
-# build pepc-essential with all available walks to see if any of those fail
-build:pepc-essential:
+# If the 'public-docker' builds work, test toolchains on a cluster
+toolchains:
   stage: build
-  dependencies:
-    - build:libs
+  parallel:
+    matrix:
+      - SYSTEM: [jusuf]
+        COMPILER: GCC
+        MPI: [OpenMPI, ParaStationMPI]
+      - SYSTEM: [juwels]
+        COMPILER: GCC
+        MPI: OpenMPI
+      - SYSTEM: [juwels]
+        COMPILER: Intel
+        MPI: [ParaStationMPI, IntelMPI]
   tags:
-    - public-docker
-  image: $IMAGE
+    - ${SYSTEM}
+    - shell
+  when: on_success
+  needs: ["frontends: [pepc-essential, pthreads]"]
   script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
-    - echo "WALK = pthreads" >> src/frontends/pepc-essential/makefile.frontend
-    - make pepc-essential
-    - echo "WALK = pthreads_clustered" >> src/frontends/pepc-essential/makefile.frontend
-    - make pepc-essential
-    - echo "WALK = openmp" >> src/frontends/pepc-essential/makefile.frontend
-    - make pepc-essential
-    - echo "WALK = simple" >> src/frontends/pepc-essential/makefile.frontend
-    - make pepc-essential
-
-build:pepc-benchmark:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
-  script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
-    - make pepc-benchmark
-
-build:pepc-breakup:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
-  script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
-    - make pepc-breakup
-
-build:pepc-kh:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
-  script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
-    - make pepc-kh
-
-# finally build all available frontends to see a list of working ones
-# (ditch others in favour of this step
-build:pepc-all:
-  stage: build
-  dependencies:
-    - build:libs
-  tags:
-    - public-docker
-  image: $IMAGE
-  script:
-    - ln -s makefiles/makefile.defs.GCC makefile.defs
-    - touch lib/*
+    - echo "Building PEPC (all frontends) on $SYSTEMNAME using $HOSTNAME"
+    - echo "Loading modules..."
+    - ml ${COMPILER}
+    - ml ${MPI}
+    - ml Autotools
+    - ln -s makefiles/makefile.defs.${COMPILER} makefile.defs
     - make all
+  artifacts:
+    paths:
+      - bin/*
+  rules:
+    # Only run when on main repository
+    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+
+#### Lint source Fortran source files
+fprettify:
+  stage: lint
+  <<: *build_template
+  script:
+    - echo "Running fprettify for all Fortran source files (all frontends)"
+    - cd src
+    - fprettify -r -c .fprettify.rc *
+    - git diff --stat=132 --color
+    - COUNT=`git diff --shortstat | awk '{print $1}'`
+    # generate exit code
+    - exit $COUNT
+  allow_failure: true
+
+#### Create new image from a changed Dockerfile
+docker_image:
+  stage: image
+  tags:
+    - public-docker
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - |
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" \
+      > /kaniko/.docker/config.json
+    - |
+      /kaniko/executor --context $CI_PROJECT_DIR \
+      --dockerfile $CI_PROJECT_DIR/Dockerfile \
+      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:$CI_COMMIT_SHORT_SHA \
+      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest
+  rules:
+    # Run when triggered and a varible is set
+    - if: $FORCE_DOCKER_IMAGE == "true"
+    # Run when committing to a branch and changing Dockerfile
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - Dockerfile
+    # Run when merging and changing Dockerfile
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - Dockerfile

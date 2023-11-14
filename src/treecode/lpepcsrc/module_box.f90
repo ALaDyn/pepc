@@ -71,7 +71,7 @@ contains
       if (force_cubic_domain) then
          min_local(1:3) = minval(min_local(1:3))
          max_local(1:3) = maxval(max_local(1:3))
-      endif
+      end if
 
       ! Find global limits
       call MPI_ALLREDUCE(min_local, b%boxmin, 3, MPI_KIND_PHYSICS, MPI_MIN, c%comm, ierr)

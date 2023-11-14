@@ -99,48 +99,48 @@ contains
       preQy = pre2y * t%quad(2)
       preQz = pre2z * t%quad(3)
 
-      phi = t%charge*rd                                             &  !&  monopole term
-            - (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3         &  !&  dipole
-            + fdx*t%quad(1) + fdy*t%quad(2) + fdz*t%quad(3)         &  !&  quadrupole
+      phi = t%charge*rd &                                              !& monopole term
+            - (dx*t%dip(1) + dy*t%dip(2) + dz*t%dip(3))*rd3 &          !& dipole
+            + fdx*t%quad(1) + fdy*t%quad(2) + fdz*t%quad(3) &          !& quadrupole
             + fdxy*t%xyquad  + fdyz*t%yzquad  + fdxz*t%zxquad          !&
 
-      exyz(1) = t%charge*dx*rd3                                     &  !& monopole term
-                - (fdx*t%dip(1) + fdxy*t%dip(2) + fdxz*t%dip(3))    &  !& dipole term
-                + three * (                                         &  !& quadrupole term
-                   dx * (                                           &  !&
-                       ( pre2x - m2rd5 )*t%quad(1)                  &  !&
-                     + preQy                                        &  !&
-                     + preQz                                        &  !&
-                   )                                                &  !&
-                   + dy*pre2x*t%xyquad                              &  !&
-                   + dz*pre2x*t%zxquad                              &  !&
-                   + pre1*t%yzquad                                  &  !&
+      exyz(1) = t%charge*dx*rd3 &                                      !& monopole term
+                - (fdx*t%dip(1) + fdxy*t%dip(2) + fdxz*t%dip(3)) &     !& dipole term
+                + three * ( &                                          !& quadrupole term
+                   dx * ( &                                            !&
+                       ( pre2x - m2rd5 )*t%quad(1) &                   !&
+                     + preQy &                                         !&
+                     + preQz &                                         !&
+                   ) &                                                 !&
+                   + dy*pre2x*t%xyquad &                               !&
+                   + dz*pre2x*t%zxquad &                               !&
+                   + pre1*t%yzquad &                                   !&
                   )                                                    !&
 
-      exyz(2) = t%charge*dy*rd3                                     &  !&
-                - (fdy*t%dip(2) + fdxy*t%dip(1) + fdyz*t%dip(3))    &  !&
-                + three * (                                         &  !&
-                   dy * (                                           &  !&
-                       ( pre2y - m2rd5 )*t%quad(2)                  &  !&
-                     + preQx                                        &  !&
-                     + preQz                                        &  !&
-                   )                                                &  !&
-                   + dx*pre2y*t%xyquad                              &  !&
-                   + dz*pre2y*t%yzquad                              &  !&
-                   + pre1*t%zxquad                                  &  !&
+      exyz(2) = t%charge*dy*rd3 &                                      !&
+                - (fdy*t%dip(2) + fdxy*t%dip(1) + fdyz*t%dip(3)) &     !&
+                + three * ( &                                          !&
+                   dy * ( &                                            !&
+                       ( pre2y - m2rd5 )*t%quad(2) &                   !&
+                     + preQx &                                         !&
+                     + preQz &                                         !&
+                   ) &                                                 !&
+                   + dx*pre2y*t%xyquad &                               !&
+                   + dz*pre2y*t%yzquad &                               !&
+                   + pre1*t%zxquad &                                   !&
                   )                                                    !&
 
-      exyz(3) = t%charge*dz*rd3                                     &  !&
-                - (fdz*t%dip(3) + fdyz*t%dip(2) + fdxz*t%dip(1))    &  !&
-                + three * (                                         &  !&
-                   dz * (                                           &  !&
-                     + ( pre2z - m2rd5 )*t%quad(3)                  &  !&
-                     + preQy                                        &  !&
-                     + preQx                                        &  !&
-                   )                                                &  !&
-                   + dx*pre2z*t%zxquad                              &  !&
-                   + dy*pre2z*t%yzquad                              &  !&
-                   + pre1*t%xyquad                                  &  !&
+      exyz(3) = t%charge*dz*rd3 &                                      !&
+                - (fdz*t%dip(3) + fdyz*t%dip(2) + fdxz*t%dip(1)) &     !&
+                + three * ( &                                          !&
+                   dz * ( &                                            !&
+                     + ( pre2z - m2rd5 )*t%quad(3) &                   !&
+                     + preQy &                                         !&
+                     + preQx &                                         !&
+                   ) &                                                 !&
+                   + dx*pre2z*t%zxquad &                               !&
+                   + dy*pre2z*t%yzquad &                               !&
+                   + pre1*t%xyquad &                                   !&
                   )                                                    !&
    end subroutine calc_force_coulomb_3D
 
@@ -173,25 +173,25 @@ contains
       dx3 = dx2 * dx
       dy3 = dy2 * dy
 
-      phi = -half * t%charge * log(d2)              & !&  monopole term
-            - (dx * t%dip(1) + dy * t%dip(2)) * rd2 & !&  dipole
-            + t%quad(1) * (two * dx2 * rd4 - rd2)   & !& quadrupole
-            + t%quad(2) * (two * dy2 * rd4 - rd2)   & !&
-            + two * t%xyquad * dx * dy * rd4
+      phi = -half * t%charge * log(d2) &                               !& monopole term
+            - (dx * t%dip(1) + dy * t%dip(2)) * rd2 &                  !& dipole
+            + t%quad(1) * (two * dx2 * rd4 - rd2) &                    !& quadrupole
+            + t%quad(2) * (two * dy2 * rd4 - rd2) &                    !&
+            + two * t%xyquad * dx * dy * rd4                           !&
 
-      exy(1) = t%charge * dx * rd2                                     & !& monopole
-               - t%dip(1) * (two * dx2 * rd4 - rd2)                    & !& dipole
-               - t%dip(2) * two * dx * dy * rd4                        & !&
-               + t%quad(1) * (eight * dx3 * rd6 - six * dx * rd4)      & !& quadrupole
-               + t%quad(2) * (eight * dx * dy2 * rd6 - two * dx * rd4) &
-               + t%xyquad * (eight * dx2 * dy * rd6 - two * dy * rd4)
+      exy(1) = t%charge * dx * rd2 &                                   !& monopole
+               - t%dip(1) * (two * dx2 * rd4 - rd2) &                  !& dipole
+               - t%dip(2) * two * dx * dy * rd4 &                      !&
+               + t%quad(1) * (eight * dx3 * rd6 - six * dx * rd4) &    !& quadrupole
+               + t%quad(2) * (eight * dx * dy2 * rd6 - two * dx * rd4) & !&
+               + t%xyquad * (eight * dx2 * dy * rd6 - two * dy * rd4)  !&
 
-      exy(2) = t%charge * dy * rd2                                     & !& monopole
-               - t%dip(2) * (two * dy2 * rd4 - rd2)                    & !& dipole
-               - t%dip(1) * two * dx * dy * rd4                        & !&
-               + t%quad(2) * (eight * dy3 * rd6 - six * dy * rd4)      & !& quadrupole
-               + t%quad(1) * (eight * dy * dx2 * rd6 - two * dy * rd4) &
-               + t%xyquad * (eight * dy2 * dx * rd6 - two * dx * rd4)
+      exy(2) = t%charge * dy * rd2 &                                   !& monopole
+               - t%dip(2) * (two * dy2 * rd4 - rd2) &                  !& dipole
+               - t%dip(1) * two * dx * dy * rd4 &                      !&
+               + t%quad(2) * (eight * dy3 * rd6 - six * dy * rd4) &    !& quadrupole
+               + t%quad(1) * (eight * dy * dx2 * rd6 - two * dy * rd4) & !&
+               + t%xyquad * (eight * dy2 * dx * rd6 - two * dx * rd4)  !&
    end subroutine calc_force_coulomb_2D
 
    !>
@@ -218,7 +218,7 @@ contains
          aii2_r2 = aii2 / r2
       else
          aii2_r2 = aii2 / epsc2
-      endif
+      end if
 
       aii4_r4 = aii2_r2 * aii2_r2
 
@@ -308,8 +308,8 @@ contains
          else
             ! e-e interaction
             lambda = 1.41421356_8 * kelbg_invsqrttemp
-         endif
-      endif
+         end if
+      end if
 
       r = sqrt(dist2)
       rd = one / r
