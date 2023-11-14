@@ -91,13 +91,13 @@ toolchains:
   when: on_success
   needs: ["frontends: [pepc-essential, pthreads]"]
   script:
-    - echo "Building PEPC (pepc-essential) on $SYSTEMNAME using $HOSTNAME"
+    - echo "Building PEPC (all frontends) on $SYSTEMNAME using $HOSTNAME"
     - echo "Loading modules..."
     - ml ${COMPILER}
     - ml ${MPI}
     - ml Autotools
     - ln -s makefiles/makefile.defs.${COMPILER} makefile.defs
-    - make pepc-essential
+    - make all
   artifacts:
     paths:
       - bin/*
