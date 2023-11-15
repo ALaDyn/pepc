@@ -46,13 +46,13 @@ program pepcdvh
    implicit none
 
    integer(kind_particle) :: i
-   real :: trun                     ! total run time including restarts and offset
+   real :: trun ! total run time including restarts and offset
    integer :: itime, stage, t_flag
-   logical :: signal_caught
+   integer(int64) :: start_ticks, ticks_per_minute ! ticks when starting and per minute
 
-   ! Register signal handler for signal SIGUSR1 (10)
-   call signal(10, handle_wallclock)
-   signal_caught = .false.
+   ! Register starting time (effectively in minutes)
+   call system_clock(start_ticks, ticks_per_minute)
+   ticks_per_minute = ticks_per_minute * 60 ! The call returns ticks per second, so convert to minutes
 
    ! Allocate array space for tree
    call pepc_initialize("pepc-dvh", my_rank, n_cpu, .true.)
@@ -78,7 +78,7 @@ program pepcdvh
    t_out = ts + n_out * dt_out
 
    ! Loop over all timesteps unless we caught a signal
-   do while (itime .lt. nt .and. .not. signal_caught)
+   do while (itime .lt. nt .and. .not. wallclock_limit_near(10))
 
       call timer_reset(t_io)
 
@@ -180,20 +180,35 @@ program pepcdvh
    call pepc_finalize()
 
 contains
-   subroutine handle_wallclock()
-      ! Exit gracefully in case SLURM signals the wallclock limit is close.
-      ! To achieve this, we toggle a flag when we see signal 10 (SIGUSR1).
+   logical function wallclock_limit_near(margin_in)
+      ! Compare runtime with the provided wallclock limit (input parameter) and
+      ! flag if we are within a provided margin (in minutes)
+      ! TODO
+      ! This function does not handle COUNT_MAX that may reset counters...
+      integer, intent(in), optional :: margin_in ! margin between current time and wallclock limit
+      integer :: margin
+      integer(int64) :: current_ticks
 
-      if (my_rank .eq. 0) then
-         write (*, *) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-         write (*, *) '!!! CAUGHT SIGNAL FROM SLURM, WILL BE STOPPING... !!!'
-         write (*, *) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-
+      if (present(margin_in)) then
+         margin = margin_in
+      else
+         margin = 10 ! default to 10 minutes
       end if
 
-      signal_caught = .true.
+      wallclock_limit_near = .false.
+      call system_clock(current_ticks)
+
+      if (((current_ticks - start_ticks) / ticks_per_minute + margin) .gt. wall_mins) then
+         wallclock_limit_near = .true.
+         if (my_rank .eq. 0) then
+            write (*, *) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+            write (*, *) '!!! CLOSE TO WALLCLOCK LIMIT, WILL BE STOPPING... !!!'
+            write (*, *) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+         end if
+      end if
+
       return
 
-   end subroutine handle_wallclock
+   end function wallclock_limit_near
 end program pepcdvh
 #endif

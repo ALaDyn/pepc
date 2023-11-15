@@ -67,6 +67,7 @@ module physvars
    integer :: nt                   ! # timesteps and current timestep
    integer :: rk_stages            ! order of the Runge-Kutta time integration scheme
    logical :: vort_check           ! Control of total vorticity during remeshing
+   integer :: wall_mins            ! Wallclock limit from batch system IN MINUTES
 
    ! I/O stuff
    integer :: ifile_cpu            ! O/P stream
@@ -145,7 +146,8 @@ contains
       namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref, rk_stages, &    !&
                        h, Delta_r, thresh, Uref, Lref, &                        !&
                        rmax, r_torus, nc, nphi, g, torus_offset, n_in, &        !&
-                       dump_time, cp_time, input_itime, nDeltar, vort_check     !&
+                       wall_mins, dump_time, cp_time, input_itime, nDeltar, &   !&
+                       vort_check                                               !&
 
       !  Default input set
       ispecial     = 1                                                          !&
@@ -176,8 +178,9 @@ contains
 
       dump_time    = 1                                                          !&
       cp_time      = 0                                                          !&
-      t_out       = 0.                                                          !&
+      t_out        = 0.                                                         !&
       dt_out       = 0.                                                         !&
+      wall_mins    = 24 * 60 !& default to 24 hrs                               !&
 
       ! Check total vorticity
       vort_check   = .true.                                                     !&
@@ -214,7 +217,7 @@ contains
       alpha = 1.d0
 
       diff_error = erfc(1.d0 / sqrt(alpha)) + 2.d0 * exp(-1.d0 / alpha) / sqrt(alpha * pi)
-      do while (diff_error .gt. eps_diff) then
+      do while (diff_error .gt. eps_diff)
          alpha = 0.95d0 * alpha
          diff_error = erfc(1.d0 / sqrt(alpha)) + 2.d0 * exp(-1.d0 / alpha) / sqrt(alpha * pi)
       end do
