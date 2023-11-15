@@ -213,13 +213,12 @@ contains
       ! 3D correction
       alpha = 1.d0
 
-100   continue
       diff_error = erfc(1.d0 / sqrt(alpha)) + 2.d0 * exp(-1.d0 / alpha) / sqrt(alpha * pi)
-
-      if (diff_error .gt. eps_diff) then
+      do while (diff_error .gt. eps_diff) then
          alpha = 0.95d0 * alpha
-         goto 100
-      end if
+         diff_error = erfc(1.d0 / sqrt(alpha)) + 2.d0 * exp(-1.d0 / alpha) / sqrt(alpha * pi)
+      end do
+
       if (my_rank .eq. 0) write (*, *) 'Diffusion error (csi) ', diff_error, alpha, alpha * Rd * Rd / 4.d0 / nu
 
       Delta_tdiff = alpha * Rd * Rd / 4.d0 / nu

@@ -25,21 +25,17 @@ module files
 
 contains
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Open plain text output files
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine openfiles
       use physvars
       use module_utils
       use mpi
-      integer :: linenum_e, linenum_d, ierr, ierr1, ierr2
-      Character*2 :: restart_num
-      Character*99 :: dum_en, dum_di
-
-      ierr1 = 0
-      ierr2 = 0
+      integer :: num_enstro_files, num_diag_files, ierr
+      character(len=99) :: enstro_filename, diag_filename
 
       if (my_rank .eq. 0) then
 
@@ -48,42 +44,40 @@ contains
          open (newunit=dom_unit, file='domains.dat')
 
          if (file_exists('ener_enstro.dat')) then
+            ! Create restart output files that include a number and start with 'R'
 
-            call system("ls *enstro.dat > TMP_list")
-            call read_line_num('TMP_list', dum_en, linenum_e)
+            do num_enstro_files = 1, 99 ! the initial choice is to have a two-digit option here
+               write (enstro_filename, '(a,i2.2,a)') 'R', num_enstro_files, '_ener_enstro.dat'
+               if (.not. file_exists(trim(enstro_filename))) exit
+            end do
 
-            call system("ls *linear_diag.dat > TMP_list")
-            call read_line_num('TMP_list', dum_di, linenum_d)
+            do num_diag_files = 1, 99 ! the initial choice is to have a two-digit option here
+               write (diag_filename, '(a,i2.2,a)') 'R', num_diag_files, '_linear_diag.dat'
+               if (.not. file_exists(trim(diag_filename))) exit
+            end do
 
-            call system("rm -fr TMP_list")
-
-            if (linenum_e .eq. linenum_d) then
-               write (restart_num, '(I2.2)') linenum_e
-            else
+            if (num_enstro_files .ne. num_diag_files) then
                call graceful_abort('Number of energy files differs from number of diagnostics files'//achar(13)//achar(10)// &
                                    'Check files ener_enstro.dat and linear_diag.dat in the working directory and restart')
             end if
 
-            write (*, '(A)') 'Last energy diagnostic file found: ', dum_en
-            write (*, '(A)') 'Attempting to create new file: R'//trim(restart_num)//'_ener_enstro.dat'
-            open (newunit=ener_unit, file='R'//trim(restart_num)//'_ener_enstro.dat', STATUS='NEW', IOSTAT=ierr1)
-            write (*, '(A)')
-            write (*, '(A)') 'Last linear diagnostic file found: ', dum_di
-            write (*, '(A)') 'Attempting to create new file: R'//trim(restart_num)//'_linear_diag.dat'
-            open (newunit=diag_unit, file='R'//trim(restart_num)//'_linear_diag.dat', STATUS='NEW', IOSTAT=ierr2)
+            write (*, '(a,1x,i2,1x,a)') 'Found', num_enstro_files, 'energy diagnostic file(s)' ! this includes the non-restart file
+            write (*, '(a)') 'Attempting to create new file: '//trim(enstro_filename)
+            open (newunit=ener_unit, file=trim(enstro_filename), status='new', iostat=ierr)
+            if (ierr .ne. 0) call graceful_abort('Error creating file '//trim(diag_filename)//achar(13)//achar(10)// &
+                                                 'File already exists. Change name or delete it.')
+            write (*, '(a)')
+            write (*, '(a,1x,i2,1x,a)') 'Found', num_diag_files, 'linear diagnostic file(s)' ! this includes the non-restart file
+            write (*, '(a)') 'Attempting to create new file: '//trim(diag_filename)
+            open (newunit=diag_unit, file=trim(diag_filename), status='new', iostat=ierr)
+            if (ierr .ne. 0) call graceful_abort('Error creating file '//trim(diag_filename)//achar(13)//achar(10)// &
+                                                 'File already exists. Change name or delete it.')
          else
-            open (newunit=ener_unit, file='ener_enstro.dat', STATUS='NEW')
-            open (newunit=diag_unit, file='linear_diag.dat', STATUS='NEW')
+            ! create first output file
+            open (newunit=ener_unit, file='ener_enstro.dat', status='new')
+            open (newunit=diag_unit, file='linear_diag.dat', status='new')
          end if
 
-      end if
-
-      if (ierr1 .ne. 0) then
-         call graceful_abort('Error creating file R'//trim(restart_num)//'_ener_enstro.dat'//achar(13)//achar(10)// &
-                             'File already exists. Change name or delete it.')
-      else if (ierr2 .ne. 0) then
-         call graceful_abort('Error creating file R'//trim(restart_num)//'_linear_diag.dat'//achar(13)//achar(10)// &
-                             'File already exists. Change name or delete it.')
       end if
 
       ! for MPI I/O
@@ -94,7 +88,7 @@ contains
    subroutine graceful_abort(message)
       use mpi
       character(*), intent(in)  :: message
-      integer                     :: ierr
+      integer                   :: ierr
 
       write (*, '(A)') '#############################################################'
       write (*, '(A)')
@@ -105,28 +99,11 @@ contains
       call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
    end subroutine graceful_abort
 
-   subroutine read_line_num(file_name, dum, linenum)
-      integer, intent(out) :: linenum
-      character(*), intent(in)  :: file_name
-      character*99, intent(out) :: dum
-
-      linenum = 0
-
-      Open (1, file=file_name)
-10    continue
-      read (1, *, err=20, end=20) dum
-      linenum = linenum + 1
-      goto 10
-20    continue
-      close (1)
-
-   end subroutine read_line_num
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Close plain text output files
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine closefiles
       use physvars
 
@@ -142,11 +119,11 @@ contains
 
    end subroutine closefiles
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Dump VTK
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine dump(i, simtime)
 
       use physvars
@@ -179,11 +156,11 @@ contains
 
    end subroutine dump
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Dump checkpoint
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine write_checkpoint(i, simtime)
 
       use physvars
@@ -273,11 +250,11 @@ contains
 
    end subroutine dump_results
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Read in data from MPI checkpoint file
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine read_in_checkpoint
 
       use physvars
@@ -298,11 +275,11 @@ contains
 
    end subroutine read_in_checkpoint
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Dump particles to binary parallel VTK
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine write_particles_to_vtk(step, time)
 
       use physvars
