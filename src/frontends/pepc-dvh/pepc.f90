@@ -78,7 +78,7 @@ program pepcdvh
    t_out = ts + n_out * dt_out
 
    ! Loop over all timesteps unless we caught a signal
-   do while (itime .lt. nt .and. .not. wallclock_limit_near(10))
+   do while (itime .lt. nt .and. .not. wallclock_limit_near(30))
 
       call timer_reset(t_io)
 
@@ -164,6 +164,7 @@ program pepcdvh
       call linear_diagnostics(itime, trun)
    end do
 
+   call write_checkpoint(itime, trun, .true.) ! final forced checkpoint (useful also when stopped due to wallclock limit)
    call dump_results()
 
    ! deallocate array space for particles
@@ -192,7 +193,7 @@ contains
       if (present(margin_in)) then
          margin = margin_in
       else
-         margin = 10 ! default to 10 minutes
+         margin = 30 ! default to 30 minutes
       end if
 
       wallclock_limit_near = .false.

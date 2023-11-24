@@ -161,7 +161,7 @@ contains
    !>   Dump checkpoint
    !>
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-   subroutine write_checkpoint(i, simtime)
+   subroutine write_checkpoint(i, simtime, forced)
 
       use physvars
       use mpi
@@ -170,6 +170,7 @@ contains
 
       integer, intent(in) :: i
       real, intent(in) :: simtime
+      logical, intent(in), optional :: forced
       integer :: fh, ierr, err, status(MPI_STATUS_SIZE)
       integer(KIND=MPI_OFFSET_KIND) :: disp, header_disp = 1024
 
@@ -178,8 +179,9 @@ contains
       call timer_resume(t_io)
       call timer_start(t_checkpoint)
 
+
       if (cp_time .ne. 0) then
-         if (mod(i, cp_time) .eq. 0) then
+         if (mod(i, cp_time) .eq. 0 .or. present(forced)) then
             ! Open new file for i-th timestep
             write (mpifile, '(a,i6.6,a)') "part_data/particle_", i, ".mpi"
             call MPI_FILE_OPEN(MPI_COMM_WORLD, mpifile, IOR(MPI_MODE_RDWR, MPI_MODE_CREATE), MPI_INFO_NULL, fh, ierr)
