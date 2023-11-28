@@ -440,6 +440,8 @@ contains
       local_keys(1:npold) = particles(1:npold)%key
       local_work(1:npold) = particles(1:npold)%work
 
+      if(interpo) local_work(1:npold) = 1.d0
+
       call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, &
                        sorted_keys, irnkl2, n_cpu, my_rank, MPI_COMM_WORLD)
 
@@ -505,6 +507,12 @@ contains
 
       m_np = k
 
+      if(interpo) then
+         do i  = 1, m_np
+            particles(i)%data%alpha(:) = particles(i)%data%alpha(:) / particles(i)%work
+            particles(i)%work = 1.
+         end do
+      end if
       ! KICK OUT CRITERION MUST BE ENFORCED ON vorticity (omega), not on circulation (alpha)
       ! Kick out particles (cannot use subroutinee here, since we work on a temp-array)
       k = 0
