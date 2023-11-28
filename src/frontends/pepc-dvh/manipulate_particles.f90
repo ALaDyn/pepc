@@ -522,8 +522,7 @@ contains
       end do
 
       ! How many particles are kicked out? Write for check on threshold limit
-      ! if(my_rank.eq.0) write(kout_unit,*) 'diffusive kick-out',m_np - k
-      if (my_rank .eq. 0) write (*, *) 'in sort remesh', m_np - k, ' max k-out', maxome, ' min k-out', minome
+      if(my_rank.eq.0) write(*,*) 'Particles kicked-out',m_np - k
 
       m_np = k
 
