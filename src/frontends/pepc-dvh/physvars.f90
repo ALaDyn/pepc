@@ -148,7 +148,7 @@ contains
       logical :: read_param_file
 
       namelist /pepcv/ n, ispecial, ts, te, nu, Co, nv_on_Lref, rk_stages, &    !&
-                       h, Delta_r, thresh, Uref, Lref, interp_freq,          &  !&
+                       h, Delta_r, thresh, Uref, Lref, interp_freq, &           !&
                        rmax, r_torus, nc, nphi, g, torus_offset, n_in, &        !&
                        wall_mins, dump_time, cp_time, input_itime, nDeltar, &   !&
                        vort_check                                               !&
@@ -264,26 +264,26 @@ contains
 
       if (interp_freq .gt. 0) then
 
-         if (interp_freq .lt. min(interp_limit,rem_freq)) then
-            if (my_rank .eq. 0) write(*,*) 'Using interpolation on Cartesian grid every ',interp_freq,' steps'
+         if (interp_freq .lt. min(interp_limit, rem_freq)) then
+            if (my_rank .eq. 0) write (*, *) 'Using interpolation on Cartesian grid every ', interp_freq, ' steps'
          else
             if (my_rank .eq. 0) then
-              write(*,*) 'Interpolation frequency from input file is ',interp_freq
-              write(*,*) 'This value is too large (larger than either rem_freq or interp_limit)'
-              write(*,*) 'Disabling interpolation on Cartesian grid'
+               write (*, *) 'Interpolation frequency from input file is ', interp_freq
+               write (*, *) 'This value is too large (larger than either rem_freq or interp_limit)'
+               write (*, *) 'Disabling interpolation on Cartesian grid'
             end if
             interp_freq = 0
-         endif
+         end if
 
       elseif (rem_freq .gt. interp_limit) then
 
          interp_freq = interp_limit
          if (my_rank .eq. 0) then
-           write(*,*) 'High-Reynolds problem, diffusive time step is too large (rem_freq > interp_limit)'
-           write(*,*) 'Using additional interpolation on Cartesian grid every ',interp_freq,' steps to maintain particle uniformity.'
+            write (*, *) 'High-Reynolds problem, diffusive time step is too large (rem_freq > interp_limit)'
+            write (*, *) 'Using additional interpolation on Cartesian grid every ', interp_freq, ' steps to maintain particle uniformity.'
          end if
 
-      endif
+      end if
 
       ! Setup itime to standard value, may change for ispecial=99 (if not: fine)
       itime = 0

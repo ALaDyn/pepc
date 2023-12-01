@@ -25,11 +25,11 @@ module interpolation_on_grid
 
 contains
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>  Interpolation of data on a Cartesian grid using Shepard renormalization
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine interpolation()
 
       use physvars
@@ -50,7 +50,7 @@ contains
       real(kind_physics)                  :: pos(3), omega(3)
       real(kind_physics)                  :: local_extent_min(3), local_extent_max(3)
       real(kind_physics)                  :: kernel, tentx, tenty, tentz
-      real(kind_physics), allocatable     :: omega_reduction(:, :), positions(:,:), den_int(:), ome_app(:)
+      real(kind_physics), allocatable     :: omega_reduction(:, :), positions(:, :), den_int(:), ome_app(:)
       real(kind_physics), dimension(3)    :: total_vort, total_vort_full_pre, total_vort_full_after
       real(kind_physics)                  :: total_vortmod, total_vortmod_full_pre, total_vortmod_full_after
 
@@ -96,7 +96,7 @@ contains
 !$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(NONE) &
 !$OMP SHARED(vortex_particles, np, m_h) &
 !$OMP PRIVATE(i1, i2, i3, k, proximity) &
-!$OMP REDUCTION(.or.:grid_mask)
+!$OMP REDUCTION(.or.: grid_mask)
       do k = 1, np
 
          ! Find indices of nearest global grid point
@@ -115,39 +115,35 @@ contains
       end do
 !$OMP END PARALLEL DO
 
-      ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
       n_interp_points = count(grid_mask)
-      ! $OMP END PARALLEL WORKSHARE
 
       call MPI_ALLREDUCE(n_interp_points, n_max_interp_points, 1, MPI_KIND_PARTICLE, MPI_MAX, MPI_COMM_WORLD, ierr)
 
-      allocate(mapping_indices(n_interp_points))
+      allocate (mapping_indices(n_interp_points))
 
-      allocate(index_map(lbound(grid_mask,1):ubound(grid_mask,1), &
-                         lbound(grid_mask,2):ubound(grid_mask,2), &
-                         lbound(grid_mask,3):ubound(grid_mask,3) ))
+      allocate (index_map(lbound(grid_mask, 1):ubound(grid_mask, 1), &
+                          lbound(grid_mask, 2):ubound(grid_mask, 2), &
+                          lbound(grid_mask, 3):ubound(grid_mask, 3)))
 
       index_map = 0
 
-      ! $OMP PARALLEL WORKSHARE DEFAULT(NONE)
       mapping_indices = (/(i, i=1, n_interp_points)/)
       index_map = unpack(mapping_indices, grid_mask, index_map)
-      ! $OMP END PARALLEL WORKSHARE
 
       deallocate (mapping_indices)
 
-      allocate (      positions(1:3,n_interp_points),  &
-                omega_reduction(1:3,n_interp_points),  &
-                        den_int(    n_interp_points) )
+      allocate (      positions(1:3, n_interp_points), &                        !&
+                omega_reduction(1:3, n_interp_points), &                        !&
+                        den_int(     n_interp_points))                          !&
 
-      positions       = 0.d0
-      den_int         = 0.d0
+      positions = 0.d0
+      den_int = 0.d0
       omega_reduction = 0.d0
 
-!$OMP PARALLEL DEFAULT(NONE)                                      &
-!$OMP PRIVATE(pos,x,y,z,i1,i2,i3,k,l,omega,vol,                   &
-!$OMP         kernel,proximity,tentx,tenty,tentz)                 &
-!$OMP SHARED(vortex_particles,np,m_h,index_map,positions)  &
+!$OMP PARALLEL DEFAULT(NONE)                                   &
+!$OMP PRIVATE(pos, x, y, z, i1, i2, i3, k, l, omega,           &
+!$OMP         kernel, proximity, tentx, tenty, tentz)          &
+!$OMP SHARED(vortex_particles, np, m_h, index_map, positions)  &
 !$OMP REDUCTION(+: omega_reduction, den_int)
 
 !$OMP DO SCHEDULE(STATIC)
@@ -157,20 +153,19 @@ contains
          ! Find indexes of nearest global grid point
          proximity = nint(pos / m_h)
 
-           vol = vortex_particles(k)%data%vol
-         omega = vortex_particles(k)%data%alpha / vol
+         omega = vortex_particles(k)%data%alpha / vortex_particles(k)%data%vol
 
          do i3 = proximity(3) - supp_int, proximity(3) + supp_int
             z = m_h * i3
-            tentz = tent(dabs(z - pos(3))/m_h,c2)
+            tentz = tent(abs(z - pos(3)) / m_h, c2)
 
             do i2 = proximity(2) - supp_int, proximity(2) + supp_int
                y = m_h * i2
-               tenty = tent(dabs(y - pos(2))/m_h,c2)
+               tenty = tent(abs(y - pos(2)) / m_h, c2)
 
                do i1 = proximity(1) - supp_int, proximity(1) + supp_int
                   x = m_h * i1
-                  tentx = tent(dabs(x - pos(1))/m_h,c2)
+                  tentx = tent(abs(x - pos(1)) / m_h, c2)
 
                   kernel = tentx * tenty * tentz
 
@@ -192,7 +187,7 @@ contains
 
       deallocate (grid_mask, index_map, vortex_particles)
 
-      not_zeros = pack([(i,i=1,n_interp_points)],den_int/=0.)
+      not_zeros = pack([(i, i=1, n_interp_points)], den_int .ne. 0.)
 
       allocate (m_part(n_max_interp_points))
 
@@ -200,7 +195,7 @@ contains
 
       n_interp_points = size(not_zeros)
 
-! IN %WORK WE PUT THE DENOMINATOR OF INTERPOLATION: this is a smart way to have summation over two different quantities
+      ! IN %WORK WE PUT THE DENOMINATOR OF INTERPOLATION: this is a smart way to have summation over two different quantities
       vol = m_h**3
 
 !$OMP PARALLEL DEFAULT(NONE)                       &
@@ -211,16 +206,16 @@ contains
 !$OMP DO SCHEDULE(STATIC)
       do i = 1, n_interp_points
          l = not_zeros(i)
-         m_part(i)%x(:)          = positions(:,l)
-         m_part(i)%data%alpha(:) = omega_reduction(:,l) * vol
-         m_part(i)%data%vol      = vol
-         m_part(i)%work          = den_int(l)
-!         m_part(i)%work          = 1.d0       ! uncomment this line do disable Shepard renormalization
+         m_part(i)%x(:)          = positions(:, l)                              !&
+         m_part(i)%data%alpha(:) = omega_reduction(:, l) * vol                  !&
+         m_part(i)%data%vol      = vol                                          !&
+         m_part(i)%work          = den_int(l)                                   !&
+         !m_part(i)%work          = 1.d0                                         !& uncomment this line do disable Shepard renormalization
       end do
 !$OMP END DO
 !$OMP END PARALLEL
 
-      deallocate(not_zeros, positions, omega_reduction, den_int)
+      deallocate (not_zeros, positions, omega_reduction, den_int)
 
       call sort_remesh(m_part, local_extent_min, local_extent_max, n_interp_points, n_max_interp_points)
 
@@ -242,7 +237,7 @@ contains
          end if
       end if
 
-      allocate(vortex_particles(np))
+      allocate (vortex_particles(np))
       vortex_particles(1:np) = m_part(1:np)
 
       ! Reset the number of OpenMP threads to num_threads, the number of WORK threads.
@@ -262,26 +257,26 @@ contains
 
    end subroutine interpolation
 
-   elemental function tent(adis,c2)
+   elemental function tent(adis, c2)
 
       real(kind_physics), intent(in) :: adis, c2
       real(kind_physics)             :: adis2, adis3
       real(kind_physics)             :: tent
 
-      adis2 = adis*adis
-      adis3 = adis*adis2
+      adis2 = adis * adis
+      adis3 = adis * adis2
 
       tent = 0.d0
 
-!     if(adis.lt.1.d0)                  tent = (1.d0 - adis)*(1.d0 + adis)*(2.d0 - adis) / 2.d0
-!     if(adis.gt.1.d0.and.adis.lt.2.d0) tent = (1.d0 - adis)*(2.d0 - adis)*(3.d0 - adis) / 6.d0
+      !     if(adis.lt.1.d0)                  tent = (1.d0 - adis)*(1.d0 + adis)*(2.d0 - adis) / 2.d0
+      !     if(adis.gt.1.d0.and.adis.lt.2.d0) tent = (1.d0 - adis)*(2.d0 - adis)*(3.d0 - adis) / 6.d0
 
-      if(adis.lt.1.d0)       tent =       1.d0 - 2.5d0*adis2 + 1.5d0*adis3  &
-                                  - c2 * (2.d0 - 9.0d0*adis2 + 6.0d0*adis3)
+      if (adis .lt. 1.d0) tent =         1.d0 - 2.5d0 * adis2 + 1.5d0 * adis3 & !&
+                                 - c2 * (2.d0 - 9.0d0 * adis2 + 6.0d0 * adis3)  !&
 
-      if(adis.gt.1.d0 .and.                                                                     &
-         adis.lt.2.d0      ) tent =      (2.d0 - adis)*(2.d0 - adis)*(1.d0 -      adis) / 2.d0  &
-                                  - c2 * (2.d0 - adis)*(2.d0 - adis)*(1.d0 - 2.d0*adis)
+      if (adis .gt. 1.d0 .and. &
+          adis .lt. 2.d0) tent =        (2.d0 - adis) * (2.d0 - adis) * (1.d0 - adis) / 2.d0 & !&
+                                 - c2 * (2.d0 - adis) * (2.d0 - adis) * (1.d0 - 2.d0 * adis)   !&
 
    end function tent
 

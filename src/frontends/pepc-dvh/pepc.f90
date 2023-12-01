@@ -154,7 +154,7 @@ program pepcdvh
 
       end if
 
-      if ((interp_freq .gt. 0) .and. (mod(itime, interp_freq) .eq. 0))  then
+      if ((interp_freq .gt. 0) .and. (mod(itime, interp_freq) .eq. 0)) then
          if (.not. must_diffuse) then
             interpo = .true.
 
@@ -166,7 +166,7 @@ program pepcdvh
 
             t_flag = -rk_stages
             interpo = .false.
-         endif
+         end if
       else
 
          t_flag = rk_stages

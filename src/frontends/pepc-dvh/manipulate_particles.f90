@@ -25,11 +25,11 @@ module manipulate_particles
 
 contains
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>  Remeshing with a Gaussian diffusion process using local grids and parallel sorting
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine remeshing()
 
       use physvars
@@ -305,11 +305,11 @@ contains
 
    end subroutine remeshing
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Interpolation function for remeshing
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    elemental function ip_kernel(dist2, c, d)
       use physvars, only: pi, Rd
 
@@ -325,11 +325,11 @@ contains
 
    end function ip_kernel
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Sorting function for remeshing
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine sort_remesh(particles, local_extent_min, local_extent_max, m_np, m_nppm)
 
       use physvars
@@ -440,7 +440,7 @@ contains
       local_keys(1:npold) = particles(1:npold)%key
       local_work(1:npold) = particles(1:npold)%work
 
-      if(interpo) local_work(1:npold) = 1.d0
+      if (interpo) local_work(1:npold) = 1.d0
 
       call slsort_keys(npold, m_nppm, local_keys, local_work, 0, 0.05D0, npnew, indxl, irnkl, islen, irlen, fposts, gposts, &
                        sorted_keys, irnkl2, n_cpu, my_rank, MPI_COMM_WORLD)
@@ -507,8 +507,8 @@ contains
 
       m_np = k
 
-      if(interpo) then
-         do i  = 1, m_np
+      if (interpo) then
+         do i = 1, m_np
             particles(i)%data%alpha(:) = particles(i)%data%alpha(:) / particles(i)%work
             particles(i)%work = 1.
          end do
@@ -530,7 +530,7 @@ contains
       end do
 
       ! How many particles are kicked out? Write for check on threshold limit
-      if(my_rank.eq.0) write(*,*) 'Particles kicked-out',m_np - k
+      if (my_rank .eq. 0) write (*, *) 'Particles kicked-out', m_np - k
 
       m_np = k
 
@@ -555,11 +555,11 @@ contains
 
    end subroutine sort_remesh
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Kick out particles according to threshold (compare with |alpha|)
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine kick_out_particles()
 
       use physvars
@@ -593,11 +593,11 @@ contains
 
    end subroutine kick_out_particles
 
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !>
    !>   Initialize/reset labels after manipulation, esp. after remeshing
    !>
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    subroutine reset_labels()
 
       use physvars
