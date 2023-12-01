@@ -34,6 +34,7 @@ program pepcdvh
    use time_integration
    use init_particles
    use manipulate_particles
+   use interpolation_on_grid
    use module_pepc
    use module_user_timings
    use files
@@ -49,6 +50,7 @@ program pepcdvh
    real :: trun ! total run time including restarts and offset
    integer :: itime, stage, t_flag
    integer(int64) :: start_ticks, ticks_per_minute ! ticks when starting and per minute
+   logical :: must_diffuse
 
    ! Register starting time (effectively in minutes)
    call system_clock(start_ticks, ticks_per_minute)
@@ -77,8 +79,9 @@ program pepcdvh
 
    t_out = ts + n_out * dt_out
 
+   interpo = .false.
    ! Loop over all timesteps unless we caught a signal
-   do while (itime .lt. nt .and. .not. wallclock_limit_near(10))
+   do while (itime .lt. nt .and. .not. wallclock_limit_near(30))
 
       call timer_reset(t_io)
 
@@ -131,7 +134,8 @@ program pepcdvh
       call dump(itime, trun)
 
       ! if remeshing is requested at all and if it is time right now, do it!
-      if ((rem_freq .gt. 0) .and. (mod(itime, rem_freq) .eq. 0)) then
+      must_diffuse = (rem_freq .gt. 0) .and. (mod(itime, rem_freq) .eq. 0)
+      if (must_diffuse) then
          call divergence_diag()
          call energy_diag(trun)
 
@@ -150,6 +154,24 @@ program pepcdvh
 
       end if
 
+      if ((interp_freq .gt. 0) .and. (mod(itime, interp_freq) .eq. 0)) then
+         if (.not. must_diffuse) then
+            interpo = .true.
+
+            call divergence_diag()
+            call energy_diag(trun)
+
+            if (my_rank .eq. 0) write (*, '("PEPC-DVH | ", a)') 'Performing interpolation...'
+            call interpolation()
+
+            t_flag = -rk_stages
+            interpo = .false.
+         end if
+      else
+
+         t_flag = rk_stages
+
+      end if
       call write_checkpoint(itime, trun)
 
       call timer_stop(t_tot)   ! total loop time incl. remeshing if requested
@@ -164,6 +186,7 @@ program pepcdvh
       call linear_diagnostics(itime, trun)
    end do
 
+   call write_checkpoint(itime, trun, .true.) ! final forced checkpoint (useful also when stopped due to wallclock limit)
    call dump_results()
 
    ! deallocate array space for particles
@@ -192,7 +215,7 @@ contains
       if (present(margin_in)) then
          margin = margin_in
       else
-         margin = 10 ! default to 10 minutes
+         margin = 30 ! default to 30 minutes
       end if
 
       wallclock_limit_near = .false.
