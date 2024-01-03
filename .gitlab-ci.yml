@@ -3,7 +3,7 @@ stages:
   - image      # build updated image for runner
   - lint       # do basic lint'ing to nudge towards common formatting
   - build      # build libraries, frontends, etc...
-    #   - test
+  - test       # test PEPC for correctness and performance
     #   - html      # this run doxygen (prefer FORD)
     #   - deploy    # this could push doxygen to pages
 
@@ -14,6 +14,12 @@ variables:
       - "false"
       - "true"
     description: "Force the creation of a new Docker image for this branch."
+  SBATCH_ACCOUNT:
+    # use this variable for SBATCH/JUBE to define accounting (or hard code within JUBE file)
+    value: cstma
+    description: "Account name of compute project to use for JUBE runs"
+  SCHEDULER_PARAMETERS: -A$SBATCH_ACCOUNT
+    # this needs to include the accounting name if JACAMAR is meant to run on compute nodes, i.e. -A<account>
 
 #### Build PEPC and it's libraries
 # Template for building
@@ -101,6 +107,31 @@ toolchains:
   artifacts:
     paths:
       - bin/*
+  rules:
+    # Only run when on main repository
+    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+
+# If the 'toolchain' builds work, test PEPC correctness on a cluster
+correctness:
+  stage: test
+  tags:
+    - jusuf
+    - shell
+  when: on_success
+  needs: ["toolchains: [jusuf, GCC, OpenMPI]"]
+  script:
+    - echo "Building pepc-benchmark on $SYSTEMNAME using $HOSTNAME"
+    - echo "Loading modules..."
+    # load JUBE, the rest will be done from there
+    - ml JUBE
+    # start JUBE
+    - echo "Running JUBE... This will take some time..."
+    - jube-autorun -o -r "-t ompi check CI" benchmark/benchmark.xml
+    - echo "Checking for success..."
+    - jube result run/benchmark/ | grep -q failed && exit 128
+  artifacts:
+    paths:
+      - run
   rules:
     # Only run when on main repository
     - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"

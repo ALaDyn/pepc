@@ -17,7 +17,6 @@
          <!--    tag allmpi    : run all 3 MPI libraries (default)                                          -->
          <!--    tag ps        : pick ParaStationMPI to run with                                            -->
          <!--    tag ompi      : pick OpenMPI to run with                                                   -->
-         <!--    tag mvapich   : pick MVAPICH to run with                                                   -->
          <!--    no tag        : by default, all sources will be copied, pepc-benchmark compiled, and the   -->
          <!--                    benchmark configuration will be launched. the compiled binary will be      -->
          <!--                    copied back onto the source tree for later reference.                      -->
@@ -25,15 +24,13 @@
 
          <!-- PARAMETER SETS ############################################################################## -->
          <!-- define all parameter sets we possibly use to benchmark -->
-         <!-- test for system, only cluster part possible, use tag for booster -->
+         <!-- test for system, only cluster part possible -->
          <parameterset name="system">
             <parameter name="systemname" mode="shell">printf "%s" `cat /etc/FZJ/systemname`</parameter>
-            <parameter tag="booster" name="systemname">KNL</parameter>
             <parameter name="partition" mode="python">{
                "juwels": "batch",
                "jurecadc": "dc-cpu",
-               "jusuf": "batch",
-               "KNL": "booster"}["${systemname}"]
+               "jusuf": "batch"}["${systemname}"]
             </parameter>
          </parameterset>
          <!-- loop over different stages to test those -->
@@ -45,28 +42,22 @@
             <parameter tag="allmpi|ips"     name="ipsmpi">ipsmpi</parameter>
             <parameter                      name="psmpi"></parameter>
             <parameter tag="allmpi|ps"      name="psmpi">psmpi</parameter>
-            <parameter                      name="mvapich"></parameter>
-            <parameter tag="allmpi|mvapich" name="mvapich">mvapich</parameter>
             <parameter                      name="ompi"></parameter>
             <parameter tag="allmpi|ompi"    name="ompi">ompi</parameter>
             <!-- combine all MPIs to single parameter to loop over if tags present, otherwise use all three -->
-            <parameter tag="!booster+(intel|ips|ps|mvapich|ompi|allmpi)" name="list_of_mpis" mode="python">
-               ",".join([i for i in "${impi} ${ipsmpi} ${psmpi} ${ompi} ${mvapich}".split(" ") if len(i) > 0])
+            <parameter tag="(intel|ips|ps|ompi|allmpi)" name="list_of_mpis" mode="python">
+               ",".join([i for i in "${impi} ${ipsmpi} ${psmpi} ${ompi}".split(" ") if len(i) > 0])
             </parameter>
-            <parameter tag="!booster+!intel+!ips+!ps+!mvapich+!ompi" name="list_of_mpis" mode="python">
-               ",".join([i for i in "impi ipsmpi psmpi ompi mvapich".split(" ") if len(i) > 0])
-            </parameter>
-            <parameter tag="booster" name="list_of_mpis" mode="python">
-               ",".join([i for i in "psmpi".split(" ") if len(i) > 0])
+            <parameter tag="!intel+!ips+!ps+!ompi" name="list_of_mpis" mode="python">
+               ",".join([i for i in "impi ipsmpi psmpi ompi".split(" ") if len(i) > 0])
             </parameter>
             <!-- prepare module load commands -->
             <parameter name="load_modules" mode="python">{
                "juwels": {
-               "impi": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2019a; module load Intel/2019.3.199-GCC-8.3.0 IntelMPI/2019.3.199", 
+               "impi": "module purge; module load Intel IntelMPI", 
                "ipsmpi": "module purge; module load intel-para",
                "psmpi": "module purge; module load GCC ParaStationMPI",
                "ompi": "module purge; module load GCC OpenMPI",
-               "mvapich": "module purge; module use /gpfs/software/juwels/otherstages/; module load Stages/2018a; module load GCC/5.5.0 MVAPICH2/2.3a-GDR; export LD_LIBRARY_PATH=/gpfs/software/juwels/stages/2018b/software/CUDA/9.2.88/lib64/stubs/:${LD_LIBRARY_PATH}"
                }["${list_of_mpis}"],
                "jurecadc": {
                "impi": "module purge; module load Intel IntelMPI",
@@ -79,11 +70,6 @@
                "ipsmpi": "module purge; module load Intel ParaStationMPI",
                "psmpi": "module purge; module load GCC ParaStationMPI",
                "ompi": "module purge; module load GCC OpenMPI",
-               }["${list_of_mpis}"],
-               "KNL": {
-               "impi": "module purge; module load Architecture/KNL; module load Intel IntelMPI",
-               "psmpi": "module purge; module load Architecture/KNL; module load GCC ParaStationMPI",
-               "ompi": "module purge; module load Architecture/KNL; module load GCC OpenMPI"
                }["${list_of_mpis}"],
                }["${systemname}"]
             </parameter>
@@ -100,169 +86,169 @@
             <!-- Jureca-DC has 2 x 64 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
             <!-- Jureca Booster has 68 cores, 4xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
             <parameter name="nodes" type="int" mode="python">{
-               "juwels": "2, 4, 8, 16, 24, 32, 48, 64, 96, 128, 160",
+               "juwels": "4",
                "jurecadc": "8, 16, 32, 48, 64",
-               "jusuf": "2, 4",
-               "KNL": "4, 8, 16, 32"}["${systemname}"]
+               "jusuf": "2, 4"}["${systemname}"]
             </parameter>
-            <!--parameter tag="booster"  name="nodes" type="int">2, 4, 6, 8, 16, 24, 32, 48, 64, 96, 128, 256</parameter-->
-         <!-- the check has be 'designed' for Jureca and 12 nodes, stick to the number of nodes at least -->
-         <parameter tag="check"    name="nodes" type="int">12</parameter>
-         <!-- set the number of task per node, with dual socket ccNUMA, 2 could be a good option -->
-         <!-- with 2 memory interfaces per CPU and dual socket, 4 could be a good option -->
-         <!-- 4 will likely also make sense for the booster, given the quadrants, more may be beneficial however -->
-         <parameter name="taskspnode" type="int" mode="python">{
-            "juwels": "4",
-            "jurecadc": "16",
-            "jusuf": "8",
-            "KNL": "4"}["${systemname}"]
-         </parameter>
-         <!-- change HWT to the number of hardware threads you want PEPC to use -->
-         <parameter name="threads" mode="python" type="int">{
-            "juwels": ",".join(str(int(HWT/${taskspnode})) for HWT in [96]),
-            "jurecadc": ",".join(str(int(HWT/${taskspnode})) for HWT in [256]),
-            "jusuf": ",".join(str(int(HWT/${taskspnode})) for HWT in [128]),
-            "KNL": ",".join(str(int(HWT/${taskspnode})) for HWT in [136])}["${systemname}"]
-         </parameter>
-         <!-- define how many SMT threads we want to use per rank -->
-         <parameter tag="!booster" name="thread_places" mode="python" type="int">{
-            "juwels": 2 if ($threads*$taskspnode)>48 else 1,
-            "jusuf": 2 if ($threads*$taskspnode)>128 else 1,
-            "jurecadc": 2 if ($threads*$taskspnode)>128 else 1}["${systemname}"]
-         </parameter>
-         <parameter tag="booster"  name="thread_places" mode="python" type="int">4 if ($threads*$taskspnode)>136 else ( 2 if ($threads*$taskspnode)>68 else 1 )</parameter>
-         <!-- compute worker threads for PEPC -->
-         <parameter                name="workerthreads" mode="python" type="int">int($threads-1)</parameter>
-      </parameterset>
-      <!-- pepc-benchmark mode: either 'check' or 'benchmark' -->
-      <parameterset name="modeset">
-         <!-- mode to run PEPC in -->
-         <parameter               name="mode" type="string">benchmark</parameter>
-         <parameter tag="check"   name="mode" type="string">test</parameter>
-         <!-- strong scaling with constant number of particles -->
-         <parameter               name="particles" type="int">50000000</parameter>
-         <!-- weak scaling with constant number of particles per thread -->
-         <parameter tag="weak"    name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
-         <!-- the check run has a set number of particles, don't touch settings below -->
-      </parameterset>
-      <parameterset name="walkset">
-         <!-- select a walk to test, or loop over a number of them (pthreads, simple, openmp) -->
-         <parameter name="walk">pthreads, simple</parameter>
-      </parameterset>
+            <!-- the check has be 'designed' for Jureca and 12 nodes, but constraint lifted since -->
+            <parameter tag="check"    name="nodes" type="int">12</parameter>
+            <parameter tag="check+CI" name="nodes" type="int">1</parameter>
+            <!-- set the number of task per node, with dual socket ccNUMA, 2 could be a good option -->
+            <!-- with 2 memory interfaces per CPU and dual socket, 4 could be a good option -->
+            <parameter name="taskspnode" type="int" mode="python">{
+               "juwels": "4",
+               "jurecadc": "16",
+               "jusuf": "8"}["${systemname}"]
+            </parameter>
+            <!-- change HWT to the number of hardware threads you want PEPC to use -->
+            <parameter name="threads" mode="python" type="int">{
+               "juwels": ",".join(str(int(HWT/${taskspnode})) for HWT in [96]),
+               "jurecadc": ",".join(str(int(HWT/${taskspnode})) for HWT in [256]),
+               "jusuf": ",".join(str(int(HWT/${taskspnode})) for HWT in [128])}["${systemname}"]
+            </parameter>
+            <!-- define how many SMT threads we want to use per rank -->
+            <parameter name="thread_places" mode="python" type="int">{
+               "juwels": 2 if ($threads*$taskspnode)>48 else 1,
+               "jurecadc": 2 if ($threads*$taskspnode)>128 else 1,
+               "jusuf": 2 if ($threads*$taskspnode)>128 else 1}["${systemname}"]
+            </parameter>
+            <!-- compute worker threads for PEPC -->
+            <parameter name="workerthreads" mode="python" type="int">int($threads-1)</parameter>
+         </parameterset>
+         <!-- pepc-benchmark mode: either 'check' or 'benchmark' -->
+         <parameterset name="modeset">
+            <!-- mode to run PEPC in -->
+            <parameter             name="mode" type="string">benchmark</parameter>
+            <parameter tag="check" name="mode" type="string">test</parameter>
+            <!-- strong scaling with constant number of particles -->
+            <parameter                name="particles" type="int">50000000</parameter>
+            <parameter tag="check"    name="particles" type="int">1000000</parameter>
+            <parameter tag="check+CI" name="particles" type="int">50000</parameter>
+            <parameter tag="check"    name="ntimesteps" type="int">10000</parameter>
+            <parameter tag="check+CI" name="ntimesteps" type="int">2500</parameter>
+            <!-- weak scaling with constant number of particles per thread -->
+            <parameter tag="weak"  name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
+            <!-- the check run has a set number of particles, don't touch settings below -->
+         </parameterset>
+         <parameterset name="walkset">
+            <!-- select a walk to test, or loop over a number of them (pthreads, simple, openmp) -->
+            <!--parameter name="walk">pthreads, openmp, simple</parameter-->
+            <parameter name="walk">simple</parameter>
+         </parameterset>
 
-      <!-- FILE SETS ################################################################################### -->
-      <!-- copy all source files -->
-      <fileset name="sources">
-         <copy directory="../.">makefile, src, tools</copy>
-         <copy directory="../." name="makefile.defs">${makefile}</copy>
-      </fileset>
-      <!-- link or copy executable to JUBE steps -->
-      <fileset name="executable">
-         <link tag="!nocompile" rel_path_ref="internal">compile/bin/pepc-benchmark</link>
-         <copy tag="nocompile" directory="../bin">pepc-benchmark</copy>
-      </fileset>
-      <!-- copy all files to run later -->
-      <fileset name="runfiles">
-         <copy directory=".">params.skel</copy>
-         <copy directory=".">${job_script}</copy>
-         <copy directory=".">correct_pinning.sh</copy>
-      </fileset>
+         <!-- FILE SETS ################################################################################### -->
+         <!-- copy all source files -->
+         <fileset name="sources">
+            <copy directory="../.">makefile, src, tools</copy>
+            <copy directory="../." name="makefile.defs">${makefile}</copy>
+         </fileset>
+         <!-- link or copy executable to JUBE steps -->
+         <fileset name="executable">
+            <link tag="!nocompile" rel_path_ref="internal">compile/bin/pepc-benchmark</link>
+            <copy tag="nocompile" directory="../bin">pepc-benchmark</copy>
+         </fileset>
+         <!-- copy all files to run later -->
+         <fileset name="runfiles">
+            <copy directory=".">params.skel</copy>
+            <copy directory=".">${job_script}</copy>
+            <copy directory=".">correct_pinning.sh</copy>
+         </fileset>
 
-      <!-- SUBSTITUIONS ################################################################################ -->
-      <!-- define the substitute sets for parameters above, to be enabled individually -->
-      <!-- benchmarking case -->
-      <substituteset tag="!check" name="inputsub">
-         <iofile in="params.skel" out="params" />
-         <sub source="##SETUP##" dest="'$mode'" />
-         <sub source="##BOX##" dest=".true." />
-         <sub source="##IO##" dest=".false." />
-         <sub source="##THREADS##" dest="$workerthreads" />
-         <sub source="##DIAG##" dest=".false." />
-         <sub source="##DT##" dest="0.1e-1" />
-         <sub source="##NT##" dest="10" />
-         <sub source="##NPARTICLES##" dest="$particles" />
-      </substituteset>
-      <!-- correctness test -->
-      <substituteset tag="check" name="inputsub">
-         <iofile in="params.skel" out="params" />
-         <sub source="##SETUP##" dest="'$mode'" />
-         <sub source="##BOX##" dest=".false." />
-         <sub source="##IO##" dest=".false." />
-         <sub source="##THREADS##" dest="$workerthreads" />
-         <sub source="##DIAG##" dest=".true." />
-         <sub source="##DT##" dest="0.2e-1" />
-         <sub source="##NT##" dest="10000" />
-         <sub source="##NPARTICLES##" dest="1000000" />
-      </substituteset>
-      <substituteset name="runsub">
-         <iofile in="${job_script}" out="job.slurm" />
-         <sub source="##PARTITION##" dest="$partition" />
-         <sub source="##NODES##" dest="$nodes" />
-         <sub source="##TASKSPNODE##" dest="$taskspnode" />
-         <sub source="##THREADS##" dest="$threads" />
-         <sub source="##WORKERTHREADS##" dest="$workerthreads" />
-         <sub source="##SMT_THREADS##" dest="$thread_places" />
-         <sub source="##MODULES##" dest="$load_modules" />
-      </substituteset>
-      <substituteset name="walksub">
-         <iofile in="src/frontends/pepc-benchmark/makefile.frontend" out="src/frontends/pepc-benchmark/makefile.frontend" />
-         <sub source="WALK = pthreads" dest="WALK = $walk" />
-      </substituteset>
+         <!-- SUBSTITUIONS ################################################################################ -->
+         <!-- define the substitute sets for parameters above, to be enabled individually -->
+         <!-- benchmarking case -->
+         <substituteset tag="!check" name="inputsub">
+            <iofile in="params.skel" out="params" />
+            <sub source="##SETUP##" dest="'$mode'" />
+            <sub source="##BOX##" dest=".true." />
+            <sub source="##IO##" dest=".false." />
+            <sub source="##THREADS##" dest="$workerthreads" />
+            <sub source="##DIAG##" dest=".false." />
+            <sub source="##DT##" dest="0.1e-1" />
+            <sub source="##NT##" dest="10" />
+            <sub source="##NPARTICLES##" dest="$particles" />
+         </substituteset>
+         <!-- correctness test -->
+         <substituteset tag="check" name="inputsub">
+            <iofile in="params.skel" out="params" />
+            <sub source="##SETUP##" dest="'$mode'" />
+            <sub source="##BOX##" dest=".false." />
+            <sub source="##IO##" dest=".false." />
+            <sub source="##THREADS##" dest="$workerthreads" />
+            <sub source="##DIAG##" dest=".true." />
+            <sub source="##DT##" dest="0.2e-1" />
+            <sub source="##NT##" dest="$ntimesteps" />
+            <sub source="##NPARTICLES##" dest="$particles" />
+         </substituteset>
+         <substituteset name="runsub">
+            <iofile in="${job_script}" out="job.slurm" />
+            <sub source="##PARTITION##" dest="$partition" />
+            <sub source="##NODES##" dest="$nodes" />
+            <sub source="##TASKSPNODE##" dest="$taskspnode" />
+            <sub source="##THREADS##" dest="$threads" />
+            <sub source="##WORKERTHREADS##" dest="$workerthreads" />
+            <sub source="##SMT_THREADS##" dest="$thread_places" />
+            <sub source="##MODULES##" dest="$load_modules" />
+         </substituteset>
+         <substituteset name="walksub">
+            <iofile in="src/frontends/pepc-benchmark/makefile.frontend" out="src/frontends/pepc-benchmark/makefile.frontend" />
+            <sub source="WALK = pthreads" dest="WALK = $walk" />
+         </substituteset>
 
-      <!-- JOB STEPS ################################################################################### -->
-      <!-- compile the code, apply substitutions as necessary -->
-      <step name="compile">
-         <use>system</use>
-         <!-- load modules -->
-         <use>stageset</use>
-         <do>${load_modules}</do>
-         <use>walkset</use>
-         <use tag="!nocompile">walksub</use>
-         <use tag="!nocompile">sources</use>
-         <do tag="booster">sed -ie 's/^FARCH =.*$/FARCH = -march=knl -mtune=knl -mprefetchwt1 -mavx512f -mavx512er -mavx512cd -mavx512pf -malign-data=cacheline/' makefile.defs</do>
-         <!-- compile sources -->
-         <do tag="!nocompile" done_file="bin/pepc-benchmark">module list; make allclean pepc-benchmark</do>
-         <!-- copy binary back onto original source tree -->
-         <do tag="!nocompile" >test -d ${jube_benchmark_home}/../bin || mkdir ${jube_benchmark_home}/../bin</do>
-         <do tag="!nocompile" >cp ${jube_wp_abspath}/bin/pepc-benchmark ${jube_benchmark_home}/../bin/.</do>
-      </step>
-      <!-- run the binary, apply substitutions as necessary -->
-      <step tag="!stats" name="run" depend="compile" iterations="1">
-         <use>system</use>
-         <use>nodeset</use>
-         <use>modeset</use>
-         <use>executable</use>
-         <use>runfiles</use>
-         <use>inputsub</use>
-         <use>runsub</use>
-         <!-- load modules -->
-         <do>${load_modules}</do>
-         <do done_file="ready">sbatch -A ${BUDGET_ACCOUNTS} job.slurm</do>
-      </step>
-      <step tag="stats"  name="run" depend="compile" iterations="5">
-         <use>system</use>
-         <use>nodeset</use>
-         <use>modeset</use>
-         <use>executable</use>
-         <use>runfiles</use>
-         <use>inputsub</use>
-         <use>runsub</use>
-         <!-- load modules -->
-         <do>${load_modules}</do>
-         <do done_file="ready">sbatch -A ${BUDGET_ACCOUNTS} job.slurm</do>
-      </step>
+         <!-- JOB STEPS ################################################################################### -->
+         <!-- compile the code, apply substitutions as necessary -->
+         <step name="compile">
+            <use>system</use>
+            <!-- load modules -->
+            <use>stageset</use>
+            <do>${load_modules}</do>
+            <use>walkset</use>
+            <use tag="!nocompile">walksub</use>
+            <use tag="!nocompile">sources</use>
+            <!-- compile sources -->
+            <do tag="!nocompile" done_file="bin/pepc-benchmark">module list; make allclean pepc-benchmark</do>
+            <!-- copy binary back onto original source tree -->
+            <do tag="!nocompile" >test -d ${jube_benchmark_home}/../bin || mkdir ${jube_benchmark_home}/../bin</do>
+            <do tag="!nocompile" >cp ${jube_wp_abspath}/bin/pepc-benchmark ${jube_benchmark_home}/../bin/.</do>
+         </step>
+         <!-- run the binary, apply substitutions as necessary -->
+         <step tag="!stats" name="run" depend="compile" iterations="1">
+            <use>system</use>
+            <use>nodeset</use>
+            <use>modeset</use>
+            <use>executable</use>
+            <use>runfiles</use>
+            <use>inputsub</use>
+            <use>runsub</use>
+            <!-- load modules -->
+            <do>${load_modules}</do>
+            <do done_file="ready">sbatch -A ${BUDGET_ACCOUNTS} job.slurm</do>
+         </step>
+         <step tag="stats"  name="run" depend="compile" iterations="5">
+            <use>system</use>
+            <use>nodeset</use>
+            <use>modeset</use>
+            <use>executable</use>
+            <use>runfiles</use>
+            <use>inputsub</use>
+            <use>runsub</use>
+            <!-- load modules -->
+            <do>${load_modules}</do>
+            <do done_file="ready">sbatch -A ${BUDGET_ACCOUNTS} job.slurm</do>
+         </step>
 
-      <!-- OUTPUT ANALYSIS ############################################################################# -->
-      <!-- define timing patternset -->
-      <!-- Regex pattern -->
-      <patternset tag="!check" name="timing_pattern">
-         <pattern unit="secs" name="wallclock"     type="float"              >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_walk"     type="float"              >====== tree walk time\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_grow"     type="float"              >====== tree grow time\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="comm_recv"     type="float"              >====== tree comm recv\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="comm_reqs"     type="float"              >====== tree comm reqs\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="step_time"     type="float"              >== time in step\s+\[s\]\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="sum_steps"     type="float" mode="python">${step_time_sum}-${step_time}</pattern>
+         <!-- OUTPUT ANALYSIS ############################################################################# -->
+         <!-- define timing patternset -->
+         <!-- Regex pattern -->
+         <patternset tag="!check" name="timing_pattern">
+            <pattern unit="secs" name="wallclock"     type="float"              >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
+            <pattern unit="secs" name="tree_walk"     type="float"              >====== tree walk time\s+:\s+${jube_pat_fp}</pattern>
+            <pattern unit="secs" name="tree_grow"     type="float"              >====== tree grow time\s+:\s+${jube_pat_fp}</pattern>
+            <pattern unit="secs" name="comm_recv"     type="float"              >====== tree comm recv\s+:\s+${jube_pat_fp}</pattern>
+            <pattern unit="secs" name="comm_reqs"     type="float"              >====== tree comm reqs\s+:\s+${jube_pat_fp}</pattern>
+            <pattern unit="secs" name="step_time"     type="float"              >== time in step\s+\[s\]\s+:\s+${jube_pat_fp}</pattern>
+            <!--pattern unit="secs" name="sum_steps"     type="float" mode="python">${step_time_sum}-${step_time}</pattern-->
+         <pattern unit="secs" name="sum_steps"     type="float" mode="python">0</pattern>
          <pattern unit=""     name="total_threads" type="int"   mode="python">${nodes}*${taskspnode}*${threads}</pattern>
          <pattern unit=""     name="part_per_thrd" type="float" mode="python">${particles}/(${nodes}*${taskspnode}*${workerthreads})</pattern>
       </patternset>

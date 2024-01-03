@@ -31,7 +31,6 @@ mpi_case_id=1
 for rundir in `find $1/$longid/ -name \*run`
 do
    # identify MPI case (we use the job script that should have a single identiable line)
-   ### mpi_case=`grep intel $rundir/work/job_jureca.slurm | head -n 1 | awk -F '"' '{print $2}'` # <---- this works for 'multi-MPI-scripts'
    mpi_case=`grep -A 5 'Currently Loaded Modules' $rundir/work/[0-9]*.stderr | awk '{col=1; do {if ($col ~ /.*[mM][Vv]?[Aa]?[pP][iI].*/) {print $col}; col++} while (col<=NF)}' | sed -e 's/\//-/g' | head -n 1 ` # <---- this should work for scripts with 'module list'
    mpi_case="${mpi_case:-"default"}"
    echo "$mpi_case"

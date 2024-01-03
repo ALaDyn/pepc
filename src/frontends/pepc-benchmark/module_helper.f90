@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2024 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -65,8 +65,7 @@ module helper
    real(kind_physics), allocatable :: direct_L2(:)
    ! summaries of some particle data
    real(kind_physics)              :: e_kin, e_pot, v_max, r_max
-   integer, parameter              :: n_bins = 50, & ! number of bins for the histogram
-                                      histo_r = 10   ! radial distance bin we want to monitor speeds in
+   integer, parameter              :: n_bins = 50 ! number of bins for the histogram
    integer, dimension(0:n_bins)    :: velocity_histo, global_velocity_histo
 
    ! PRNG state, PER MPI RANK, NOT THREAD!
@@ -163,21 +162,26 @@ contains
       implicit none
 
       type(t_particle), allocatable, intent(inout) :: p(:)
-      integer(kind_particle) :: ip
-      integer :: rc
+      integer(kind_particle) :: ip, np_pad
+      integer :: rc, prior_ranks
       real*8 :: dummy
       real(kind_physics) :: pi, phi, theta, rnd(1:2), s
 
       if (root) write (*, '(a)') " == [init] init particles "
 
-      ! set initially number of local particles
+      ! set initial number of local particles
       np = tnp / n_ranks
-      if (my_rank .lt. MOD(tnp, 1_kind_particle * n_ranks)) np = np + 1
+      ! fill up to tnp on last rank - this does not load-balance, but makes sure labels are ok
+      if ( (my_rank + 1) .eq. n_ranks ) then
+         np_pad = tnp - n_ranks*np
+      else
+         np_pad = 0
+      end if
 
-      allocate (particles(np), stat=rc)
+      allocate (particles(np + np_pad), stat=rc)
       if (rc .ne. 0) write (*, *) " === particle allocation error!"
 
-      allocate (direct_L2(np), stat=rc)
+      allocate (direct_L2(np + np_pad), stat=rc)
       if (rc .ne. 0) write (*, *) " === direct_L2 allocation error!"
       direct_L2 = -1.0_8
 
@@ -190,8 +194,19 @@ contains
       select case (trim(setup))
       case ('test')
          ! setup for Coulomb explosion, physics test case
-         do ip = 1, np
-            p(ip)%label = my_rank * (tnp / n_ranks) + ip - 1
+         ! have fixed seed for more reproducible results
+         rng_state%idum = -1234
+         call random(dummy, rng_state)
+         ! get enough random numbers on each rank to have matching streams, no matter how many ranks we have
+         ! this does mean higher ranks draw a lot of random numbers for /dev/null
+         do prior_ranks = 0, my_rank - 1
+            do ip = 1, np
+               call random(rnd, rng_state)
+            end do
+         end do
+         ! now start 'locally'
+         do ip = 1, np + np_pad
+            p(ip)%label = my_rank * (np) + ip - 1
             p(ip)%data%q = -1.0_8 * 2.0_8 * &
                            plasma_dimensions(1) * plasma_dimensions(2) * &
                            plasma_dimensions(3) / tnp
@@ -215,10 +230,11 @@ contains
 
             p(ip)%work = 1.0_8
          end do
+         np = np + np_pad
       case ('benchmark')
          ! setup for random qubic particle cloud, benchmarking case
          do ip = 1, np
-            p(ip)%label = my_rank * (tnp / n_ranks) + ip - 1
+            p(ip)%label = my_rank * np + ip - 1
             p(ip)%data%q = (-1.0_8 + 2.0_8 * MOD(p(ip)%label, 2_kind_particle)) * 2.0_8 * &
                            plasma_dimensions(1) * plasma_dimensions(2) * &
                            plasma_dimensions(3) / tnp
@@ -337,8 +353,8 @@ contains
       ! init histogram bin sizes
       r_bin = r_max / n_bins
       v_bin = v_max / n_bins
-      r_bin_min = r_bin * histo_r
-      r_bin_max = r_bin_min + r_bin
+      r_bin_min = 7.d0  ! this region for test particles has been id'd experimentally
+      r_bin_max = 8.5d0
 
       ! clear histogram
       velocity_histo = 0
@@ -365,7 +381,7 @@ contains
 
       logical, intent(in)           :: check
       logical                       :: peak
-      integer                       :: v_pos, c_peaks, info
+      integer                       :: v_pos, c_peaks, info, hist_unit
 
       peak = .false.
       c_peaks = 0
@@ -375,6 +391,10 @@ contains
 
       ! estimate number of peaks in histogram
       if (root) then
+         !! save data to file
+         !open(newunit=hist_unit, file='histograms.log', position='append')
+         !write(hist_unit, *) global_velocity_histo
+         !close(hist_unit)
          ! loop over all bins
          do v_pos = 0, n_bins
             if (global_velocity_histo(v_pos) .gt. 0) then

@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Correct types for checkpointing [pepc-v], (#8)
 - Correct VTK output [pepc-v], (#4) (#5)
 - Updated type use, solved memory corruption [pepc-v], (#1)
+- Consistency check improved [pepc-benchmark]
 
 ## [2.0.0] - 2023-01-24
 

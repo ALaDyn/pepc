@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2024 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -57,7 +57,8 @@ program pepc
 
       doDiag  =  MOD(step, diag_interval) .eq. 0                   !&
       doIO    =  MOD(step, io_interval) .eq. 0                     !&
-      doCheck = (MOD(step, check_step) .eq. 0) .and. (step .gt. 0) !&
+      doCheck = (step .ge. sqrt(real(tnp/1000.))*210) .and. (step .gt. 0) .and. (step .lt. sqrt(real(tnp/1000.))*210 + diag_interval)     !&
+      ! the interval for checking the histogram has been determined by 'testing experimentally'
 
       call pepc_particleresults_clear(particles)
       call pepc_grow_tree(particles)
