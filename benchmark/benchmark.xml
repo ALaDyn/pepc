@@ -222,7 +222,7 @@
             <use>runsub</use>
             <!-- load modules -->
             <do>${load_modules}</do>
-            <do done_file="ready">sbatch -A ${BUDGET_ACCOUNTS} job.slurm</do>
+            <do done_file="ready">sbatch -A ${SBATCH_ACCOUNT} job.slurm</do>
          </step>
          <step tag="stats"  name="run" depend="compile" iterations="5">
             <use>system</use>
@@ -234,7 +234,7 @@
             <use>runsub</use>
             <!-- load modules -->
             <do>${load_modules}</do>
-            <do done_file="ready">sbatch -A ${BUDGET_ACCOUNTS} job.slurm</do>
+            <do done_file="ready">sbatch -A ${SBATCH_ACCOUNT} job.slurm</do>
          </step>
 
          <!-- OUTPUT ANALYSIS ############################################################################# -->

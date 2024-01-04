@@ -86,9 +86,6 @@ toolchains:
         COMPILER: GCC
         MPI: [OpenMPI, ParaStationMPI]
       - SYSTEM: [juwels]
-        COMPILER: GCC
-        MPI: OpenMPI
-      - SYSTEM: [juwels]
         COMPILER: Intel
         MPI: [ParaStationMPI, IntelMPI]
   tags:
