@@ -122,11 +122,50 @@ correctness:
     - ml JUBE
     # start JUBE
     - echo "Running JUBE... This will take some time..."
-    - jube-autorun -o -r "-t ompi check CI" benchmark/benchmark.xml
-    - ls -l run/benchmark/000000/
-    - ls -l run/benchmark/000000/000001_run/work/
+    - jube-autorun -o -r "-t check CI" benchmark/benchmark.xml
     - echo "Checking for success..."
     - jube result run/benchmark/ | grep -q failed && exit 128
+    - echo "Check seems to have passed..."
+  artifacts:
+    when: on_failure
+    paths:
+      - run
+  rules:
+    # Only run when on main repository
+    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+
+# If correctness is 'established', test performance
+performance:
+  stage: test
+  tags:
+    - jusuf
+    - shell
+  needs: correctness
+  script:
+    - echo "Running pepc-benchmark on $SYSTEMNAME using $HOSTNAME"
+    - echo "Loading modules..."
+    # load JUBE, the rest will be done from there
+    - ml JUBE git
+    # get previous results
+    - git fetch
+    - git checkout continuous_benchmarking
+    - test -d ${CI_COMMIT_BRANCH} || mkdir ${CI_COMMIT_BRANCH}
+    - test -f ${CI_COMMIT_BRANCH}/result_database.sqlite || touch ${CI_COMMIT_BRANCH}/result_database.sqlite
+    - cp ${CI_COMMIT_BRANCH}/result_database.sqlite database.sqlite
+    - git checkout $CI_COMMIT_BRANCH
+    # create empty run directory for JUBE with last number for benchmarks - can be RACY but may preserve some history
+    - RID=`sqlite3 database.sqlite 'select jube_benchmark_padid from full order by jube_benchmark_padid;' | tail -n 1`
+    - test -d "run/benchmark/${RID}" || mkdir -p "run/benchmark/${RID}"
+    # start JUBE
+    - echo "Running JUBE... This will take some time..."
+    - jube-autorun -o -r "-t CI" benchmark/benchmark.xml
+    # store results again
+    - git checkout continuous_benchmarking
+    - cp database.sqlite ${CI_COMMIT_BRANCH}/result_database.sqlite
+    - git remote set-url --push origin "https://$CI_COMMITTER_USER_AND_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    - git add ${CI_COMMIT_BRANCH}/result_database.sqlite
+    - git commit -m "Committing results from CI to sqlite database [${CI_COMMIT_BRANCH}]" --author='CI Bot <anon@nowhere.net>'
+    - git push origin HEAD:continuous_benchmarking
   artifacts:
     when: on_failure
     paths:
