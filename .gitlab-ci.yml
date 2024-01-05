@@ -148,11 +148,11 @@ performance:
     - ml JUBE git
     # get previous results
     - git fetch
-    - git checkout continuous_benchmarking
+    - git checkout continuous_benchmarking --
     - test -d ${CI_COMMIT_BRANCH} || mkdir ${CI_COMMIT_BRANCH}
     - test -f ${CI_COMMIT_BRANCH}/result_database.sqlite || touch ${CI_COMMIT_BRANCH}/result_database.sqlite
     - cp ${CI_COMMIT_BRANCH}/result_database.sqlite database.sqlite
-    - git checkout $CI_COMMIT_BRANCH
+    - git checkout $CI_COMMIT_BRANCH --
     # create empty run directory for JUBE with last number for benchmarks - can be RACY but may preserve some history
     - RID=`sqlite3 database.sqlite 'select jube_benchmark_padid from full order by jube_benchmark_padid;' | tail -n 1`
     - test -d "run/benchmark/${RID}" || mkdir -p "run/benchmark/${RID}"
@@ -160,7 +160,7 @@ performance:
     - echo "Running JUBE... This will take some time..."
     - jube-autorun -o -r "-t CI" benchmark/benchmark.xml
     # store results again
-    - git checkout continuous_benchmarking
+    - git checkout continuous_benchmarking --
     - cp database.sqlite ${CI_COMMIT_BRANCH}/result_database.sqlite
     - git remote set-url --push origin "https://$CI_COMMITTER_USER_AND_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
     - git add ${CI_COMMIT_BRANCH}/result_database.sqlite
