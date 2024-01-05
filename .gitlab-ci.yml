@@ -154,7 +154,7 @@ performance:
     - cp ${CI_COMMIT_BRANCH}/result_database.sqlite database.sqlite
     - git checkout $CI_COMMIT_BRANCH --
     # create empty run directory for JUBE with last number for benchmarks - can be RACY but may preserve some history
-    - RID=`sqlite3 database.sqlite 'select jube_benchmark_padid from full order by jube_benchmark_padid;' | tail -n 1`
+    - RID=`(sqlite3 database.sqlite 'select jube_benchmark_padid from full order by jube_benchmark_padid;' || echo '000001' ) | tail -n 1`
     - test -d "run/benchmark/${RID}" || mkdir -p "run/benchmark/${RID}"
     # start JUBE
     - echo "Running JUBE... This will take some time..."
