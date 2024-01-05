@@ -140,7 +140,7 @@ performance:
   tags:
     - jusuf
     - shell
-  needs: correctness
+  needs: ["correctness"]
   script:
     - echo "Running pepc-benchmark on $SYSTEMNAME using $HOSTNAME"
     - echo "Loading modules..."
