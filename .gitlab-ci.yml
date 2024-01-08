@@ -1,0 +1,45 @@
+#### Stages for this pipeline
+stages:
+  - image          # build updated image for runner
+
+#### Common variables, selectable via 'run pipeline' in gitlab
+variables:
+  FORCE_DOCKER_IMAGE:
+    value: "false"
+    options:
+      - "false"
+      - "true"
+    description: "Force the creation of a new Docker image for this branch."
+
+#### Create new image from a changed Dockerfile
+docker_image:
+  stage: image
+  tags:
+    - public-docker
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - |
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" \
+      > /kaniko/.docker/config.json
+    - |
+      /kaniko/executor --context $CI_PROJECT_DIR \
+      --dockerfile $CI_PROJECT_DIR/Dockerfile \
+      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-pages-image:$CI_COMMIT_SHORT_SHA \
+      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-pages-image:latest
+  rules:
+    # Never run if triggered from our 'bot'
+    - if: $CI_COMMIT_AUTHOR =~ "CI Bot <anon@nowhere.net>"
+      when: never
+    # Run when triggered and a variable is set
+    - if: $FORCE_DOCKER_IMAGE == "true"
+    # Run when committing to a branch and changing Dockerfile
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        - Dockerfile
+    # Run when merging and changing Dockerfile
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - Dockerfile

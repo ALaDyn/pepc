@@ -12,3 +12,4 @@ information.
 The branch is only used to store/retrieve a database file for the results and
 anything necessary to process those. Refer to the main CI file to see how it's
 used.
+Each branch will store results in a directory by the same name.
