@@ -4,8 +4,8 @@ stages:
   - lint       # do basic lint'ing to nudge towards common formatting
   - build      # build libraries, frontends, etc...
   - test       # test PEPC for correctness and performance
-    #   - html      # this run doxygen (prefer FORD)
-    #   - deploy    # this could push doxygen to pages
+    #   - html      # run doxygen (prefer FORD)
+  - deploy     # create HTML from results and push to pages
 
 variables:
   FORCE_DOCKER_IMAGE:
@@ -187,6 +187,30 @@ fprettify:
     # generate exit code
     - exit $COUNT
   allow_failure: true
+
+pages:
+  stage: deploy
+  tags:
+    - public-Dockerfile
+  image: "$CI_REGISTRY_IMAGE/continuous_benchmarking-pages-image:latest"
+  script:
+    # get results branch
+    - git fetch
+    - git checkout continuous_benchmarking --
+    - echo "Converting jupyter notebook..."
+    - export RENDER_CI="true"
+    - |
+      for BRANCH in `find -type d` \
+      do \
+         jupyter nbconvert --execute --no-input --to html plot_results.ipynb --output=${BRANCH} \
+         echo "<a href='${BRANCH}.html'>Results for branch ${BRANCH}</a><br>" >> index.html \
+      done
+    - echo "Building HTML pages w/ results."
+    - mkdir public
+    - mv *.html public/.
+  artifacts:
+    paths:
+      - public
 
 #### Create new image from a changed Dockerfile
 docker_image:
