@@ -149,6 +149,7 @@ performance:
     # get previous results
     - git fetch
     - git checkout continuous_benchmarking --
+    - git pull # in case there have been overlapping changes
     - test -d ${CI_COMMIT_BRANCH} || mkdir ${CI_COMMIT_BRANCH}
     - test -f ${CI_COMMIT_BRANCH}/result_database.sqlite || touch ${CI_COMMIT_BRANCH}/result_database.sqlite
     - cp ${CI_COMMIT_BRANCH}/result_database.sqlite database.sqlite
@@ -191,7 +192,7 @@ fprettify:
 pages:
   stage: deploy
   tags:
-    - public-Dockerfile
+    - public-docker
   image: "$CI_REGISTRY_IMAGE/continuous_benchmarking-pages-image:latest"
   script:
     # get results branch
