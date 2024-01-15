@@ -1,0 +1,35 @@
+/* SPDX-FileCopyrightText: Copyright (c) 2022 Thomas Foerster
+ SPDX-License-Identifier: MIT  */
+
+/* #region Mono */
+@font-face {
+    font-family: 'Font_Mono';
+    font-style: normal;
+    font-weight: 400;
+    font-stretch: 100%;
+    src: url(../fonts/Font_Mono.woff2) 
+  }
+  
+  /* #region Text */
+  @font-face {
+    font-family: 'Font_Text';
+    font-style: normal;
+    font-weight: 400;
+    src: url(../fonts/Font_Text.woff2)
+  }
+  /* #endregion */
+  
+  :root {
+      --md-primary-fg-color: #005AA0;
+      --md-text-font: 'Font_Text';
+      --md-code-font: 'Font_Mono';
+  } 
+  
+  div {
+    text-align: justify;
+    text-justify: inter-word;
+  }
+  
+  .md-typeset h1, .md-typeset h2 {
+      color: #005AA0;
+  }

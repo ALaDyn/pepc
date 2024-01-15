@@ -3,9 +3,9 @@ FROM alpine:3.17
 
 # add labels
 LABEL description="An image to plot and publish results from JUBE runs"
-LABEL version="1.0"
+LABEL version="1.1"
 
-# install gnuplot, pandas, and plotly
+# install gnuplot, pandas, plotly, and mkdocs
 RUN apk update && \
     apk add \
     gnuplot \
@@ -16,7 +16,8 @@ RUN apk update && \
     jupyter-notebook \
     py3-pandas \
     py3-pip ;\
-    pip3 install plotly
+    pip3 install plotly ;\
+    pip3 install mkdocs mkdocs-material mkdocs-jupyter
 
 # try and have start dir?
 WORKDIR /tmp

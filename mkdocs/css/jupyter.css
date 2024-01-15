@@ -1,0 +1,7 @@
+/* SPDX-FileCopyrightText: Copyright (c) 2023 Jakob Fritz
+ SPDX-License-Identifier: MIT  */
+
+.jupyter-wrapper, .jp-Cell {
+    --jp-cell-padding: 0px;
+}
+
