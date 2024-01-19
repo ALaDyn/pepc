@@ -23,9 +23,7 @@ nav:
   - 'cb_testing': cb_testing.ipynb
   - 'Issue Tracker': 'https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc/-/issues'
 
-exclude_docs: |
-  css/*
-  custom_theme/*
+exclude_docs:
 
 extra_css:
   - css/font.css
