@@ -1,6 +1,4 @@
-# SPDX-FileCopyrightText: 2023 Jakob Fritz <j.fritz@fz-juelich.de>
-#
-# SPDX-License-Identifier: CC0-1.0
+# Thanks to Jakob Fritz <j.fritz@fz-juelich.de> for the mkdocs skeleton.
 ---
 site_name: Continuous Benchmarking for PEPC
 docs_dir: mkdocs
@@ -11,16 +9,17 @@ theme:
   name: material
   custom_dir: mkdocs/custom_theme
   font: false
-  logo: 'img/Logo.png'
-  favicon: 'img/Icon.png'
+  logo: 'img/logo.png'
+  favicon: 'img/icon.png'
   features:
     - navigation.instant
     - navigation.tabs.sticky
     - navigation.top
 
 nav:
-  - 'master': master.ipynb
-  - 'cb_testing': cb_testing.ipynb
+  - 'Branch: master': master.ipynb
+  - 'Branch: cb_testing': cb_testing.ipynb
+  - 'Code Repository': 'https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc/'
   - 'Issue Tracker': 'https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc/-/issues'
 
 exclude_docs:
