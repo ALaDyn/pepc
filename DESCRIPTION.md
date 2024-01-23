@@ -13,13 +13,14 @@ The oct-tree method was originally introduced by Josh Barnes & Piet Hut in the m
 The PEPC project (Pretty Efficient Parallel Coulomb Solver) is a public tree code that has been developed at [Jülich Supercomputing Centre](https://www.fz-juelich.de/en/ias/jsc) since the early 2000s. Our tree code is a non-recursive version of the Barnes-Hut algorithm, using a level-by-level approach to both tree construction and traversals. The parallel version is a hybrid MPI/pthreads implementation of the Warren-Salmon 'Hashed Oct-Tree' scheme, including several refinements of the tree traversal routine - the most challenging component in terms of scalability.
 
 The code is structurally divided into three parts:
-  1) **kernel routines** that handle all tree code specific data structures and communication as well as the actual tree traversal.
-  2) **interaction-specific modules**, i.e. routines that apply to specific interaction kernels and multipole expansions. Currently, the following interaction kernels are available:
+
+  1. **kernel routines** that handle all tree code specific data structures and communication as well as the actual tree traversal.
+  2. **interaction-specific modules**, i.e. routines that apply to specific interaction kernels and multipole expansions. Currently, the following interaction kernels are available:
      - Coulomb-interaction/gravitation,
      - algebraic kernels for vortex methods,
      - Darwin for magnetoinductive plasmas (no EM wave propagation),
      - nearest-neighbour interactions for smooth particle hydrodynamics (SPH).
-  3) **'front-end'** applications. For example
+  3. **'front-end'** applications. For example
      - PEPC-mini, a skeleton molecular dynamics program with different diagnostics including VTK output for convenient visualization,
      - PEPC-b, a code for laser- or particle beam-plasma interactions as well as plasma-wall interactions,
      - PEPC-s, a library version for the ScaFaCoS project,

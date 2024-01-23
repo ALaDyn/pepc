@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - CI extended to include fprettify check
+- CI extended to include CB
 
 ### Fixed
 
