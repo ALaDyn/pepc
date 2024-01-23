@@ -14,13 +14,14 @@ Juelich Supercomputing Centre
 [pepc@fz-juelich.de](mail-to:pepc@fz-juelich.de)  
 #### CI:  
 [![pipeline status](https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc/badges/master/pipeline.svg)](https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc/-/commits/master) 
-
+#### CB:  
+[![Continuous Benchmarking](https://slpp.pages.jsc.fz-juelich.de/pepc/pepc/master/cb-badge.svg)](https://slpp.pages.jsc.fz-juelich.de/pepc/pepc/)
 
 # 0. LICENSE
 
 This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 
-Copyright (C) 2002-2023  
+Copyright (C) 2002-2024  
 Juelich Supercomputing Centre,   
 Forschungszentrum Juelich GmbH,  
 Germany

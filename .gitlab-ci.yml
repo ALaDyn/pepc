@@ -147,21 +147,26 @@ performance:
     # load JUBE, the rest will be done from there
     - ml JUBE git
     # get previous results
+    - git describe --long --all
     - git fetch
-    - git checkout continuous_benchmarking --
-    - git pull # in case there have been overlapping changes
+    - git describe --long --all
+    - git checkout --force origin/continuous_benchmarking --
+    - git describe --long --all
+    #- git pull --ff-only # in case there have been overlapping changes
     - test -d ${CI_COMMIT_BRANCH} || mkdir ${CI_COMMIT_BRANCH}
     - test -f ${CI_COMMIT_BRANCH}/result_database.sqlite || touch ${CI_COMMIT_BRANCH}/result_database.sqlite
     - cp ${CI_COMMIT_BRANCH}/result_database.sqlite database.sqlite
     - git checkout $CI_COMMIT_BRANCH --
+    - git describe --long --all
     # create empty run directory for JUBE with last number for benchmarks - can be RACY but may preserve some history
-    - RID=`(sqlite3 database.sqlite 'select jube_benchmark_padid from full order by jube_benchmark_padid;' || echo '000001' ) | tail -n 1`
+    - RID=`(sqlite3 database.sqlite 'select jube_benchmark_padid from full_results order by jube_benchmark_padid;' || echo '000000' ) | tail -n 1`
     - test -d "run/benchmark/${RID}" || mkdir -p "run/benchmark/${RID}"
     # start JUBE
     - echo "Running JUBE... This will take some time..."
     - jube-autorun -o -r "-t CI" benchmark/benchmark.xml
     # store results again
-    - git checkout continuous_benchmarking --
+    - git checkout --force origin/continuous_benchmarking --
+    - git describe --long --all
     - cp database.sqlite ${CI_COMMIT_BRANCH}/result_database.sqlite
     - git remote set-url --push origin "https://$CI_COMMITTER_USER_AND_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
     - git add ${CI_COMMIT_BRANCH}/result_database.sqlite
@@ -174,6 +179,41 @@ performance:
   rules:
     # Only run when on main repository
     - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+
+pages:
+  stage: deploy
+  tags:
+    - public-docker
+  image: "$CI_REGISTRY_IMAGE/continuous_benchmarking-pages-image:latest"
+  needs: ["performance"]
+  script:
+    # get results branch
+    - cp DESCRIPTION.md /tmp/.
+    - git fetch
+    - git checkout --force origin/continuous_benchmarking --
+    - echo "Converting jupyter notebook..."
+    - |
+      for BRANCHES in `ls -l | grep ^d | grep -vE 'public|mkdocs' | awk '{print $9}'`
+      do
+         export BRN=${BRANCHES}
+         sed -e "s/branch=\\\\\"master/branch=\\\\\"${BRN}/" -e "s/px_renderer = \\\\\"jupyterlab/px_renderer = \\\\\"plotly_mimetype+notebook_connected/" plot_results.ipynb > "mkdocs/${BRN}.ipynb"
+         echo "  - 'Branch: ${BRN}': ${BRN}.ipynb" >> nav.yml
+      done
+    - |
+      grep -v ipynb mkdocs.yml | sed '/nav:/r nav.yml' > mkdocs.yml_
+      mv mkdocs.yml_ mkdocs.yml
+      cat /tmp/DESCRIPTION.md >> mkdocs/index.md
+    - echo "Building HTML pages w/ results."
+    - mkdir public
+    - mkdocs build
+    - |
+      for BRANCHES in `ls -l | grep ^d | grep -vE 'public|mkdocs' | awk '{print $9}'`
+      do
+         cp mkdocs/${BRANCHES}-cb-badge.svg public/${BRANCHES}/cb-badge.svg
+      done
+  artifacts:
+    paths:
+      - public
 
 #### Lint source Fortran source files
 fprettify:
@@ -188,30 +228,6 @@ fprettify:
     # generate exit code
     - exit $COUNT
   allow_failure: true
-
-pages:
-  stage: deploy
-  tags:
-    - public-docker
-  image: "$CI_REGISTRY_IMAGE/continuous_benchmarking-pages-image:latest"
-  script:
-    # get results branch
-    - git fetch
-    - git checkout continuous_benchmarking --
-    - echo "Converting jupyter notebook..."
-    - export RENDER_CI="true"
-    - |
-      for BRANCH in `find -type d` \
-      do \
-         jupyter nbconvert --execute --no-input --to html plot_results.ipynb --output=${BRANCH} \
-         echo "<a href='${BRANCH}.html'>Results for branch ${BRANCH}</a><br>" >> index.html \
-      done
-    - echo "Building HTML pages w/ results."
-    - mkdir public
-    - mv *.html public/.
-  artifacts:
-    paths:
-      - public
 
 #### Create new image from a changed Dockerfile
 docker_image:
