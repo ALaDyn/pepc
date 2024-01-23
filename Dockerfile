@@ -17,7 +17,7 @@ RUN apk update && \
     py3-pandas \
     py3-pip ;\
     pip3 install plotly ;\
-    pip3 install mkdocs mkdocs-material mkdocs-jupyter
+    pip3 install pybadges mkdocs mkdocs-material mkdocs-jupyter
 
 # try and have start dir?
 WORKDIR /tmp
