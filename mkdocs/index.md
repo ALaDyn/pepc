@@ -1,6 +1,6 @@
 # PEPC - the Pretty Efficient Parallel Coulomb solver
 
-## Continuous benchmarking
+## Continuous Benchmarking
 
 After successful builds on one of JSC's HPC systems, PEPC's CI will perform a
 consistency check and if again successful a short performance run on the same
@@ -10,7 +10,7 @@ links can be used to display results for PEPC's continuous benchmarking.
 
 # More Information on PEPC
 
-The following is compiled and linked with [PEPC's
+The following is linked with [PEPC's
 entry](https://helmholtz.software/software/pepc) in the Research Software
 Directory by Helmholtz.
 
