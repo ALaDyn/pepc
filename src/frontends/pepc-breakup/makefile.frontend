@@ -21,7 +21,10 @@ SRC_COPY   += $(addprefix $(UTILSDIR)/, $(FILES_L_U))
 ISRC       += $(FILES_I)
 
 CFLAGS     += -DR123_USE_U01_DOUBLE=1 -I$(ROOTDIR)/src/frontends/pepc-breakup
-CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF
+CPPFLAGS   += -DNO_SPATIAL_INTERACTION_CUTOFF\
+	      -DMERGE_PARTICLES
+# if C preprocessing variable MERGE_PARTICLES is included, 
+# code segment for particle merging in pepc.f90 is included in the compilation.
 
 LDLIBS     +=
 
@@ -29,6 +32,6 @@ BACKENDTYPE = PEPCF
 
 #XYZQVM
 #WALK = pthreads_clustered
-#WALK = simple
+WALK = simple
 #WALK = openmp
-WALK = pthreads
+#WALK = pthreads

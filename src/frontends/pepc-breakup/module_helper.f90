@@ -160,6 +160,7 @@ module module_helper
    real(kind_physics), allocatable :: energy_group_levels(:)
    real(kind_physics) :: last_v(3), stored_vel(3)
    integer :: new_mass, old_part_cnt, tmp_buff_pos, stored_i, steps_since_last
+   integer(kind_particle) :: merging_threshold_tnp, relaxation_steps
 
    ! constants & scaling factors
    real(kind_physics), parameter :: c = 299792458.0_kind_physics ! m/s
@@ -191,7 +192,8 @@ contains
          pressure, scatter_mode, nt, dt, diag_interval, particle_output, domain_output, particle_mpi_output, &
          sim_type, major_radius, minor_radius, mode, Itf, coil_data_file, V_loop, d, electron_num, &
          plasma_dimensions, external_e, slice_parts, density_output, mesh_mode, mesh_name, x_cell, y_cell, z_cell, &
-         minimum_x, minimum_y, minimum_z, x_length, y_length, z_length, reflecting_walls, particle_test
+         minimum_x, minimum_y, minimum_z, x_length, y_length, z_length, merging_threshold_tnp, relaxation_steps, & 
+         reflecting_walls, particle_test
 
       ! set default parameter values
       resume = 0
@@ -233,6 +235,8 @@ contains
       external_e = (/0.0_8, 0.0_8, 0.0_8/)
       electron_num = 0
       omp_threads = 1
+      merging_threshold_tnp = 7000000
+      relaxation_steps = 250000
 
       ! read in namelist file
       call pepc_read_parameters_from_first_argument(read_para_file, para_file)

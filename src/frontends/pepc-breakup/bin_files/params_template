@@ -111,6 +111,21 @@ x_length = 15.12
 y_length = 15.12
 z_length = 3.52
 
+!===========================Particle Merging=========================================
+! Due to the experimental nature of the merging algorithm,
+! a choice was made to enable or disable it through precompilation options.
+! Ensure that makefile.frontend in `src/frontends/pepc-breakup/` has
+! `-DMERGE_PARTICLES` in CPPFLAGS variable.
+! Only then, will the following variables taken into effect.
+
+! Triggers merging if number of simulated bodies is higher than this value.
+merging_threshold_tnp = 7000000 
+
+! Number of time steps which merging will not reoccur after the most recent instance. 
+relaxation_steps = 250000 
+
+!===================================================================================
+
 ! turn particle filtering (leaving simulation box) on/off
 reflecting_walls = .false.
 

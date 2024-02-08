@@ -431,51 +431,53 @@ program pepc
       seed_dl = bounding_box%boxsize / 2_kind_key**maxlevel
       steps_since_last = steps_since_last + 1
 
-!      if (tnp > 7000000 .and. MOD(step+itime_in+1, 250000) == 0) then!steps_since_last > 250000) then
-!        !==========Redistribute particles among the MPI Ranks====================
-!        call pepc_particleresults_clear(particles)
-!        call pepc_grow_tree(particles)
-!        call pepc_timber_tree()
-!        !========================================================================
-!
+#ifdef MERGE_PARTICLES
+      if (tnp > merging_threshold_tnp .and. MOD(step+itime_in+1, relaxation_steps) == 0) then!steps_since_last > 250000) then
+        !==========Redistribute particles among the MPI Ranks====================
+        call pepc_particleresults_clear(particles)
+        call pepc_grow_tree(particles)
+        call pepc_timber_tree()
+        !========================================================================
+
 !        if (last_merge_tnp .eq. 0) then
-!          merge_ratio = 0.500001_kind_physics
+        merge_ratio = 0.500001_kind_physics
 !        else
 !          merge_ratio = float(6000000)/float(tnp) ! 1. - (2.*(1.0 - float(80000000)/float(tnp)))
 !        end if
-!
-!!        if (merge_ratio > 0.5_kind_physics) merge_ratio = 0.500001_kind_physics
-!        if (root) print *, "Merge ratio: ",  merge_ratio
-!
-!        sibling_upper_limit = 5000 !4000 !(tnp/n_ranks)*0.5 !500
-!        call compute_particle_keys(bounding_box, particles)
-!        call sort_particles_by_key(particles) !Counter act randomizing by filter_and_swap(), as well as new particles.
-!        call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 6_kind_level)
-!
-!        !NOTE: sibling_cnt is allocated here.
-!        !      sibling_upper_limit is also updated to the max no. of actual siblings across all parents.
-!        ! call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents)
-!        do i = 1, unique_parents
-!          call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
-!        end do
-!
-!        call allocate_ll_buffer(sibling_upper_limit, buffer)
-!        particle_guide => buffer
-!        new_particle_cnt = 0
-!        do i = 1, unique_parents
-!          !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don`t merge!
-!          ! print *, "Merging ", i, "of ", unique_parents, " unique parents."
-!          ! call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
-!          !                                     i, particle_guide, new_particle_cnt)
-!          call momentum_partition_merging_fine(particles, sibling_cnt, sibling_upper_limit, &
-!                                               i, particle_guide, new_particle_cnt, 32, 16)
-!        end do
-!        call merge_replace_particles_list(particles, buffer, new_particle_cnt)
-!        call deallocate_ll_buffer(buffer)
-!        deallocate(sibling_cnt)
-!        steps_since_last = 1 
-!      end if
-!      !=========================================================================
+
+!        if (merge_ratio > 0.5_kind_physics) merge_ratio = 0.500001_kind_physics
+        if (root) print *, "Merge ratio: ",  merge_ratio
+
+        sibling_upper_limit = 5000 !4000 !(tnp/n_ranks)*0.5 !500
+        call compute_particle_keys(bounding_box, particles)
+        call sort_particles_by_key(particles) !Counter act randomizing by filter_and_swap(), as well as new particles.
+        call determine_siblings_at_level(particles, sibling_cnt, unique_parents, 6_kind_level)
+
+        !NOTE: sibling_cnt is allocated here.
+        !      sibling_upper_limit is also updated to the max no. of actual siblings across all parents.
+        ! call defined_siblings_number_grouping(particles, sibling_upper_limit, sibling_cnt, unique_parents)
+        do i = 1, unique_parents
+          call sort_sibling_species(particles, sibling_cnt, i, unique_parents)
+        end do
+
+        call allocate_ll_buffer(sibling_upper_limit, buffer)
+        particle_guide => buffer
+        new_particle_cnt = 0
+        do i = 1, unique_parents
+          !NOTE: actual merging. Include check, if particles(i)%data%mp_int1 == -1, don`t merge!
+          ! print *, "Merging ", i, "of ", unique_parents, " unique parents."
+          ! call momentum_partition_merging_alt(particles, sibling_cnt, sibling_upper_limit, &
+          !                                     i, particle_guide, new_particle_cnt)
+          call momentum_partition_merging_fine(particles, sibling_cnt, sibling_upper_limit, &
+                                               i, particle_guide, new_particle_cnt, 32, 16)
+        end do
+        call merge_replace_particles_list(particles, buffer, new_particle_cnt)
+        call deallocate_ll_buffer(buffer)
+        deallocate(sibling_cnt)
+        steps_since_last = 1 
+      end if
+      !=========================================================================
+#endif
 
       np = size(particles)
       tnp = 0

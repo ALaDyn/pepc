@@ -1053,6 +1053,9 @@ contains
          call energy_elastic_merging_aggressive(i, directional_buffer, direction_cnt(i), merged_guide, &
                               merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
                               energy_group_levels)
+!         call energy_elastic_merging_low_weight(i, directional_buffer, direction_cnt(i), merged_guide, &
+!                              merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
+!                              energy_group_levels)
        end if
      end do
      ! print *, "Parent no: ", parent_no, istart, istop, "Finished merging.", size(particles)
