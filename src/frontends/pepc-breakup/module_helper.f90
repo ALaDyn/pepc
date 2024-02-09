@@ -124,6 +124,7 @@ module module_helper
    real(kind_physics), allocatable :: local_table1D_1(:), global_table1D_1(:)
    real(kind_physics), allocatable :: local_table2(:,:), global_table2(:,:)
    real(kind_physics), allocatable :: glob_ion_instance(:), thread_ion_instance(:,:), rank_ion_instance(:)
+   integer :: diag_type
 
    ! variables for random number generation
    integer :: dummy
@@ -190,7 +191,7 @@ contains
 
       namelist /pepcbreakup/ resume, itime_in, init_omp_threads, i_wall_time, tnp, H1s, H2s, init_temperature, &
          pressure, scatter_mode, nt, dt, diag_interval, particle_output, domain_output, particle_mpi_output, &
-         sim_type, major_radius, minor_radius, mode, Itf, coil_data_file, V_loop, d, electron_num, &
+         diag_type, sim_type, major_radius, minor_radius, mode, Itf, coil_data_file, V_loop, d, electron_num, &
          plasma_dimensions, external_e, slice_parts, density_output, mesh_mode, mesh_name, x_cell, y_cell, z_cell, &
          minimum_x, minimum_y, minimum_z, x_length, y_length, z_length, merging_threshold_tnp, relaxation_steps, & 
          merge_type, reflecting_walls, particle_test
@@ -238,6 +239,7 @@ contains
       merging_threshold_tnp = 7000000
       relaxation_steps = 250000
       merge_type = 0
+      diag_type = 0
 
       ! read in namelist file
       call pepc_read_parameters_from_first_argument(read_para_file, para_file)

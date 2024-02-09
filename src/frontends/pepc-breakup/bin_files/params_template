@@ -56,6 +56,19 @@ particle_output = .true.
 domain_output = .false.
 particle_mpi_output = .true.
 
+! Compute post-processed particles statistics.
+! Outputs at prescribed `diag_interval` and when `particle_output == .true.`
+! Output only for `sim_type == 1` below.
+! Output types:
+! diag_type = 0 :: nothing
+! diag_type = 1 :: 2D poloidal plane projection of simulated charges distribution
+! diag_type = 2 :: Averages of merged particle weights along toroidal angle
+! diag_type = 3 :: min and max of merged particle weights along toroidal angle
+! diag_type = 4 :: distribution of simulated particles' unit vector angles
+! diag_type = 5 :: averaged charged particle velocity along toroidal angle
+! diag_type = 6 :: global parallel + perpend. velocity distribution of ions + electrons
+diag_type = 6
+
 ! simulation type: 0 = Electrode Plates, 1 = Tokamak Setting
 sim_type = 1
 

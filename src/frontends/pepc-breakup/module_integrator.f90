@@ -1051,12 +1051,10 @@ contains
      do i = 1, total_div
        if (direction_cnt(i) .ne. 0) then
          if (merge_type .eq. 0) then
-           print *, "Aggresive merge."
            call energy_elastic_merging_aggressive(i, directional_buffer, direction_cnt(i), merged_guide, &
                                 merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
                                 energy_group_levels)
          else if (merge_type .eq. 1) then
-           print *, "Low weight merge."
            call energy_elastic_merging_low_weight(i, directional_buffer, direction_cnt(i), merged_guide, &
                                 merged_cnt, particles(istop)%data%species, particles(istart)%data%mp_int1, &
                                 energy_group_levels)

@@ -514,34 +514,45 @@ program pepc
       end if
 !=============================Writing output files==============================
       if (doDiag .and. particle_output) then 
-        ! call write_particles(particles)
+        call write_particles(particles)
 
-        ! call charge_poloidal_distribution(particles, local_table2, global_table2, tnp, itime_in + step + 1)
+        if (sim_type .eq. 1) then
+          if (diag_type .eq. 0) then        
 
-        ! write(file_name, '(A6,I10.10,A4)') 'weights_', itime_in + step + 1, '.txt'
-        ! file_name = trim(file_name)
-        ! call toroidal_weight_distribution(particles, local_table2, 1000)
-        ! call gather_weights_tables(local_table2, global_table2, 55, file_name)
+          else if (diag_type .eq. 1) then
+            call charge_poloidal_distribution(particles, local_table2, global_table2, tnp, itime_in + step + 1)
         
-        ! write(file_name, '(A6,I10.10,A4)') 'minmaxWeight_', itime_in + step + 1, '.txt'
-        ! file_name = trim(file_name)
-        ! call toroidal_max_weights(particles, local_table1D, local_table1D_1, 1000)
-        ! call gather_minmaxWeights_tables(local_table1D, local_table1D_1, global_table1D, global_table1D_1, 55, file_name)
+          else if (diag_type .eq. 2) then
+            write(file_name, '(A8,I10.10,A4)') 'weights_', itime_in + step + 1, '.txt'
+            file_name = trim(file_name)
+            call toroidal_weight_distribution(particles, local_table2, 1000)
+            call gather_weights_tables(local_table2, global_table2, 55, file_name)
+        
+          else if (diag_type .eq. 3) then
+            write(file_name, '(A10,I10.10,A4)') 'minmaxWeight_', itime_in + step + 1, '.txt'
+            file_name = trim(file_name)
+            call toroidal_max_weights(particles, local_table1D, local_table1D_1, 1000)
+            call gather_minmaxWeights_tables(local_table1D, local_table1D_1, global_table1D, global_table1D_1, 55, file_name)
 
-        ! write(file_name, '(A6,I10.10,A4)') 'angles_', itime_in + step + 1, '.txt'
-        ! file_name = trim(file_name)
-        ! call unit_vector_distribution(particles, local_table2, 50, 100)
-        ! call gather_spherical_angle_tables(local_table2, global_table2, 55, file_name)
+          else if (diag_type .eq. 4) then
+            write(file_name, '(A7,I10.10,A4)') 'angles_', itime_in + step + 1, '.txt'
+            file_name = trim(file_name)
+            call unit_vector_distribution(particles, local_table2, 50, 100)
+            call gather_spherical_angle_tables(local_table2, global_table2, 55, file_name)
 
-        ! write(file_name, '(A6,I10.10,A4)') 'VmeanPhi_', itime_in + step + 1, '.txt'
-        ! file_name = trim(file_name)
-        ! call V_mean_phi_distribution(particles, local_table2, 1000)
-        ! call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
+          else if (diag_type .eq. 5) then
+            write(file_name, '(A9,I10.10,A4)') 'VmeanPhi_', itime_in + step + 1, '.txt'
+            file_name = trim(file_name)
+            call V_mean_phi_distribution(particles, local_table2, 1000)
+            call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
 
-        write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
-        file_name = trim(file_name)
-        call V_par_perp_calculation(particles, local_table2)
-        call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
+          else if (diag_type .eq. 6) then
+            write(file_name, '(A6,I10.10,A4)') 'Vparperp_', itime_in + step + 1, '.txt'
+            file_name = trim(file_name)
+            call V_par_perp_calculation(particles, local_table2)
+            call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
+          end if
+        end if
       end if
 
       ! NOTE: if density diagnostic is on, do these
