@@ -124,6 +124,10 @@ merging_threshold_tnp = 7000000
 ! Number of time steps which merging will not reoccur after the most recent instance. 
 relaxation_steps = 250000 
 
+! Choosing the merging method:
+! merge_type = 0 :: aggressive merging
+! merge_type = 1 :: merging focuses on simulated bodies that has low weights
+merge_type = 0
 !===================================================================================
 
 ! turn particle filtering (leaving simulation box) on/off
