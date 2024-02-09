@@ -32,6 +32,16 @@ pressure = 0.002 !333.31
 !       2: Okhrimovvsky 2022
 scatter_mode = 0
 
+!NOTE: Altering the collision cross sections should be done in 2 places.
+!      1st is in `pepc.f90`, where one can add/remove cross sections 
+!      by adding or removing `set_cross_section_table()`.
+!      This must then be followed by altering `collision_update()`
+!      in `module_integrator.f90`. Calculations of collision probabilities
+!      starts by calculating the normalised `CS_vector` variable.
+!      Variable `i` that follows, decides the case on how to handle 
+!      the particles' velocities. Cases will need to be added if cross
+!      sections are added.  
+
 ! number of time steps
 nt = REPLACE_NSTEP
 
