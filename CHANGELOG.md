@@ -20,6 +20,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Correct VTK output [pepc-v], (#4) (#5)
 - Updated type use, solved memory corruption [pepc-v], (#1)
 
+## [2.1.1-Townsend] - 2024-02-11
+
+### Added
+
+- Added merging algorithm, enable/disable via preprocess flag (CPPFLAGS) in
+  `makefile.frontend`
+- Extended `params_template` options to further tweak the properties of merging
+- Extended `params_template` to support options of post-processing outputs while
+  the simulation is running
+- Added two example `params` files as a guide for tokamak or electrode plate
+  simulations
+- Renamed obsolete frontend main files that was used for diagnostic purposes.
+  The diagnostic subroutines have already been included in `pepc.f90`. Only the
+streakline diagnostic frontend is standalone due to the dfferent computation
+required. Details given in `makefile.frontend`
+
 ## [2.1.0-Townsend] - 2023-05-09
 
 ### Added
