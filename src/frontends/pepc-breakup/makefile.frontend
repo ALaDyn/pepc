@@ -1,6 +1,9 @@
+# replace `pepc.f90` with `pepc_streakline.f90` for a backward trace of connection length
+#  as a function of background magnetic stray field. 
+#  `pepc.f90` has all the relevant diagnostic options.
 FILES_L   = pepc.f90 module_helper.f90 module_diagnostics.f90 \
-						module_elliptic_integrals.f90 module_integrator.f90 \
-						module_particles_resize.f90 random123_func.c rng_wrapper.f90
+	    module_elliptic_integrals.f90 module_integrator.f90 \
+	    module_particles_resize.f90 random123_func.c rng_wrapper.f90
 
 FILES_L_U = module_vtk_helpers.f90 \
             module_directsum.f90 \
