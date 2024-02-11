@@ -547,7 +547,7 @@ program pepc
             call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
 
           else if (diag_type .eq. 6) then
-            write(file_name, '(A6,I10.10,A4)') 'Vparperp_', itime_in + step + 1, '.txt'
+            write(file_name, '(A9,I10.10,A4)') 'Vparperp_', itime_in + step + 1, '.txt'
             file_name = trim(file_name)
             call V_par_perp_calculation(particles, local_table2)
             call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
