@@ -53,24 +53,24 @@ program pepc
    call set_parameter()
 
 #ifdef _OPENMP
-  call OMP_set_num_threads(init_omp_threads)
+   call OMP_set_num_threads(init_omp_threads)
 #endif
 
    !=====================prepare array for density diagnostics==================
    if (density_output) then
-     if (mesh_mode == 0) then
-       call init_diagnostic_verts(density_verts, minimum_x, minimum_y, minimum_z, &
-                                  x_length, y_length, z_length)
-     elseif(mesh_mode == 1) then
-       call read_msh_file(mesh_name, density_verts, connectivity_tets, my_rank)
-       N_element = size(connectivity_tets(:,1))
-     end if
+      if (mesh_mode .eq. 0) then
+         call init_diagnostic_verts(density_verts, minimum_x, minimum_y, minimum_z, &
+                                    x_length, y_length, z_length)
+      elseif (mesh_mode .eq. 1) then
+         call read_msh_file(mesh_name, density_verts, connectivity_tets, my_rank)
+         N_element = size(connectivity_tets(:, 1))
+      end if
 
-     if (root) then
-       allocate(final_density(size(density_verts)*n_ranks))
-     else
-       allocate(final_density(1))
-     end if
+      if (root) then
+         allocate (final_density(size(density_verts) * n_ranks))
+      else
+         allocate (final_density(1))
+      end if
    end if
 
    ! NOTE: Random123 seeding
@@ -82,47 +82,47 @@ program pepc
    !   incrementing the counter (or key) is effectively indistinguishable from a sequence of samples of a uniformly distributed
    !   random variable.
 
-   if (resume == 1) then
-     np = tnp/n_ranks
-     if (my_rank < MOD(tnp, 1_kind_particle*n_ranks)) np = np + 1
-     call read_particles_mpiio(itime_in, MPI_COMM_WORLD, checkin_step, tnp, particles, checkpoint_file, &
-                               int(np))
-     ! call write_particles(particles)
+   if (resume .eq. 1) then
+      np = tnp / n_ranks
+      if (my_rank .lt. MOD(tnp, 1_kind_particle * n_ranks)) np = np + 1
+      call read_particles_mpiio(itime_in, MPI_COMM_WORLD, checkin_step, tnp, particles, checkpoint_file, &
+                                int(np))
+      ! call write_particles(particles)
 
-     ! ctr_s(1) = (my_rank + 1)*np
-     ! ctr_s(2:4) = CEILING(particles(1)%x*1e5, kind=int32)
-     ! key_s(1) = (my_rank + 1)*n_ranks
-     ! key_s(2:4) = CEILING(particles(1)%data%v*1e17, kind=int32)
+      ! ctr_s(1) = (my_rank + 1)*np
+      ! ctr_s(2:4) = CEILING(particles(1)%x*1e5, kind=int32)
+      ! key_s(1) = (my_rank + 1)*n_ranks
+      ! key_s(2:4) = CEILING(particles(1)%data%v*1e17, kind=int32)
 
    else
-     itime_in = 0
-     ! call init_particles(particles, sim_type)
-     ! call torus_diagnostic_xz_grid(major_radius, minor_radius, 8, particles)
-     ! call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 43, particles)
-     call circle_points(particles, 5.8_kind_physics, 0.0_kind_physics, 1.0_kind_physics, 255)
-     ! call torus_diagnostic_xy_grid(major_radius, minor_radius, 10, particles, 1.0_8)
+      itime_in = 0
+      ! call init_particles(particles, sim_type)
+      ! call torus_diagnostic_xz_grid(major_radius, minor_radius, 8, particles)
+      ! call torus_diagnostic_xz_breakdown(major_radius, minor_radius, 43, particles)
+      call circle_points(particles, 5.8_kind_physics, 0.0_kind_physics, 1.0_kind_physics, 255)
+      ! call torus_diagnostic_xy_grid(major_radius, minor_radius, 10, particles, 1.0_8)
    end if
 
-   allocate(CS_total_scatter)
+   allocate (CS_total_scatter)
    CS_guide => CS_total_scatter
    ! IMPORTANT NOTE: the order of set_cross_section_table must correspond to the case orders in collision_update()
-  !  call getcwd(file_path)
+   !  call getcwd(file_path)
    file_path = "../src/frontends/pepc-breakup/cross_sections/"
    call set_cross_section_table(trim(file_path)//"energy_grouping_fine.txt", CS_guide, 11, 1)
 
-   allocate(energy_group_levels(size(CS_total_scatter%CS, 1) + 1))
+   allocate (energy_group_levels(size(CS_total_scatter%CS, 1) + 1))
    energy_group_levels = 0.0
-   energy_group_levels(2:size(energy_group_levels)) = CS_total_scatter%CS(:,1)
+   energy_group_levels(2:size(energy_group_levels)) = CS_total_scatter%CS(:, 1)
    call deallocate_CS_buffer(CS_total_scatter)
    ! NOTE: Future prospect: add proper function to maximize the collision freq. over energy (assuming initial density is highest, hence constant)
    !       look at some external function DDFSA or DFSA.
-   allocate(CS_total_scatter)
+   allocate (CS_total_scatter)
    CS_guide => CS_total_scatter
    call set_cross_section_table(trim(file_path)//"total_scattering_H2.txt", CS_guide, 11, 1)
    call determine_absolute_max_CS(CS_total_scatter, abs_max_CS)
    ! call deallocate_CS_buffer(CS_tables)
 
-   allocate(CS_tables)
+   allocate (CS_tables)
    CS_guide => CS_tables
    call set_cross_section_table(trim(file_path)//"elastic_scattering_H2.txt", CS_guide, 11, 0)
    call set_cross_section_table(trim(file_path)//"rotational_excitation_J_0_2.txt", CS_guide, 12, 0)
@@ -134,11 +134,11 @@ program pepc
    call set_eirene_coeffs(trim(file_path)//"disso_H(1s)_H(2s).txt", 12, eirene_coeffs2)
    total_cross_sections = 7
    eirene_cross_sections = 2
-  !  allocate(flow_count(3))
-  !  allocate(total_flow_count(3))
+   !  allocate(flow_count(3))
+   !  allocate(total_flow_count(3))
    call set_Xi_table(trim(file_path)//"Ohkri_Xi_H2.txt", 101, Xi_table)
    seed_dl = 0.0_kind_physics
-   allocate(slopes(5))
+   allocate (slopes(5))
    slopes(1) = -1.3107391388451723_kind_physics
    slopes(2) = -1.0731754363246897_kind_physics
    slopes(3) = -1.281279728327093_kind_physics
@@ -163,11 +163,11 @@ program pepc
 !   call pepc_particleresults_clear(particles)
 !   call pepc_grow_tree(particles)
 
-   E_q_dt_m = (e*(1.0e12))/(4.0*pi*eps_0*e_mass*c)
+   E_q_dt_m = (e * (1.0e12)) / (4.0 * pi * eps_0 * e_mass * c)
    call poloidal_B_grid(B_pol_grid, 200, 200, 4.05_kind_physics, 1.75_kind_physics, &
                         3.5_kind_physics, 3.5_kind_physics)
    do i = 1, size(particles)
-     call particle_EB_field(particles(i), external_e, B_pol_grid)
+      call particle_EB_field(particles(i), external_e, B_pol_grid)
 !     print *, particles(i)%data%b
    end do
 
@@ -176,7 +176,7 @@ program pepc
    call write_particles(particles)
 !   call MPI_BCAST(tnp, 1, MPI_KIND_PARTICLE, 0, MPI_COMM_WORLD, ierr)
 !   call write_particles_mpiio(MPI_COMM_WORLD, step+itime_in+1, tnp, particles, checkpoint_file)
-   
+
    ! NOTE: Possible error in reported charge values! due to positive charges generated
    !       below the anode, which is then counted! Causes underestimation of
    !       reported electron values at anode, notable at high E/p ranges.
@@ -184,9 +184,9 @@ program pepc
    tnp = 0
    call MPI_ALLREDUCE(np, tnp, 1, MPI_KIND_PARTICLE, MPI_SUM, MPI_COMM_WORLD, ierr)
    if (root) print *, "tnp: ", tnp, np
-   if (root) print*, 'init_x    ', 'init_y   ', 'init_z   ', 'length   ', 'init_Bmag   ', 'final_Bmag   '
+   if (root) print *, 'init_x    ', 'init_y   ', 'init_z   ', 'length   ', 'init_Bmag   ', 'final_Bmag   '
 !   call write_particles_mpiio(MPI_COMM_WORLD, 1, tnp, particles, checkpoint_file)
-   allocate(global_table2(6, tnp))
+   allocate (global_table2(6, tnp))
 
    !$OMP PARALLEL  default(none) &
    !$OMP shared(init_omp_threads, np) &
@@ -197,32 +197,31 @@ program pepc
    !$OMP shared(step, omp_threads) private(dummy, start_i, neutral_density, local_min_x) firstprivate(B_pol_grid, particles)
    dummy = OMP_GET_NUM_THREADS()
    start_i = OMP_GET_THREAD_NUM()
-   if (start_i == 0) print *, "Total threads: ", dummy
+   if (start_i .eq. 0) print *, "Total threads: ", dummy
 
    !$OMP DO SCHEDULE(DYNAMIC,1)
    do i = 1, np
-     ! call particle_EB_field(particles(i), external_e, B_pol_grid)
-     ! Using local_table2(:,:) as a dummy carrier. Data structure as follows:
-     ! local_table2(1:3,:) = particle's initial coordinate.
-     ! local_table2(4,:)   = connection length
-     ! local_table2(5,:)   = particle's init B_mag
-     ! local_table2(6,:)        = particle's final B_mag
-     ! Using global_table2(:,:) as a global collector.
-     ! neutral_density as a dummy for B_mag.
-     ! local_min_x as a dummy for origin of torus.
-     ! print *, start_i, i
-     local_min_x = 0.0_kind_physics
-     neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
-     global_table2(1,i) = particles(i)%x(1)
-     global_table2(2,i) = particles(i)%x(2)
-     global_table2(3,i) = particles(i)%x(3)
-     global_table2(5,i) = neutral_density
-     call streakline_integral(particles(i), 0.1/(c*1e-12), 1e-8_kind_physics, 30_kind_particle, major_radius, minor_radius, local_min_x, global_table2(4,i))  
-     neutral_density = sqrt(dot_product(particles(i)%data%b,particles(i)%data%b))
-     global_table2(6,i) = neutral_density
+      ! call particle_EB_field(particles(i), external_e, B_pol_grid)
+      ! Using local_table2(:,:) as a dummy carrier. Data structure as follows:
+      ! local_table2(1:3,:) = particle's initial coordinate.
+      ! local_table2(4,:)   = connection length
+      ! local_table2(5,:)   = particle's init B_mag
+      ! local_table2(6,:)        = particle's final B_mag
+      ! Using global_table2(:,:) as a global collector.
+      ! neutral_density as a dummy for B_mag.
+      ! local_min_x as a dummy for origin of torus.
+      ! print *, start_i, i
+      local_min_x = 0.0_kind_physics
+      neutral_density = sqrt(dot_product(particles(i)%data%b, particles(i)%data%b))
+      global_table2(1, i) = particles(i)%x(1)
+      global_table2(2, i) = particles(i)%x(2)
+      global_table2(3, i) = particles(i)%x(3)
+      global_table2(5, i) = neutral_density
+      call streakline_integral(particles(i), 0.1 / (c * 1e-12), 1e-8_kind_physics, 30_kind_particle, major_radius, minor_radius, local_min_x, global_table2(4, i))
+      neutral_density = sqrt(dot_product(particles(i)%data%b, particles(i)%data%b))
+      global_table2(6, i) = neutral_density
 
-     
-     print*, start_i,  global_table2(1,i), global_table2(2,i), global_table2(3,i), global_table2(4,i), global_table2(5,i), global_table2(6,i) 
+      print *, start_i, global_table2(1, i), global_table2(2, i), global_table2(3, i), global_table2(4, i), global_table2(5, i), global_table2(6, i)
    end do
    !$OMP END PARALLEL
 
@@ -239,31 +238,31 @@ program pepc
    !                 MPI_COMM_WORLD, ierr)
    if (root) print *, "after GATHER"
    call connection_length_output(global_table2, 23)
-  
+
    if (root) print *, "done output"
-   deallocate(global_table2)
+   deallocate (global_table2)
 !=============================Writing output files==============================
-!      if (doDiag .and. particle_output) then
-!   call charge_poloidal_distribution(particles, local_table2, global_table2, tnp, itime_in + step + 1)
-!        call write_particles(particles)
-!        write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
-!        file_name = trim(file_name)
-        ! call toroidal_weight_distribution(particles, local_table2, 1000)
-        ! call gather_weights_tables(local_table2, global_table2, 55, file_name)
-        ! call toroidal_max_weights(particles, local_table1D, local_table1D_1, 1000)
-        ! call gather_minmaxWeights_tables(local_table1D, local_table1D_1, global_table1D, global_table1D_1, 55, file_name)
-        ! call unit_vector_distribution(particles, local_table2, 50, 100)
-        ! call gather_spherical_angle_tables(local_table2, global_table2, 55, file_name)
-        ! call V_mean_phi_distribution(particles, local_table2, 1000)
-        ! call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
-!        call V_par_perp_calculation(particles, local_table2)
-!        call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
-!      end if
+!   if (doDiag .and. particle_output) then
+!     call charge_poloidal_distribution(particles, local_table2, global_table2, tnp, itime_in + step + 1)
+!     call write_particles(particles)
+!     write(file_name, '(A6,I10.10,A4)') 'table_', itime_in + step + 1, '.txt'
+!     file_name = trim(file_name)
+!     call toroidal_weight_distribution(particles, local_table2, 1000)
+!     call gather_weights_tables(local_table2, global_table2, 55, file_name)
+!     call toroidal_max_weights(particles, local_table1D, local_table1D_1, 1000)
+!     call gather_minmaxWeights_tables(local_table1D, local_table1D_1, global_table1D, global_table1D_1, 55, file_name)
+!     call unit_vector_distribution(particles, local_table2, 50, 100)
+!     call gather_spherical_angle_tables(local_table2, global_table2, 55, file_name)
+!     call V_mean_phi_distribution(particles, local_table2, 1000)
+!     call V_mean_phi_distribution_gather(local_table2, global_table2, 55, file_name)
+!     call V_par_perp_calculation(particles, local_table2)
+!     call V_par_perp_histogram(local_table2, 100, tnp, 55, file_name)
+!   end if
 
-   deallocate(B_pol_grid)
+   deallocate (B_pol_grid)
 
-   deallocate(particles)
-   deallocate(slopes)
+   deallocate (particles)
+   deallocate (slopes)
    call deallocate_CS_buffer(CS_tables)
    call deallocate_CS_buffer(CS_total_scatter)
 
