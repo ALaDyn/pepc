@@ -204,13 +204,13 @@ program pepc
       local_max_x = -1e16_kind_physics
       max_x = -1e16_kind_physics
 
-      !$OMP PARALLEL if(np/init_omp_threads > 10) default(private) &
-      !$OMP shared(init_omp_threads, particles, new_particles_offset, np) &
-      !$OMP shared(gathered_new_buffer, external_e, dt, V_loop, d, E_q_dt_m) &
-      !$OMP shared(rank_charge_count, thread_charge_count, flt_geom, my_rank) &
-      !$OMP shared(abs_max_CS, neutral_density, CS_tables, major_radius) &
-      !$OMP shared(minor_radius, plasma_dimensions, generic_array) &
-      !$OMP shared(total_cross_sections, step, omp_threads) firstprivate(B_pol_grid)
+!$OMP PARALLEL if(np/init_omp_threads > 10) default(private) &
+!$OMP shared(init_omp_threads, particles, new_particles_offset, np) &
+!$OMP shared(gathered_new_buffer, external_e, dt, V_loop, d, E_q_dt_m) &
+!$OMP shared(rank_charge_count, thread_charge_count, flt_geom, my_rank) &
+!$OMP shared(abs_max_CS, neutral_density, CS_tables, major_radius) &
+!$OMP shared(minor_radius, plasma_dimensions, generic_array) &
+!$OMP shared(total_cross_sections, step, omp_threads) firstprivate(B_pol_grid)
 
       ! NOTE: counter and key for Random123 is redefined on thread basis.
 #ifdef _OPENMP
@@ -326,7 +326,7 @@ program pepc
       new_particles_offset((thread_id + 1), 3) = IStart
       new_particles_offset((thread_id + 1), 4) = IStop - swapped_num - IStart
       thread_charge_count((thread_id + 1), :) = charge_count(:)
-      !$OMP BARRIER
+!$OMP BARRIER
 
       !================Gathering totals of filtered and new particles===========
       if (thread_id .eq. 0) then
@@ -355,13 +355,13 @@ program pepc
             allocate (gathered_new_buffer(1))
          end if
       end if
-      !$OMP BARRIER
+!$OMP BARRIER
 
       if (new_particles_offset(omp_threads, 1) .ne. 0) then
          call gather_ll_buffers_omp(buffer, generic_array, gathered_new_buffer, thread_id, omp_threads)
       end if
       call deallocate_ll_buffer(buffer)
-      !$OMP END PARALLEL
+!$OMP END PARALLEL
       deallocate (generic_array)
 
       new_particle_cnt = new_particles_offset(omp_threads, 1)

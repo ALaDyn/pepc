@@ -188,18 +188,18 @@ program pepc
 !   call write_particles_mpiio(MPI_COMM_WORLD, 1, tnp, particles, checkpoint_file)
    allocate (global_table2(6, tnp))
 
-   !$OMP PARALLEL  default(none) &
-   !$OMP shared(init_omp_threads, np) &
-   !$OMP shared(external_e, dt, V_loop, d, E_q_dt_m) &
-   !$OMP shared(my_rank, global_table2) &
-   !$OMP shared(abs_max_CS, B0, B_p, major_radius) &
-   !$OMP shared(minor_radius, plasma_dimensions) &
-   !$OMP shared(step, omp_threads) private(dummy, start_i, neutral_density, local_min_x) firstprivate(B_pol_grid, particles)
+!$OMP PARALLEL  default(none) &
+!$OMP shared(init_omp_threads, np) &
+!$OMP shared(external_e, dt, V_loop, d, E_q_dt_m) &
+!$OMP shared(my_rank, global_table2) &
+!$OMP shared(abs_max_CS, B0, B_p, major_radius) &
+!$OMP shared(minor_radius, plasma_dimensions) &
+!$OMP shared(step, omp_threads) private(dummy, start_i, neutral_density, local_min_x) firstprivate(B_pol_grid, particles)
    dummy = OMP_GET_NUM_THREADS()
    start_i = OMP_GET_THREAD_NUM()
    if (start_i .eq. 0) print *, "Total threads: ", dummy
 
-   !$OMP DO SCHEDULE(DYNAMIC,1)
+!$OMP DO SCHEDULE(DYNAMIC,1)
    do i = 1, np
       ! call particle_EB_field(particles(i), external_e, B_pol_grid)
       ! Using local_table2(:,:) as a dummy carrier. Data structure as follows:
@@ -223,7 +223,7 @@ program pepc
 
       print *, start_i, global_table2(1, i), global_table2(2, i), global_table2(3, i), global_table2(4, i), global_table2(5, i), global_table2(6, i)
    end do
-   !$OMP END PARALLEL
+!$OMP END PARALLEL
 
 !   call calculate_next_E_steps(0.0026944002417373996_kind_physics, last_merge_tnp)
 !   print *, 'E_steps: ', last_merge_tnp, 1/(last_merge_tnp*dt*1e-12)

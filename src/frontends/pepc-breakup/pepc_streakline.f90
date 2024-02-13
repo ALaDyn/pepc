@@ -110,7 +110,7 @@ program pepc
    E_q_dt_m = (e * (1.0e12)) / (4.0 * pi * eps_0 * e_mass * c)
    call poloidal_B_grid(B_pol_grid, 200, 200, 4.05_kind_physics, 1.75_kind_physics, &
                         3.5_kind_physics, 3.5_kind_physics)
-   !$OMP PARALLEL DO SCHEDULE(DYNAMIC,1)
+!$OMP PARALLEL DO SCHEDULE(DYNAMIC,1)
    do i = 1, size(particles)
       call particle_EB_field(particles(i), external_e, B_pol_grid)
    end do
@@ -126,20 +126,20 @@ program pepc
    allocate (global_table2(6, tnp))
 
    call system_clock(time_start, rate)
-   !$OMP PARALLEL  default(none) &
-   !$OMP shared(init_omp_threads, np) &
-   !$OMP shared(V_loop, d, E_q_dt_m) &
-   !$OMP shared(my_rank, global_table2) &
-   !$OMP shared(major_radius) &
-   !$OMP shared(minor_radius, plasma_dimensions) &
-   !$OMP shared(omp_threads, allowed_wall_time) &
-   !$OMP private(dummy, start_i, neutral_density, local_min_x) &
-   !$OMP firstprivate(B_pol_grid, particles, time_start, rate)
+!$OMP PARALLEL  default(none) &
+!$OMP shared(init_omp_threads, np) &
+!$OMP shared(V_loop, d, E_q_dt_m) &
+!$OMP shared(my_rank, global_table2) &
+!$OMP shared(major_radius) &
+!$OMP shared(minor_radius, plasma_dimensions) &
+!$OMP shared(omp_threads, allowed_wall_time) &
+!$OMP private(dummy, start_i, neutral_density, local_min_x) &
+!$OMP firstprivate(B_pol_grid, particles, time_start, rate)
    dummy = OMP_GET_NUM_THREADS()
    start_i = OMP_GET_THREAD_NUM()
    if (start_i .eq. 0) print *, "Total threads: ", dummy
 
-   !$OMP DO SCHEDULE(DYNAMIC,1)
+!$OMP DO SCHEDULE(DYNAMIC,1)
    do i = 1, np
       ! call particle_EB_field(particles(i), external_e, B_pol_grid)
       ! Using local_table2(:,:) as a dummy carrier. Data structure as follows:
@@ -163,7 +163,7 @@ program pepc
 
       print *, start_i, global_table2(1, i), global_table2(2, i), global_table2(3, i), global_table2(4, i), global_table2(5, i), global_table2(6, i)
    end do
-   !$OMP END PARALLEL
+!$OMP END PARALLEL
    step = 0
    call write_particles_mpiio(MPI_COMM_WORLD, step + itime_in + 1, tnp, particles, checkpoint_file)
 
