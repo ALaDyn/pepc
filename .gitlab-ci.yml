@@ -3,9 +3,23 @@ stages:
   - image      # build updated image for runner
   - lint       # do basic lint'ing to nudge towards common formatting
   - build      # build libraries, frontends, etc...
-    #   - test
-    #   - html      # this run doxygen (prefer FORD)
-    #   - deploy    # this could push doxygen to pages
+  - test       # test PEPC for correctness and performance
+    #   - html      # run doxygen (prefer FORD)
+  - deploy     # create HTML from results and push to pages
+
+variables:
+  FORCE_DOCKER_IMAGE:
+    value: "false"
+    options:
+      - "false"
+      - "true"
+    description: "Force the creation of a new Docker image for this branch."
+  SBATCH_ACCOUNT:
+    # use this variable for SBATCH/JUBE to define accounting (or hard code within JUBE file)
+    value: cstma
+    description: "Account name of compute project to use for JUBE runs"
+  SCHEDULER_PARAMETERS: -A$SBATCH_ACCOUNT
+    # this needs to include the accounting name if JACAMAR is meant to run on compute nodes, i.e. -A<account>
 
 #### Build PEPC and it's libraries
 # Template for building
@@ -72,15 +86,11 @@ toolchains:
         COMPILER: GCC
         MPI: [OpenMPI, ParaStationMPI]
       - SYSTEM: [juwels]
-        COMPILER: GCC
-        MPI: OpenMPI
-      - SYSTEM: [juwels]
         COMPILER: Intel
         MPI: [ParaStationMPI, IntelMPI]
   tags:
     - ${SYSTEM}
     - shell
-  when: on_success
   needs: ["frontends: [pepc-essential, pthreads]"]
   script:
     - echo "Building PEPC (all frontends) on $SYSTEMNAME using $HOSTNAME"
@@ -91,8 +101,116 @@ toolchains:
     - ln -s makefiles/makefile.defs.${COMPILER} makefile.defs
     - make all
   artifacts:
+    when: on_failure
     paths:
       - bin/*
+
+# If the 'toolchain' builds work, test PEPC correctness on a cluster
+correctness:
+  stage: test
+  tags:
+    - jusuf
+    - shell
+  needs: ["toolchains: [jusuf, GCC, OpenMPI]"]
+  script:
+    - echo "Running pepc-benchmark on $SYSTEMNAME using $HOSTNAME"
+    - echo "Loading modules..."
+    # load JUBE, the rest will be done from there
+    - ml JUBE
+    # start JUBE
+    - echo "Running JUBE... This will take some time..."
+    - jube-autorun -o -r "-t check CI" benchmark/benchmark.xml
+    - echo "Checking for success..."
+    - jube result run/benchmark/ | grep -q failed && exit 128
+    - echo "Check seems to have passed..."
+  artifacts:
+    when: on_failure
+    paths:
+      - run
+  rules:
+    # Only run when on main repository
+    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+
+# If correctness is 'established', test performance
+performance:
+  stage: test
+  tags:
+    - jusuf
+    - shell
+  needs: ["correctness"]
+  script:
+    - echo "Running pepc-benchmark on $SYSTEMNAME using $HOSTNAME"
+    - echo "Loading modules..."
+    # load JUBE, the rest will be done from there
+    - ml JUBE git
+    # get previous results
+    - git describe --long --all
+    - git fetch
+    - git describe --long --all
+    - git checkout --force origin/continuous_benchmarking --
+    - git describe --long --all
+    #- git pull --ff-only # in case there have been overlapping changes
+    - test -d ${CI_COMMIT_BRANCH} || mkdir ${CI_COMMIT_BRANCH}
+    - test -f ${CI_COMMIT_BRANCH}/result_database.sqlite || touch ${CI_COMMIT_BRANCH}/result_database.sqlite
+    - cp ${CI_COMMIT_BRANCH}/result_database.sqlite database.sqlite
+    - git checkout $CI_COMMIT_BRANCH --
+    - git describe --long --all
+    # create empty run directory for JUBE with last number for benchmarks - can be RACY but may preserve some history
+    - RID=`(sqlite3 database.sqlite 'select jube_benchmark_padid from full_results order by jube_benchmark_padid;' || echo '000000' ) | tail -n 1`
+    - test -d "run/benchmark/${RID}" || mkdir -p "run/benchmark/${RID}"
+    # start JUBE
+    - echo "Running JUBE... This will take some time..."
+    - jube-autorun -o -r "-t CI" benchmark/benchmark.xml
+    # store results again
+    - git checkout --force origin/continuous_benchmarking --
+    - git describe --long --all
+    - cp database.sqlite ${CI_COMMIT_BRANCH}/result_database.sqlite
+    - git remote set-url --push origin "https://$CI_COMMITTER_USER_AND_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git"
+    - git add ${CI_COMMIT_BRANCH}/result_database.sqlite
+    - git commit -m "Committing results from CI to sqlite database [${CI_COMMIT_BRANCH}]" --author='CI Bot <anon@nowhere.net>'
+    - git push origin HEAD:continuous_benchmarking
+  artifacts:
+    when: on_failure
+    paths:
+      - run
+  rules:
+    # Only run when on main repository
+    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+
+pages:
+  stage: deploy
+  tags:
+    - public-docker
+  image: "$CI_REGISTRY_IMAGE/continuous_benchmarking-pages-image:latest"
+  needs: ["performance"]
+  script:
+    # get results branch
+    - cp DESCRIPTION.md /tmp/.
+    - git fetch
+    - git checkout --force origin/continuous_benchmarking --
+    - echo "Converting jupyter notebook..."
+    - |
+      for BRANCHES in `ls -l | grep ^d | grep -vE 'public|mkdocs' | awk '{print $9}'`
+      do
+         export BRN=${BRANCHES}
+         sed -e "s/branch=\\\\\"master/branch=\\\\\"${BRN}/" -e "s/px_renderer = \\\\\"jupyterlab/px_renderer = \\\\\"plotly_mimetype+notebook_connected/" plot_results.ipynb > "mkdocs/${BRN}.ipynb"
+         echo "  - 'Branch: ${BRN}': ${BRN}.ipynb" >> nav.yml
+      done
+    - |
+      grep -v ipynb mkdocs.yml | sed '/nav:/r nav.yml' > mkdocs.yml_
+      mv mkdocs.yml_ mkdocs.yml
+      cat /tmp/DESCRIPTION.md >> mkdocs/index.md
+    - echo "Building HTML pages w/ results."
+    - mkdir public
+    - mkdocs build
+    - |
+      for BRANCHES in `ls -l | grep ^d | grep -vE 'public|mkdocs' | awk '{print $9}'`
+      do
+         cp mkdocs/${BRANCHES}-cb-badge.svg public/${BRANCHES}/cb-badge.svg
+      done
+  artifacts:
+    paths:
+      - public
 
 #### Lint source Fortran source files
 fprettify:

@@ -11,8 +11,14 @@
 export OMP_NUM_THREADS=##WORKERTHREADS##
 
 export SLURM_NTASKS_PER_NODE=##TASKSPNODE##
+export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-# we do not explicitly load modules here, this should be done from the shell/JUBE_ERR_CODE
+# Some OpenMP variables that may prove advantageous
+#export OMP_PROC_BIND=true
+export OMP_STACKSIZE=128M
+
+# We do not explicitly load modules here, this should be done from the shell/JUBE_ERR_CODE
 # WE DO, however, list the loaded modules to help plotting results per MPI later
 ##MODULES##
 module list
