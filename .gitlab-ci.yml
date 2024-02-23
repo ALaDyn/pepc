@@ -104,6 +104,9 @@ toolchains:
     when: on_failure
     paths:
       - bin/*
+  rules:
+    # Only run when on repository in JSC
+    - if: $CI_PROJECT_URL =~ /^https:\/\/gitlab.jsc.fz-juelich.de/
 
 # If the 'toolchain' builds work, test PEPC correctness on a cluster
 correctness:
@@ -128,8 +131,8 @@ correctness:
     paths:
       - run
   rules:
-    # Only run when on main repository
-    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+    # Only run when on repository in JSC
+    - if: $CI_PROJECT_URL =~ /^https:\/\/gitlab.jsc.fz-juelich.de/
 
 # If correctness is 'established', test performance
 performance:
@@ -174,8 +177,8 @@ performance:
     paths:
       - run
   rules:
-    # Only run when on main repository
-    - if: $CI_PROJECT_URL == "https://gitlab.jsc.fz-juelich.de/SLPP/pepc/pepc"
+    # Only run when on repository in JSC
+    - if: $CI_PROJECT_URL =~ /^https:\/\/gitlab.jsc.fz-juelich.de/
 
 pages:
   stage: deploy
