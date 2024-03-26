@@ -435,10 +435,13 @@ contains
    subroutine pepc_grow_tree(particles)
       use module_pepc_types, only: t_particle
       use module_libpepc_main, only: libpepc_grow_tree
+      use module_timings
       implicit none
       type(t_particle), allocatable, intent(inout) :: particles(:) !< input particle data, initializes %x, %data, %work appropriately (and optionally set %label) before calling this function
 
+      call timer_start(t_grow_tree)
       call libpepc_grow_tree(global_tree, particles)
+      call timer_stop(t_grow_tree)
 
    end subroutine
 

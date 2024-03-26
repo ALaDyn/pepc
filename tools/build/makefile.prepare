@@ -36,13 +36,14 @@ prepare: $(SRC)
 	@echo "SRC=$(SRC)"                 >> $(MAKEENVS)
 	@echo "ISRC=$(ISRC)"               >> $(MAKEENVS)
 	@echo "CPPFLAGS_BACKEND=$(CPPFLAGS_BACKEND)" >> $(MAKEENVS)
-	@cp -p makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(MAKEDIR)/makefile.tag $(FRONTENDDIR)/$(FRONTEND)/makefile.frontend $(WORKDIR)
+	@cp -p makefile.defs $(MAKEDIR)/makefile.paths $(MAKEDIR)/makefile.build $(MAKEDIR)/makefile.tag $(FRONTENDDIR)/$(FRONTEND)/makefile.frontend $(MAKEDIR)/makefile.git $(WORKDIR)
 	@cp $(TOOLSDIR)/tau/pepc_tau_select $(WORKDIR)
 	@cp -r $(LIBDIR)/* $(WORKDIR)
 	@ln -sf makefile.build $(WORKDIR)/makefile
 	@echo ""
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.build
 	@$(MAKE) $(MFLAGS) -C $(WORKDIR) -f makefile.tag
+	@$(MAKE) $(MFLAGS) -i -f $(WORKDIR)/makefile.git
 
 %.c: 
 	@echo "== preparing C file, origin   : $@, $(filter %/$@, $(SRC_COPY))" 

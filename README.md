@@ -97,8 +97,8 @@ no diagnostics
 tree-based nearest neighbour search  
 - `pepc-kh`, `pepc-kh-essential`:  
 Kevin-Helmholtz setup (`essential` following text-books)
-- `pepc-v`:  
-vortex dynamics using the vortex particle method  
+- `pepc-v`/`pepc-dvh`:  
+vortex dynamics using the vortex particle method/diffused vortex hydrodynamics method  
 
 To build an alternative frontend, just call
 ```sh

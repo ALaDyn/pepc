@@ -49,22 +49,21 @@
 !  |   |   |
 !  |   |   +-> t_domains_keys
 !  |   |   |
-!  |   |   +-> t_domains_add_sort
-!  |   |   |   +
+!  |   |   +-> t_domains_sort
 !  |   |   |   |
-!  |   |   |   +-> t_domains_sort
-!  |   |   |   |   +
-!  |   |   |   |   |
-!  |   |   |   |   +-> t_domains_sort_pure
-!  |   |   |   |
-!  |   |   |   +-> t_domains_ship
+!  |   |   |   +-> t_domains_add_sort
 !  |   |   |       +
 !  |   |   |       |
-!  |   |   |       +-> t_domains_add_pack
+!  |   |   |       +-> t_domains_sort_pure
 !  |   |   |       |
-!  |   |   |       +-> t_domains_add_alltoallv
-!  |   |   |       |
-!  |   |   |       +-> t_domains_add_unpack
+!  |   |   |       +-> t_domains_ship
+!  |   |   |           +
+!  |   |   |           |
+!  |   |   |           +-> t_domains_add_pack
+!  |   |   |           |
+!  |   |   |           +-> t_domains_add_alltoallv
+!  |   |   |           |
+!  |   |   |           +-> t_domains_add_unpack
 !  |   |   |
 !  |   |   +-> t_domains_bound
 !  |   |
@@ -78,26 +77,30 @@
 !  |   |       |
 !  |   |       +-> t_props_leaves
 !  |   |
-!  |   +-> t_branches_find
-!  |   |
 !  |   +-> t_exchange_branches
+!  |   |   +
+!  |   |   |
+!  |   |   +-> t_branches_find
 !  |   |
 !  |   +-> t_global
 !  |
-!  +-> t_fields_passes
-!      +
-!      |
-!      +-> t_walk
-!      |   +
-!      |   |
-!      |   +-> t_comm_total
-!      |       +
-!      |       |
-!      |       +-> t_comm_sendreqs
-!      |       |
-!      |       +-> t_comm_recv
-!      |
-!      +-> t_lattice
+!  +-> t_grow_tree
+!  |
+!  +-> t_comm_total
+!  |   +
+!  |   |
+!  |   +-> t_comm_sendreqs
+!  |   |
+!  |   +-> t_comm_recv
+!  |
+!  +-> t_walk
+!  |   +
+!  |   |
+!  |   +-> t_fields_passes
+!  |   |
+!  |   +-> t_lattice
+!  |
+!  +-> t_deallocate
 !
 
 module module_timings
@@ -112,8 +115,8 @@ module module_timings
    integer, parameter :: t_exchange_branches_integrate = 6
    integer, parameter :: t_restore = 7
    integer, parameter :: t_walk = 8
-   integer, parameter :: t_unused9 = 9
-   integer, parameter :: t_unused10 = 10
+   integer, parameter :: t_unused_9 = 9
+   integer, parameter :: t_unused_10 = 10
    integer, parameter :: t_deallocate = 11
    integer, parameter :: t_all = 12
    integer, parameter :: t_local = 13
@@ -123,10 +126,10 @@ module module_timings
    ! fields internal
    integer, parameter :: t_unused_17 = 17
    integer, parameter :: t_fields_tree = 18
-   integer, parameter :: t_unused19 = 19
+   integer, parameter :: t_unused_19 = 19
    integer, parameter :: t_fields_passes = 20
    integer, parameter :: t_fields_stats = 21
-   integer, parameter :: t_unused22 = 22
+   integer, parameter :: t_unused_22 = 22
    ! tree_domains
    integer, parameter :: t_domains_keys = 23
    integer, parameter :: t_domains_sort = 24
@@ -134,9 +137,9 @@ module module_timings
    integer, parameter :: t_domains_ship = 26
    integer, parameter :: t_domains_bound = 27
    ! tree_allocate
-   integer, parameter :: t_unused28 = 28
+   integer, parameter :: t_unused_28 = 28
    ! tree_build
-   integer, parameter :: t_unused_29 = 29
+   integer, parameter :: t_grow_tree = 29
    integer, parameter :: t_unused_30 = 30
    integer, parameter :: t_unused_31 = 31
    ! tree_branches

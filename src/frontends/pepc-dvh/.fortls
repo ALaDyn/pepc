@@ -1,0 +1,17 @@
+{
+  "source_dirs": [
+     "../../interaction_specific/coulomb/",
+     "../../interaction_specific/vortex/",
+     "../../treecode/lpepcsrc/",
+     "../../treecode/sl_pepc/",
+     "../../treecode/pthreads/",
+     "../../utils/"],
+  "excl_paths": [],
+  "excl_suffixes": [],
+  "pp_suffixes": [".F90"],
+  "pp_defs": {"HAVE_PACKAGE": ""},
+  "include_dirs": ["../../../build/linux_gcc/pepc-dvh/"],
+  "ext_source_dirs": ["../../../build/linux_gcc/pepc-dvh/"],
+  "lowercase_intrinsics": true,
+  "debug_log": false
+}

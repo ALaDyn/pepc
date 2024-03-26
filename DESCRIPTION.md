@@ -25,6 +25,7 @@ The code is structurally divided into three parts:
      - PEPC-b, a code for laser- or particle beam-plasma interactions as well as plasma-wall interactions,
      - PEPC-s, a library version for the ScaFaCoS project,
      - PEPC-v, an application for simulating vortex dynamics using the vortex particle method,
+     - PEPC-dvh, vortex dynamics using the diffused vortex hydrodynamics method,
      - PEPC-g, gravitational interaction and optional smooth particle hydrodynamics frontend (SPH) for simulating stellar discs consisting of gas and dust, developed together with Max Planck Institute for Radio Astronomy (MPIfR) Bonn,
      - several internal experimental frontends.
 
