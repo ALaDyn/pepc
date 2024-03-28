@@ -26,7 +26,7 @@ variables:
 .build_template: &build_template
   tags:
     - public-docker
-  image: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest"
+  image: "$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG-build-image:latest"
 
 # Build libsl and libOPA ahead of frontends
 libraries:
@@ -245,8 +245,8 @@ docker_image:
     - |
       /kaniko/executor --context $CI_PROJECT_DIR \
       --dockerfile $CI_PROJECT_DIR/Dockerfile \
-      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:$CI_COMMIT_SHORT_SHA \
-      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_NAME-build-image:latest
+      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG-build-image:$CI_COMMIT_SHORT_SHA \
+      --destination $CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG-build-image:latest
   rules:
     # Run when triggered and a varible is set
     - if: $FORCE_DOCKER_IMAGE == "true"
