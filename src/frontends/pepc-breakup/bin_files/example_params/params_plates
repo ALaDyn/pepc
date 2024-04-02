@@ -1,13 +1,13 @@
 &pepcbreakup
 
 ! resuming run?
-resume = REPLACE_RESUME
+resume = 0
 
 ! resuming from which time step?
-itime_in = REPLACE_TIMEIN
+itime_in = 0
 
 ! Set OMP threads
-init_omp_threads = 2
+init_omp_threads = 8
 
 ! allocated wall time. Change this to reflect the wall time in job_script.
 ! Note that depending on the number of MPI ranks involved, overhead due to MPI
@@ -16,9 +16,9 @@ init_omp_threads = 2
 i_wall_time = 23:50:00
 
 ! total number of particles
-tnp = REPLACE_TNP
-H1s = REPLACE_VP1
-H2s = REPLACE_VP2
+tnp = 1000
+H1s = 0
+H2s = 0
 
 ! initial electron temperature (K)
 init_temperature = 373.15
@@ -43,13 +43,13 @@ scatter_mode = 0
 !      sections are added.  
 
 ! number of time steps
-nt = REPLACE_NSTEP
+nt = 800000
 
 ! time step (in picoseconds)
-dt = 17.5
+dt = 1.0
 
 ! diagnostics and output interval
-diag_interval = 1
+diag_interval = 1000
 
 ! turn data and domain output on/off
 particle_output = .true.
@@ -70,7 +70,7 @@ particle_mpi_output = .true.
 diag_type = 6
 
 ! simulation type: 0 = Electrode Plates, 1 = Tokamak Setting
-sim_type = 1
+sim_type = 0
 
 !=============================Tokamak Simulation=================================
 ! tokamak torus descriptions (in meters)
@@ -96,13 +96,13 @@ V_loop = 22.0 !11.0
 d = 0.0011870845
 
 ! Only for Electrode Plates, injected electrons per step
-electron_num = 0 !20
+electron_num = 20
 
 ! size of the simulation box
 plasma_dimensions = 0.05 0.05 0.025 !1.0 1.0 1.0
 
 ! external electric field (in V/m)
-external_e = 0.0 0.0 0.0 !100000.0
+external_e = 0.0 0.0 100000.0
 
 !==============================Density mesh output================================
 
@@ -110,11 +110,11 @@ external_e = 0.0 0.0 0.0 !100000.0
 slice_parts = .false.
 
 ! Density grid for interpolation on?
-density_output = .true.
+density_output = .false.
 
 ! Mesh mode: 0 - for rectilinear grids
 !          : 1 - use an externally generated unstructured tetrahedral mesh.
-mesh_mode = 1
+mesh_mode = 0
 
 ! If mesh_mode set to 1, provide the full path of the .msh file (Version 4 gmsh).
 mesh_name = "./scripting.msh"
@@ -173,7 +173,7 @@ eps2 = 1e-4
 /
 
 &libpepc
- num_threads = 11
+ num_threads = 7
  debug_level = 0
  np_mult = -100.0
 
