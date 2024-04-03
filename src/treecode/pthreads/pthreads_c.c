@@ -1,7 +1,7 @@
 /*
 * This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 *
-* Copyright (C) 2002-2018 Juelich Supercomputing Centre,
+* Copyright (C) 2002-2019 Juelich Supercomputing Centre,
 *                         Forschungszentrum Juelich GmbH,
 *                         Germany
 *
