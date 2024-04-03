@@ -172,8 +172,8 @@ contains
       ! set initial number of local particles
       np = tnp / n_ranks
       ! fill up to tnp on last rank - this does not load-balance, but makes sure labels are ok
-      if ( (my_rank + 1) .eq. n_ranks ) then
-         np_pad = tnp - n_ranks*np
+      if ((my_rank + 1) .eq. n_ranks) then
+         np_pad = tnp - n_ranks * np
       else
          np_pad = 0
       end if

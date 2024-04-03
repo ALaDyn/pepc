@@ -99,7 +99,7 @@ tree-based nearest neighbour search
 Kevin-Helmholtz setup (`essential` following text-books)
 - `pepc-v`/`pepc-dvh`:  
 vortex dynamics using the vortex particle method/diffused vortex hydrodynamics method  
-* `pepc-breakup`:  
+- `pepc-breakup`:  
 Townsend avalanche breakdown simulation  
 
 To build an alternative frontend, just call

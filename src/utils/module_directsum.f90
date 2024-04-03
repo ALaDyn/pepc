@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2023 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -73,11 +73,11 @@ contains
       call timer_reset(t_direct_comm)
 
       ! Inform the user that openmp is used, and with how many threads
-      !$OMP PARALLEL DEFAULT(NONE) SHARED(my_rank) NUM_THREADS(num_threads)
-      !$OMP MASTER
-      !$    if (my_rank .eq. 0) write (*, *) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
-      !$OMP END MASTER
-      !$OMP END PARALLEL
+!$OMP PARALLEL DEFAULT(NONE) SHARED(my_rank) NUM_THREADS(num_threads)
+!$OMP MASTER
+!$    if (my_rank .eq. 0) write (*, *) 'Using OpenMP with', OMP_GET_NUM_THREADS(), 'threads. Adjust by modifying num_threads parameter.'
+!$OMP END MASTER
+!$OMP END PARALLEL
 
       ! determine right and left neighbour
       nextrank = modulo(my_rank + 1_kind_pe, n_cpu)
@@ -106,7 +106,7 @@ contains
 
          t1 = MPI_WTIME()
 
-         !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, delta, ibox) SCHEDULE(STATIC) NUM_THREADS(num_threads)
+!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i, delta, ibox) SCHEDULE(STATIC) NUM_THREADS(num_threads)
          do j = 1, nreceived
             do i = 1, size(particles)
 
@@ -131,7 +131,7 @@ contains
 
             end do
          end do
-         !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
          call timer_add(t_direct_force, MPI_WTIME() - t1)
 

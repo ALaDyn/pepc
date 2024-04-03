@@ -610,7 +610,7 @@ subroutine configure
 
    case (2)
       convert_kev = 1.
-      if (ispecial .eq. 6 .and. ne .gt. 0) convert_kev = 1. / Ne  ! energy per particle
+      if (ispecial .eq. 6 .and. ne .gt. 0) convert_kev = 1./Ne  !& energy per particle
       convert_erg = convert_kev
 
    case default

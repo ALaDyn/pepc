@@ -49,7 +49,7 @@ contains
       integer :: p
 
       ! unconstrained motion by default
-      !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(p)
+!$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(p)
       do p = p_start, p_finish
          if (btest(particles(p)%data%type, PARTICLE_TYPE_FIXED)) then
             ! don`t move this particle
@@ -63,7 +63,7 @@ contains
             particles(p)%data%v_minus_half = particles(p)%data%v_minus_half + delta_t * particles(p)%results%sph_force
          end if
       end do
-      !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
    end subroutine velocities
 
@@ -83,11 +83,11 @@ contains
       real, intent(in) :: delt
       integer :: p
 
-      !$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(p)
+!$OMP PARALLEL DO SCHEDULE(STATIC) PRIVATE(p)
       do p = ips, ipf
          particles(p)%x = particles(p)%x + particles(p)%data%v_minus_half * delt
       end do
-      !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
    end subroutine push
 
