@@ -6,22 +6,15 @@
 
 # create temporary directory
 TMP=`mktemp -d`
-# exclude any build data or binaries, as well as JSC benchmarks
-# need to mangle directories for zip to ignore them
-find bin >> ${TMP}/excludelist
-find bin -type d -printf "%p/\n" >> ${TMP}/excludelist
-find lib >> ${TMP}/excludelist
-find lib -type d -printf "%p/\n" >> ${TMP}/excludelist
-find build >> ${TMP}/excludelist
-find build -type d -printf "%p/\n" >> ${TMP}/excludelist
-find benchmark >> ${TMP}/excludelist
-find benchmark -type d -printf "%p/\n" >> ${TMP}/excludelist
+# collect files under version control from git, exclude anything in 'benchmark'
+git ls-tree -r master --name-only | grep -vE "^benchmark/" > ${TMP}/includelist
 # zip it up
-zip --symlinks -r ${TMP}/tmp.zip * --exclude @${TMP}/excludelist \
+zip --symlinks -r ${TMP}/tmp.zip * --include @${TMP}/includelist \
    && mv ${TMP}/tmp.zip ./zenodo.zip
+# create what might be the correct filename
+cp ./zenodo.zip ./PEPC-`git tag --sort=taggerdate | tail -n 1`.zip
 # remove temporaries
-cp ${TMP}/excludelist .
-rm -f ${TMP}/excludelist
+rm -f ${TMP}/includelist
 rmdir ${TMP}
 
 # vim: set ts=3 sw=3 tw=80 expandtab :
