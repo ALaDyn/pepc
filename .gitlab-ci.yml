@@ -80,6 +80,9 @@ frontends:
 # If the 'public-docker' builds work, test toolchains on a cluster
 toolchains:
   stage: build
+  id_tokens:
+    CI_JOB_JWT:
+      aud: https://gitlab.jsc.fz-juelich.de
   parallel:
     matrix:
       - SYSTEM: [jusuf]
@@ -111,6 +114,9 @@ toolchains:
 # If the 'toolchain' builds work, test PEPC correctness on a cluster
 correctness:
   stage: test
+  id_tokens:
+    CI_JOB_JWT:
+      aud: https://gitlab.jsc.fz-juelich.de
   tags:
     - jusuf
     - shell
@@ -137,6 +143,9 @@ correctness:
 # If correctness is 'established', test performance
 performance:
   stage: test
+  id_tokens:
+    CI_JOB_JWT:
+      aud: https://gitlab.jsc.fz-juelich.de
   tags:
     - jusuf
     - shell
