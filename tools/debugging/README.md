@@ -26,7 +26,7 @@ file to help with that:
 (or the correct path for your installation)
 
 Also, splitting output of `valgrind` into separate files for each spawned
-process disentables output a lot. So add switches
+process disentangles output a lot. So add switches
 ```sh
 --trace-children=yes --log-file=pepc-v.valgrind.%n.%p.`date -Iminutes`
 ```
@@ -38,7 +38,7 @@ for those
 ```sh
 --suppressions=./tools/debugging/pepc.supp
 ```
-It may also be helpful to generate additional suppresions. To get templates for
+It may also be helpful to generate additional suppressions. To get templates for
 those, include `--gen-suppressions=all` to the command line.
 
 
