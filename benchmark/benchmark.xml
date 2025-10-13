@@ -124,7 +124,7 @@
          <use>runsub</use>
          <!-- load modules -->
          <do>${load_modules}</do>
-         <do done_file="ready">sbatch -A ${SBATCH_ACCOUNT} job.slurm</do>
+         <do done_file="ready">sbatch --threads-per-core=${thread_places} -A ${SBATCH_ACCOUNT} job.slurm</do>
       </step>
       <step tag="stats"  name="run" depend="compile" iterations="5">
          <use>system</use>
@@ -136,76 +136,14 @@
          <use>runsub</use>
          <!-- load modules -->
          <do>${load_modules}</do>
-         <do done_file="ready">sbatch -A ${SBATCH_ACCOUNT} job.slurm</do>
+         <do done_file="ready">sbatch --threads-per-core=${thread_places} -A ${SBATCH_ACCOUNT} job.slurm</do>
       </step>
 
       <!-- OUTPUT ANALYSIS ############################################################################# -->
-      <!-- define timing patternset -->
-      <!-- Regex pattern -->
-      <patternset tag="!check" name="timing_pattern">
-         <pattern unit="secs" name="wallclock"     type="float"               >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_walk"     type="float"               >====== tree walk time\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_grow"     type="float"               >====== tree grow time\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="comm_recv"     type="float"               >====== tree comm recv\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="comm_reqs"     type="float"               >====== tree comm reqs\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="step_time"     type="float"               >== time in step\s+\[s\]\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="sum_steps"     type="float"  mode="python">${step_time_sum}-${step_time}</pattern>
-         <!--pattern unit="secs" name="sum_steps"     type="float"  mode="python">0</pattern-->
-         <pattern unit=""     name="total_threads" type="int"    mode="python">${nodes}*${taskspnode}*${threads}</pattern>
-         <pattern unit=""     name="part_per_thrd" type="float"  mode="python">${particles}/(${nodes}*${taskspnode}*${workerthreads})</pattern>
-         <pattern unit=""     name="chksum"        type="stirng"              >revision\s+\[${jube_pat_wrd}\]</pattern>
-      </patternset>
-      <!-- sample output from PEPC will include:
-           ====== computing step  :           0  // many of those
-           ====== simulation time :  0.0000E+00
-           ====== tree grow time  :  3.7220E-01
-           ====== tree walk time  :  7.2144E+00
-           == [pusher] push particles 
-           == time in step [s]                              :   1.2952E+01
-                      t_all =    12.9479424953 s
-                      t_tot =     0.0000000000 s
-           [...]
-           ===== total run time [s]:   2.8961E+03
-           [...]
-       -->
-      <patternset tag="check" name="timing_pattern">
-         <pattern unit="secs" name="wallclock" type="float"               >===== total run time \[s\]:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_walk" type="float"               >====== tree walk time\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="tree_grow" type="float"               >====== tree grow time\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="secs" name="step_time" type="float"               >== time in step.*:\s+${jube_pat_fp}</pattern>
-         <pattern             name="l2_test"   type="float"               >== \[direct test\] L2 error in probed particles\s+:\s+${jube_pat_fp}</pattern>
-         <pattern unit="a.u." name="egy_tot"   type="float"               >== \[energies\]\s+energy:\s+${jube_pat_fp}</pattern>
-         <pattern             name="n_peak"    type="int"                 >== \[histogram\] number of peaks found:\s+${jube_pat_int}</pattern>
-         <pattern             name="check"     type="string"              >== \[histogram\] check\s+:\s+${jube_pat_wrd}</pattern>
-         <pattern unit="%"    name="egy_drop"  type="float"  mode="python">(${egy_tot_max}-${egy_tot_min})/${egy_tot_max} * 100</pattern>
-      </patternset>
-      <!-- sample output from PEPC will include:
-           ====== computing step  :           0  // many of those
-           ====== simulation time :  0.0000E+00
-           ====== tree grow time  :  2.9118E-01
-           ====== tree walk time  :  3.5322E-01
-           ====== tree comm reqs  :  3.5733E-02
-           ====== tree comm recv  :  1.0981E-01
-           == [write particles] time in vtk output [s]      :   1.0478E+00
-           [...]
-           == [direct test] L2 error in probed particles    :   1.8615E-07
-           == [direct test] time in test [s]                :   1.1188E+02
-           [...]
-           == [energies]          kinetic energy:   1.4306E-07
-           == [energies]        potential energy:   1.6119E+00
-           == [energies]                  energy:   1.61185576E+00
-           == [energies]        maximum velocity:   4.3941E-05
-           == [energies] maximum radial distance:   3.8901E+01
-           == [histogram] compute local histogram 
-           == [histogram] number of peaks found: 1
-           [...]
-           == time in step [s]                              :   1.2952E+01
-                      t_all =    12.9479424953 s
-                      t_tot =     0.0000000000 s
-           [...]
-           ===== total run time [s]:   2.8961E+03
-           [...]
-       -->
+      <!-- Patterns are defined per benchmark type because the database cannot -->
+      <!-- handle units in at least v2.7.1 -->
+      <include tag="!CI" from="user_parameters.xml" path="patternset" />
+      <include tag="CI"  from="CI_parameters.xml"   path="patternset" />
 
       <!-- TABLE OUTPUT ################################################################################ -->
       <!-- Analyse timings -->
