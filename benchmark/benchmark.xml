@@ -67,7 +67,7 @@
          <sub source="##THREADS##" dest="$workerthreads" />
          <sub source="##DIAG##" dest=".false." />
          <sub source="##DT##" dest="0.1e-1" />
-         <sub source="##NT##" dest="10" />
+         <sub source="##NT##" dest="25" />
          <sub source="##NPARTICLES##" dest="$particles" />
       </substituteset>
       <!-- correctness test -->

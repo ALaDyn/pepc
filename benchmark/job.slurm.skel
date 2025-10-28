@@ -3,6 +3,7 @@
 #SBATCH --nodes=##NODES##
 #SBATCH --ntasks-per-node=##TASKSPNODE##
 #SBATCH --cpus-per-task=##THREADS##
+#SBATCH --threads-per-core=##SMT_THREADS##
 #SBATCH --output=%j.stdout
 #SBATCH --error=%j.stderr
 #SBATCH --time=00:10:00
@@ -25,6 +26,7 @@ module list
 
 # override pinning with my preference
 export HWT=##SMT_THREADS##
+./correct_pinning.sh
 export PIN=`./correct_pinning.sh | grep cpu-bind`
 # or set a default to sockets
 PIN="${PIN:-"--cpu-bind=sockets,verbose"}"

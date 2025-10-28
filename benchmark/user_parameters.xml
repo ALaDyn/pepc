@@ -42,7 +42,7 @@
          }["${systemname}"]
       </parameter>
       <!-- get name for job script based on MPI library used -->
-      <parameter name="job_script" mode="python">{"old_ompi": "job.ompi.slurm.skel"}.get("${list_of_mpis}","job.slurm.skel")</parameter>
+      <parameter name="job_script" mode="python">"job.slurm.skel"</parameter>
       <!-- get name for makefile on MPI (compiler, really) library used -->
       <parameter name="makefile" mode="python">{"ipsmpi": "makefiles/makefile.defs.Intel", "impi": "makefiles/makefile.defs.Intel"}.get("${list_of_mpis}","makefiles/makefile.defs.GCC")</parameter>
    </parameterset>
@@ -54,13 +54,15 @@
       <!-- Jusuf has 2 x 64 cores, 2xSMT, PEPC uses 1 comm thread, the rest remains for workers -->
       <parameter             name="nodes" type="int" mode="python">{
          "juwels": "4",
-         "jurecadc": "8, 16, 32, 48, 64",
+         "jurecadc": "2, 8, 16, 32, 64, 128, 256",
          "jusuf": "2, 4"}["${systemname}"]
       </parameter>
       <!-- the check has be 'designed' for Jureca and 12 nodes, but constraint lifted since -->
       <parameter tag="check" name="nodes" type="int">12</parameter>
       <!-- set the number of task per node, with dual socket ccNUMA, 2 could be a good option -->
       <!-- with 2 memory interfaces per CPU and dual socket, 4 could be a good option -->
+      <!-- in general, align this at least with the number of NUMA domains -->
+      <!-- Jureca-DC has 2 x 4 domains -->
       <parameter             name="taskspnode" type="int" mode="python">{
          "juwels": "4",
          "jurecadc": "16",
@@ -70,7 +72,7 @@
       <parameter             name="threads" mode="python" type="int">{
          "juwels": ",".join(str(int(HWT/${taskspnode})) for HWT in [96]),
          "jurecadc": ",".join(str(int(HWT/${taskspnode})) for HWT in [256]),
-         "jusuf": ",".join(str(int(HWT/${taskspnode})) for HWT in [128])}["${systemname}"]
+         "jusuf": ",".join(str(int(HWT/${taskspnode})) for HWT in [256])}["${systemname}"]
       </parameter>
       <!-- define how many SMT threads we want to use per rank -->
       <parameter             name="thread_places" mode="python" type="int">{
@@ -87,11 +89,11 @@
       <parameter             name="mode" type="string">benchmark</parameter>
       <parameter tag="check" name="mode" type="string">test</parameter>
       <!-- strong scaling with constant number of particles -->
-      <parameter             name="particles" type="int">50000000</parameter>
+      <parameter             name="particles" type="int">250000000</parameter>
       <parameter tag="check" name="particles" type="int">1000000</parameter>
       <parameter tag="check" name="ntimesteps" type="int">10000</parameter>
       <!-- weak scaling with constant number of particles per thread -->
-      <parameter tag="weak"  name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*10000)</parameter>
+      <parameter tag="weak"  name="particles" mode="python" type="int">int($workerthreads*$taskspnode*$nodes*20000)</parameter>
       <!-- the check run has a set number of particles, don't touch settings below -->
    </parameterset>
    <parameterset name="walkset">
