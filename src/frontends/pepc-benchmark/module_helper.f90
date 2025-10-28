@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2024 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2025 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -233,7 +233,7 @@ contains
          np = np + np_pad
       case ('benchmark')
          ! setup for random qubic particle cloud, benchmarking case
-         do ip = 1, np
+         do ip = 1, np + np_pad
             p(ip)%label = my_rank * np + ip - 1
             p(ip)%data%q = (-1.0_8 + 2.0_8 * MOD(p(ip)%label, 2_kind_particle)) * 2.0_8 * &
                            plasma_dimensions(1) * plasma_dimensions(2) * &
@@ -249,6 +249,7 @@ contains
 
             p(ip)%work = 1.0_8
          end do
+         np = np + np_pad
       case default
          stop 'wrong/no setup chosen'
       end select

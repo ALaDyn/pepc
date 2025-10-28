@@ -1,6 +1,6 @@
 ! This file is part of PEPC - The Pretty Efficient Parallel Coulomb Solver.
 !
-! Copyright (C) 2002-2019 Juelich Supercomputing Centre,
+! Copyright (C) 2002-2025 Juelich Supercomputing Centre,
 !                         Forschungszentrum Juelich GmbH,
 !                         Germany
 !
@@ -176,7 +176,7 @@ contains
 
       ! Space for hash table
       if (np_mult .gt. 0) then
-         maxaddress = max(30_kind_node * t%nintmax + 4_kind_node * t%npart_me, 10000_kind_node)
+         maxaddress = max(nint(np_mult) * (30_kind_node * t%nintmax + 4_kind_node * t%npart_me), 10000_kind_node)
       else
          maxaddress = int(abs(np_mult) * 10000._8, kind_node)
       end if
